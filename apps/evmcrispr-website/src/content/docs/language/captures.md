@@ -84,14 +84,14 @@ There is deliberately no positional destructuring for tx hashes: because
 prerequisite transactions are conditional, a fixed-count pattern would bind
 different transactions on different runs.
 
-Both forms compose with the [explorer](/reference/explorer/) module ⚗️ — capture the hash, then read
+Both forms compose with the [receipts](/reference/receipts/) module ⚗️ — capture the hash, then read
 anything about it:
 
 ```evml
-load explorer
+load receipts
 exec @token(DAI) "transfer(address,uint256)" @me 1e18 $> $tx
-print @explorer:tx($tx)
-print @explorer:tx.fee($tx)
+print @receipts:tx($tx)
+print @receipts:tx.fee($tx)
 ```
 
 Tx captures can be combined with event captures (the transactions execute

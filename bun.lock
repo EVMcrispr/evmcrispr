@@ -15,7 +15,6 @@
         "@evmcrispr/module-contracts": "workspace:*",
         "@evmcrispr/module-crypto": "workspace:*",
         "@evmcrispr/module-ens": "workspace:*",
-        "@evmcrispr/module-explorer": "workspace:*",
         "@evmcrispr/module-giveth": "workspace:*",
         "@evmcrispr/module-governor": "workspace:*",
         "@evmcrispr/module-http": "workspace:*",
@@ -23,6 +22,7 @@
         "@evmcrispr/module-lending": "workspace:*",
         "@evmcrispr/module-noir": "workspace:*",
         "@evmcrispr/module-proxies": "workspace:*",
+        "@evmcrispr/module-receipts": "workspace:*",
         "@evmcrispr/module-safe": "workspace:*",
         "@evmcrispr/module-semaphore": "workspace:*",
         "@evmcrispr/module-sim": "workspace:*",
@@ -271,20 +271,6 @@
         "viem": "^2.54.1",
       },
     },
-    "modules/explorer": {
-      "name": "@evmcrispr/module-explorer",
-      "version": "0.11.0",
-      "dependencies": {
-        "@evmcrispr/sdk": "workspace:^",
-      },
-      "devDependencies": {
-        "@evmcrispr/module-std": "workspace:*",
-        "@evmcrispr/test-utils": "workspace:*",
-      },
-      "peerDependencies": {
-        "viem": "^2.54.1",
-      },
-    },
     "modules/giveth": {
       "name": "@evmcrispr/module-giveth",
       "version": "0.11.0",
@@ -379,6 +365,20 @@
         "@evmcrispr/sdk": "workspace:^",
       },
       "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
+    "modules/receipts": {
+      "name": "@evmcrispr/module-receipts",
+      "version": "0.11.0",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:^",
+      },
+      "devDependencies": {
+        "@evmcrispr/module-std": "workspace:*",
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -612,7 +612,6 @@
         "@evmcrispr/module-contracts": "workspace:^",
         "@evmcrispr/module-crypto": "workspace:^",
         "@evmcrispr/module-ens": "workspace:^",
-        "@evmcrispr/module-explorer": "workspace:^",
         "@evmcrispr/module-giveth": "workspace:^",
         "@evmcrispr/module-governor": "workspace:^",
         "@evmcrispr/module-http": "workspace:^",
@@ -620,6 +619,7 @@
         "@evmcrispr/module-lending": "workspace:^",
         "@evmcrispr/module-noir": "workspace:^",
         "@evmcrispr/module-proxies": "workspace:^",
+        "@evmcrispr/module-receipts": "workspace:^",
         "@evmcrispr/module-safe": "workspace:^",
         "@evmcrispr/module-semaphore": "workspace:^",
         "@evmcrispr/module-sim": "workspace:^",
@@ -978,8 +978,6 @@
 
     "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
 
-    "@evmcrispr/module-explorer": ["@evmcrispr/module-explorer@workspace:modules/explorer"],
-
     "@evmcrispr/module-giveth": ["@evmcrispr/module-giveth@workspace:modules/giveth"],
 
     "@evmcrispr/module-governor": ["@evmcrispr/module-governor@workspace:modules/governor"],
@@ -993,6 +991,8 @@
     "@evmcrispr/module-noir": ["@evmcrispr/module-noir@workspace:modules/noir"],
 
     "@evmcrispr/module-proxies": ["@evmcrispr/module-proxies@workspace:modules/proxies"],
+
+    "@evmcrispr/module-receipts": ["@evmcrispr/module-receipts@workspace:modules/receipts"],
 
     "@evmcrispr/module-safe": ["@evmcrispr/module-safe@workspace:modules/safe"],
 
