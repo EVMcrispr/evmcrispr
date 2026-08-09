@@ -2,7 +2,7 @@
 title: "@lang:len"
 ---
 
-Return the length of an array. As @len! the decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes.
+Return the length of an array. As @len! the decoded length of the dynamic return value of a call, on-chain: element count for arrays and nested array faces (@map!, @filter!, @safe:owners!, …), byte length for string/bytes.
 
 **Returns**: `number`
 
@@ -51,6 +51,10 @@ assertions:assert @num!(@len!($gov::{voters()(address[])}) * 2) > 4
 - For a string/bytes return the decoded length is the byte length (UTF-8
   characters may span multiple bytes). For raw returndata size use
   `@bytes.len!`.
+- Over a NESTED ARRAY FACE (`@len!(@filter!(…))`,
+  `@len!(@safe:owners!())`) the length is the live ELEMENT COUNT of
+  the words payload (its byte length over 32); byte lengths of
+  string/bytes faces stay with `@bytes.len!`/`@str.len!`.
 
 ### See Also
 

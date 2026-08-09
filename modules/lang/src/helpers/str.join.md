@@ -2,7 +2,7 @@
 title: "@lang:str.join"
 ---
 
-Join array elements into a string with a delimiter. As @str.join! the parts join on-chain through Operators.join — constant strings plus at most one live call part (spliced into the calldata last, at any position in the list).
+Join array elements into a string with a delimiter. As @str.join! the parts join on-chain through a single Operators.concat call — the delimiter interleaves between the parts at composition time (constant runs merge into one part); constant strings plus at most one live call part (spliced into the calldata last, at any position in the list).
 
 **Returns**: `string`
 
@@ -28,10 +28,14 @@ Join array elements into a string with a delimiter. As @str.join! the parts join
 
 ## On-chain face (@str.join!)
 
-Join parts with a delimiter on-chain through `join`. The parts list is
-an array literal of constant strings plus AT MOST ONE live call part:
-the live envelope splices into the calldata last, but may sit at any
-logical position in the list (its ABI offset points at the splice).
+Join parts with a delimiter through a SINGLE `concat` call — there is
+no join function on-chain. The delimiter interleaves between the parts
+at composition time, and constant runs (part, delimiter, part, …)
+merge into one constant concat part, so `["v" $reg::version()]` with
+`"."` compiles to `concat(["v.", <live>])`. The parts list is an array
+literal of constant strings plus AT MOST ONE live call part: the live
+envelope splices into the calldata last, but may sit at any logical
+position in the list (its ABI offset points at the splice).
 
 ### Examples
 

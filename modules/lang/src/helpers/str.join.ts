@@ -4,8 +4,8 @@ import type { BytesPart } from "@evmcrispr/sdk/onchain";
 import {
   chainArgWithLens,
   compileOnchainHelper,
+  concatParam,
   isBangHelperNode,
-  joinParam,
   lensedDataOperand,
   requireBytesLike,
 } from "@evmcrispr/sdk/onchain";
@@ -15,7 +15,7 @@ import type Lang from "..";
 export default defineHelper<Lang>({
   name: "str.join",
   description:
-    "Join array elements into a string with a delimiter. As @str.join! the parts join on-chain through Operators.join — constant strings plus at most one live call part (spliced into the calldata last, at any position in the list).",
+    "Join array elements into a string with a delimiter. As @str.join! the parts join on-chain through a single Operators.concat call — the delimiter interleaves between the parts at composition time (constant runs merge into one part); constant strings plus at most one live call part (spliced into the calldata last, at any position in the list).",
   returnType: "string",
   args: [
     {
@@ -44,14 +44,27 @@ export default defineHelper<Lang>({
     if (typeof delim !== "string") {
       throw new ErrorException("@str.join! delimiter must be a string");
     }
+    // The delimiter interleaves between the parts at composition time:
+    // constant runs (part + delimiter + part …) merge into ONE constant
+    // concat part, so the whole join is a single Operators.concat call
+    // with no join function on-chain.
     const parts: BytesPart[] = [];
     let liveParts = 0;
-    for (const element of elements) {
+    let constRun: string | null = null;
+    const flushConstRun = () => {
+      if (constRun !== null) {
+        parts.push(stringToHex(constRun));
+        constRun = null;
+      }
+    };
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements[i];
+      const sep = i > 0 ? delim : "";
+      let live: BytesPart | undefined;
       if (element.type === NodeType.CallExpression) {
         const arg = await chainArgWithLens(ctx, "str.join!", element);
         requireBytesLike(arg, "str.join!");
-        parts.push(lensedDataOperand(ctx, arg));
-        liveParts++;
+        live = lensedDataOperand(ctx, arg);
       } else if (isBangHelperNode(element)) {
         const o = await compileOnchainHelper(ctx, element);
         if (o.kind !== "call" || (o.cat !== "String" && o.cat !== "Bytes")) {
@@ -59,16 +72,22 @@ export default defineHelper<Lang>({
             "@str.join! live parts must resolve string/bytes values",
           );
         }
-        parts.push(o.param);
-        liveParts++;
-      } else {
-        const value = await ctx.interpreters.interpretNode(element);
-        if (typeof value !== "string") {
-          throw new ErrorException("@str.join! constant parts must be strings");
-        }
-        parts.push(stringToHex(value));
+        live = o.param;
       }
+      if (live) {
+        if (sep) constRun = (constRun ?? "") + sep;
+        flushConstRun();
+        parts.push(live);
+        liveParts++;
+        continue;
+      }
+      const value = await ctx.interpreters.interpretNode(element);
+      if (typeof value !== "string") {
+        throw new ErrorException("@str.join! constant parts must be strings");
+      }
+      constRun = (constRun ?? "") + sep + value;
     }
+    flushConstRun();
     if (liveParts > 1) {
       throw new ErrorException(
         "@str.join! joins constant parts with at most ONE live part — later offsets would depend on the live value's length",
@@ -76,7 +95,7 @@ export default defineHelper<Lang>({
     }
     return {
       kind: "call",
-      param: joinParam(ctx, parts, stringToHex(delim)),
+      param: concatParam(ctx, parts),
       cat: "String",
     };
   },

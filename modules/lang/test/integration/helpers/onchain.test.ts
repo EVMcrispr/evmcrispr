@@ -427,21 +427,39 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
       },
     },
     {
-      name: "compiles @str.join! with one live part spliced last at its logical index",
+      name: "compiles @str.join! to one concat with the delimiter merged into the constant run",
       script: `assertions:assert @str.join!(["v" ${TOKEN}::{major()(string)}] ".") == "v.2"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
-        const segs = d.opReadOf(hashArgs[0], "join(bytes[],bytes)");
+        // No join function on-chain: the delimiter interleaves at
+        // composition time, so the constant run "v" + "." becomes ONE
+        // concat part ahead of the live splice.
+        const segs = d.opReadOf(hashArgs[0], "concat(bytes[])");
         expect(segs).to.have.lengthOf(2);
-        const vTail = tailOf(hex("v"));
-        const delimTail = tailOf(hex("."));
-        // parts head area at 96: off_v = 64 (tail right after the two
-        // offset words), delim tail after it, live offset past the delim
-        const delimAt = 96 + 64 + vTail.length / 2;
-        const liveAt = delimAt + delimTail.length / 2;
+        const constTail = tailOf(hex("v."));
+        const liveAt = 64 + 64 + constTail.length / 2;
         expect(segs[0].paramData).to.equal(
-          `0x${word(64n).slice(2)}${word(BigInt(delimAt)).slice(2)}${word(2n).slice(2)}${word(64n).slice(2)}${word(BigInt(liveAt + 32 - 96)).slice(2)}${vTail}${delimTail}`,
+          `0x${word(32n).slice(2)}${word(2n).slice(2)}${word(64n).slice(2)}${word(BigInt(liveAt + 32 - 64)).slice(2)}${constTail}`,
+        );
+        expect(d.staticCallOf(segs[1]).target).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "merges a trailing @str.join! constant with its delimiter after the live part",
+      script: `assertions:assert @str.join!([${TOKEN}::{major()(string)} "rc"] "-") == "2-rc"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "concat(bytes[])");
+        expect(segs).to.have.lengthOf(2);
+        // The live part is logical index 0; the constant "-rc" tail
+        // packs right after the offset words and the live envelope
+        // splices last.
+        const constTail = tailOf(hex("-rc"));
+        const liveAt = 64 + 64 + constTail.length / 2;
+        expect(segs[0].paramData).to.equal(
+          `0x${word(32n).slice(2)}${word(2n).slice(2)}${word(BigInt(liveAt + 32 - 64)).slice(2)}${word(64n).slice(2)}${constTail}`,
         );
         expect(d.staticCallOf(segs[1]).target).to.equal(TOKEN);
       },
@@ -566,6 +584,16 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
   ],
   errorCases: [
     {
+      name: "rejects a non-boolean @filter! predicate",
+      script: `assertions:assert @filter!(${TOKEN}::{caps()(uint256[])} @num!(+ 1)) == 0x11`,
+      error: "must evaluate to a boolean",
+    },
+    {
+      name: "points string returns of @lookup! at the str. face",
+      script: `assertions:assert @lookup!(${TOKEN}::{name()(string)} "fee") == 1`,
+      error: "str./bytes. faces",
+    },
+    {
       name: "rejects two live parts in @concat!",
       script: `assertions:assert @concat!(${TOKEN}::{caps()(uint256[])} ${TOKEN}::{tiers()(uint256[])}) == 0x11`,
       error: "at most ONE live part",
@@ -594,6 +622,205 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
       name: "rejects a multi-call @map! lambda",
       script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1)) == 0x11`,
       error: "single Operators call",
+    },
+  ],
+});
+
+// ---------------------------------------------------------------------------
+//  Wave 3: filterWords/iotaWords/wordIndexOf — @filter!, @find!,
+//  @enumerate! and the record faces (@keys!, @values!, @lookup!), plus
+//  @len!/@at! over nested array faces
+// ---------------------------------------------------------------------------
+
+describeCommand("assert (lang on-chain faces, wave 3)", {
+  describeName: "Lang > helpers > on-chain faces (wave 3)",
+  preamble,
+  cases: [
+    // ---- @filter! / @find! ----------------------------------------------
+    {
+      name: "compiles @filter! to filterWords with the predicate template",
+      script: `assertions:assert @filter!(${TOKEN}::{caps()(uint256[])} @bool!(>= 100)) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(
+          hashArgs[0],
+          "filterWords(bytes,address,bytes,uint256)",
+        );
+        expect(segs).to.have.lengthOf(2);
+        // ge(<element>, 100): element window at 4 — the same lambda
+        // machinery and byte layout as @map!, only the selector differs.
+        expect(segs[0].paramData).to.equal(
+          mapLiteral(template2("ge(uint256,uint256)", 0n, 100n), 4n),
+        );
+        expectWordsPayload(segs[1]);
+        d.expectConstraint(param, "Eq", BigInt(keccak256("0x1122")));
+      },
+    },
+    {
+      name: "compiles @find! to a core pick of the filterWords output's first word",
+      script: `assertions:assert @find!(${TOKEN}::{caps()(uint256[])} @bool!(>= 100)) >= 100`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const pick = d.core(param);
+        expect(pick.functionName).to.equal("pick");
+        // Word 2 of the [0x20][len][words…] envelope = element 0; an
+        // empty filter output leaves it out of bounds (revert-on-none).
+        expect(pick.args[1]).to.equal(2n);
+        const segs = d.opReadOf(
+          pick.args[0] as unknown as DecodedParam,
+          "filterWords(bytes,address,bytes,uint256)",
+        );
+        expect(segs[0].paramData).to.equal(
+          mapLiteral(template2("ge(uint256,uint256)", 0n, 100n), 4n),
+        );
+        d.expectConstraint(param, "Gte", 100n);
+      },
+    },
+    // ---- @enumerate! -------------------------------------------------------
+    {
+      name: "compiles @enumerate! to zipWords(iotaWords(n), payload) with a live offset_b",
+      script: `assertions:assert @enumerate!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "zipWords(bytes,bytes)");
+        expect(segs).to.have.lengthOf(4);
+        // offset_a = 96 (constant: the iota envelope at 64, 0x20 skipped)
+        d.expectRawWord(segs[0], 96n);
+        // offset_b = add(mul(n, 32), 160) — a LIVE word, n from the
+        // LEN-sentinel nav
+        const addArgs = d.opReadOf(segs[1], "add(uint256,uint256)");
+        const mulArgs = d.opReadOf(addArgs[0], "mul(uint256,uint256)");
+        const lenNav = d.core(mulArgs[0]);
+        expect(lenNav.functionName).to.equal("nav");
+        expect((lenNav.args[2] as bigint[])[1]).to.equal(LEN_STEP);
+        d.expectRawWord(mulArgs[1], 32n);
+        d.expectRawWord(addArgs[1], 160n);
+        // iotaWords(n) with the same live count
+        const iotaSegs = d.opReadOf(segs[2], "iotaWords(uint256)");
+        expect(iotaSegs).to.have.lengthOf(1);
+        expect(d.core(iotaSegs[0]).functionName).to.equal("nav");
+        expectWordsPayload(segs[3]);
+      },
+    },
+    // ---- @keys! / @values! ---------------------------------------------------
+    {
+      name: "compiles @keys! to unzipWords lane 0 of the record payload",
+      script: `assertions:assert @keys!(${TOKEN}::{pairs()(uint256[])}) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "unzipWords(bytes,uint256)");
+        expect(segs).to.have.lengthOf(2);
+        expect(segs[0].paramData).to.equal(
+          `0x${word(96n).slice(2)}${word(0n).slice(2)}`,
+        );
+        expectWordsPayload(segs[1]);
+      },
+    },
+    {
+      name: "compiles @values! over a nested @enumerate! record",
+      script: `assertions:assert @values!(@enumerate!(${TOKEN}::{caps()(uint256[])})) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "unzipWords(bytes,uint256)");
+        expect(segs).to.have.lengthOf(2);
+        expect(segs[0].paramData).to.equal(
+          `0x${word(96n).slice(2)}${word(1n).slice(2)}`,
+        );
+        d.opReadOf(segs[1], "zipWords(bytes,bytes)");
+      },
+    },
+    // ---- @lookup! --------------------------------------------------------------
+    {
+      name: "compiles @lookup! with a composition-time keccak of the string key",
+      script: `assertions:assert @lookup!(${TOKEN}::{pairs()(uint256[])} "fee") >= 1`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        // value = pick word 2 of slice(values, mul(idx, 32), 32)
+        const pick = d.core(param);
+        expect(pick.functionName).to.equal("pick");
+        expect(pick.args[1]).to.equal(2n);
+        const sliceSegs = d.opReadOf(
+          pick.args[0] as unknown as DecodedParam,
+          "slice(bytes,uint256,uint256)",
+        );
+        expect(sliceSegs).to.have.lengthOf(4);
+        d.expectRawWord(sliceSegs[0], 128n);
+        // start = mul(wordIndexOf(keys, keccak("fee")), 32)
+        const mulArgs = d.opReadOf(sliceSegs[1], "mul(uint256,uint256)");
+        const idxSegs = d.opReadOf(mulArgs[0], "wordIndexOf(bytes,bytes32)");
+        expect(idxSegs).to.have.lengthOf(2);
+        expect(idxSegs[0].paramData).to.equal(
+          `0x${word(96n).slice(2)}${stringDigest("fee").slice(2)}`,
+        );
+        const keysLane = d.opReadOf(idxSegs[1], "unzipWords(bytes,uint256)");
+        expect(keysLane[0].paramData).to.equal(
+          `0x${word(96n).slice(2)}${word(0n).slice(2)}`,
+        );
+        d.expectRawWord(mulArgs[1], 32n);
+        d.expectRawWord(sliceSegs[2], 32n);
+        // the values lane is unzip lane 1 of the same record
+        const valuesLane = d.opReadOf(
+          sliceSegs[3],
+          "unzipWords(bytes,uint256)",
+        );
+        expect(valuesLane[0].paramData).to.equal(
+          `0x${word(96n).slice(2)}${word(1n).slice(2)}`,
+        );
+        d.expectConstraint(param, "Gte", 1n);
+      },
+    },
+    // ---- @len! / @at! over nested faces ------------------------------------
+    {
+      name: "compiles @len! of a nested face to the payload's word count",
+      script: `assertions:assert @len!(@sort!(${TOKEN}::{caps()(uint256[])})) == 3`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const divArgs = d.opReadOf(param, "div(uint256,uint256)");
+        const byteLenArgs = d.opReadOf(divArgs[0], "byteLen(bytes)");
+        d.opReadOf(byteLenArgs[0], "sortWords(bytes)");
+        d.expectRawWord(divArgs[1], 32n);
+        d.expectConstraint(param, "Eq", 3n);
+      },
+    },
+    {
+      name: "compiles @at! of a nested face to a core pick into the payload",
+      script: `assertions:assert @at!(@sort!(${TOKEN}::{caps()(uint256[])}) 0) >= 1`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const pick = d.core(param);
+        expect(pick.functionName).to.equal("pick");
+        // element 0 = word 2 of the [0x20][len][words…] envelope
+        expect(pick.args[1]).to.equal(2n);
+        d.opReadOf(pick.args[0] as unknown as DecodedParam, "sortWords(bytes)");
+        d.expectConstraint(param, "Gte", 1n);
+      },
+    },
+    {
+      name: "keeps a negative nested-face @at! index counting from the end",
+      script: `assertions:assert @at!(@sort!(${TOKEN}::{caps()(uint256[])}) -1) >= 5`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const pick = d.core(param);
+        expect(pick.functionName).to.equal("pick");
+        expect(pick.args[1]).to.equal(-1n);
+        d.expectConstraint(param, "Gte", 5n);
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "rejects a non-helper @find! predicate",
+      script: `assertions:assert @find!(${TOKEN}::{caps()(uint256[])} 5) > 0`,
+      error: "helper-reference predicate",
+    },
+    {
+      name: "rejects a dynamic-element array in @enumerate!",
+      script: `assertions:assert @enumerate!(${TOKEN}::{names()(string[])}) == 0x11`,
+      error: "single-word elements",
     },
   ],
 });

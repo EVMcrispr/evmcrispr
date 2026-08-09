@@ -1,11 +1,20 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
-import { chainArgWithLens, lenParam } from "@evmcrispr/sdk/onchain";
+import {
+  byteLenParamOf,
+  chainArgWithLens,
+  isBangHelperNode,
+  lenParam,
+  rawParam,
+  toWord,
+  wordOpParam,
+} from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
+import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "len",
   description:
-    "Return the length of an array. As @len! the decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes.",
+    "Return the length of an array. As @len! the decoded length of the dynamic return value of a call, on-chain: element count for arrays and nested array faces (@map!, @filter!, @safe:owners!, …), byte length for string/bytes.",
   returnType: "number",
   args: [
     {
@@ -21,6 +30,23 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
       throw new ErrorException("@len! expects a single call argument");
+    }
+    if (node.args[0] && isBangHelperNode(node.args[0])) {
+      // Nested array face: the payload is a words value, so the element
+      // count is its byte length over 32 (byte lengths of string/bytes
+      // faces stay with @bytes.len!/@str.len!).
+      const { payload } = await wordsArg(ctx, node.args[0], "len!");
+      return {
+        kind: "call",
+        param: wordOpParam(
+          ctx,
+          "div",
+          false,
+          byteLenParamOf(ctx, payload),
+          rawParam(toWord(32n)),
+        ),
+        cat: "Uint",
+      };
     }
     const arg = await chainArgWithLens(ctx, "len!", node.args[0]);
 

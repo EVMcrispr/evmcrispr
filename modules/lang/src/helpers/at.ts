@@ -4,16 +4,19 @@ import {
   chainArgWithLens,
   constIntArg,
   encodeNav,
+  encodePick,
   formatReturnTuple,
+  isBangHelperNode,
   staticCallParam,
   walkNavPath,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
+import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "at",
   description:
-    "Access an element by index in an array. As @at! an element of the array return of a call, selected on-chain through a typed nav — negative indexes resolve against the live length at assertion time.",
+    "Access an element by index in an array. As @at! an element of the array return of a call, selected on-chain through a typed nav — negative indexes resolve against the live length at assertion time. Over a nested array face (@map!, @filter!, @safe:owners!, …) the element is a core pick into the words payload (an untyped word).",
   returnType: "any",
   args: [
     {
@@ -45,6 +48,23 @@ export default defineHelper<Lang>({
       throw new ErrorException(
         "@at! expects (call index), e.g. @at!($safe::getOwners() 0)",
       );
+    }
+    if (node.args[0] && isBangHelperNode(node.args[0])) {
+      // Nested array face: the payload resolves as a bytes value
+      // [0x20][len][words…], so element i is a core pick of word i + 2
+      // (negative indexes count words from the end of the resolved
+      // bytes, which IS from the end of the payload). The element is an
+      // untyped word — the face categories don't carry element types.
+      const { payload } = await wordsArg(ctx, node.args[0], "at!");
+      const index = await constIntArg(ctx, "at!", "index", node.args[1]);
+      return {
+        kind: "call",
+        param: staticCallParam(
+          ctx.core,
+          encodePick(payload, index >= 0n ? index + 2n : index),
+        ),
+        cat: "Uint",
+      };
     }
     const arg = await chainArgWithLens(ctx, "at!", node.args[0]);
     let base = arg.path;

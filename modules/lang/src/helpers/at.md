@@ -2,7 +2,7 @@
 title: "@lang:at"
 ---
 
-Access an element by index in an array. As @at! an element of the array return of a call, selected on-chain through a typed nav — negative indexes resolve against the live length at assertion time.
+Access an element by index in an array. As @at! an element of the array return of a call, selected on-chain through a typed nav — negative indexes resolve against the live length at assertion time. Over a nested array face (@map!, @filter!, @safe:owners!, …) the element is a core pick into the words payload (an untyped word).
 
 **Returns**: `any`
 
@@ -55,6 +55,10 @@ assertions:assert @at!($safe::{getOwners()(address[])} -1) == @me
 - A lens on the call selects WHICH array first:
   `@at!($c::{config()(uint256,address[])}[_ $] 0)`.
 - An out-of-range index reverts with an index error at assertion time.
+- Over a NESTED ARRAY FACE (`@at!(@sort!(…) 0)`,
+  `@at!(@safe:owners!() -1)`) the element is a core `pick` into the
+  live words payload: an untyped word (negative indexes still count
+  from the end).
 
 ### See Also
 
