@@ -2,7 +2,7 @@
 title: "@superfluid:units"
 ---
 
-A member's share units in a GDA pool.
+Share units a member holds in a GDA pool. As @units! the getUnits() read happens on-chain at assertion time (the pool still resolves at composition time).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -38,3 +38,10 @@ sim:fork --using anvil (
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@units!)
+
+Read getUnits(member) at assertion time (the pool still resolves at
+composition time, since it is the call target).
+
+#

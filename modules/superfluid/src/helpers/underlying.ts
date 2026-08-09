@@ -1,8 +1,9 @@
-import { defineHelper, ErrorException } from "@evmcrispr/sdk";
-import { compileOperand, staticCallParam } from "@evmcrispr/sdk/onchain";
+import { defineHelper } from "@evmcrispr/sdk";
+import { staticCallParam } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData } from "viem";
 import type Superfluid from "..";
 import { superTokenAbi } from "../abis";
+import { compileSuperToken } from "../utils/onchain";
 import { requireCore } from "../utils/protocol";
 import { getUnderlyingToken, resolveSuperToken } from "../utils/supertoken";
 
@@ -28,13 +29,11 @@ export default defineHelper<Superfluid>({
     await requireCore(ctx.module);
     // The argument may be a symbol/address literal or a nested
     // composition-time face like @token! (which folds to a constant).
-    const o = await compileOperand(ctx, node.args[0]);
-    if (o.kind !== "const") {
-      throw new ErrorException(
-        "@underlying! resolves its SuperToken at composition time — pass a symbol, address or @token!(...)",
-      );
-    }
-    const superToken = await resolveSuperToken(ctx.module, String(o.value));
+    const superToken = await compileSuperToken(
+      ctx,
+      node.args[0],
+      "@underlying!",
+    );
     return {
       kind: "call",
       param: staticCallParam(

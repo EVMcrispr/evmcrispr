@@ -1,7 +1,10 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import type { Abi } from "viem";
+import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import type { Abi, AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type Superfluid from "..";
 import { superTokenAbi } from "../abis";
+import { compileSuperToken } from "../utils/onchain";
 import { requireCore } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
@@ -9,7 +12,7 @@ export default defineHelper<Superfluid>({
   name: "balance",
   batchable: false,
   description:
-    "Real-time available SuperToken balance of an account: the streaming balance at this instant, minus buffer deposits. Negative when the account is critical.",
+    "Real-time available SuperToken balance of an account: the streaming balance at this instant, minus buffer deposits. Negative when the account is critical. As @balance! the realtimeBalanceOfNow() read happens on-chain at assertion time, so the balance is the one the batch itself sees streaming (the SuperToken still resolves at composition time).",
   returnType: "number",
   args: [
     {
@@ -36,5 +39,26 @@ export default defineHelper<Superfluid>({
       args: [owner],
     })) as [bigint, bigint, bigint, bigint];
     return Num.fromBigInt(available);
+  },
+  compile: async (ctx, node) => {
+    await requireCore(ctx.module);
+    const superToken = await compileSuperToken(ctx, node.args[0], "@balance!");
+    const owner = node.args[1] ?? {
+      value: await ctx.module.getConnectedAccount(true),
+    };
+    // realtimeBalanceOfNow returns (int256 availableBalance, uint256
+    // deposit, uint256 owedDeposit, uint256 timestamp); word 0 is the
+    // available balance, already net of the buffer.
+    return callReadOperand(
+      ctx,
+      superToken,
+      getAbiItem({
+        abi: superTokenAbi,
+        name: "realtimeBalanceOfNow",
+      }) as AbiFunction,
+      [owner],
+      "Int",
+      0n,
+    );
   },
 });

@@ -18,7 +18,7 @@ Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx
 
 | Name | Type | Description |
 |------|------|-------------|
-| `symbolOrUnderlying` | `supertoken` | SuperToken symbol, or the underlying token's address |
+| `symbolOrUnderlying` | `supertoken` | SuperToken symbol, or the address of the underlying token |
 
 ## Examples
 

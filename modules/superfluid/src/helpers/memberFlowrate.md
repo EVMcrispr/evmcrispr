@@ -2,7 +2,7 @@
 title: "@superfluid:memberFlowrate"
 ---
 
-The slice of a GDA pool's distribution flow currently streaming to a member, in wei per second.
+The slice of the distribution flow of a GDA pool currently streaming to a member, in wei per second. As @memberFlowrate! the getMemberFlowRate() read happens on-chain at assertion time (the pool still resolves at composition time).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -40,3 +40,10 @@ sim:fork --using anvil (
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@memberFlowrate!)
+
+Read getMemberFlowRate(member) at assertion time (the pool still
+resolves at composition time, since it is the call target).
+
+#

@@ -2,7 +2,7 @@
 title: "@superfluid:netflow"
 ---
 
-Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining.
+Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining. As @netflow! both agreement reads happen on-chain at assertion time and are summed there (the SuperToken still resolves at composition time).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -31,3 +31,13 @@ print "Net flow:" @superfluid:netflow(xDAIx @me)
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@netflow!)
+
+Read getAccountFlowrate() on the CFA forwarder and getNetFlow() on the
+GDA forwarder at assertion time, then add them on-chain: neither
+agreement knows the other half. The result is signed, so a draining
+account reads negative and an ordering comparison picks the int256
+overload.
+
+#

@@ -1,15 +1,18 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import type { Abi } from "viem";
+import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import type { Abi, AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type Superfluid from "..";
 import { gdaForwarderAbi } from "../abis";
 import { GDA_FORWARDER } from "../addresses";
+import { compileSuperToken } from "../utils/onchain";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineHelper<Superfluid>({
   name: "distributionFlowrate",
   batchable: false,
   description:
-    "Flow rate a distributor is currently streaming into a GDA pool, in wei per second.",
+    "Flow rate a distributor is currently streaming into a GDA pool, in wei per second. As @distributionFlowrate! the getFlowDistributionFlowRate() read happens on-chain at assertion time (the SuperToken still resolves at composition time).",
   returnType: "number",
   args: [
     {
@@ -30,5 +33,22 @@ export default defineHelper<Superfluid>({
       args: [superToken, from, pool],
     })) as bigint;
     return Num.fromBigInt(rate);
+  },
+  compile: async (ctx, node) => {
+    const superToken = await compileSuperToken(
+      ctx,
+      node.args[0],
+      "@distributionFlowrate!",
+    );
+    return callReadOperand(
+      ctx,
+      GDA_FORWARDER,
+      getAbiItem({
+        abi: gdaForwarderAbi,
+        name: "getFlowDistributionFlowRate",
+      }) as AbiFunction,
+      [{ value: superToken }, node.args[1], node.args[2]],
+      "Int",
+    );
   },
 });

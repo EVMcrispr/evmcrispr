@@ -1,5 +1,7 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import type { Abi } from "viem";
+import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import type { Abi, AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type Superfluid from "..";
 import { gdaForwarderAbi } from "../abis";
 import { GDA_FORWARDER } from "../addresses";
@@ -8,7 +10,7 @@ export default defineHelper<Superfluid>({
   name: "connected",
   batchable: false,
   description:
-    "Whether a member is connected to a GDA pool (connected members see pool earnings in their balance automatically).",
+    "Whether a member is connected to a GDA pool (connected members see pool earnings in their balance automatically). As @connected! the isMemberConnected() read happens on-chain at assertion time, so a batch can gate on a connection made by an earlier action in the same batch.",
   returnType: "bool",
   args: [
     { name: "pool", type: "address", description: "GDA pool address" },
@@ -22,5 +24,19 @@ export default defineHelper<Superfluid>({
       functionName: "isMemberConnected",
       args: [pool, member],
     })) as boolean;
+  },
+  compile: async (ctx, node) => {
+    // Both operands travel as calldata to the forwarder, so either may be
+    // a live value: the pool is not the staticcall target here.
+    return callReadOperand(
+      ctx,
+      GDA_FORWARDER,
+      getAbiItem({
+        abi: gdaForwarderAbi,
+        name: "isMemberConnected",
+      }) as AbiFunction,
+      [node.args[0], node.args[1]],
+      "Bool",
+    );
   },
 });

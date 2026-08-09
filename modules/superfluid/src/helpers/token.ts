@@ -13,7 +13,7 @@ export default defineHelper<Superfluid>({
     {
       name: "symbolOrUnderlying",
       type: "supertoken",
-      description: "SuperToken symbol, or the underlying token's address",
+      description: "SuperToken symbol, or the address of the underlying token",
     },
   ],
   async run(module, { symbolOrUnderlying }) {

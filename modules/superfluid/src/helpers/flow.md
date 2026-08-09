@@ -2,7 +2,7 @@
 title: "@superfluid:flow"
 ---
 
-Current flow rate between a sender and a receiver, in wei per second (0 when no stream exists).
+Current flow rate between a sender and a receiver, in wei per second (0 when no stream exists). As @flow! the getFlowrate() read happens on-chain at assertion time (the SuperToken still resolves at composition time).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -32,3 +32,12 @@ print "Flow rate:" @superfluid:flow(xDAIx 0x4F2083f5fBede34C2714aFfb3105539775f7
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+## On-chain face (@flow!)
+
+Read getFlowrate(token, sender, receiver) at assertion time, so a batch
+gates on the stream still running when it executes rather than when it
+was built. The SuperToken resolves at composition time; sender and
+receiver may be live values.
+
+#
