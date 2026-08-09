@@ -6,10 +6,10 @@ import {
   ErrorException,
   resolveChainId,
 } from "@evmcrispr/sdk";
-import type Receipts from "..";
+import type Contracts from "..";
 import { renderAccountSummary } from "../utils/renderAccountSummary";
 
-export default defineHelper<Receipts>({
+export default defineHelper<Contracts>({
   name: "account",
   batchable: false,
   experimental: true,

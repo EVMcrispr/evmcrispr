@@ -39,5 +39,5 @@ Verified contract names, ENS labels and decoded calldata/logs are best-effort: w
 
 - [@receipts:tx.calldata](tx.calldata.md) — raw input data of a transaction
 - [@receipts:tx.status](tx.status.md) — whether a transaction succeeded
-- [@receipts:account](account.md) — inspect an address
+- [@contracts:account](../../../contracts/src/helpers/account.md) — inspect an address
 - [@bridges:status](../../../bridges/src/helpers/status.md) — progress of a bridge transfer

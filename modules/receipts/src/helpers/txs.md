@@ -39,4 +39,4 @@ Plain RPC cannot list per-address history, so this helper needs an explorer API:
 ## See Also
 
 - [@receipts:tx](tx.md) — inspect one of the returned hashes
-- [@receipts:account](account.md) — inspect the address itself
+- [@contracts:account](../../../contracts/src/helpers/account.md) — inspect the address itself

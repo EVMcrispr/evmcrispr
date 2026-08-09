@@ -10,13 +10,13 @@ const EOA = "0xCED608Aa29bB92185D9b6340Adcbfa263DAe075b";
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
 describeHelper(
-  "@receipts:account",
+  "@contracts:account",
   {
-    module: "receipts",
+    module: "contracts",
     cases: [
       {
         name: "should classify a contract",
-        input: `@receipts:account(${WXDAI})`,
+        input: `@contracts:account(${WXDAI})`,
         validate: (result) => {
           expect(typeof result).to.equal("string");
           expect(result).to.include("Contract");
@@ -26,7 +26,7 @@ describeHelper(
       },
       {
         name: "should classify an EOA",
-        input: `@receipts:account(${EOA})`,
+        input: `@contracts:account(${EOA})`,
         validate: (result) => {
           expect(result.startsWith("EOA")).to.be.true;
           expect(result).to.include(EOA);
@@ -34,7 +34,7 @@ describeHelper(
       },
       {
         name: "should detect proxies on another chain via the chain arg",
-        input: `@receipts:account(${USDC} mainnet)`,
+        input: `@contracts:account(${USDC} mainnet)`,
         validate: (result) => {
           expect(result).to.include("Contract");
           // The implementation address changes on upgrades; the proxy
@@ -46,7 +46,7 @@ describeHelper(
     docCases: [
       {
         description: "Inspect what an address is",
-        code: `print @receipts:account(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)`,
+        code: `print @contracts:account(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)`,
       },
     ],
     sampleArgs: [WXDAI, "gnosis"],

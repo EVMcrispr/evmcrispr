@@ -12,7 +12,6 @@ load receipts
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@receipts:account](src/helpers/account.md) ⚗️ | `string` | Human-readable summary of an address: EOA / contract / EIP-7702-delegated EOA, verified contract name, proxy implementation, ENS name, balance and tx count. |
 | [@receipts:block.basefee!](src/helpers/block.basefee.md) | `number` | The block base fee in wei at assertion time: gate a batch on fee conditions. |
 | [@receipts:block.blobbasefee!](src/helpers/block.blobbasefee.md) | `number` | The blob base fee in wei at assertion time. |
 | [@receipts:block.coinbase!](src/helpers/block.coinbase.md) | `address` | The block proposer fee recipient address at assertion time. |

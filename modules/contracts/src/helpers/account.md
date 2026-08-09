@@ -1,8 +1,8 @@
 ---
-title: "@receipts:account"
+title: "@contracts:account"
 experimental: true
 sidebar:
-  label: "@receipts:account ⚗️"
+  label: "@contracts:account ⚗️"
 ---
 
 Human-readable summary of an address: EOA / contract / EIP-7702-delegated EOA, verified contract name, proxy implementation, ENS name, balance and tx count.
@@ -14,7 +14,7 @@ Human-readable summary of an address: EOA / contract / EIP-7702-delegated EOA, v
 ## Syntax
 
 ```evml
-@receipts:account(address chain?)
+@contracts:account(address chain?)
 ```
 
 ## Arguments
@@ -28,7 +28,7 @@ Human-readable summary of an address: EOA / contract / EIP-7702-delegated EOA, v
 
 ```evml
 # Inspect what an address is
-print @receipts:account(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)
+print @contracts:account(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d)
 ```
 
 <!-- HAND-WRITTEN -->
@@ -37,5 +37,5 @@ For proxies the verified name and compiler shown are the implementation's — th
 
 ## See Also
 
-- [@receipts:txs](txs.md) — recent transactions of an address
-- [@contracts:codeAt](../../../contracts/src/helpers/codeAt.md) — raw deployed bytecode
+- [@receipts:txs](../../../receipts/src/helpers/txs.md) — recent transactions of an address
+- [@contracts:codeAt](codeAt.md) — raw deployed bytecode
