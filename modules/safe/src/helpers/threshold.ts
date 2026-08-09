@@ -1,10 +1,13 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
+import { directReadOperand } from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData } from "viem";
 import type Safe from "..";
-import { getThreshold } from "../utils";
+import { getThreshold, safeAbi } from "../utils";
 
 export default defineHelper<Safe>({
   name: "threshold",
-  description: "Return the signature threshold of a Safe.",
+  description:
+    "Return the signature threshold of a Safe. As @threshold! the getThreshold() read happens on-chain at assertion time (the Safe still resolves at composition time).",
   returnType: "number",
   batchable: false,
   args: [
@@ -22,6 +25,18 @@ export default defineHelper<Safe>({
         await module.getClient(),
         await module.resolveSafe(safe),
       ),
+    );
+  },
+  compile: async (ctx, node) => {
+    const explicit = node.args[0]
+      ? String(await ctx.interpreters.interpretNode(node.args[0]))
+      : undefined;
+    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
+    return directReadOperand(
+      ctx,
+      safe,
+      encodeFunctionData({ abi: safeAbi, functionName: "getThreshold" }),
+      "Uint",
     );
   },
 });

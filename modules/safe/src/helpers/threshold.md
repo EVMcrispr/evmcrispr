@@ -2,7 +2,7 @@
 title: "@safe:threshold"
 ---
 
-Return the signature threshold of a Safe.
+Return the signature threshold of a Safe. As @threshold! the getThreshold() read happens on-chain at assertion time (the Safe still resolves at composition time).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -29,3 +29,20 @@ Return the signature threshold of a Safe.
 ```
 
 ## See Also
+
+## On-chain face (@threshold!)
+
+Read getThreshold() at assertion time. The Safe still resolves at
+composition time (explicit argument, enclosing propose/exec block, or
+the connected account).
+
+### Examples
+
+```evml
+load assertions
+load safe
+
+set $safe 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @safe:threshold!($safe) >= 3 "threshold lowered"
+```

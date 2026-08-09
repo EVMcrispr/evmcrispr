@@ -1,10 +1,13 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
+import { directReadOperand } from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData } from "viem";
 import type Safe from "..";
-import { getSafeNonce } from "../utils";
+import { getSafeNonce, safeAbi } from "../utils";
 
 export default defineHelper<Safe>({
   name: "nonce",
-  description: "Return the current on-chain nonce of a Safe.",
+  description:
+    "Return the current on-chain nonce of a Safe. As @nonce! the nonce() read happens on-chain at assertion time — pin a proposal's execution window.",
   returnType: "number",
   batchable: false,
   args: [
@@ -22,6 +25,18 @@ export default defineHelper<Safe>({
         await module.getClient(),
         await module.resolveSafe(safe),
       ),
+    );
+  },
+  compile: async (ctx, node) => {
+    const explicit = node.args[0]
+      ? String(await ctx.interpreters.interpretNode(node.args[0]))
+      : undefined;
+    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
+    return directReadOperand(
+      ctx,
+      safe,
+      encodeFunctionData({ abi: safeAbi, functionName: "nonce" }),
+      "Uint",
     );
   },
 });

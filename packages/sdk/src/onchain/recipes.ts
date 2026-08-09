@@ -1,10 +1,10 @@
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
 import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
 import { encodePick } from "./core";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import { FOLD_EXIT, OP_SELECTORS } from "./operators";
-import type { CompileCtx } from "./types";
+import type { Category, CompileCtx, Operand } from "./types";
 
 /**
  * Bytes-operation recipes: how the string helpers compile onto the plain
@@ -285,6 +285,29 @@ export function unzipParam(
       s,
     ]),
   );
+}
+
+/**
+ * A P1 single-read operand: a direct staticcall with build-time calldata.
+ * `pickWord` unwraps one word of a multi-value return through a core
+ * `pick`, so the operand stays a clean single word for the word machine
+ * (constraints only inspect the FIRST word, but nested splices carry the
+ * full returndata).
+ */
+export function directReadOperand(
+  ctx: CompileCtx,
+  target: Address,
+  data: Hex,
+  cat: Category,
+  pickWord?: bigint,
+): Operand {
+  const param = staticCallParam(target, data);
+  if (pickWord === undefined) return { kind: "call", param, cat };
+  return {
+    kind: "call",
+    param: staticCallParam(ctx.core, encodePick(param, pickWord)),
+    cat,
+  };
 }
 
 /**

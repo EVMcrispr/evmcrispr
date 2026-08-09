@@ -2,7 +2,7 @@
 title: "@safe:isOwner"
 ---
 
-Return whether an address is an owner of a Safe.
+Return whether an address is an owner of a Safe. As @isOwner! the Safe's own isOwner(address) view is read on-chain at assertion time.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -30,3 +30,19 @@ Return whether an address is an owner of a Safe.
 ```
 
 ## See Also
+
+## On-chain face (@isOwner!)
+
+Read the Safe's own isOwner(address) view at assertion time (the plain
+face walks getOwners() off-chain instead).
+
+### Examples
+
+```evml
+load assertions
+load safe
+
+set $safe 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+
+assertions:assert @safe:isOwner!(@me $safe) "removed from owners"
+```
