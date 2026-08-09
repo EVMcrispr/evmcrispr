@@ -21,4 +21,3 @@ The block base fee in wei at assertion time: gate a batch on fee conditions.
 ```
 
 ## See Also
-

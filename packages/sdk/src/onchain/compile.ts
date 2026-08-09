@@ -336,7 +336,7 @@ async function hopAbi(
 
 /** Compile an argument node list into ArgSpecs, turning nested `::` calls
  *  and `!` helpers into live params and interpreting everything else at
- *  build time. Shared by hop compilation and the @read! helper. */
+ *  build time. Shared by plain hop compilation and `!::` read hops. */
 export async function compileArgSpecs(
   ctx: CompileCtx,
   argNodes: readonly Node[],
@@ -374,7 +374,9 @@ type CompiledHop =
   | { kind: "plain"; data: Hex }
   | { kind: "read"; call: ReadCall };
 
-/** Compile a hop's argument list. */
+/** Compile a hop's argument list. A `!::` hop always compiles as a read
+ *  construction — its target is a spliced operand, never a fixed address,
+ *  so there is no plain-calldata shortcut. */
 async function compileHopArgs(
   ctx: CompileCtx,
   hop: CallExpressionNode,
@@ -383,7 +385,7 @@ async function compileHopArgs(
   const liveIdx = hop.args.findIndex(
     (a) => a.type === NodeType.CallExpression || isBangHelperNode(a),
   );
-  if (liveIdx === -1) {
+  if (liveIdx === -1 && !hop.bang) {
     const argVals = await ctx.interpreters.interpretNodes(hop.args);
     return { kind: "plain", data: encodeCalldata(fnAbi, argVals) };
   }
@@ -408,15 +410,39 @@ export async function compileChain(
 ): Promise<Chain> {
   const { hops, rootTarget } = flattenCallNodes(node);
 
-  const rootValue = await ctx.interpreters.interpretNode(rootTarget);
-  if (typeof rootValue !== "string" || !isAddress(rootValue)) {
-    throw new ErrorException(
-      `assertion target must resolve to an address, got ${rootValue}`,
-    );
+  let startAddress: Address | undefined;
+  let start: InputParam;
+
+  if (hops[0]?.bang) {
+    // A leading `!::` hop reads from a computed head: the target may be
+    // any operand (a bang helper, a variable, a literal), not just an
+    // address chain. A live head is spliced as the read target word — the
+    // core still requires it to resolve to a clean address word
+    // (InvalidAddressWord otherwise); the win is computed heads like
+    // `@bytes!($reg::packedPool() ">>" 96)!::{fee()(uint24)}`.
+    const head = await compileOperand(ctx, rootTarget);
+    if (head.kind === "const") {
+      if (head.cat !== "Address") {
+        throw new ErrorException(
+          `a !:: read target must resolve to an address, got ${String(head.value)}`,
+        );
+      }
+      startAddress = getAddress(head.value as string);
+      start = rawParam(toWord(BigInt(startAddress)));
+    } else {
+      start = head.param;
+    }
+  } else {
+    const rootValue = await ctx.interpreters.interpretNode(rootTarget);
+    if (typeof rootValue !== "string" || !isAddress(rootValue)) {
+      throw new ErrorException(
+        `assertion target must resolve to an address, got ${rootValue}`,
+      );
+    }
+    startAddress = getAddress(rootValue);
+    start = rawParam(toWord(BigInt(startAddress)));
   }
 
-  let startAddress: Address | undefined = getAddress(rootValue);
-  let start: InputParam = rawParam(toWord(BigInt(startAddress)));
   let calls: Hex[] = [];
   let lastAbi: AbiFunction | undefined;
   let liveArgs = false;
@@ -424,6 +450,16 @@ export async function compileChain(
   for (let i = 0; i < hops.length; i++) {
     const hop = hops[i];
     const last = i === hops.length - 1;
+    // The next hop's kind decides what THIS hop's value must be: a plain
+    // `::` hop staticcalls it as an address; a `!::` hop splices it as the
+    // read target word (any single-word value is acceptable — the core
+    // enforces the clean address word on-chain).
+    const nextBang = hops[i + 1]?.bang === true;
+    if (hop.bang && !(hop.inputTypes && hop.outputTypes)) {
+      throw new ErrorException(
+        "a !:: hop requires the inline ABI form !::{method(argTypes)(returnTypes) args}",
+      );
+    }
     const fnAbi = await hopAbi(ctx, hop, {
       start,
       startAddress,
@@ -446,9 +482,15 @@ export async function compileChain(
         hopPath,
         hop.method,
       );
-      if (terminal.type !== "address") {
+      if (
+        nextBang
+          ? !SINGLE_WORD_ABI.test(terminal.type)
+          : terminal.type !== "address"
+      ) {
         throw new ErrorException(
-          `a chained call must continue on an address; the lens on ${hop.method} selects ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
+          nextBang
+            ? `a !:: read target must be a single-word value; the lens on ${hop.method} selects ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`
+            : `a chained call must continue on an address; the lens on ${hop.method} selects ${terminal.type.startsWith("tuple") ? "a struct" : terminal.type}`,
         );
       }
       const compiled = await compileHopArgs(ctx, hop, fnAbi);
@@ -483,7 +525,19 @@ export async function compileChain(
       continue;
     }
     if (!last) {
-      if (fnAbi.outputs.length !== 1 || fnAbi.outputs[0].type !== "address") {
+      if (nextBang) {
+        if (
+          fnAbi.outputs.length !== 1 ||
+          !SINGLE_WORD_ABI.test(fnAbi.outputs[0].type)
+        ) {
+          throw new ErrorException(
+            `a !:: read target must be a single-word value, or select one with a lens (e.g. ${hop.method}(...)[_ $ _]); ${hop.method} returns (${fnAbi.outputs.map((o) => o.type).join(", ")})`,
+          );
+        }
+      } else if (
+        fnAbi.outputs.length !== 1 ||
+        fnAbi.outputs[0].type !== "address"
+      ) {
         throw new ErrorException(
           `every chained call except the last must return a single address, or select one with a lens (e.g. ${hop.method}(...)[_ $ _]); ${hop.method} returns (${fnAbi.outputs.map((o) => o.type).join(", ")})`,
         );

@@ -26,7 +26,7 @@ import {
   variableIdentifierParser,
 } from "./primaries";
 import {
-  callOperatorParser,
+  chainOperatorParser,
   createNodeLocation,
   currentContexDataParser,
   optionalMultilineWhitespace,
@@ -85,6 +85,13 @@ type InlineAbiResult = {
 
 const inlineAbiMethodNameRegex = /^[a-zA-Z_][a-zA-Z0-9_]*/;
 
+export const CALL_PARSER_ERROR = "CallParserError";
+
+/** A `!::` hop has no composition-time address to fetch an ABI from, so
+ *  the named-method form is impossible — the signature must be inline. */
+const BANG_INLINE_ABI_ERROR =
+  'Expected the inline ABI form after "!::" (e.g. !::{fee()(uint24)}) — a !:: hop constructs its call at assertion time, so the signature must be written inline as !::{method(argTypes)(returnTypes) args...}';
+
 const _inlineAbiCallParser: NodeParser<InlineAbiResult> = recursiveParser(() =>
   coroutine((run) => {
     run(char("{"));
@@ -115,6 +122,7 @@ const _inlineAbiCallParser: NodeParser<InlineAbiResult> = recursiveParser(() =>
 
 const chainedCallExpressionParser = (
   target: CallExpressionNode,
+  bang: boolean,
 ): Parser<CallExpressionNode, string, NodeParserState> =>
   recursiveParser(() =>
     coroutine((run) => {
@@ -122,7 +130,13 @@ const chainedCallExpressionParser = (
 
       let n: CallExpressionNode;
 
-      const isInlineAbi: string | null = run(possibly(char("{")));
+      const isInlineAbi: string | null = bang
+        ? run(
+            char("{").errorMap((err) =>
+              buildParserError(err, CALL_PARSER_ERROR, BANG_INLINE_ABI_ERROR),
+            ),
+          )
+        : run(possibly(char("{")));
 
       if (isInlineAbi !== null) {
         const method: string = run(regex(inlineAbiMethodNameRegex));
@@ -145,6 +159,7 @@ const chainedCallExpressionParser = (
           target,
           method,
           args,
+          ...(bang ? { bang: true } : {}),
           inputTypes,
           outputTypes,
           loc: createNodeLocation(initialContext, finalContext),
@@ -172,8 +187,9 @@ const chainedCallExpressionParser = (
         n.loc = createNodeLocation(initialContext, afterLens);
       }
 
-      if (run(possibly(callOperatorParser))) {
-        return run(chainedCallExpressionParser(n));
+      const nextOp: string | null = run(possibly(chainOperatorParser));
+      if (nextOp) {
+        return run(chainedCallExpressionParser(n, nextOp === "!::"));
       }
 
       return n;
@@ -184,7 +200,7 @@ const chainedCallExpressionParser = (
 // Top-level call expression
 // ---------------------------------------------------------------------------
 
-const enclosingParsers = [callOperatorParser];
+const enclosingParsers = [chainOperatorParser];
 
 const callableExpressions = recursiveParser(() =>
   choice([
@@ -201,11 +217,18 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
       const initialContext: LocationData = run(currentContexDataParser);
       const target: CallExpressionNode["target"] = run(callableExpressions);
 
-      run(callOperatorParser);
+      const hopOp: string = run(chainOperatorParser);
+      const bang = hopOp === "!::";
 
       let n: CallExpressionNode;
 
-      const isInlineAbi: string | null = run(possibly(char("{")));
+      const isInlineAbi: string | null = bang
+        ? run(
+            char("{").errorMap((err) =>
+              buildParserError(err, CALL_PARSER_ERROR, BANG_INLINE_ABI_ERROR),
+            ),
+          )
+        : run(possibly(char("{")));
 
       if (isInlineAbi !== null) {
         const method: string = run(regex(inlineAbiMethodNameRegex));
@@ -228,6 +251,7 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
           target,
           method,
           args,
+          ...(bang ? { bang: true } : {}),
           inputTypes,
           outputTypes,
           loc: createNodeLocation(initialContext, finalContext),
@@ -258,8 +282,9 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
         n.loc = createNodeLocation(initialContext, afterLens);
       }
 
-      if (run(possibly(callOperatorParser))) {
-        return run(chainedCallExpressionParser(n));
+      const nextOp: string | null = run(possibly(chainOperatorParser));
+      if (nextOp) {
+        return run(chainedCallExpressionParser(n, nextOp === "!::"));
       }
 
       return n;

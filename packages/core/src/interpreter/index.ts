@@ -759,10 +759,29 @@ function applyReturnLens(
   panic(n, "return destructure has no $ capture marker");
 }
 
+/** Whether any hop of a (possibly chained) call expression is a `!::`
+ *  on-chain read hop. */
+function chainHasBangHop(n: CallExpressionNode): boolean {
+  let cur: Node = n;
+  while (cur.type === NodeType.CallExpression) {
+    if ((cur as CallExpressionNode).bang) return true;
+    cur = (cur as CallExpressionNode).target as Node;
+  }
+  return false;
+}
+
 export function makeExecutionResolveCallExpression(
   input: Pick<ExecutionResolversInput, "bindings" | "getClient">,
 ): InterpretCtx["resolveCallExpression"] {
   return async (n, interpreters, options) => {
+    // `!::` hops construct their call on-chain at assertion time — there
+    // is nothing to eth_call at composition time.
+    if (chainHasBangHop(n)) {
+      panic(
+        n,
+        "`!::` evaluates on-chain and is only valid inside an on-chain expression",
+      );
+    }
     // Inline calls are read-only `eth_call`s: inside a batch they run at
     // batch-build time and cannot observe earlier batch actions. Reads
     // before the first action are still sound, so they stay allowed.

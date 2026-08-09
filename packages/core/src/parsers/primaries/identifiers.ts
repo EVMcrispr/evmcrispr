@@ -27,7 +27,7 @@ export const variableIdentifierParser: EnclosingNodeParser<
   recursiveParser(() =>
     locate<VariableIdentifierNode>(
       sequenceOf([
-        regex(/^\$(?:(?!::|--|\(|\)|\[|\]|\{|\}|,|\s).)+/),
+        regex(/^\$(?:(?!::|!::|--|\(|\)|\[|\]|\{|\}|,|\s).)+/),
         enclosingLookaheadParser(enclosingParsers),
       ]).errorMap((err) =>
         buildParserError(
@@ -51,10 +51,10 @@ export const variableIdentifierParser: EnclosingNodeParser<
 // `<<<` opens a heredoc literal; keeping it out of barewords makes an
 // unterminated heredoc a parse error instead of a silent bareword.
 const identifierRegexParser = regex(
-  /^(?:(?!::|--|#|,|\(|\[|\)|\]|\{|\}|@|\s|"|'|<<<).)+/,
+  /^(?:(?!::|!::|--|#|,|\(|\[|\)|\]|\{|\}|@|\s|"|'|<<<).)+/,
 );
 const encloseIdentifierRegexParser = regex(
-  /^(?:(?!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|@|\s|'|").)+/,
+  /^(?:(?!::|!::|--|#|\(|\[|\)|\]|-|\+|\/|\*|@|\s|'|").)+/,
 );
 
 const sequenceOf_ = (parsers: Parser<any, string, any>[]) =>

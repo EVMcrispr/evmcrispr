@@ -102,6 +102,13 @@ export interface CallExpressionNode extends Node {
   target: ArgumentExpressionNode;
   method: string;
   args: Node[];
+  /** On-chain read hop (`!::` instead of `::`): the target value — any
+   *  expression, not just an address chain — becomes the read target of a
+   *  core `read` constructed at assertion time. Only valid inside on-chain
+   *  expressions, and always carries an inline ABI (`inputTypes`/
+   *  `outputTypes`) — there is no composition-time address to fetch an
+   *  ABI from. */
+  bang?: boolean;
   /** Inline ABI input types, e.g. "(address)" — from ::{method(inputs)(outputs)} syntax. */
   inputTypes?: string;
   /** Inline ABI output types, e.g. "(uint256)" — from ::{method(inputs)(outputs)} syntax. */

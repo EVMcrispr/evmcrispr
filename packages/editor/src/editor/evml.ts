@@ -253,6 +253,7 @@ export const createLanguage: (
         action: { token: "number" },
       },
       { regex: /--[a-zA-Z][a-zA-Z0-9-]*/, action: { token: "option" } },
+      { regex: /!::/, action: { token: "operator" } },
       { regex: /::/, action: { token: "operator" } },
       { regex: /-\?!>/, action: { token: "operator" } },
       { regex: /-!>/, action: { token: "operator" } },

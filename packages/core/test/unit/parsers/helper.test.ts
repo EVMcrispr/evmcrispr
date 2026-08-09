@@ -278,3 +278,11 @@ describe("Parsers - helper function (multiline)", () => {
     expect(result.args.map((a: any) => a.value)).to.eql(["arg1", "arg2"]);
   });
 });
+
+describe("Parsers - helper function (bang rename)", () => {
+  it("parses an import rename with trailing bangs", () => {
+    const result = runParser(helperFunctionParser, "@min!>@smallest!");
+    expect(result).to.deep.include({ name: "min!", rename: "smallest!" });
+    expect(result.args).to.have.lengthOf(0);
+  });
+});

@@ -21,4 +21,3 @@ The blob base fee in wei at assertion time.
 ```
 
 ## See Also
-

@@ -52,6 +52,17 @@ export const createNodeLocation = (
 
 export const callOperatorParser = str("::");
 
+/** The on-chain read hop operator (`!::`) — accepted wherever `::` is; the
+ *  hop compiles to a core `read` at assertion time. */
+export const bangCallOperatorParser = str("!::");
+
+/** Either hop operator; yields the matched token so callers can flag the
+ *  hop (`"!::"` vs `"::"`). */
+export const chainOperatorParser = choice([
+  bangCallOperatorParser,
+  callOperatorParser,
+]);
+
 export const optOperatorParser = str("--");
 
 // Overwrite arcsecond's parser as it ignores newline character

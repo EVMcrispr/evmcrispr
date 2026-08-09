@@ -1261,10 +1261,10 @@ describeCommand("assert", {
         }
       },
     },
-    // ---- @read! ----------------------------------------------------------
+    // ---- !::{} on-chain read hops -----------------------------------------
     {
-      name: "compiles @read! with a literal target and constant argument",
-      script: `assertions:assert @read!(${TOKEN} "balanceOf(address)(uint256)" ${HOLDER}) >= 10e18`,
+      name: "compiles !:: with a literal target and constant argument",
+      script: `assertions:assert ${TOKEN}!::{balanceOf(address)(uint256) ${HOLDER}} >= 10e18`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 10n * 10n ** 18n);
@@ -1276,8 +1276,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @read! with a call-resolved target",
-      script: `assertions:assert @read!(${A}::{asset()(address)} "totalSupply()(uint256)") > 0`,
+      name: "compiles !:: with a call-resolved target",
+      script: `assertions:assert ${A}::{asset()(address)}!::{totalSupply()(uint256)} > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { target, selector, segments } = readOf(param);
@@ -1289,8 +1289,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @read! with a live call argument",
-      script: `assertions:assert @read!(${A} "convertToAssets(uint256)(uint256)" ${B}::{totalSupply()(uint256)}) > 0`,
+      name: "compiles !:: with a live call argument",
+      script: `assertions:assert ${A}!::{convertToAssets(uint256)(uint256) ${B}::{totalSupply()(uint256)}} > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { target, selector, segments } = readOf(param);
@@ -1303,8 +1303,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "composes @read! inside @num! arithmetic",
-      script: `assertions:assert @num!(@read!(${A} "convertToAssets(uint256)(uint256)" 1e18) * 2) > 0`,
+      name: "composes a !:: read inside @num! arithmetic",
+      script: `assertions:assert @num!(${A}!::{convertToAssets(uint256)(uint256) 1e18} * 2) > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // Unsigned `> 0` folds to a GTE 1 constraint on the expression.
@@ -1318,14 +1318,55 @@ describeCommand("assert", {
       },
     },
     {
-      name: "judges a string-returning @read! via keccak of the payload",
-      script: `assertions:assert @read!(${TOKEN} "name()(string)") == "Wrapped Ether"`,
+      name: "judges a string-returning !:: read via keccak of the payload",
+      script: `assertions:assert ${TOKEN}!::{name()(string)} == "Wrapped Ether"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", BigInt(stringDigest("Wrapped Ether")));
         const hashArgs = opReadOf(param, "hash(bytes)");
         const read = readOf(hashArgs[0]);
         expect(read.selector).to.equal(selectorOf("name()"));
+      },
+    },
+    {
+      name: "reads from a computed head (@bytes! word) via !::",
+      script: `assertions:assert @bytes!(${C}::{packedPool()(uint256)} ">>" 96)!::{fee()(uint24)} > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        // fee() read whose target is the shifted packedPool word.
+        const { target, selector, segments } = readOf(param);
+        expect(selector).to.equal(selectorOf("fee()"));
+        expect(segments).to.have.lengthOf(0);
+        const shr = opReadOf(target, "shr(uint256,uint256)");
+        expect(shr).to.have.lengthOf(2);
+        const pool = staticCallOf(shr[0]);
+        expect(pool.target).to.equal(C);
+        expect(pool.data).to.equal(selectorOf("packedPool()"));
+        expectRawWord(shr[1], 96n);
+      },
+    },
+    {
+      name: "accepts a single-word non-address value as a !:: read target",
+      script: `assertions:assert ${TOKEN}::{decimals()(uint256)}!::{totalSupply()(uint256)} > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const { target, selector } = readOf(param);
+        const decimalsCall = staticCallOf(target);
+        expect(decimalsCall.target).to.equal(TOKEN);
+        expect(decimalsCall.data).to.equal(selectorOf("decimals()"));
+        expect(selector).to.equal(selectorOf("totalSupply()"));
+      },
+    },
+    {
+      name: "applies a destructure lens to a !:: read via pick",
+      script: `assertions:assert ${A}!::{getReserves()(uint112,uint112)}[$ _] > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const pick = core(param);
+        expect(pick.functionName).to.equal("pick");
+        const read = readOf(pick.args[0] as unknown as Param);
+        expect(read.selector).to.equal(selectorOf("getReserves()"));
+        expect(pick.args[1]).to.equal(0n);
       },
     },
   ],
@@ -1500,40 +1541,30 @@ describeCommand("assert", {
       script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}::{symbol()(string)} == "WETH"`,
       error: "select one with a lens",
     },
-    // ---- @read! ----------------------------------------------------------
+    // ---- !::{} on-chain read hops -----------------------------------------
     {
-      name: "rejects @read! without a signature",
-      script: `assertions:assert @read!(${TOKEN}) > 0`,
-      error: "@read! expects (target abi ...params)",
+      name: "rejects a multi-return !:: read without a lens",
+      script: `assertions:assert ${TOKEN}!::{getReserves()(uint112,uint112)} > 0`,
+      error: "use a destructure lens to select one",
     },
     {
-      name: "rejects a @read! signature without return types",
-      script: `assertions:assert @read!(${TOKEN} "balanceOf(address)" ${HOLDER}) > 0`,
-      error: "read-abi signature",
-    },
-    {
-      name: "rejects a @read! signature with multiple return types",
-      script: `assertions:assert @read!(${TOKEN} "getReserves()(uint112,uint112)") > 0`,
-      error: "exactly one return type",
-    },
-    {
-      name: "rejects a non-address @read! target",
-      script: `assertions:assert @read!(123 "totalSupply()(uint256)") > 0`,
+      name: "rejects a non-address constant !:: read target",
+      script: `assertions:assert 123!::{totalSupply()(uint256)} > 0`,
       error: "must resolve to an address",
     },
     {
-      name: "rejects a @read! target call not returning a single address",
-      script: `assertions:assert @read!(${TOKEN}::{decimals()(uint256)} "totalSupply()(uint256)") > 0`,
-      error: "must return a single address",
+      name: "rejects a multi-word value as a !:: read target",
+      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112)}!::{totalSupply()(uint256)} > 0`,
+      error: "must be a single-word value",
     },
     {
-      name: "rejects a @read! argument-count mismatch",
-      script: `assertions:assert @read!(${TOKEN} "balanceOf(address)(uint256)") > 0`,
+      name: "rejects a !:: argument-count mismatch",
+      script: `assertions:assert ${TOKEN}!::{balanceOf(address)(uint256)} > 0`,
       error: "expects 1 argument",
     },
     {
-      name: "rejects @read! outside an assertion",
-      script: `set $x @assertions:read!(${TOKEN} "totalSupply()(uint256)")`,
+      name: "rejects !:: outside an assertion",
+      script: `set $x ${TOKEN}!::{totalSupply()(uint256)}`,
       error: "only valid inside an on-chain expression",
     },
     // ---- nested live call arguments ----------------------------------------

@@ -56,7 +56,6 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@assertions:num!](src/helpers/num-bang.md) | `number` | Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract. |
 | [@assertions:origin!](src/helpers/origin-bang.md) | `address` | The transaction origin address at assertion time: gate a batch on who is executing it. |
 | [@assertions:prevrandao!](src/helpers/prevrandao-bang.md) | `number` | The previous RANDAO mix of the block at assertion time, as a number. |
-| [@assertions:read!](src/helpers/read-bang.md) | `any` | Call a read-only function with live arguments at assertion time: the target and any argument may be a `::` call or an on-chain helper, compiled to the core `read` primitive. |
 | [@assertions:split!](src/helpers/split-bang.md) | `string` | Split the string return of a call on a delimiter and select one segment, on-chain. Segment indexes are 0, 1, 2, … from the start, or -1, -2, … from the end (-1 is the last segment). |
 | [@assertions:sqrt!](src/helpers/sqrt-bang.md) | `number` | Integer square root (floor) computed on-chain, the AMM invariant form, e.g. @sqrt!($pool::reserve0() * $pool::reserve1()). |
 | [@assertions:timestamp!](src/helpers/timestamp-bang.md) | `number` | The block timestamp at assertion time (not at script build time). |

@@ -27,4 +27,3 @@ The hash of a block, read at assertion time (0 for the current block, the future
 ```
 
 ## See Also
-

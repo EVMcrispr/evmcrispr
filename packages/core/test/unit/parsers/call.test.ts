@@ -572,3 +572,109 @@ describe("Parsers - call expression (multiline)", () => {
     });
   });
 });
+
+describe("Parsers - call expression (!:: read hops)", () => {
+  it("parses a top-level !:: hop with an inline ABI", () => {
+    const result = runParser(
+      callExpressionParser,
+      `0x14FA5C16Af56190239B997485656F5c8b4f86c4b!::{balanceOf(address)(uint256) @me}`,
+    );
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "balanceOf",
+      bang: true,
+      inputTypes: "(address)",
+      outputTypes: "(uint256)",
+    });
+    expect(result.target).to.deep.include({
+      type: "AddressLiteral",
+      value: "0x14FA5C16Af56190239B997485656F5c8b4f86c4b",
+    });
+    expect(result.args).to.have.lengthOf(1);
+  });
+
+  it("parses a variable head before !::", () => {
+    const result = runParser(callExpressionParser, `$reg!::{fee()(uint24)}`);
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "fee",
+      bang: true,
+      inputTypes: "()",
+      outputTypes: "(uint24)",
+    });
+    expect(result.target).to.deep.include({
+      type: "VariableIdentifier",
+      value: "$reg",
+    });
+  });
+
+  it("parses a computed (bang helper) head before !::", () => {
+    const result = runParser(
+      callExpressionParser,
+      `@bytes!($reg::packedPool() ">>" 96)!::{fee()(uint24)}`,
+    );
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "fee",
+      bang: true,
+    });
+    expect(result.target).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "bytes!",
+    });
+    expect(result.target.args).to.have.lengthOf(3);
+  });
+
+  it("parses a plain hop chained into a !:: hop", () => {
+    const result = runParser(
+      callExpressionParser,
+      `$a::{asset()(address)}!::{totalSupply()(uint256)}`,
+    );
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "totalSupply",
+      bang: true,
+    });
+    expect(result.target).to.deep.include({
+      type: "CallExpression",
+      method: "asset",
+    });
+    expect(result.target.bang).to.equal(undefined);
+  });
+
+  it("keeps plain hops unflagged and applies lenses to !:: hops", () => {
+    const result = runParser(
+      callExpressionParser,
+      `$a!::{getReserves()(uint112,uint112)}[$ _]`,
+    );
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "getReserves",
+      bang: true,
+    });
+    expect(result.returnDestructure).to.deep.equal(["$", null]);
+  });
+
+  it("continues a chain after a !:: hop", () => {
+    const result = runParser(
+      callExpressionParser,
+      `$a!::{vault()(address)}::{totalSupply()(uint256)}`,
+    );
+    expect(result).to.deep.include({
+      type: "CallExpression",
+      method: "totalSupply",
+    });
+    expect(result.bang).to.equal(undefined);
+    expect(result.target).to.deep.include({
+      type: "CallExpression",
+      method: "vault",
+      bang: true,
+    });
+  });
+
+  it("rejects the named-method form after !:: with a clear error", () => {
+    const error = runParser(callExpressionParser, `$a!::fee()`);
+    expect(String(error)).to.include("CallParserError");
+    expect(String(error)).to.include("inline ABI form");
+  });
+});

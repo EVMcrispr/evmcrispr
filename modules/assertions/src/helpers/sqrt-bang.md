@@ -27,4 +27,3 @@ Integer square root (floor) computed on-chain, the AMM invariant form, e.g. @sqr
 ```
 
 ## See Also
-

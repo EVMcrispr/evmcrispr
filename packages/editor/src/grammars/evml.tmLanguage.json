@@ -188,6 +188,10 @@
     "operator": {
       "patterns": [
         {
+          "match": "!::",
+          "name": "keyword.operator.namespace.evml"
+        },
+        {
           "match": "::",
           "name": "keyword.operator.namespace.evml"
         },

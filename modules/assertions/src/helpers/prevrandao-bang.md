@@ -21,4 +21,3 @@ The previous RANDAO mix of the block at assertion time, as a number.
 ```
 
 ## See Also
-

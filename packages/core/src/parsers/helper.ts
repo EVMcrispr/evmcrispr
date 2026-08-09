@@ -15,6 +15,7 @@ import {
 } from "arcsecond";
 import { argumentsParser } from "./expression";
 import {
+  bangCallOperatorParser,
   callOperatorParser,
   createNodeLocation,
   enclosingLookaheadParser,
@@ -37,6 +38,7 @@ const helperNameParser = takeLeft(regex(HELPER_NAME_REGEX))(
     char("("),
     char("]"),
     char("}"),
+    bangCallOperatorParser,
     callOperatorParser,
     char(")"),
     char(">"),

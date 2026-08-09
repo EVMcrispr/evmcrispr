@@ -21,4 +21,3 @@ The block proposer fee recipient address at assertion time.
 ```
 
 ## See Also
-
