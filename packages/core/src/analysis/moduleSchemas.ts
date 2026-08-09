@@ -185,18 +185,24 @@ export class ModuleSchemaProvider {
     return mod.helperArgDefs?.[name];
   }
 
-  /** Resolve a helper's `batchable` flag (requires loading the helper fn).
-   *  Memoized. `undefined` when unknown/unresolvable. */
+  /** Resolve a helper's `batchable` flag. Registry metadata first (codegen
+   *  records declared `batchable: false` flags statically); modules
+   *  regenerated before that metadata existed fall back to dynamically
+   *  importing the helper fn. Memoized. `undefined` when
+   *  unknown/unresolvable. */
   async getHelperBatchable(
     moduleName: string,
     name: string,
   ): Promise<boolean | undefined> {
+    const mod = this.#modules.get(moduleName);
+    const declared = mod?.helperBatchable?.[name];
+    if (declared !== undefined) return declared;
     const key = `${moduleName}:${name}`;
     if (this.#helperBatchableCache.has(key)) {
       return this.#helperBatchableCache.get(key);
     }
     let batchable: boolean | undefined;
-    const loader = this.#modules.get(moduleName)?.helpers[name];
+    const loader = mod?.helpers[name];
     if (loader) {
       try {
         const fn = await resolveHelper(loader);
@@ -207,6 +213,18 @@ export class ModuleSchemaProvider {
     }
     this.#helperBatchableCache.set(key, batchable);
     return batchable;
+  }
+
+  /** Whether `moduleName`'s helper `name` has an on-chain face — a `name!`
+   *  sibling registry key (marked `onchain` by codegen). Inside a smart
+   *  batch the non-batchable diagnostic is lifted for such helpers: the
+   *  batch compiles the read on-chain instead of evaluating it at build
+   *  time. */
+  getHelperOnchain(moduleName: string, name: string): boolean {
+    const mod = this.#modules.get(moduleName);
+    if (!mod) return false;
+    const key = name.endsWith("!") ? name : `${name}!`;
+    return mod.helperOnchain?.[key] === true || key in mod.helpers;
   }
 
   /** Merged custom arg types across all loaded modules (for type checks). */

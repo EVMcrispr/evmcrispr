@@ -247,6 +247,13 @@ export type HelperImportEntry = {
   description?: string;
   /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
   experimental?: boolean;
+  /** This key is a helper's on-chain face (`name!`, registered by codegen
+   *  when the definition declares a `compile` face). */
+  onchain?: boolean;
+  /** The definition's `batchable` flag (only recorded when `false`), so
+   *  the analyzer can gate batch use without dynamically importing the
+   *  helper. */
+  batchable?: boolean;
 };
 
 /** Map of name -> helper import entry (loader + return type). */

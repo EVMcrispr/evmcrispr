@@ -53,6 +53,12 @@ export type ModuleData = {
   helperArgDefs?: Record<string, HelperArgDefEntry[]>;
   /** Human-readable descriptions for each helper (keyed by helper name). */
   helperDescriptions?: Record<string, string>;
+  /** Registry keys that are on-chain faces (`name!` — keyed by that full
+   *  registry key, value always true). */
+  helperOnchain?: Record<string, boolean>;
+  /** Declared `batchable: false` flags (keyed by helper name; only
+   *  false values are recorded). */
+  helperBatchable?: Record<string, boolean>;
   /** Human-readable descriptions for each command (keyed by command name). */
   commandDescriptions?: Record<string, string>;
   /** Module constants (zero-arg `@NAME` values). */

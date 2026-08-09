@@ -37,6 +37,10 @@ export abstract class Module {
   readonly experimentalCommands: string[];
   /** Helper names hidden for the same reason. */
   readonly experimentalHelpers: string[];
+  /** Registry keys that are on-chain faces (`name!`). */
+  readonly helperOnchain: Record<string, boolean>;
+  /** Declared `batchable: false` flags (only false values recorded). */
+  readonly helperBatchable: Record<string, boolean>;
 
   constructor(
     name: string,
@@ -53,6 +57,8 @@ export abstract class Module {
     configs: ConfigDef[] = [],
     experimentalCommands: string[] = [],
     experimentalHelpers: string[] = [],
+    helperOnchain: Record<string, boolean> = {},
+    helperBatchable: Record<string, boolean> = {},
   ) {
     this.name = name;
     this.commands = commands;
@@ -68,6 +74,8 @@ export abstract class Module {
     this.configs = configs;
     this.experimentalCommands = experimentalCommands;
     this.experimentalHelpers = experimentalHelpers;
+    this.helperOnchain = helperOnchain;
+    this.helperBatchable = helperBatchable;
   }
 
   // --- Convenience accessors delegating to context ---
@@ -104,6 +112,8 @@ export abstract class Module {
       configs: this.configs,
       experimentalCommands: this.experimentalCommands,
       experimentalHelpers: this.experimentalHelpers,
+      helperOnchain: this.helperOnchain,
+      helperBatchable: this.helperBatchable,
     };
   }
 

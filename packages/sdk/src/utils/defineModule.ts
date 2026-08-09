@@ -28,6 +28,8 @@ function createModuleClass<M extends Module>(
   configs: ConfigDef[] = [],
   experimentalCommands: string[] = [],
   experimentalHelpers: string[] = [],
+  helperOnchain: Record<string, boolean> = {},
+  helperBatchable: Record<string, boolean> = {},
 ): IModuleConstructor {
   return class extends Module {
     static readonly moduleName = name;
@@ -48,6 +50,8 @@ function createModuleClass<M extends Module>(
         configs,
         experimentalCommands,
         experimentalHelpers,
+        helperOnchain,
+        helperBatchable,
       );
     }
   } as IModuleConstructor;
@@ -102,6 +106,8 @@ export function defineModule(
   const helperHasArgs: Record<string, boolean> = {};
   const helperArgDefsMap: Record<string, HelperArgDefEntry[]> = {};
   const helperDescriptions: Record<string, string> = {};
+  const helperOnchain: Record<string, boolean> = {};
+  const helperBatchable: Record<string, boolean> = {};
   if (helperImports) {
     for (const [k, entry] of Object.entries(helperImports)) {
       if (entry.experimental && !experimentalOn) {
@@ -109,6 +115,12 @@ export function defineModule(
         continue;
       }
       helpers[k] = () => entry.load().then((m) => m.default);
+      if (entry.onchain) {
+        helperOnchain[k] = true;
+      }
+      if (entry.batchable !== undefined) {
+        helperBatchable[k] = entry.batchable;
+      }
       if (entry.returnType) {
         helperReturnTypes[k] = entry.returnType;
       }
@@ -138,5 +150,7 @@ export function defineModule(
     configs ?? [],
     experimentalCommands,
     experimentalHelpers,
+    helperOnchain,
+    helperBatchable,
   );
 }
