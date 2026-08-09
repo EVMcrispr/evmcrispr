@@ -38,7 +38,7 @@ describeHelper(
         preamble: "",
       },
     ],
-    sampleArgs: [`[[1 2]]`],
+    sampleArgs: [`[[1 2]]`, `0`],
   },
   helpers.unzip.argDefs,
 );

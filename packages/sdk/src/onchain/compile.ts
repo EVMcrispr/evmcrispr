@@ -167,7 +167,7 @@ export function byteLenParamOf(ctx: CompileCtx, value: InputParam): InputParam {
 //  Const operands
 // ---------------------------------------------------------------------------
 
-function constOperand(value: unknown): Operand {
+export function constOperand(value: unknown): Operand {
   if (typeof value === "boolean") return { kind: "const", cat: "Bool", value };
   if (value === "true" || value === "false")
     return { kind: "const", cat: "Bool", value: value === "true" };

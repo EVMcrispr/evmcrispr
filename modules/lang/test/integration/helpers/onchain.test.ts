@@ -9,7 +9,7 @@ import {
   stringDigest,
   word,
 } from "@evmcrispr/test-utils/evml";
-import { getAddress, type Hex } from "viem";
+import { getAddress, type Hex, keccak256 } from "viem";
 
 const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
 const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
@@ -352,6 +352,248 @@ describeCommand("assert (lang on-chain faces)", {
       name: "rejects an inverted constant @str.slice! range",
       script: `assertions:assert @str.slice!(${TOKEN}::{name()(string)} 5 2) == "x"`,
       error: "before start",
+    },
+  ],
+});
+
+// ---------------------------------------------------------------------------
+//  Wave 2: the new Operators vocabulary (string extras + array-shape ops)
+// ---------------------------------------------------------------------------
+
+/** A [len][payload padded to 32] bytes tail, as a hex span. */
+function tailOf(payload: string): string {
+  const len = payload.length / 2;
+  const padded = payload + "0".repeat((64 - (payload.length % 64)) % 64);
+  return `${word(BigInt(len)).slice(2)}${padded}`;
+}
+
+const hex = (s: string): string => Buffer.from(s, "utf8").toString("hex");
+
+/** The single RAW_BYTES literal of a mapWords read: 4 head words
+ *  [offset_s][target][offset_template = 128][elemOffset] plus the
+ *  template tail; the live payload envelope splices last. */
+function mapLiteral(template: Hex, elemOffset: bigint): Hex {
+  const tail = tailOf(template.slice(2));
+  const envelopeAt = 128 + tail.length / 2;
+  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATORS)).slice(2)}${word(128n).slice(2)}${word(elemOffset).slice(2)}${tail}`;
+}
+
+describeCommand("assert (lang on-chain faces, wave 2)", {
+  describeName: "Lang > helpers > on-chain faces (wave 2)",
+  preamble,
+  cases: [
+    {
+      name: "compiles @str.replace! with the needle and replacement tails at 96",
+      script: `assertions:assert @str.replace!(${TOKEN}::{name()(string)} "LP" "Pool") == "Curve Pool Token"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "replace(bytes,bytes,bytes)");
+        expect(segs).to.have.lengthOf(2);
+        const needleTail = tailOf(hex("LP"));
+        const replTail = tailOf(hex("Pool"));
+        const replAt = 96 + needleTail.length / 2;
+        const envelopeAt = replAt + replTail.length / 2;
+        expect(segs[0].paramData).to.equal(
+          `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(96n).slice(2)}${word(BigInt(replAt)).slice(2)}${needleTail}${replTail}`,
+        );
+        expect(d.staticCallOf(segs[1]).target).to.equal(TOKEN);
+        d.expectConstraint(
+          param,
+          "Eq",
+          BigInt(stringDigest("Curve Pool Token")),
+        );
+      },
+    },
+    {
+      name: "compiles @str.lower! to a single spliced toLower read",
+      script: `assertions:assert @str.lower!(${TOKEN}::{symbol()(string)}) == "weth"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "toLower(bytes)");
+        expect(segs).to.have.lengthOf(1);
+        expect(d.staticCallOf(segs[0]).target).to.equal(TOKEN);
+        d.expectConstraint(param, "Eq", BigInt(stringDigest("weth")));
+      },
+    },
+    {
+      name: "compiles @str.upper! to a single spliced toUpper read",
+      script: `assertions:assert @str.upper!(${TOKEN}::{symbol()(string)}) == "WETH"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        d.opReadOf(hashArgs[0], "toUpper(bytes)");
+      },
+    },
+    {
+      name: "compiles @str.join! with one live part spliced last at its logical index",
+      script: `assertions:assert @str.join!(["v" ${TOKEN}::{major()(string)}] ".") == "v.2"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "join(bytes[],bytes)");
+        expect(segs).to.have.lengthOf(2);
+        const vTail = tailOf(hex("v"));
+        const delimTail = tailOf(hex("."));
+        // parts head area at 96: off_v = 64 (tail right after the two
+        // offset words), delim tail after it, live offset past the delim
+        const delimAt = 96 + 64 + vTail.length / 2;
+        const liveAt = delimAt + delimTail.length / 2;
+        expect(segs[0].paramData).to.equal(
+          `0x${word(64n).slice(2)}${word(BigInt(delimAt)).slice(2)}${word(2n).slice(2)}${word(64n).slice(2)}${word(BigInt(liveAt + 32 - 96)).slice(2)}${vTail}${delimTail}`,
+        );
+        expect(d.staticCallOf(segs[1]).target).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "compiles @map! to mapWords with the lambda window at its marker offset",
+      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2)) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(
+          hashArgs[0],
+          "mapWords(bytes,address,bytes,uint256)",
+        );
+        expect(segs).to.have.lengthOf(2);
+        // mul(<element>, 2): element window at 4
+        expect(segs[0].paramData).to.equal(
+          mapLiteral(template2("mul(uint256,uint256)", 0n, 2n), 4n),
+        );
+        expectWordsPayload(segs[1]);
+        d.expectConstraint(param, "Eq", BigInt(keccak256("0x1122")));
+      },
+    },
+    {
+      name: "nests @sort! inside @unique! for set-uniqueness",
+      script: `assertions:assert @unique!(@sort!(${TOKEN}::{holders()(address[])})) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const uniqueSegs = d.opReadOf(hashArgs[0], "uniqueWords(bytes)");
+        expect(uniqueSegs).to.have.lengthOf(1);
+        const sortSegs = d.opReadOf(uniqueSegs[0], "sortWords(bytes)");
+        expect(sortSegs).to.have.lengthOf(1);
+        expectWordsPayload(sortSegs[0]);
+      },
+    },
+    {
+      name: "compiles @reverse! over a nested @map! result",
+      script: `assertions:assert @reverse!(@map!(${TOKEN}::{caps()(uint256[])} @num!(+ 1))) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const revSegs = d.opReadOf(hashArgs[0], "reverseWords(bytes)");
+        expect(revSegs).to.have.lengthOf(1);
+        d.opReadOf(revSegs[0], "mapWords(bytes,address,bytes,uint256)");
+      },
+    },
+    {
+      name: "compiles @zip! of a live side with a constant lane",
+      script: `assertions:assert @zip!(${TOKEN}::{caps()(uint256[])} [7 8]) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "zipWords(bytes,bytes)");
+        expect(segs).to.have.lengthOf(2);
+        const bTail = tailOf(`${word(7n).slice(2)}${word(8n).slice(2)}`);
+        const liveAt = 64 + bTail.length / 2;
+        expect(segs[0].paramData).to.equal(
+          `0x${word(BigInt(liveAt + 32)).slice(2)}${word(64n).slice(2)}${bTail}`,
+        );
+        expectWordsPayload(segs[1]);
+      },
+    },
+    {
+      name: "compiles @unzip! with the lane word after the payload offset",
+      script: `assertions:assert @unzip!(${TOKEN}::{pairs()(uint256[])} 1) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "unzipWords(bytes,uint256)");
+        expect(segs).to.have.lengthOf(2);
+        expect(segs[0].paramData).to.equal(
+          `0x${word(96n).slice(2)}${word(1n).slice(2)}`,
+        );
+        expectWordsPayload(segs[1]);
+      },
+    },
+    {
+      name: "compiles @flat! of a constant part and a live part",
+      script: `assertions:assert @flat!([[1 2] ${TOKEN}::{caps()(uint256[])}]) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "concat(bytes[])");
+        expect(segs).to.have.lengthOf(2);
+        const constTail = tailOf(`${word(1n).slice(2)}${word(2n).slice(2)}`);
+        const liveAt = 64 + 64 + constTail.length / 2;
+        expect(segs[0].paramData).to.equal(
+          `0x${word(32n).slice(2)}${word(2n).slice(2)}${word(64n).slice(2)}${word(BigInt(liveAt + 32 - 64)).slice(2)}${constTail}`,
+        );
+        expectWordsPayload(segs[1]);
+      },
+    },
+    {
+      name: "compiles @bytes.concat! with hex constants around the live part",
+      script: `assertions:assert @bytes.concat!(0x1234 ${TOKEN}::{payload()(bytes)}) == 0xabcd`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "concat(bytes[])");
+        expect(segs).to.have.lengthOf(2);
+        const constTail = tailOf("1234");
+        const liveAt = 64 + 64 + constTail.length / 2;
+        expect(segs[0].paramData).to.equal(
+          `0x${word(32n).slice(2)}${word(2n).slice(2)}${word(64n).slice(2)}${word(BigInt(liveAt + 32 - 64)).slice(2)}${constTail}`,
+        );
+        expect(d.staticCallOf(segs[1]).target).to.equal(TOKEN);
+        d.expectConstraint(param, "Eq", BigInt(keccak256("0xabcd")));
+      },
+    },
+    {
+      name: "feeds a nested @map! into @reduce!",
+      script: `assertions:assert @reduce!(@map!(${TOKEN}::{caps()(uint256[])} @num!(* 2)) add 0) >= 10`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(param, FOLD_SIG);
+        expect(args).to.have.lengthOf(2);
+        d.opReadOf(args[1], "mapWords(bytes,address,bytes,uint256)");
+        d.expectConstraint(param, "Gte", 10n);
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "rejects two live parts in @concat!",
+      script: `assertions:assert @concat!(${TOKEN}::{caps()(uint256[])} ${TOKEN}::{tiers()(uint256[])}) == 0x11`,
+      error: "at most ONE live part",
+    },
+    {
+      name: "rejects two live sides in @zip!",
+      script: `assertions:assert @zip!(${TOKEN}::{caps()(uint256[])} ${TOKEN}::{tiers()(uint256[])}) == 0x11`,
+      error: "at most ONE live side",
+    },
+    {
+      name: "rejects an out-of-range @unzip! lane",
+      script: `assertions:assert @unzip!(${TOKEN}::{pairs()(uint256[])} 2) == 0x11`,
+      error: "lane must be 0 or 1",
+    },
+    {
+      name: "rejects an empty @str.replace! needle",
+      script: `assertions:assert @str.replace!(${TOKEN}::{name()(string)} "" "x") == "y"`,
+      error: "non-empty",
+    },
+    {
+      name: "rejects a comparator on @sort!",
+      script: `assertions:assert @sort!(${TOKEN}::{caps()(uint256[])} @max) == 0x11`,
+      error: "no comparator",
+    },
+    {
+      name: "rejects a multi-call @map! lambda",
+      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1)) == 0x11`,
+      error: "single Operators call",
     },
   ],
 });

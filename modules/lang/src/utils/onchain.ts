@@ -4,14 +4,21 @@
  * array of single-word elements, and bridging its envelope into the
  * word-payload bytes the Operators folds consume.
  */
-import { ErrorException } from "@evmcrispr/sdk";
+import type { Node } from "@evmcrispr/sdk";
+import { ErrorException, NodeType } from "@evmcrispr/sdk";
 import type { CompileCtx, InputParam } from "@evmcrispr/sdk/onchain";
 import {
   arrayWordsParam,
+  chainArgWithLens,
+  compileOnchainHelper,
+  constBigInt,
+  constOperand,
+  isBangHelperNode,
   lenParam,
   lensedDataOperand,
+  toWord,
 } from "@evmcrispr/sdk/onchain";
-import type { AbiParameter } from "viem";
+import type { AbiParameter, Hex } from "viem";
 
 const WORD_ELEMENT = /^(u?int\d*|address|bool|bytes32)$/;
 
@@ -65,4 +72,60 @@ export function wordsPayload(
     lensedDataOperand(ctx, arg),
     lenParam(ctx, arg.param, arg.outputs, path),
   );
+}
+
+/**
+ * Compile a word-array ARGUMENT of an on-chain array face: either a `::`
+ * call (or chain) returning an array of single-word elements, or a
+ * nested on-chain array face (`@map!`, `@sort!`, …) whose bytes result is
+ * already a words payload — the faces compose by nesting.
+ */
+export async function wordsArg(
+  ctx: CompileCtx,
+  node: Node | undefined,
+  helper: string,
+): Promise<{ payload: InputParam; elemType: string }> {
+  if (node && isBangHelperNode(node)) {
+    const o = await compileOnchainHelper(ctx, node);
+    if (o.kind !== "call" || o.cat !== "Bytes") {
+      throw new ErrorException(
+        `@${helper} nested argument must be an on-chain array face resolving a words payload (e.g. @map!, @sort!)`,
+      );
+    }
+    return { payload: o.param, elemType: "uint256" };
+  }
+  if (!node || node.type !== NodeType.CallExpression) {
+    throw new ErrorException(
+      `@${helper} expects a \`::\` call expression or a nested on-chain array face, e.g. @${helper}($safe::getOwners() …)`,
+    );
+  }
+  const arg = await chainArgWithLens(ctx, helper, node);
+  const { path, elemType } = wordArrayPath(arg, helper);
+  return { payload: wordsPayload(ctx, arg, path), elemType };
+}
+
+/** Interpret a build-time constant array literal into its packed word
+ *  payload (one 32-byte word per element). */
+export async function constWordsPayload(
+  ctx: CompileCtx,
+  node: Node,
+  helper: string,
+): Promise<Hex> {
+  const value = await ctx.interpreters.interpretNode(node);
+  if (!Array.isArray(value)) {
+    throw new ErrorException(
+      `@${helper} constant parts must be array literals, got ${typeof value}`,
+    );
+  }
+  let payload = "0x" as string;
+  for (const element of value) {
+    const o = constOperand(element);
+    if (o.kind !== "const") {
+      throw new ErrorException(
+        `@${helper} constant parts must contain build-time words`,
+      );
+    }
+    payload += toWord(constBigInt(o)).slice(2);
+  }
+  return payload as Hex;
 }

@@ -1,6 +1,5 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import {
-  chainArgWithLens,
   constIntArg,
   FOLD_EXIT,
   foldParam,
@@ -9,7 +8,7 @@ import {
 } from "@evmcrispr/sdk/onchain";
 import type { Hex } from "viem";
 import type Lang from "..";
-import { wordArrayPath, wordsPayload } from "../utils/onchain";
+import { wordsArg } from "../utils/onchain";
 
 function deepEquals(a: unknown, b: unknown): boolean {
   if (a instanceof Num && b instanceof Num) return a.eq(b);
@@ -47,8 +46,7 @@ export default defineHelper<Lang>({
         "@includes! expects (call item), e.g. @includes!($safe::getOwners() @me)",
       );
     }
-    const arg = await chainArgWithLens(ctx, "includes!", node.args[0]);
-    const { path } = wordArrayPath(arg, "includes!");
+    const { payload } = await wordsArg(ctx, node.args[0], "includes!");
     const item = await constIntArg(ctx, "includes!", "item", node.args[1]);
     // eq(<item>, <element>) — the element window is the second word (36);
     // eq ignores the accumulator, so both fold windows share it.
@@ -58,7 +56,7 @@ export default defineHelper<Lang>({
       param: foldParam(
         ctx,
         "foldWords",
-        wordsPayload(ctx, arg, path),
+        payload,
         template,
         36n,
         36n,

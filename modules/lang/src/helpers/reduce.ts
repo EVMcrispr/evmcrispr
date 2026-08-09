@@ -1,7 +1,6 @@
 import type { HelperFunctionNode } from "@evmcrispr/sdk";
 import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import {
-  chainArgWithLens,
   constIntArg,
   FOLD_EXIT,
   foldParam,
@@ -10,7 +9,7 @@ import {
 } from "@evmcrispr/sdk/onchain";
 import type { Hex } from "viem";
 import type Lang from "..";
-import { wordArrayPath, wordsPayload } from "../utils/onchain";
+import { wordsArg } from "../utils/onchain";
 
 /** Binary Operators lambdas a fold accumulator composes with. */
 const REDUCERS = ["add", "min", "max", "bitOr", "bitAnd"] as const;
@@ -48,8 +47,7 @@ export default defineHelper<Lang>({
         "@reduce! expects (call fn initial), e.g. @reduce!($vault::caps() add 0)",
       );
     }
-    const arg = await chainArgWithLens(ctx, "reduce!", node.args[0]);
-    const { path } = wordArrayPath(arg, "reduce!");
+    const { payload } = await wordsArg(ctx, node.args[0], "reduce!");
 
     const fnNode = node.args[1];
     let name: string | undefined;
@@ -73,7 +71,7 @@ export default defineHelper<Lang>({
       param: foldParam(
         ctx,
         "foldWords",
-        wordsPayload(ctx, arg, path),
+        payload,
         template,
         4n,
         36n,

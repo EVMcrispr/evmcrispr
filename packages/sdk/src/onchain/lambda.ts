@@ -128,33 +128,54 @@ export function extractLambdaTemplate(
 }
 
 /**
- * Compile a predicate argument (`@all!`/`@any!`) into a lambda template.
- * The predicate names an Operators-backed helper — `@bool!(>= 100)`,
- * `@not!`, any helper reference whose compile face reduces to one
- * Operators call — and is applied with the element prepended to its own
- * arguments, mirroring the def-proxy partial-application convention.
+ * Compile a lambda argument (`@map!`, `@all!`, `@any!`) into a template.
+ * The lambda names an Operators-backed helper — `@bool!(>= 100)`,
+ * `@num!(* 2)`, `@not!`, any helper reference whose compile face reduces
+ * to one Operators call — and is applied with the element prepended to
+ * its own arguments, mirroring the def-proxy partial-application
+ * convention. Returns the compiled operand alongside the template so
+ * callers can enforce their own result category.
  */
+export async function compileLambdaTemplate(
+  ctx: CompileCtx,
+  lambdaNode: Node | undefined,
+  label: string,
+  elemCat: Category = "Uint",
+): Promise<LambdaTemplate & { operand: Operand }> {
+  if (!lambdaNode || lambdaNode.type !== NodeType.HelperFunctionExpression) {
+    throw new ErrorException(
+      `${label} expects a helper-reference lambda, e.g. @bool!(> 100) — the element is prepended to the reference's own arguments`,
+    );
+  }
+  const lambda = lambdaNode as HelperFunctionNode;
+  const synthetic: HelperFunctionNode = {
+    ...lambda,
+    args: [operandNode(elementOperand(elemCat)), ...lambda.args] as never,
+  };
+  const o = await compileOnchainHelper(ctx, synthetic);
+  return { ...extractLambdaTemplate(ctx, o, `${label} lambda`), operand: o };
+}
+
+/** {@link compileLambdaTemplate} with the boolean-result requirement of
+ *  the fold predicates. */
 export async function compilePredicateTemplate(
   ctx: CompileCtx,
   predNode: Node | undefined,
   label: string,
   elemCat: Category = "Uint",
 ): Promise<LambdaTemplate> {
-  if (!predNode || predNode.type !== NodeType.HelperFunctionExpression) {
-    throw new ErrorException(
-      `${label} expects a helper-reference predicate, e.g. @bool!(> 100) — the element is prepended to the reference's own arguments`,
-    );
+  if (predNode && predNode.type === NodeType.HelperFunctionExpression) {
+    // Surface the category error before the template-shape error: a
+    // numeric lambda may well be a single call yet still not a predicate.
+    const compiled = await compileLambdaTemplate(ctx, predNode, label, elemCat);
+    if (compiled.operand.kind === "call" && compiled.operand.cat !== "Bool") {
+      throw new ErrorException(
+        `${label} predicate must evaluate to a boolean, got a ${compiled.operand.cat} value`,
+      );
+    }
+    return compiled;
   }
-  const pred = predNode as HelperFunctionNode;
-  const synthetic: HelperFunctionNode = {
-    ...pred,
-    args: [operandNode(elementOperand(elemCat)), ...pred.args] as never,
-  };
-  const o = await compileOnchainHelper(ctx, synthetic);
-  if (o.kind === "call" && o.cat !== "Bool") {
-    throw new ErrorException(
-      `${label} predicate must evaluate to a boolean, got a ${o.cat} value`,
-    );
-  }
-  return extractLambdaTemplate(ctx, o, `${label} predicate`);
+  throw new ErrorException(
+    `${label} expects a helper-reference predicate, e.g. @bool!(> 100) — the element is prepended to the reference's own arguments`,
+  );
 }

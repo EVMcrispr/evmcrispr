@@ -1,13 +1,12 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import {
   categoryFromAbiType,
-  chainArgWithLens,
   compilePredicateTemplate,
   FOLD_EXIT,
   foldParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
-import { wordArrayPath, wordsPayload } from "../utils/onchain";
+import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "all",
@@ -43,8 +42,7 @@ export default defineHelper<Lang>({
         "@all! expects (call predicate), e.g. @all!($vault::caps() @bool!(>= 100))",
       );
     }
-    const arg = await chainArgWithLens(ctx, "all!", node.args[0]);
-    const { path, elemType } = wordArrayPath(arg, "all!");
+    const { payload, elemType } = await wordsArg(ctx, node.args[0], "all!");
     const tpl = await compilePredicateTemplate(
       ctx,
       node.args[1],
@@ -60,7 +58,7 @@ export default defineHelper<Lang>({
       param: foldParam(
         ctx,
         "foldWords",
-        wordsPayload(ctx, arg, path),
+        payload,
         tpl.template,
         tpl.elemOffset,
         tpl.elemOffset,

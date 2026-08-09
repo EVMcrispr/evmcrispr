@@ -239,6 +239,192 @@ export function arrayWordsParam(
 }
 
 /**
+ * `replace(s, needle, repl)` with a live `s`: heads are
+ * [offset_s][offset_needle = 96][offset_repl], the constant needle and
+ * replacement tails follow at 96, and the runtime envelope of `s` is
+ * spliced last with the +32 offset trick.
+ */
+export function replaceParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  needle: Hex,
+  repl: Hex,
+): InputParam {
+  const needleTail = bytesTail(needle);
+  const replAt = 96 + needleTail.length / 2;
+  const replTail = bytesTail(repl);
+  const envelopeAt = replAt + replTail.length / 2;
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.replace,
+    mergeSegments([
+      wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
+      wordSpan(96n), // offset_needle
+      wordSpan(BigInt(replAt)), // offset_repl
+      needleTail,
+      replTail,
+      s,
+    ]),
+  );
+}
+
+/** `unzipWords(s, which)` with a live payload: heads are
+ *  [offset_s = 96][which], the envelope spliced at 64. */
+export function unzipParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  which: bigint,
+): InputParam {
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.unzipWords,
+    mergeSegments([
+      wordSpan(96n), // offset_s skips the 0x20 word at 64
+      wordSpan(which),
+      s,
+    ]),
+  );
+}
+
+/** A part of a spliced `bytes[]`: a literal payload, or ONE live operand
+ *  resolving to a bytes envelope. */
+export type BytesPart = Hex | InputParam;
+
+const isLivePart = (p: BytesPart): p is InputParam => typeof p !== "string";
+
+/** Encode the pieces of a `bytes[]` argument with at most one live part.
+ *  `base` is the absolute position of the elements' head area (element
+ *  offsets are relative to it); constant tails pack right after the
+ *  offset words, the live envelope splices LAST at `liveAt` (the caller
+ *  appends any other fixed tails between). */
+function bytesArrayPieces(
+  parts: readonly BytesPart[],
+  base: number,
+  liveAt: number,
+): { offsets: bigint[]; tails: string[]; live?: InputParam; end: number } {
+  if (parts.filter(isLivePart).length > 1) {
+    throw new Error("at most one live part can be spliced into a bytes[]");
+  }
+  let tailAt = base + 32 * parts.length;
+  const offsets: bigint[] = [];
+  const tails: string[] = [];
+  let live: InputParam | undefined;
+  for (const part of parts) {
+    if (isLivePart(part)) {
+      live = part;
+      offsets.push(-1n); // patched below once liveAt is final
+      continue;
+    }
+    const tail = bytesTail(part);
+    offsets.push(BigInt(tailAt - base));
+    tails.push(tail);
+    tailAt += tail.length / 2;
+  }
+  for (let i = 0; i < offsets.length; i++) {
+    if (offsets[i] === -1n) {
+      // The live envelope's own 0x20 word is skipped by the offset.
+      offsets[i] = BigInt(liveAt + 32 - base);
+    }
+  }
+  return { offsets, tails, live, end: tailAt };
+}
+
+/** Sum of the constant tail byte lengths of a parts list. */
+function constTailBytes(parts: readonly BytesPart[]): number {
+  return parts.reduce<number>(
+    (acc, p) => (isLivePart(p) ? acc : acc + bytesTail(p).length / 2),
+    0,
+  );
+}
+
+/**
+ * `concat(bytes[] parts)` with at most one LIVE part: heads are
+ * [0x20][N] followed by N element offsets (relative to the elements head
+ * area at 64), the constant tails in order, and the live envelope spliced
+ * last — its element offset points into the splice with the +32 trick,
+ * so the live part may sit at ANY logical index.
+ */
+export function concatParam(
+  ctx: CompileCtx,
+  parts: readonly BytesPart[],
+): InputParam {
+  const base = 64;
+  const liveAt = base + 32 * parts.length + constTailBytes(parts);
+  const { offsets, tails, live } = bytesArrayPieces(parts, base, liveAt);
+  const pieces: Piece[] = [
+    wordSpan(32n), // offset_parts
+    wordSpan(BigInt(parts.length)),
+    ...offsets.map((o) => wordSpan(o)),
+    ...tails,
+  ];
+  if (live) pieces.push(live);
+  return opReadParam(ctx, OP_SELECTORS.concat, mergeSegments(pieces));
+}
+
+/**
+ * `join(bytes[] parts, bytes delim)` with at most one LIVE part: heads
+ * are [offset_parts = 64][offset_delim], the parts array encoded as in
+ * {@link concatParam} with its elements head area at 96, the delimiter
+ * tail after the constant part tails, and the live envelope last.
+ */
+export function joinParam(
+  ctx: CompileCtx,
+  parts: readonly BytesPart[],
+  delim: Hex,
+): InputParam {
+  const base = 96;
+  const delimTail = bytesTail(delim);
+  const delimAt = base + 32 * parts.length + constTailBytes(parts);
+  const liveAt = delimAt + delimTail.length / 2;
+  const { offsets, tails, live } = bytesArrayPieces(parts, base, liveAt);
+  const pieces: Piece[] = [
+    wordSpan(64n), // offset_parts
+    wordSpan(BigInt(delimAt)), // offset_delim
+    wordSpan(BigInt(parts.length)),
+    ...offsets.map((o) => wordSpan(o)),
+    ...tails,
+    delimTail,
+  ];
+  if (live) pieces.push(live);
+  return opReadParam(ctx, OP_SELECTORS.join, mergeSegments(pieces));
+}
+
+/**
+ * `zipWords(a, b)` with at most one live payload: heads are
+ * [offset_a][offset_b], the constant payload's tail at 64 and the live
+ * envelope spliced last with the +32 trick (both constant packs both
+ * tails in order).
+ */
+export function zipParam(
+  ctx: CompileCtx,
+  a: BytesPart,
+  b: BytesPart,
+): InputParam {
+  if (isLivePart(a) && isLivePart(b)) {
+    throw new Error("at most one live operand can be spliced into zipWords");
+  }
+  const tails: string[] = [];
+  let at = 64;
+  const offsetOf = (p: BytesPart, liveAt: number): bigint => {
+    if (isLivePart(p)) return BigInt(liveAt + 32);
+    const tail = bytesTail(p);
+    const offset = BigInt(at);
+    tails.push(tail);
+    at += tail.length / 2;
+    return offset;
+  };
+  // Resolve constant tails first so the live offset lands after them.
+  const constBytes = constTailBytes([a, b]);
+  const liveAt = 64 + constBytes;
+  const offsetA = offsetOf(a, liveAt);
+  const offsetB = offsetOf(b, liveAt);
+  const pieces: Piece[] = [wordSpan(offsetA), wordSpan(offsetB), ...tails];
+  const live = [a, b].find(isLivePart);
+  if (live) pieces.push(live);
+  return opReadParam(ctx, OP_SELECTORS.zipWords, mergeSegments(pieces));
+}
+
+/**
  * Split-and-select: segment boundaries are indexOf occurrence ordinals
  * and the segment is a slice between them — two indexOf reads per
  * segment, whatever the index. Segment k >= 0 spans
