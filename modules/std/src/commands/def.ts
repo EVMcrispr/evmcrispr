@@ -293,11 +293,30 @@ export default defineCommand<Std>({
       returnType,
     } = parseSignature(params);
     const isHelper = node.args[0].type === NodeType.HelperFunctionExpression;
+    /** A `def @name!` defines an ON-CHAIN helper: its body is made of `!`
+     *  helpers, which compile to calldata and have no off-chain face. */
+    const isOnchain = isHelper && name.endsWith("!");
 
     let finalReturnType = returnType;
 
     const needsInference =
       isHelper && (paramDefs.some((p) => p.type === "any") || !returnType);
+
+    // Type inference walks the body expecting helpers it can reason about
+    // off-chain, and an on-chain body is made of compile-only ones. Rather
+    // than infer something unreliable, ask for the signature.
+    if (isOnchain && needsInference) {
+      const missing = paramDefs
+        .filter((p) => p.type === "any")
+        .map((p) => `$${p.name}`);
+      throw new ErrorException(
+        `def @${name} needs a fully typed signature${
+          missing.length
+            ? ` — ${missing.join(", ")} ${missing.length > 1 ? "have" : "has"} no type`
+            : ""
+        }${!returnType ? `${missing.length ? ", and" : " —"} the return type is missing` : ""}. An on-chain body compiles rather than runs, so its types cannot be inferred from it: write them out, e.g. def @${name} "$x: number -> number" @num!($x * 2)`,
+      );
+    }
 
     if (needsInference) {
       const allModules = [module, ...module.context.modules];
@@ -317,6 +336,17 @@ export default defineCommand<Std>({
     const defValue = isHelper
       ? buildDef("helper", name, paramDefs, finalReturnType, body as Node)
       : buildDef("command", name, paramDefs, optDefs, body as Node);
+
+    if (isOnchain) {
+      // No off-chain face. The interpreter refuses a `!` def before it gets
+      // this far, so this is the backstop for anything holding the DefValue
+      // directly — it should never be the message a script author sees.
+      defValue.run = async () => {
+        throw new ErrorException(
+          `@${name} is defined with a \`!\`, so it compiles into an assertion rather than running at script build time. Define it without the \`!\` to call it here`,
+        );
+      };
+    }
 
     const bindKey = isHelper ? `@${name}` : name;
     if (module.bindingsManager.hasBinding(bindKey, BindingsSpace.IMPORT)) {

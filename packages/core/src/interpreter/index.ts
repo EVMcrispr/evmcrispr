@@ -609,6 +609,16 @@ export function makeExecutionResolveHelper(
       ) as DefValue | undefined;
 
       if (defHelper && defHelper.kind === "helper") {
+        // A `def @name!` is an on-chain definition: its body compiles to
+        // calldata and has no off-chain face. Module `!` helpers are
+        // stopped by defineHelper's own guard, but a def reaches here
+        // without passing through it, so the check belongs here too.
+        if (helperName.endsWith("!")) {
+          panic(
+            h,
+            `@${helperName} evaluates on-chain and is only valid inside an on-chain expression`,
+          );
+        }
         return await defHelper.run(std, h, interpreters);
       }
 

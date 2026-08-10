@@ -1,5 +1,5 @@
 ---
-title: "@lang:it"
+title: "@lang:it!"
 ---
 
 The current fold/map/filter element.
@@ -11,12 +11,8 @@ The current fold/map/filter element.
 ## Syntax
 
 ```evml
-@lang:it()
+@lang:it!
 ```
-
-## Arguments
-
-_(none)_
 
 <!-- HAND-WRITTEN -->
 

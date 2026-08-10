@@ -400,9 +400,46 @@ set $result @mapTwice($items @double @inc)`,
         expect((nums[2] as Num).eq(Num(7n, 1n))).to.be.true;
       },
     },
+    {
+      // `@name` and `@name!` are independent bindings: neither derives
+      // from the other, and defining one leaves the other free.
+      name: "should bind a bang def separately from its non-bang twin",
+      script: `
+def @double "$x: number -> number" @num($x * 2)
+def @double! "$x: number -> number" @num!($x * 2)
+set $r @double(3)`,
+      validate: (_actions, interpreter) => {
+        expect(
+          interpreter.getBinding("$r", BindingsSpace.USER)?.toString(),
+        ).to.equal("6");
+        expect(interpreter.getBinding("@double", BindingsSpace.DEF)).to.exist;
+        expect(interpreter.getBinding("@double!", BindingsSpace.DEF)).to.exist;
+      },
+    },
   ],
-
   errorCases: [
+    {
+      // A `!` def compiles into an assertion; it has no off-chain face.
+      // The interpreter reaches DEF before defineHelper's own guard, so
+      // without this check the call would silently interpret.
+      name: "should refuse to run a bang def off-chain",
+      script: `
+def @double! "$x: number -> number" @num!($x * 2)
+set $r @double!(3)`,
+      error: "only valid inside an on-chain expression",
+    },
+    {
+      // An on-chain body compiles rather than runs, so inferTypes cannot
+      // learn anything from it. Ask for the signature instead of guessing.
+      name: "should require a typed signature on a bang def",
+      script: `def @double! "$x" @num!($x * 2)`,
+      error: "needs a fully typed signature",
+    },
+    {
+      name: "should require a return type on a bang def",
+      script: `def @double! "$x: number" @num!($x * 2)`,
+      error: "return type is missing",
+    },
     {
       name: "should fail when redefining in the same scope (constant semantics)",
       script: `

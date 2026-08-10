@@ -24,6 +24,7 @@ load lang
 | [@lang:find](src/helpers/find.md) | `any` | First element that satisfies the predicate; no match is an error. |
 | [@lang:flat](src/helpers/flat.md) | `array` | Flatten one level of nesting in an array. |
 | [@lang:includes](src/helpers/includes.md) | `bool` | Check whether an array contains an element. |
+| [@lang:it!](src/helpers/it.md) | `any` | The current fold/map/filter element. |
 | [@lang:keys](src/helpers/keys.md) | `array` | Entry names of a record (`[a:1 b:2]` or `[name value]` pairs), as an array. |
 | [@lang:len](src/helpers/len.md) | `number` | Length of a value: element count for an array, byte length for a string or bytes. |
 | [@lang:lookup](src/helpers/lookup.md) | `any` | Look up an entry by name in a record (`[a:1 b:2]` or `[name value]` pairs). |
