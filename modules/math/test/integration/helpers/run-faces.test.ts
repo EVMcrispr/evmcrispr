@@ -131,3 +131,141 @@ describeHelper("@math:sqrt", {
   ],
   sampleArgs: ["17"],
 });
+
+describeHelper("@math:pow", {
+  module: "math",
+  cases: [
+    {
+      name: "should raise a wad value to a whole power",
+      input: "@math:pow(15e17 2)",
+      validate: (result) => {
+        // 1.5^2 = 2.25 in wad
+        expect(String(result)).to.equal("2250000000000000000");
+      },
+    },
+    {
+      name: "should take the unit from an explicit base",
+      input: "@math:pow(15e26 2 1e27)",
+      validate: (result) => {
+        expect(String(result)).to.equal("2250000000000000000000000000");
+      },
+    },
+    {
+      name: "should compound a per-second rate over a year",
+      input: "@math:pow(1000000001585489599188229325 31536000 1e27)",
+      validate: (result) => {
+        // (1 + 0.05/SPY)^SPY, which lands on e^0.05 = 1.05127109…
+        expect(String(result).slice(0, 11)).to.equal("10512710963");
+      },
+    },
+    {
+      name: "should return one unit for a zero exponent",
+      input: "@math:pow(5e18 0)",
+      validate: (result) => {
+        expect(String(result)).to.equal("1000000000000000000");
+      },
+    },
+  ],
+  docCases: [
+    {
+      description: "Compound a 5% per-year rate over three years",
+      code: "set $growth @math:pow(105e16 3)",
+    },
+  ],
+  sampleArgs: ["15e17", "2"],
+});
+
+describeHelper("@math:exp", {
+  module: "math",
+  cases: [
+    {
+      name: "should agree with the on-chain wad exponential",
+      input: "@math:exp(1e18)",
+      validate: (result) => {
+        expect(String(result)).to.equal("2718281828459045235");
+      },
+    },
+    {
+      name: "should handle a negative exponent",
+      input: "@math:exp(-1e18)",
+      validate: (result) => {
+        expect(String(result)).to.equal("367879441171442321");
+      },
+    },
+  ],
+  docCases: [
+    {
+      description: "Continuous growth at 5% over one period",
+      code: "set $factor @math:exp(5e16)",
+    },
+  ],
+  sampleArgs: ["1e18"],
+});
+
+describeHelper("@math:ln", {
+  module: "math",
+  cases: [
+    {
+      name: "should be zero at one",
+      input: "@math:ln(1e18)",
+      validate: (result) => {
+        expect(String(result)).to.equal("0");
+      },
+    },
+    {
+      name: "should invert exp",
+      input: "@math:ln(2718281828459045235)",
+      validate: (result) => {
+        expect(String(result).slice(0, 4)).to.equal("9999");
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "should reject zero",
+      input: "@math:ln(0)",
+      error: "undefined at or below zero",
+    },
+  ],
+  docCases: [
+    {
+      description: "Turn a growth factor back into its rate",
+      code: "set $rate @math:ln(105e16)",
+    },
+  ],
+  sampleArgs: ["2718281828459045235"],
+});
+
+describeHelper("@math:log2", {
+  module: "math",
+  cases: [
+    {
+      name: "should floor the base-2 logarithm",
+      input: "@math:log2(255)",
+      validate: (result) => {
+        expect(String(result)).to.equal("7");
+      },
+    },
+    {
+      name: "should give the bit position of a power of two",
+      input: "@math:log2(256)",
+      validate: (result) => {
+        expect(String(result)).to.equal("8");
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "should reject zero",
+      input: "@math:log2(0)",
+      error: "undefined at zero",
+    },
+  ],
+  docCases: [
+    {
+      description: "Bit length of a value, minus one",
+      code: "set $bits @math:log2(1e18)",
+    },
+  ],
+  sampleArgs: ["255"],
+});

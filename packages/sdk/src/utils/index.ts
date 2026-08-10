@@ -21,6 +21,7 @@ export * from "./ens";
 export * from "./error-capture";
 export * from "./events";
 export * from "./experimental";
+export * from "./fixed";
 export * from "./format";
 export * from "./formatters";
 export * from "./imports";

@@ -22,6 +22,7 @@ import { BindingsSpace, NodeType } from "../types";
 import { abiBindingKey, fetchAbi } from "../utils/abis";
 import { isNum } from "../utils/args";
 import { encodeCalldata } from "../utils/encoders";
+import { rpow } from "../utils/fixed";
 import { Num } from "../utils/Num";
 import type { ArithOpName, CmpOpName, LogicOpName } from "./composition";
 import {
@@ -1104,15 +1105,45 @@ export function arithCombine(
   }
   // Scale bookkeeping. Adding requires a common scale; multiplying and
   // dividing just accumulate one, so their operands are left as they are.
-  const scale = resultScale(op, scaleOf(l), scaleOf(r));
+  let scale = resultScale(op, scaleOf(l), scaleOf(r));
   if (op === "Exp") {
-    // An exponent counts repetitions, not units: raising to the power of
-    // 2 must not become the power of 2e18. And x^n over a scaled x would
-    // land at scale n*s, which needs a fixed-point pow, not this.
-    if (scaleOf(l) || scaleOf(r)) {
+    // An exponent counts repetitions, not units, so it never carries a
+    // scale of its own.
+    if (scaleOf(r)) {
       throw new ErrorException(
-        "exponentiation needs plain integer operands — a value carrying decimal places has to be rescaled first",
+        "an exponent counts repetitions, so it cannot carry decimal places",
       );
+    }
+    // `x ^ n` over a SCALED base is fixed-point exponentiation: plain
+    // integer exp would multiply the scale in too, leaving the word after
+    // about four steps. The unit falls out of the scale itself.
+    const base = scaleOf(l);
+    if (base) {
+      scale = base;
+      const unit = 10n ** BigInt(base);
+      if (l.kind === "const" && r.kind === "const") {
+        return {
+          kind: "const",
+          cat: "Uint",
+          value: Num.fromBigInt(rpow(constBigInt(l), constBigInt(r), unit)),
+          scale,
+        };
+      }
+      if (l.cat === "Int" || r.cat === "Int") {
+        throw new ErrorException(
+          "fixed-point exponentiation needs unsigned operands",
+        );
+      }
+      return {
+        kind: "call",
+        param: opReadParam(ctx, OP_SELECTORS.rpow, [
+          materializeWord(ctx, l),
+          materializeWord(ctx, r),
+          rawParam(toWord(unit)),
+        ]),
+        cat: "Uint",
+        scale,
+      };
     }
   } else if (op !== "Mul" && op !== "Div") {
     ({ l, r } = alignScales(ctx, l, r));

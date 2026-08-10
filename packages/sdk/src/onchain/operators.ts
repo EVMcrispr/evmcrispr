@@ -34,6 +34,11 @@ export const OPERATORS_ABI = parseAbi([
   "function addMod(uint256 a, uint256 b, uint256 m) pure returns (uint256)",
   "function mulMod(uint256 a, uint256 b, uint256 m) pure returns (uint256)",
   "function sqrt(uint256 x) pure returns (uint256)",
+  "function log2(uint256 x) pure returns (uint256)",
+  // fixed point (base is one unit: 1e27 ray, 1e18 wad)
+  "function rpow(uint256 x, uint256 n, uint256 base) pure returns (uint256)",
+  "function expWad(int256 x) pure returns (int256)",
+  "function lnWad(int256 x) pure returns (int256)",
   // comparisons (bool results; eq/ne are bit-level and cover all words)
   "function eq(uint256 a, uint256 b) pure returns (bool)",
   "function ne(uint256 a, uint256 b) pure returns (bool)",
@@ -162,6 +167,10 @@ export const OP_SELECTORS = {
   ),
   mulDiv: sel("mulDiv(uint256,uint256,uint256)"),
   sqrt: sel("sqrt(uint256)"),
+  log2: sel("log2(uint256)"),
+  rpow: sel("rpow(uint256,uint256,uint256)"),
+  expWad: sel("expWad(int256)"),
+  lnWad: sel("lnWad(int256)"),
   parseUint: sel("parseUint(bytes)"),
   toString: sel("toString(uint256)"),
   blockHash: sel("blockHash(uint256)"),

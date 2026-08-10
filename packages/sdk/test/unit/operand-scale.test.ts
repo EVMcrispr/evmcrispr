@@ -75,14 +75,35 @@ describe("operand scale", () => {
     );
   });
 
-  it("refuses to exponentiate a scaled value", () => {
-    // An exponent counts repetitions: scaling it would turn ^2 into
-    // ^2e18, and x^n over a scaled x needs a fixed-point pow.
-    expect(() => arithCombine(ctx, "Exp", live(18), constant("2"))).toThrow(
-      /plain integer operands/,
+  it("routes a scaled base through fixed-point exponentiation", () => {
+    // Plain integer exp would multiply the scale in too and leave the
+    // word after about four steps; rpow divides the unit back out.
+    const out = arithCombine(ctx, "Exp", live(18), constant("3"));
+    expect(out.kind).toBe("call");
+    expect(scaleOf(out)).toBe(18);
+  });
+
+  it("folds a scaled exponentiation of constants exactly", () => {
+    // 1.5^2 = 2.25 in wad, not the integer cube of 1.5e18.
+    const out = arithCombine(
+      ctx,
+      "Exp",
+      constant(String(15n * 10n ** 17n), 18),
+      constant("2"),
     );
-    expect(() => arithCombine(ctx, "Exp", live(), constant("2", 18))).toThrow(
-      /plain integer operands/,
+    expect(out.kind).toBe("const");
+    expect(String((out as { value: Num }).value)).toBe("2250000000000000000");
+    expect(scaleOf(out)).toBe(18);
+  });
+
+  it("keeps plain integer exponentiation for unscaled operands", () => {
+    const out = arithCombine(ctx, "Exp", live(), constant("3"));
+    expect(scaleOf(out)).toBe(0);
+  });
+
+  it("refuses an exponent that carries decimal places", () => {
+    expect(() => arithCombine(ctx, "Exp", live(18), constant("2", 18))).toThrow(
+      /counts repetitions/,
     );
   });
 
