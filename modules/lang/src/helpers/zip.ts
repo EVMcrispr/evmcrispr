@@ -9,7 +9,7 @@ export default defineHelper<Lang>({
   name: "zip",
   description: "Combine two arrays element-wise into an array of pairs.",
   compileDescription:
-    "Either or both sides may be live, and a length mismatch reverts.",
+    "Either or both sides may be live, a length mismatch reverts, and the result is a flat word-pair payload, so `@len!` counts words rather than pairs.",
   returnType: "array",
   args: [
     {

@@ -13,6 +13,8 @@ export default defineHelper<MathModule>({
   name: "ln",
   description:
     "The natural logarithm of a wad-scaled value, in wad (1e18) fixed point. The inverse of exp: it turns a growth factor back into the rate that produced it.",
+  compileDescription:
+    "The result carries its wad scale, so surrounding arithmetic aligns to it; the plain face hands back the raw wad integer.",
   returnType: "number",
   args: [
     {

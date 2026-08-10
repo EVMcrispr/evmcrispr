@@ -13,10 +13,12 @@ import { helpers } from "../../../src/_generated";
 
 const POOL = "0xb50201558B00496A145fE76f7424749556E326D8";
 const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
+const SUPPLY = `${WXDAI}::{totalSupply()(uint256)}`;
+const DEC = `${WXDAI}::{decimals()(uint8)}`;
 const WORDS = `${POOL}::{getReservesList()(uint256[])}`;
 
 describeParity("@math", {
-  module: "math [@max @min]",
+  module: "math [@max @min @absdiff @sqrt @log2 @ln @exp @pow]",
   helpers,
   cases: [
     {
@@ -41,6 +43,60 @@ describeParity("@math", {
       name: "min of a constant array",
       run: "@min([7 3 9])",
       compile: "@min!([7 3 9])",
+    },
+    // ---- the single-operand functions, over live reads --------------------
+    {
+      name: "absdiff never underflows, either way round",
+      run: `@absdiff(${DEC} ${SUPPLY})`,
+      compile: `@absdiff!(${DEC} ${SUPPLY})`,
+    },
+    {
+      name: "absdiff with the larger operand first",
+      run: `@absdiff(${SUPPLY} ${DEC})`,
+      compile: `@absdiff!(${SUPPLY} ${DEC})`,
+    },
+    {
+      name: "sqrt of a live read",
+      run: `@sqrt(${SUPPLY})`,
+      compile: `@sqrt!(${SUPPLY})`,
+    },
+    {
+      // The on-chain face takes a whole EXPRESSION; the plain one takes a
+      // number, so the product is folded with @num first.
+      name: "sqrt of a live product, the geometric-mean shape",
+      run: `@sqrt(@num(${SUPPLY} * ${DEC}))`,
+      compile: `@sqrt!(${SUPPLY} * ${DEC})`,
+    },
+    {
+      name: "log2 is the bit position, not a logarithm",
+      run: `@log2(${SUPPLY})`,
+      compile: `@log2!(${SUPPLY})`,
+    },
+    {
+      // The on-chain operand carries scale 18, so it resolves to the REAL
+      // value; the plain face returns the raw wad integer. Same number, and
+      // only the on-chain side knows it is scaled — the same gap that makes
+      // @pow's default base undecidable off-chain.
+      name: "diverges: ln carries its wad scale on-chain only",
+      run: `@ln(${SUPPLY})`,
+      compile: `@ln!(${SUPPLY})`,
+      helper: "ln",
+      diverges: { reason: "the on-chain operand carries scale 18" },
+    },
+    {
+      name: "diverges: exp carries its wad scale on-chain only",
+      run: `@exp(${DEC})`,
+      compile: `@exp!(${DEC})`,
+      helper: "exp",
+      diverges: { reason: "the on-chain operand carries scale 18" },
+    },
+    {
+      // base passed explicitly: with it omitted the on-chain face takes the
+      // unit from the operand's scale and the off-chain one cannot see a
+      // scale, which is the declared divergence.
+      name: "pow compounds with an explicit base",
+      run: `@pow(1050000000000000000 10 1000000000000000000)`,
+      compile: `@pow!(1050000000000000000 10 1000000000000000000)`,
     },
     {
       // The on-chain face builds an operand list at composition time, so it

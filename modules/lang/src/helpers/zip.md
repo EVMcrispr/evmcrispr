@@ -4,7 +4,7 @@ title: "@lang:zip"
 
 Combine two arrays element-wise into an array of pairs.
 
-**On-chain (`@lang:zip!`)**: Either or both sides may be live, and a length mismatch reverts.
+**On-chain (`@lang:zip!`)**: Either or both sides may be live, a length mismatch reverts, and the result is a flat word-pair payload, so `@len!` counts words rather than pairs.
 
 **Returns**: `array`
 

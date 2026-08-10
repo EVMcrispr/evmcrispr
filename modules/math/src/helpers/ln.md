@@ -4,6 +4,8 @@ title: "@math:ln"
 
 The natural logarithm of a wad-scaled value, in wad (1e18) fixed point. The inverse of exp: it turns a growth factor back into the rate that produced it.
 
+**On-chain (`@math:ln!`)**: The result carries its wad scale, so surrounding arithmetic aligns to it; the plain face hands back the raw wad integer.
+
 **Returns**: `number`
 
 ## Syntax
