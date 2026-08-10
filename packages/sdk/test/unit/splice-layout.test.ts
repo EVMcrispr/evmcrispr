@@ -5,10 +5,12 @@ import {
   encodeAbiParameters,
   type Hex,
   padHex,
+  toFunctionSelector,
   toHex,
 } from "viem";
 import { CORE_ABI } from "../../src/onchain/core";
 import { FETCHER_TYPE, type InputParam } from "../../src/onchain/erc8211";
+import { spliceLayout } from "../../src/onchain/layout";
 import { concatParam } from "../../src/onchain/recipes";
 import type { CompileCtx } from "../../src/onchain/types";
 
@@ -31,18 +33,9 @@ const OPERATORS = "0x000000000000000000000000000000000097e7a7" as const;
 // The layout code reads only these two fields off the context.
 const ctx = { core: CORE, operators: OPERATORS } as unknown as CompileCtx;
 
-const SEL = {
-  add: "0x771602f7",
-  bitAnd: "0x8c6be3dc",
-  concat: "0x4b2bcb43",
-} as const;
-
-/** Selector-independent: derive the word ops we care about by name from
- *  the same helper the compiler uses, so a signature change is caught. */
-function selectorOf(sig: string): Hex {
-  const { toFunctionSelector } = require("viem");
-  return toFunctionSelector(`function ${sig}`);
-}
+/** Derived by name rather than hardcoded, so a signature change here
+ *  fails loudly instead of silently matching nothing. */
+const selectorOf = (sig: string): Hex => toFunctionSelector(`function ${sig}`);
 
 /** The ABI envelope a `returns (bytes)` staticcall produces. */
 function envelope(payload: Hex): Hex {
@@ -203,5 +196,28 @@ describe("spliceLayout round-trip", () => {
         { live: hex(1) },
       ]),
     ).toThrow(/at most 4 live values/);
+  });
+});
+
+describe("spliceLayout ordering guard", () => {
+  // A live value whose runtime size the compiler cannot derive can only go
+  // last, since nothing after it would have a computable offset. Through
+  // EVML this is currently unreachable — the value lens rejects
+  // dynamic-element arrays before a spec is ever built — so the guard is
+  // exercised here, at the level where a caller can construct one.
+  it("refuses a size-less live slot that is not last", () => {
+    expect(() =>
+      spliceLayout(ctx, [{ param: leaf(0) }, { param: leaf(1) }], 64),
+    ).toThrow(/must be spliced last/);
+  });
+
+  it("allows a size-less live slot in the last position", () => {
+    expect(() =>
+      spliceLayout(
+        ctx,
+        [{ param: leaf(0), payload: 32n }, { param: leaf(1) }],
+        64,
+      ),
+    ).not.toThrow();
   });
 });

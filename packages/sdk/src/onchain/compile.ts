@@ -38,7 +38,7 @@ import {
   LOGIC_FN,
 } from "./composition";
 import type { ArgSpec, ReadCall } from "./construct";
-import { buildCallSegments, isDynamicParam } from "./construct";
+import { buildCallSegments, headWords, isDynamicParam } from "./construct";
 import {
   encodeChain,
   encodeNav,
@@ -50,6 +50,7 @@ import {
 import { compileOnchainHelper, isBangHelperNode } from "./dispatch";
 import type { Constraint, InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
+import { bytesPayloadParam, envelopeLenParam } from "./layout";
 import { OP_SELECTORS, opSelector } from "./operators";
 import type { Category, CompileCtx, Operand } from "./types";
 
@@ -407,7 +408,7 @@ async function compileHopArgs(
     return { kind: "plain", data: encodeCalldata(fnAbi, argVals) };
   }
   const specs = await compileArgSpecs(ctx, hop.args, fnAbi, hop.method);
-  return { kind: "read", call: buildCallSegments(fnAbi, specs) };
+  return { kind: "read", call: buildCallSegments(ctx, fnAbi, specs) };
 }
 
 /** Fold a read hop into a chain: the accumulated prefix becomes the
@@ -825,7 +826,46 @@ async function compileLiveCallArg(
       `the nested call ${node.method} resolves a ${formatParamType(terminal)} value, but parameter ${input.name ?? ""} of ${method} is ${formatParamType(input)} — adjust the lens to select a matching value`,
     );
   }
-  return { kind: "dyn", param };
+  return { kind: "dyn", param, payload: dynPayloadSize(ctx, param, terminal) };
+}
+
+/**
+ * The padded payload size of a dynamic selection's resolved envelope, when
+ * the shape makes it derivable — which is what lets a LATER argument's
+ * offset be computed from this one.
+ *
+ * `bytes`/`string` round their byte length up to whole words. An array of
+ * static elements is its element count times the element's head footprint.
+ * Anything whose size depends on its own contents (a dynamic tuple, an
+ * array of dynamic elements) has no derivation, so it stays last.
+ */
+function dynPayloadSize(
+  ctx: CompileCtx,
+  param: InputParam,
+  terminal: AbiParameter,
+): bigint | InputParam | undefined {
+  if (terminal.type === "bytes" || terminal.type === "string") {
+    return bytesPayloadParam(ctx, param);
+  }
+  const suffix = terminal.type.match(/\[(\d*)\]$/);
+  if (suffix && suffix[1] === "") {
+    const element = {
+      ...terminal,
+      type: terminal.type.slice(0, -suffix[0].length),
+    } as AbiParameter;
+    if (isDynamicParam(element)) return undefined;
+    // [count][elements…] — the count word is part of the envelope head, so
+    // the payload is the elements alone.
+    const words = headWords(element);
+    return wordOpParam(
+      ctx,
+      "mul",
+      false,
+      envelopeLenParam(ctx, param),
+      rawParam(toWord(32n * BigInt(words))),
+    );
+  }
+  return undefined;
 }
 
 /** Compile a `!` helper used as a call ARGUMENT into a live word segment

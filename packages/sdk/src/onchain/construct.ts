@@ -4,7 +4,14 @@ import { ErrorException } from "../errors";
 import type { Param } from "../utils/encoders";
 import { encodeParams } from "../utils/encoders";
 import type { InputParam } from "./erc8211";
-import { rawParam, toWord } from "./erc8211";
+import {
+  mergeSegments,
+  type Piece,
+  type Slot,
+  spliceLayout,
+  wordPiece,
+} from "./layout";
+import type { CompileCtx } from "./types";
 
 /**
  * Nested live call arguments compile to the core's `read` primitive: the
@@ -21,11 +28,14 @@ import { rawParam, toWord } from "./erc8211";
 //  Argument specs
 // ---------------------------------------------------------------------------
 
-/** One argument of a constructed call. */
+/** One argument of a constructed call. A `dyn` spec carries `payload`
+ *  when the compiler can derive its resolved value's padded size — that
+ *  is what lets a later argument's offset be computed from it. Without
+ *  one it can only go last. */
 export type ArgSpec =
   | { kind: "value"; value: Param }
   | { kind: "word"; param: InputParam }
-  | { kind: "dyn"; param: InputParam };
+  | { kind: "dyn"; param: InputParam; payload?: bigint | InputParam };
 
 /** A constructed call ready for `encodeRead`: the 4-byte selector and the
  *  calldata segments the judge concatenates after it. */
@@ -55,7 +65,7 @@ export function isDynamicParam(p: AbiParameter): boolean {
 
 /** The head footprint of a parameter in 32-byte words (1 for dynamic
  *  values — their head word is an offset). */
-function headWords(p: AbiParameter): number {
+export function headWords(p: AbiParameter): number {
   if (isDynamicParam(p)) return 1;
   const suffix = p.type.match(/\[(\d+)\]$/);
   if (suffix) {
@@ -82,12 +92,16 @@ const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
  * The head/tail layout is computed at build time, so word arguments must be
  * single-word static parameters (their segment resolves to exactly 32
  * bytes — every word-producing param the compiler emits keeps that
- * contract), and a dynamic live argument must be the last argument (its
- * envelope is appended by the judge, so nothing may follow it) — its head
- * offset skips the envelope's own offset word, landing the decoder on the
- * length word (ABI decoding tolerates the loose prefix).
+ * contract). Dynamic arguments go through {@link spliceLayout}: constant
+ * tails are hoisted ahead of the live envelopes so their offsets stay
+ * literal, and each live envelope after the first gets an offset computed
+ * on-chain from the earlier payloads' lengths. Every dynamic head offset
+ * skips its envelope's own offset word, landing the decoder on the length
+ * word (ABI decoding tolerates the loose prefix). Only a live value whose
+ * size the compiler cannot derive still has to come last.
  */
 export function buildCallSegments(
+  ctx: CompileCtx,
   fnAbi: AbiFunction,
   specs: ArgSpec[],
 ): ReadCall {
@@ -97,20 +111,14 @@ export function buildCallSegments(
       `${fnAbi.name} expects ${inputs.length} argument(s), got ${specs.length}`,
     );
   }
-  if (specs.filter((s) => s.kind === "dyn").length > 1) {
-    throw new ErrorException(
-      "only one dynamic-typed nested call argument is supported per call",
-    );
-  }
-  const headSizes = inputs.map((p) => headWords(p) * 32);
-  const headTotal = headSizes.reduce((a, b) => a + b, 0);
+  const headTotal = inputs.reduce((sum, p) => sum + headWords(p) * 32, 0);
 
-  // Two streams of literal hex spans (no 0x) interleaved with live params;
-  // a dynamic live argument is the last argument, so every literal tail
-  // span before it has a build-time size.
+  // Pass one: a head piece per argument, and the dynamic arguments
+  // classified into layout slots. Constant tails are hoisted ahead of the
+  // live envelopes by spliceLayout, so their offsets stay literal words.
   const heads: (string | InputParam)[] = [];
-  const tails: (string | InputParam)[] = [];
-  let tailLen = 0; // literal tail bytes so far
+  const slots: Slot[] = [];
+  const slotOfArg = new Map<number, number>();
   for (let i = 0; i < specs.length; i++) {
     const spec = specs[i];
     const input = inputs[i];
@@ -129,14 +137,9 @@ export function buildCallSegments(
           `a dynamic live argument needs a dynamic parameter type; parameter ${i} of ${fnAbi.name} is ${input.type}`,
         );
       }
-      if (i !== specs.length - 1) {
-        throw new ErrorException(
-          `a dynamic-typed live call argument must be the last argument of ${fnAbi.name} — the judge appends its runtime-sized value, so nothing can follow it`,
-        );
-      }
-      // Point the head past the envelope's own offset word.
-      heads.push(toWord(BigInt(headTotal + tailLen + 32)).slice(2));
-      tails.push(spec.param);
+      heads.push(""); // patched with its offset in pass two
+      slotOfArg.set(i, slots.length);
+      slots.push({ param: spec.param, payload: spec.payload });
       continue;
     }
     const encoded = encodeParams(
@@ -145,31 +148,41 @@ export function buildCallSegments(
       `${fnAbi.name} argument ${i}`,
     ).slice(2);
     if (isDynamicParam(input)) {
-      heads.push(toWord(BigInt(headTotal + tailLen)).slice(2));
-      const tail = encoded.slice(64); // strip the single-value offset word
-      tails.push(tail);
-      tailLen += tail.length / 2;
-    } else {
-      heads.push(encoded);
+      heads.push(""); // patched with its offset in pass two
+      slotOfArg.set(i, slots.length);
+      slots.push({ tail: encoded.slice(64) }); // strip the offset word
+      continue;
+    }
+    heads.push(encoded);
+  }
+
+  // A live argument whose size the compiler cannot derive still has to be
+  // last, since nothing after it could have a computable offset. Checked
+  // here rather than in spliceLayout so the message can name the
+  // parameter that caused it.
+  for (let i = 0; i < specs.length; i++) {
+    const spec = specs[i];
+    if (spec.kind !== "dyn" || spec.payload !== undefined) continue;
+    const laterDyn = specs.findIndex(
+      (s, j) => j > i && (s.kind === "dyn" || isDynamicParam(inputs[j])),
+    );
+    if (laterDyn !== -1) {
+      throw new ErrorException(
+        `the ${inputs[i].type} value nested at parameter ${i} of ${fnAbi.name} has no build-time-derivable runtime size, so it must be the last dynamic argument — nothing after it would have a computable offset`,
+      );
     }
   }
 
-  // Merge adjacent literal spans, materialize them as RAW_BYTES segments.
-  const segments: InputParam[] = [];
-  let span = "";
-  for (const piece of [...heads, ...tails]) {
-    if (typeof piece === "string") {
-      span += piece;
-      continue;
-    }
-    if (span.length > 0) {
-      segments.push(rawParam(`0x${span}`));
-      span = "";
-    }
-    segments.push(piece);
-  }
-  if (span.length > 0) {
-    segments.push(rawParam(`0x${span}`));
-  }
-  return { selector: toFunctionSelector(fnAbi), segments };
+  // Pass two: place the tails and patch each dynamic head with its offset.
+  const { offsets, tail } = spliceLayout(ctx, slots, headTotal);
+  const pieces: Piece[] = heads.map((h, i) => {
+    const slot = slotOfArg.get(i);
+    if (slot === undefined) return h;
+    return wordPiece(offsets[slot]);
+  });
+
+  return {
+    selector: toFunctionSelector(fnAbi),
+    segments: mergeSegments([...pieces, ...tail]),
+  };
 }

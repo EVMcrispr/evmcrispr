@@ -84,7 +84,7 @@ export default defineHelper<Token>({
         cat: "Uint",
       };
     }
-    const call = buildCallSegments(ALLOWANCE_ABI, specs);
+    const call = buildCallSegments(ctx, ALLOWANCE_ABI, specs);
     return {
       kind: "call",
       param: staticCallParam(

@@ -94,7 +94,7 @@ export async function callReadOperand(
     const values = specs.map((s) => (s as { value: unknown }).value);
     param = staticCallParam(target, encodeCalldata(fnAbi, values as never));
   } else {
-    const call = buildCallSegments(fnAbi, specs);
+    const call = buildCallSegments(ctx, fnAbi, specs);
     param = staticCallParam(
       ctx.core,
       encodeRead(

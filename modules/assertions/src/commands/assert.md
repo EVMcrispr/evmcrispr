@@ -122,9 +122,12 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   whose calldata segments (literal spans + live values) the judge
   concatenates at assertion time, so the judged value always flows through
   a plain `assertParam`. Word-typed arguments (uint, int, address, bool,
-  bytes32) splice anywhere at any nesting depth; a dynamic-typed argument
-  (array/string/bytes selected by a lens) must be the last argument of its
-  call, at most one per call.
+  bytes32) splice anywhere at any nesting depth. Dynamic-typed arguments
+  (array/string/bytes selected by a lens) splice too, up to four per call:
+  their envelopes go at the end and each offset after the first is
+  computed on-chain from the earlier payloads' lengths. Four is a hard
+  limit because each live value is re-resolved by every offset that
+  follows it, so the cost grows with the square.
 - Inside a `batch`, a failed assertion reverts the whole transaction. Run
   standalone, the assertion is evaluated as a read-only `eth_call`.
 - Set `$assertions:address` / `$assertions:operators` to override the

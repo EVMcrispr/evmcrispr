@@ -1305,6 +1305,29 @@ describeCommand("assert", {
       },
     },
     {
+      // Two live envelopes in one call. The first head stays a literal;
+      // the second is computed on-chain from the first array's element
+      // count, so nothing has to know its length at build time.
+      name: "splices two dynamic nested arguments with a computed second offset",
+      script: `assertions:assert ${A}::{a(address[],address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]] ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const { selector, segments } = readOf(param);
+        expect(selector).to.equal(selectorOf("a(address[],address[])"));
+
+        // [offset_0 literal][live offset_1][envelope 0][envelope 1]
+        expect(segments).to.have.lengthOf(4);
+        expectRawWord(segments[0], 96n);
+        const addArgs = opReadOf(segments[1], "add(uint256,uint256)");
+        const mulArgs = opReadOf(addArgs[0], "mul(uint256,uint256)");
+        expect(core(mulArgs[0]).functionName).to.equal("pick");
+        expectRawWord(mulArgs[1], 32n);
+        expectRawWord(addArgs[1], 160n);
+        expect(core(segments[2]).functionName).to.equal("nav");
+        expect(core(segments[3]).functionName).to.equal("nav");
+      },
+    },
+    {
       name: "splits a chain around a live-arg hop: the read becomes the next hop's start",
       script: `assertions:assert ${A}::{f(uint256)(address) ${B}::{g()(uint256)}}::{h()(uint256)} == 1`,
       validate: (actions) => {
@@ -1693,16 +1716,6 @@ describeCommand("assert", {
       name: "rejects a word-typed nested call argument with a mismatched type",
       script: `assertions:assert ${A}::{a(uint256)(uint256) ${B}::{b()(address)}} == 1`,
       error: "resolves a address value",
-    },
-    {
-      name: "rejects a dynamic nested argument that is not the last argument",
-      script: `assertions:assert ${A}::{a(address[],uint256)(uint256) ${B}::{b()(address,address[][])}[_ [_ $]] 1} == 1`,
-      error: "must be the last argument",
-    },
-    {
-      name: "rejects two dynamic nested arguments",
-      script: `assertions:assert ${A}::{a(address[],address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]] ${B}::{b()(address,address[][])}[_ [_ $]]} == 1`,
-      error: "only one dynamic-typed nested call argument",
     },
     {
       name: "rejects a dynamic nested argument with a mismatched envelope type",
