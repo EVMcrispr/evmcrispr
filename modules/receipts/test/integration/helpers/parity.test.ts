@@ -23,10 +23,24 @@ import { helpers } from "../../../src/_generated";
  * itself worth pinning, because a drift of one block would show up here.
  */
 
+/** A distinctive proposer, so the coinbase case cannot pass on zero==zero. */
+const COINBASE = "0x1111111111111111111111111111111111111111";
+
 describeParity("@receipts", {
   module:
-    "receipts [@block.number @block.timestamp @block.gasLimit @block.prevrandao @block.blobBaseFee @chainId]",
+    "receipts [@block.number @block.timestamp @block.coinbase @block.baseFee @block.gasLimit @block.prevrandao @block.blobBaseFee @chainId]",
   helpers,
+  setup: async (client) => {
+    // Idempotent: only mines when the head is not already anvil's own block
+    // with the coinbase we want.
+    const head = await client.getBlock();
+    if (head.miner?.toLowerCase() === COINBASE.toLowerCase()) return;
+    await client.request({
+      method: "anvil_setCoinbase",
+      params: [COINBASE],
+    } as never);
+    await client.request({ method: "evm_mine", params: [] } as never);
+  },
   cases: [
     {
       name: "block number",
@@ -37,6 +51,17 @@ describeParity("@receipts", {
       name: "block timestamp",
       run: "@block.timestamp()",
       compile: "@block.timestamp!()",
+    },
+    {
+      // Non-zero by construction, so this cannot pass on anvil's default zero.
+      name: "block coinbase",
+      run: "@block.coinbase()",
+      compile: "@block.coinbase!()",
+    },
+    {
+      name: "block base fee",
+      run: "@block.baseFee()",
+      compile: "@block.baseFee!()",
     },
     {
       name: "block gas limit",
