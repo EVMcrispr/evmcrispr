@@ -1,17 +1,19 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import { encodeOperator, opsCall } from "@evmcrispr/sdk/onchain";
 import type Receipts from "..";
+import { blobBaseFeeUpdateFraction } from "../utils/blobSchedule";
 import { blockClientFor, resolveBlock } from "../utils/blockContext";
 
-/** EIP-4844 blob base fee parameters. */
+/** EIP-4844 blob base fee floor. The DENOMINATOR is not a constant — it
+ *  changes at Cancun, Prague and each BPO fork — so it is looked up per chain
+ *  and block in ../utils/blobSchedule. */
 const MIN_BLOB_BASE_FEE = 1n;
-const BLOB_BASE_FEE_UPDATE_FRACTION = 3338477n;
 
 /**
  * The EIP-4844 `fake_exponential(factor, numerator, denominator)`:
  * an integer-only Taylor expansion of `factor * e**(numerator/denominator)`.
  * A sealed block's blob base fee is
- * `fake_exponential(1, excessBlobGas, 3338477)`.
+ * `fake_exponential(1, excessBlobGas, <the fork's denominator>)`.
  */
 function fakeExponential(
   factor: bigint,
@@ -65,11 +67,20 @@ export default defineHelper<Receipts>({
         `block ${sealed.number} predates EIP-4844 and carries no excess blob gas`,
       );
     }
+    // A quiet chain needs no schedule: with no excess, the exponential is the
+    // floor whatever the denominator. Checking first means chains whose fork
+    // schedule is unknown still answer here, and only a chain with real blob
+    // demand has to be priced.
+    if (sealed.excessBlobGas === 0n) return Num(MIN_BLOB_BASE_FEE);
+    // The chain the BLOCK is on, not the module's — the caller may have
+    // passed `mainnet` while connected elsewhere, and the fork schedule
+    // belongs to the block.
+    const { chainId } = await blockClientFor(module, chain);
     return Num(
       fakeExponential(
         MIN_BLOB_BASE_FEE,
         sealed.excessBlobGas,
-        BLOB_BASE_FEE_UPDATE_FRACTION,
+        blobBaseFeeUpdateFraction(chainId, sealed.timestamp),
       ),
     );
   },

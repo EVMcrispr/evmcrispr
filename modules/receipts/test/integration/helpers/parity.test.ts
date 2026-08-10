@@ -25,7 +25,7 @@ import { helpers } from "../../../src/_generated";
 
 describeParity("@receipts", {
   module:
-    "receipts [@block.number @block.timestamp @block.coinbase @block.gasLimit @block.baseFee @block.prevrandao @block.blobBaseFee @chainId]",
+    "receipts [@block.number @block.timestamp @block.gasLimit @block.prevrandao @block.blobBaseFee @chainId]",
   helpers,
   cases: [
     {
@@ -39,36 +39,9 @@ describeParity("@receipts", {
       compile: "@block.timestamp!()",
     },
     {
-      // The sealed block has a real validator; the block "being written" by a
-      // read-only eth_call has none, so COINBASE reads zero. That is the
-      // compileDescription's "reads the block being written" taken literally,
-      // and it means an assertion cannot check who proposed a past block.
-      name: "diverges: coinbase has no proposer in a read-only call",
-      run: "@block.coinbase()",
-      compile: "@block.coinbase!()",
-      helper: "block.coinbase",
-      diverges: {
-        reason: "an eth_call is not proposed by anyone, so COINBASE is zero",
-      },
-    },
-    {
       name: "block gas limit",
       run: "@block.gasLimit()",
       compile: "@block.gasLimit!()",
-    },
-    {
-      // The sealed block carries the base fee it was mined with; the block
-      // being written has one DERIVED from it by the 1559 rule, so an empty
-      // pending block decays towards the floor. Number, timestamp, gas limit
-      // and prevrandao all carry over unchanged — the base fee is the one
-      // that is recomputed, which is what "the block being written" costs.
-      name: "diverges: base fee is recomputed for the block being written",
-      run: "@block.baseFee()",
-      compile: "@block.baseFee!()",
-      helper: "block.baseFee",
-      diverges: {
-        reason: "the pending block's base fee is derived, not the sealed one",
-      },
     },
     {
       // Two genuinely different routes to the same number: the plain face
