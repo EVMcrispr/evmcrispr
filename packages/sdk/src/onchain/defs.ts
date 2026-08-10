@@ -119,6 +119,19 @@ function bindArgs(
   return bound;
 }
 
+/** The on-chain definition bound to `@name`, if there is one. A def is
+ *  keyed with its `!` intact, so the node's own name is the key. */
+export function lookupOnchainDef(
+  ctx: CompileCtx,
+  name: string,
+): DefValue | undefined {
+  const v = ctx.module.bindingsManager.getBindingValue(
+    `@${name}`,
+    BindingsSpace.DEF,
+  ) as DefValue | undefined;
+  return v?.kind === "helper" ? v : undefined;
+}
+
 /**
  * Whether `name`'s definition can reach itself through other definitions.
  *

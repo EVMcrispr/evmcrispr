@@ -11,7 +11,7 @@ export default defineHelper<Lang>({
   name: "filter",
   description: "Keep elements of an array for which a helper returns truthy.",
   compileDescription:
-    "The predicate is an Operators-backed helper, e.g. `@bool!(>= 100)`, with the element prepended to its arguments; a composed predicate costs more per element.",
+    "The predicate is a named `def @name!` of one parameter returning bool, applied by name.",
   returnType: "array",
   args: [
     {

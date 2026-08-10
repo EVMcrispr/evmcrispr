@@ -12,7 +12,7 @@ export default defineHelper<Lang>({
   name: "all",
   description: "Whether every element satisfies the predicate.",
   compileDescription:
-    "The predicate is an Operators-backed helper, e.g. `@bool!(> 0)`, with the element prepended to its arguments; a composed predicate costs more per element.",
+    "The predicate is a named `def @name!` of one parameter returning bool, applied by name.",
   returnType: "bool",
   args: [
     {

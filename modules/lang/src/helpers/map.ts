@@ -11,7 +11,7 @@ export default defineHelper<Lang>({
   name: "map",
   description: "Transform each element of an array by applying a helper.",
   compileDescription:
-    "Operators-backed helper with the element prepended, e.g. `@num!(* 2)` or `@num!(* @it!)`; a composed transform costs more per element.",
+    "The transform is a named `def @name!` of one parameter, applied by name; a composed body costs more per element.",
   returnType: "array",
   args: [
     {

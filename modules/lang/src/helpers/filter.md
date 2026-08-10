@@ -4,7 +4,7 @@ title: "@lang:filter"
 
 Keep elements of an array for which a helper returns truthy.
 
-**On-chain (`@lang:filter!`)**: The predicate is an Operators-backed helper, e.g. `@bool!(>= 100)`, with the element prepended to its arguments; a composed predicate costs more per element.
+**On-chain (`@lang:filter!`)**: The predicate is a named `def @name!` of one parameter returning bool, applied by name.
 
 **Returns**: `array`
 
@@ -35,7 +35,8 @@ Keep elements of an array for which a helper returns truthy.
 Keep the matching elements of the array return of a call on-chain
 through `filterWords`. The predicate names an Operators-backed helper,
 applied with the element prepended to its own arguments
-(`@bool!(>= 100)` keeps each element with `element >= 100`) — the same
+(a def whose body is `@bool!($x >= 100)` keeps each element with
+`element >= 100`) — the same
 lambda machinery @map! and @all! use. A predicate reducing to one
 Operators call runs as a single staticcall per element; a composed one
 (a nested live call, a multi-call expression) routes through the core
@@ -54,7 +55,8 @@ load lang
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # Exactly two caps at or above the floor
-assertions:assert @len!(@filter!($vault::{caps()(uint256[])} @bool!(>= 100))) == 2
+def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @len!(@filter!($vault::{caps()(uint256[])} @ge100!)) == 2
 ```
 
 ### Notes
@@ -63,8 +65,8 @@ assertions:assert @len!(@filter!($vault::{caps()(uint256[])} @bool!(>= 100))) ==
   count, so the payload nests into @len!, @at!, the folds and the other
   word ops.
 - One staticcall per element: gas bounds the practical array size.
-- `@it!` names the element again inside the predicate; every marker
-  occurrence is a substitution window (see [@it](it.md)).
+- Naming the parameter more than once substitutes at each place it
+  appears, so `@num!($x * $x)` squares: two windows, one call.
 
 ### See Also
 

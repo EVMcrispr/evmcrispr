@@ -4,7 +4,7 @@ title: "@lang:map"
 
 Transform each element of an array by applying a helper.
 
-**On-chain (`@lang:map!`)**: Operators-backed helper with the element prepended, e.g. `@num!(* 2)` or `@num!(* @it!)`; a composed transform costs more per element.
+**On-chain (`@lang:map!`)**: The transform is a named `def @name!` of one parameter, applied by name; a composed body costs more per element.
 
 **Returns**: `array`
 
@@ -33,10 +33,11 @@ Transform each element of an array by applying a helper.
 
 Transform every element of the array return of a call on-chain through
 `mapWords`. The lambda names an Operators-backed helper, applied with
-the element prepended to its own arguments (`@num!(* 2)` maps each
+its parameter substituted at each occurrence (`def @dbl! "$x: number ->
+number" @num!($x * 2)` maps each
 element to `element * 2`). A lambda reducing to one Operators call runs
 as a single staticcall per element; a composed one (a nested live call,
-a multi-call expression like `@num!(* 2 + 1)`) routes through the core
+a multi-call body like `@num!($x * 2 + 1)`) routes through the core
 and costs several.
 
 The result is the mapped words payload (a bytes value), composable with
@@ -51,7 +52,8 @@ load lang
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # Sum of the doubled caps
-assertions:assert @reduce!(@map!($vault::{caps()(uint256[])} @num!(* 2)) add 0) >= 100
+def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @reduce!(@map!($vault::{caps()(uint256[])} @dbl!) add 0) >= 100
 ```
 
 ### Notes
@@ -60,9 +62,8 @@ assertions:assert @reduce!(@map!($vault::{caps()(uint256[])} @num!(* 2)) add 0) 
   per element.
 - The signed sort recipe rides on @map!: flip the sign bit, sort,
   flip back.
-- `@it!` names the element again inside the lambda (`@num!(* @it!)`
-  squares). The prepend stays; every marker occurrence is a
-  substitution window.
+- Naming the parameter more than once substitutes at each place it
+  appears, so `@num!($x * $x)` squares: two windows, one call.
 
 ### See Also
 

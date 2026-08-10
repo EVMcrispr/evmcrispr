@@ -49,8 +49,13 @@ assertions:assert @unique!(@sort!($safe::{getOwners()(address[])})) == 0x1122
 
 - Sign-flip recipe (the signed sort): map the sign bit away, sort, map
   it back. Flipping the top bit maps signed order onto unsigned order
-  exactly, and unlike adding 2^255 it can never overflow:
-  `@map!(@sort!(@map!($c::{vals()(int256[])} @bytes!("xor" 0x8000000000000000000000000000000000000000000000000000000000000000))) @bytes!("xor" 0x8000000000000000000000000000000000000000000000000000000000000000))`.
+  exactly, and unlike adding 2^255 it can never overflow. Name the flip
+  once and apply it on the way in and on the way out:
+
+  ```evml
+  def @flip! "$x: bytes32 -> bytes32" @bytes!($x "xor" 0x8000000000000000000000000000000000000000000000000000000000000000)
+  set $sorted @map!(@sort!(@map!($c::{vals()(int256[])} @flip!)) @flip!)
+  ```
 - The result is a words payload (bytes), composable with the other
   array faces.
 

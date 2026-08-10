@@ -46,7 +46,8 @@ set $vault 0x44fA8E6f47987339850636F88629646662444217
 assertions:assert @sum!($vault::{caps()(uint256[])}) >= 100
 
 # Sum a mapped payload (double each element first)
-assertions:assert @sum!(@map!($vault::{caps()(uint256[])} @num!(* 2))) >= 200
+def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @sum!(@map!($vault::{caps()(uint256[])} @dbl!)) >= 200
 ```
 
 ### Notes

@@ -256,7 +256,8 @@ describeCommand("assert (lang on-chain faces)", {
     // ---- @all! / @any! -------------------------------------------------------
     {
       name: "compiles @all! with a comparison predicate to an All-exit foldWords",
-      script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @bool!(>= 100))`,
+      script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @ge100!)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         d.expectConstraint(param, "Eq", 1n);
@@ -278,7 +279,8 @@ describeCommand("assert (lang on-chain faces)", {
     },
     {
       name: "compiles @any! with an equality predicate to an Any-exit foldWords",
-      script: `assertions:assert @any!(${TOKEN}::{caps()(uint256[])} @bool!(== 0)) == false`,
+      script: `def @isZero! "$x: number -> bool" @bool!($x == 0)
+assertions:assert @any!(${TOKEN}::{caps()(uint256[])} @isZero!) == false`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         d.expectConstraint(param, "Eq", 0n);
@@ -296,7 +298,8 @@ describeCommand("assert (lang on-chain faces)", {
     },
     {
       name: "compiles a @not! predicate through its eq(element, 0) form",
-      script: `assertions:assert @all!(${TOKEN}::{flags()(bool[])} @not!)`,
+      script: `def @isOff! "$x: bool -> bool" @not!($x)
+assertions:assert @all!(${TOKEN}::{flags()(bool[])} @isOff!)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, FOLD_SIG);
@@ -430,7 +433,8 @@ describeCommand("assert (lang on-chain faces)", {
     },
     {
       name: "feeds a nested @map! into @sum!",
-      script: `assertions:assert @sum!(@map!(${TOKEN}::{caps()(uint256[])} @num!(* 2))) >= 10`,
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @sum!(@map!(${TOKEN}::{caps()(uint256[])} @dbl!)) >= 10`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const segs = d.opReadOf(param, "sumWords(bytes)");
@@ -448,7 +452,8 @@ describeCommand("assert (lang on-chain faces)", {
     },
     {
       name: "rejects a non-boolean predicate",
-      script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @num!(+ 1))`,
+      script: `def @inc! "$x: number -> number" @num!($x + 1)
+assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @inc!)`,
       error: "must evaluate to a boolean",
     },
     {
@@ -615,7 +620,8 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
     },
     {
       name: "compiles @map! to mapWords with the lambda window at its marker offset",
-      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2)) == 0x1122`,
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @dbl!) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -647,7 +653,8 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
     },
     {
       name: "compiles @reverse! over a nested @map! result",
-      script: `assertions:assert @reverse!(@map!(${TOKEN}::{caps()(uint256[])} @num!(+ 1))) == 0x1122`,
+      script: `def @inc! "$x: number -> number" @num!($x + 1)
+assertions:assert @reverse!(@map!(${TOKEN}::{caps()(uint256[])} @inc!)) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -747,7 +754,8 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
     },
     {
       name: "feeds a nested @map! into @reduce!",
-      script: `assertions:assert @reduce!(@map!(${TOKEN}::{caps()(uint256[])} @num!(* 2)) add 0) >= 10`,
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @reduce!(@map!(${TOKEN}::{caps()(uint256[])} @dbl!) add 0) >= 10`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, FOLD_SIG);
@@ -760,7 +768,8 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
   errorCases: [
     {
       name: "rejects a non-boolean @filter! predicate",
-      script: `assertions:assert @filter!(${TOKEN}::{caps()(uint256[])} @num!(+ 1)) == 0x11`,
+      script: `def @inc! "$x: number -> number" @num!($x + 1)
+assertions:assert @filter!(${TOKEN}::{caps()(uint256[])} @inc!) == 0x11`,
       error: "must evaluate to a boolean",
     },
     {
@@ -799,7 +808,8 @@ describeCommand("assert (lang on-chain faces, wave 3)", {
     // ---- @filter! / @find! ----------------------------------------------
     {
       name: "compiles @filter! to filterWords with the predicate template",
-      script: `assertions:assert @filter!(${TOKEN}::{caps()(uint256[])} @bool!(>= 100)) == 0x1122`,
+      script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @filter!(${TOKEN}::{caps()(uint256[])} @ge100!) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -819,7 +829,8 @@ describeCommand("assert (lang on-chain faces, wave 3)", {
     },
     {
       name: "compiles @find! to a core pick of the filterWords output's first word",
-      script: `assertions:assert @find!(${TOKEN}::{caps()(uint256[])} @bool!(>= 100)) >= 100`,
+      script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @find!(${TOKEN}::{caps()(uint256[])} @ge100!) >= 100`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const pick = d.core(param);
@@ -1407,7 +1418,8 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
       // template: the nested call stays an unresolved segment the core
       // re-resolves per element.
       name: "compiles a nested-live @any! predicate through a core-target lambda",
-      script: `assertions:assert @any!(${TOKEN}::{caps()(uint256[])} @bool!(> ${TOKEN}::{cap()(uint256)}))`,
+      script: `def @overCap! "$x: number -> bool" @bool!($x > ${TOKEN}::{cap()(uint256)})
+assertions:assert @any!(${TOKEN}::{caps()(uint256[])} @overCap!)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         d.expectConstraint(param, "Eq", 1n);
@@ -1435,7 +1447,8 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
       // the element window sits inside the INNER read's encoded
       // calldata, two decodes deep.
       name: "compiles a multi-call @map! lambda through a core-target template",
-      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1)) == 0x1122`,
+      script: `def @dblInc! "$x: number -> number" @num!($x * 2 + 1)
+assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @dblInc!) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -1471,7 +1484,8 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
       // predicate still targets the Operators contract directly, one
       // staticcall per element.
       name: "keeps the direct Operators target for a one-call predicate",
-      script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @bool!(>= 100))`,
+      script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @ge100!)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, FOLD_SIG);
@@ -1485,7 +1499,8 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
     },
     {
       name: "keeps the direct Operators target for a one-call @map! lambda",
-      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2)) == 0x1122`,
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @dbl!) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -1508,7 +1523,8 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
       // marker scan of the unre-zeroed shape), never from the compiler's
       // own layout arithmetic.
       name: "compiles @map! with @it! to a multi-window square template",
-      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* @it!)) == 0x1122`,
+      script: `def @sq! "$x: number -> number" @num!($x * $x)
+assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @sq!) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -1535,7 +1551,8 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
       // Composed predicates still have to BE predicates: the category
       // check precedes the template extraction.
       name: "rejects a non-boolean composed lambda in @all!",
-      script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1))`,
+      script: `def @dblInc! "$x: number -> number" @num!($x * 2 + 1)
+assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @dblInc!)`,
       error: "must evaluate to a boolean",
     },
     {
@@ -1559,9 +1576,23 @@ assertions:assert @dbl!(1 2) > 0`,
       error: "expects 1 argument(s), got 2",
     },
     {
-      name: "rejects @it! outside a lambda",
-      script: `assertions:assert @it! == 1`,
-      error: "only valid inside a fold/map/filter lambda",
+      // The face takes the definition by NAME; passing arguments at the
+      // call site is the mistake the old inline form invited.
+      name: "rejects arguments at the lambda call site",
+      script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @ge100!(5))`,
+      error: "takes the definition by NAME, with no arguments",
+    },
+    {
+      name: "rejects a module helper where a definition is required",
+      script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @not!)`,
+      error: "needs a `def @name!` definition",
+    },
+    {
+      name: "rejects a definition of the wrong parameter count",
+      script: `def @between! "$a: number $b: number -> bool" @bool!($a >= $b)
+assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @between!)`,
+      error: "applies a definition of 1 parameter(s), and @between! declares 2",
     },
   ],
 });

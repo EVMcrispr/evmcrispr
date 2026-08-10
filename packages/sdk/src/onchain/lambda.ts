@@ -15,8 +15,8 @@
  * where a direct form costs one, which is why the Operators flattening is
  * tried first. A build-time constant or a bytes/string result is
  * rejected: the engine reads one return word. Every marker occurrence
- * becomes one `elemOffsets` entry (ascending); `@it!` plus the prepend
- * convention can name the same element twice on purpose.
+ * becomes one `elemOffsets` entry (ascending), so a definition that names
+ * its parameter more than once substitutes at each place it appears.
  */
 import type { Address, Hex } from "viem";
 import {
@@ -31,10 +31,17 @@ import type { HelperFunctionNode, Node } from "../types";
 import { NodeType } from "../types";
 import { operandNode, PRECOMPILED_OPERAND } from "./compile";
 import { CORE_ABI } from "./core";
+import { lookupOnchainDef } from "./defs";
 import { compileOnchainHelper } from "./dispatch";
 import type { InputParam } from "./erc8211";
 import { FETCHER_TYPE, rawParam } from "./erc8211";
 import type { Category, CompileCtx, Operand } from "./types";
+
+/** Shown when a face is handed something that is not a definition. */
+const DEF_EXAMPLE: Record<number, string> = {
+  1: 'def @big! "$x: number -> bool" @bool!($x >= 100)',
+  2: 'def @sum! "$acc: number $x: number -> number" @num!($acc + $x)',
+};
 
 /** The marker word standing in for the fold element while the predicate
  *  compiles — improbable enough that a collision with a genuine constant
@@ -57,8 +64,8 @@ export function elementOperand(cat: Category = "Uint"): Operand {
  *  is the Operators contract when the predicate flattened to one direct
  *  call; otherwise it is the compiled staticcall's own target verbatim —
  *  the core for a composed `read` or a `pick`, another contract for a
- *  direct single call. N=1 is the pre-B2 shape; N>1 is `@it!` naming the
- *  element alongside the prepend (or twice explicitly). */
+ *  direct single call. N>1 means the definition names its parameter more
+ *  than once, e.g. `@num!($x * $x)`. */
 export interface LambdaTemplate {
   target: Address;
   template: Hex;
@@ -231,15 +238,16 @@ export function extractLambdaTemplate(
 }
 
 /**
- * Compile a lambda argument (`@map!`, `@all!`, `@any!`) into a template.
- * The lambda names an Operators-backed helper — `@bool!(>= 100)`,
- * `@num!(* 2)`, `@not!`, any helper reference whose compile face reduces
- * to a core read — and is applied with the element prepended to its own
- * arguments, mirroring the def-proxy partial-application convention.
- * `@it!` names the same element again inside the body; both the prepend
- * and every `@it!` become substitution windows (prepend is kept — naming
- * the element twice in source is the point of `@it!`, e.g.
- * `@num!(* @it!)` for `mul(elem, elem)`).
+ * Compile a lambda argument (`@map!`, `@all!`, `@filter!`, …) into a
+ * template.
+ *
+ * The lambda is a NAMED on-chain definition, taken by name with no
+ * arguments: `def @big! "$x: number -> bool" @bool!($x >= 100)` applied as
+ * `@all!(caps @big!)`. The face supplies what the definition declares, as
+ * precompiled marker operands, so each parameter substitutes wherever the
+ * body names it — including more than once, which is how a body like
+ * `@num!($x * $x)` yields two windows.
+ *
  * Returns the compiled operand alongside the template so callers can
  * enforce their own result category.
  */
@@ -248,33 +256,58 @@ export async function compileLambdaTemplate(
   lambdaNode: Node | undefined,
   label: string,
   elemCat: Category = "Uint",
+  arity = 1,
 ): Promise<LambdaTemplate & { operand: Operand }> {
+  const supplies =
+    arity === 1
+      ? "the face supplies the element"
+      : "the face supplies the accumulator and the element";
+
   if (!lambdaNode || lambdaNode.type !== NodeType.HelperFunctionExpression) {
     throw new ErrorException(
-      `${label} expects a helper-reference lambda, e.g. @bool!(> 100) — the element is prepended to the reference's own arguments`,
+      `${label} expects a named on-chain definition, e.g. ${DEF_EXAMPLE[arity] ?? DEF_EXAMPLE[1]}`,
     );
   }
   const lambda = lambdaNode as HelperFunctionNode;
+
+  if (lambda.args.length > 0) {
+    throw new ErrorException(
+      `${label} takes the definition by NAME, with no arguments — ${supplies}. Write @${lambda.name} rather than @${lambda.name}(…)`,
+    );
+  }
+
+  const def = lookupOnchainDef(ctx, lambda.name);
+  if (!def) {
+    throw new ErrorException(
+      `${label} needs a \`def @name!\` definition, and @${lambda.name} is not one. Name the operation first: ${DEF_EXAMPLE[arity] ?? DEF_EXAMPLE[1]}`,
+    );
+  }
+
+  const params = def.argDefs ?? [];
+  if (params.length !== arity) {
+    throw new ErrorException(
+      `${label} applies a definition of ${arity} parameter(s), and @${lambda.name} declares ${params.length} — ${supplies}`,
+    );
+  }
+
   // An outer element smuggled into this lambda's AST as a precompiled
   // marker would share the inner binder's global marker and stamp the
   // wrong windows. Reject before compile — never wrong offsets.
   if (astCapturesOuterElement(lambda)) {
     throw new ErrorException(
-      `${label} lambda captures the outer element inside a nested lambda — the element marker is per-binder only via @it! / the prepend; capturing the outer element is unsupported`,
+      `${label} captures the outer element inside a nested lambda — the element belongs to one binder, and capturing an enclosing one is unsupported`,
     );
   }
-  const prevCat = ctx.lambdaElemCat;
-  ctx.lambdaElemCat = elemCat;
-  try {
-    const synthetic: HelperFunctionNode = {
-      ...lambda,
-      args: [operandNode(elementOperand(elemCat)), ...lambda.args] as never,
-    };
-    const o = await compileOnchainHelper(ctx, synthetic);
-    return { ...extractLambdaTemplate(ctx, o, `${label} lambda`), operand: o };
-  } finally {
-    ctx.lambdaElemCat = prevCat;
-  }
+
+  // The face supplies the arguments the definition declares. Each is a
+  // precompiled marker operand, so it lands wherever the body names the
+  // corresponding parameter — including more than once.
+  const synthetic: HelperFunctionNode = {
+    ...lambda,
+    args: [operandNode(elementOperand(elemCat))] as never,
+  };
+  const o = await compileOnchainHelper(ctx, synthetic);
+  return { ...extractLambdaTemplate(ctx, o, `${label} lambda`), operand: o };
 }
 
 /** {@link compileLambdaTemplate} with the boolean-result requirement of

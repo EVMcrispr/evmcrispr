@@ -4,7 +4,7 @@ title: "@lang:find"
 
 First element that satisfies the predicate; no match is an error.
 
-**On-chain (`@lang:find!`)**: The predicate is an Operators-backed helper, e.g. `@bool!(>= 100)`, with the element prepended to its arguments; a composed predicate costs more per element.
+**On-chain (`@lang:find!`)**: The predicate is a named `def @name!` of one parameter returning bool, applied by name.
 
 **Returns**: `any`
 
@@ -43,7 +43,8 @@ load lang
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # The first cap at or above the floor is exactly the floor
-assertions:assert @find!($vault::{caps()(uint256[])} @bool!(>= 100)) == 100
+def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @find!($vault::{caps()(uint256[])} @ge100!) == 100
 ```
 
 ### Notes

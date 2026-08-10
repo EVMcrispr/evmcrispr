@@ -4,7 +4,7 @@ title: "@lang:any"
 
 Whether at least one element satisfies the predicate.
 
-**On-chain (`@lang:any!`)**: The predicate is an Operators-backed helper, e.g. `@bool!(== 0)`, with the element prepended to its arguments; a composed predicate costs more per element.
+**On-chain (`@lang:any!`)**: The predicate is a named `def @name!` of one parameter returning bool, applied by name.
 
 **Returns**: `bool`
 
@@ -36,7 +36,8 @@ the first pass.
 
 The predicate names an Operators-backed helper compiled into a lambda
 template with the element prepended to the reference's own arguments:
-`@bool!(== 0)` tests `element == 0`. A predicate reducing to ONE
+A def of one parameter returning bool: `def @isZero! "$x: number ->
+bool" @bool!($x == 0)` tests `element == 0`. A body reducing to ONE
 Operators call becomes a single-staticcall template; a composed one —
 a nested live call, a multi-call expression — routes through the core
 and costs several staticcalls per element instead of one.
@@ -50,7 +51,8 @@ load lang
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # Some cap is unset
-assertions:assert @any!($vault::{caps()(uint256[])} @bool!(== 0)) == false
+def @isZero! "$x: number -> bool" @bool!($x == 0)
+assertions:assert @any!($vault::{caps()(uint256[])} @isZero!) == false
 ```
 
 ### Notes
