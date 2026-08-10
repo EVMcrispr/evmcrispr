@@ -1,8 +1,11 @@
 import { defineHelper, HelperFunctionError, Num } from "@evmcrispr/sdk";
-import { labelhash, parseAbi } from "viem";
+import type { Operand } from "@evmcrispr/sdk/onchain";
+import { staticCallParam } from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData, labelhash, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { baseRegistrarMap, requireAddress } from "../addresses";
+import { onchainAddress } from "../onchain";
 import { eth2LDLabel, mainnetClient } from "../utils";
 
 export default defineHelper<Ens>({
@@ -32,5 +35,27 @@ export default defineHelper<Ens>({
       throw new HelperFunctionError(node, `${name} is not registered`);
     }
     return Num.fromBigInt(expiry);
+  },
+  compile: async (ctx, node): Promise<Operand> => {
+    const name = String(await ctx.interpreters.interpretNode(node.args[0]));
+    const registrar = await onchainAddress(
+      ctx,
+      baseRegistrarMap,
+      "BaseRegistrar",
+    );
+    return {
+      kind: "call",
+      param: staticCallParam(
+        registrar,
+        encodeFunctionData({
+          abi: parseAbi([
+            "function nameExpires(uint256 id) view returns (uint256)",
+          ]),
+          functionName: "nameExpires",
+          args: [BigInt(labelhash(eth2LDLabel(name)))],
+        }),
+      ),
+      cat: "Uint",
+    };
   },
 });

@@ -2,7 +2,6 @@ import "../../setup";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
-  type DecodedParam,
   describeCommand,
   selectorOf,
   word,
@@ -81,6 +80,24 @@ describeCommand("assert (@merkle.verify!)", {
         const { a } = d.expectOpJudge(param, "eq(uint256,uint256)");
         const foldArgs = d.opReadOf(a, FOLD_SIG);
         d.opReadOf(foldArgs[1], "reverseWords(bytes)");
+      },
+    },
+    {
+      // @merkle.root has no `!` face and does not need one: a root is
+      // built from leaves the script already holds, so the plain helper
+      // folds to a constant that the expression then compares against a
+      // live read. (An on-chain root over LIVE leaves is a different
+      // thing entirely, and is not expressible: the reduction halves the
+      // array each round, and mapWords is one-to-one.)
+      name: "folds a plain @merkle.root into the expression as a constant",
+      script: `assertions:assert ${DIST}::{merkleRoot()(bytes32)} == @crypto:merkle.root([${LEAF} ${ROOT}])`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const call = d.staticCallOf(param);
+        expect(call.target).to.equal(DIST);
+        expect(call.data).to.equal(selectorOf("merkleRoot()"));
+        // One constraint carrying a build-time root: no fold on-chain.
+        expect(param.constraints).to.have.lengthOf(1);
       },
     },
   ],

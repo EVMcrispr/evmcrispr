@@ -2,18 +2,19 @@ import "../../setup";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
-  type DecodedParam,
   describeCommand,
   selectorOf,
+  word,
 } from "@evmcrispr/test-utils/evml";
-import { getAddress, namehash } from "viem";
+import { getAddress, labelhash, namehash } from "viem";
 
 const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
 const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
-// The mainnet ENS registry literal (the test chain has no registry).
 const REGISTRY = getAddress("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e");
-const VITALIK = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
-const NODE = namehash("vitalik.eth");
+const NAME_WRAPPER = getAddress("0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401");
+const BASE_REGISTRAR = getAddress("0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85");
+const CONTROLLER = getAddress("0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547");
+const NAME = "vitalik.eth";
 
 const preamble = `load assertions\nload ens\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
 
@@ -22,62 +23,76 @@ const d = createAssertDecoders({
   operators: OPERATORS,
 });
 
-describeCommand("assert (@addr!)", {
-  describeName: "Ens > helpers > @addr!",
+const NODE = namehash(NAME);
+
+describeCommand("assert (ens registry faces)", {
+  describeName: "Ens > helpers > registry on-chain faces",
   preamble,
   cases: [
     {
-      name: "compiles to cond(resolver unset, zero, resolver -> addr chain)",
-      script: `assertions:assert @addr!("vitalik.eth") == ${VITALIK} "name moved"`,
+      name: "reads the resolver straight off the registry",
+      script: `assertions:assert @ens:resolver!(${NAME}) != 0x0000000000000000000000000000000000000000`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const { a } = d.expectOpJudge(param, "ne(uint256,uint256)");
+        const call = d.staticCallOf(a);
+        expect(call.target).to.equal(REGISTRY);
+        expect(call.data).to.equal(
+          `${selectorOf("resolver(bytes32)")}${NODE.slice(2)}`,
+        );
+      },
+    },
+    {
+      name: "unwraps a wrapped owner through a cond",
+      script: `assertions:assert @ens:owner!(${NAME}) == 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const cond = d.core(param);
         expect(cond.functionName).to.equal("cond");
-        // c: eq(resolver(node), 0)
-        const eqArgs = d.opReadOf(
-          cond.args[0] as unknown as DecodedParam,
-          "eq(uint256,uint256)",
+        // The condition asks whether the registry owner IS the wrapper.
+        const eqArgs = d.opReadOf(cond.args[0] as never, "eq(uint256,uint256)");
+        const registryOwner = d.staticCallOf(eqArgs[0]);
+        expect(registryOwner.target).to.equal(REGISTRY);
+        expect(registryOwner.data).to.equal(
+          `${selectorOf("owner(bytes32)")}${NODE.slice(2)}`,
         );
-        const resolverCall = d.staticCallOf(eqArgs[0]);
-        expect(resolverCall.target).to.equal(REGISTRY);
-        expect(resolverCall.data).to.equal(
-          `${selectorOf("resolver(bytes32)")}${NODE.slice(2)}`,
+        d.expectRawWord(eqArgs[1], BigInt(NAME_WRAPPER));
+
+        // Then branch: the ERC-1155 holder of the wrapped name.
+        const wrapped = d.staticCallOf(cond.args[1] as never);
+        expect(wrapped.target).to.equal(NAME_WRAPPER);
+        expect(wrapped.data).to.equal(
+          `${selectorOf("ownerOf(uint256)")}${NODE.slice(2)}`,
         );
-        d.expectRawWord(eqArgs[1], 0n);
-        // then: the zero word
-        d.expectRawWord(cond.args[1] as unknown as DecodedParam, 0n);
-        // else: chain(resolver(node), [addr(node)])
-        const chain = d.core(cond.args[2] as unknown as DecodedParam);
-        expect(chain.functionName).to.equal("chain");
-        const start = d.staticCallOf(chain.args[0] as unknown as DecodedParam);
-        expect(start.target).to.equal(REGISTRY);
-        expect(chain.args[1]).to.deep.equal([
-          `${selectorOf("addr(bytes32)")}${NODE.slice(2)}`,
-        ]);
-        d.expectConstraint(param, "Eq", BigInt(VITALIK));
+        // Else branch: the registry owner as read.
+        expect(d.staticCallOf(cond.args[2] as never).target).to.equal(REGISTRY);
       },
     },
     {
-      name: "keeps the ENSIP-15 normalization at composition time",
-      script: `assertions:assert @addr!("ViTaLiK.eth") == ${VITALIK}`,
+      name: "reads the expiry off the base registrar by labelhash",
+      script: `assertions:assert @ens:expiry!(${NAME}) > 1700000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        const cond = d.core(param);
-        const eqArgs = d.opReadOf(
-          cond.args[0] as unknown as DecodedParam,
-          "eq(uint256,uint256)",
+        const call = d.staticCallOf(param);
+        expect(call.target).to.equal(BASE_REGISTRAR);
+        expect(call.data).to.equal(
+          `${selectorOf("nameExpires(uint256)")}${word(BigInt(labelhash("vitalik"))).slice(2)}`,
         );
-        expect(d.staticCallOf(eqArgs[0]).data).to.equal(
-          `${selectorOf("resolver(bytes32)")}${NODE.slice(2)}`,
-        );
+        d.expectConstraint(param, "Gte", 1700000001n);
       },
     },
-  ],
-  errorCases: [
     {
-      name: "keeps coin-typed resolution off-chain",
-      script: `assertions:assert @addr!("vitalik.eth" 0) == ${VITALIK}`,
-      error: "coin-typed resolution stays off-chain",
+      name: "asks the controller whether a label is available",
+      script: `assertions:assert @ens:available!(${NAME}) == false`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const call = d.staticCallOf(param);
+        expect(call.target).to.equal(CONTROLLER);
+        expect(call.data.startsWith(selectorOf("available(string)"))).to.be
+          .true;
+        // A bool read judged directly: false is EQ 0.
+        d.expectConstraint(param, "Eq", 0n);
+      },
     },
   ],
 });

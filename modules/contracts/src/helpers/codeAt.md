@@ -4,6 +4,8 @@ title: "@contracts:codeAt"
 
 Deployed bytecode at an address.
 
+**On-chain (`@contracts:codeAt!`)**: Sees code a batch deployed in an earlier step, and an address that self-destructed or was redeployed, which a build-time read cannot.
+
 **Returns**: `bytes`
 
 ## Syntax
