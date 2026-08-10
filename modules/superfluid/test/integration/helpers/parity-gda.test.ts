@@ -74,11 +74,50 @@ async function send(
   const hash = await wallet.sendTransaction({
     to: to as `0x${string}`,
     data,
+    // An explicit limit rather than viem's estimate. Superfluid runs agreement
+    // callbacks, and EIP-150 gives an inner call only 63/64 of what remains —
+    // so a limit that is exactly enough for the whole transaction can still
+    // starve the callback, which reverts with no data while the outer frame
+    // still has budget. That shows up as a revert whose gasUsed is BELOW the
+    // limit, and which eth_call cannot reproduce because a call runs with a
+    // huge gas cap. It made distributeFlow fail on roughly half of fresh forks.
+    gas: 3_000_000n,
     ...(value === undefined ? {} : { value }),
   } as never);
   const receipt = await pub.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success") {
-    throw new Error(`GDA setup reverted at "${step}": ${hash}`);
+    // Replay the call at the block it reverted in, so the error carries the
+    // reason rather than only a hash nobody can look up afterwards.
+    let reason = "no reason returned";
+    const raw = (await fetch("http://127.0.0.1:8545", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_call",
+        params: [
+          {
+            from: wallet.account!.address,
+            to,
+            data,
+            ...(value === undefined
+              ? {}
+              : { value: `0x${value.toString(16)}` }),
+          },
+          `0x${(receipt.blockNumber - 1n).toString(16)}`,
+        ],
+      }),
+    }).then((r) => r.json())) as {
+      error?: { message?: string; data?: string };
+    };
+    if (raw.error) {
+      reason = `${raw.error.message ?? ""} data=${raw.error.data ?? "none"}`;
+    }
+    const tx = await pub.getTransaction({ hash });
+    throw new Error(
+      `GDA setup reverted at "${step}" (${hash}): ${reason} | gasUsed=${receipt.gasUsed} gasLimit=${tx.gas}`,
+    );
   }
   return receipt;
 }
@@ -107,19 +146,7 @@ function expectParity(offchain: Norm, onchain: Norm, label: string) {
 describe("@superfluid GDA > parity", () => {
   beforeAll(async () => {
     ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(pub));
-    // Retried once. Building the fixture sends five transactions against a
-    // shared anvil that the rest of the package is also using, and it has
-    // failed intermittently for a reason not yet pinned down. A retry is
-    // honest here because this is fixture CONSTRUCTION: if it were masking a
-    // parity failure the comparison below would still catch it, and a setup
-    // that fails outright fails the suite loudly rather than silently
-    // skipping. Remove the retry once the cause is understood.
-    try {
-      await buildPool();
-    } catch (first) {
-      console.warn(`GDA fixture setup failed once, retrying: ${first}`);
-      await buildPool();
-    }
+    await buildPool();
   }, 180_000);
 
   async function buildPool() {
