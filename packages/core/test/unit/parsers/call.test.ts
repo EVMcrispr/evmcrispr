@@ -2,6 +2,7 @@ import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
 import { type Case, runCases, runParser } from "@evmcrispr/test-utils/evml";
 import { callExpressionParser } from "../../../src/parsers/call";
+import { commandExpressionParser } from "../../../src/parsers/command";
 
 export const callParserDescribe = () =>
   describe("Parsers - call expression", () => {
@@ -573,11 +574,11 @@ describe("Parsers - call expression (multiline)", () => {
   });
 });
 
-describe("Parsers - call expression (!:: read hops)", () => {
-  it("parses a top-level !:: hop with an inline ABI", () => {
+describe("Parsers - call expression (::! read hops)", () => {
+  it("parses a top-level ::! hop with an inline ABI", () => {
     const result = runParser(
       callExpressionParser,
-      `0x14FA5C16Af56190239B997485656F5c8b4f86c4b!::{balanceOf(address)(uint256) @me}`,
+      `0x14FA5C16Af56190239B997485656F5c8b4f86c4b::!{balanceOf(address)(uint256) @me}`,
     );
     expect(result).to.deep.include({
       type: "CallExpression",
@@ -593,8 +594,8 @@ describe("Parsers - call expression (!:: read hops)", () => {
     expect(result.args).to.have.lengthOf(1);
   });
 
-  it("parses a variable head before !::", () => {
-    const result = runParser(callExpressionParser, `$reg!::{fee()(uint24)}`);
+  it("parses a variable head before ::!", () => {
+    const result = runParser(callExpressionParser, `$reg::!{fee()(uint24)}`);
     expect(result).to.deep.include({
       type: "CallExpression",
       method: "fee",
@@ -608,10 +609,10 @@ describe("Parsers - call expression (!:: read hops)", () => {
     });
   });
 
-  it("parses a computed (bang helper) head before !::", () => {
+  it("parses a computed (bang helper) head before ::!", () => {
     const result = runParser(
       callExpressionParser,
-      `@bytes!($reg::packedPool() ">>" 96)!::{fee()(uint24)}`,
+      `@bytes!($reg::packedPool() ">>" 96)::!{fee()(uint24)}`,
     );
     expect(result).to.deep.include({
       type: "CallExpression",
@@ -625,10 +626,10 @@ describe("Parsers - call expression (!:: read hops)", () => {
     expect(result.target.args).to.have.lengthOf(3);
   });
 
-  it("parses a plain hop chained into a !:: hop", () => {
+  it("parses a plain hop chained into a ::! hop", () => {
     const result = runParser(
       callExpressionParser,
-      `$a::{asset()(address)}!::{totalSupply()(uint256)}`,
+      `$a::{asset()(address)}::!{totalSupply()(uint256)}`,
     );
     expect(result).to.deep.include({
       type: "CallExpression",
@@ -642,10 +643,10 @@ describe("Parsers - call expression (!:: read hops)", () => {
     expect(result.target.bang).to.equal(undefined);
   });
 
-  it("keeps plain hops unflagged and applies lenses to !:: hops", () => {
+  it("keeps plain hops unflagged and applies lenses to ::! hops", () => {
     const result = runParser(
       callExpressionParser,
-      `$a!::{getReserves()(uint112,uint112)}[$ _]`,
+      `$a::!{getReserves()(uint112,uint112)}[$ _]`,
     );
     expect(result).to.deep.include({
       type: "CallExpression",
@@ -655,10 +656,10 @@ describe("Parsers - call expression (!:: read hops)", () => {
     expect(result.returnDestructure).to.deep.equal(["$", null]);
   });
 
-  it("continues a chain after a !:: hop", () => {
+  it("continues a chain after a ::! hop", () => {
     const result = runParser(
       callExpressionParser,
-      `$a!::{vault()(address)}::{totalSupply()(uint256)}`,
+      `$a::!{vault()(address)}::{totalSupply()(uint256)}`,
     );
     expect(result).to.deep.include({
       type: "CallExpression",
@@ -672,9 +673,55 @@ describe("Parsers - call expression (!:: read hops)", () => {
     });
   });
 
-  it("rejects the named-method form after !:: with a clear error", () => {
-    const error = runParser(callExpressionParser, `$a!::fee()`);
+  it("rejects the named-method form after ::! with a clear error", () => {
+    const error = runParser(callExpressionParser, `$a::!fee()`);
     expect(String(error)).to.include("CallParserError");
     expect(String(error)).to.include("inline ABI form");
+  });
+
+  // The marker trails the operator so it never sits against a name. A
+  // leading one could not be told apart from the trailing `!` of an
+  // on-chain helper face, which is what `::!` exists to avoid.
+  it("reads a bare helper head without swallowing the marker", () => {
+    const result = runParser(
+      callExpressionParser,
+      `@me::!{balanceOf(address)(uint256) @me}`,
+    );
+    expect(result).to.deep.include({ method: "balanceOf", bang: true });
+    expect(result.target).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "me",
+    });
+  });
+
+  it("keeps a bang helper head distinct from the read marker", () => {
+    const result = runParser(callExpressionParser, `@name!::!{fee()(uint24)}`);
+    expect(result).to.deep.include({ method: "fee", bang: true });
+    expect(result.target).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "name!",
+    });
+  });
+
+  it("leaves a bang helper head on a plain hop unmarked", () => {
+    const result = runParser(callExpressionParser, `@name!::{fee()(uint24)}`);
+    expect(result.bang).to.equal(undefined);
+    expect(result.target).to.deep.include({
+      type: "HelperFunctionExpression",
+      name: "name!",
+    });
+  });
+
+  // The retired `!::` spelling must not quietly mean something else. In a
+  // chain it used to mark the hop that FOLLOWS it, so a silent re-parse
+  // would invert which hop reads on-chain. Checked through the command
+  // parser because the call parser alone just stops early, leaving the
+  // `!::{…}` behind rather than rejecting it.
+  it("does not silently re-parse the retired !:: spelling in a chain", () => {
+    const error = runParser(
+      commandExpressionParser,
+      `assertions:assert $a::{asset()(address)}!::{totalSupply()(uint256)} > 0`,
+    );
+    expect(String(error)).to.include("ParserError");
   });
 });

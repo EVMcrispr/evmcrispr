@@ -29,6 +29,7 @@ import {
   chainOperatorParser,
   createNodeLocation,
   currentContexDataParser,
+  hopOperatorParser,
   optionalMultilineWhitespace,
   optionalWhitespace,
 } from "./utils";
@@ -87,10 +88,10 @@ const inlineAbiMethodNameRegex = /^[a-zA-Z_][a-zA-Z0-9_]*/;
 
 export const CALL_PARSER_ERROR = "CallParserError";
 
-/** A `!::` hop has no composition-time address to fetch an ABI from, so
- *  the named-method form is impossible — the signature must be inline. */
+/** A `::!` read hop has no composition-time address to fetch an ABI from,
+ *  so the named-method form is impossible — the signature must be inline. */
 const BANG_INLINE_ABI_ERROR =
-  'Expected the inline ABI form after "!::" (e.g. !::{fee()(uint24)}) — a !:: hop constructs its call at assertion time, so the signature must be written inline as !::{method(argTypes)(returnTypes) args...}';
+  'Expected the inline ABI form after "::!" (e.g. ::!{fee()(uint24)}) — a ::! hop constructs its call at assertion time, so the signature must be written inline as ::!{method(argTypes)(returnTypes) args...}';
 
 const _inlineAbiCallParser: NodeParser<InlineAbiResult> = recursiveParser(() =>
   coroutine((run) => {
@@ -187,9 +188,9 @@ const chainedCallExpressionParser = (
         n.loc = createNodeLocation(initialContext, afterLens);
       }
 
-      const nextOp: string | null = run(possibly(chainOperatorParser));
-      if (nextOp) {
-        return run(chainedCallExpressionParser(n, nextOp === "!::"));
+      const nextHopBang: boolean | null = run(possibly(hopOperatorParser));
+      if (nextHopBang !== null) {
+        return run(chainedCallExpressionParser(n, nextHopBang));
       }
 
       return n;
@@ -217,8 +218,7 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
       const initialContext: LocationData = run(currentContexDataParser);
       const target: CallExpressionNode["target"] = run(callableExpressions);
 
-      const hopOp: string = run(chainOperatorParser);
-      const bang = hopOp === "!::";
+      const bang: boolean = run(hopOperatorParser);
 
       let n: CallExpressionNode;
 
@@ -282,9 +282,9 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
         n.loc = createNodeLocation(initialContext, afterLens);
       }
 
-      const nextOp: string | null = run(possibly(chainOperatorParser));
-      if (nextOp) {
-        return run(chainedCallExpressionParser(n, nextOp === "!::"));
+      const nextHopBang: boolean | null = run(possibly(hopOperatorParser));
+      if (nextHopBang !== null) {
+        return run(chainedCallExpressionParser(n, nextHopBang));
       }
 
       return n;

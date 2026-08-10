@@ -253,7 +253,8 @@ export const createLanguage: (
         action: { token: "number" },
       },
       { regex: /--[a-zA-Z][a-zA-Z0-9-]*/, action: { token: "option" } },
-      { regex: /!::/, action: { token: "operator" } },
+      // Before the plain `::` rule, so a read hop colours as one token.
+      { regex: /::!/, action: { token: "operator" } },
       { regex: /::/, action: { token: "operator" } },
       { regex: /-\?!>/, action: { token: "operator" } },
       { regex: /-!>/, action: { token: "operator" } },

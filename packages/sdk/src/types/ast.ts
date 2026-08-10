@@ -102,7 +102,7 @@ export interface CallExpressionNode extends Node {
   target: ArgumentExpressionNode;
   method: string;
   args: Node[];
-  /** On-chain read hop (`!::` instead of `::`): the target value — any
+  /** On-chain read hop (`::!` instead of `::`): the target value — any
    *  expression, not just an address chain — becomes the read target of a
    *  core `read` constructed at assertion time. Only valid inside on-chain
    *  expressions, and always carries an inline ABI (`inputTypes`/

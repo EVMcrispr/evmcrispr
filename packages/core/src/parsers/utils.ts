@@ -52,16 +52,27 @@ export const createNodeLocation = (
 
 export const callOperatorParser = str("::");
 
-/** The on-chain read hop operator (`!::`) — accepted wherever `::` is; the
- *  hop compiles to a core `read` at assertion time. */
-export const bangCallOperatorParser = str("!::");
+/** The hop operator, and the only thing a call target has to stop at.
+ *  Both hop kinds start with it: `::{…}` calls at composition time,
+ *  `::!{…}` reads at assertion time. */
+export const chainOperatorParser = callOperatorParser;
 
-/** Either hop operator; yields the matched token so callers can flag the
- *  hop (`"!::"` vs `"::"`). */
-export const chainOperatorParser = choice([
-  bangCallOperatorParser,
-  callOperatorParser,
-]);
+/** A hop operator plus its optional on-chain read marker, yielding whether
+ *  the hop reads (`::!`) or calls (`::`).
+ *
+ *  The marker trails the operator rather than leading it, because a
+ *  leading one would sit against whatever precedes the hop, where it
+ *  cannot be told apart from the trailing `!` of an on-chain helper face:
+ *  `@name!::{…}` splits as `@name!` + `::` or as `@name` + `!::`, and the
+ *  grammar cannot see which was meant. After the operator there is nothing
+ *  to collide with. */
+export const hopOperatorParser: Parser<boolean, string, NodeParserState> =
+  recursiveParser(() =>
+    coroutine((run) => {
+      run(callOperatorParser);
+      return run(possibly(char("!"))) !== null;
+    }),
+  );
 
 export const optOperatorParser = str("--");
 

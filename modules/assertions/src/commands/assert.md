@@ -110,13 +110,19 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   folds into the `EQ 0`/`EQ 1` constraint bound.
 - `~=` needs `--delta` and a constant side; for two live values use
   `@absdiff!(a b) <= delta`.
-- `<head>!::{sig(argTypes)(returnTypes) args}` constructs a whole call at
+- `<head>::!{sig(argTypes)(returnTypes) args}` constructs a whole call at
   assertion time via the core's `read`: the head may be any expression (a
   `::` chain, an on-chain helper, a computed word — e.g.
-  `@bytes!($reg::packedPool() ">>" 96)!::{fee()(uint24)}`), and the
+  `@bytes!($reg::packedPool() ">>" 96)::!{fee()(uint24)}`), and the
   arguments splice like nested live calls. The head must still resolve to
   a clean address word on-chain, and the inline ABI form is mandatory:
-  a `!::` hop has no composition-time address to fetch an ABI from.
+  a `::!` hop has no composition-time address to fetch an ABI from.
+- The `!` trails the `::` so it never sits against the head. Written the
+  other way it would be indistinguishable from the trailing `!` of an
+  on-chain helper face: `@name!::{…}` splits as `@name!` before a plain
+  hop or as `@name` before a read hop, and nothing in the text says
+  which. After the operator there is nothing to collide with, so
+  `@me::!{…}` and `@name!::!{…}` both read one way only.
 - Nested live calls as call arguments compile to the core's `read`
   primitive: the enclosing call becomes an on-chain-constructed operand
   whose calldata segments (literal spans + live values) the judge

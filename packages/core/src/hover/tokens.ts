@@ -24,7 +24,7 @@ export interface Token {
  * `name:value` pair (not `://` or `::`); it fires for `mod:command` heads
  * too, so consumers must AST-confirm before treating it as a named arg.
  * `!` belongs to no token class except a helper's trailing `!`, so heads
- * of `!::` read hops (`$reg!::{…}`, `0x…!::{…}`) tokenize cleanly before
+ * of `::!` read hops (`$reg::!{…}`, `0x…::!{…}`) tokenize cleanly before
  * the operator and the operator itself yields no hover token.
  */
 const TOKEN_RE =
