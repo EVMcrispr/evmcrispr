@@ -25,7 +25,7 @@ import { helpers } from "../../../src/_generated";
 
 describeParity("@receipts", {
   module:
-    "receipts [@block.number @block.timestamp @block.coinbase @block.gasLimit @block.baseFee @block.prevrandao @chainId]",
+    "receipts [@block.number @block.timestamp @block.coinbase @block.gasLimit @block.baseFee @block.prevrandao @block.blobBaseFee @chainId]",
   helpers,
   cases: [
     {
@@ -69,6 +69,20 @@ describeParity("@receipts", {
       diverges: {
         reason: "the pending block's base fee is derived, not the sealed one",
       },
+    },
+    {
+      // Two genuinely different routes to the same number: the plain face
+      // asks the node (eth_blobBaseFee), the ! face reads the BLOBBASEFEE
+      // opcode through Operators.
+      //
+      // Worth knowing what this does and does not pin. Gnosis blocks carry no
+      // blob gas, so excessBlobGas is 0 and EIP-4844's
+      // fake_exponential(1, 0, 3338477) is 1 — the floor. So it shows the two
+      // routes agreeing, not that they agree on a busy value. A chain with
+      // live blob traffic would exercise the exponential itself.
+      name: "blob base fee, at the EIP-4844 floor",
+      run: "@block.blobBaseFee()",
+      compile: "@block.blobBaseFee!()",
     },
     {
       name: "block prevrandao",
