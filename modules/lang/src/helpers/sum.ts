@@ -1,4 +1,4 @@
-import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
+import { asNum, defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import { sumWordsParam } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
 import { wordsArg } from "../utils/onchain";
@@ -17,7 +17,15 @@ export default defineHelper<Lang>({
   async run(_, { arr }) {
     let acc = Num(0n);
     for (const item of arr) {
-      acc = acc.add(item instanceof Num ? item : Num(item as never));
+      // asNum, not Num(item): a uint256[] read arrives as bigint[], and Num
+      // throws outright on a JS number rather than coercing.
+      const n = asNum(item);
+      if (!n) {
+        throw new ErrorException(
+          `@sum: every element must be numeric, got ${String(item)}`,
+        );
+      }
+      acc = acc.add(n);
     }
     return acc;
   },

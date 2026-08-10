@@ -1,5 +1,5 @@
 import type { Param } from "@evmcrispr/sdk";
-import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, valueKey } from "@evmcrispr/sdk";
 import { OP_SELECTORS, opReadParam } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
 import { wordsArg } from "../utils/onchain";
@@ -16,7 +16,7 @@ export default defineHelper<Lang>({
     const seen = new Set<string>();
     const result: Param[] = [];
     for (const item of arr) {
-      const key = String(item);
+      const key = valueKey(item);
       if (!seen.has(key)) {
         seen.add(key);
         result.push(item);

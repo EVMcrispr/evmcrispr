@@ -19,10 +19,12 @@ const POOL = "0xb50201558B00496A145fE76f7424749556E326D8";
 const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
 
 const RESERVES = `${POOL}::{getReservesList()(address[])}`;
+/** The same call read as words, so the elements arrive as raw bigint. */
+const WORDS = `${POOL}::{getReservesList()(uint256[])}`;
 
 describeParity("@lang", {
   module:
-    "lang [@at @len @reverse @slice @sort @unique @concat @includes @any]",
+    "lang [@at @len @reverse @slice @sort @unique @concat @includes @sum]",
   helpers,
   cases: [
     // ---- one case per category -------------------------------------------
@@ -98,12 +100,30 @@ describeParity("@lang", {
       },
     },
 
-    // NOT YET COVERED, and known to fail: `@sort` and `@includes` over a live
-    // uint256[]. The interpreter converts only a TOP-LEVEL bigint to Num, so a
-    // uint256[] arrives as bigint[] and both helpers take their non-Num path —
-    // @sort compares lexicographically and @includes falls through to `a === b`
-    // and answers a silent false. Those cases land together with the fix to the
-    // comparison sites, so the fix cannot accidentally be satisfied by a case
-    // written after the fact.
+    // ---- a live uint256[], where the numeric shapes have to agree ---------
+    // A `::` call normalizes only a TOP-LEVEL bigint to Num, so these arrays
+    // arrive as bigint[] while a literal or an arithmetic result is a Num.
+    // Before the comparison sites went through sdk/utils/compare.ts, @sort
+    // ordered these lexicographically ([1160…, 1265…, 1330…, 1440…, 240…])
+    // and @includes answered a silent false for an element that was present.
+    {
+      name: "sort of a live uint256[] agrees with the on-chain sort",
+      run: `@sort(${WORDS})`,
+      compile: `@sort!(${WORDS})`,
+      decodeAs: "uint256[]",
+    },
+    {
+      // `@num` is what makes this bite: it yields a Num while the elements are
+      // raw bigint. Any literal or arithmetic result on the needle side has
+      // the same shape, which is why the old failure was a silent false.
+      name: "includes finds a live uint256 element given as a number",
+      run: `@includes(${WORDS} @num(@at(${WORDS} 0)))`,
+      compile: `@includes!(${WORDS} @num!(@at!(${WORDS} 0)))`,
+    },
+    {
+      name: "sum of a live uint256[] agrees with the on-chain sum",
+      run: `@sum(${WORDS})`,
+      compile: `@sum!(${WORDS})`,
+    },
   ],
 });

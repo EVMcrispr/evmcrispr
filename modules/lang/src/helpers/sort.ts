@@ -1,4 +1,10 @@
-import { defineHelper, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
+import {
+  defineHelper,
+  ErrorException,
+  NodeType,
+  Num,
+  naturalCompare,
+} from "@evmcrispr/sdk";
 import {
   categoryFromAbiType,
   mapWordsParam,
@@ -47,13 +53,13 @@ async function asyncMerge(
 }
 
 /** Natural order, used when no comparator is given: numbers compare
- *  numerically, everything else by its string form. */
+ *  numerically, everything else by its string form.
+ *
+ *  Goes through `naturalCompare` rather than testing `instanceof Num`, which
+ *  would miss the raw `bigint` a `uint256[]` read arrives as and sort those
+ *  numbers as strings. */
 async function naturalOrder(a: unknown, b: unknown): Promise<number> {
-  if (a instanceof Num && b instanceof Num) {
-    return a.eq(b) ? 0 : a.lt(b) ? -1 : 1;
-  }
-  const [x, y] = [String(a), String(b)];
-  return x === y ? 0 : x < y ? -1 : 1;
+  return naturalCompare(a, b);
 }
 
 /** The sign bit. Flipping it maps signed order onto unsigned order

@@ -9,6 +9,7 @@ export * from "./ast";
 export * from "./blockscout";
 export * from "./chainArgType";
 export * from "./clients";
+export * from "./compare";
 export * from "./configVars";
 export * from "./contract-source";
 export * from "./contract-verification";
