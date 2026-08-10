@@ -998,12 +998,12 @@ describeCommand("assert", {
     },
     {
       name: "compiles @block.baseFee! to a plain baseFee read at the operators",
-      script: `assert @block.baseFee! <= 100e9 "basefee too high"`,
+      script: `assert @block.baseFee! <= 100e9 "base fee too high"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("baseFee()"));
         expectConstraint(param, "Lte", 100n * 10n ** 9n);
-        expect(message).to.equal("basefee too high");
+        expect(message).to.equal("base fee too high");
       },
     },
     {

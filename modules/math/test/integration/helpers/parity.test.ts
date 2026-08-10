@@ -19,6 +19,8 @@ const WORDS = `${POOL}::{getReservesList()(uint256[])}`;
 
 describeParity("@math", {
   module: "math [@max @min @absDiff @sqrt @log2 @ln @exp @pow]",
+  // lending supplies a ray-scaled operand, which is the shape @pow! refuses.
+  preamble: "load lending",
   helpers,
   cases: [
     {
@@ -91,9 +93,17 @@ describeParity("@math", {
       diverges: { reason: "the on-chain operand carries scale 18" },
     },
     {
-      // base passed explicitly: with it omitted the on-chain face takes the
-      // unit from the operand's scale and the off-chain one cannot see a
-      // scale, which is the declared divergence.
+      // A ray-scaled operand with no unit is refused rather than compounded at
+      // a unit the plain face cannot see. Before, the on-chain face silently
+      // took 1e27 from the operand's scale while the plain face took 1e18, and
+      // the two faces of one expression disagreed by orders of magnitude.
+      name: "refuses: a scaled value that does not state its unit",
+      run: `@pow(@lending:apy(${WXDAI} supply) 2 1000000000000000000000000000)`,
+      compile: `@pow!(@lending:apy!(${WXDAI} supply) 2)`,
+      helper: "pow",
+      refuses: /would take its unit from the value's own scale/,
+    },
+    {
       name: "pow compounds with an explicit base",
       run: `@pow(1050000000000000000 10 1000000000000000000)`,
       compile: `@pow!(1050000000000000000 10 1000000000000000000)`,

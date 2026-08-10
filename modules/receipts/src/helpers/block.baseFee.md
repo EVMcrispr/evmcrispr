@@ -39,7 +39,7 @@ With `!` and no arguments the read happens on-chain at assertion time: the base 
 ```evml
 load receipts
 
-assert @block.baseFee! <= 100e9 "basefee too high"
+assert @block.baseFee! <= 100e9 "base fee too high"
 ```
 
 ## See Also

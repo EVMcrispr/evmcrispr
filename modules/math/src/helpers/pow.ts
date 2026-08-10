@@ -31,7 +31,7 @@ export default defineHelper<MathModule>({
   description:
     "Raise a fixed-point value to a whole power, where one unit is `base` (1e18 by default, 1e27 for a ray). Compounding a per-period rate over N periods is pow(unit + rate, N).",
   compileDescription:
-    "With `base` omitted the unit comes from the value's own scale, so a ray-scaled read needs no 1e27 at the call site.",
+    "A value carrying a scale other than a wad must state its unit, since the plain face cannot see a scale and would compound at 1e18.",
   returnType: "number",
   args: [
     {
@@ -71,8 +71,18 @@ export default defineHelper<MathModule>({
         );
       }
       base = constBigInt(given);
+    } else if (scale && scale !== 18) {
+      // Taking the unit from the operand's scale is convenient but silently
+      // divergent: a Num carries no scale, so the plain @pow cannot see it and
+      // always uses a wad. Two faces of one expression would then compound at
+      // different units and disagree by orders of magnitude. Refusing is the
+      // only spelling that cannot quietly be wrong; a wad-scaled operand still
+      // needs no argument, because that is the default on both sides.
+      throw new ErrorException(
+        `@pow! would take its unit from the value's own scale (1e${scale}), which the plain @pow cannot see — it always uses 1e18, so the two faces would compute different numbers. Pass the unit: @pow!(value exponent 1e${scale})`,
+      );
     } else {
-      base = scale ? 10n ** BigInt(scale) : WAD;
+      base = WAD;
     }
     if (base <= 0n) {
       throw new ErrorException("@pow! needs a positive base");
