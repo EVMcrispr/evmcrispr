@@ -1,5 +1,6 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
+import { Num } from "@evmcrispr/sdk";
 import {
   expect,
   getPublicClient,
@@ -35,9 +36,17 @@ import { GDA_FORWARDER, RATE_1000_PER_MONTH, XDAIX } from "../../fixtures";
  * invalidated the guess. Here the address comes out of the creation receipt
  * and the expressions are built inside each test.
  *
- * `@claimable` is deliberately absent: getClaimableNow accrues per second, so
- * the two faces read it at different timestamps and differ legitimately.
- * Comparing it would measure the clock.
+ * `@claimable` needed care rather than exclusion. It accrues, so comparing it
+ * would seem to measure the clock — but anvil evaluates an `eth_call` against
+ * the last MINED block, not wall-clock, so both faces see the same timestamp
+ * as long as nothing mines between them, and the value is stable. Measured
+ * before relying on it: two reads 2.5s apart returned identical values and
+ * the same reported timestamp.
+ *
+ * To make it a real number rather than zero, chain time is advanced once after
+ * the flow starts. A second member is given units and never connects, which is
+ * what makes their share accrue as CLAIMABLE instead of landing in their
+ * real-time balance.
  */
 
 const GDA = parseAbi([
@@ -57,6 +66,8 @@ const pub = getPublicClient();
 const wallets = getWalletClients();
 const adminWallet = wallets[8]!;
 const memberWallet = wallets[9]!;
+/** Given units but never connected, so its share accrues as claimable. */
+const UNCLAIMED = wallets[7]!.account!.address;
 const ADMIN = adminWallet.account!.address;
 const MEMBER = memberWallet.account!.address;
 
@@ -147,6 +158,13 @@ describe("@superfluid GDA > parity", () => {
   beforeAll(async () => {
     ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(pub));
     await buildPool();
+    // Advance chain time ONCE, so the distribution has actually accrued and
+    // @claimable is a real number rather than zero. Everything below then
+    // reads one fixed block: anvil evaluates an eth_call against the last
+    // MINED block, so both faces see the same elapsed time and nothing drifts
+    // between them.
+    await pub.request({ method: "evm_increaseTime", params: [3600] } as never);
+    await pub.request({ method: "evm_mine", params: [] } as never);
   }, 180_000);
 
   async function buildPool() {
@@ -217,6 +235,16 @@ describe("@superfluid GDA > parity", () => {
       }),
     );
     await send(
+      "updateMemberUnits (unclaimed member)",
+      adminWallet,
+      GDA_FORWARDER,
+      encodeFunctionData({
+        abi: GDA,
+        functionName: "updateMemberUnits",
+        args: [POOL, UNCLAIMED, UNITS, "0x"],
+      }),
+    );
+    await send(
       "distributeFlow",
       adminWallet,
       GDA_FORWARDER,
@@ -271,6 +299,24 @@ describe("@superfluid GDA > parity", () => {
       `@superfluid:connected!(${POOL} ${ADMIN})`,
     );
     expectParity(c, d, "connected (never connected)");
+  }, 30_000);
+
+  it("claimable of a member who never connected", async () => {
+    // Non-zero: an hour of the distribution has accrued to a member whose
+    // share is not being streamed into their balance.
+    const [a, b] = await bothFaces(
+      `@superfluid:claimable(${POOL} ${UNCLAIMED})`,
+      `@superfluid:claimable!(${POOL} ${UNCLAIMED})`,
+    );
+    expectParity(a, b, "claimable (never connected)");
+    // Guard against the case going vacuous: if the time advance or the units
+    // ever stop taking effect this reads zero on BOTH faces and would pass
+    // while testing nothing.
+    expect(a.t, "claimable should be numeric").to.equal("num");
+    expect(
+      a.t === "num" && !a.v.eq(Num(0n)),
+      `claimable accrued nothing (${show(a)}) — the fixture is not distributing`,
+    ).to.be.true;
   }, 30_000);
 
   it("distributionFlowrate into the pool", async () => {
