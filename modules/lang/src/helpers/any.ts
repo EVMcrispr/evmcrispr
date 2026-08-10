@@ -12,7 +12,7 @@ export default defineHelper<Lang>({
   name: "any",
   description: "Whether at least one element satisfies the predicate.",
   compileDescription:
-    "The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(== 0)`, with the element prepended to its arguments.",
+    "The predicate is an Operators-backed helper, e.g. `@bool!(== 0)`, with the element prepended to its arguments; a composed predicate costs more per element.",
   returnType: "bool",
   args: [
     {
@@ -57,6 +57,7 @@ export default defineHelper<Lang>({
         ctx,
         "foldWords",
         payload,
+        tpl.target,
         tpl.template,
         tpl.elemOffset,
         tpl.elemOffset,

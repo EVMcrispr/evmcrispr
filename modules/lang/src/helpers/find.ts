@@ -14,7 +14,7 @@ export default defineHelper<Lang>({
   description:
     "First element that satisfies the predicate; no match is an error.",
   compileDescription:
-    "The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.",
+    "The predicate is an Operators-backed helper, e.g. `@bool!(>= 100)`, with the element prepended to its arguments; a composed predicate costs more per element.",
   returnType: "any",
   args: [
     {
@@ -60,7 +60,13 @@ export default defineHelper<Lang>({
       param: staticCallParam(
         ctx.core,
         encodePick(
-          filterWordsParam(ctx, payload, tpl.template, tpl.elemOffset),
+          filterWordsParam(
+            ctx,
+            payload,
+            tpl.target,
+            tpl.template,
+            tpl.elemOffset,
+          ),
           2n,
         ),
       ),

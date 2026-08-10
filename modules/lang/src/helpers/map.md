@@ -4,7 +4,7 @@ title: "@lang:map"
 
 Transform each element of an array by applying a helper.
 
-**On-chain (`@lang:map!`)**: The transform must be an Operators-backed helper reducing to one call, e.g. `@num!(* 2)`, with the element prepended to its arguments.
+**On-chain (`@lang:map!`)**: The transform is an Operators-backed helper, e.g. `@num!(* 2)`, with the element prepended to its arguments; a composed transform costs more per element.
 
 **Returns**: `array`
 
@@ -34,7 +34,10 @@ Transform each element of an array by applying a helper.
 Transform every element of the array return of a call on-chain through
 `mapWords`. The lambda names an Operators-backed helper, applied with
 the element prepended to its own arguments (`@num!(* 2)` maps each
-element to `element * 2`), and must reduce to a single Operators call.
+element to `element * 2`). A lambda reducing to one Operators call runs
+as a single staticcall per element; a composed one (a nested live call,
+a multi-call expression like `@num!(* 2 + 1)`) routes through the core
+and costs several.
 
 The result is the mapped words payload (a bytes value), composable with
 the other array faces: `@reduce!(@map!(…) add 0)`, `@sort!(@map!(…))`.

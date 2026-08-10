@@ -4,7 +4,7 @@ title: "@lang:find"
 
 First element that satisfies the predicate; no match is an error.
 
-**On-chain (`@lang:find!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.
+**On-chain (`@lang:find!`)**: The predicate is an Operators-backed helper, e.g. `@bool!(>= 100)`, with the element prepended to its arguments; a composed predicate costs more per element.
 
 **Returns**: `any`
 

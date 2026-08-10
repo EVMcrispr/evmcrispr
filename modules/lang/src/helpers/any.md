@@ -4,7 +4,7 @@ title: "@lang:any"
 
 Whether at least one element satisfies the predicate.
 
-**On-chain (`@lang:any!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(== 0)`, with the element prepended to its arguments.
+**On-chain (`@lang:any!`)**: The predicate is an Operators-backed helper, e.g. `@bool!(== 0)`, with the element prepended to its arguments; a composed predicate costs more per element.
 
 **Returns**: `bool`
 
@@ -34,11 +34,12 @@ Check whether at least one element of the array return of a call passes a
 predicate, on-chain: a `foldWords` with the Any exit (init 0), stopping at
 the first pass.
 
-The predicate names an Operators-backed helper compiled into a
-single-staticcall lambda template with the element prepended to the
-reference's own arguments: `@bool!(== 0)` tests `element == 0`. Anything
-that does not reduce to ONE Operators call over the element is rejected
-at build time.
+The predicate names an Operators-backed helper compiled into a lambda
+template with the element prepended to the reference's own arguments:
+`@bool!(== 0)` tests `element == 0`. A predicate reducing to ONE
+Operators call becomes a single-staticcall template; a composed one —
+a nested live call, a multi-call expression — routes through the core
+and costs several staticcalls per element instead of one.
 
 ### Examples
 

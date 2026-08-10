@@ -4,7 +4,7 @@ title: "@lang:filter"
 
 Keep elements of an array for which a helper returns truthy.
 
-**On-chain (`@lang:filter!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.
+**On-chain (`@lang:filter!`)**: The predicate is an Operators-backed helper, e.g. `@bool!(>= 100)`, with the element prepended to its arguments; a composed predicate costs more per element.
 
 **Returns**: `array`
 
@@ -35,9 +35,11 @@ Keep elements of an array for which a helper returns truthy.
 Keep the matching elements of the array return of a call on-chain
 through `filterWords`. The predicate names an Operators-backed helper,
 applied with the element prepended to its own arguments
-(`@bool!(>= 100)` keeps each element with `element >= 100`), and must
-reduce to a single Operators call — the same lambda machinery @map!
-and @all! use.
+(`@bool!(>= 100)` keeps each element with `element >= 100`) — the same
+lambda machinery @map! and @all! use. A predicate reducing to one
+Operators call runs as a single staticcall per element; a composed one
+(a nested live call, a multi-call expression) routes through the core
+and costs several.
 
 The result is the kept words payload (a bytes value) in source order,
 composable with the other array faces: `@len!(@filter!(…))`,

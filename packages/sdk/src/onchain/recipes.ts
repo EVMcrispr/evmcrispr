@@ -153,13 +153,14 @@ export function includesWordParam(
  * [offset_s][target][offset_template = 224][accOffset][elemOffset][init]
  * [exit], the template tail sits at 224 and the runtime envelope of `s`
  * is spliced last with offset_s skipping its leading 0x20 word. The
- * lambda target is always the Operators contract itself — templates are
- * built from its own vocabulary.
+ * lambda target is the Operators contract for a template built from its
+ * own vocabulary, or the core for a composed `read(...)` template.
  */
 export function foldParam(
   ctx: CompileCtx,
   kind: "foldWords" | "foldBytes",
   s: InputParam,
+  target: Address,
   template: Hex,
   accOffset: bigint,
   elemOffset: bigint,
@@ -173,7 +174,7 @@ export function foldParam(
     OP_SELECTORS[kind],
     mergeSegments([
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
-      wordSpan(BigInt(ctx.operators)), // lambda target
+      wordSpan(BigInt(target)), // lambda target
       wordSpan(224n), // offset_template
       wordSpan(accOffset),
       wordSpan(elemOffset),
@@ -229,6 +230,7 @@ function applyWordsParam(
   ctx: CompileCtx,
   kind: "mapWords" | "filterWords",
   s: InputParam,
+  target: Address,
   template: Hex,
   elemOffset: bigint,
 ): InputParam {
@@ -239,7 +241,7 @@ function applyWordsParam(
     OP_SELECTORS[kind],
     mergeSegments([
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
-      wordSpan(BigInt(ctx.operators)), // lambda target
+      wordSpan(BigInt(target)), // lambda target
       wordSpan(128n), // offset_template
       wordSpan(elemOffset),
       templateTail,
@@ -252,10 +254,11 @@ function applyWordsParam(
 export function mapWordsParam(
   ctx: CompileCtx,
   s: InputParam,
+  target: Address,
   template: Hex,
   elemOffset: bigint,
 ): InputParam {
-  return applyWordsParam(ctx, "mapWords", s, template, elemOffset);
+  return applyWordsParam(ctx, "mapWords", s, target, template, elemOffset);
 }
 
 /** `filterWords` over a LIVE payload — the kept-elements sibling of
@@ -264,10 +267,11 @@ export function mapWordsParam(
 export function filterWordsParam(
   ctx: CompileCtx,
   s: InputParam,
+  target: Address,
   template: Hex,
   elemOffset: bigint,
 ): InputParam {
-  return applyWordsParam(ctx, "filterWords", s, template, elemOffset);
+  return applyWordsParam(ctx, "filterWords", s, target, template, elemOffset);
 }
 
 /** `iotaWords(n)` with a live count: calldata is the selector plus the

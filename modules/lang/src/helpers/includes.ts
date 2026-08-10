@@ -80,6 +80,7 @@ export default defineHelper<Lang>({
         ctx,
         "foldWords",
         payload,
+        ctx.operators,
         template,
         36n,
         36n,

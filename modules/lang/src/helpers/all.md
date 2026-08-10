@@ -4,7 +4,7 @@ title: "@lang:all"
 
 Whether every element satisfies the predicate.
 
-**On-chain (`@lang:all!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(> 0)`, with the element prepended to its arguments.
+**On-chain (`@lang:all!`)**: The predicate is an Operators-backed helper, e.g. `@bool!(> 0)`, with the element prepended to its arguments; a composed predicate costs more per element.
 
 **Returns**: `bool`
 
@@ -35,11 +35,13 @@ on-chain: a `foldWords` with the All exit (init 1), stopping at the first
 failure.
 
 The predicate names an Operators-backed helper and is compiled into a
-single-staticcall lambda template with the element prepended to the
-reference's own arguments: `@bool!(>= 100)` tests `element >= 100`,
-`@not!` tests `element == 0`. Anything that does not reduce to ONE
-Operators call over the element (nested live calls, multi-call
-expressions) is rejected at build time.
+lambda template with the element prepended to the reference's own
+arguments: `@bool!(>= 100)` tests `element >= 100`, `@not!` tests
+`element == 0`. A predicate reducing to ONE Operators call becomes a
+single-staticcall template; a composed one — a nested live call, a
+multi-call expression like `@bool!(> $vault::floor())` — routes through
+the core, which resolves the expression per element at several
+staticcalls each. Both compile; the one-call form is the cheap one.
 
 ### Examples
 

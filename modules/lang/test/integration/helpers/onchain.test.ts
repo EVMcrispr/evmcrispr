@@ -1,5 +1,5 @@
 import "../../setup";
-import { LEN_STEP } from "@evmcrispr/sdk/onchain";
+import { CORE_ABI, FETCHER_TYPE, LEN_STEP } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -9,7 +9,13 @@ import {
   stringDigest,
   word,
 } from "@evmcrispr/test-utils/evml";
-import { getAddress, type Hex, keccak256 } from "viem";
+import {
+  decodeAbiParameters,
+  decodeFunctionData,
+  getAddress,
+  type Hex,
+  keccak256,
+} from "viem";
 
 const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
 const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
@@ -437,11 +443,6 @@ describeCommand("assert (lang on-chain faces)", {
       error: "helper-reference predicate",
     },
     {
-      name: "rejects a predicate with a nested live call",
-      script: `assertions:assert @any!(${TOKEN}::{caps()(uint256[])} @bool!(> ${TOKEN}::{cap()(uint256)}))`,
-      error: "nested live call cannot be baked into a fold template",
-    },
-    {
       name: "rejects a non-boolean predicate",
       script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @num!(+ 1))`,
       error: "must evaluate to a boolean",
@@ -774,11 +775,6 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
       name: "rejects a comparator on @sort!",
       script: `assertions:assert @sort!(${TOKEN}::{caps()(uint256[])} @max) == 0x11`,
       error: "no comparator",
-    },
-    {
-      name: "rejects a multi-call @map! lambda",
-      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1)) == 0x11`,
-      error: "single Operators call",
     },
   ],
 });
@@ -1259,6 +1255,190 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
       name: "points word returns of @bytes.at! at the word faces",
       script: `assertions:assert @bytes.at!(${TOKEN}::{cap()(uint256)} 0) == 0x11`,
       error: "needs a string or bytes value",
+    },
+  ],
+});
+
+// ---------------------------------------------------------------------------
+//  Wave 5: core-target lambdas — a predicate that does not reduce to one
+//  Operators call keeps the whole read(...) calldata as its template and
+//  targets the core, which resolves the composed expression per element
+//  and raw-returns the inner returndata (first return word = value).
+// ---------------------------------------------------------------------------
+
+interface DecodedLambda {
+  target: Hex;
+  template: Hex;
+  elemOffset: bigint;
+  head: (i: number) => bigint;
+}
+
+/** Parse a fold/map literal by the words IT carries: the template tail is
+ *  located through the literal's own offset_template head, so nothing is
+ *  re-derived with the compiler's formula. */
+function lambdaOf(literal: Hex, elemOffsetHead: number): DecodedLambda {
+  const b = literal.slice(2);
+  const head = (i: number) => BigInt(`0x${b.slice(i * 64, i * 64 + 64)}`);
+  const target: Hex = getAddress(`0x${b.slice(64 + 24, 128)}`);
+  const tplAt = Number(head(2)) * 2;
+  const tplLen = Number(BigInt(`0x${b.slice(tplAt, tplAt + 64)}`)) * 2;
+  const template: Hex = `0x${b.slice(tplAt + 64, tplAt + 64 + tplLen)}`;
+  return { target, template, elemOffset: head(elemOffsetHead), head };
+}
+
+/** What the fold engine does per element: overwrite the 32-byte window at
+ *  `elemOffset` with the element word. */
+const SENTINEL: Hex = `0x${"ab".repeat(32)}`;
+function substitute(template: Hex, elemOffset: bigint): Hex {
+  const b = template.slice(2);
+  const i = Number(elemOffset) * 2;
+  expect(i + 64).to.be.at.most(b.length);
+  return `0x${b.slice(0, i)}${SENTINEL.slice(2)}${b.slice(i + 64)}`;
+}
+
+/** Decode a core-target template as the core would: a `read` whose
+ *  substituted element window is visible to a real ABI decoder. */
+function decodeCoreTemplate(lambda: DecodedLambda): {
+  selector: Hex;
+  segments: readonly DecodedParam[];
+} {
+  expect(lambda.target).to.equal(ASSERTIONS);
+  const call = decodeFunctionData({
+    abi: CORE_ABI,
+    data: substitute(lambda.template, lambda.elemOffset),
+  });
+  expect(call.functionName).to.equal("read");
+  const [readTarget, selector, segments] = call.args as unknown as [
+    DecodedParam,
+    Hex,
+    readonly DecodedParam[],
+  ];
+  expect(readTarget.fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+  expect(BigInt(readTarget.paramData)).to.equal(BigInt(OPERATORS));
+  return { selector, segments };
+}
+
+const staticCallTarget = (param: DecodedParam): { target: Hex; data: Hex } => {
+  expect(param.fetcherType).to.equal(FETCHER_TYPE.StaticCall);
+  const [target, data] = decodeAbiParameters(
+    [{ type: "address" }, { type: "bytes" }],
+    param.paramData,
+  ) as [Hex, Hex];
+  return { target: getAddress(target), data };
+};
+
+describeCommand("assert (lang on-chain faces, wave 5)", {
+  describeName: "Lang > helpers > on-chain faces (wave 5: core-target lambdas)",
+  preamble,
+  cases: [
+    {
+      // Previously "a nested live call cannot be baked into a fold
+      // template". Now the whole gt(<element>, cap()) read IS the
+      // template: the nested call stays an unresolved segment the core
+      // re-resolves per element.
+      name: "compiles a nested-live @any! predicate through a core-target lambda",
+      script: `assertions:assert @any!(${TOKEN}::{caps()(uint256[])} @bool!(> ${TOKEN}::{cap()(uint256)}))`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        d.expectConstraint(param, "Eq", 1n);
+        const args = d.opReadOf(param, FOLD_SIG);
+        expect(args).to.have.lengthOf(2);
+        const lambda = lambdaOf(args[0].paramData, 4);
+        // Fold heads: the predicate ignores the accumulator, so both
+        // windows share the element offset; init 0, Any exit.
+        expect(lambda.head(3)).to.equal(lambda.elemOffset);
+        expect(lambda.head(5)).to.equal(0n);
+        expect(lambda.head(6)).to.equal(1n); // FoldExit.Any
+        const { selector, segments } = decodeCoreTemplate(lambda);
+        expect(selector).to.equal(selectorOf("gt(uint256,uint256)"));
+        expect(segments).to.have.lengthOf(2);
+        // The substituted element lands exactly on the element segment…
+        expect(segments[0].paramData).to.equal(SENTINEL);
+        // …and the nested live call rides along, unresolved.
+        expect(staticCallTarget(segments[1]).target).to.equal(TOKEN);
+        expectWordsPayload(args[1]);
+      },
+    },
+    {
+      // Previously "must compile to a single Operators call". The
+      // composed add(mul(<element>, 2), 1) keeps its expression tree:
+      // the element window sits inside the INNER read's encoded
+      // calldata, two decodes deep.
+      name: "compiles a multi-call @map! lambda through a core-target template",
+      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1)) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(
+          hashArgs[0],
+          "mapWords(bytes,address,bytes,uint256)",
+        );
+        expect(segs).to.have.lengthOf(2);
+        const lambda = lambdaOf(segs[0].paramData, 3);
+        const { selector, segments } = decodeCoreTemplate(lambda);
+        expect(selector).to.equal(selectorOf("add(uint256,uint256)"));
+        expect(BigInt(segments[1].paramData)).to.equal(1n);
+        const inner = staticCallTarget(segments[0]);
+        expect(inner.target).to.equal(ASSERTIONS);
+        const innerRead = decodeFunctionData({
+          abi: CORE_ABI,
+          data: inner.data,
+        });
+        expect(innerRead.functionName).to.equal("read");
+        const [, innerSelector, innerSegs] = innerRead.args as unknown as [
+          DecodedParam,
+          Hex,
+          readonly DecodedParam[],
+        ];
+        expect(innerSelector).to.equal(selectorOf("mul(uint256,uint256)"));
+        expect(innerSegs[0].paramData).to.equal(SENTINEL);
+        expect(BigInt(innerSegs[1].paramData)).to.equal(2n);
+        expectWordsPayload(segs[1]);
+      },
+    },
+    {
+      // The fast path must survive the generalization: a one-call
+      // predicate still targets the Operators contract directly, one
+      // staticcall per element.
+      name: "keeps the direct Operators target for a one-call predicate",
+      script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @bool!(>= 100))`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(param, FOLD_SIG);
+        const lambda = lambdaOf(args[0].paramData, 4);
+        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.template).to.equal(
+          template2("ge(uint256,uint256)", 0n, 100n),
+        );
+        expect(lambda.elemOffset).to.equal(4n);
+      },
+    },
+    {
+      name: "keeps the direct Operators target for a one-call @map! lambda",
+      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* 2)) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(
+          hashArgs[0],
+          "mapWords(bytes,address,bytes,uint256)",
+        );
+        const lambda = lambdaOf(segs[0].paramData, 3);
+        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.template).to.equal(
+          template2("mul(uint256,uint256)", 0n, 2n),
+        );
+        expect(lambda.elemOffset).to.equal(4n);
+      },
+    },
+  ],
+  errorCases: [
+    {
+      // Composed predicates still have to BE predicates: the category
+      // check precedes the template extraction.
+      name: "rejects a non-boolean composed lambda in @all!",
+      script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1))`,
+      error: "must evaluate to a boolean",
     },
   ],
 });

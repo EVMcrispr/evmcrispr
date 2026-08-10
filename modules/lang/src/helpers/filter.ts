@@ -11,7 +11,7 @@ export default defineHelper<Lang>({
   name: "filter",
   description: "Keep elements of an array for which a helper returns truthy.",
   compileDescription:
-    "The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.",
+    "The predicate is an Operators-backed helper, e.g. `@bool!(>= 100)`, with the element prepended to its arguments; a composed predicate costs more per element.",
   returnType: "array",
   args: [
     {
@@ -50,7 +50,13 @@ export default defineHelper<Lang>({
     );
     return {
       kind: "call",
-      param: filterWordsParam(ctx, payload, tpl.template, tpl.elemOffset),
+      param: filterWordsParam(
+        ctx,
+        payload,
+        tpl.target,
+        tpl.template,
+        tpl.elemOffset,
+      ),
       cat: "Bytes",
     };
   },
