@@ -50,8 +50,7 @@ export default defineHelper<Lang>({
     );
     // All-exit fold with init 1: the accumulator stays 1 exactly while
     // every element passes; the predicate ignores the accumulator, so
-    // both fold windows share the element offset (element wins on
-    // overlap).
+    // acc parks on the first element window (element wins on overlap).
     return {
       kind: "call",
       param: foldParam(
@@ -60,8 +59,8 @@ export default defineHelper<Lang>({
         payload,
         tpl.target,
         tpl.template,
-        tpl.elemOffset,
-        [tpl.elemOffset],
+        tpl.elemOffsets[0],
+        tpl.elemOffsets,
         1n,
         FOLD_EXIT.All,
       ),

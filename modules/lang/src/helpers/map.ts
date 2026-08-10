@@ -11,7 +11,7 @@ export default defineHelper<Lang>({
   name: "map",
   description: "Transform each element of an array by applying a helper.",
   compileDescription:
-    "The transform is an Operators-backed helper, e.g. `@num!(* 2)`, with the element prepended to its arguments; a composed transform costs more per element.",
+    "Operators-backed helper with the element prepended, e.g. `@num!(* 2)` or `@num!(* @it!)`; a composed transform costs more per element.",
   returnType: "array",
   args: [
     {
@@ -52,7 +52,7 @@ export default defineHelper<Lang>({
         payload,
         tpl.target,
         tpl.template,
-        [tpl.elemOffset],
+        tpl.elemOffsets,
       ),
       cat: "Bytes",
     };

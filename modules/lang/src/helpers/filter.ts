@@ -55,7 +55,7 @@ export default defineHelper<Lang>({
         payload,
         tpl.target,
         tpl.template,
-        [tpl.elemOffset],
+        tpl.elemOffsets,
       ),
       cat: "Bytes",
     };

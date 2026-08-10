@@ -49,8 +49,8 @@ export default defineHelper<Lang>({
       categoryFromAbiType(elemType),
     );
     // Any-exit fold with init 0: the accumulator becomes 1 on the first
-    // passing element; the predicate ignores the accumulator, so both
-    // fold windows share the element offset (element wins on overlap).
+    // passing element; the predicate ignores the accumulator, so acc
+    // parks on the first element window (element wins on overlap).
     return {
       kind: "call",
       param: foldParam(
@@ -59,8 +59,8 @@ export default defineHelper<Lang>({
         payload,
         tpl.target,
         tpl.template,
-        tpl.elemOffset,
-        [tpl.elemOffset],
+        tpl.elemOffsets[0],
+        tpl.elemOffsets,
         0n,
         FOLD_EXIT.Any,
       ),

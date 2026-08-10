@@ -23,9 +23,9 @@ import type { CompileCtx, Operand } from "../../src/onchain/types";
 /**
  * The lambda-template contract, checked the way the chain consumes it.
  *
- * A template is calldata for `target` whose 32-byte window at
- * `elemOffset` is overwritten per element, so the property that matters
- * is: write a sentinel word into that window and the DECODED call sees
+ * A template is calldata for `target` whose 32-byte windows at
+ * `elemOffsets` are overwritten per element, so the property that matters
+ * is: write a sentinel word into those windows and the DECODED call sees
  * the sentinel exactly where the element belongs. These tests perform
  * that substitution and hand the result to a real ABI decoder — they do
  * not re-derive the offset with the compiler's own formula.
@@ -55,14 +55,34 @@ const call = (param: InputParam): Operand => ({
 const opRead = (selector: Hex, args: InputParam[]): InputParam =>
   staticCallParam(CORE, encodeOpRead(OPERATORS, selector, args));
 
-/** What the fold engine does per element: overwrite the 32-byte window
- *  at `elemOffset` with the element word. */
+/** What the fold engine does per element: overwrite every 32-byte window
+ *  in `elemOffsets` with the element word. */
 const SENTINEL: Hex = `0x${"ab".repeat(32)}`;
-function substitute(template: Hex, elemOffset: bigint): Hex {
-  const body = template.slice(2);
-  const i = Number(elemOffset) * 2;
-  expect(i + 64).toBeLessThanOrEqual(body.length);
-  return `0x${body.slice(0, i)}${SENTINEL.slice(2)}${body.slice(i + 64)}`;
+function substitute(template: Hex, elemOffsets: readonly bigint[]): Hex {
+  let body = template.slice(2);
+  for (const elemOffset of elemOffsets) {
+    const i = Number(elemOffset) * 2;
+    expect(i + 64).toBeLessThanOrEqual(body.length);
+    body = `${body.slice(0, i)}${SENTINEL.slice(2)}${body.slice(i + 64)}`;
+  }
+  return `0x${body}`;
+}
+
+/** Scan `template` for the marker the same way production extraction
+ *  does — never re-derive offsets from the ABI layout. */
+function scanMarkerOffsets(data: Hex): bigint[] {
+  const bytes = data.slice(2);
+  const marker = ELEMENT_MARKER.slice(2);
+  const offsets: bigint[] = [];
+  let from = 0;
+  while (from <= bytes.length - marker.length) {
+    const at = bytes.indexOf(marker, from);
+    if (at === -1) break;
+    expect(at % 2).toBe(0);
+    offsets.push(BigInt(at / 2));
+    from = at + marker.length;
+  }
+  return offsets;
 }
 
 const decodeStaticCall = (param: InputParam): [string, Hex] =>
@@ -82,7 +102,8 @@ describe("extractLambdaTemplate", () => {
     expect(tpl.template).toBe(
       `0x${GE.slice(2)}${toWord(0n).slice(2)}${toWord(100n).slice(2)}`,
     );
-    expect(substitute(tpl.template, tpl.elemOffset)).toBe(
+    expect(tpl.elemOffsets).toEqual([4n]);
+    expect(substitute(tpl.template, tpl.elemOffsets)).toBe(
       `0x${GE.slice(2)}${SENTINEL.slice(2)}${toWord(100n).slice(2)}`,
     );
   });
@@ -97,11 +118,12 @@ describe("extractLambdaTemplate", () => {
     const tpl = extractLambdaTemplate(ctx, o, "@test");
     expect(getAddress(tpl.target)).toBe(getAddress(CORE));
     expect(tpl.template.includes(ELEMENT_MARKER.slice(2))).toBe(false);
+    expect(tpl.elemOffsets).toHaveLength(1);
 
     // Substitute the element and decode the template as the core would.
     const decoded = decodeFunctionData({
       abi: CORE_ABI,
-      data: substitute(tpl.template, tpl.elemOffset),
+      data: substitute(tpl.template, tpl.elemOffsets),
     });
     expect(decoded.functionName).toBe("read");
     const [readTarget, selector, segments] = decoded.args as unknown as [
@@ -125,10 +147,11 @@ describe("extractLambdaTemplate", () => {
     const o = call(opRead(ADD, [inner, rawParam(toWord(1n))]));
     const tpl = extractLambdaTemplate(ctx, o, "@test");
     expect(getAddress(tpl.target)).toBe(getAddress(CORE));
+    expect(tpl.elemOffsets).toHaveLength(1);
 
     const outer = decodeFunctionData({
       abi: CORE_ABI,
-      data: substitute(tpl.template, tpl.elemOffset),
+      data: substitute(tpl.template, tpl.elemOffsets),
     });
     expect(outer.functionName).toBe("read");
     const [, outerSelector, segments] = outer.args as unknown as [
@@ -153,6 +176,73 @@ describe("extractLambdaTemplate", () => {
     expect(BigInt(innerSegs[1].paramData)).toBe(2n);
   });
 
+  it("collects every marker into ascending elemOffsets", () => {
+    // mul(elem, elem) — the @it! + prepend shape: two windows, both
+    // stamped with the element so the call squares. Scan the segment
+    // bytes the same way extraction does — never re-derive from layout.
+    const segs = `${ELEMENT_MARKER.slice(2)}${ELEMENT_MARKER.slice(2)}`;
+    expect(scanMarkerOffsets(`0x${segs}`)).toEqual([0n, 32n]);
+
+    const o = call(
+      opRead(MUL, [rawParam(ELEMENT_MARKER), rawParam(ELEMENT_MARKER)]),
+    );
+    const tpl = extractLambdaTemplate(ctx, o, "@test");
+    expect(getAddress(tpl.target)).toBe(getAddress(OPERATORS));
+    expect(tpl.elemOffsets).toEqual([4n, 36n]);
+    expect(tpl.template.includes(ELEMENT_MARKER.slice(2))).toBe(false);
+
+    const decoded = decodeFunctionData({
+      abi: [
+        {
+          type: "function",
+          name: "mul",
+          stateMutability: "pure",
+          inputs: [
+            { name: "a", type: "uint256" },
+            { name: "b", type: "uint256" },
+          ],
+          outputs: [{ type: "uint256" }],
+        },
+      ],
+      data: substitute(tpl.template, tpl.elemOffsets),
+    });
+    expect(decoded.functionName).toBe("mul");
+    expect(decoded.args).toEqual([BigInt(SENTINEL), BigInt(SENTINEL)]);
+  });
+
+  it("collects multi-window markers on the composed path too", () => {
+    const o = call(
+      opRead(ADD, [
+        rawParam(ELEMENT_MARKER),
+        opRead(MUL, [rawParam(ELEMENT_MARKER), rawParam(toWord(2n))]),
+      ]),
+    );
+    const tpl = extractLambdaTemplate(ctx, o, "@test");
+    expect(getAddress(tpl.target)).toBe(getAddress(CORE));
+    expect(tpl.elemOffsets.length).toBe(2);
+    expect(tpl.elemOffsets[0] < tpl.elemOffsets[1]).toBe(true);
+    expect(tpl.template.includes(ELEMENT_MARKER.slice(2))).toBe(false);
+
+    const outer = decodeFunctionData({
+      abi: CORE_ABI,
+      data: substitute(tpl.template, tpl.elemOffsets),
+    });
+    const [, , segments] = outer.args as unknown as [
+      InputParam,
+      Hex,
+      InputParam[],
+    ];
+    expect(segments[0].paramData).toBe(SENTINEL);
+    const [, innerData] = decodeStaticCall(segments[1]);
+    const innerRead = decodeFunctionData({ abi: CORE_ABI, data: innerData });
+    const [, , innerSegs] = innerRead.args as unknown as [
+      InputParam,
+      Hex,
+      InputParam[],
+    ];
+    expect(innerSegs[0].paramData).toBe(SENTINEL);
+  });
+
   it("folds a direct non-core staticcall at its own contract", () => {
     // A single call on another contract is already the exact staticcall
     // the fold engine makes: (target, calldata) pass through verbatim.
@@ -163,8 +253,8 @@ describe("extractLambdaTemplate", () => {
     expect(tpl.template).toBe(
       `0x12345678${toWord(0n).slice(2)}${toWord(7n).slice(2)}`,
     );
-    expect(tpl.elemOffset).toBe(4n);
-    expect(substitute(tpl.template, tpl.elemOffset)).toBe(
+    expect(tpl.elemOffsets).toEqual([4n]);
+    expect(substitute(tpl.template, tpl.elemOffsets)).toBe(
       `0x12345678${SENTINEL.slice(2)}${toWord(7n).slice(2)}`,
     );
   });
@@ -180,7 +270,7 @@ describe("extractLambdaTemplate", () => {
     expect(getAddress(tpl.target)).toBe(getAddress(CORE));
     const decoded = decodeFunctionData({
       abi: CORE_ABI,
-      data: substitute(tpl.template, tpl.elemOffset),
+      data: substitute(tpl.template, tpl.elemOffsets),
     });
     expect(decoded.functionName).toBe("pick");
     const [picked, word] = decoded.args as unknown as [InputParam, bigint];
@@ -217,28 +307,6 @@ describe("extractLambdaTemplate", () => {
     const o = call(opRead(GE, [rawParam(toWord(1n)), rawParam(toWord(2n))]));
     expect(() => extractLambdaTemplate(ctx, o, "@test")).toThrow(
       /does not appear/,
-    );
-  });
-
-  it("rejects an element used twice, on either path", () => {
-    // Fast-path shape (all segments literal)…
-    const flat = call(
-      opRead(ADD, [rawParam(ELEMENT_MARKER), rawParam(ELEMENT_MARKER)]),
-    );
-    expect(() => extractLambdaTemplate(ctx, flat, "@test")).toThrow(
-      /only once/,
-    );
-    // …and the composed shape, one occurrence nested.
-    const nested = call(
-      opRead(ADD, [
-        rawParam(ELEMENT_MARKER),
-        opRead(MUL, [rawParam(ELEMENT_MARKER), rawParam(toWord(2n))]),
-      ]),
-    );
-    // The message names the nested-capture cause: two identical markers
-    // are what an inner lambda capturing the OUTER element produces.
-    expect(() => extractLambdaTemplate(ctx, nested, "@test")).toThrow(
-      /nested lambda capturing the outer element/,
     );
   });
 });

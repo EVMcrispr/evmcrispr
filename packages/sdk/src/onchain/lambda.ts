@@ -7,17 +7,16 @@
  * The predicate is applied to a marker element operand — a live word the
  * expression compiler cannot fold away — and the compiled result must be
  * a single staticcall, producing a single WORD, whose calldata is
- * constant except for the marker word. A predicate reducing to ONE
+ * constant except for the marker word(s). A predicate reducing to ONE
  * Operators call flattens to direct Operators calldata (one staticcall
  * per element); any other staticcall — a composed `read`, a `pick`, a
  * direct call on another contract — keeps its own (target, calldata)
  * verbatim. The composed core form costs several staticcalls per element
  * where a direct form costs one, which is why the Operators flattening is
- * tried first. A build-time constant, an element used twice, or a
- * bytes/string result is rejected: extraction today still returns a
- * single window (callers pass it as a one-element `elemOffsets` array);
- * multi-marker extraction is the B2 handoff. The engine reads one return
- * word.
+ * tried first. A build-time constant or a bytes/string result is
+ * rejected: the engine reads one return word. Every marker occurrence
+ * becomes one `elemOffsets` entry (ascending); `@it!` plus the prepend
+ * convention can name the same element twice on purpose.
  */
 import type { Address, Hex } from "viem";
 import {
@@ -30,7 +29,7 @@ import {
 import { ErrorException } from "../errors";
 import type { HelperFunctionNode, Node } from "../types";
 import { NodeType } from "../types";
-import { operandNode } from "./compile";
+import { operandNode, PRECOMPILED_OPERAND } from "./compile";
 import { CORE_ABI } from "./core";
 import { compileOnchainHelper } from "./dispatch";
 import type { InputParam } from "./erc8211";
@@ -54,23 +53,89 @@ export function elementOperand(cat: Category = "Uint"): Operand {
 }
 
 /** A single-staticcall lambda template: fixed calldata for `target` with
- *  the element window at `elemOffset`. `target` is the Operators contract
- *  when the predicate flattened to one direct call; otherwise it is the
- *  compiled staticcall's own target verbatim — the core for a composed
- *  `read(...)` or a `pick`, another contract for a direct single call.
- *  Callers pass `[elemOffset]` into fold/map as `elemOffsets`; multi-
- *  window extraction (several markers → several offsets) is deferred to
- *  B2. */
+ *  the element windows at `elemOffsets` (ascending byte offsets). `target`
+ *  is the Operators contract when the predicate flattened to one direct
+ *  call; otherwise it is the compiled staticcall's own target verbatim —
+ *  the core for a composed `read` or a `pick`, another contract for a
+ *  direct single call. N=1 is the pre-B2 shape; N>1 is `@it!` naming the
+ *  element alongside the prepend (or twice explicitly). */
 export interface LambdaTemplate {
   target: Address;
   template: Hex;
-  elemOffset: bigint;
+  elemOffsets: readonly bigint[];
+}
+
+/**
+ * Locate every aligned occurrence of the element marker in `bytes`
+ * (hex without `0x`), returning ascending byte offsets into the template
+ * after applying `base` (4 for a flattened Operators selector prefix).
+ */
+function findWindows(
+  bytes: string,
+  label: string,
+  base = 0,
+): { offsets: bigint[]; zeroed: string } {
+  const marker = ELEMENT_MARKER.slice(2);
+  const fail = (why: string): never => {
+    throw new ErrorException(
+      `${label} must compile to a single staticcall over the element — ${why}`,
+    );
+  };
+  const offsets: bigint[] = [];
+  let from = 0;
+  let zeroed = bytes;
+  // Walk left-to-right so later overlapping writes win — matching the
+  // contract's ascending stamp order (element still wins on overlap with
+  // the accumulator because the engine writes acc first).
+  while (from <= zeroed.length - marker.length) {
+    const at = zeroed.indexOf(marker, from);
+    if (at === -1) break;
+    if (at % 2 !== 0) {
+      return fail("the element window is not byte-aligned");
+    }
+    offsets.push(BigInt(base + at / 2));
+    zeroed = `${zeroed.slice(0, at)}${"0".repeat(64)}${zeroed.slice(at + marker.length)}`;
+    from = at + marker.length;
+  }
+  if (offsets.length === 0) {
+    return fail("the element does not appear in the call");
+  }
+  return { offsets, zeroed };
+}
+
+/** True when `node` (or a descendant) is a precompiled operand carrying
+ *  the fold-element marker — the outer element leaked into an inner
+ *  lambda's AST. Same global marker as the inner prepend, so admitting
+ *  it would stamp the wrong binder's windows. */
+function astCapturesOuterElement(node: Node): boolean {
+  const pre = (node as unknown as Record<string, unknown>)[
+    PRECOMPILED_OPERAND
+  ] as Operand | undefined;
+  if (
+    pre?.kind === "call" &&
+    pre.param.fetcherType === FETCHER_TYPE.RawBytes &&
+    pre.param.paramData.toLowerCase() === ELEMENT_MARKER.toLowerCase()
+  ) {
+    return true;
+  }
+  const rec = node as unknown as Record<string, unknown>;
+  for (const key of ["args", "elements", "value", "target"] as const) {
+    const v = rec[key];
+    if (Array.isArray(v)) {
+      if (v.some((k) => k != null && astCapturesOuterElement(k as Node))) {
+        return true;
+      }
+    } else if (v && typeof v === "object" && "type" in (v as object)) {
+      if (astCapturesOuterElement(v as Node)) return true;
+    }
+  }
+  return false;
 }
 
 /**
  * Reduce a compiled predicate operand to a lambda template. The operand
  * must be a single staticcall producing a single-word value, with the
- * element marker appearing exactly once in its calldata.
+ * element marker appearing at least once in its calldata.
  *
  * A core `read(operators, selector, segments)` with every segment a
  * RAW_BYTES literal flattens to direct Operators calldata (the selector
@@ -82,8 +147,8 @@ export interface LambdaTemplate {
  * another contract folds directly at that contract. In every accepted
  * form the FIRST return word is the value — which is what the
  * word-category guard protects: a bytes/string result's first word is its
- * ABI offset, so those reject instead of silently folding offsets. The
- * marker window is zeroed in either form.
+ * ABI offset, so those reject instead of silently folding offsets. Every
+ * marker window is zeroed.
  */
 export function extractLambdaTemplate(
   ctx: CompileCtx,
@@ -95,24 +160,6 @@ export function extractLambdaTemplate(
       `${label} must compile to a single staticcall over the element — ${why}`,
     );
   };
-  const marker = ELEMENT_MARKER.slice(2);
-  const findWindow = (bytes: string): number => {
-    const at = bytes.indexOf(marker);
-    if (at === -1) {
-      return fail("the element does not appear in the call");
-    }
-    if (at % 2 !== 0) {
-      return fail("the element window is not byte-aligned");
-    }
-    if (bytes.indexOf(marker, at + marker.length) !== -1) {
-      return fail(
-        "the element may appear only once — a template has a single substitution window, and a nested lambda capturing the outer element collides with its own element marker",
-      );
-    }
-    return at;
-  };
-  const zeroed = (bytes: string, at: number): string =>
-    `${bytes.slice(0, at)}${"0".repeat(64)}${bytes.slice(at + marker.length)}`;
 
   if (o.kind !== "call") {
     return fail("it folded to a build-time constant");
@@ -132,8 +179,8 @@ export function extractLambdaTemplate(
 
   // Fast path: one direct Operators call, all segments literal. The
   // template flattens to the Operators calldata itself — one staticcall
-  // per element. Marker troubles (absent, misaligned, duplicated) fall
-  // through: the general search over the whole calldata reports them.
+  // per element. Marker troubles (absent, misaligned) fall through: the
+  // general search over the whole calldata reports them.
   if (getAddress(target) === getAddress(ctx.core)) {
     let decoded: ReturnType<typeof decodeFunctionData> | undefined;
     try {
@@ -153,16 +200,17 @@ export function extractLambdaTemplate(
         segments.every((seg) => seg.fetcherType === FETCHER_TYPE.RawBytes)
       ) {
         const bytes = segments.map((seg) => seg.paramData.slice(2)).join("");
+        const marker = ELEMENT_MARKER.slice(2);
         const at = bytes.indexOf(marker);
-        if (
-          at !== -1 &&
-          at % 2 === 0 &&
-          bytes.indexOf(marker, at + marker.length) === -1
-        ) {
+        // Prefer the flat path only when every marker sits in the
+        // concatenated segments (none in the read wrapper). Otherwise the
+        // general form keeps the whole read calldata.
+        if (at !== -1 && at % 2 === 0) {
+          const { offsets, zeroed } = findWindows(bytes, label, 4);
           return {
             target: ctx.operators,
-            template: `0x${selector.slice(2)}${zeroed(bytes, at)}`,
-            elemOffset: BigInt(4 + at / 2),
+            template: `0x${selector.slice(2)}${zeroed}`,
+            elemOffsets: offsets,
           };
         }
       }
@@ -174,12 +222,11 @@ export function extractLambdaTemplate(
   // in the calldata, re-resolved per element — several staticcalls per
   // element where the fast path costs one. A non-core single call folds
   // directly at its contract, as cheap as the fast path.
-  const bytes = data.slice(2);
-  const at = findWindow(bytes);
+  const { offsets, zeroed } = findWindows(data.slice(2), label);
   return {
     target: getAddress(target),
-    template: `0x${zeroed(bytes, at)}`,
-    elemOffset: BigInt(at / 2),
+    template: `0x${zeroed}`,
+    elemOffsets: offsets,
   };
 }
 
@@ -189,6 +236,10 @@ export function extractLambdaTemplate(
  * `@num!(* 2)`, `@not!`, any helper reference whose compile face reduces
  * to a core read — and is applied with the element prepended to its own
  * arguments, mirroring the def-proxy partial-application convention.
+ * `@it!` names the same element again inside the body; both the prepend
+ * and every `@it!` become substitution windows (prepend is kept — naming
+ * the element twice in source is the point of `@it!`, e.g.
+ * `@num!(* @it!)` for `mul(elem, elem)`).
  * Returns the compiled operand alongside the template so callers can
  * enforce their own result category.
  */
@@ -204,12 +255,26 @@ export async function compileLambdaTemplate(
     );
   }
   const lambda = lambdaNode as HelperFunctionNode;
-  const synthetic: HelperFunctionNode = {
-    ...lambda,
-    args: [operandNode(elementOperand(elemCat)), ...lambda.args] as never,
-  };
-  const o = await compileOnchainHelper(ctx, synthetic);
-  return { ...extractLambdaTemplate(ctx, o, `${label} lambda`), operand: o };
+  // An outer element smuggled into this lambda's AST as a precompiled
+  // marker would share the inner binder's global marker and stamp the
+  // wrong windows. Reject before compile — never wrong offsets.
+  if (astCapturesOuterElement(lambda)) {
+    throw new ErrorException(
+      `${label} lambda captures the outer element inside a nested lambda — the element marker is per-binder only via @it! / the prepend; capturing the outer element is unsupported`,
+    );
+  }
+  const prevCat = ctx.lambdaElemCat;
+  ctx.lambdaElemCat = elemCat;
+  try {
+    const synthetic: HelperFunctionNode = {
+      ...lambda,
+      args: [operandNode(elementOperand(elemCat)), ...lambda.args] as never,
+    };
+    const o = await compileOnchainHelper(ctx, synthetic);
+    return { ...extractLambdaTemplate(ctx, o, `${label} lambda`), operand: o };
+  } finally {
+    ctx.lambdaElemCat = prevCat;
+  }
 }
 
 /** {@link compileLambdaTemplate} with the boolean-result requirement of

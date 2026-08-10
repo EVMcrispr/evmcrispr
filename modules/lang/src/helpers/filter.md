@@ -63,6 +63,8 @@ assertions:assert @len!(@filter!($vault::{caps()(uint256[])} @bool!(>= 100))) ==
   count, so the payload nests into @len!, @at!, the folds and the other
   word ops.
 - One staticcall per element: gas bounds the practical array size.
+- `@it!` names the element again inside the predicate; every marker
+  occurrence is a substitution window (see [@it](it.md)).
 
 ### See Also
 

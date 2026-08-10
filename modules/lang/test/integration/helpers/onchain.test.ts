@@ -1276,13 +1276,15 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
 interface DecodedLambda {
   target: Hex;
   template: Hex;
+  /** First `elemOffsets` entry — the N=1 window, or the leftmost of N>1. */
   elemOffset: bigint;
+  elemOffsets: bigint[];
   head: (i: number) => bigint;
 }
 
 /** Parse a fold/map literal by the words IT carries: the template tail is
- *  located through the literal's own offset_template head, and the first
- *  `elemOffsets` entry through the offset at `offsetsHead`, so nothing is
+ *  located through the literal's own offset_template head, and the
+ *  `elemOffsets` array through the offset at `offsetsHead`, so nothing is
  *  re-derived with the compiler's formula. */
 function lambdaOf(literal: Hex, offsetsHead: number): DecodedLambda {
   const b = literal.slice(2);
@@ -1294,18 +1296,31 @@ function lambdaOf(literal: Hex, offsetsHead: number): DecodedLambda {
   const offsAt = Number(head(offsetsHead)) * 2;
   const offsLen = Number(BigInt(`0x${b.slice(offsAt, offsAt + 64)}`));
   expect(offsLen).to.be.greaterThan(0);
-  const elemOffset = BigInt(`0x${b.slice(offsAt + 64, offsAt + 128)}`);
-  return { target, template, elemOffset, head };
+  const elemOffsets: bigint[] = [];
+  for (let i = 0; i < offsLen; i++) {
+    const at = offsAt + 64 + i * 64;
+    elemOffsets.push(BigInt(`0x${b.slice(at, at + 64)}`));
+  }
+  return {
+    target,
+    template,
+    elemOffset: elemOffsets[0],
+    elemOffsets,
+    head,
+  };
 }
 
-/** What the fold engine does per element: overwrite the 32-byte window at
- *  `elemOffset` with the element word. */
+/** What the fold engine does per element: overwrite every 32-byte window
+ *  in `elemOffsets` with the element word. */
 const SENTINEL: Hex = `0x${"ab".repeat(32)}`;
-function substitute(template: Hex, elemOffset: bigint): Hex {
-  const b = template.slice(2);
-  const i = Number(elemOffset) * 2;
-  expect(i + 64).to.be.at.most(b.length);
-  return `0x${b.slice(0, i)}${SENTINEL.slice(2)}${b.slice(i + 64)}`;
+function substitute(template: Hex, elemOffsets: readonly bigint[]): Hex {
+  let b = template.slice(2);
+  for (const elemOffset of elemOffsets) {
+    const i = Number(elemOffset) * 2;
+    expect(i + 64).to.be.at.most(b.length);
+    b = `${b.slice(0, i)}${SENTINEL.slice(2)}${b.slice(i + 64)}`;
+  }
+  return `0x${b}`;
 }
 
 /** Decode a core-target template as the core would: a `read` whose
@@ -1317,7 +1332,7 @@ function decodeCoreTemplate(lambda: DecodedLambda): {
   expect(lambda.target).to.equal(ASSERTIONS);
   const call = decodeFunctionData({
     abi: CORE_ABI,
-    data: substitute(lambda.template, lambda.elemOffset),
+    data: substitute(lambda.template, lambda.elemOffsets),
   });
   expect(call.functionName).to.equal("read");
   const [readTarget, selector, segments] = call.args as unknown as [
@@ -1441,6 +1456,34 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
           template2("mul(uint256,uint256)", 0n, 2n),
         );
         expect(lambda.elemOffset).to.equal(4n);
+        expect(lambda.elemOffsets).to.deep.equal([4n]);
+      },
+    },
+    {
+      // @it! names the element again beside the prepend: mul(elem, elem).
+      // Offsets come from the decoded elemOffsets array (and match a
+      // marker scan of the unre-zeroed shape), never from the compiler's
+      // own layout arithmetic.
+      name: "compiles @map! with @it! to a multi-window square template",
+      script: `assertions:assert @map!(${TOKEN}::{caps()(uint256[])} @num!(* @it!)) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(
+          hashArgs[0],
+          "mapWords(bytes,address,bytes,uint256[])",
+        );
+        const lambda = lambdaOf(segs[0].paramData, 3);
+        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.elemOffsets).to.deep.equal([4n, 36n]);
+        expect(lambda.template).to.equal(
+          template2("mul(uint256,uint256)", 0n, 0n),
+        );
+        // Sentinel at BOTH windows decodes as mul(sentinel, sentinel).
+        const filled = substitute(lambda.template, lambda.elemOffsets);
+        expect(filled).to.equal(
+          `0x${selectorOf("mul(uint256,uint256)").slice(2)}${SENTINEL.slice(2)}${SENTINEL.slice(2)}`,
+        );
       },
     },
   ],
@@ -1451,6 +1494,11 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
       name: "rejects a non-boolean composed lambda in @all!",
       script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1))`,
       error: "must evaluate to a boolean",
+    },
+    {
+      name: "rejects @it! outside a lambda",
+      script: `assertions:assert @it! == 1`,
+      error: "only valid inside a fold/map/filter lambda",
     },
   ],
 });

@@ -4,7 +4,7 @@ title: "@lang:map"
 
 Transform each element of an array by applying a helper.
 
-**On-chain (`@lang:map!`)**: The transform is an Operators-backed helper, e.g. `@num!(* 2)`, with the element prepended to its arguments; a composed transform costs more per element.
+**On-chain (`@lang:map!`)**: Operators-backed helper with the element prepended, e.g. `@num!(* 2)` or `@num!(* @it!)`; a composed transform costs more per element.
 
 **Returns**: `array`
 
@@ -60,6 +60,9 @@ assertions:assert @reduce!(@map!($vault::{caps()(uint256[])} @num!(* 2)) add 0) 
   per element.
 - The signed sort recipe rides on @map!: flip the sign bit, sort,
   flip back.
+- `@it!` names the element again inside the lambda (`@num!(* @it!)`
+  squares). The prepend stays; every marker occurrence is a
+  substitution window.
 
 ### See Also
 

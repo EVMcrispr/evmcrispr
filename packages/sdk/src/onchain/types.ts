@@ -67,6 +67,10 @@ export interface CompileCtx {
   core: Address;
   /** Resolved operators contract address (the plain word/bytes ops). */
   operators: Address;
+  /** Element category of the lambda currently being compiled, set by
+   *  {@link compileLambdaTemplate} so `@it!` can emit
+   *  `elementOperand(cat)`. Absent outside a lambda. */
+  lambdaElemCat?: Category;
 }
 
 /** A helper's on-chain face: turns the helper's raw AST node into an
