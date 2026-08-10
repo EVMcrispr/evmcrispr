@@ -125,6 +125,46 @@ export function includesParam(
   );
 }
 
+/** The element count of a live aligned payload: `div(byteLen(s), 32)`.
+ *  The word operators measure length in BYTES, so the count a word-index
+ *  sentinel is compared against has to be derived. */
+export function wordCountParam(ctx: CompileCtx, s: InputParam): InputParam {
+  return wordOpParam(
+    ctx,
+    "div",
+    false,
+    byteLenParamOf(ctx, s),
+    rawParam(toWord(32n)),
+  );
+}
+
+/**
+ * `includesWord(s, w)` := lt(wordIndexOf(s, w), wordCount(s)) — the
+ * word-array twin of {@link includesParam}, and the only form that
+ * accepts a LIVE element: `wordIndexOf` takes its needle as a spliceable
+ * argument, where the fold recipe bakes it into the lambda template.
+ * The not-found sentinel is the word count itself, so any hit is
+ * strictly smaller.
+ *
+ * `s` is referenced TWICE and therefore RESOLVES twice, source call
+ * included: an operand expression is a tree with no way to name a
+ * subterm. That is why the constant-element path keeps the single-read
+ * fold instead of routing through here.
+ */
+export function includesWordParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  w: bigint | InputParam,
+): InputParam {
+  return wordOpParam(
+    ctx,
+    "lt",
+    false,
+    wordIndexOfParam(ctx, s, w),
+    wordCountParam(ctx, s),
+  );
+}
+
 /**
  * A bounded fold over a LIVE payload (`foldWords`/`foldBytes`): heads are
  * [offset_s][target][offset_template = 224][accOffset][elemOffset][init]

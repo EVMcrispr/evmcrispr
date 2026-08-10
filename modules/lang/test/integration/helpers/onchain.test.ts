@@ -215,6 +215,34 @@ describeCommand("assert (lang on-chain faces)", {
         expect(d.staticCallOf(envelope).target).to.equal(TOKEN);
       },
     },
+    {
+      // A live element cannot be baked into a lambda template, so it
+      // takes the wordIndexOf path: lt(wordIndexOf(s, w), byteLen(s)/32),
+      // where the not-found sentinel IS the word count.
+      name: "compiles @includes! with a live element to a wordIndexOf comparison",
+      script: `assertions:assert @includes!(${TOKEN}::{holders()(address[])} ${TOKEN}::{admin()(address)})`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        d.expectConstraint(param, "Eq", 1n);
+        const cmp = d.opReadOf(param, "lt(uint256,uint256)");
+        expect(cmp).to.have.lengthOf(2);
+
+        // The needle is a spliced live word, so mergeSegments breaks the
+        // heads around it: [offset_s = 96][needle][payload envelope].
+        const idx = d.opReadOf(cmp[0], "wordIndexOf(bytes,bytes32)");
+        expect(idx).to.have.lengthOf(3);
+        d.expectRawWord(idx[0], 96n);
+        expect(d.staticCallOf(idx[1]).target).to.equal(TOKEN);
+        expect(d.staticCallOf(expectWordsPayload(idx[2])).target).to.equal(
+          TOKEN,
+        );
+
+        // The sentinel bound: byteLen(payload) / 32.
+        const div = d.opReadOf(cmp[1], "div(uint256,uint256)");
+        d.opReadOf(div[0], "byteLen(bytes)");
+        d.expectRawWord(div[1], 32n);
+      },
+    },
     // ---- @all! / @any! -------------------------------------------------------
     {
       name: "compiles @all! with a comparison predicate to an All-exit foldWords",
@@ -422,6 +450,15 @@ describeCommand("assert (lang on-chain faces)", {
       name: "points string returns of @includes! at the str. face",
       script: `assertions:assert @includes!(${TOKEN}::{name()(string)} "LP")`,
       error: "str./bytes. faces",
+    },
+    {
+      // Elements are single words, so a live string has no word to match.
+      // @lookup! hashes live string keys because record keys ARE digests;
+      // an address[] holds no digests, so digesting here would silently
+      // search for something the array never contains.
+      name: "rejects a live string element in @includes!",
+      script: `assertions:assert @includes!(${TOKEN}::{holders()(address[])} ${TOKEN}::{name()(string)})`,
+      error: "hash it first",
     },
     {
       // `mul 1` compiles now, so the rejection case moves to an
