@@ -2,9 +2,8 @@
  * The type-composition table: which operators accept which operand
  * categories, and what category the result carries. This is the single
  * source of truth — the assert compiler's combine functions consult it to
- * accept or reject an expression, and UIs import it (the website aliases
- * `@evmcrispr/module-assertions/composition` to this file) to offer only
- * the combinations that compile.
+ * accept or reject an expression, and UIs import it (the website's builder
+ * menus are built from it) to offer only the combinations that compile.
  *
  * The Operators contract itself is word-blind beyond its declared types:
  * `bitAnd(totalSupply, totalSupply)` would execute as a bitwise AND. These
@@ -225,18 +224,6 @@ export function checkBitwise(l: Category, r: Category): Check {
     }
   }
   return ok("Uint");
-}
-
-/** Negation check, mirroring @not!'s dispatch: logical not on booleans
- *  (stays Bool), bitwise complement on word categories. */
-export function checkNot(cat: Category): Check {
-  if (cat === "Bool") return ok("Bool");
-  if (!isWordCat(cat)) {
-    return no(
-      `@not! needs a boolean or 32-byte word operand, got a ${cat} value`,
-    );
-  }
-  return ok(cat === "Bytes32" ? "Bytes32" : "Uint");
 }
 
 /** An infix operator as UIs surface it: the EVML symbol plus its family

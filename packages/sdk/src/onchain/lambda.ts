@@ -53,8 +53,8 @@ export const ELEMENT_MARKER: Hex = keccak256(
 /** The element placeholder as a live-call operand: `kind: "call"` keeps
  *  the expression compiler from constant-folding around it, and the raw
  *  marker word passes through `materializeWord` untouched. The category
- *  is the array's element category, so bool-element predicates (`@not!`)
- *  take their boolean paths. */
+ *  is the array's element category, so bool-element predicates
+ *  (`@bool!(not $x)`) take their boolean paths. */
 export function elementOperand(cat: Category = "Uint"): Operand {
   return { kind: "call", param: rawParam(ELEMENT_MARKER), cat };
 }
