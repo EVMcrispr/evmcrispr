@@ -75,12 +75,18 @@ describeParity("@receipts", {
       // asks the node (eth_blobBaseFee), the ! face reads the BLOBBASEFEE
       // opcode through Operators.
       //
-      // Worth knowing what this does and does not pin. Gnosis blocks carry no
-      // blob gas, so excessBlobGas is 0 and EIP-4844's
-      // fake_exponential(1, 0, 3338477) is 1 — the floor. So it shows the two
-      // routes agreeing, not that they agree on a busy value. A chain with
-      // live blob traffic would exercise the exponential itself.
-      name: "blob base fee, at the EIP-4844 floor",
+      // Worth knowing what this does and does not pin: it is 1 on both sides,
+      // and NOT because the chain is quiet. Anvil does not model blob fees on
+      // a fork — eth_blobBaseFee answers 0x1 and BLOBBASEFEE reads the same
+      // stub — so both faces read anvil rather than the chain. Measured on a
+      // MAINNET fork whose head carried excessBlobGas of 183 million, where
+      // the plain face's sealed-block path computes ~6.9e23 wei while the
+      // live path still answers 1.
+      //
+      // So this pins the plumbing (the operand compiles, resolves and decodes)
+      // and not the value. Exercising the exponential needs a node that
+      // models blob fees, which anvil is not.
+      name: "blob base fee, which anvil stubs to 1 on either chain",
       run: "@block.blobBaseFee()",
       compile: "@block.blobBaseFee!()",
     },
