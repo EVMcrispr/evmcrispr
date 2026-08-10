@@ -3,7 +3,7 @@ import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
 import { encodePick } from "./core";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
-import { FOLD_EXIT, OP_SELECTORS } from "./operators";
+import { OP_SELECTORS } from "./operators";
 import type { Category, CompileCtx, Operand } from "./types";
 
 /**
@@ -163,20 +163,37 @@ export function foldParam(
 }
 
 /**
- * The character-class test: foldBytes over the live string with a
- * `bitSet(mask, byte)` template lambda, FoldExit.All and init 1 — the
- * accumulator stays 1 exactly while every byte's bit is set in the mask.
- * Both fold windows share the element offset (36): bitSet ignores the
- * accumulator and the element wins on overlap.
+ * The character-class test: a native `charset(s, mask)` call. The bytes
+ * arg is FIRST, so the head is [offset_s][mask] and the live string
+ * envelope splices LAST — offset_s points at the payload+32 (skipping the
+ * envelope's leading 0x20 word, the same trick every other bytes recipe
+ * uses). `mask` is a composition-time constant built from the charset
+ * spec. This replaces the old foldBytes(bitSet, All) recipe with a single
+ * on-chain loop; foldBytes stays the general form for other per-byte
+ * predicates.
  */
 export function charsetParam(
   ctx: CompileCtx,
   s: InputParam,
   mask: bigint,
 ): InputParam {
-  // bitSet(mask, <element>) — 4 + 32 + 32 = 68 template bytes.
-  const template: Hex = `0x${span(OP_SELECTORS.bitSet)}${wordSpan(mask)}${wordSpan(0n)}`;
-  return foldParam(ctx, "foldBytes", s, template, 36n, 36n, 1n, FOLD_EXIT.All);
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.charset,
+    mergeSegments([
+      wordSpan(96n), // offset_s: envelope at 64, skip its 0x20 word (64 + 32)
+      wordSpan(mask), // the character-class bitmap constant
+      s, // string envelope, spliced last
+    ]),
+  );
+}
+
+/** `sumWords(s)` over a live word payload — the native checked sum of the
+ *  payload's 32-byte words (the fixed-operation form of the
+ *  foldWords(add) recipe), spliced as the single `bytes` argument like
+ *  {@link byteLenParamOf}. */
+export function sumWordsParam(ctx: CompileCtx, s: InputParam): InputParam {
+  return opReadParam(ctx, OP_SELECTORS.sumWords, [s]);
 }
 
 /**

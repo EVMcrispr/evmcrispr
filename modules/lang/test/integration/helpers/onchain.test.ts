@@ -311,6 +311,32 @@ describeCommand("assert (lang on-chain faces)", {
         );
       },
     },
+    // ---- @sum! -----------------------------------------------------------------
+    {
+      name: "compiles @sum! to a native sumWords over the word payload",
+      script: `assertions:assert @sum!(${TOKEN}::{caps()(uint256[])}) >= 100`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        d.expectConstraint(param, "Gte", 100n);
+        // Native sumWords — the fixed-operation form of the general
+        // @reduce!(... add 0) foldWords recipe: one on-chain loop, no
+        // per-element lambda call. The payload is the single bytes arg.
+        const segs = d.opReadOf(param, "sumWords(bytes)");
+        expect(segs).to.have.lengthOf(1);
+        expectWordsPayload(segs[0]);
+      },
+    },
+    {
+      name: "feeds a nested @map! into @sum!",
+      script: `assertions:assert @sum!(@map!(${TOKEN}::{caps()(uint256[])} @num!(* 2))) >= 10`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const segs = d.opReadOf(param, "sumWords(bytes)");
+        expect(segs).to.have.lengthOf(1);
+        d.opReadOf(segs[0], "mapWords(bytes,address,bytes,uint256)");
+        d.expectConstraint(param, "Gte", 10n);
+      },
+    },
   ],
   errorCases: [
     {

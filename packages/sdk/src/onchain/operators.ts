@@ -84,6 +84,8 @@ export const OPERATORS_ABI = parseAbi([
   "function replace(bytes s, bytes needle, bytes repl) pure returns (bytes)",
   "function toLower(bytes s) pure returns (bytes)",
   "function toUpper(bytes s) pure returns (bytes)",
+  // native character-class test (bit i of mask set = byte value i allowed)
+  "function charset(bytes s, uint256 mask) pure returns (bool)",
   // parse
   "function parseUint(bytes s) pure returns (uint256)",
   "function toString(uint256 v) pure returns (string)",
@@ -103,6 +105,7 @@ export const OPERATORS_ABI = parseAbi([
   "function unzipWords(bytes s, uint256 which) pure returns (bytes)",
   "function sortWords(bytes s) pure returns (bytes)",
   "function uniqueWords(bytes s) pure returns (bytes)",
+  "function sumWords(bytes s) pure returns (uint256)",
 ]);
 
 /** Fold early-exit modes (Operators.FoldExit, ABI-encoded as uint8). */
@@ -181,9 +184,11 @@ export const OP_SELECTORS = {
   unzipWords: sel("unzipWords(bytes,uint256)"),
   sortWords: sel("sortWords(bytes)"),
   uniqueWords: sel("uniqueWords(bytes)"),
+  sumWords: sel("sumWords(bytes)"),
   replace: sel("replace(bytes,bytes,bytes)"),
   toLower: sel("toLower(bytes)"),
   toUpper: sel("toUpper(bytes)"),
+  charset: sel("charset(bytes,uint256)"),
 } as const;
 
 type OperatorFn =

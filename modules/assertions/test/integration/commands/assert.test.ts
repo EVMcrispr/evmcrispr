@@ -207,13 +207,14 @@ function expectSlice(param: Param): { segments: readonly Param[] } {
   return { segments: args };
 }
 
-/** The single RAW_BYTES literal of a charset foldBytes read: 7 head words
- *  [offset_s][target][offset_template][36][36][init 1][exit All], then the
- *  bitSet(mask, 0) template tail at 224; the envelope splices at 352. */
+/** The RAW_BYTES head of a native `charset(bytes s, uint256 mask)` read:
+ *  the bytes arg is FIRST, so the head is [offset_s = 96][mask] and the
+ *  live string envelope splices last (offset_s points at payload+32,
+ *  skipping the envelope's 0x20 word). This is the fixed-operation form of
+ *  the old foldBytes(bitSet, All) recipe — one on-chain loop, no per-byte
+ *  lambda call — while foldBytes stays the general per-byte predicate. */
 function charsetLiteral(mask: bigint): `0x${string}` {
-  const template = `${selectorOf("bitSet(uint256,uint256)").slice(2)}${word(mask).slice(2)}${word(0n).slice(2)}`;
-  const tail = `${word(68n).slice(2)}${template}${"0".repeat(56)}`;
-  return `0x${word(384n).slice(2)}${word(BigInt(OPERATORS)).slice(2)}${word(224n).slice(2)}${word(36n).slice(2)}${word(36n).slice(2)}${word(1n).slice(2)}${word(2n).slice(2)}${tail}`;
+  return `0x${word(96n).slice(2)}${word(mask).slice(2)}`;
 }
 
 describeCommand("assert", {
@@ -733,21 +734,18 @@ describeCommand("assert", {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "bitAnd(uint256,uint256)");
         opReadOf(a, "lt(uint256,uint256)");
-        opReadOf(
-          b,
-          "foldBytes(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
-        );
+        opReadOf(b, "charset(bytes,uint256)");
       },
     },
     {
-      name: "compiles @str.charset! to a bitSet foldBytes with the class bitmap",
+      name: "compiles @str.charset! to a native charset call with the class bitmap",
       script: `assertions:assert @str.charset!(${TOKEN}::{symbol()(string)} "a-z") == true`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const args = opReadOf(
-          param,
-          "foldBytes(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
-        );
+        // Native charset(s, mask): one op read, not a foldBytes(bitSet)
+        // fold — the EVML surface and semantics are unchanged, only the
+        // compiled calldata is the fixed-operation form.
+        const args = opReadOf(param, "charset(bytes,uint256)");
         expect(args).to.have.lengthOf(2);
         // bits 97..122 = a-z
         expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
@@ -761,10 +759,7 @@ describeCommand("assert", {
       script: `assertions:assert @str.charset!(${TOKEN}::{name()(string)} "a-z0-9-")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const args = opReadOf(
-          param,
-          "foldBytes(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
-        );
+        const args = opReadOf(param, "charset(bytes,uint256)");
         const expected = (0x07fffffen << 96n) | (0x3ffn << 48n) | (1n << 45n); // a-z | 0-9 | -
         expect(args[0].paramData).to.equal(charsetLiteral(expected));
       },
