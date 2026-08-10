@@ -30,8 +30,12 @@ export interface CompileEnv {
 }
 
 function preambleOf(env: CompileEnv): string {
+  // `load assertions` is implicit, since every on-chain expression needs it —
+  // but a suite whose own module IS assertions supplies its own load line
+  // (with an import list), and loading it twice is an error.
+  const ownsAssertions = moduleBaseName(env.module) === "assertions";
   return [
-    "load assertions",
+    ownsAssertions ? "" : "load assertions",
     env.module ? `load ${env.module}` : "",
     env.preamble ?? "",
   ]
