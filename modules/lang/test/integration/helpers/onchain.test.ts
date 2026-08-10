@@ -735,16 +735,6 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
       error: "str./bytes. faces",
     },
     {
-      name: "rejects two live parts in @concat!",
-      script: `assertions:assert @concat!(${TOKEN}::{caps()(uint256[])} ${TOKEN}::{tiers()(uint256[])}) == 0x11`,
-      error: "at most ONE live part",
-    },
-    {
-      name: "rejects two live sides in @zip!",
-      script: `assertions:assert @zip!(${TOKEN}::{caps()(uint256[])} ${TOKEN}::{tiers()(uint256[])}) == 0x11`,
-      error: "at most ONE live side",
-    },
-    {
       name: "rejects an out-of-range @unzip! lane",
       script: `assertions:assert @unzip!(${TOKEN}::{pairs()(uint256[])} 2) == 0x11`,
       error: "lane must be 0 or 1",
@@ -819,6 +809,67 @@ describeCommand("assert (lang on-chain faces, wave 3)", {
       },
     },
     // ---- @enumerate! -------------------------------------------------------
+    {
+      // Two live word payloads. offset_a stays a literal; offset_b is a
+      // live word `add(pick(env_a, 1), 160)` — the same shape @enumerate!
+      // has always emitted, now reached generically. Word payloads are
+      // whole words already, so the length IS the padded size and no
+      // ceil32 rounding appears.
+      name: "splices two live sides into @zip! with a computed offset_b",
+      script: `assertions:assert @zip!(${TOKEN}::{caps()(uint256[])} ${TOKEN}::{tiers()(uint256[])}) == 0x11`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "zipWords(bytes,bytes)");
+        expect(segs).to.have.lengthOf(4);
+        d.expectRawWord(segs[0], 96n);
+        const addArgs = d.opReadOf(segs[1], "add(uint256,uint256)");
+        expect(d.core(addArgs[0]).functionName).to.equal("pick");
+        d.expectRawWord(addArgs[1], 160n);
+        expectWordsPayload(segs[2]);
+        expectWordsPayload(segs[3]);
+      },
+    },
+    {
+      name: "splices two live parts into @concat!",
+      script: `assertions:assert @concat!(${TOKEN}::{caps()(uint256[])} ${TOKEN}::{tiers()(uint256[])}) == 0x11`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "concat(bytes[])");
+        // [0x20][N][off0][live off1] then the two envelopes
+        expect(segs).to.have.lengthOf(4);
+        const addArgs = d.opReadOf(segs[1], "add(uint256,uint256)");
+        expect(d.core(addArgs[0]).functionName).to.equal("pick");
+        d.expectRawWord(addArgs[1], 160n);
+        expectWordsPayload(segs[2]);
+        expectWordsPayload(segs[3]);
+      },
+    },
+    {
+      // Strings are NOT word-aligned, so the second offset has to round
+      // the first payload up to a whole number of words before adding:
+      // bitAnd(add(pick(env, 1), 31), ~31). This is the case that would
+      // still pass if the ceil32 were dropped and every payload happened
+      // to be 32-aligned, so it is the one that pins the rounding.
+      name: "rounds the first payload to a word boundary in @str.concat!",
+      script: `assertions:assert @str.concat!(${TOKEN}::{name()(string)} ${TOKEN}::{symbol()(string)}) == "x"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const segs = d.opReadOf(
+          d.opReadOf(param, "hash(bytes)")[0],
+          "concat(bytes[])",
+        );
+        expect(segs).to.have.lengthOf(4);
+        const addArgs = d.opReadOf(segs[1], "add(uint256,uint256)");
+        d.expectRawWord(addArgs[1], 160n);
+        const andArgs = d.opReadOf(addArgs[0], "bitAnd(uint256,uint256)");
+        d.expectRawWord(andArgs[1], (1n << 256n) - 32n);
+        const ceilArgs = d.opReadOf(andArgs[0], "add(uint256,uint256)");
+        expect(d.core(ceilArgs[0]).functionName).to.equal("pick");
+        d.expectRawWord(ceilArgs[1], 31n);
+      },
+    },
     {
       name: "compiles @enumerate! to zipWords(iotaWords(n), payload) with a live offset_b",
       script: `assertions:assert @enumerate!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
@@ -1115,11 +1166,6 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
       name: "rejects an inverted constant @bytes.slice! range",
       script: `assertions:assert @bytes.slice!(${TOKEN}::{payload()(bytes)} 5 2) == 0x11`,
       error: "before start",
-    },
-    {
-      name: "rejects two live parts in @str.concat!",
-      script: `assertions:assert @str.concat!(${TOKEN}::{name()(string)} ${TOKEN}::{symbol()(string)}) == "x"`,
-      error: "at most ONE live part",
     },
     {
       name: "points word returns of @bytes.at! at the word faces",

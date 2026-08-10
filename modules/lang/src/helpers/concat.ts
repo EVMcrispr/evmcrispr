@@ -8,7 +8,7 @@ export default defineHelper<Lang>({
   name: "concat",
   description: "Concatenate arrays together.",
   compileDescription:
-    "At most one part may be a live call; the rest must be constant arrays.",
+    "Up to 4 parts may be live calls; each live part past the first is re-resolved by every later part's offset.",
   returnType: "array",
   args: [
     {
@@ -33,22 +33,18 @@ export default defineHelper<Lang>({
       );
     }
     const parts: BytesPart[] = [];
-    let liveParts = 0;
     for (const argNode of node.args) {
       if (
         argNode.type === NodeType.CallExpression ||
         isBangHelperNode(argNode)
       ) {
-        liveParts++;
-        parts.push((await wordsArg(ctx, argNode, "concat!")).payload);
+        parts.push({
+          param: (await wordsArg(ctx, argNode, "concat!")).payload,
+          aligned: true,
+        });
       } else {
         parts.push(await constWordsPayload(ctx, argNode, "concat!"));
       }
-    }
-    if (liveParts > 1) {
-      throw new ErrorException(
-        "@concat! concatenates constant parts with at most ONE live part — later offsets would depend on the live value's length",
-      );
     }
     return { kind: "call", param: concatParam(ctx, parts), cat: "Bytes" };
   },

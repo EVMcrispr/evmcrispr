@@ -9,7 +9,7 @@ export default defineHelper<Lang>({
   name: "flat",
   description: "Flatten one level of nesting in an array.",
   compileDescription:
-    "At most one element may be a live call; the rest must be constant arrays.",
+    "Up to 4 elements may be live calls, the rest constant arrays; each live element past the first is re-resolved by every later offset.",
   returnType: "array",
   args: [
     {
@@ -41,22 +41,18 @@ export default defineHelper<Lang>({
     const elements = (node.args[0] as ArrayExpressionNode)
       .elements as unknown as Node[];
     const parts: BytesPart[] = [];
-    let liveParts = 0;
     for (const element of elements) {
       if (
         element.type === NodeType.CallExpression ||
         isBangHelperNode(element)
       ) {
-        liveParts++;
-        parts.push((await wordsArg(ctx, element, "flat!")).payload);
+        parts.push({
+          param: (await wordsArg(ctx, element, "flat!")).payload,
+          aligned: true,
+        });
       } else {
         parts.push(await constWordsPayload(ctx, element, "flat!"));
       }
-    }
-    if (liveParts > 1) {
-      throw new ErrorException(
-        "@flat! concatenates constant parts with at most ONE live part — later offsets would depend on the live value's length",
-      );
     }
     return { kind: "call", param: concatParam(ctx, parts), cat: "Bytes" };
   },

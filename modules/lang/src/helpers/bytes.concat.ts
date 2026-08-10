@@ -15,7 +15,7 @@ export default defineHelper<Lang>({
   name: "bytes.concat",
   description: "Concatenate bytes values together.",
   compileDescription:
-    "At most one part may be a live call; the rest must be hex constants.",
+    "Up to 4 parts may be live calls, the rest hex constants; each live part past the first is re-resolved by every later offset.",
   returnType: "bytes",
   args: [
     {
@@ -41,13 +41,11 @@ export default defineHelper<Lang>({
       );
     }
     const parts: BytesPart[] = [];
-    let liveParts = 0;
     for (const argNode of node.args) {
       if (argNode.type === NodeType.CallExpression) {
         const arg = await chainArgWithLens(ctx, "bytes.concat!", argNode);
         requireBytesLike(arg, "bytes.concat!");
         parts.push(lensedDataOperand(ctx, arg));
-        liveParts++;
       } else if (isBangHelperNode(argNode)) {
         const o = await compileOnchainHelper(ctx, argNode);
         if (o.kind !== "call" || (o.cat !== "Bytes" && o.cat !== "String")) {
@@ -56,7 +54,6 @@ export default defineHelper<Lang>({
           );
         }
         parts.push(o.param);
-        liveParts++;
       } else {
         const value = await ctx.interpreters.interpretNode(argNode);
         if (typeof value !== "string" || !isHex(value)) {
@@ -66,11 +63,6 @@ export default defineHelper<Lang>({
         }
         parts.push(value);
       }
-    }
-    if (liveParts > 1) {
-      throw new ErrorException(
-        "@bytes.concat! concatenates constant parts with at most ONE live part — later offsets would depend on the live value's length",
-      );
     }
     return { kind: "call", param: concatParam(ctx, parts), cat: "Bytes" };
   },

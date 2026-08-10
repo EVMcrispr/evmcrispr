@@ -9,7 +9,7 @@ export default defineHelper<Lang>({
   name: "zip",
   description: "Combine two arrays element-wise into an array of pairs.",
   compileDescription:
-    "At most one side may be a live call, and a length mismatch reverts.",
+    "Either or both sides may be live, and a length mismatch reverts.",
   returnType: "array",
   args: [
     {
@@ -33,24 +33,20 @@ export default defineHelper<Lang>({
         "@zip! expects (a b), e.g. @zip!($safe::getOwners() [1 2 3])",
       );
     }
-    let liveParts = 0;
     const side = async (argNode: Node, label: string): Promise<BytesPart> => {
       if (
         argNode.type === NodeType.CallExpression ||
         isBangHelperNode(argNode)
       ) {
-        liveParts++;
-        return (await wordsArg(ctx, argNode, "zip!")).payload;
+        return {
+          param: (await wordsArg(ctx, argNode, "zip!")).payload,
+          aligned: true,
+        };
       }
       return constWordsPayload(ctx, argNode, `zip! ${label}`);
     };
     const a = await side(node.args[0], "a");
     const b = await side(node.args[1], "b");
-    if (liveParts > 1) {
-      throw new ErrorException(
-        "@zip! interleaves at most ONE live side with a constant one — the second live offset would depend on the first value's length",
-      );
-    }
     return { kind: "call", param: zipParam(ctx, a, b), cat: "Bytes" };
   },
 });

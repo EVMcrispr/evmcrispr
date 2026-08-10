@@ -4,7 +4,7 @@ title: "@lang:zip"
 
 Combine two arrays element-wise into an array of pairs.
 
-**On-chain (`@lang:zip!`)**: At most one side may be a live call, and a length mismatch reverts.
+**On-chain (`@lang:zip!`)**: Either or both sides may be live, and a length mismatch reverts.
 
 **Returns**: `array`
 
@@ -30,10 +30,11 @@ Combine two arrays element-wise into an array of pairs.
 
 ## On-chain face (@zip!)
 
-Interleave two word payloads on-chain through `zipWords`. At most one
-side is live (a call or nested face); the other is a constant array
-literal. A word-count mismatch reverts with WordCountMismatch at
-assertion time.
+Interleave two word payloads on-chain through `zipWords`. Either side,
+or both, may be live (a call or nested face) or a constant array
+literal. When both are live the second offset is computed on-chain from
+the first payload's length. A word-count mismatch reverts with
+WordCountMismatch.
 
 ### Examples
 

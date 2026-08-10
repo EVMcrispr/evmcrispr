@@ -16,7 +16,7 @@ export default defineHelper<Lang>({
   name: "str.join",
   description: "Join array elements into a string with a delimiter.",
   compileDescription:
-    "At most one element may be a live call; the rest must be string constants.",
+    "Up to 4 elements may be live calls, the rest string constants; each live element past the first is re-resolved by every later offset.",
   returnType: "string",
   args: [
     {
@@ -49,7 +49,6 @@ export default defineHelper<Lang>({
     // concat part, so the whole join is a single Operators.concat call
     // with no join function on-chain.
     const parts: BytesPart[] = [];
-    let liveParts = 0;
     let constRun: string | null = null;
     const flushConstRun = () => {
       if (constRun !== null) {
@@ -78,7 +77,6 @@ export default defineHelper<Lang>({
         if (sep) constRun = (constRun ?? "") + sep;
         flushConstRun();
         parts.push(live);
-        liveParts++;
         continue;
       }
       const value = await ctx.interpreters.interpretNode(element);
@@ -88,11 +86,6 @@ export default defineHelper<Lang>({
       constRun = (constRun ?? "") + sep + value;
     }
     flushConstRun();
-    if (liveParts > 1) {
-      throw new ErrorException(
-        "@str.join! joins constant parts with at most ONE live part — later offsets would depend on the live value's length",
-      );
-    }
     return {
       kind: "call",
       param: concatParam(ctx, parts),

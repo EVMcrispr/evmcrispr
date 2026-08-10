@@ -1,4 +1,5 @@
 import type { Address, Hex } from "viem";
+import { ErrorException } from "../errors";
 import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
 import { encodePick } from "./core";
 import type { InputParam } from "./erc8211";
@@ -498,53 +499,160 @@ export function sha256Param(ctx: CompileCtx, s: InputParam): InputParam {
 
 /** A part of a spliced `bytes[]`: a literal payload, or ONE live operand
  *  resolving to a bytes envelope. */
-export type BytesPart = Hex | InputParam;
+export type BytesPart = Hex | InputParam | { param: InputParam; aligned: true };
 
-const isLivePart = (p: BytesPart): p is InputParam => typeof p !== "string";
+const _isLivePart = (p: BytesPart): p is Exclude<BytesPart, Hex> =>
+  typeof p !== "string";
 
-/** Encode the pieces of a `bytes[]` argument with at most one live part.
- *  `base` is the absolute position of the elements' head area (element
- *  offsets are relative to it); constant tails pack right after the
- *  offset words, the live envelope splices LAST at `liveAt` (the caller
- *  appends any other fixed tails between). */
-function bytesArrayPieces(
-  parts: readonly BytesPart[],
-  base: number,
-  liveAt: number,
-): { offsets: bigint[]; tails: string[]; live?: InputParam; end: number } {
-  if (parts.filter(isLivePart).length > 1) {
-    throw new Error("at most one live part can be spliced into a bytes[]");
-  }
-  let tailAt = base + 32 * parts.length;
-  const offsets: bigint[] = [];
-  const tails: string[] = [];
-  let live: InputParam | undefined;
-  for (const part of parts) {
-    if (isLivePart(part)) {
-      live = part;
-      offsets.push(-1n); // patched below once liveAt is final
-      continue;
-    }
-    const tail = bytesTail(part);
-    offsets.push(BigInt(tailAt - base));
-    tails.push(tail);
-    tailAt += tail.length / 2;
-  }
-  for (let i = 0; i < offsets.length; i++) {
-    if (offsets[i] === -1n) {
-      // The live envelope's own 0x20 word is skipped by the offset.
-      offsets[i] = BigInt(liveAt + 32 - base);
-    }
-  }
-  return { offsets, tails, live, end: tailAt };
+/**
+ * How many live envelopes one call may splice.
+ *
+ * The binding cost is not the extra reads, it is that an operand
+ * expression is a tree with no way to name a subterm: every offset after
+ * the first live part references the LENGTH of each earlier one, so live
+ * source `j` is resolved once as its envelope plus once more inside each
+ * later offset. That is L(L-1)/2 redundant resolutions, source calls
+ * included, and the encoded operand blob grows with the square too.
+ *
+ * The cap is a hard build-time error rather than a warning because the
+ * failure it prevents is silent: an assertion is judged inside an
+ * `eth_call`, so an over-budget expression runs out of gas and reverts,
+ * and a reverted judge is indistinguishable from an assertion that
+ * legitimately failed.
+ */
+export const MAX_LIVE_SLOTS = 4;
+
+/** A dynamic argument of a calldata layout: a pre-encoded constant tail
+ *  span (no 0x), or a live envelope. `payload` is the PADDED payload size
+ *  of the resolved value — everything after its [0x20][len] head words.
+ *  It is required for every live slot except the last, since only the
+ *  slots that follow one need to know how far it pushes them. */
+export interface LiveSlot {
+  param: InputParam;
+  payload?: bigint | InputParam;
+}
+export type Slot = { tail: string } | LiveSlot;
+
+const isLiveSlot = (s: Slot): s is LiveSlot => "param" in s;
+
+/** The `len` word of a resolved envelope [0x20][len][payload], as a core
+ *  `pick` of word 1. One core read, where `byteLen` would cost a core
+ *  read plus an Operators hop. Byte length for bytes/string; ELEMENT
+ *  COUNT for a `T[]`, which is why sizing has to be type-directed. */
+export function envelopeLenParam(ctx: CompileCtx, env: InputParam): InputParam {
+  return staticCallParam(ctx.core, encodePick(env, 1n));
 }
 
-/** Sum of the constant tail byte lengths of a parts list. */
-function constTailBytes(parts: readonly BytesPart[]): number {
-  return parts.reduce<number>(
-    (acc, p) => (isLivePart(p) ? acc : acc + bytesTail(p).length / 2),
-    0,
+/** ceil32 of a bytes/string envelope's length: its padded payload size.
+ *  `bitAnd(add(len, 31), ~31)` beats `mul(div(len, 32), 32)` by a read. */
+export function bytesPayloadParam(
+  ctx: CompileCtx,
+  env: InputParam,
+): InputParam {
+  return wordOpParam(
+    ctx,
+    "bitAnd",
+    false,
+    wordOpParam(
+      ctx,
+      "add",
+      false,
+      envelopeLenParam(ctx, env),
+      rawParam(toWord(31n)),
+    ),
+    rawParam(toWord((1n << 256n) - 32n)),
   );
+}
+
+/** A payload that is already a whole number of words (every word-array
+ *  face produces one), so its length word IS its padded size. */
+export const wordsPayloadParam = envelopeLenParam;
+
+/**
+ * Lay out N dynamic arguments, ANY number of them live.
+ *
+ * Constant tails are hoisted ahead of every live envelope so their
+ * offsets stay build-time literals; the live envelopes then follow in
+ * slot order. The running position is split in two — `at` carries the
+ * build-time part (each envelope's own [0x20][len] head words) and
+ * `grown` the runtime part (their padded payloads) — which keeps every
+ * offset to at most ONE live `add`:
+ *
+ *   offset_k = add(payload_1 ⊕ … ⊕ payload_{k-1}, <one literal>)
+ *
+ * `headBytes` is where the tail area starts (past every head word of the
+ * enclosing call); `base` is what offsets are measured from — 0 for a
+ * normal ABI call, 64 for the element head area of a `bytes[]`.
+ *
+ * The returned `tail` is already in emission order. Splice it verbatim:
+ * `mergeSegments` accepts live pieces anywhere, so a caller that rebuilt
+ * the list in a different order would produce valid-looking calldata
+ * whose offsets point at the wrong envelope.
+ */
+export function spliceLayout(
+  ctx: CompileCtx,
+  slots: readonly Slot[],
+  headBytes: number,
+  base = 0,
+): { offsets: (bigint | InputParam)[]; tail: Piece[] } {
+  const lives = slots.flatMap((s, i) => (isLiveSlot(s) ? [{ s, i }] : []));
+  if (lives.length > MAX_LIVE_SLOTS) {
+    throw new ErrorException(
+      `at most ${MAX_LIVE_SLOTS} live values can be spliced into one call, got ${lives.length} — each one past the first is re-resolved by every later offset, so the cost grows with the square. Fold the constant parts together, or split the expression`,
+    );
+  }
+  for (const { s } of lives.slice(0, -1)) {
+    if (s.payload === undefined) {
+      throw new ErrorException(
+        "a live value whose runtime size the compiler cannot derive must be spliced last, since nothing after it would have a computable offset",
+      );
+    }
+  }
+
+  const offsets = new Array<bigint | InputParam>(slots.length);
+  const constTails: string[] = [];
+
+  let at = headBytes;
+  slots.forEach((s, i) => {
+    if (isLiveSlot(s)) return;
+    offsets[i] = BigInt(at - base);
+    constTails.push(s.tail);
+    at += s.tail.length / 2;
+  });
+
+  let grown: InputParam | undefined;
+  for (let j = 0; j < lives.length; j++) {
+    // +32 skips this envelope's own 0x20 word, the trick that lets the
+    // decoder read the length word directly.
+    const here = BigInt(at + 32 - base);
+    offsets[lives[j].i] = grown
+      ? wordOpParam(ctx, "add", false, grown, rawParam(toWord(here)))
+      : here;
+    if (j === lives.length - 1) break;
+    at += 64; // this envelope's [0x20][len]
+    const p = lives[j].s.payload as bigint | InputParam;
+    if (typeof p === "bigint") {
+      at += Number(p);
+      continue;
+    }
+    grown = grown ? wordOpParam(ctx, "add", false, grown, p) : p;
+  }
+
+  return { offsets, tail: [...constTails, ...lives.map((l) => l.s.param)] };
+}
+
+/** A parts list as layout slots. A bare live param is sized as a
+ *  bytes/string envelope; `aligned` opts into the cheaper word-payload
+ *  sizing and must only be used where the payload really is a whole
+ *  number of words, since an over-claim shifts every later offset. */
+function toSlots(ctx: CompileCtx, parts: readonly BytesPart[]): Slot[] {
+  return parts.map((p) => {
+    if (typeof p === "string") return { tail: bytesTail(p) };
+    if ("aligned" in p) {
+      return { param: p.param, payload: wordsPayloadParam(ctx, p.param) };
+    }
+    return { param: p, payload: bytesPayloadParam(ctx, p) };
+  });
 }
 
 /**
@@ -558,17 +666,25 @@ export function concatParam(
   ctx: CompileCtx,
   parts: readonly BytesPart[],
 ): InputParam {
+  // A `bytes[]`: element offsets are RELATIVE to the elements head area
+  // at 64, and the tail area starts past the N offset words.
   const base = 64;
-  const liveAt = base + 32 * parts.length + constTailBytes(parts);
-  const { offsets, tails, live } = bytesArrayPieces(parts, base, liveAt);
-  const pieces: Piece[] = [
-    wordSpan(32n), // offset_parts
-    wordSpan(BigInt(parts.length)),
-    ...offsets.map((o) => wordSpan(o)),
-    ...tails,
-  ];
-  if (live) pieces.push(live);
-  return opReadParam(ctx, OP_SELECTORS.concat, mergeSegments(pieces));
+  const { offsets, tail } = spliceLayout(
+    ctx,
+    toSlots(ctx, parts),
+    base + 32 * parts.length,
+    base,
+  );
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.concat,
+    mergeSegments([
+      wordSpan(32n), // offset_parts
+      wordSpan(BigInt(parts.length)),
+      ...offsets.map(wordPiece),
+      ...tail,
+    ]),
+  );
 }
 
 /**
@@ -582,28 +698,14 @@ export function zipParam(
   a: BytesPart,
   b: BytesPart,
 ): InputParam {
-  if (isLivePart(a) && isLivePart(b)) {
-    throw new Error("at most one live operand can be spliced into zipWords");
-  }
-  const tails: string[] = [];
-  let at = 64;
-  const offsetOf = (p: BytesPart, liveAt: number): bigint => {
-    if (isLivePart(p)) return BigInt(liveAt + 32);
-    const tail = bytesTail(p);
-    const offset = BigInt(at);
-    tails.push(tail);
-    at += tail.length / 2;
-    return offset;
-  };
-  // Resolve constant tails first so the live offset lands after them.
-  const constBytes = constTailBytes([a, b]);
-  const liveAt = 64 + constBytes;
-  const offsetA = offsetOf(a, liveAt);
-  const offsetB = offsetOf(b, liveAt);
-  const pieces: Piece[] = [wordSpan(offsetA), wordSpan(offsetB), ...tails];
-  const live = [a, b].find(isLivePart);
-  if (live) pieces.push(live);
-  return opReadParam(ctx, OP_SELECTORS.zipWords, mergeSegments(pieces));
+  // Two plain `bytes` args, so offsets are ABSOLUTE and the tail area
+  // starts past the two head words.
+  const { offsets, tail } = spliceLayout(ctx, toSlots(ctx, [a, b]), 64);
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.zipWords,
+    mergeSegments([wordPiece(offsets[0]), wordPiece(offsets[1]), ...tail]),
+  );
 }
 
 /**
