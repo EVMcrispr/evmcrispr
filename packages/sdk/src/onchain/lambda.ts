@@ -1,8 +1,8 @@
 /**
  * Fold/map lambda templates: compiling a helper-reference predicate into
  * the single-staticcall TEMPLATE the bounded folds and `mapWords` consume
- * (fixed calldata for `target` with the element substituted at
- * `elemOffset`).
+ * (fixed calldata for `target` with the element substituted at the
+ * window(s) in `elemOffsets`).
  *
  * The predicate is applied to a marker element operand — a live word the
  * expression compiler cannot fold away — and the compiled result must be
@@ -14,8 +14,10 @@
  * verbatim. The composed core form costs several staticcalls per element
  * where a direct form costs one, which is why the Operators flattening is
  * tried first. A build-time constant, an element used twice, or a
- * bytes/string result is rejected: a template carries one substitution
- * window and the engine reads one return word.
+ * bytes/string result is rejected: extraction today still returns a
+ * single window (callers pass it as a one-element `elemOffsets` array);
+ * multi-marker extraction is the B2 handoff. The engine reads one return
+ * word.
  */
 import type { Address, Hex } from "viem";
 import {
@@ -55,7 +57,10 @@ export function elementOperand(cat: Category = "Uint"): Operand {
  *  the element window at `elemOffset`. `target` is the Operators contract
  *  when the predicate flattened to one direct call; otherwise it is the
  *  compiled staticcall's own target verbatim — the core for a composed
- *  `read(...)` or a `pick`, another contract for a direct single call. */
+ *  `read(...)` or a `pick`, another contract for a direct single call.
+ *  Callers pass `[elemOffset]` into fold/map as `elemOffsets`; multi-
+ *  window extraction (several markers → several offsets) is deferred to
+ *  B2. */
 export interface LambdaTemplate {
   target: Address;
   template: Hex;

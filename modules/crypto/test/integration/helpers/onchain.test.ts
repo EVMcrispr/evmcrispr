@@ -26,15 +26,19 @@ const d = createAssertDecoders({
 
 /** The RAW_BYTES literal of the merkle foldWords read: 7 head words, the
  *  hashPairSorted(acc, sibling) template at 224 with the canonical 4/36
- *  windows, init = leaf, Full exit; the proof payload splices last. */
+ *  windows, a one-element `elemOffsets` array after the template, init =
+ *  leaf, Full exit; the proof payload splices last. */
 function merkleFoldLiteral(leaf: Hex): Hex {
   const template = `${selectorOf("hashPairSorted(bytes32,bytes32)").slice(2)}${word(0n).slice(2)}${word(0n).slice(2)}`;
   const tail = `${word(68n).slice(2)}${template}${"0".repeat(56)}`;
-  const envelopeAt = 224 + tail.length / 2;
-  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATORS)).slice(2)}${word(224n).slice(2)}${word(4n).slice(2)}${word(36n).slice(2)}${word(BigInt(leaf)).slice(2)}${word(0n).slice(2)}${tail}`;
+  const offsetsTail = `${word(1n).slice(2)}${word(36n).slice(2)}`;
+  const offsetsAt = 224 + tail.length / 2;
+  const envelopeAt = offsetsAt + offsetsTail.length / 2;
+  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATORS)).slice(2)}${word(224n).slice(2)}${word(4n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(BigInt(leaf)).slice(2)}${word(0n).slice(2)}${tail}${offsetsTail}`;
 }
 
-const FOLD_SIG = "foldWords(bytes,address,bytes,uint256,uint256,bytes32,uint8)";
+const FOLD_SIG =
+  "foldWords(bytes,address,bytes,uint256,uint256[],bytes32,uint8)";
 
 describeCommand("assert (@merkle.verify!)", {
   describeName: "Crypto > helpers > @merkle.verify!",

@@ -173,7 +173,7 @@ export default defineHelper<Lang>({
         ctx.operators,
         template,
         4n,
-        36n,
+        [36n],
         init,
         FOLD_EXIT.Full,
       ),

@@ -97,12 +97,12 @@ export const OPERATORS_ABI = parseAbi([
   // runtime encoder (encode raw-returns with no bytes envelope)
   "function encode(string types, bytes[] values) pure",
   // bounded folds (FoldExit as uint8: Full = 0, Any = 1, All = 2)
-  "function foldRange(uint256 n, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
-  "function foldBytes(bytes s, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
-  "function foldWords(bytes s, address target, bytes template, uint256 accOffset, uint256 elemOffset, bytes32 init, uint8 exit) view returns (bytes32)",
+  "function foldRange(uint256 n, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
+  "function foldBytes(bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
+  "function foldWords(bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
   // array-shape ops over aligned-word bytes payloads
-  "function mapWords(bytes s, address target, bytes template, uint256 elemOffset) view returns (bytes)",
-  "function filterWords(bytes s, address target, bytes template, uint256 elemOffset) view returns (bytes)",
+  "function mapWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
+  "function filterWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
   "function iotaWords(uint256 n) pure returns (bytes)",
   "function wordIndexOf(bytes s, bytes32 w) pure returns (uint256)",
   "function reverseWords(bytes s) pure returns (bytes)",
@@ -157,13 +157,13 @@ export const OP_SELECTORS = {
   slice: sel("slice(bytes,uint256,uint256)"),
   bitSet: sel("bitSet(uint256,uint256)"),
   foldBytes: sel(
-    "foldBytes(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
+    "foldBytes(bytes,address,bytes,uint256,uint256[],bytes32,uint8)",
   ),
   foldWords: sel(
-    "foldWords(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
+    "foldWords(bytes,address,bytes,uint256,uint256[],bytes32,uint8)",
   ),
   foldRange: sel(
-    "foldRange(uint256,address,bytes,uint256,uint256,bytes32,uint8)",
+    "foldRange(uint256,address,bytes,uint256,uint256[],bytes32,uint8)",
   ),
   mulDiv: sel("mulDiv(uint256,uint256,uint256)"),
   sqrt: sel("sqrt(uint256)"),
@@ -184,8 +184,8 @@ export const OP_SELECTORS = {
   rawCall: sel("rawCall(address,bytes)"),
   code: sel("code(address)"),
   hashPairSorted: sel("hashPairSorted(bytes32,bytes32)"),
-  mapWords: sel("mapWords(bytes,address,bytes,uint256)"),
-  filterWords: sel("filterWords(bytes,address,bytes,uint256)"),
+  mapWords: sel("mapWords(bytes,address,bytes,uint256[])"),
+  filterWords: sel("filterWords(bytes,address,bytes,uint256[])"),
   iotaWords: sel("iotaWords(uint256)"),
   wordIndexOf: sel("wordIndexOf(bytes,bytes32)"),
   reverseWords: sel("reverseWords(bytes)"),

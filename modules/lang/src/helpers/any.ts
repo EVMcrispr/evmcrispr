@@ -60,7 +60,7 @@ export default defineHelper<Lang>({
         tpl.target,
         tpl.template,
         tpl.elemOffset,
-        tpl.elemOffset,
+        [tpl.elemOffset],
         0n,
         FOLD_EXIT.Any,
       ),

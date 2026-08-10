@@ -87,7 +87,7 @@ export default defineHelper<Crypto>({
       ctx.operators,
       template,
       4n,
-      36n,
+      [36n],
       leaf,
       FOLD_EXIT.Full,
     );

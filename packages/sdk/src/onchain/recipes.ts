@@ -33,6 +33,13 @@ export {
 const wordSpan = (v: bigint): string => toWord(v).slice(2);
 const byteLen = (payload: Hex): number => (payload.length - 2) / 2;
 
+/** A `[len][w0][w1]…` uint256[] tail as a literal hex span (no 0x). */
+function wordsArrayTail(words: readonly bigint[]): string {
+  let out = wordSpan(BigInt(words.length));
+  for (const w of words) out += wordSpan(w);
+  return out;
+}
+
 /**
  * Bytes-operation recipes: how the string helpers compile onto the plain
  * Operators vocabulary through the core's `read`. The encoder owns the
@@ -150,11 +157,13 @@ export function includesWordParam(
 
 /**
  * A bounded fold over a LIVE payload (`foldWords`/`foldBytes`): heads are
- * [offset_s][target][offset_template = 224][accOffset][elemOffset][init]
- * [exit], the template tail sits at 224 and the runtime envelope of `s`
- * is spliced last with offset_s skipping its leading 0x20 word. The
- * lambda target is the Operators contract for a template built from its
- * own vocabulary, or the core for a composed `read(...)` template.
+ * [offset_s][target][offset_template = 224][accOffset][offset_elemOffsets]
+ * [init][exit], the template tail sits at 224, the `elemOffsets` array
+ * follows it, and the runtime envelope of `s` is spliced last with
+ * offset_s skipping its leading 0x20 word. The lambda target is the
+ * Operators contract for a template built from its own vocabulary, or the
+ * core for a composed `read(...)` template. Pass a one-element
+ * `elemOffsets` for the pre-C single-window shape.
  */
 export function foldParam(
   ctx: CompileCtx,
@@ -163,12 +172,14 @@ export function foldParam(
   target: Address,
   template: Hex,
   accOffset: bigint,
-  elemOffset: bigint,
+  elemOffsets: readonly bigint[],
   init: bigint,
   exit: number,
 ): InputParam {
   const templateTail = bytesTail(template);
-  const envelopeAt = 224 + templateTail.length / 2;
+  const offsetsTail = wordsArrayTail(elemOffsets);
+  const offsetsAt = 224 + templateTail.length / 2;
+  const envelopeAt = offsetsAt + offsetsTail.length / 2;
   return opReadParam(
     ctx,
     OP_SELECTORS[kind],
@@ -177,10 +188,11 @@ export function foldParam(
       wordSpan(BigInt(target)), // lambda target
       wordSpan(224n), // offset_template
       wordSpan(accOffset),
-      wordSpan(elemOffset),
+      wordSpan(BigInt(offsetsAt)), // offset_elemOffsets
       wordSpan(init),
       wordSpan(BigInt(exit)),
       templateTail,
+      offsetsTail,
       s,
     ]),
   );
@@ -223,8 +235,10 @@ export function sumWordsParam(ctx: CompileCtx, s: InputParam): InputParam {
 /**
  * `mapWords`/`filterWords` over a LIVE payload (identical signatures, so
  * they share one layout): heads are [offset_s][target]
- * [offset_template = 128][elemOffset], the template tail at 128 and the
- * runtime envelope of `s` spliced last with the +32 offset trick.
+ * [offset_template = 128][offset_elemOffsets], the template tail at 128,
+ * the `elemOffsets` array after it, and the runtime envelope of `s`
+ * spliced last with the +32 offset trick. Pass a one-element
+ * `elemOffsets` for the pre-C single-window shape.
  */
 function applyWordsParam(
   ctx: CompileCtx,
@@ -232,10 +246,12 @@ function applyWordsParam(
   s: InputParam,
   target: Address,
   template: Hex,
-  elemOffset: bigint,
+  elemOffsets: readonly bigint[],
 ): InputParam {
   const templateTail = bytesTail(template);
-  const envelopeAt = 128 + templateTail.length / 2;
+  const offsetsTail = wordsArrayTail(elemOffsets);
+  const offsetsAt = 128 + templateTail.length / 2;
+  const envelopeAt = offsetsAt + offsetsTail.length / 2;
   return opReadParam(
     ctx,
     OP_SELECTORS[kind],
@@ -243,8 +259,9 @@ function applyWordsParam(
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
       wordSpan(BigInt(target)), // lambda target
       wordSpan(128n), // offset_template
-      wordSpan(elemOffset),
+      wordSpan(BigInt(offsetsAt)), // offset_elemOffsets
       templateTail,
+      offsetsTail,
       s,
     ]),
   );
@@ -256,9 +273,9 @@ export function mapWordsParam(
   s: InputParam,
   target: Address,
   template: Hex,
-  elemOffset: bigint,
+  elemOffsets: readonly bigint[],
 ): InputParam {
-  return applyWordsParam(ctx, "mapWords", s, target, template, elemOffset);
+  return applyWordsParam(ctx, "mapWords", s, target, template, elemOffsets);
 }
 
 /** `filterWords` over a LIVE payload — the kept-elements sibling of
@@ -269,9 +286,9 @@ export function filterWordsParam(
   s: InputParam,
   target: Address,
   template: Hex,
-  elemOffset: bigint,
+  elemOffsets: readonly bigint[],
 ): InputParam {
-  return applyWordsParam(ctx, "filterWords", s, target, template, elemOffset);
+  return applyWordsParam(ctx, "filterWords", s, target, template, elemOffsets);
 }
 
 /** `iotaWords(n)` with a live count: calldata is the selector plus the
