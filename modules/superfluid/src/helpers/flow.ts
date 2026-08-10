@@ -13,7 +13,7 @@ export default defineHelper<Superfluid>({
   name: "flow",
   batchable: false,
   description:
-    "Current flow rate between a sender and a receiver, in wei per second (0 when no stream exists). As @flow! the getFlowrate() read happens on-chain at assertion time (the SuperToken still resolves at composition time).",
+    "Current flow rate between a sender and a receiver, in wei per second (0 when no stream exists).",
   returnType: "number",
   args: [
     {

@@ -9,15 +9,15 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.len",
-  description:
-    "Return the length of a string. As @str.len! the decoded byte length of the string return of a call, on-chain — there is no code-point walk at assertion time, so multi-byte UTF-8 characters count once per byte.",
+  description: "Length of a string.",
+  compileDescription:
+    "Counts bytes, so a multi-byte UTF-8 character counts more than once.",
   returnType: "number",
   args: [
     {
       name: "value",
       type: "string",
-      description:
-        "Input value (in @str.len! a `::` call expression or chain returning a string)",
+      description: "Source string",
     },
   ],
   async run(_, { value }) {

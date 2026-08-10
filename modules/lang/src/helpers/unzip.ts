@@ -6,8 +6,9 @@ import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "unzip",
-  description:
-    "Transpose an array of pairs into two separate arrays. As @unzip! one LANE of the word payload is selected on-chain through unzipWords — the lane argument (0 or 1) is required there; an odd word count gives lane 0 the extra word.",
+  description: "Transpose an array of pairs into two separate arrays.",
+  compileDescription:
+    "The `lane` argument is required, and an odd word count gives lane 0 the extra word.",
   returnType: "array",
   args: [
     { name: "pairs", type: "array", description: "Array of [a, b] pairs" },
@@ -15,8 +16,7 @@ export default defineHelper<Lang>({
       name: "lane",
       type: "number",
       optional: true,
-      description:
-        "@unzip! only: which lane to keep — 0 (first of each pair) or 1 (second)",
+      description: "Which lane to keep: 0 (first of each pair) or 1 (second)",
     },
   ],
   async run(_, { pairs }) {

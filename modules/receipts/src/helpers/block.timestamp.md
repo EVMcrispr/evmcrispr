@@ -2,7 +2,9 @@
 title: "@receipts:block.timestamp"
 ---
 
-The block timestamp: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.timestamp! you read the block being written at assertion time.
+Timestamp of a sealed block, addressed by number or tag (default: latest).
+
+**On-chain (`@receipts:block.timestamp!`)**: Reads the block being written, and takes no arguments.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -46,4 +48,4 @@ assertions:assert @num!($vesting::{unlockTime()(uint256)} - @block.timestamp!) >
 
 ## See Also
 
-- [@receipts:block.number!](block.number.md), [assertions:assert-timestamp](../commands/assert-timestamp.md)
+- [@receipts:block.number!](block.number.md), [assertions:assert-timestamp](../../../assertions/src/commands/assert-timestamp.md)

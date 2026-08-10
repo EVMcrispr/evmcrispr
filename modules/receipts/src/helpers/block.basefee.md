@@ -2,7 +2,9 @@
 title: "@receipts:block.basefee"
 ---
 
-The block base fee in wei: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.basefee! you read the block being written at assertion time, e.g. to gate a batch on fee conditions.
+Base fee in wei of a sealed block, addressed by number or tag (default: latest).
+
+**On-chain (`@receipts:block.basefee!`)**: Reads the block being written, and takes no arguments.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

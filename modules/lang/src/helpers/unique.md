@@ -2,7 +2,9 @@
 title: "@lang:unique"
 ---
 
-Remove duplicates from an array, preserving first-occurrence order. As @unique! an ADJACENT dedup on-chain through uniqueWords — nest @sort! for set-uniqueness: @unique!(@sort!(…)).
+Remove duplicates from an array, preserving first-occurrence order.
+
+**On-chain (`@lang:unique!`)**: Removes adjacent duplicates only; nest `@sort!` for set-uniqueness.
 
 **Returns**: `array`
 

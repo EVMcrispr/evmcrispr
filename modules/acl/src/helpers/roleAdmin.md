@@ -2,7 +2,7 @@
 title: "@acl:roleAdmin"
 ---
 
-Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. As @roleAdmin! the read happens on-chain at assertion time.
+Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

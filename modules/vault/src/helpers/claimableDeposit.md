@@ -2,7 +2,7 @@
 title: "@vault:claimableDeposit"
 ---
 
-Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset. As @claimableDeposit! the claimableDepositRequest read happens on-chain at assertion time.
+Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

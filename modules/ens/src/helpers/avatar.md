@@ -2,7 +2,7 @@
 title: "@ens:avatar"
 ---
 
-Get the avatar URI for an ENS name.
+Avatar URI of an ENS name.
 
 **Returns**: `string`
 

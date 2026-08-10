@@ -13,15 +13,15 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.concat",
-  description:
-    "Concatenate strings together. As @str.concat! the parts concatenate on-chain through Operators.concat — constant strings plus at most one live call part (spliced into the calldata last, at any argument position).",
+  description: "Concatenate strings together.",
+  compileDescription:
+    "At most one part may be a live call; the rest must be string constants.",
   returnType: "string",
   args: [
     {
       name: "first",
       type: "string",
-      description:
-        "First string segment (in @str.concat! a string constant or a `::` call returning string/bytes)",
+      description: "First string segment",
     },
     {
       name: "rest",

@@ -6,7 +6,7 @@ import { hashSignal, parseSignalValue } from "../utils/proof";
 export default defineHelper<Semaphore>({
   name: "nullifier",
   description:
-    "The nullifier a stored identity produces for a scope (poseidon of the hashed scope and the identity secret) — what the contract records on validateProof; useful to check whether a signal was already sent.",
+    "The nullifier a stored identity produces for a scope (poseidon of the hashed scope and the identity secret), what the contract records on validateProof; useful to check whether a signal was already sent.",
   returnType: "number",
   args: [
     { name: "scope", type: "any", description: "Scope (external nullifier)" },

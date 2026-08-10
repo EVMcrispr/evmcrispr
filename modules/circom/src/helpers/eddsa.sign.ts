@@ -6,7 +6,7 @@ import { parseFieldInput } from "../utils/field";
 export default defineHelper<Circom>({
   name: "eddsa.sign",
   description:
-    "Sign a field-element message with EdDSA over Baby Jubjub (Poseidon variant), returning the signature as [R8x R8y S] — destructure or pass whole to @circom:eddsa.verify or into circuit inputs.",
+    "Sign a field-element message with EdDSA over Baby Jubjub (Poseidon variant), returning the signature as [R8x R8y S]; destructure it or pass it whole to @circom:eddsa.verify or into circuit inputs.",
   returnType: "array",
   args: [
     {

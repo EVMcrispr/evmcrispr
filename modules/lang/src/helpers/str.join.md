@@ -2,7 +2,9 @@
 title: "@lang:str.join"
 ---
 
-Join array elements into a string with a delimiter. As @str.join! the parts join on-chain through a single Operators.concat call — the delimiter interleaves between the parts at composition time (constant runs merge into one part); constant strings plus at most one live call part (spliced into the calldata last, at any position in the list).
+Join array elements into a string with a delimiter.
+
+**On-chain (`@lang:str.join!`)**: At most one element may be a live call; the rest must be string constants.
 
 **Returns**: `string`
 
@@ -16,7 +18,7 @@ Join array elements into a string with a delimiter. As @str.join! the parts join
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @str.join! an array literal of constant strings and at most one `::` call part) |
+| `arr` | `array` | Source array |
 | `delim` | `string` | Delimiter string |
 
 <!-- HAND-WRITTEN -->

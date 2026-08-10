@@ -13,7 +13,9 @@ export default defineHelper<Governor>({
   name: "proposalId",
   batchable: false,
   description:
-    "Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script. As @proposalId! the id is read on-chain at assertion time through orElse(getProposalId, hashProposal) — whichever derivation the governor exposes wins.",
+    "Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script.",
+  compileDescription:
+    "Tries `getProposalId` and falls back to `hashProposal`, whichever derivation the governor exposes.",
   returnType: "number",
   args: [
     { name: "governor", type: "address", description: "Governor address" },

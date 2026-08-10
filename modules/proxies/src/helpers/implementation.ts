@@ -20,7 +20,9 @@ export default defineHelper<Proxies>({
   name: "implementation",
   batchable: false,
   description:
-    "Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy. As @implementation! the resolution happens on-chain at assertion time through orElse: a direct implementation() call when the proxy exposes one, else the beacon() -> implementation() hop — slot-only proxies stay off-chain (both branches revert).",
+    "Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy.",
+  compileDescription:
+    "Resolves through an `implementation()` call or the beacon hop, so a slot-only proxy has no on-chain form and reverts.",
   returnType: "address",
   args: [{ name: "proxy", type: "address", description: "Proxy address" }],
   async run(module, { proxy }, { node }) {

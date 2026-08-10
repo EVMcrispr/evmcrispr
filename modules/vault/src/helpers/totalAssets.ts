@@ -9,7 +9,7 @@ export default defineHelper<Vault>({
   name: "totalAssets",
   batchable: false,
   description:
-    "Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset. As @totalAssets! the read happens on-chain at assertion time.",
+    "Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset.",
   returnType: "number",
   args: [
     {

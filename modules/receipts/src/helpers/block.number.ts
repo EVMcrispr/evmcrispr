@@ -7,7 +7,8 @@ export default defineHelper<Receipts>({
   name: "block.number",
   batchable: false,
   description:
-    "The block number: addressed by number or tag you read a sealed block off-chain (default: latest, so tags like finalized resolve to their current number); as @block.number! you read the block being written at assertion time.",
+    "Number of a sealed block, addressed by number or tag (default: latest, so tags like finalized resolve to their current number).",
+  compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "number",
   args: [
     {

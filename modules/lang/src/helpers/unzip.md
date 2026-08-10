@@ -2,7 +2,9 @@
 title: "@lang:unzip"
 ---
 
-Transpose an array of pairs into two separate arrays. As @unzip! one LANE of the word payload is selected on-chain through unzipWords — the lane argument (0 or 1) is required there; an odd word count gives lane 0 the extra word.
+Transpose an array of pairs into two separate arrays.
+
+**On-chain (`@lang:unzip!`)**: The `lane` argument is required, and an odd word count gives lane 0 the extra word.
 
 **Returns**: `array`
 
@@ -17,7 +19,7 @@ Transpose an array of pairs into two separate arrays. As @unzip! one LANE of the
 | Name | Type | Description |
 |------|------|-------------|
 | `pairs` | `array` | Array of [a, b] pairs |
-| `[lane]` | `number` | @unzip! only: which lane to keep — 0 (first of each pair) or 1 (second) |
+| `[lane]` | `number` | Which lane to keep: 0 (first of each pair) or 1 (second) |
 
 <!-- HAND-WRITTEN -->
 

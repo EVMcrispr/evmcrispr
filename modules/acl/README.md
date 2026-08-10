@@ -36,14 +36,14 @@ load acl
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@acl:canCall](src/helpers/canCall.md) | `bool` | Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. As @canCall! the permission read happens on-chain at assertion time (the immediate flag of the pair). |
-| [@acl:defaultAdmin](src/helpers/defaultAdmin.md) | `address` | Current default admin of an AccessControlDefaultAdminRules contract. As @defaultAdmin! the defaultAdmin() read happens on-chain at assertion time. |
-| [@acl:defaultAdminDelay](src/helpers/defaultAdminDelay.md) | `number` | Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract. As @defaultAdminDelay! the read happens on-chain at assertion time. |
-| [@acl:hasRole](src/helpers/hasRole.md) | `bool` | Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids). As @hasRole! the membership read happens on-chain at assertion time (role names still hash at composition time). |
-| [@acl:operationId](src/helpers/operationId.md) | `bytes32` | Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule. As @operationId! hashOperation is read on-chain at assertion time. |
-| [@acl:operationSchedule](src/helpers/operationSchedule.md) | `number` | Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed). As @operationSchedule! the schedule read happens on-chain at assertion time. |
-| [@acl:owner](src/helpers/owner.md) | `address` | Current owner of an Ownable contract. As @owner! the owner() read happens on-chain at assertion time. |
-| [@acl:pendingDefaultAdmin](src/helpers/pendingDefaultAdmin.md) | `address` | Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress). As @pendingDefaultAdmin! the read happens on-chain at assertion time (the pending admin word of the pair). |
-| [@acl:pendingOwner](src/helpers/pendingOwner.md) | `address` | Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress). As @pendingOwner! the pendingOwner() read happens on-chain at assertion time. |
-| [@acl:roleAdmin](src/helpers/roleAdmin.md) | `bytes32 \| number` | Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. As @roleAdmin! the read happens on-chain at assertion time. |
+| [@acl:canCall](src/helpers/canCall.md) | `bool` | Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. |
+| [@acl:defaultAdmin](src/helpers/defaultAdmin.md) | `address` | Current default admin of an AccessControlDefaultAdminRules contract. |
+| [@acl:defaultAdminDelay](src/helpers/defaultAdminDelay.md) | `number` | Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract. |
+| [@acl:hasRole](src/helpers/hasRole.md) | `bool` | Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids). |
+| [@acl:operationId](src/helpers/operationId.md) | `bytes32` | Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule. |
+| [@acl:operationSchedule](src/helpers/operationSchedule.md) | `number` | Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed). |
+| [@acl:owner](src/helpers/owner.md) | `address` | Current owner of an Ownable contract. |
+| [@acl:pendingDefaultAdmin](src/helpers/pendingDefaultAdmin.md) | `address` | Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress). |
+| [@acl:pendingOwner](src/helpers/pendingOwner.md) | `address` | Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress). |
+| [@acl:roleAdmin](src/helpers/roleAdmin.md) | `bytes32 \| number` | Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. |
 

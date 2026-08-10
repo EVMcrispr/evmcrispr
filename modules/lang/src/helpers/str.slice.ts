@@ -15,15 +15,15 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.slice",
-  description:
-    "Extract a section of a string. As @str.slice! a byte range of the string/bytes return of a call, sliced on-chain — negative indexes resolve against the live byte length at assertion time.",
+  description: "Extract a section of a string.",
+  compileDescription:
+    "Slices bytes, so a multi-byte UTF-8 character may be cut in half.",
   returnType: "string",
   args: [
     {
       name: "value",
       type: "string",
-      description:
-        "Input value (in @str.slice! a `::` call expression or chain returning a string or bytes value)",
+      description: "Source string or bytes value",
     },
     {
       name: "start",

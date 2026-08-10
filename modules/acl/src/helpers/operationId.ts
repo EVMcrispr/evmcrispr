@@ -8,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "operationId",
   batchable: false,
   description:
-    "Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule. As @operationId! hashOperation is read on-chain at assertion time.",
+    "Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule.",
   returnType: "bytes32",
   args: [
     { name: "manager", type: "address", description: "AccessManager address" },

@@ -6,14 +6,15 @@ import type Token from "..";
 
 export default defineHelper<Token>({
   name: "symbol",
-  description:
-    "Return the symbol of a token. As @symbol! the token resolves at composition time and symbol() is read on-chain at assertion time as a String operand — digest-judged like the other string faces, and composable with them (e.g. `@str.lower!(@token:symbol!(DAI))`); the native token folds to its constant symbol.",
+  description: "Symbol a token reports, looked up by address.",
+  compileDescription:
+    "The native token has no contract, so it folds to its constant symbol instead of an on-chain read.",
   returnType: "string",
   args: [
     {
       name: "tokenSymbol",
       type: "token-symbol",
-      description: "Token address (or symbol)",
+      description: "Token address, or a symbol resolved through the token list",
     },
   ],
   async run(module, { tokenSymbol }) {

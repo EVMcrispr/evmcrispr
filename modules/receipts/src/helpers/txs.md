@@ -5,7 +5,7 @@ sidebar:
   label: "@receipts:txs ⚗️"
 ---
 
-Most recent transaction hashes sent to or from an address, newest first. Inspect individual entries with @receipts:tx. Needs an explorer API (Etherscan key or a chain with a Blockscout instance) — plain RPC cannot list per-address history.
+Most recent transaction hashes sent to or from an address, newest first. Inspect individual entries with @receipts:tx. Needs an explorer API (Etherscan key or a chain with a Blockscout instance): plain RPC cannot list per-address history.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

@@ -2,7 +2,9 @@
 title: "@lang:enumerate"
 ---
 
-Return an array of [index, element] pairs. As @enumerate! the array return of a call zips on-chain with its own index payload — zipWords(iotaWords(n), payload) with n the array's LIVE length — producing the interleaved word-pair payload that is the on-chain record representation.
+Pair every element of an array with its index.
+
+**On-chain (`@lang:enumerate!`)**: The result is a record, readable with `@keys!`, `@values!` and `@lookup!`.
 
 **Returns**: `array`
 
@@ -16,7 +18,7 @@ Return an array of [index, element] pairs. As @enumerate! the array return of a 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @enumerate! a `::` call expression or chain returning an array of single-word elements, or a nested array face) |
+| `arr` | `array` | Source array |
 
 <!-- HAND-WRITTEN -->
 

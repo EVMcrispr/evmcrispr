@@ -2,7 +2,7 @@
 title: "@superfluid:totalUnits"
 ---
 
-Total units across all members of a GDA pool. As @totalUnits! the getTotalUnits() read happens on-chain at assertion time (the pool still resolves at composition time).
+Total units across all members of a GDA pool.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

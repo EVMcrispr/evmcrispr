@@ -7,8 +7,7 @@ import type Token from "..";
 export default defineHelper<Token>({
   name: "totalSupply",
   batchable: false,
-  description:
-    "Fetch the total supply of a token in base units. As @totalSupply! the symbol resolves at composition time and totalSupply() is read on-chain at assertion time.",
+  description: "Total supply of a token, in base units.",
   returnType: "number",
   args: [
     {

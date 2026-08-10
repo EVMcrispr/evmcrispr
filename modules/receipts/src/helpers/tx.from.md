@@ -2,7 +2,9 @@
 title: "@receipts:tx.from"
 ---
 
-The sender of a transaction: addressed by hash you read the from field of a sealed receipt off-chain; as @tx.from! you read the origin of the transaction being written, on-chain at execution time (the ORIGIN opcode, no arguments).
+Sender of a transaction, addressed by hash.
+
+**On-chain (`@receipts:tx.from!`)**: Reads the origin of the transaction being written (the ORIGIN opcode), and takes no arguments.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

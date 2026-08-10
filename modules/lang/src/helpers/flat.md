@@ -2,7 +2,9 @@
 title: "@lang:flat"
 ---
 
-Flatten one level of nesting in an array. As @flat! the parts' word payloads concatenate on-chain through Operators.concat — an array literal of constant arrays and at most one live call part (spliced last, at any position in the list).
+Flatten one level of nesting in an array.
+
+**On-chain (`@lang:flat!`)**: At most one element may be a live call; the rest must be constant arrays.
 
 **Returns**: `array`
 
@@ -16,7 +18,7 @@ Flatten one level of nesting in an array. As @flat! the parts' word payloads con
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @flat! an array literal whose elements are constant arrays or `::` call parts) |
+| `arr` | `array` | Source array of arrays |
 
 <!-- HAND-WRITTEN -->
 

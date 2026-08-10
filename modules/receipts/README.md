@@ -12,25 +12,25 @@ load receipts
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@receipts:block.basefee](src/helpers/block.basefee.md) | `number` | The block base fee in wei: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.basefee! you read the block being written at assertion time, e.g. to gate a batch on fee conditions. |
-| [@receipts:block.blobbasefee](src/helpers/block.blobbasefee.md) | `number` | The blob base fee in wei: with no block argument the live value over RPC; addressed by number or tag the EIP-4844 value of that sealed block, computed from its excess blob gas (blocks predating EIP-4844 error); as @block.blobbasefee! you read the block being written at assertion time. |
-| [@receipts:block.coinbase](src/helpers/block.coinbase.md) | `address` | The block proposer fee recipient address: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.coinbase! you read the block being written at assertion time. |
-| [@receipts:block.gaslimit](src/helpers/block.gaslimit.md) | `number` | The block gas limit: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.gaslimit! you read the block being written at assertion time. |
-| [@receipts:block.hash](src/helpers/block.hash.md) | `bytes32` | The hash of a block: addressed by number or tag you read ANY sealed block off-chain (default: latest); as @block.hash!(n) the read happens at assertion time under BLOCKHASH semantics, so it only reaches the previous 256 blocks and reads 0 outside them (the current block, the future, anything older). Compose the number live, e.g. @block.hash!(@block.number! - 1). |
-| [@receipts:block.number](src/helpers/block.number.md) | `number` | The block number: addressed by number or tag you read a sealed block off-chain (default: latest, so tags like finalized resolve to their current number); as @block.number! you read the block being written at assertion time. |
-| [@receipts:block.prevrandao](src/helpers/block.prevrandao.md) | `number` | The RANDAO mix of a block, as a number: addressed by number or tag you read the mixHash field of a sealed block off-chain (default: latest; pre-merge blocks carry proof-of-work difficulty semantics in it); as @block.prevrandao! you read the block being written at assertion time. |
-| [@receipts:block.timestamp](src/helpers/block.timestamp.md) | `number` | The block timestamp: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.timestamp! you read the block being written at assertion time. |
+| [@receipts:block.basefee](src/helpers/block.basefee.md) | `number` | Base fee in wei of a sealed block, addressed by number or tag (default: latest). |
+| [@receipts:block.blobbasefee](src/helpers/block.blobbasefee.md) | `number` | Blob base fee in wei: the live value with no arguments, or the EIP-4844 value of a sealed block computed from its excess blob gas (blocks predating EIP-4844 error). |
+| [@receipts:block.coinbase](src/helpers/block.coinbase.md) | `address` | Fee recipient address of a sealed block, addressed by number or tag (default: latest). |
+| [@receipts:block.gaslimit](src/helpers/block.gaslimit.md) | `number` | Gas limit of a sealed block, addressed by number or tag (default: latest). |
+| [@receipts:block.hash](src/helpers/block.hash.md) | `bytes32` | Hash of a sealed block, addressed by number or tag (default: latest). |
+| [@receipts:block.number](src/helpers/block.number.md) | `number` | Number of a sealed block, addressed by number or tag (default: latest, so tags like finalized resolve to their current number). |
+| [@receipts:block.prevrandao](src/helpers/block.prevrandao.md) | `number` | RANDAO mix of a sealed block, as a number, addressed by number or tag (default: latest; pre-merge blocks carry proof-of-work difficulty semantics). |
+| [@receipts:block.timestamp](src/helpers/block.timestamp.md) | `number` | Timestamp of a sealed block, addressed by number or tag (default: latest). |
 | [@receipts:tx](src/helpers/tx.md) ⚗️ | `string` | Human-readable summary of a transaction: status, labeled from/to, value, decoded function call, gas, fee and decoded logs. Use the @receipts:tx.* field helpers for machine-readable values. |
-| [@receipts:tx.blobhash!](src/helpers/tx.blobhash.md) | `bytes32` | The versioned hash of a blob carried by the executing transaction, read on-chain at execution time (0 when the index is out of range). Assert a blob is present with @tx.blobhash!(0) != 0. |
+| [@receipts:tx.blobhash!](src/helpers/tx.blobhash.md) | `bytes32` | Versioned hash of a blob carried by the executing transaction, or 0 when the index is out of range. |
 | [@receipts:tx.block](src/helpers/tx.block.md) ⚗️ | `number` | Block number a transaction was mined in. |
 | [@receipts:tx.calldata](src/helpers/tx.calldata.md) ⚗️ | `bytes` | Full input data of a transaction, including the 4-byte selector. Replay it with `exec <target> <calldata>` or decode it with @abi.decodeCall. |
 | [@receipts:tx.fee](src/helpers/tx.fee.md) ⚗️ | `number` | Total fee paid for a transaction, in wei (gasUsed x effectiveGasPrice, plus the L1 data fee on OP-stack chains). |
-| [@receipts:tx.from](src/helpers/tx.from.md) | `address` | The sender of a transaction: addressed by hash you read the from field of a sealed receipt off-chain; as @tx.from! you read the origin of the transaction being written, on-chain at execution time (the ORIGIN opcode, no arguments). |
+| [@receipts:tx.from](src/helpers/tx.from.md) | `address` | Sender of a transaction, addressed by hash. |
 | [@receipts:tx.gasUsed](src/helpers/tx.gasUsed.md) ⚗️ | `number` | Gas used by a transaction (units of gas, not wei). |
-| [@receipts:tx.gasprice!](src/helpers/tx.gasprice.md) | `number` | The gas price of the executing transaction in wei, read on-chain at execution time: bound what the batch is willing to pay, e.g. @tx.gasprice! <= 50e9. |
+| [@receipts:tx.gasprice!](src/helpers/tx.gasprice.md) | `number` | Gas price of the executing transaction, in wei. |
 | [@receipts:tx.status](src/helpers/tx.status.md) ⚗️ | `bool` | Whether a transaction succeeded: true on success, false when it reverted. Errors while the transaction is still pending. |
 | [@receipts:tx.timestamp](src/helpers/tx.timestamp.md) ⚗️ | `number` | Unix timestamp (seconds) of the block a transaction was mined in. Compare against @date values. |
 | [@receipts:tx.to](src/helpers/tx.to.md) ⚗️ | `address` | Recipient address of a transaction. Errors for contract-creation transactions (the created contract has no `to`). |
 | [@receipts:tx.value](src/helpers/tx.value.md) ⚗️ | `number` | Native value sent with a transaction, in wei. |
-| [@receipts:txs](src/helpers/txs.md) ⚗️ | `array` | Most recent transaction hashes sent to or from an address, newest first. Inspect individual entries with @receipts:tx. Needs an explorer API (Etherscan key or a chain with a Blockscout instance) — plain RPC cannot list per-address history. |
+| [@receipts:txs](src/helpers/txs.md) ⚗️ | `array` | Most recent transaction hashes sent to or from an address, newest first. Inspect individual entries with @receipts:tx. Needs an explorer API (Etherscan key or a chain with a Blockscout instance): plain RPC cannot list per-address history. |
 

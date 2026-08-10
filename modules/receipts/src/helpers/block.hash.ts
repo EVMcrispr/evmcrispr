@@ -16,15 +16,16 @@ export default defineHelper<Receipts>({
   name: "block.hash",
   batchable: false,
   description:
-    "The hash of a block: addressed by number or tag you read ANY sealed block off-chain (default: latest); as @block.hash!(n) the read happens at assertion time under BLOCKHASH semantics, so it only reaches the previous 256 blocks and reads 0 outside them (the current block, the future, anything older). Compose the number live, e.g. @block.hash!(@block.number! - 1).",
+    "Hash of a sealed block, addressed by number or tag (default: latest).",
+  compileDescription:
+    "BLOCKHASH semantics: the block number is required, only the previous 256 blocks are reachable, and anything outside them reads 0.",
   returnType: "bytes32",
   args: [
     {
       name: "block",
       type: ["number", "string"],
       optional: true,
-      description:
-        "Block number or tag (default: latest); with ! a required block number, constant or infix expression",
+      description: "Block number or tag (default: latest)",
     },
     {
       name: "chain",

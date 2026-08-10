@@ -39,22 +39,22 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@abi.encodeCall](src/helpers/abi.encodeCall.md) | `bytes` | ABI-encode a function call from its signature and arguments. |
 | [@abi.encodePacked](src/helpers/abi.encodePacked.md) | `bytes` | ABI non-standard packed encoding, matching Solidity's abi.encodePacked. |
 | [@arr](src/helpers/arr.md) | `array` | Generate an array of sequential integers from start (inclusive) to end (exclusive). |
-| [@balance](src/helpers/balance.md) | `number` | Fetch a balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address. As @balance! the balance is read on-chain at assertion time instead of script build time. |
-| [@block](src/helpers/block.md) | `array` | Return [number, timestamp] of the latest or a specific block. |
-| [@bool](src/helpers/bool.md) | `bool` | Evaluate a boolean expression or convert a value to a boolean string. As @bool! it composes live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract. |
-| [@bytes](src/helpers/bytes.md) | `bytes` | Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation. As @bytes! the bitwise word operations (`&` `|` `^` `<<` `>>`) are computed on-chain over the raw 32-byte words (shifts in bits; `>>` on a signed value is the arithmetic shift), or with a single argument the raw word cast (e.g. bool as 0/1). |
+| [@balance](src/helpers/balance.md) | `number` | Balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address. |
+| [@block](src/helpers/block.md) | `array` | [number, timestamp] of the latest or a specific block. |
+| [@bool](src/helpers/bool.md) | `bool` | Evaluate a boolean expression or convert a value to a boolean string. |
+| [@bytes](src/helpers/bytes.md) | `bytes` | Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation. |
 | [@bytes32](src/helpers/bytes32.md) | `bytes32` | Pad a value to a 32-byte hex string. Integers and arithmetic expressions are left-padded like Solidity's `bytes32(uint256(...))` cast; hex strings pad left by default or right with a trailing `right`. |
 | [@date](src/helpers/date.md) | `number` | Parse a date string into a Unix timestamp, with an optional offset. |
 | [@ens](src/helpers/ens.md) | `address` | Resolve an ENS name to its address. |
 | [@gas.estimate](src/helpers/gas.estimate.md) | `number` | Estimate the gas required for a contract call. |
-| [@gas.price](src/helpers/gas.price.md) | `number` | Return the current gas price in wei. |
+| [@gas.price](src/helpers/gas.price.md) | `number` | Current gas price in wei. |
 | [@get](src/helpers/get.md) | `any` | Call a read-only contract function and return its result. |
-| [@hash](src/helpers/hash.md) | `bytes32` | Compute the hash of a string with keccak256 (default) or sha256. As @hash! the digest of the decoded string/bytes return of a call, computed on-chain — keccak256 through the Operators hash, sha256 through a rawCall to the SHA-256 precompile. |
+| [@hash](src/helpers/hash.md) | `bytes32` | Compute the hash of a string with keccak256 (default) or sha256. |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
 | [@ipfs.get](src/helpers/ipfs.get.md) | `string` | Fetch content from IPFS, verified against its CID, and return it as text. |
-| [@me](src/helpers/me.md) | `address` | Return the connected wallet address. |
-| [@nonce](src/helpers/nonce.md) | `number` | Number of transactions sent from an address (its account nonce), read over plain RPC. For contracts the nonce counts the CREATEs they performed. Off-chain only: the EVM has no nonce opcode, so no on-chain form exists. |
-| [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. As @num! it composes live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract. |
+| [@me](src/helpers/me.md) | `address` | Connected wallet address. |
+| [@nonce](src/helpers/nonce.md) | `number` | Number of transactions sent from an address (its account nonce), read over plain RPC. For contracts it counts the CREATEs they performed. There is no on-chain form: the EVM has no nonce opcode. |
+| [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
 | [@Ether](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |

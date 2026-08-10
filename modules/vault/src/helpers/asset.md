@@ -2,7 +2,7 @@
 title: "@vault:asset"
 ---
 
-Underlying asset token address of an ERC-4626 vault. As @asset! the asset() read happens on-chain at assertion time.
+Underlying asset token address of an ERC-4626 vault.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

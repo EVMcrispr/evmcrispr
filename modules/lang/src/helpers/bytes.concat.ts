@@ -13,15 +13,15 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "bytes.concat",
-  description:
-    "Concatenate bytes values together. As @bytes.concat! the parts concatenate on-chain through Operators.concat — constant hex parts plus at most one live call part (spliced into the calldata last, at any argument position).",
+  description: "Concatenate bytes values together.",
+  compileDescription:
+    "At most one part may be a live call; the rest must be hex constants.",
   returnType: "bytes",
   args: [
     {
       name: "first",
       type: "bytes",
-      description:
-        "First bytes value (in @bytes.concat! a hex constant or a `::` call returning bytes/string)",
+      description: "First bytes value",
     },
     {
       name: "rest",

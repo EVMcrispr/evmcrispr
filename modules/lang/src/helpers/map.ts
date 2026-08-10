@@ -9,21 +9,20 @@ import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "map",
-  description:
-    "Transform each element of an array by applying a helper. As @map! a mapWords over the array return of a call — the lambda names an Operators-backed helper (e.g. `@num!(* 2)`, the element prepended to its arguments) compiled into a single-call template; the result is the mapped words payload, composable with the other array faces.",
+  description: "Transform each element of an array by applying a helper.",
+  compileDescription:
+    "The transform must be an Operators-backed helper reducing to one call, e.g. `@num!(* 2)`, with the element prepended to its arguments.",
   returnType: "array",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @map! a `::` call expression or chain returning an array of single-word elements, or a nested array face)",
+      description: "Source array",
     },
     {
       name: "fn",
       type: "helper",
-      description:
-        "Transform helper applied to each element (in @map! an Operators-backed single-call lambda, e.g. `@num!(* 2)`)",
+      description: "Transform helper applied to each element",
     },
   ],
   async run(_, { arr, fn }) {

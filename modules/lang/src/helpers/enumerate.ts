@@ -14,15 +14,15 @@ import { wordArrayPath, wordsArg, wordsPayload } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "enumerate",
-  description:
-    "Return an array of [index, element] pairs. As @enumerate! the array return of a call zips on-chain with its own index payload — zipWords(iotaWords(n), payload) with n the array's LIVE length — producing the interleaved word-pair payload that is the on-chain record representation.",
+  description: "Pair every element of an array with its index.",
+  compileDescription:
+    "The result is a record, readable with `@keys!`, `@values!` and `@lookup!`.",
   returnType: "array",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @enumerate! a `::` call expression or chain returning an array of single-word elements, or a nested array face)",
+      description: "Source array",
     },
   ],
   async run(_, { arr }) {

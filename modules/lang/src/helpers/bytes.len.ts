@@ -10,14 +10,13 @@ import type Lang from "..";
 export default defineHelper<Lang>({
   name: "bytes.len",
   description:
-    "Return the byte length of a bytes value. As @bytes.len! the decoded byte length of the string/bytes return of a call, on-chain — UTF-8 characters may span multiple bytes.",
+    "Byte length of a bytes value (a UTF-8 character may span several bytes).",
   returnType: "number",
   args: [
     {
       name: "value",
       type: "bytes",
-      description:
-        "Input value (in @bytes.len! a `::` call expression or chain returning a string or bytes value)",
+      description: "Source bytes or string value",
     },
   ],
   async run(_, { value }) {

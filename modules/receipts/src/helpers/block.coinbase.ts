@@ -8,7 +8,8 @@ export default defineHelper<Receipts>({
   name: "block.coinbase",
   batchable: false,
   description:
-    "The block proposer fee recipient address: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.coinbase! you read the block being written at assertion time.",
+    "Fee recipient address of a sealed block, addressed by number or tag (default: latest).",
+  compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "address",
   args: [
     {

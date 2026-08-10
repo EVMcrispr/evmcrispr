@@ -2,7 +2,9 @@
 title: "@lang:all"
 ---
 
-Return true if every element satisfies the predicate. As @all! a foldWords over the array return of a call with the All exit — the predicate names an Operators-backed helper (e.g. `@bool!(> 0)`, the element prepended to its arguments) compiled into a single-call lambda template.
+Whether every element satisfies the predicate.
+
+**On-chain (`@lang:all!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(> 0)`, with the element prepended to its arguments.
 
 **Returns**: `bool`
 
@@ -16,8 +18,8 @@ Return true if every element satisfies the predicate. As @all! a foldWords over 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @all! a `::` call expression or chain returning an array of single-word elements) |
-| `fn` | `helper` | Predicate helper returning bool (in @all! an Operators-backed single-call predicate, e.g. `@bool!(>= 100)`) |
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Predicate helper returning bool |
 
 <!-- HAND-WRITTEN -->
 

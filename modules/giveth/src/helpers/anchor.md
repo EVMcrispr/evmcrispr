@@ -5,7 +5,7 @@ sidebar:
   label: "@giveth:anchor ⚗️"
 ---
 
-Resolve a Giveth project slug to its anchor contract on the current chain — the receiver of recurring donations, streamed with the superfluid module. Anchor contracts exist on Optimism and Base only.
+Resolve a Giveth project slug to its anchor contract on the current chain: the receiver of recurring donations, streamed with the superfluid module. Anchor contracts exist on Optimism and Base only.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

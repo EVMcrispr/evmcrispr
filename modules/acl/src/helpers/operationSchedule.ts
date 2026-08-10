@@ -8,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "operationSchedule",
   batchable: false,
   description:
-    "Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed). As @operationSchedule! the schedule read happens on-chain at assertion time.",
+    "Timestamp at which a scheduled AccessManager operation becomes executable (0 when unset, expired or already executed).",
   returnType: "number",
   args: [
     { name: "manager", type: "address", description: "AccessManager address" },

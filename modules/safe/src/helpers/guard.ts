@@ -8,7 +8,7 @@ import { getGuard, safeAbi } from "../utils";
 export default defineHelper<Safe>({
   name: "guard",
   description:
-    "Return the transaction guard address of a Safe (the zero address when no guard is set). As @guard! the guard slot is read on-chain at assertion time through the Safe's own getStorageAt view.",
+    "Transaction guard address of a Safe (the zero address when no guard is set).",
   returnType: "address",
   batchable: false,
   args: [

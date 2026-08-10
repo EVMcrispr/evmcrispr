@@ -11,19 +11,19 @@ import type Lang from "..";
 export default defineHelper<Lang>({
   name: "str.replace",
   description:
-    "Replace all occurrences of a substring. As @str.replace! the string return of a call is rewritten on-chain — every non-overlapping left-to-right match of the exact byte sequence.",
+    "Replace all occurrences of a substring (every non-overlapping left-to-right match).",
+  compileDescription: "The substring to match must be non-empty.",
   returnType: "string",
   args: [
     {
       name: "s",
       type: "string",
-      description:
-        "Source string (in @str.replace! a `::` call expression or chain returning a string)",
+      description: "Source string",
     },
     {
       name: "old",
       type: "string",
-      description: "Substring to match (non-empty in @str.replace!)",
+      description: "Substring to match",
     },
     { name: "replacement", type: "string", description: "Replacement text" },
   ],

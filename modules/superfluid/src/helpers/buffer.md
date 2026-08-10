@@ -2,7 +2,7 @@
 title: "@superfluid:buffer"
 ---
 
-Buffer deposit locked when opening a stream at the given flow rate (typically a few hours of streaming; Ethereum mainnet enforces per-token minimums). As @buffer! the getBufferAmountByFlowrate() read happens on-chain at assertion time, so a governance change to the deposit parameters is caught (the SuperToken and the rate literal still resolve at composition time).
+Buffer deposit locked when opening a stream at the given flow rate (typically a few hours of streaming; Ethereum mainnet enforces per-token minimums).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

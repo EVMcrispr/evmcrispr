@@ -14,7 +14,7 @@ export default defineHelper<Vault>({
   name: "share",
   batchable: false,
   description:
-    "Share token address of a vault. ERC-7575 vaults expose a separate share token; plain ERC-4626 vaults are their own share token, so the vault address itself is returned. As @share! the share() read happens on-chain at assertion time, falling back to the vault address itself through the core's orElse when share() is absent (plain ERC-4626).",
+    "Share token address of a vault. ERC-7575 vaults expose a separate share token; plain ERC-4626 vaults are their own share token, so the vault address itself is returned.",
   returnType: "address",
   args: [
     {

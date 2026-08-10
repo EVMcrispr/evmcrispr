@@ -2,7 +2,7 @@
 title: "@contracts:codeAt"
 ---
 
-Return the deployed bytecode at an address.
+Deployed bytecode at an address.
 
 **Returns**: `bytes`
 

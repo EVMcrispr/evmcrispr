@@ -14,14 +14,13 @@ import { wordsArg } from "../utils/onchain";
 export default defineHelper<Lang>({
   name: "len",
   description:
-    "Return the length of an array. As @len! the decoded length of the dynamic return value of a call, on-chain: element count for arrays and nested array faces (@map!, @filter!, @safe:owners!, …), byte length for string/bytes.",
+    "Length of a value: element count for an array, byte length for a string or bytes.",
   returnType: "number",
   args: [
     {
       name: "value",
       type: "array",
-      description:
-        "Input value (in @len! a `::` call expression or chain returning an array, string or bytes)",
+      description: "Source array, string or bytes value",
     },
   ],
   async run(_, { value }) {

@@ -40,8 +40,9 @@ async function asyncMerge(
 
 export default defineHelper<Lang>({
   name: "sort",
-  description:
-    "Sort an array using a comparator helper. As @sort! the array return of a call sorted on-chain through sortWords: UNSIGNED ascending word order, no comparator (see the docs for the signed recipe via @map!).",
+  description: "Sort an array using a comparator helper.",
+  compileDescription:
+    "Sorts in unsigned ascending order and takes no comparator; see the docs for the signed recipe.",
   returnType: "array",
   args: [
     { name: "arr", type: "array", description: "Source array" },

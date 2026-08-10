@@ -11,19 +11,19 @@ import type Lang from "..";
 export default defineHelper<Lang>({
   name: "str.includes",
   description:
-    "Check whether a string contains a substring. As @str.includes! the string return of a call is checked on-chain — exact byte sequence, case-sensitive, no wildcards.",
+    "Check whether a string contains a substring (exact byte sequence, case-sensitive).",
+  compileDescription: "The substring must be non-empty.",
   returnType: "bool",
   args: [
     {
       name: "value",
       type: "string",
-      description:
-        "Input value (in @str.includes! a `::` call expression or chain returning a string)",
+      description: "Source string",
     },
     {
       name: "item",
       type: "string",
-      description: "Substring to search for (non-empty in @str.includes!)",
+      description: "Substring to search for",
     },
   ],
   async run(_, { value, item }) {

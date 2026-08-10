@@ -15,15 +15,13 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "bytes.slice",
-  description:
-    "Extract a byte range from a bytes value. As @bytes.slice! a byte range of the bytes/string return of a call, sliced on-chain — negative indexes resolve against the live byte length at assertion time.",
+  description: "Extract a byte range from a bytes value.",
   returnType: "bytes",
   args: [
     {
       name: "value",
       type: "bytes",
-      description:
-        "Input value (in @bytes.slice! a `::` call expression or chain returning a bytes or string value)",
+      description: "Source bytes or string value",
     },
     {
       name: "start",

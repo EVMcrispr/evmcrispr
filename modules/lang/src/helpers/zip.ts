@@ -7,17 +7,17 @@ import { constWordsPayload, wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "zip",
-  description:
-    "Combine two arrays element-wise into an array of pairs. As @zip! the two word payloads interleave on-chain through zipWords — at most one side live, and a word-count mismatch reverts at assertion time.",
+  description: "Combine two arrays element-wise into an array of pairs.",
+  compileDescription:
+    "At most one side may be a live call, and a length mismatch reverts.",
   returnType: "array",
   args: [
     {
       name: "a",
       type: "array",
-      description:
-        "First array to zip (in @zip! a `::` call, nested array face, or constant array literal)",
+      description: "First array to zip",
     },
-    { name: "b", type: "array", description: "Second array" },
+    { name: "b", type: "array", description: "Second array to zip" },
   ],
   async run(_, { a, b }) {
     const len = Math.min(a.length, b.length);

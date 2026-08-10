@@ -12,7 +12,7 @@ export default defineHelper<Superfluid>({
   name: "distributionFlowrate",
   batchable: false,
   description:
-    "Flow rate a distributor is currently streaming into a GDA pool, in wei per second. As @distributionFlowrate! the getFlowDistributionFlowRate() read happens on-chain at assertion time (the SuperToken still resolves at composition time).",
+    "Flow rate a distributor is currently streaming into a GDA pool, in wei per second.",
   returnType: "number",
   args: [
     {

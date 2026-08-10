@@ -2,7 +2,9 @@
 title: "@lang:includes"
 ---
 
-Check whether an array contains an element. As @includes! the array return of a call is scanned on-chain: a foldWords over the word payload with an eq(item, element) lambda and the Any exit.
+Check whether an array contains an element.
+
+**On-chain (`@lang:includes!`)**: The element searched for must be a build-time constant.
 
 **Returns**: `bool`
 
@@ -16,8 +18,8 @@ Check whether an array contains an element. As @includes! the array return of a 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `array` | Input value (in @includes! a `::` call expression or chain returning an array of single-word elements) |
-| `item` | `any` | Element to search for (a build-time word constant in @includes!) |
+| `value` | `array` | Source array |
+| `item` | `any` | Element to search for |
 
 <!-- HAND-WRITTEN -->
 

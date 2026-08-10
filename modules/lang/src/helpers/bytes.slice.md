@@ -2,7 +2,7 @@
 title: "@lang:bytes.slice"
 ---
 
-Extract a byte range from a bytes value. As @bytes.slice! a byte range of the bytes/string return of a call, sliced on-chain — negative indexes resolve against the live byte length at assertion time.
+Extract a byte range from a bytes value.
 
 **Returns**: `bytes`
 
@@ -16,7 +16,7 @@ Extract a byte range from a bytes value. As @bytes.slice! a byte range of the by
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `bytes` | Input value (in @bytes.slice! a `::` call expression or chain returning a bytes or string value) |
+| `value` | `bytes` | Source bytes or string value |
 | `start` | `number` | Start index (inclusive; negative counts from the end) |
 | `[end]` | `number` | End index (exclusive; negative counts from the end; omitted = to the end) |
 

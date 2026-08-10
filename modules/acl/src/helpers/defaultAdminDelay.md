@@ -2,7 +2,7 @@
 title: "@acl:defaultAdminDelay"
 ---
 
-Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract. As @defaultAdminDelay! the read happens on-chain at assertion time.
+Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

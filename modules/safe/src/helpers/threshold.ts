@@ -6,8 +6,7 @@ import { getThreshold, safeAbi } from "../utils";
 
 export default defineHelper<Safe>({
   name: "threshold",
-  description:
-    "Return the signature threshold of a Safe. As @threshold! the getThreshold() read happens on-chain at assertion time (the Safe still resolves at composition time).",
+  description: "Signature threshold of a Safe.",
   returnType: "number",
   batchable: false,
   args: [

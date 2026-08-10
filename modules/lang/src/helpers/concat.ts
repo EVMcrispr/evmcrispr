@@ -6,15 +6,15 @@ import { constWordsPayload, wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "concat",
-  description:
-    "Concatenate arrays together. As @concat! the parts' word payloads concatenate on-chain through Operators.concat — constant arrays plus at most one live call part (spliced into the calldata last, at any argument position).",
+  description: "Concatenate arrays together.",
+  compileDescription:
+    "At most one part may be a live call; the rest must be constant arrays.",
   returnType: "array",
   args: [
     {
       name: "first",
       type: "array",
-      description:
-        "First array to concatenate (in @concat! a `::` call, nested array face, or constant array literal)",
+      description: "First array to concatenate",
     },
     {
       name: "rest",

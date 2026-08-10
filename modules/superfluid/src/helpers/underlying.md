@@ -2,7 +2,7 @@
 title: "@superfluid:underlying"
 ---
 
-Underlying ERC-20 of a SuperToken (the zero address for native-asset SuperTokens like ETHx or xDAIx). As @underlying! the getUnderlyingToken() read happens on-chain at assertion time (the SuperToken still resolves at composition time).
+Underlying ERC-20 of a SuperToken (the zero address for native-asset SuperTokens like ETHx or xDAIx).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

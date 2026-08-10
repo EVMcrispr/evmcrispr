@@ -15,20 +15,18 @@ import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "at",
-  description:
-    "Access an element by index in an array. As @at! an element of the array return of a call, selected on-chain through a typed nav — negative indexes resolve against the live length at assertion time. Over a nested array face (@map!, @filter!, @safe:owners!, …) the element is a core pick into the words payload (an untyped word).",
+  description: "Access an element by index in an array.",
   returnType: "any",
   args: [
     {
       name: "value",
       type: "array",
-      description:
-        "Input value (in @at! a `::` call expression or chain returning an array)",
+      description: "Source array",
     },
     {
       name: "index",
       type: "number",
-      description: "Zero-based index (negative counts from end)",
+      description: "Zero-based index (negative counts from the end)",
     },
   ],
   async run(_, { value, index }) {

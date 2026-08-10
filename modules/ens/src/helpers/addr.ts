@@ -26,8 +26,9 @@ import { getNode, mainnetClient, registryAbi } from "../utils";
 export default defineHelper<Ens>({
   name: "addr",
   batchable: false,
-  description:
-    "Resolve an ENS name to an address, optionally per coin type. As @addr! the resolution happens on-chain at assertion time: cond on an unset resolver returns the zero word, else the registry.resolver(node) -> addr(node) chain resolves the name (the namehash still computes at composition time).",
+  description: "Resolve an ENS name to an address, optionally per coin type.",
+  compileDescription:
+    "A name with no resolver set reads as the zero address instead of reverting.",
   returnType: "address",
   args: [
     {

@@ -14,7 +14,7 @@ import type Receipts from "..";
 export default defineHelper<Receipts>({
   name: "tx.blobhash",
   description:
-    "The versioned hash of a blob carried by the executing transaction, read on-chain at execution time (0 when the index is out of range). Assert a blob is present with @tx.blobhash!(0) != 0.",
+    "Versioned hash of a blob carried by the executing transaction, or 0 when the index is out of range.",
   returnType: "bytes32",
   args: [
     {

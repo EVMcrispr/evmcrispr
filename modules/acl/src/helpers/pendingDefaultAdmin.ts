@@ -8,7 +8,9 @@ export default defineHelper<AccessControl>({
   name: "pendingDefaultAdmin",
   batchable: false,
   description:
-    "Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress). As @pendingDefaultAdmin! the read happens on-chain at assertion time (the pending admin word of the pair).",
+    "Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress).",
+  compileDescription:
+    "Reads the pending admin of the pair, not the accept schedule.",
   returnType: "address",
   args: [
     {

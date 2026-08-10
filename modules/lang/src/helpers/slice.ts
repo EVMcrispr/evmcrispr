@@ -13,15 +13,13 @@ import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "slice",
-  description:
-    "Extract a section of an array. As @slice! the elements [start, end) of the array return of a call, sliced on-chain out of the live words payload — indices scale to byte offsets at composition time, negative bounds resolve against the live length, and the result composes with the other array faces.",
+  description: "Extract a section of an array.",
   returnType: "array",
   args: [
     {
       name: "value",
       type: "array",
-      description:
-        "Input value (in @slice! a `::` call expression or chain returning an array of single-word elements, or a nested array face)",
+      description: "Source array",
     },
     {
       name: "start",

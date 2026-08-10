@@ -34,8 +34,8 @@ Config variables are set with `set` (fully qualified, including the module prefi
 |--------|---------|-------------|
 | [@semaphore:depth](src/helpers/depth.md) | `number` | The current depth of a Semaphore group's member tree. |
 | [@semaphore:members](src/helpers/members.md) | `array` | The ordered member commitments of a Semaphore group, reconstructed from contract events and checked against the on-chain root. Removed members appear as 0. |
-| [@semaphore:nullifier](src/helpers/nullifier.md) | `number` | The nullifier a stored identity produces for a scope (poseidon of the hashed scope and the identity secret) — what the contract records on validateProof; useful to check whether a signal was already sent. |
+| [@semaphore:nullifier](src/helpers/nullifier.md) | `number` | The nullifier a stored identity produces for a scope (poseidon of the hashed scope and the identity secret), what the contract records on validateProof; useful to check whether a signal was already sent. |
 | [@semaphore:root](src/helpers/root.md) | `number` | The current Merkle root of a Semaphore group's member tree. |
 | [@semaphore:size](src/helpers/size.md) | `number` | The number of leaves in a Semaphore group's member tree (removed members keep their slot as 0). |
-| [@semaphore:verify](src/helpers/verify.md) | `bool` | Check a Semaphore membership proof against a group with the contract's view verifier — no transaction and no nullifier recording. |
+| [@semaphore:verify](src/helpers/verify.md) | `bool` | Check a Semaphore membership proof against a group with the contract's view verifier: no transaction and no nullifier recording. |
 

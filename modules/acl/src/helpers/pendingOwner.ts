@@ -8,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "pendingOwner",
   batchable: false,
   description:
-    "Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress). As @pendingOwner! the pendingOwner() read happens on-chain at assertion time.",
+    "Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress).",
   returnType: "address",
   args: [
     {

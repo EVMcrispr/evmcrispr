@@ -9,7 +9,7 @@ export default defineHelper<Vault>({
   name: "convertToShares",
   batchable: false,
   description:
-    "Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token. As @convertToShares! the conversion is read on-chain at assertion time — the assets argument may itself be a live call.",
+    "Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token.",
   returnType: "number",
   args: [
     {

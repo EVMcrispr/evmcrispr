@@ -22,6 +22,6 @@ load proxies
 |--------|---------|-------------|
 | [@proxies:admin](src/helpers/admin.md) | `address` | Admin of a transparent ERC-1967 proxy (the ProxyAdmin contract on OpenZeppelin v5 proxies). |
 | [@proxies:beacon](src/helpers/beacon.md) | `address` | Beacon address of an ERC-1967 beacon proxy. |
-| [@proxies:implementation](src/helpers/implementation.md) | `address` | Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy. As @implementation! the resolution happens on-chain at assertion time through orElse: a direct implementation() call when the proxy exposes one, else the beacon() -> implementation() hop — slot-only proxies stay off-chain (both branches revert). |
+| [@proxies:implementation](src/helpers/implementation.md) | `address` | Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy. |
 | [@proxies:predictClone](src/helpers/predictClone.md) | `address` | Predicted address of a deterministic ERC-1167 clone deployed with proxies:clone --salt. Pure computation, no chain read. |
 

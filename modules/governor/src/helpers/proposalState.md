@@ -2,7 +2,9 @@
 title: "@governor:proposalState"
 ---
 
-Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed. As @proposalState! the state(id) read happens on-chain at assertion time as the RAW uint8 enum value (0 Pending, 1 Active, 2 Canceled, 3 Defeated, 4 Succeeded, 5 Queued, 6 Expired, 7 Executed) — the string mapping stays off-chain.
+Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed.
+
+**On-chain (`@governor:proposalState!`)**: Returns the raw uint8 enum (0 Pending, 1 Active, 2 Canceled, 3 Defeated, 4 Succeeded, 5 Queued, 6 Expired, 7 Executed), not the name.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -57,6 +59,7 @@ load assertions
 load governor
 
 set $governor 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+set $proposalId 42
 
 # Succeeded = 4
 assertions:assert @proposalState!($governor $proposalId) == 4 "proposal not succeeded"

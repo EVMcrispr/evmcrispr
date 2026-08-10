@@ -2,7 +2,7 @@
 title: "@superfluid:distributionFlowrate"
 ---
 
-Flow rate a distributor is currently streaming into a GDA pool, in wei per second. As @distributionFlowrate! the getFlowDistributionFlowRate() read happens on-chain at assertion time (the SuperToken still resolves at composition time).
+Flow rate a distributor is currently streaming into a GDA pool, in wei per second.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

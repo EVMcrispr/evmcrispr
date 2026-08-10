@@ -4,7 +4,7 @@ import type Std from "..";
 export default defineHelper<Std>({
   name: "block",
   batchable: false,
-  description: "Return [number, timestamp] of the latest or a specific block.",
+  description: "[number, timestamp] of the latest or a specific block.",
   returnType: "array",
   args: [
     {

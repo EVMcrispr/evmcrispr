@@ -2,7 +2,9 @@
 title: "@ens:addr"
 ---
 
-Resolve an ENS name to an address, optionally per coin type. As @addr! the resolution happens on-chain at assertion time: cond on an unset resolver returns the zero word, else the registry.resolver(node) -> addr(node) chain resolves the name (the namehash still computes at composition time).
+Resolve an ENS name to an address, optionally per coin type.
+
+**On-chain (`@ens:addr!`)**: A name with no resolver set reads as the zero address instead of reverting.
 
 **Returns**: `address`
 

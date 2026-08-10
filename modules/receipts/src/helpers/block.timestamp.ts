@@ -7,7 +7,8 @@ export default defineHelper<Receipts>({
   name: "block.timestamp",
   batchable: false,
   description:
-    "The block timestamp: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.timestamp! you read the block being written at assertion time.",
+    "Timestamp of a sealed block, addressed by number or tag (default: latest).",
+  compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "number",
   args: [
     {

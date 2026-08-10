@@ -9,7 +9,7 @@ export default defineHelper<Vault>({
   name: "claimableDeposit",
   batchable: false,
   description:
-    "Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset. As @claimableDeposit! the claimableDepositRequest read happens on-chain at assertion time.",
+    "Assets of a fulfilled deposit request claimable from an ERC-7540 vault, in base units of the asset.",
   returnType: "number",
   args: [
     {

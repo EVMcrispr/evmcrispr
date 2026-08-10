@@ -20,21 +20,19 @@ function deepEquals(a: unknown, b: unknown): boolean {
 
 export default defineHelper<Lang>({
   name: "includes",
-  description:
-    "Check whether an array contains an element. As @includes! the array return of a call is scanned on-chain: a foldWords over the word payload with an eq(item, element) lambda and the Any exit.",
+  description: "Check whether an array contains an element.",
+  compileDescription: "The element searched for must be a build-time constant.",
   returnType: "bool",
   args: [
     {
       name: "value",
       type: "array",
-      description:
-        "Input value (in @includes! a `::` call expression or chain returning an array of single-word elements)",
+      description: "Source array",
     },
     {
       name: "item",
       type: "any",
-      description:
-        "Element to search for (a build-time word constant in @includes!)",
+      description: "Element to search for",
     },
   ],
   async run(_, { value, item }) {

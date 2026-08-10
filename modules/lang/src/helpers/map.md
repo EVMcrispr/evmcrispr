@@ -2,7 +2,9 @@
 title: "@lang:map"
 ---
 
-Transform each element of an array by applying a helper. As @map! a mapWords over the array return of a call — the lambda names an Operators-backed helper (e.g. `@num!(* 2)`, the element prepended to its arguments) compiled into a single-call template; the result is the mapped words payload, composable with the other array faces.
+Transform each element of an array by applying a helper.
+
+**On-chain (`@lang:map!`)**: The transform must be an Operators-backed helper reducing to one call, e.g. `@num!(* 2)`, with the element prepended to its arguments.
 
 **Returns**: `array`
 
@@ -16,8 +18,8 @@ Transform each element of an array by applying a helper. As @map! a mapWords ove
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @map! a `::` call expression or chain returning an array of single-word elements, or a nested array face) |
-| `fn` | `helper` | Transform helper applied to each element (in @map! an Operators-backed single-call lambda, e.g. `@num!(* 2)`) |
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Transform helper applied to each element |
 
 <!-- HAND-WRITTEN -->
 

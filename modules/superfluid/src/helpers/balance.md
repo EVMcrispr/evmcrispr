@@ -2,7 +2,7 @@
 title: "@superfluid:balance"
 ---
 
-Real-time available SuperToken balance of an account: the streaming balance at this instant, minus buffer deposits. Negative when the account is critical. As @balance! the realtimeBalanceOfNow() read happens on-chain at assertion time, so the balance is the one the batch itself sees streaming (the SuperToken still resolves at composition time).
+Real-time available SuperToken balance of an account: the streaming balance at this instant, minus buffer deposits. Negative when the account is critical.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

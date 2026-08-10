@@ -2,7 +2,7 @@
 title: "@safe:owners"
 ---
 
-Return the owner addresses of a Safe. As @owners! the getOwners() read happens on-chain at assertion time as an array operand (the live words payload), composable with the lang array faces: @lang:includes!, @lang:len!, @lang:at!, @map!, @sort!, ….
+Owner addresses of a Safe.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

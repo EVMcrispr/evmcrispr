@@ -47,14 +47,13 @@ function requireSpec(spec: unknown): string {
 export default defineHelper<Lang>({
   name: "str.charset",
   description:
-    "Check whether every byte of a string is in a character class (ranges like `a-z0-9-`; a leading or trailing dash is the literal `-`). As @str.charset! the string return of a call is checked on-chain with the same byte-level semantics.",
+    "Check whether every byte of a string is in a character class (ranges like `a-z0-9-`; a leading or trailing dash is the literal `-`).",
   returnType: "bool",
   args: [
     {
       name: "value",
       type: "string",
-      description:
-        "String to check (in @str.charset! a `::` call expression or chain returning a string)",
+      description: "String to check",
     },
     {
       name: "class",

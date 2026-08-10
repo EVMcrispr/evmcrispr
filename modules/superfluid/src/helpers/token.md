@@ -2,7 +2,9 @@
 title: "@superfluid:token"
 ---
 
-Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx). As @token! the token-list resolution still happens at composition time and the resolved SuperToken address folds into the expression as a constant — pair it with @underlying! for a live on-chain check.
+Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx).
+
+**On-chain (`@superfluid:token!`)**: The token list is off-chain, so the resolved address folds in as a constant; pair it with `@underlying!` for a live check.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

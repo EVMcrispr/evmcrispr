@@ -5,7 +5,7 @@ import { compileCircomCached } from "../utils/circom";
 export default defineHelper<Circom>({
   name: "constraints",
   description:
-    "Compile circom source (inline text or a http/ipfs URL) and return its constraint count — useful to size the powers-of-tau a setup needs (a 2^p ptau supports up to 2^p constraints).",
+    "Compile circom source (inline text or a http/ipfs URL) and return its constraint count, useful to size the powers-of-tau a setup needs (a 2^p ptau supports up to 2^p constraints).",
   returnType: "number",
   args: [
     {

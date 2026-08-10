@@ -2,7 +2,7 @@
 title: "@acl:pendingOwner"
 ---
 
-Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress). As @pendingOwner! the pendingOwner() read happens on-chain at assertion time.
+Pending owner of an Ownable2Step contract (the zero address when no transfer is in progress).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

@@ -2,7 +2,9 @@
 title: "@receipts:block.gaslimit"
 ---
 
-The block gas limit: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.gaslimit! you read the block being written at assertion time.
+Gas limit of a sealed block, addressed by number or tag (default: latest).
+
+**On-chain (`@receipts:block.gaslimit!`)**: Reads the block being written, and takes no arguments.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

@@ -4,8 +4,9 @@ import type MathModule from "..";
 
 export default defineHelper<MathModule>({
   name: "absdiff",
-  description:
-    "Absolute difference |a - b|: plain @absdiff computes off-chain, @absdiff! on-chain where it never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality.",
+  description: "Absolute difference |a - b|.",
+  compileDescription:
+    "Never underflows, so `@absdiff!(a b) <= d` is the composable approximate-equality.",
   returnType: "number",
   args: [
     { name: "a", type: "number", description: "First numeric operand" },

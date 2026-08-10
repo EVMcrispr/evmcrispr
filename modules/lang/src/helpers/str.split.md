@@ -2,7 +2,9 @@
 title: "@lang:str.split"
 ---
 
-Split a string by a delimiter into an array of strings, or select one segment when an index is given. As @str.split! the string return of a call is split on-chain and the indexed segment selected (the index is required there).
+Split a string by a delimiter into an array of strings, or select one segment when an index is given.
+
+**On-chain (`@lang:str.split!`)**: The segment index is required.
 
 **Returns**: `array | string`
 
@@ -16,9 +18,9 @@ Split a string by a delimiter into an array of strings, or select one segment wh
 
 | Name | Type | Description |
 |------|------|-------------|
-| `s` | `string` | Source string (in @str.split! a `::` call expression or chain returning a string) |
+| `s` | `string` | Source string |
 | `delim` | `string` | Exact, non-empty delimiter byte sequence |
-| `[index]` | `number` | Segment to select instead of the whole array: zero-based from the start, or negative from the end (-1 = last, -2 = second-last, …). Required in @str.split! |
+| `[index]` | `number` | Segment to select instead of the whole array: zero-based from the start, or negative from the end (-1 = last, -2 = second-last, and so on) |
 
 <!-- HAND-WRITTEN -->
 

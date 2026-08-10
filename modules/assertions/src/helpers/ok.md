@@ -2,7 +2,7 @@
 title: "@assertions:ok!"
 ---
 
-Whether a live call resolves without reverting, checked on-chain at assertion time: true when the call succeeds, false when it reverts.
+Whether a live call resolves without reverting: true when the call succeeds, false when it reverts.
 
 **Returns**: `bool`
 

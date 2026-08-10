@@ -2,7 +2,9 @@
 title: "@lang:str.lower"
 ---
 
-Convert a string to lowercase. As @str.lower! the string return of a call is case-mapped on-chain — ASCII letters only, every other byte passes verbatim (UTF-8 safe).
+Convert a string to lowercase.
+
+**On-chain (`@lang:str.lower!`)**: Maps ASCII letters only; every other byte passes through unchanged.
 
 **Returns**: `string`
 
@@ -16,7 +18,7 @@ Convert a string to lowercase. As @str.lower! the string return of a call is cas
 
 | Name | Type | Description |
 |------|------|-------------|
-| `s` | `string` | Source string (in @str.lower! a `::` call expression or chain returning a string) |
+| `s` | `string` | Source string |
 
 <!-- HAND-WRITTEN -->
 

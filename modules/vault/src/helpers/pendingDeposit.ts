@@ -9,7 +9,7 @@ export default defineHelper<Vault>({
   name: "pendingDeposit",
   batchable: false,
   description:
-    "Assets of a pending (not yet fulfilled) deposit request on an ERC-7540 vault, in base units of the asset. As @pendingDeposit! the pendingDepositRequest read happens on-chain at assertion time.",
+    "Assets of a pending (not yet fulfilled) deposit request on an ERC-7540 vault, in base units of the asset.",
   returnType: "number",
   args: [
     {

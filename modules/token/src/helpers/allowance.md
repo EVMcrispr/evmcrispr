@@ -2,7 +2,7 @@
 title: "@token:allowance"
 ---
 
-Fetch the allowance an owner has granted to a spender, in base units. As @allowance! the symbol resolves at composition time and allowance(owner, spender) is read on-chain at assertion time — owner/spender may themselves be live calls.
+Allowance an owner has granted to a spender, in base units.
 
 **Returns**: `number`
 

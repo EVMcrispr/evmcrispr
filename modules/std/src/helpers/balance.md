@@ -2,7 +2,9 @@
 title: "@balance"
 ---
 
-Fetch a balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address. As @balance! the balance is read on-chain at assertion time instead of script build time.
+Balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address.
+
+**On-chain (`@balance!`)**: The holder may be a `::` call resolving to an address, for native ETH only.
 
 **Returns**: `number`
 
@@ -17,7 +19,7 @@ Fetch a balance in base units: the native balance for ETH, or an ERC-20 balanceO
 | Name | Type | Description |
 |------|------|-------------|
 | `token` | `token-symbol` | ETH (native) or a token symbol/address resolved like @token |
-| `holder` | `address` | Account address, or (@balance! with native ETH only) a `::` call resolving to one |
+| `holder` | `address` | Account address |
 
 ## Examples
 

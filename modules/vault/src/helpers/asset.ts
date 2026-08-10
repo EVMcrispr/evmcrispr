@@ -8,8 +8,7 @@ import { erc4626Abi, vaultAsset } from "../erc4626";
 export default defineHelper<Vault>({
   name: "asset",
   batchable: false,
-  description:
-    "Underlying asset token address of an ERC-4626 vault. As @asset! the asset() read happens on-chain at assertion time.",
+  description: "Underlying asset token address of an ERC-4626 vault.",
   returnType: "address",
   args: [
     {

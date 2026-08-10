@@ -22,14 +22,15 @@ const algorithms = {
 export default defineHelper<Std>({
   name: "hash",
   description:
-    "Compute the hash of a string with keccak256 (default) or sha256. As @hash! the digest of the decoded string/bytes return of a call, computed on-chain — keccak256 through the Operators hash, sha256 through a rawCall to the SHA-256 precompile.",
+    "Compute the hash of a string with keccak256 (default) or sha256.",
+  compileDescription:
+    "Hashes the decoded string or bytes a call returns, not its ABI envelope.",
   returnType: "bytes32",
   args: [
     {
       name: "text",
       type: "string",
-      description:
-        "String to hash (e.g. a function signature); in @hash! a `::` call expression (or chain) returning a string or bytes value",
+      description: "String to hash (e.g. a function signature)",
     },
     {
       name: "algorithm",

@@ -2,7 +2,7 @@
 title: "@vault:convertToShares"
 ---
 
-Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token. As @convertToShares! the conversion is read on-chain at assertion time — the assets argument may itself be a live call.
+Amount of shares an ERC-4626 vault would mint for a given amount of underlying assets, in base units of the share token.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

@@ -2,7 +2,9 @@
 title: "@acl:pendingDefaultAdmin"
 ---
 
-Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress). As @pendingDefaultAdmin! the read happens on-chain at assertion time (the pending admin word of the pair).
+Pending default admin of an AccessControlDefaultAdminRules contract (the zero address when no transfer is in progress).
+
+**On-chain (`@acl:pendingDefaultAdmin!`)**: Reads the pending admin of the pair, not the accept schedule.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

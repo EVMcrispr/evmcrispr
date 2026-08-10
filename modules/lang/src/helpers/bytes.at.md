@@ -2,7 +2,7 @@
 title: "@lang:bytes.at"
 ---
 
-Access a single byte by index in a bytes value. As @bytes.at! a one-byte slice of the bytes/string return of a call, on-chain — negative indexes resolve against the live byte length at assertion time.
+Access a single byte by index in a bytes value.
 
 **Returns**: `bytes`
 
@@ -16,7 +16,7 @@ Access a single byte by index in a bytes value. As @bytes.at! a one-byte slice o
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `bytes` | Input value (in @bytes.at! a `::` call expression or chain returning a bytes or string value) |
+| `value` | `bytes` | Source bytes value |
 | `index` | `number` | Zero-based byte index (negative counts from the end) |
 
 <!-- HAND-WRITTEN -->

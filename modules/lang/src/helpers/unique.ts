@@ -7,7 +7,9 @@ import { wordsArg } from "../utils/onchain";
 export default defineHelper<Lang>({
   name: "unique",
   description:
-    "Remove duplicates from an array, preserving first-occurrence order. As @unique! an ADJACENT dedup on-chain through uniqueWords — nest @sort! for set-uniqueness: @unique!(@sort!(…)).",
+    "Remove duplicates from an array, preserving first-occurrence order.",
+  compileDescription:
+    "Removes adjacent duplicates only; nest `@sort!` for set-uniqueness.",
   returnType: "array",
   args: [{ name: "arr", type: "array", description: "Source array" }],
   async run(_, { arr }) {

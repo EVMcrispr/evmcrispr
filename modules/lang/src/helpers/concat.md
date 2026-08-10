@@ -2,7 +2,9 @@
 title: "@lang:concat"
 ---
 
-Concatenate arrays together. As @concat! the parts' word payloads concatenate on-chain through Operators.concat — constant arrays plus at most one live call part (spliced into the calldata last, at any argument position).
+Concatenate arrays together.
+
+**On-chain (`@lang:concat!`)**: At most one part may be a live call; the rest must be constant arrays.
 
 **Returns**: `array`
 
@@ -16,7 +18,7 @@ Concatenate arrays together. As @concat! the parts' word payloads concatenate on
 
 | Name | Type | Description |
 |------|------|-------------|
-| `first` | `array` | First array to concatenate (in @concat! a `::` call, nested array face, or constant array literal) |
+| `first` | `array` | First array to concatenate |
 | `[...rest]` | `array` | Additional arrays to append |
 
 <!-- HAND-WRITTEN -->

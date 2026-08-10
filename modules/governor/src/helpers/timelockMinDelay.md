@@ -2,7 +2,7 @@
 title: "@governor:timelockMinDelay"
 ---
 
-Minimum delay in seconds a TimelockController enforces on new operations. As @timelockMinDelay! the getMinDelay() read happens on-chain at assertion time.
+Minimum delay in seconds a TimelockController enforces on new operations.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

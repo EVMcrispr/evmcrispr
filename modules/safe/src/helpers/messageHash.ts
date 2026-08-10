@@ -5,7 +5,7 @@ import { assertSafeVersion, getSafeMessageHashes } from "../utils";
 export default defineHelper<Safe>({
   name: "messageHash",
   description:
-    "Return the SafeMessage hash of an off-chain message (plain string or typed-data JSON), as signed by Safe owners or SignMessageLib.",
+    "SafeMessage hash of an off-chain message (plain string or typed-data JSON), as signed by Safe owners or SignMessageLib.",
   returnType: "bytes32",
   batchable: false,
   args: [

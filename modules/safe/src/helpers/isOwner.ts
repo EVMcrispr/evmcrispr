@@ -6,8 +6,7 @@ import { getOwners, safeAbi } from "../utils";
 
 export default defineHelper<Safe>({
   name: "isOwner",
-  description:
-    "Return whether an address is an owner of a Safe. As @isOwner! the Safe's own isOwner(address) view is read on-chain at assertion time.",
+  description: "Whether an address is an owner of a Safe.",
   returnType: "bool",
   batchable: false,
   args: [

@@ -5,8 +5,7 @@ import { numericValues } from "../utils";
 
 export default defineHelper<MathModule>({
   name: "max",
-  description:
-    "Maximum of two or more values: plain @max computes off-chain, @max! on-chain at execution time.",
+  description: "Maximum of two or more values.",
   returnType: "number",
   args: [
     {

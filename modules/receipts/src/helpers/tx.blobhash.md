@@ -2,7 +2,7 @@
 title: "@receipts:tx.blobhash!"
 ---
 
-The versioned hash of a blob carried by the executing transaction, read on-chain at execution time (0 when the index is out of range). Assert a blob is present with @tx.blobhash!(0) != 0.
+Versioned hash of a blob carried by the executing transaction, or 0 when the index is out of range.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

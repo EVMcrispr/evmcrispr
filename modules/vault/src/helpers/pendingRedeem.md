@@ -2,7 +2,7 @@
 title: "@vault:pendingRedeem"
 ---
 
-Shares of a pending (not yet fulfilled) redemption request on an ERC-7540 vault, in base units of the share. As @pendingRedeem! the pendingRedeemRequest read happens on-chain at assertion time.
+Shares of a pending (not yet fulfilled) redemption request on an ERC-7540 vault, in base units of the share.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

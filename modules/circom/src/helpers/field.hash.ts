@@ -5,7 +5,7 @@ import { keccakToField } from "../utils/field";
 export default defineHelper<Circom>({
   name: "field.hash",
   description:
-    "Hash hex bytes with keccak256 and reduce the digest into the BN254 scalar field — the standard way to map addresses, strings or arbitrary data into a circuit input.",
+    "Hash hex bytes with keccak256 and reduce the digest into the BN254 scalar field, the standard way to map addresses, strings or arbitrary data into a circuit input.",
   returnType: "number",
   args: [
     {

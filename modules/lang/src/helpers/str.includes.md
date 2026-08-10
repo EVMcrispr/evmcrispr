@@ -2,7 +2,9 @@
 title: "@lang:str.includes"
 ---
 
-Check whether a string contains a substring. As @str.includes! the string return of a call is checked on-chain — exact byte sequence, case-sensitive, no wildcards.
+Check whether a string contains a substring (exact byte sequence, case-sensitive).
+
+**On-chain (`@lang:str.includes!`)**: The substring must be non-empty.
 
 **Returns**: `bool`
 
@@ -16,8 +18,8 @@ Check whether a string contains a substring. As @str.includes! the string return
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `string` | Input value (in @str.includes! a `::` call expression or chain returning a string) |
-| `item` | `string` | Substring to search for (non-empty in @str.includes!) |
+| `value` | `string` | Source string |
+| `item` | `string` | Substring to search for |
 
 <!-- HAND-WRITTEN -->
 

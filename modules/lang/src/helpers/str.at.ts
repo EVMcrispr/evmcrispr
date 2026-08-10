@@ -15,15 +15,15 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.at",
-  description:
-    "Access a character by index in a string. As @str.at! a one-byte slice of the string return of a call, on-chain — negative indexes resolve against the live byte length at assertion time.",
+  description: "Access a character by index in a string.",
+  compileDescription:
+    "Selects one byte, so a multi-byte UTF-8 character is not returned whole.",
   returnType: "string",
   args: [
     {
       name: "value",
       type: "string",
-      description:
-        "Input value (in @str.at! a `::` call expression or chain returning a string or bytes value)",
+      description: "Source string",
     },
     {
       name: "index",

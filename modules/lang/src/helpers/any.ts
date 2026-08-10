@@ -10,21 +10,20 @@ import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "any",
-  description:
-    "Return true if at least one element satisfies the predicate. As @any! a foldWords over the array return of a call with the Any exit — the predicate names an Operators-backed helper (e.g. `@bool!(> 0)`, the element prepended to its arguments) compiled into a single-call lambda template.",
+  description: "Whether at least one element satisfies the predicate.",
+  compileDescription:
+    "The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(== 0)`, with the element prepended to its arguments.",
   returnType: "bool",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @any! a `::` call expression or chain returning an array of single-word elements)",
+      description: "Source array",
     },
     {
       name: "fn",
       type: "helper",
-      description:
-        "Predicate helper returning bool (in @any! an Operators-backed single-call predicate, e.g. `@bool!(== 0)`)",
+      description: "Predicate helper returning bool",
     },
   ],
   async run(_, { arr, fn }) {

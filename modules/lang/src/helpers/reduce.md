@@ -2,7 +2,9 @@
 title: "@lang:reduce"
 ---
 
-Reduce an array to a single value by applying a helper. As @reduce! a foldWords over the array return of a call with a binary Operators lambda — add, min, max, bitOr or bitAnd — and a build-time initial accumulator.
+Reduce an array to a single value by applying a helper.
+
+**On-chain (`@lang:reduce!`)**: The reducer must be one of `add`, `min`, `max`, `bitOr` or `bitAnd`, and the initial accumulator a build-time value.
 
 **Returns**: `any`
 
@@ -16,8 +18,8 @@ Reduce an array to a single value by applying a helper. As @reduce! a foldWords 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @reduce! a `::` call expression or chain returning an array of single-word elements) |
-| `fn` | `helper` | Reducer helper receiving `(accumulator, element)` (in @reduce! one of `add`, `min`, `max`, `bitOr`, `bitAnd`) |
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Reducer helper receiving `(accumulator, element)` |
 | `initial` | `any` | Initial accumulator value |
 
 <!-- HAND-WRITTEN -->
@@ -49,7 +51,7 @@ set $vault 0x44fA8E6f47987339850636F88629646662444217
 assertions:assert @reduce!($vault::{caps()(uint256[])} add 0) >= 100
 
 # The largest cap (init 0 = identity for max over uints)
-assertions:assert @reduce!($vault::{caps()(uint256[])} @max 0) <= 1e18
+assertions:assert @reduce!($vault::{caps()(uint256[])} max 0) <= 1e18
 ```
 
 ### Notes

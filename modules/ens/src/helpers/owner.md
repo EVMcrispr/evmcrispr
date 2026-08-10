@@ -2,7 +2,7 @@
 title: "@ens:owner"
 ---
 
-Get the owner of an ENS name (the real owner when the name is wrapped).
+Owner of an ENS name (the real owner when the name is wrapped).
 
 **Returns**: `address`
 

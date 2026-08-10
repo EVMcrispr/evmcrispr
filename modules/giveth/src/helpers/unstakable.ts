@@ -6,7 +6,7 @@ export default defineHelper<Giveth>({
   name: "unstakable",
   batchable: false,
   description:
-    "GIV an account can unstake at the current chain time: staked GIV minus the locks whose GIVpower round hasn't finished yet. Locks whose round has ended count as unstakable — unlocking is permissionless — but still need a giveth:unlock before giveth:unstake accepts them. Time-aware inside sim:fork: after a wait, ended locks drop out of the locked amount. Counts pending stake/unstake/lock actions earlier in the script.",
+    "GIV an account can unstake at the current chain time: staked GIV minus the locks whose GIVpower round hasn't finished yet. Locks whose round has ended count as unstakable (unlocking is permissionless) but still need a giveth:unlock before giveth:unstake accepts them. Time-aware inside sim:fork: after a wait, ended locks drop out of the locked amount. Counts pending stake/unstake/lock actions earlier in the script.",
   returnType: "number",
   args: [
     {

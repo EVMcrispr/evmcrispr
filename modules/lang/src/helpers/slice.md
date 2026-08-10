@@ -2,7 +2,7 @@
 title: "@lang:slice"
 ---
 
-Extract a section of an array. As @slice! the elements [start, end) of the array return of a call, sliced on-chain out of the live words payload — indices scale to byte offsets at composition time, negative bounds resolve against the live length, and the result composes with the other array faces.
+Extract a section of an array.
 
 **Returns**: `array`
 
@@ -16,7 +16,7 @@ Extract a section of an array. As @slice! the elements [start, end) of the array
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `array` | Input value (in @slice! a `::` call expression or chain returning an array of single-word elements, or a nested array face) |
+| `value` | `array` | Source array |
 | `start` | `number` | Start index (inclusive; negative counts from the end) |
 | `[end]` | `number` | End index (exclusive; negative counts from the end; omitted = to the end) |
 

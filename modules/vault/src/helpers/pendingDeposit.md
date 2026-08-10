@@ -2,7 +2,7 @@
 title: "@vault:pendingDeposit"
 ---
 
-Assets of a pending (not yet fulfilled) deposit request on an ERC-7540 vault, in base units of the asset. As @pendingDeposit! the pendingDepositRequest read happens on-chain at assertion time.
+Assets of a pending (not yet fulfilled) deposit request on an ERC-7540 vault, in base units of the asset.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

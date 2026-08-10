@@ -8,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "hasRole",
   batchable: false,
   description:
-    "Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids). As @hasRole! the membership read happens on-chain at assertion time (role names still hash at composition time).",
+    "Whether an account holds a role on an AccessControl contract (string roles) or an AccessManager (numeric role ids).",
   returnType: "bool",
   args: [
     {

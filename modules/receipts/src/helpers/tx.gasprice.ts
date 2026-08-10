@@ -4,8 +4,7 @@ import type Receipts from "..";
 
 export default defineHelper<Receipts>({
   name: "tx.gasprice",
-  description:
-    "The gas price of the executing transaction in wei, read on-chain at execution time: bound what the batch is willing to pay, e.g. @tx.gasprice! <= 50e9.",
+  description: "Gas price of the executing transaction, in wei.",
   returnType: "number",
   args: [],
   compile: async (ctx, node) => {

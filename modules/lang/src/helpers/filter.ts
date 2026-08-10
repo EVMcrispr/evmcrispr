@@ -9,21 +9,20 @@ import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "filter",
-  description:
-    "Keep elements of an array for which a helper returns truthy. As @filter! a filterWords over the array return of a call — the predicate names an Operators-backed helper (e.g. `@bool!(> 0)`, the element prepended to its arguments) compiled into a single-call lambda template; the result is the kept words payload, composable with the other array faces.",
+  description: "Keep elements of an array for which a helper returns truthy.",
+  compileDescription:
+    "The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.",
   returnType: "array",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @filter! a `::` call expression or chain returning an array of single-word elements, or a nested array face)",
+      description: "Source array",
     },
     {
       name: "fn",
       type: "helper",
-      description:
-        "Predicate helper returning bool (in @filter! an Operators-backed single-call predicate, e.g. `@bool!(>= 100)`)",
+      description: "Predicate helper returning bool",
     },
   ],
   async run(_, { arr, fn }) {

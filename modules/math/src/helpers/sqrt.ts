@@ -23,8 +23,7 @@ function isqrt(v: bigint): bigint {
 
 export default defineHelper<MathModule>({
   name: "sqrt",
-  description:
-    "Integer square root (floor): plain @sqrt computes off-chain, @sqrt! on-chain, the AMM invariant form, e.g. @sqrt!($pool::reserve0() * $pool::reserve1()).",
+  description: "Integer square root (floor).",
   returnType: "number",
   args: [
     {

@@ -2,7 +2,9 @@
 title: "@assertions:codehash"
 ---
 
-Read the code hash of an address with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. Plain @codehash reads at script build time; @codehash! reads on-chain at assertion time, and its account can be a `::` call resolving to an address, such as a proxy implementation.
+Code hash of an address, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise.
+
+**On-chain (`@assertions:codehash!`)**: The account may be a `::` call resolving to an address, such as a proxy implementation.
 
 **Returns**: `bytes32`
 
@@ -16,7 +18,7 @@ Read the code hash of an address with EXTCODEHASH semantics: `bytes32(0)` for a 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `address` | `address` | Address to read (in @codehash! also a `::` call resolving to one) |
+| `address` | `address` | Address to read |
 
 <!-- HAND-WRITTEN -->
 

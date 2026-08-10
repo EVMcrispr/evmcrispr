@@ -2,7 +2,9 @@
 title: "@lang:bytes.concat"
 ---
 
-Concatenate bytes values together. As @bytes.concat! the parts concatenate on-chain through Operators.concat — constant hex parts plus at most one live call part (spliced into the calldata last, at any argument position).
+Concatenate bytes values together.
+
+**On-chain (`@lang:bytes.concat!`)**: At most one part may be a live call; the rest must be hex constants.
 
 **Returns**: `bytes`
 
@@ -16,7 +18,7 @@ Concatenate bytes values together. As @bytes.concat! the parts concatenate on-ch
 
 | Name | Type | Description |
 |------|------|-------------|
-| `first` | `bytes` | First bytes value (in @bytes.concat! a hex constant or a `::` call returning bytes/string) |
+| `first` | `bytes` | First bytes value |
 | `[...rest]` | `bytes` | Bytes values to append |
 
 <!-- HAND-WRITTEN -->

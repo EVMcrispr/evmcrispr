@@ -2,7 +2,9 @@
 title: "@crypto:merkle.verify"
 ---
 
-Verify a Merkle inclusion proof against a root. Without an index the proof is checked with the sorted-pair convention (OpenZeppelin MerkleProof); with an index it is checked positionally (unsorted trees). As @merkle.verify! a live bytes32[] proof folds on-chain through hashPairSorted from the leaf and the reproduced root compares against the expected one (sorted-pair trees only).
+Verify a Merkle inclusion proof against a root: with no index the sorted-pair convention (OpenZeppelin MerkleProof), with an index the positional one for unsorted trees.
+
+**On-chain (`@crypto:merkle.verify!`)**: Sorted-pair trees only: the positional (indexed) form has no on-chain face.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -20,7 +22,7 @@ Verify a Merkle inclusion proof against a root. Without an index the proof is ch
 |------|------|-------------|
 | `root` | `bytes32` | Merkle root |
 | `leaf` | `bytes32` | Leaf to prove |
-| `proof` | `array` | Array of bytes32 sibling hashes, leaf to root (in @merkle.verify! a `::` call returning bytes32[]) |
+| `proof` | `array` | Array of bytes32 sibling hashes, leaf to root |
 | `[index]` | `number` | Zero-based leaf position for positional (unsorted) verification; omit for sorted-pair trees |
 
 ## Examples

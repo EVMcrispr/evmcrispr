@@ -6,8 +6,7 @@ import { getSafeNonce, safeAbi } from "../utils";
 
 export default defineHelper<Safe>({
   name: "nonce",
-  description:
-    "Return the current on-chain nonce of a Safe. As @nonce! the nonce() read happens on-chain at assertion time — pin a proposal's execution window.",
+  description: "Current nonce of a Safe.",
   returnType: "number",
   batchable: false,
   args: [

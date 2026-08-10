@@ -2,7 +2,9 @@
 title: "@math:absdiff"
 ---
 
-Absolute difference |a - b|: plain @absdiff computes off-chain, @absdiff! on-chain where it never underflows; `@absdiff!(a b) <= d` is the composable approximate-equality.
+Absolute difference |a - b|.
+
+**On-chain (`@math:absdiff!`)**: Never underflows, so `@absdiff!(a b) <= d` is the composable approximate-equality.
 
 **Returns**: `number`
 

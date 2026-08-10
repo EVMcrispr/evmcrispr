@@ -2,7 +2,7 @@
 title: "@lang:len"
 ---
 
-Return the length of an array. As @len! the decoded length of the dynamic return value of a call, on-chain: element count for arrays and nested array faces (@map!, @filter!, @safe:owners!, …), byte length for string/bytes.
+Length of a value: element count for an array, byte length for a string or bytes.
 
 **Returns**: `number`
 
@@ -16,7 +16,7 @@ Return the length of an array. As @len! the decoded length of the dynamic return
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `array` | Input value (in @len! a `::` call expression or chain returning an array, string or bytes) |
+| `value` | `array` | Source array, string or bytes value |
 
 <!-- HAND-WRITTEN -->
 

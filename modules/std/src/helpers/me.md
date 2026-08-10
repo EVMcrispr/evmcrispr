@@ -2,7 +2,7 @@
 title: "@me"
 ---
 
-Return the connected wallet address.
+Connected wallet address.
 
 **Returns**: `address`
 

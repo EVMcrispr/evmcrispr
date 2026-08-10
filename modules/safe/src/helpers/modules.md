@@ -2,7 +2,9 @@
 title: "@safe:modules"
 ---
 
-Return the enabled module addresses of a Safe. As @modules! ONE getModulesPaginated(0x1, pageSize) page read on-chain at assertion time, navigated to its array component as an array operand composable with the lang array faces — the composition-time pageSize (default 100) caps how many modules the page can carry, so a Safe with more modules than the page size is truncated to the first page.
+Enabled module addresses of a Safe.
+
+**On-chain (`@safe:modules!`)**: Reads one `getModulesPaginated` page, so a Safe with more modules than `pageSize` (default 100) is truncated.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -19,7 +21,7 @@ Return the enabled module addresses of a Safe. As @modules! ONE getModulesPagina
 | Name | Type | Description |
 |------|------|-------------|
 | `[safe]` | `address` | Safe address (defaults to the context Safe or connected account) |
-| `[pageSize]` | `number` | @modules! only: composition-time getModulesPaginated page size (default 100) — the pagination cap of the single page the face reads |
+| `[pageSize]` | `number` | Page size of the single `getModulesPaginated` page the on-chain face reads (default 100) |
 
 <!-- HAND-WRITTEN -->
 

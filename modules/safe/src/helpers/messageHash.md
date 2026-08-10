@@ -2,7 +2,7 @@
 title: "@safe:messageHash"
 ---
 
-Return the SafeMessage hash of an off-chain message (plain string or typed-data JSON), as signed by Safe owners or SignMessageLib.
+SafeMessage hash of an off-chain message (plain string or typed-data JSON), as signed by Safe owners or SignMessageLib.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

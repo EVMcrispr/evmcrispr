@@ -2,7 +2,9 @@
 title: "@lang:str.slice"
 ---
 
-Extract a section of a string. As @str.slice! a byte range of the string/bytes return of a call, sliced on-chain — negative indexes resolve against the live byte length at assertion time.
+Extract a section of a string.
+
+**On-chain (`@lang:str.slice!`)**: Slices bytes, so a multi-byte UTF-8 character may be cut in half.
 
 **Returns**: `string`
 
@@ -16,7 +18,7 @@ Extract a section of a string. As @str.slice! a byte range of the string/bytes r
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `string` | Input value (in @str.slice! a `::` call expression or chain returning a string or bytes value) |
+| `value` | `string` | Source string or bytes value |
 | `start` | `number` | Start index (inclusive; negative counts from the end) |
 | `[end]` | `number` | End index (exclusive; negative counts from the end; omitted = to the end) |
 

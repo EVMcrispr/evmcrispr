@@ -2,7 +2,9 @@
 title: "@lang:any"
 ---
 
-Return true if at least one element satisfies the predicate. As @any! a foldWords over the array return of a call with the Any exit — the predicate names an Operators-backed helper (e.g. `@bool!(> 0)`, the element prepended to its arguments) compiled into a single-call lambda template.
+Whether at least one element satisfies the predicate.
+
+**On-chain (`@lang:any!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(== 0)`, with the element prepended to its arguments.
 
 **Returns**: `bool`
 
@@ -16,8 +18,8 @@ Return true if at least one element satisfies the predicate. As @any! a foldWord
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @any! a `::` call expression or chain returning an array of single-word elements) |
-| `fn` | `helper` | Predicate helper returning bool (in @any! an Operators-backed single-call predicate, e.g. `@bool!(== 0)`) |
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Predicate helper returning bool |
 
 <!-- HAND-WRITTEN -->
 

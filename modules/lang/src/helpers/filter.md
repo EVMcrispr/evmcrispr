@@ -2,7 +2,9 @@
 title: "@lang:filter"
 ---
 
-Keep elements of an array for which a helper returns truthy. As @filter! a filterWords over the array return of a call — the predicate names an Operators-backed helper (e.g. `@bool!(> 0)`, the element prepended to its arguments) compiled into a single-call lambda template; the result is the kept words payload, composable with the other array faces.
+Keep elements of an array for which a helper returns truthy.
+
+**On-chain (`@lang:filter!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.
 
 **Returns**: `array`
 
@@ -16,8 +18,8 @@ Keep elements of an array for which a helper returns truthy. As @filter! a filte
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @filter! a `::` call expression or chain returning an array of single-word elements, or a nested array face) |
-| `fn` | `helper` | Predicate helper returning bool (in @filter! an Operators-backed single-call predicate, e.g. `@bool!(>= 100)`) |
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Predicate helper returning bool |
 
 <!-- HAND-WRITTEN -->
 

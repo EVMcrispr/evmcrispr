@@ -6,7 +6,7 @@ import { verifyProof } from "../utils/snarkjs";
 export default defineHelper<Circom>({
   name: "verify",
   description:
-    "Verify a proof off-chain against a verification key (groth16, plonk or fflonk auto-detected from the proof) — no deployed verifier needed. Get the vkey from @circom:vkey or a hosted vkey JSON.",
+    "Verify a proof off-chain against a verification key (groth16, plonk or fflonk auto-detected from the proof), with no deployed verifier needed. Get the vkey from @circom:vkey or a hosted vkey JSON.",
   returnType: "bool",
   args: [
     {

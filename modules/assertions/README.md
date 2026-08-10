@@ -32,8 +32,8 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@assertions:chainid](src/helpers/chainid.md) | `number` | The chain id: read at script build time as @chainid, on-chain at assertion time as @chainid! — unlike assert-chainid both compose into expressions. |
-| [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the code hash of an address with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. Plain @codehash reads at script build time; @codehash! reads on-chain at assertion time, and its account can be a `::` call resolving to an address, such as a proxy implementation. |
-| [@assertions:not!](src/helpers/not.md) | `any` | Negation computed on-chain, dispatched on the operand: logical not for booleans (stays a bool), bitwise complement of the raw 32-byte word for numbers and bytes32. Never a conversion — cast explicitly with @bytes!(x) first if needed. |
-| [@assertions:ok!](src/helpers/ok.md) | `bool` | Whether a live call resolves without reverting, checked on-chain at assertion time: true when the call succeeds, false when it reverts. |
+| [@assertions:chainid](src/helpers/chainid.md) | `number` | The chain id. Unlike assert-chainid it composes into expressions. |
+| [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Code hash of an address, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. |
+| [@assertions:not!](src/helpers/not.md) | `any` | Negation dispatched on the operand: logical not for a boolean (stays a bool), bitwise complement of the raw word for a number or bytes32. Never a conversion: cast with `@bytes!(x)` first. |
+| [@assertions:ok!](src/helpers/ok.md) | `bool` | Whether a live call resolves without reverting: true when the call succeeds, false when it reverts. |
 

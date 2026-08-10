@@ -2,7 +2,7 @@
 title: "@token:totalSupply"
 ---
 
-Fetch the total supply of a token in base units. As @totalSupply! the symbol resolves at composition time and totalSupply() is read on-chain at assertion time.
+Total supply of a token, in base units.
 
 **Returns**: `number`
 

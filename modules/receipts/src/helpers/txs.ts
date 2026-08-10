@@ -14,7 +14,7 @@ export default defineHelper<Receipts>({
   batchable: false,
   experimental: true,
   description:
-    "Most recent transaction hashes sent to or from an address, newest first. Inspect individual entries with @receipts:tx. Needs an explorer API (Etherscan key or a chain with a Blockscout instance) — plain RPC cannot list per-address history.",
+    "Most recent transaction hashes sent to or from an address, newest first. Inspect individual entries with @receipts:tx. Needs an explorer API (Etherscan key or a chain with a Blockscout instance): plain RPC cannot list per-address history.",
   returnType: "array",
   args: [
     { name: "address", type: "address", description: "Address to list" },

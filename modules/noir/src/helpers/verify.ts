@@ -7,7 +7,7 @@ import { parseProofJson } from "../utils/proof";
 export default defineHelper<Noir>({
   name: "verify",
   description:
-    "Verify an UltraHonk proof off-chain against a verification key — no deployed verifier needed. The transcript (keccak or poseidon) is auto-detected from the proof JSON; the vkey must come from @noir:vkey with the matching oracle.",
+    "Verify an UltraHonk proof off-chain against a verification key, with no deployed verifier needed. The transcript (keccak or poseidon) is auto-detected from the proof JSON; the vkey must come from @noir:vkey with the matching oracle.",
   returnType: "bool",
   args: [
     {

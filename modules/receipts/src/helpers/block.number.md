@@ -2,7 +2,9 @@
 title: "@receipts:block.number"
 ---
 
-The block number: addressed by number or tag you read a sealed block off-chain (default: latest, so tags like finalized resolve to their current number); as @block.number! you read the block being written at assertion time.
+Number of a sealed block, addressed by number or tag (default: latest, so tags like finalized resolve to their current number).
+
+**On-chain (`@receipts:block.number!`)**: Reads the block being written, and takes no arguments.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -45,4 +47,4 @@ assertions:assert @num!($gov::{voteEnd()(uint256)} - @block.number!) > 100
 
 ## See Also
 
-- [@receipts:block.timestamp!](block.timestamp.md), [assertions:assert-block-number](../commands/assert-block-number.md)
+- [@receipts:block.timestamp!](block.timestamp.md), [assertions:assert-block-number](../../../assertions/src/commands/assert-block-number.md)

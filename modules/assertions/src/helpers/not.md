@@ -2,7 +2,7 @@
 title: "@assertions:not!"
 ---
 
-Negation computed on-chain, dispatched on the operand: logical not for booleans (stays a bool), bitwise complement of the raw 32-byte word for numbers and bytes32. Never a conversion — cast explicitly with @bytes!(x) first if needed.
+Negation dispatched on the operand: logical not for a boolean (stays a bool), bitwise complement of the raw word for a number or bytes32. Never a conversion: cast with `@bytes!(x)` first.
 
 **Returns**: `any`
 

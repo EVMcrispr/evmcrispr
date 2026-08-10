@@ -2,7 +2,7 @@
 title: "@receipts:tx.gasprice!"
 ---
 
-The gas price of the executing transaction in wei, read on-chain at execution time: bound what the batch is willing to pay, e.g. @tx.gasprice! <= 50e9.
+Gas price of the executing transaction, in wei.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

@@ -8,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "defaultAdminDelay",
   batchable: false,
   description:
-    "Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract. As @defaultAdminDelay! the read happens on-chain at assertion time.",
+    "Delay in seconds applied to default admin transfers of an AccessControlDefaultAdminRules contract.",
   returnType: "number",
   args: [
     {

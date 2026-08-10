@@ -2,7 +2,7 @@
 title: "@lang:reverse"
 ---
 
-Return a new array with elements in reverse order. As @reverse! the array return of a call reversed on-chain through reverseWords — the result is the reversed words payload, composable with the other array faces.
+Reverse the order of an array's elements.
 
 **Returns**: `array`
 

@@ -22,7 +22,9 @@ import {
 export default defineHelper<Crypto>({
   name: "merkle.verify",
   description:
-    "Verify a Merkle inclusion proof against a root. Without an index the proof is checked with the sorted-pair convention (OpenZeppelin MerkleProof); with an index it is checked positionally (unsorted trees). As @merkle.verify! a live bytes32[] proof folds on-chain through hashPairSorted from the leaf and the reproduced root compares against the expected one (sorted-pair trees only).",
+    "Verify a Merkle inclusion proof against a root: with no index the sorted-pair convention (OpenZeppelin MerkleProof), with an index the positional one for unsorted trees.",
+  compileDescription:
+    "Sorted-pair trees only: the positional (indexed) form has no on-chain face.",
   returnType: "bool",
   args: [
     { name: "root", type: "bytes32", description: "Merkle root" },
@@ -30,8 +32,7 @@ export default defineHelper<Crypto>({
     {
       name: "proof",
       type: "array",
-      description:
-        "Array of bytes32 sibling hashes, leaf to root (in @merkle.verify! a `::` call returning bytes32[])",
+      description: "Array of bytes32 sibling hashes, leaf to root",
     },
     {
       name: "index",

@@ -9,7 +9,7 @@ export default defineHelper<Vault>({
   name: "claimableRedeem",
   batchable: false,
   description:
-    "Shares of a fulfilled redemption request claimable from an ERC-7540 vault, in base units of the share. As @claimableRedeem! the claimableRedeemRequest read happens on-chain at assertion time.",
+    "Shares of a fulfilled redemption request claimable from an ERC-7540 vault, in base units of the share.",
   returnType: "number",
   args: [
     {

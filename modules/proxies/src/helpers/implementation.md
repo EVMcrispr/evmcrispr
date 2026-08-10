@@ -2,7 +2,9 @@
 title: "@proxies:implementation"
 ---
 
-Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy. As @implementation! the resolution happens on-chain at assertion time through orElse: a direct implementation() call when the proxy exposes one, else the beacon() -> implementation() hop — slot-only proxies stay off-chain (both branches revert).
+Implementation address of an ERC-1967 proxy, following the beacon when the proxy is a beacon proxy.
+
+**On-chain (`@proxies:implementation!`)**: Resolves through an `implementation()` call or the beacon hop, so a slot-only proxy has no on-chain form and reverts.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

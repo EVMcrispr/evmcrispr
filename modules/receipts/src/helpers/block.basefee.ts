@@ -7,7 +7,8 @@ export default defineHelper<Receipts>({
   name: "block.basefee",
   batchable: false,
   description:
-    "The block base fee in wei: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.basefee! you read the block being written at assertion time, e.g. to gate a batch on fee conditions.",
+    "Base fee in wei of a sealed block, addressed by number or tag (default: latest).",
+  compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "number",
   args: [
     {

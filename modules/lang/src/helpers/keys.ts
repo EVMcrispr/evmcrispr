@@ -6,14 +6,15 @@ import { wordsArg } from "../utils/onchain";
 export default defineHelper<Lang>({
   name: "keys",
   description:
-    "Return the entry names of a record (`[a:1 b:2]` or `[name value]` pairs) as an array. As @keys! lane 0 of an on-chain record — a zipped key/value word-pair payload (what @zip!/@enumerate! produce; string keys travel as their keccak digests) — selected through unzipWords.",
+    "Entry names of a record (`[a:1 b:2]` or `[name value]` pairs), as an array.",
+  compileDescription:
+    "The record is the word-pair payload `@zip!` and `@enumerate!` produce, and string names travel as their keccak digests.",
   returnType: "array",
   args: [
     {
       name: "record",
       type: "record",
-      description:
-        "Record (entries array) to read the names from (in @keys! a zipped word-pair payload: a nested @zip!/@enumerate! face or a `::` call returning the interleaved pairs)",
+      description: "Record (entries array) to read the names from",
     },
   ],
   async run(_, { record }) {

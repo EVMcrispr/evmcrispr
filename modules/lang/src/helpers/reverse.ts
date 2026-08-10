@@ -5,8 +5,7 @@ import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "reverse",
-  description:
-    "Return a new array with elements in reverse order. As @reverse! the array return of a call reversed on-chain through reverseWords — the result is the reversed words payload, composable with the other array faces.",
+  description: "Reverse the order of an array's elements.",
   returnType: "array",
   args: [{ name: "arr", type: "array", description: "Source array" }],
   async run(_, { arr }) {

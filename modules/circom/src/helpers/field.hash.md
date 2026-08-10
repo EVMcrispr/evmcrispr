@@ -2,7 +2,7 @@
 title: "@circom:field.hash"
 ---
 
-Hash hex bytes with keccak256 and reduce the digest into the BN254 scalar field — the standard way to map addresses, strings or arbitrary data into a circuit input.
+Hash hex bytes with keccak256 and reduce the digest into the BN254 scalar field, the standard way to map addresses, strings or arbitrary data into a circuit input.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

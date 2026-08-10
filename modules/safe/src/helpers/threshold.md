@@ -2,7 +2,7 @@
 title: "@safe:threshold"
 ---
 
-Return the signature threshold of a Safe. As @threshold! the getThreshold() read happens on-chain at assertion time (the Safe still resolves at composition time).
+Signature threshold of a Safe.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

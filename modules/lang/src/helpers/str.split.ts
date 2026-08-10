@@ -12,14 +12,14 @@ import type Lang from "..";
 export default defineHelper<Lang>({
   name: "str.split",
   description:
-    "Split a string by a delimiter into an array of strings, or select one segment when an index is given. As @str.split! the string return of a call is split on-chain and the indexed segment selected (the index is required there).",
+    "Split a string by a delimiter into an array of strings, or select one segment when an index is given.",
+  compileDescription: "The segment index is required.",
   returnType: ["array", "string"],
   args: [
     {
       name: "s",
       type: "string",
-      description:
-        "Source string (in @str.split! a `::` call expression or chain returning a string)",
+      description: "Source string",
     },
     {
       name: "delim",
@@ -31,7 +31,7 @@ export default defineHelper<Lang>({
       type: "number",
       optional: true,
       description:
-        "Segment to select instead of the whole array: zero-based from the start, or negative from the end (-1 = last, -2 = second-last, …). Required in @str.split!",
+        "Segment to select instead of the whole array: zero-based from the start, or negative from the end (-1 = last, -2 = second-last, and so on)",
     },
   ],
   async run(_, { s, delim, index }) {

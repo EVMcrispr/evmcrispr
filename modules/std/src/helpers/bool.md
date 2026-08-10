@@ -2,7 +2,9 @@
 title: "@bool"
 ---
 
-Evaluate a boolean expression or convert a value to a boolean string. As @bool! it composes live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract.
+Evaluate a boolean expression or convert a value to a boolean string.
+
+**On-chain (`@bool!`)**: Composes live comparisons with on-chain logic: `and`, `or`, `xor` and `not`.
 
 **Returns**: `bool`
 

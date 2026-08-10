@@ -7,7 +7,8 @@ export default defineHelper<Receipts>({
   name: "block.prevrandao",
   batchable: false,
   description:
-    "The RANDAO mix of a block, as a number: addressed by number or tag you read the mixHash field of a sealed block off-chain (default: latest; pre-merge blocks carry proof-of-work difficulty semantics in it); as @block.prevrandao! you read the block being written at assertion time.",
+    "RANDAO mix of a sealed block, as a number, addressed by number or tag (default: latest; pre-merge blocks carry proof-of-work difficulty semantics).",
+  compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "number",
   args: [
     {

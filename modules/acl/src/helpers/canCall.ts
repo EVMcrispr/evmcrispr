@@ -12,7 +12,8 @@ export default defineHelper<AccessControl>({
   name: "canCall",
   batchable: false,
   description:
-    "Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. As @canCall! the permission read happens on-chain at assertion time (the immediate flag of the pair).",
+    "Whether a caller can immediately call a restricted function of a contract managed by an AccessManager.",
+  compileDescription: "Reads the immediate flag of the pair, not the delay.",
   returnType: "bool",
   args: [
     { name: "manager", type: "address", description: "AccessManager address" },

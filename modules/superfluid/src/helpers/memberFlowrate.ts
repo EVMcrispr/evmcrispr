@@ -10,7 +10,7 @@ export default defineHelper<Superfluid>({
   name: "memberFlowrate",
   batchable: false,
   description:
-    "The slice of the distribution flow of a GDA pool currently streaming to a member, in wei per second. As @memberFlowrate! the getMemberFlowRate() read happens on-chain at assertion time (the pool still resolves at composition time).",
+    "The slice of the distribution flow of a GDA pool currently streaming to a member, in wei per second.",
   returnType: "number",
   args: [
     { name: "pool", type: "address", description: "GDA pool address" },

@@ -7,8 +7,9 @@ import { resolveTxContext } from "../utils/txContext";
 export default defineHelper<Receipts>({
   name: "tx.from",
   batchable: false,
-  description:
-    "The sender of a transaction: addressed by hash you read the from field of a sealed receipt off-chain; as @tx.from! you read the origin of the transaction being written, on-chain at execution time (the ORIGIN opcode, no arguments).",
+  description: "Sender of a transaction, addressed by hash.",
+  compileDescription:
+    "Reads the origin of the transaction being written (the ORIGIN opcode), and takes no arguments.",
   returnType: "address",
   args: [
     { name: "hash", type: "bytes32", description: "Transaction hash" },

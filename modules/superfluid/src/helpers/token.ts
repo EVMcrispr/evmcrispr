@@ -7,7 +7,9 @@ import { fetchSuperTokens, tokenListUrl } from "../utils/supertoken";
 export default defineHelper<Superfluid>({
   name: "token",
   description:
-    "Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx). As @token! the token-list resolution still happens at composition time and the resolved SuperToken address folds into the expression as a constant — pair it with @underlying! for a live on-chain check.",
+    "Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx).",
+  compileDescription:
+    "The token list is off-chain, so the resolved address folds in as a constant; pair it with `@underlying!` for a live check.",
   returnType: "address",
   args: [
     {

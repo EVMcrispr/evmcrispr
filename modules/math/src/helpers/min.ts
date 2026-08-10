@@ -5,8 +5,7 @@ import { numericValues } from "../utils";
 
 export default defineHelper<MathModule>({
   name: "min",
-  description:
-    "Minimum of two or more values: plain @min computes off-chain, @min! on-chain at execution time.",
+  description: "Minimum of two or more values.",
   returnType: "number",
   args: [
     {

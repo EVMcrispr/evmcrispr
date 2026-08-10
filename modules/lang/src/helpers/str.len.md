@@ -2,7 +2,9 @@
 title: "@lang:str.len"
 ---
 
-Return the length of a string. As @str.len! the decoded byte length of the string return of a call, on-chain — there is no code-point walk at assertion time, so multi-byte UTF-8 characters count once per byte.
+Length of a string.
+
+**On-chain (`@lang:str.len!`)**: Counts bytes, so a multi-byte UTF-8 character counts more than once.
 
 **Returns**: `number`
 
@@ -16,7 +18,7 @@ Return the length of a string. As @str.len! the decoded byte length of the strin
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `string` | Input value (in @str.len! a `::` call expression or chain returning a string) |
+| `value` | `string` | Source string |
 
 <!-- HAND-WRITTEN -->
 

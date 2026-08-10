@@ -8,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "defaultAdmin",
   batchable: false,
   description:
-    "Current default admin of an AccessControlDefaultAdminRules contract. As @defaultAdmin! the defaultAdmin() read happens on-chain at assertion time.",
+    "Current default admin of an AccessControlDefaultAdminRules contract.",
   returnType: "address",
   args: [
     {

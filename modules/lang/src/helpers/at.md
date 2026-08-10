@@ -2,7 +2,7 @@
 title: "@lang:at"
 ---
 
-Access an element by index in an array. As @at! an element of the array return of a call, selected on-chain through a typed nav — negative indexes resolve against the live length at assertion time. Over a nested array face (@map!, @filter!, @safe:owners!, …) the element is a core pick into the words payload (an untyped word).
+Access an element by index in an array.
 
 **Returns**: `any`
 
@@ -16,8 +16,8 @@ Access an element by index in an array. As @at! an element of the array return o
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `array` | Input value (in @at! a `::` call expression or chain returning an array) |
-| `index` | `number` | Zero-based index (negative counts from end) |
+| `value` | `array` | Source array |
+| `index` | `number` | Zero-based index (negative counts from the end) |
 
 <!-- HAND-WRITTEN -->
 

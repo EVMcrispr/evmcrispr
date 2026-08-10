@@ -7,15 +7,15 @@ import { constWordsPayload, wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "flat",
-  description:
-    "Flatten one level of nesting in an array. As @flat! the parts' word payloads concatenate on-chain through Operators.concat — an array literal of constant arrays and at most one live call part (spliced last, at any position in the list).",
+  description: "Flatten one level of nesting in an array.",
+  compileDescription:
+    "At most one element may be a live call; the rest must be constant arrays.",
   returnType: "array",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @flat! an array literal whose elements are constant arrays or `::` call parts)",
+      description: "Source array of arrays",
     },
   ],
   async run(_, { arr }) {

@@ -2,7 +2,9 @@
 title: "@lang:zip"
 ---
 
-Combine two arrays element-wise into an array of pairs. As @zip! the two word payloads interleave on-chain through zipWords — at most one side live, and a word-count mismatch reverts at assertion time.
+Combine two arrays element-wise into an array of pairs.
+
+**On-chain (`@lang:zip!`)**: At most one side may be a live call, and a length mismatch reverts.
 
 **Returns**: `array`
 
@@ -16,8 +18,8 @@ Combine two arrays element-wise into an array of pairs. As @zip! the two word pa
 
 | Name | Type | Description |
 |------|------|-------------|
-| `a` | `array` | First array to zip (in @zip! a `::` call, nested array face, or constant array literal) |
-| `b` | `array` | Second array |
+| `a` | `array` | First array to zip |
+| `b` | `array` | Second array to zip |
 
 <!-- HAND-WRITTEN -->
 

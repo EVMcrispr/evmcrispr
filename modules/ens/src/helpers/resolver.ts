@@ -6,7 +6,7 @@ import { mainnetClient } from "../utils";
 export default defineHelper<Ens>({
   name: "resolver",
   batchable: false,
-  description: "Get the resolver contract address of an ENS name.",
+  description: "Resolver contract address of an ENS name.",
   returnType: "address",
   args: [
     {

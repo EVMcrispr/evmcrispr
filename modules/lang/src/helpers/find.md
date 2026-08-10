@@ -2,7 +2,9 @@
 title: "@lang:find"
 ---
 
-Return the first element that satisfies the predicate. As @find! the first word of the filterWords output — a core pick over the kept payload — so a live filter with no match REVERTS the assertion (the off-chain @find raises the same no-match error at run time).
+First element that satisfies the predicate; no match is an error.
+
+**On-chain (`@lang:find!`)**: The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.
 
 **Returns**: `any`
 
@@ -16,8 +18,8 @@ Return the first element that satisfies the predicate. As @find! the first word 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @find! a `::` call expression or chain returning an array of single-word elements, or a nested array face) |
-| `fn` | `helper` | Predicate helper returning bool (in @find! an Operators-backed single-call predicate, e.g. `@bool!(>= 100)`) |
+| `arr` | `array` | Source array |
+| `fn` | `helper` | Predicate helper returning bool |
 
 <!-- HAND-WRITTEN -->
 

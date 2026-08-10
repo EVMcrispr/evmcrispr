@@ -10,8 +10,7 @@ import { getOwners, safeAbi } from "../utils";
 
 export default defineHelper<Safe>({
   name: "owners",
-  description:
-    "Return the owner addresses of a Safe. As @owners! the getOwners() read happens on-chain at assertion time as an array operand (the live words payload), composable with the lang array faces: @lang:includes!, @lang:len!, @lang:at!, @map!, @sort!, ….",
+  description: "Owner addresses of a Safe.",
   returnType: "array",
   batchable: false,
   args: [

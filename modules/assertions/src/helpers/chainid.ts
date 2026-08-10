@@ -6,7 +6,7 @@ export default defineHelper<Assertions>({
   name: "chainid",
   batchable: false,
   description:
-    "The chain id: read at script build time as @chainid, on-chain at assertion time as @chainid! — unlike assert-chainid both compose into expressions.",
+    "The chain id. Unlike assert-chainid it composes into expressions.",
   returnType: "number",
   args: [],
   async run(module) {

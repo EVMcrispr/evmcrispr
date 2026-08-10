@@ -4,7 +4,7 @@ import type Std from "..";
 export default defineHelper<Std>({
   name: "gas.price",
   batchable: false,
-  description: "Return the current gas price in wei.",
+  description: "Current gas price in wei.",
   returnType: "number",
   args: [],
   async run(module) {

@@ -2,7 +2,7 @@
 title: "@token:decimals"
 ---
 
-Return the number of decimals of a token. As @decimals! the symbol resolves at composition time and decimals() is read on-chain at assertion time (the native token folds to its constant).
+Number of decimals of a token.
 
 **Returns**: `number`
 

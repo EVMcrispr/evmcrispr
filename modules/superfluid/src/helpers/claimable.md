@@ -2,7 +2,7 @@
 title: "@superfluid:claimable"
 ---
 
-Amount a member can claim from a GDA pool right now (accrued earnings not yet reflected in their balance). As @claimable! the getClaimableNow() read happens on-chain at assertion time, against the timestamp of the block that executes the batch (the pool still resolves at composition time).
+Amount a member can claim from a GDA pool right now (accrued earnings not yet reflected in their balance).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

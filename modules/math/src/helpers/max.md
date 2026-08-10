@@ -2,7 +2,7 @@
 title: "@math:max"
 ---
 
-Maximum of two or more values: plain @max computes off-chain, @max! on-chain at execution time.
+Maximum of two or more values.
 
 **Returns**: `number`
 

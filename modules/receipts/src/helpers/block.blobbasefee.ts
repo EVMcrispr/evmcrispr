@@ -33,7 +33,8 @@ export default defineHelper<Receipts>({
   name: "block.blobbasefee",
   batchable: false,
   description:
-    "The blob base fee in wei: with no block argument the live value over RPC; addressed by number or tag the EIP-4844 value of that sealed block, computed from its excess blob gas (blocks predating EIP-4844 error); as @block.blobbasefee! you read the block being written at assertion time.",
+    "Blob base fee in wei: the live value with no arguments, or the EIP-4844 value of a sealed block computed from its excess blob gas (blocks predating EIP-4844 error).",
+  compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "number",
   args: [
     {

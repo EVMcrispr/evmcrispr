@@ -10,7 +10,7 @@ import {
 export default defineHelper<Semaphore>({
   name: "verify",
   description:
-    "Check a Semaphore membership proof against a group with the contract's view verifier — no transaction and no nullifier recording.",
+    "Check a Semaphore membership proof against a group with the contract's view verifier: no transaction and no nullifier recording.",
   returnType: "bool",
   batchable: false,
   args: [

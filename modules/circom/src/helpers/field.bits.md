@@ -2,7 +2,7 @@
 title: "@circom:field.bits"
 ---
 
-Decompose a value into its bits, least-significant first — e.g. a Merkle path index into the per-level indices a circuit expects.
+Decompose a value into its bits, least-significant first, e.g. a Merkle path index into the per-level indices a circuit expects.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

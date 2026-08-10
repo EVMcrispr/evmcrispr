@@ -7,7 +7,7 @@ import { compileNoirCached } from "../utils/noir";
 export default defineHelper<Noir>({
   name: "vkey",
   description:
-    "Compile Noir source and return its UltraHonk verification key as 0x-hex bytes — feed it to @noir:verify for off-chain checks. Defaults to the keccak (EVM) transcript so it matches proofs from noir:prove; pass oracle:poseidon for bb's native transcript.",
+    "Compile Noir source and return its UltraHonk verification key as 0x-hex bytes, for @noir:verify off-chain checks. Defaults to the keccak (EVM) transcript so it matches proofs from noir:prove; pass oracle:poseidon for bb's native transcript.",
   returnType: "string",
   args: [
     {

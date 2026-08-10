@@ -2,7 +2,9 @@
 title: "@receipts:block.hash"
 ---
 
-The hash of a block: addressed by number or tag you read ANY sealed block off-chain (default: latest); as @block.hash!(n) the read happens at assertion time under BLOCKHASH semantics, so it only reaches the previous 256 blocks and reads 0 outside them (the current block, the future, anything older). Compose the number live, e.g. @block.hash!(@block.number! - 1).
+Hash of a sealed block, addressed by number or tag (default: latest).
+
+**On-chain (`@receipts:block.hash!`)**: BLOCKHASH semantics: the block number is required, only the previous 256 blocks are reachable, and anything outside them reads 0.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -18,7 +20,7 @@ The hash of a block: addressed by number or tag you read ANY sealed block off-ch
 
 | Name | Type | Description |
 |------|------|-------------|
-| `[block]` | `number \| string` | Block number or tag (default: latest); with ! a required block number, constant or infix expression |
+| `[block]` | `number \| string` | Block number or tag (default: latest) |
 | `[chain]` | `chain` | Chain to look on (default: current chain) |
 
 ## Examples

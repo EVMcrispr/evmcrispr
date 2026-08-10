@@ -2,7 +2,7 @@
 title: "@assertions:chainid"
 ---
 
-The chain id: read at script build time as @chainid, on-chain at assertion time as @chainid! — unlike assert-chainid both compose into expressions.
+The chain id. Unlike assert-chainid it composes into expressions.
 
 **Returns**: `number`
 
@@ -24,4 +24,4 @@ assertions:assert @chainid! == 100 "wrong chain"
 
 ## See Also
 
-- [assertions:assert-chainid](../commands/assert-chainid.md), [@assertions:timestamp!](timestamp.md), [@assertions:blocknumber!](blocknumber.md)
+- [assertions:assert-chainid](../commands/assert-chainid.md), [@receipts:block.timestamp!](../../../receipts/src/helpers/block.timestamp.md), [@receipts:block.number!](../../../receipts/src/helpers/block.number.md)

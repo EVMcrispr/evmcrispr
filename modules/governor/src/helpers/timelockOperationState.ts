@@ -14,7 +14,9 @@ export default defineHelper<Governor>({
   name: "timelockOperationState",
   batchable: false,
   description:
-    "State of a TimelockController operation: Unset, Waiting, Ready or Done. As @timelockOperationState! a nested core cond over the timelock's isOperationDone/isOperationReady/isOperationPending views producing OZ's NUMERIC OperationState (0 Unset, 1 Waiting, 2 Ready, 3 Done) — the string mapping stays off-chain.",
+    "State of a TimelockController operation: Unset, Waiting, Ready or Done.",
+  compileDescription:
+    "Returns the numeric OperationState (0 Unset, 1 Waiting, 2 Ready, 3 Done), not the name.",
   returnType: "string",
   args: [
     {

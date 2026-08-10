@@ -2,7 +2,7 @@
 title: "@giveth:stakable"
 ---
 
-GIV in an account's wallet that giveth:stake can stake for GIVpower. Counts pending claim/stake/unstake actions earlier in the script — what `stake max` resolves to.
+GIV in an account's wallet that giveth:stake can stake for GIVpower. Counts pending claim/stake/unstake actions earlier in the script, so it is what `stake max` resolves to.
 
 **Returns**: `number`
 

@@ -2,7 +2,9 @@
 title: "@bytes"
 ---
 
-Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation. As @bytes! the bitwise word operations (`&` `|` `^` `<<` `>>`) are computed on-chain over the raw 32-byte words (shifts in bits; `>>` on a signed value is the arithmetic shift), or with a single argument the raw word cast (e.g. bool as 0/1).
+Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation.
+
+**On-chain (`@bytes!`)**: Bitwise operations run over the raw 32-byte words (shifts in bits, `>>` arithmetic on a signed value); with one argument it is the raw word cast.
 
 **Returns**: `bytes`
 

@@ -26,8 +26,8 @@ load governor
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@governor:proposalId](src/helpers/proposalId.md) | `number` | Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script. As @proposalId! the id is read on-chain at assertion time through orElse(getProposalId, hashProposal) — whichever derivation the governor exposes wins. |
-| [@governor:proposalState](src/helpers/proposalState.md) | `string` | Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed. As @proposalState! the state(id) read happens on-chain at assertion time as the RAW uint8 enum value (0 Pending, 1 Active, 2 Canceled, 3 Defeated, 4 Succeeded, 5 Queued, 6 Expired, 7 Executed) — the string mapping stays off-chain. |
-| [@governor:timelockMinDelay](src/helpers/timelockMinDelay.md) | `number` | Minimum delay in seconds a TimelockController enforces on new operations. As @timelockMinDelay! the getMinDelay() read happens on-chain at assertion time. |
-| [@governor:timelockOperationState](src/helpers/timelockOperationState.md) | `string` | State of a TimelockController operation: Unset, Waiting, Ready or Done. As @timelockOperationState! a nested core cond over the timelock's isOperationDone/isOperationReady/isOperationPending views producing OZ's NUMERIC OperationState (0 Unset, 1 Waiting, 2 Ready, 3 Done) — the string mapping stays off-chain. |
+| [@governor:proposalId](src/helpers/proposalId.md) | `number` | Proposal id of a Governor proposal, derived from its targets, values, calldatas and description. Prefer the optional variable of governor:propose when creating the proposal in the same script. |
+| [@governor:proposalState](src/helpers/proposalState.md) | `string` | Current state of a Governor proposal: Pending, Active, Canceled, Defeated, Succeeded, Queued, Expired or Executed. |
+| [@governor:timelockMinDelay](src/helpers/timelockMinDelay.md) | `number` | Minimum delay in seconds a TimelockController enforces on new operations. |
+| [@governor:timelockOperationState](src/helpers/timelockOperationState.md) | `string` | State of a TimelockController operation: Unset, Waiting, Ready or Done. |
 

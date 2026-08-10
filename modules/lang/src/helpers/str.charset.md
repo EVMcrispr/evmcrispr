@@ -2,7 +2,7 @@
 title: "@lang:str.charset"
 ---
 
-Check whether every byte of a string is in a character class (ranges like `a-z0-9-`; a leading or trailing dash is the literal `-`). As @str.charset! the string return of a call is checked on-chain with the same byte-level semantics.
+Check whether every byte of a string is in a character class (ranges like `a-z0-9-`; a leading or trailing dash is the literal `-`).
 
 **Returns**: `bool`
 
@@ -16,7 +16,7 @@ Check whether every byte of a string is in a character class (ranges like `a-z0-
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `string` | String to check (in @str.charset! a `::` call expression or chain returning a string) |
+| `value` | `string` | String to check |
 | `class` | `string` | Allowed characters and ranges, e.g. `a-z0-9-` (a leading or trailing dash is the literal `-`) |
 
 <!-- HAND-WRITTEN -->

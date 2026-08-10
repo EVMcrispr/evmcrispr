@@ -2,7 +2,7 @@
 title: "@lang:bytes.len"
 ---
 
-Return the byte length of a bytes value. As @bytes.len! the decoded byte length of the string/bytes return of a call, on-chain — UTF-8 characters may span multiple bytes.
+Byte length of a bytes value (a UTF-8 character may span several bytes).
 
 **Returns**: `number`
 
@@ -16,7 +16,7 @@ Return the byte length of a bytes value. As @bytes.len! the decoded byte length 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `bytes` | Input value (in @bytes.len! a `::` call expression or chain returning a string or bytes value) |
+| `value` | `bytes` | Source bytes or string value |
 
 <!-- HAND-WRITTEN -->
 

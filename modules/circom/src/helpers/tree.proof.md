@@ -2,7 +2,7 @@
 title: "@circom:tree.proof"
 ---
 
-Generate the Poseidon Merkle inclusion proof for the leaf at the given index, as a `[pathIndex siblings]` pair ready for destructuring — or `[pathIndex siblings length]` with `pad:<n>`, which zero-pads lean siblings to the fixed length circuits expect. Fixed-depth proofs always have exactly `depth` siblings; lean proofs skip levels without one and compress the path index accordingly.
+Generate the Poseidon Merkle inclusion proof for the leaf at the given index, as a `[pathIndex siblings]` pair ready for destructuring, or `[pathIndex siblings length]` with `pad:<n>`, which zero-pads lean siblings to the fixed length circuits expect. Fixed-depth proofs always have exactly `depth` siblings; lean proofs skip levels without one and compress the path index accordingly.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

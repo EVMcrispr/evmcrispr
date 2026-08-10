@@ -16,7 +16,9 @@ export default defineHelper<Std>({
   name: "balance",
   batchable: false,
   description:
-    "Fetch a balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address. As @balance! the balance is read on-chain at assertion time instead of script build time.",
+    "Balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address.",
+  compileDescription:
+    "The holder may be a `::` call resolving to an address, for native ETH only.",
   returnType: "number",
   args: [
     {
@@ -28,8 +30,7 @@ export default defineHelper<Std>({
     {
       name: "holder",
       type: "address",
-      description:
-        "Account address, or (@balance! with native ETH only) a `::` call resolving to one",
+      description: "Account address",
     },
   ],
   async run(module, { token, holder }) {

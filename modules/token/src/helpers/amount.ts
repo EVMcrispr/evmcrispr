@@ -19,7 +19,9 @@ import type Token from "..";
 export default defineHelper<Token>({
   name: "amount",
   description:
-    "Convert a human-readable token amount to its base unit (applying decimals). As @amount! the scaling composes on-chain against a live decimals() read: mul(mantissa, exp(10, decimals - fractionDigits)).",
+    "Convert a human-readable token amount to its base unit (applying decimals).",
+  compileDescription:
+    "Scales against a live `decimals()` read rather than a build-time constant.",
   returnType: "number",
   args: [
     {

@@ -11,7 +11,7 @@ export default defineHelper<Superfluid>({
   name: "underlying",
   batchable: false,
   description:
-    "Underlying ERC-20 of a SuperToken (the zero address for native-asset SuperTokens like ETHx or xDAIx). As @underlying! the getUnderlyingToken() read happens on-chain at assertion time (the SuperToken still resolves at composition time).",
+    "Underlying ERC-20 of a SuperToken (the zero address for native-asset SuperTokens like ETHx or xDAIx).",
   returnType: "address",
   args: [
     {

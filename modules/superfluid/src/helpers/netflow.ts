@@ -13,7 +13,7 @@ export default defineHelper<Superfluid>({
   name: "netflow",
   batchable: false,
   description:
-    "Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining. As @netflow! both agreement reads happen on-chain at assertion time and are summed there (the SuperToken still resolves at composition time).",
+    "Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining.",
   returnType: "number",
   args: [
     {

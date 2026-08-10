@@ -2,7 +2,9 @@
 title: "@lang:str.concat"
 ---
 
-Concatenate strings together. As @str.concat! the parts concatenate on-chain through Operators.concat — constant strings plus at most one live call part (spliced into the calldata last, at any argument position).
+Concatenate strings together.
+
+**On-chain (`@lang:str.concat!`)**: At most one part may be a live call; the rest must be string constants.
 
 **Returns**: `string`
 
@@ -16,7 +18,7 @@ Concatenate strings together. As @str.concat! the parts concatenate on-chain thr
 
 | Name | Type | Description |
 |------|------|-------------|
-| `first` | `string` | First string segment (in @str.concat! a string constant or a `::` call returning string/bytes) |
+| `first` | `string` | First string segment |
 | `[...rest]` | `string` | Strings to append |
 
 <!-- HAND-WRITTEN -->

@@ -4,7 +4,7 @@ import type Contracts from "..";
 export default defineHelper<Contracts>({
   name: "codeAt",
   batchable: false,
-  description: "Return the deployed bytecode at an address.",
+  description: "Deployed bytecode at an address.",
   returnType: "bytes",
   args: [
     {

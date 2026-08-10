@@ -2,7 +2,7 @@
 title: "@vault:totalAssets"
 ---
 
-Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset. As @totalAssets! the read happens on-chain at assertion time.
+Total amount of underlying assets managed by an ERC-4626 vault, in base units of the asset.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

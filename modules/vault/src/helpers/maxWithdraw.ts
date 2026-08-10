@@ -9,7 +9,7 @@ export default defineHelper<Vault>({
   name: "maxWithdraw",
   batchable: false,
   description:
-    "Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset. As @maxWithdraw! the read happens on-chain at assertion time (the owner still defaults to the connected account at composition time).",
+    "Maximum amount of underlying assets an account can withdraw from an ERC-4626 vault, in base units of the asset.",
   returnType: "number",
   args: [
     {

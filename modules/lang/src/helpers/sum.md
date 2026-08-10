@@ -2,7 +2,7 @@
 title: "@lang:sum"
 ---
 
-Sum the elements of an array. As @sum! a native `sumWords` over the array return of a call: the checked sum of its single-word elements. It is the fixed-operation sibling of @reduce! (use `@reduce!(add 0)` for any other reduction).
+Sum the elements of an array.
 
 **Returns**: `number`
 
@@ -16,7 +16,7 @@ Sum the elements of an array. As @sum! a native `sumWords` over the array return
 
 | Name | Type | Description |
 |------|------|-------------|
-| `arr` | `array` | Source array (in @sum! a `::` call expression or chain returning an array of single-word elements, or a nested array face) |
+| `arr` | `array` | Source array |
 
 <!-- HAND-WRITTEN -->
 

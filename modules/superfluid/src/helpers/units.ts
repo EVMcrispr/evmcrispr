@@ -9,8 +9,7 @@ import { compileTarget } from "../utils/onchain";
 export default defineHelper<Superfluid>({
   name: "units",
   batchable: false,
-  description:
-    "Share units a member holds in a GDA pool. As @units! the getUnits() read happens on-chain at assertion time (the pool still resolves at composition time).",
+  description: "Share units a member holds in a GDA pool.",
   returnType: "number",
   args: [
     { name: "pool", type: "address", description: "GDA pool address" },

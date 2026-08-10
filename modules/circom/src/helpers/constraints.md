@@ -2,7 +2,7 @@
 title: "@circom:constraints"
 ---
 
-Compile circom source (inline text or a http/ipfs URL) and return its constraint count — useful to size the powers-of-tau a setup needs (a 2^p ptau supports up to 2^p constraints).
+Compile circom source (inline text or a http/ipfs URL) and return its constraint count, useful to size the powers-of-tau a setup needs (a 2^p ptau supports up to 2^p constraints).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

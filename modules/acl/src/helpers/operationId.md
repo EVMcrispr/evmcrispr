@@ -2,7 +2,7 @@
 title: "@acl:operationId"
 ---
 
-Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule. As @operationId! hashOperation is read on-chain at assertion time.
+Operation id of an AccessManager call (hashOperation of caller, target and calldata), for use with @acl:operationSchedule.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

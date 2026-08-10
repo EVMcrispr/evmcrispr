@@ -2,7 +2,7 @@
 title: "@acl:owner"
 ---
 
-Current owner of an Ownable contract. As @owner! the owner() read happens on-chain at assertion time.
+Current owner of an Ownable contract.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

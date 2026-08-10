@@ -2,7 +2,9 @@
 title: "@lang:str.replace"
 ---
 
-Replace all occurrences of a substring. As @str.replace! the string return of a call is rewritten on-chain — every non-overlapping left-to-right match of the exact byte sequence.
+Replace all occurrences of a substring (every non-overlapping left-to-right match).
+
+**On-chain (`@lang:str.replace!`)**: The substring to match must be non-empty.
 
 **Returns**: `string`
 
@@ -16,8 +18,8 @@ Replace all occurrences of a substring. As @str.replace! the string return of a 
 
 | Name | Type | Description |
 |------|------|-------------|
-| `s` | `string` | Source string (in @str.replace! a `::` call expression or chain returning a string) |
-| `old` | `string` | Substring to match (non-empty in @str.replace!) |
+| `s` | `string` | Source string |
+| `old` | `string` | Substring to match |
 | `replacement` | `string` | Replacement text |
 
 <!-- HAND-WRITTEN -->

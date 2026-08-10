@@ -8,7 +8,7 @@ export default defineHelper<AccessControl>({
   name: "roleAdmin",
   batchable: false,
   description:
-    "Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers. As @roleAdmin! the read happens on-chain at assertion time.",
+    "Admin role that controls a role: a bytes32 value on AccessControl contracts, a role id on AccessManagers.",
   returnType: ["bytes32", "number"],
   args: [
     {

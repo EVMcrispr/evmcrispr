@@ -16,21 +16,20 @@ const REDUCERS = ["add", "min", "max", "bitOr", "bitAnd"] as const;
 
 export default defineHelper<Lang>({
   name: "reduce",
-  description:
-    "Reduce an array to a single value by applying a helper. As @reduce! a foldWords over the array return of a call with a binary Operators lambda — add, min, max, bitOr or bitAnd — and a build-time initial accumulator.",
+  description: "Reduce an array to a single value by applying a helper.",
+  compileDescription:
+    "The reducer must be one of `add`, `min`, `max`, `bitOr` or `bitAnd`, and the initial accumulator a build-time value.",
   returnType: "any",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @reduce! a `::` call expression or chain returning an array of single-word elements)",
+      description: "Source array",
     },
     {
       name: "fn",
       type: "helper",
-      description:
-        "Reducer helper receiving `(accumulator, element)` (in @reduce! one of `add`, `min`, `max`, `bitOr`, `bitAnd`)",
+      description: "Reducer helper receiving `(accumulator, element)`",
     },
     { name: "initial", type: "any", description: "Initial accumulator value" },
   ],

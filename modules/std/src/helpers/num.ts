@@ -6,7 +6,9 @@ import { evaluateArithmeticExpr, toNum, validateNoEmbeddedOps } from "./_expr";
 export default defineHelper<Std>({
   name: "num",
   description:
-    "Evaluate an arithmetic expression or convert a value to a number. As @num! it composes live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract.",
+    "Evaluate an arithmetic expression or convert a value to a number.",
+  compileDescription:
+    "Composes live calls and constants with on-chain arithmetic: `+ - * / % ^` and `xor`.",
   returnType: "number",
   args: [
     {

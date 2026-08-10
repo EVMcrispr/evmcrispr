@@ -12,20 +12,20 @@ import { wordsArg } from "../utils/onchain";
 export default defineHelper<Lang>({
   name: "find",
   description:
-    "Return the first element that satisfies the predicate. As @find! the first word of the filterWords output — a core pick over the kept payload — so a live filter with no match REVERTS the assertion (the off-chain @find raises the same no-match error at run time).",
+    "First element that satisfies the predicate; no match is an error.",
+  compileDescription:
+    "The predicate must be an Operators-backed helper reducing to one call, e.g. `@bool!(>= 100)`, with the element prepended to its arguments.",
   returnType: "any",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @find! a `::` call expression or chain returning an array of single-word elements, or a nested array face)",
+      description: "Source array",
     },
     {
       name: "fn",
       type: "helper",
-      description:
-        "Predicate helper returning bool (in @find! an Operators-backed single-call predicate, e.g. `@bool!(>= 100)`)",
+      description: "Predicate helper returning bool",
     },
   ],
   async run(_, { arr, fn }) {

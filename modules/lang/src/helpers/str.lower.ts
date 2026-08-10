@@ -10,15 +10,15 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.lower",
-  description:
-    "Convert a string to lowercase. As @str.lower! the string return of a call is case-mapped on-chain — ASCII letters only, every other byte passes verbatim (UTF-8 safe).",
+  description: "Convert a string to lowercase.",
+  compileDescription:
+    "Maps ASCII letters only; every other byte passes through unchanged.",
   returnType: "string",
   args: [
     {
       name: "s",
       type: "string",
-      description:
-        "Source string (in @str.lower! a `::` call expression or chain returning a string)",
+      description: "Source string",
     },
   ],
   async run(_, { s }) {

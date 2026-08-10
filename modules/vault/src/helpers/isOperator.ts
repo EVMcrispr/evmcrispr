@@ -9,7 +9,7 @@ export default defineHelper<Vault>({
   name: "isOperator",
   batchable: false,
   description:
-    "Whether an account is an approved operator of a controller on an ERC-7540 vault. As @isOperator! the read happens on-chain at assertion time.",
+    "Whether an account is an approved operator of a controller on an ERC-7540 vault.",
   returnType: "bool",
   args: [
     {

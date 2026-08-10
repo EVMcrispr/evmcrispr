@@ -7,8 +7,7 @@ import { ownableAbi } from "../utils";
 export default defineHelper<AccessControl>({
   name: "owner",
   batchable: false,
-  description:
-    "Current owner of an Ownable contract. As @owner! the owner() read happens on-chain at assertion time.",
+  description: "Current owner of an Ownable contract.",
   returnType: "address",
   args: [
     {

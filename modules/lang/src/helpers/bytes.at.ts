@@ -15,15 +15,13 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "bytes.at",
-  description:
-    "Access a single byte by index in a bytes value. As @bytes.at! a one-byte slice of the bytes/string return of a call, on-chain — negative indexes resolve against the live byte length at assertion time.",
+  description: "Access a single byte by index in a bytes value.",
   returnType: "bytes",
   args: [
     {
       name: "value",
       type: "bytes",
-      description:
-        "Input value (in @bytes.at! a `::` call expression or chain returning a bytes or string value)",
+      description: "Source bytes value",
     },
     {
       name: "index",

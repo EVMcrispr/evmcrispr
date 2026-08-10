@@ -2,7 +2,9 @@
 title: "@num"
 ---
 
-Evaluate an arithmetic expression or convert a value to a number. As @num! it composes live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract.
+Evaluate an arithmetic expression or convert a value to a number.
+
+**On-chain (`@num!`)**: Composes live calls and constants with on-chain arithmetic: `+ - * / % ^` and `xor`.
 
 **Returns**: `number`
 

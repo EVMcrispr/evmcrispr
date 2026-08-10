@@ -2,7 +2,9 @@
 title: "@acl:canCall"
 ---
 
-Whether a caller can immediately call a restricted function of a contract managed by an AccessManager. As @canCall! the permission read happens on-chain at assertion time (the immediate flag of the pair).
+Whether a caller can immediately call a restricted function of a contract managed by an AccessManager.
+
+**On-chain (`@acl:canCall!`)**: Reads the immediate flag of the pair, not the delay.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

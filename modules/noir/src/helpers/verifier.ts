@@ -6,7 +6,7 @@ import { compileNoirCached } from "../utils/noir";
 export default defineHelper<Noir>({
   name: "verifier",
   description:
-    "Compile Noir source and return the Solidity UltraHonk verifier contract source (always the keccak/EVM transcript) — pipe it through @contracts:solidity and contracts:deploy, then call verify(bytes,bytes32[])(bool) with the tuple from @noir:proof. Shares the compile cache with noir:prove --noir, so deployed verifier and generated proofs always match.",
+    "Compile Noir source and return the Solidity UltraHonk verifier contract source (always the keccak/EVM transcript), ready to pipe through @contracts:solidity and contracts:deploy, then call verify(bytes,bytes32[])(bool) with the tuple from @noir:proof. Shares the compile cache with noir:prove --noir, so deployed verifier and generated proofs always match.",
   returnType: "string",
   args: [
     {

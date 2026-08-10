@@ -2,7 +2,7 @@
 title: "@block"
 ---
 
-Return [number, timestamp] of the latest or a specific block.
+[number, timestamp] of the latest or a specific block.
 
 **Returns**: `array`
 

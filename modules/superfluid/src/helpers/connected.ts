@@ -10,7 +10,7 @@ export default defineHelper<Superfluid>({
   name: "connected",
   batchable: false,
   description:
-    "Whether a member is connected to a GDA pool (connected members see pool earnings in their balance automatically). As @connected! the isMemberConnected() read happens on-chain at assertion time, so a batch can gate on a connection made by an earlier action in the same batch.",
+    "Whether a member is connected to a GDA pool (connected members see pool earnings in their balance automatically).",
   returnType: "bool",
   args: [
     { name: "pool", type: "address", description: "GDA pool address" },

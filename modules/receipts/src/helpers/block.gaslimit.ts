@@ -7,7 +7,8 @@ export default defineHelper<Receipts>({
   name: "block.gaslimit",
   batchable: false,
   description:
-    "The block gas limit: addressed by number or tag you read a sealed block off-chain (default: latest); as @block.gaslimit! you read the block being written at assertion time.",
+    "Gas limit of a sealed block, addressed by number or tag (default: latest).",
+  compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "number",
   args: [
     {

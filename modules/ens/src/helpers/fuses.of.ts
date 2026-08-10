@@ -8,7 +8,7 @@ export default defineHelper<Ens>({
   name: "fuses.of",
   experimental: true,
   batchable: false,
-  description: "Get the burned fuse names of a wrapped ENS name.",
+  description: "Burned fuse names of a wrapped ENS name.",
   returnType: "array",
   args: [{ name: "name", type: "string", description: "Wrapped ENS name" }],
   async run(module, { name }, { node }) {

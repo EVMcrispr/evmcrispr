@@ -2,7 +2,9 @@
 title: "@hash"
 ---
 
-Compute the hash of a string with keccak256 (default) or sha256. As @hash! the digest of the decoded string/bytes return of a call, computed on-chain — keccak256 through the Operators hash, sha256 through a rawCall to the SHA-256 precompile.
+Compute the hash of a string with keccak256 (default) or sha256.
+
+**On-chain (`@hash!`)**: Hashes the decoded string or bytes a call returns, not its ABI envelope.
 
 **Returns**: `bytes32`
 
@@ -16,7 +18,7 @@ Compute the hash of a string with keccak256 (default) or sha256. As @hash! the d
 
 | Name | Type | Description |
 |------|------|-------------|
-| `text` | `string` | String to hash (e.g. a function signature); in @hash! a `::` call expression (or chain) returning a string or bytes value |
+| `text` | `string` | String to hash (e.g. a function signature) |
 | `[algorithm]` | `string` | `keccak256` (default) or `sha256` |
 
 ## Examples

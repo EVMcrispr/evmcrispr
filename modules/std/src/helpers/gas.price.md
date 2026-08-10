@@ -2,7 +2,7 @@
 title: "@gas.price"
 ---
 
-Return the current gas price in wei.
+Current gas price in wei.
 
 **Returns**: `number`
 

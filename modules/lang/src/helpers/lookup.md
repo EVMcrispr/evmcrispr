@@ -2,7 +2,9 @@
 title: "@lang:lookup"
 ---
 
-Look up an entry by name in a record (`[a:1 b:2]` or `[name value]` pairs). As @lookup! the value at wordIndexOf(keys, key) of an on-chain record — a zipped key/value word-pair payload (what @zip!/@enumerate! produce) — with build-time string keys keccak-hashed at composition time and live keys hashed on-chain; a missing key REVERTS the assertion (the index sentinel lands past the values lane).
+Look up an entry by name in a record (`[a:1 b:2]` or `[name value]` pairs).
+
+**On-chain (`@lang:lookup!`)**: The record is a `@zip!`/`@enumerate!` word-pair payload, string names travel as keccak digests, and a missing name reverts.
 
 **Returns**: `any`
 
@@ -16,8 +18,8 @@ Look up an entry by name in a record (`[a:1 b:2]` or `[name value]` pairs). As @
 
 | Name | Type | Description |
 |------|------|-------------|
-| `record` | `record` | Record (entries array) to look the name up in (in @lookup! a zipped word-pair payload: a nested @zip!/@enumerate! face or a `::` call returning the interleaved pairs) |
-| `name` | `string` | Entry name to look up (in @lookup! a build-time word or string — string keys travel as their keccak digests — or a live call/face) |
+| `record` | `record` | Record (entries array) to look the name up in |
+| `name` | `string` | Entry name to look up |
 
 <!-- HAND-WRITTEN -->
 

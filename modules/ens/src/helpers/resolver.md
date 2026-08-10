@@ -2,7 +2,7 @@
 title: "@ens:resolver"
 ---
 
-Get the resolver contract address of an ENS name.
+Resolver contract address of an ENS name.
 
 **Returns**: `address`
 

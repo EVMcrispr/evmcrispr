@@ -2,7 +2,7 @@
 title: "@safe:guard"
 ---
 
-Return the transaction guard address of a Safe (the zero address when no guard is set). As @guard! the guard slot is read on-chain at assertion time through the Safe's own getStorageAt view.
+Transaction guard address of a Safe (the zero address when no guard is set).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

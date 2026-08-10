@@ -44,11 +44,11 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@safe:guard](src/helpers/guard.md) | `address` | Return the transaction guard address of a Safe (the zero address when no guard is set). As @guard! the guard slot is read on-chain at assertion time through the Safe's own getStorageAt view. |
-| [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Return whether an address is an owner of a Safe. As @isOwner! the Safe's own isOwner(address) view is read on-chain at assertion time. |
-| [@safe:messageHash](src/helpers/messageHash.md) | `bytes32` | Return the SafeMessage hash of an off-chain message (plain string or typed-data JSON), as signed by Safe owners or SignMessageLib. |
-| [@safe:modules](src/helpers/modules.md) | `array` | Return the enabled module addresses of a Safe. As @modules! ONE getModulesPaginated(0x1, pageSize) page read on-chain at assertion time, navigated to its array component as an array operand composable with the lang array faces — the composition-time pageSize (default 100) caps how many modules the page can carry, so a Safe with more modules than the page size is truncated to the first page. |
-| [@safe:nonce](src/helpers/nonce.md) | `number` | Return the current on-chain nonce of a Safe. As @nonce! the nonce() read happens on-chain at assertion time — pin a proposal's execution window. |
-| [@safe:owners](src/helpers/owners.md) | `array` | Return the owner addresses of a Safe. As @owners! the getOwners() read happens on-chain at assertion time as an array operand (the live words payload), composable with the lang array faces: @lang:includes!, @lang:len!, @lang:at!, @map!, @sort!, …. |
-| [@safe:threshold](src/helpers/threshold.md) | `number` | Return the signature threshold of a Safe. As @threshold! the getThreshold() read happens on-chain at assertion time (the Safe still resolves at composition time). |
+| [@safe:guard](src/helpers/guard.md) | `address` | Transaction guard address of a Safe (the zero address when no guard is set). |
+| [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Whether an address is an owner of a Safe. |
+| [@safe:messageHash](src/helpers/messageHash.md) | `bytes32` | SafeMessage hash of an off-chain message (plain string or typed-data JSON), as signed by Safe owners or SignMessageLib. |
+| [@safe:modules](src/helpers/modules.md) | `array` | Enabled module addresses of a Safe. |
+| [@safe:nonce](src/helpers/nonce.md) | `number` | Current nonce of a Safe. |
+| [@safe:owners](src/helpers/owners.md) | `array` | Owner addresses of a Safe. |
+| [@safe:threshold](src/helpers/threshold.md) | `number` | Signature threshold of a Safe. |
 

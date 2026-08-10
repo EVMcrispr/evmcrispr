@@ -5,7 +5,7 @@ import { buildCircomSetupOptions, setupCached } from "../utils/setup";
 export default defineHelper<Circom>({
   name: "vkey",
   description:
-    "Compile circom source, run the in-place setup and return the verification key as JSON — feed it to @circom:verify for off-chain checks. Shares the compile and setup caches with @circom:verifier and circom:prove --circom.",
+    "Compile circom source, run the in-place setup and return the verification key as JSON, for @circom:verify off-chain checks. Shares the compile and setup caches with @circom:verifier and circom:prove --circom.",
   returnType: "string",
   args: [
     {

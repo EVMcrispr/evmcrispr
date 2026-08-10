@@ -18,7 +18,7 @@ load contracts
 | Helper | Returns | Description |
 |--------|---------|-------------|
 | [@contracts:account](src/helpers/account.md) ⚗️ | `string` | Human-readable summary of an address: EOA / contract / EIP-7702-delegated EOA, verified contract name, proxy implementation, ENS name, balance and tx count. |
-| [@contracts:codeAt](src/helpers/codeAt.md) | `bytes` | Return the deployed bytecode at an address. |
+| [@contracts:codeAt](src/helpers/codeAt.md) | `bytes` | Deployed bytecode at an address. |
 | [@contracts:next](src/helpers/next.md) | `address` | Predict the next contract address deployed by a given account. |
 | [@contracts:slot.array](src/helpers/slot.array.md) | `bytes32` | Derive the storage slot of element index of a dynamic array declared at a base slot: keccak256(base) + index. |
 | [@contracts:slot.erc7201](src/helpers/slot.erc7201.md) | `bytes32` | Derive the root slot of an ERC-7201 namespaced storage layout: keccak256(abi.encode(uint256(keccak256(id)) - 1)) & ~0xff. |

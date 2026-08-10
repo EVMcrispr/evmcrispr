@@ -14,15 +14,15 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.join",
-  description:
-    "Join array elements into a string with a delimiter. As @str.join! the parts join on-chain through a single Operators.concat call — the delimiter interleaves between the parts at composition time (constant runs merge into one part); constant strings plus at most one live call part (spliced into the calldata last, at any position in the list).",
+  description: "Join array elements into a string with a delimiter.",
+  compileDescription:
+    "At most one element may be a live call; the rest must be string constants.",
   returnType: "string",
   args: [
     {
       name: "arr",
       type: "array",
-      description:
-        "Source array (in @str.join! an array literal of constant strings and at most one `::` call part)",
+      description: "Source array",
     },
     { name: "delim", type: "string", description: "Delimiter string" },
   ],

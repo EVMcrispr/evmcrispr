@@ -5,7 +5,7 @@ import { derivePublicKey, parseSecret } from "../utils/eddsa";
 export default defineHelper<Circom>({
   name: "eddsa.pub",
   description:
-    "Derive the EdDSA public key (a Baby Jubjub point, as an [x y] pair) from a secret — the circom-ecosystem signature scheme used by Semaphore and MACI identities. The secret is sensitive: anything bound to a variable can be printed.",
+    "Derive the EdDSA public key (a Baby Jubjub point, as an [x y] pair) from a secret, the circom-ecosystem signature scheme used by Semaphore and MACI identities. The secret is sensitive: anything bound to a variable can be printed.",
   returnType: "array",
   args: [
     {

@@ -2,7 +2,9 @@
 title: "@lang:str.at"
 ---
 
-Access a character by index in a string. As @str.at! a one-byte slice of the string return of a call, on-chain — negative indexes resolve against the live byte length at assertion time.
+Access a character by index in a string.
+
+**On-chain (`@lang:str.at!`)**: Selects one byte, so a multi-byte UTF-8 character is not returned whole.
 
 **Returns**: `string`
 
@@ -16,7 +18,7 @@ Access a character by index in a string. As @str.at! a one-byte slice of the str
 
 | Name | Type | Description |
 |------|------|-------------|
-| `value` | `string` | Input value (in @str.at! a `::` call expression or chain returning a string or bytes value) |
+| `value` | `string` | Source string |
 | `index` | `number` | Zero-based character index (negative counts from the end) |
 
 <!-- HAND-WRITTEN -->

@@ -2,7 +2,9 @@
 title: "@lang:sort"
 ---
 
-Sort an array using a comparator helper. As @sort! the array return of a call sorted on-chain through sortWords: UNSIGNED ascending word order, no comparator (see the docs for the signed recipe via @map!).
+Sort an array using a comparator helper.
+
+**On-chain (`@lang:sort!`)**: Sorts in unsigned ascending order and takes no comparator; see the docs for the signed recipe.
 
 **Returns**: `array`
 

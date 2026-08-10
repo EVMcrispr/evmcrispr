@@ -2,7 +2,7 @@
 title: "@acl:defaultAdmin"
 ---
 
-Current default admin of an AccessControlDefaultAdminRules contract. As @defaultAdmin! the defaultAdmin() read happens on-chain at assertion time.
+Current default admin of an AccessControlDefaultAdminRules contract.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

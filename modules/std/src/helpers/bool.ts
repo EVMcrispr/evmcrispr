@@ -6,7 +6,9 @@ import { evaluateBoolExpr, isTruthy, validateNoEmbeddedOps } from "./_expr";
 export default defineHelper<Std>({
   name: "bool",
   description:
-    "Evaluate a boolean expression or convert a value to a boolean string. As @bool! it composes live comparisons with on-chain logic (and, or, xor, not), evaluated at assertion time via the operators contract.",
+    "Evaluate a boolean expression or convert a value to a boolean string.",
+  compileDescription:
+    "Composes live comparisons with on-chain logic: `and`, `or`, `xor` and `not`.",
   returnType: "bool",
   args: [
     {
