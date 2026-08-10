@@ -10,7 +10,7 @@ import { requireCore } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineHelper<Superfluid>({
-  name: "netflow",
+  name: "netFlow",
   batchable: false,
   description:
     "Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining.",
@@ -45,7 +45,7 @@ export default defineHelper<Superfluid>({
   },
   compile: async (ctx, node) => {
     const chainId = await requireCore(ctx.module);
-    const superToken = await compileSuperToken(ctx, node.args[0], "@netflow!");
+    const superToken = await compileSuperToken(ctx, node.args[0], "@netFlow!");
     const account = node.args[1];
     // Two agreement reads, summed on-chain: the CFA and GDA forwarders
     // each know only their own half of the account net flow. Both are

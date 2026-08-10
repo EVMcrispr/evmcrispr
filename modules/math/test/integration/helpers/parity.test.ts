@@ -18,7 +18,7 @@ const DEC = `${WXDAI}::{decimals()(uint8)}`;
 const WORDS = `${POOL}::{getReservesList()(uint256[])}`;
 
 describeParity("@math", {
-  module: "math [@max @min @absdiff @sqrt @log2 @ln @exp @pow]",
+  module: "math [@max @min @absDiff @sqrt @log2 @ln @exp @pow]",
   helpers,
   cases: [
     {
@@ -47,13 +47,13 @@ describeParity("@math", {
     // ---- the single-operand functions, over live reads --------------------
     {
       name: "absdiff never underflows, either way round",
-      run: `@absdiff(${DEC} ${SUPPLY})`,
-      compile: `@absdiff!(${DEC} ${SUPPLY})`,
+      run: `@absDiff(${DEC} ${SUPPLY})`,
+      compile: `@absDiff!(${DEC} ${SUPPLY})`,
     },
     {
       name: "absdiff with the larger operand first",
-      run: `@absdiff(${SUPPLY} ${DEC})`,
-      compile: `@absdiff!(${SUPPLY} ${DEC})`,
+      run: `@absDiff(${SUPPLY} ${DEC})`,
+      compile: `@absDiff!(${SUPPLY} ${DEC})`,
     },
     {
       name: "sqrt of a live read",

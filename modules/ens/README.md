@@ -30,8 +30,8 @@ load ens
 | [@ens:addr](src/helpers/addr.md) | `address` | Resolve an ENS name to an address, optionally per coin type. |
 | [@ens:available](src/helpers/available.md) | `bool` | Check whether a .eth name is available for registration. |
 | [@ens:avatar](src/helpers/avatar.md) | `string` | Avatar URI of an ENS name. |
-| [@ens:cointype](src/helpers/cointype.md) | `number` | ENSIP-11 coin type of an EVM chain, for multichain address records. |
-| [@ens:cointype.decode](src/helpers/cointype.decode.md) | `string` | Chain name of an ENSIP-11 coin type (the inverse of @ens:cointype). |
+| [@ens:coinType](src/helpers/coinType.md) | `number` | ENSIP-11 coin type of an EVM chain, for multichain address records. |
+| [@ens:coinType.decode](src/helpers/coinType.decode.md) | `string` | Chain name of an ENSIP-11 coin type (the inverse of @ens:coinType). |
 | [@ens:contenthash](src/helpers/contenthash.md) | `bytes` | Encode a content hash (ipfs, ipns, skynet) for ENS records. |
 | [@ens:contenthash.of](src/helpers/contenthash.of.md) | `string` | Read the decoded content hash of an ENS name (e.g. ipfs://…). |
 | [@ens:expiry](src/helpers/expiry.md) | `number` | Registration expiry timestamp of a .eth name. |

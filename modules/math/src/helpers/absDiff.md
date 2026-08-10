@@ -1,17 +1,17 @@
 ---
-title: "@math:absdiff"
+title: "@math:absDiff"
 ---
 
 Absolute difference |a - b|.
 
-**On-chain (`@math:absdiff!`)**: Never underflows, so `@absdiff!(a b) <= d` is the composable approximate-equality.
+**On-chain (`@math:absDiff!`)**: Never underflows, so `@absDiff!(a b) <= d` is the composable approximate-equality.
 
 **Returns**: `number`
 
 ## Syntax
 
 ```evml
-@math:absdiff(a b)
+@math:absDiff(a b)
 ```
 
 ## Arguments
@@ -32,20 +32,20 @@ load math
 set $oracle 0x0102030405060708090a0b0c0d0e0f1011121314
 
 # Composable approximate equality between two live values
-assertions:assert @absdiff!($oracle::{price()(uint256)} $oracle::{twap()(uint256)}) <= 50e8 "price diverged"
+assertions:assert @absDiff!($oracle::{price()(uint256)} $oracle::{twap()(uint256)}) <= 50e8 "price diverged"
 ```
 
 ## See Also
 
 - [@math:min!](min.md), [@math:max!](max.md)
 
-## On-chain face (@math:absdiff!)
+## On-chain face (@math:absDiff!)
 
 `|a - b|` as one `absDiff` read, over exactly two operands.
 
 The point of having it at all is that it never underflows. Written as a
 comparison it would need a branch (`a > b ? a - b : b - a`); as a single
-operand it composes, so `@absdiff!(a b) <= d` is the approximate-equality an
+operand it composes, so `@absDiff!(a b) <= d` is the approximate-equality an
 assertion can express directly.
 
 ### Notes

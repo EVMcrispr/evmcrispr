@@ -7,7 +7,7 @@ import { resolveChainId } from "../argTypes";
 const ETH_COIN_TYPE = 60;
 
 export default defineHelper<Ens>({
-  name: "cointype",
+  name: "coinType",
   description:
     "ENSIP-11 coin type of an EVM chain, for multichain address records.",
   returnType: "number",

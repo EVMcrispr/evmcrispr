@@ -1,5 +1,5 @@
 ---
-title: "@superfluid:netflow"
+title: "@superfluid:netFlow"
 ---
 
 Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining.
@@ -11,7 +11,7 @@ Net flow rate of an account (all incoming minus all outgoing streams, CFA plus G
 ## Syntax
 
 ```evml
-@superfluid:netflow(token account)
+@superfluid:netFlow(token account)
 ```
 
 ## Arguments
@@ -25,14 +25,14 @@ Net flow rate of an account (all incoming minus all outgoing streams, CFA plus G
 
 ```evml
 # Assert your xDAIx balance is not draining before ending the script
-print "Net flow:" @superfluid:netflow(xDAIx @me)
+print "Net flow:" @superfluid:netFlow(xDAIx @me)
 ```
 
 <!-- HAND-WRITTEN -->
 
 ## See Also
 
-## On-chain face (@netflow!)
+## On-chain face (@netFlow!)
 
 Read getAccountFlowrate() on the CFA forwarder and getNetFlow() on the
 GDA forwarder at assertion time, then add them on-chain: neither

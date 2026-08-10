@@ -41,7 +41,7 @@ export type CmpOpName = "Eq" | "Ne" | "Gt" | "Lt" | "Ge" | "Le";
 export type LogicOpName = "and" | "or" | "xor";
 
 /** Operator families, matching how the ops lower to Operators functions
- *  through the core's `read`: arithmetic (incl. min/max/absdiff),
+ *  through the core's `read`: arithmetic (incl. min/max/absDiff),
  *  comparison, boolean logic, and bitwise word ops (`@bytes!`). */
 export type OpFamily = "arith" | "cmp" | "logic" | "bytes";
 
@@ -142,7 +142,7 @@ export function arithRejects(cat: Category): string | null {
   return `arithmetic needs numeric operands, got a ${cat} value`;
 }
 
-/** Full arithmetic check (min/max/absdiff included via their op names). */
+/** Full arithmetic check (min/max/absDiff included via their op names). */
 export function checkArith(op: ArithOpName, l: Category, r: Category): Check {
   for (const cat of [l, r]) {
     const reason = arithRejects(cat);

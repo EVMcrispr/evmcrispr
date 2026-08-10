@@ -69,4 +69,4 @@ assertions:assert @implementation!($proxy) == $logic "implementation changed"
 
 ### See Also
 
-- `assertions:assert`, `@codehash!`
+- `assertions:assert`, `@codeHash!`

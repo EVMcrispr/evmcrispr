@@ -38,7 +38,7 @@ set $side @math:sqrt(1e18)
 
 ## See Also
 
-- [@math:min!](min.md), [@math:max!](max.md), [@math:absdiff!](absdiff.md)
+- [@math:min!](min.md), [@math:max!](max.md), [@math:absDiff!](absDiff.md)
 
 ## On-chain face (@math:sqrt!)
 

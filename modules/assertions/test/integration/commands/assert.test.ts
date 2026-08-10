@@ -38,7 +38,7 @@ const C = getAddress("0xc333333333333333333333333333333333333333");
 const D = getAddress("0xd444444444444444444444444444444444444444");
 const ME = getAddress("0xe555555555555555555555555555555555555555");
 
-const preamble = `load assertions\nload lang\nload receipts\nload math\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load assertions\nload lang\nload receipts\nload math\nload contracts\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
 
 const WORD_MASK = (1n << 256n) - 1n;
 const word = (v: bigint) => numberToHex(v & WORD_MASK, { size: 32 });
@@ -923,8 +923,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @absdiff! to absDiff",
-      script: `assertions:assert @absdiff!(${TOKEN}::{supply()(uint256)} 100) <= 5`,
+      name: "compiles @absDiff! to absDiff",
+      script: `assertions:assert @absDiff!(${TOKEN}::{supply()(uint256)} 100) <= 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Lte", 5n);
@@ -1002,8 +1002,8 @@ describeCommand("assert", {
     },
     // ---- env getters -------------------------------------------------------
     {
-      name: "compiles @chainid! to a plain chainId read at the operators",
-      script: `assertions:assert @chainid! == 100 "wrong chain"`,
+      name: "compiles @chainId! to a plain chainId read at the operators",
+      script: `assertions:assert @chainId! == 100 "wrong chain"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("chainId()"));
@@ -1012,8 +1012,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "composes @chainid! inside arithmetic",
-      script: `assertions:assert @num!(@chainid! + 1) > 100`,
+      name: "composes @chainId! inside arithmetic",
+      script: `assertions:assert @num!(@chainId! + 1) > 100`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 101n);
@@ -1023,8 +1023,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @block.basefee! to a plain baseFee read at the operators",
-      script: `assertions:assert @block.basefee! <= 100e9 "basefee too high"`,
+      name: "compiles @block.baseFee! to a plain baseFee read at the operators",
+      script: `assertions:assert @block.baseFee! <= 100e9 "basefee too high"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("baseFee()"));
@@ -1059,8 +1059,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @tx.gasprice! to a plain gasPrice read at the operators",
-      script: `assertions:assert @tx.gasprice! <= 50e9 "gas too pricey"`,
+      name: "compiles @tx.gasPrice! to a plain gasPrice read at the operators",
+      script: `assertions:assert @tx.gasPrice! <= 50e9 "gas too pricey"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("gasPrice()"));
@@ -1069,8 +1069,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @tx.blobhash! of a literal index to plain calldata",
-      script: `assertions:assert @tx.blobhash!(0) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "compiles @tx.blobHash! of a literal index to plain calldata",
+      script: `assertions:assert @tx.blobHash!(0) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(
@@ -1084,8 +1084,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @tx.blobhash! of a live index through the read splice",
-      script: `assertions:assert @tx.blobhash!(${TOKEN}::{blobIndex()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "compiles @tx.blobHash! of a live index through the read splice",
+      script: `assertions:assert @tx.blobHash!(${TOKEN}::{blobIndex()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "blobHash(uint256)");
@@ -1159,8 +1159,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @codehash! of a literal address to plain codehash calldata",
-      script: `assertions:assert @codehash!(${TOKEN}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "compiles @codeHash! of a literal address to plain codehash calldata",
+      script: `assertions:assert @codeHash!(${TOKEN}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(
@@ -1176,8 +1176,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @codehash! of a call-resolved address to a spliced codehash read",
-      script: `assertions:assert @codehash!(${TOKEN}::{implementation()(address)}) != 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "compiles @codeHash! of a call-resolved address to a spliced codehash read",
+      script: `assertions:assert @codeHash!(${TOKEN}::{implementation()(address)}) != 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "ne(uint256,uint256)");
@@ -1195,8 +1195,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "judges two live @codehash! sides with eq",
-      script: `assertions:assert @codehash!(${TOKEN}) == @codehash!(${HOLDER})`,
+      name: "judges two live @codeHash! sides with eq",
+      script: `assertions:assert @codeHash!(${TOKEN}) == @codeHash!(${HOLDER})`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "eq(uint256,uint256)");
@@ -1590,7 +1590,7 @@ describeCommand("assert", {
     {
       name: "rejects ~= between two live values",
       script: `assertions:assert ${TOKEN}::{supply()(uint256)} ~= ${TOKEN}::{cap()(uint256)} --delta 5`,
-      error: "@absdiff!",
+      error: "@absDiff!",
     },
     {
       name: "rejects ~= on a string return",
@@ -1618,23 +1618,23 @@ describeCommand("assert", {
       error: "only valid inside an on-chain expression",
     },
     {
-      name: "rejects @chainid! with arguments",
-      script: `assertions:assert @chainid!(1) == 100`,
-      error: "@chainid! takes no arguments",
+      name: "rejects @chainId! with arguments",
+      script: `assertions:assert @chainId!(1) == 100`,
+      error: "@chainId! takes no arguments",
     },
     {
-      name: "rejects a non-address @codehash! account",
-      script: `assertions:assert @codehash!(123) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "rejects a non-address @codeHash! account",
+      script: `assertions:assert @codeHash!(123) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       error: "must resolve to an address",
     },
     {
-      name: "rejects a @codehash! call not returning a single address",
-      script: `assertions:assert @codehash!(${TOKEN}::{decimals()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "rejects a @codeHash! call not returning a single address",
+      script: `assertions:assert @codeHash!(${TOKEN}::{decimals()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       error: "must return a single address",
     },
     {
-      name: "rejects an ordering comparison on @codehash!",
-      script: `assertions:assert @codehash!(${TOKEN}) > 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "rejects an ordering comparison on @codeHash!",
+      script: `assertions:assert @codeHash!(${TOKEN}) > 0x0102030405060708091011121314151617181920212223242526272829303132`,
       error: "not supported",
     },
     {
@@ -1728,7 +1728,7 @@ describeCommand("assert", {
 // Without overrides the module targets the canonical deployments.
 describeCommand("assert", {
   describeName: "Assertions > commands > assert (canonical addresses)",
-  preamble: "load assertions",
+  preamble: "load assertions\nload receipts",
   cases: [
     {
       name: "defaults to the canonical core v2 address",
@@ -1740,7 +1740,7 @@ describeCommand("assert", {
     },
     {
       name: "defaults to the canonical operators v1 address",
-      script: `assertions:assert @chainid! == 100`,
+      script: `assertions:assert @chainId! == 100`,
       validate: (actions) => {
         const { param } = decodeAssert(actions, ASSERTIONS_ADDRESS);
         expect(opsDirect(param, OPERATORS_ADDRESS)).to.equal(

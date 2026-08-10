@@ -10,10 +10,10 @@ import {
   requireChainArg,
 } from "@evmcrispr/sdk/onchain";
 import { getAddress, isAddress, keccak256 } from "viem";
-import type Assertions from "..";
+import type Contracts from "..";
 
-export default defineHelper<Assertions>({
-  name: "codehash",
+export default defineHelper<Contracts>({
+  name: "codeHash",
   batchable: false,
   description:
     "Code hash of an address, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise.",
@@ -44,7 +44,7 @@ export default defineHelper<Assertions>({
   compile: async (ctx, node): Promise<Operand> => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@codehash! expects (account), e.g. @codehash!(@me) or @codehash!($proxy::implementation())",
+        "@codeHash! expects (account), e.g. @codeHash!(@me) or @codeHash!($proxy::implementation())",
       );
     }
     const [accountNode] = node.args;
@@ -56,7 +56,7 @@ export default defineHelper<Assertions>({
       const out = chain.lastAbi.outputs?.[0];
       if (chain.lastAbi.outputs?.length !== 1 || out?.type !== "address") {
         throw new ErrorException(
-          "@codehash! account call must return a single address",
+          "@codeHash! account call must return a single address",
         );
       }
       return coreCall(
@@ -71,7 +71,7 @@ export default defineHelper<Assertions>({
     const account = await ctx.interpreters.interpretNode(accountNode);
     if (typeof account !== "string" || !isAddress(account)) {
       throw new ErrorException(
-        `@codehash! account must resolve to an address, got ${account}`,
+        `@codeHash! account must resolve to an address, got ${account}`,
       );
     }
     // Composition-time account: plain codehash(account) calldata pointed

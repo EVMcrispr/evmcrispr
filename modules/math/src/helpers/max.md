@@ -35,7 +35,7 @@ assertions:assert @max!($vault::{a()(uint256)} $vault::{b()(uint256)}) > 0
 
 ## See Also
 
-- [@math:min!](min.md), [@math:absdiff!](absdiff.md)
+- [@math:min!](min.md), [@math:absDiff!](absDiff.md)
 
 ## On-chain face (@math:max!)
 

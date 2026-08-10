@@ -16,7 +16,7 @@ ens:set-addr <name> <address> [coinType]
 |------|------|-------------|
 | `name` | `string` | ENS name (e.g. mydao.eth) |
 | `address` | `address` | Address to set |
-| `[coinType]` | `number` | ENSIP-9/11 coin type (defaults to 60, ETH; e.g. @cointype(optimism); only EVM-style addresses are supported) |
+| `[coinType]` | `number` | ENSIP-9/11 coin type (defaults to 60, ETH; e.g. @coinType(optimism); only EVM-style addresses are supported) |
 
 <!-- HAND-WRITTEN -->
 
@@ -29,7 +29,7 @@ load ens
 ens:set-addr mydao.eth @me
 
 # Set the address for an EVM L2 (ENSIP-11 coin type)
-ens:set-addr mydao.eth 0x1234567890abcdef1234567890abcdef12345678 @ens:cointype(optimism)
+ens:set-addr mydao.eth 0x1234567890abcdef1234567890abcdef12345678 @ens:coinType(optimism)
 ```
 
 ## Notes
@@ -41,5 +41,5 @@ ens:set-addr mydao.eth 0x1234567890abcdef1234567890abcdef12345678 @ens:cointype(
 ## See Also
 
 - [@ens:addr](../helpers/addr.md) — resolve an address record
-- [@ens:cointype](../helpers/cointype.md) — coin type of an EVM chain
+- [@ens:coinType](../helpers/coinType.md) — coin type of an EVM chain
 - [ens:set-primary-name](set-primary-name.md) — set the reverse record

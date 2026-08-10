@@ -3,10 +3,10 @@ import { arithCombine, variadicOperands } from "@evmcrispr/sdk/onchain";
 import type MathModule from "..";
 
 export default defineHelper<MathModule>({
-  name: "absdiff",
+  name: "absDiff",
   description: "Absolute difference |a - b|.",
   compileDescription:
-    "Never underflows, so `@absdiff!(a b) <= d` is the composable approximate-equality.",
+    "Never underflows, so `@absDiff!(a b) <= d` is the composable approximate-equality.",
   returnType: "number",
   args: [
     { name: "a", type: "number", description: "First numeric operand" },
@@ -18,9 +18,9 @@ export default defineHelper<MathModule>({
     return a.gte(b) ? a.sub(b) : b.sub(a);
   },
   compile: async (ctx, node) => {
-    const operands = await variadicOperands(ctx, node, "absdiff!");
+    const operands = await variadicOperands(ctx, node, "absDiff!");
     if (operands.length !== 2) {
-      throw new ErrorException("@absdiff! takes exactly two operands");
+      throw new ErrorException("@absDiff! takes exactly two operands");
     }
     return arithCombine(ctx, "AbsDiff", operands[0], operands[1]);
   },

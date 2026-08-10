@@ -959,7 +959,7 @@ export async function compileOperand(
   return constOperand(value);
 }
 
-/** Compile the argument of a chain-call slot (@balance!, @codehash!, …) — must
+/** Compile the argument of a chain-call slot (@balance!, @codeHash!, …) — must
  *  be a `::` call expression or chain. */
 export async function requireChainArg(
   ctx: CompileCtx,
@@ -1822,7 +1822,7 @@ export function lenParam(
 }
 
 /** Compile the (possibly array-wrapped) operand list of a variadic helper
- *  (@min!, @max!, @absdiff!). */
+ *  (@min!, @max!, @absDiff!). */
 export async function variadicOperands(
   ctx: CompileCtx,
   node: HelperFunctionNode,

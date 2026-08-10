@@ -1,10 +1,10 @@
 ---
-title: "@receipts:block.basefee"
+title: "@receipts:block.baseFee"
 ---
 
 Base fee in wei of a sealed block, addressed by number or tag (default: latest).
 
-**On-chain (`@receipts:block.basefee!`)**: Reads the block being written, and takes no arguments.
+**On-chain (`@receipts:block.baseFee!`)**: Reads the block being written, and takes no arguments.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -13,7 +13,7 @@ Base fee in wei of a sealed block, addressed by number or tag (default: latest).
 ## Syntax
 
 ```evml
-@receipts:block.basefee(block? chain?)
+@receipts:block.baseFee(block? chain?)
 ```
 
 ## Arguments
@@ -27,12 +27,12 @@ Base fee in wei of a sealed block, addressed by number or tag (default: latest).
 
 ```evml
 # Read the base fee of a sealed block
-set $fee @receipts:block.basefee(19426587 mainnet)
+set $fee @receipts:block.baseFee(19426587 mainnet)
 ```
 
 <!-- HAND-WRITTEN -->
 
-## On-chain face (@block.basefee!)
+## On-chain face (@block.baseFee!)
 
 With `!` and no arguments the read happens on-chain at assertion time: the base fee of the block being written, e.g. to gate a batch on fee conditions.
 
@@ -40,7 +40,7 @@ With `!` and no arguments the read happens on-chain at assertion time: the base 
 load assertions
 load receipts
 
-assertions:assert @block.basefee! <= 100e9 "basefee too high"
+assertions:assert @block.baseFee! <= 100e9 "basefee too high"
 ```
 
 ## See Also

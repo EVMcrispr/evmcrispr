@@ -30,7 +30,7 @@ function fakeExponential(
 }
 
 export default defineHelper<Receipts>({
-  name: "block.blobbasefee",
+  name: "block.blobBaseFee",
   batchable: false,
   description:
     "Blob base fee in wei: the live value with no arguments, or the EIP-4844 value of a sealed block computed from its excess blob gas (blocks predating EIP-4844 error).",
@@ -75,7 +75,7 @@ export default defineHelper<Receipts>({
   },
   compile: async (ctx, node) => {
     if (node.args.length > 0)
-      throw new ErrorException("@block.blobbasefee! takes no arguments");
+      throw new ErrorException("@block.blobBaseFee! takes no arguments");
     return opsCall(ctx, encodeOperator("blobBaseFee"), "Uint");
   },
 });

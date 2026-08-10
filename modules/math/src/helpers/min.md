@@ -41,7 +41,7 @@ set $floor @math:min(100e18 $budget)
 
 ## See Also
 
-- [@math:max!](max.md), [@math:absdiff!](absdiff.md)
+- [@math:max!](max.md), [@math:absDiff!](absDiff.md)
 
 ## On-chain face (@math:min!)
 

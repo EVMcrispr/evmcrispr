@@ -22,5 +22,17 @@ describeParity("@contracts", {
       run: `@contracts:codeAt(${EOA})`,
       compile: `@contracts:codeAt!(${EOA})`,
     },
+    {
+      name: "codeHash of a contract",
+      run: `@contracts:codeHash(${WXDAI})`,
+      compile: `@contracts:codeHash!(${WXDAI})`,
+    },
+    {
+      // EXTCODEHASH of an account with no code is keccak of the empty string,
+      // not zero — worth pinning because the two are easy to confuse.
+      name: "codeHash of an account with no code",
+      run: `@contracts:codeHash(${EOA})`,
+      compile: `@contracts:codeHash!(${EOA})`,
+    },
   ],
 });

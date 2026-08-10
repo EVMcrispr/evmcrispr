@@ -4,10 +4,10 @@ import type Receipts from "..";
 import { resolveBlock } from "../utils/blockContext";
 
 export default defineHelper<Receipts>({
-  name: "block.basefee",
+  name: "block.gasLimit",
   batchable: false,
   description:
-    "Base fee in wei of a sealed block, addressed by number or tag (default: latest).",
+    "Gas limit of a sealed block, addressed by number or tag (default: latest).",
   compileDescription: "Reads the block being written, and takes no arguments.",
   returnType: "number",
   args: [
@@ -26,16 +26,11 @@ export default defineHelper<Receipts>({
   ],
   async run(module, { block, chain }) {
     const sealed = await resolveBlock(module, block, chain);
-    if (sealed.baseFeePerGas === null) {
-      throw new ErrorException(
-        `block ${sealed.number} predates EIP-1559 and carries no base fee`,
-      );
-    }
-    return Num(sealed.baseFeePerGas);
+    return Num(sealed.gasLimit);
   },
   compile: async (ctx, node) => {
     if (node.args.length > 0)
-      throw new ErrorException("@block.basefee! takes no arguments");
-    return opsCall(ctx, encodeOperator("baseFee"), "Uint");
+      throw new ErrorException("@block.gasLimit! takes no arguments");
+    return opsCall(ctx, encodeOperator("gasLimit"), "Uint");
   },
 });

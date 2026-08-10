@@ -1,5 +1,5 @@
 ---
-title: "@receipts:tx.gasprice!"
+title: "@receipts:tx.gasPrice!"
 ---
 
 Gas price of the executing transaction, in wei.
@@ -11,7 +11,7 @@ Gas price of the executing transaction, in wei.
 ## Syntax
 
 ```evml
-@receipts:tx.gasprice!
+@receipts:tx.gasPrice!
 ```
 
 <!-- HAND-WRITTEN -->
@@ -23,9 +23,9 @@ load assertions
 load receipts
 
 # Refuse to execute when gas is expensive
-assertions:assert @tx.gasprice! <= 50e9 "gas too pricey"
+assertions:assert @tx.gasPrice! <= 50e9 "gas too pricey"
 ```
 
 ## See Also
 
-- [@receipts:block.basefee!](block.basefee.md) — the block base fee in wei
+- [@receipts:block.baseFee!](block.baseFee.md) — the block base fee in wei

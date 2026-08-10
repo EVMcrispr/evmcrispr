@@ -1,15 +1,15 @@
 ---
-title: "@ens:cointype.decode"
+title: "@ens:coinType.decode"
 ---
 
-Chain name of an ENSIP-11 coin type (the inverse of @ens:cointype).
+Chain name of an ENSIP-11 coin type (the inverse of @ens:coinType).
 
 **Returns**: `string`
 
 ## Syntax
 
 ```evml
-@ens:cointype.decode(coinType)
+@ens:coinType.decode(coinType)
 ```
 
 ## Arguments
@@ -22,7 +22,7 @@ Chain name of an ENSIP-11 coin type (the inverse of @ens:cointype).
 
 ```evml
 # Find out which chain a coin type belongs to
-set $chain @ens:cointype.decode(2147483658)
+set $chain @ens:coinType.decode(2147483658)
 print $chain
 ```
 

@@ -1,5 +1,5 @@
 ---
-title: "@receipts:tx.blobhash!"
+title: "@receipts:tx.blobHash!"
 ---
 
 Versioned hash of a blob carried by the executing transaction, or 0 when the index is out of range.
@@ -11,7 +11,7 @@ Versioned hash of a blob carried by the executing transaction, or 0 when the ind
 ## Syntax
 
 ```evml
-@receipts:tx.blobhash!(...index)
+@receipts:tx.blobHash!(...index)
 ```
 
 ## Arguments
@@ -29,7 +29,7 @@ load assertions
 load receipts
 
 # The batch only executes as part of a blob-carrying transaction
-assertions:assert @tx.blobhash!(0) != 0x0000000000000000000000000000000000000000000000000000000000000000 "no blob attached"
+assertions:assert @tx.blobHash!(0) != 0x0000000000000000000000000000000000000000000000000000000000000000 "no blob attached"
 ```
 
 ## See Also

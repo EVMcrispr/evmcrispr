@@ -109,8 +109,8 @@ describeCommand("assert (superfluid on-chain faces)", {
       },
     },
     {
-      name: "sums the CFA and GDA halves of @netflow! on-chain",
-      script: `assertions:assert @netflow!(${USDCX} ${SOME_ADDRESS}) >= 0 "account is draining"`,
+      name: "sums the CFA and GDA halves of @netFlow! on-chain",
+      script: `assertions:assert @netFlow!(${USDCX} ${SOME_ADDRESS}) >= 0 "account is draining"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // int96 rates go signed: the add picks its int256 overload.

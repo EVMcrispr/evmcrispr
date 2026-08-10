@@ -13,7 +13,7 @@ export default defineCommand<Ens>({
       type: "number",
       optional: true,
       description:
-        "ENSIP-9/11 coin type (defaults to 60, ETH; e.g. @cointype(optimism); only EVM-style addresses are supported)",
+        "ENSIP-9/11 coin type (defaults to 60, ETH; e.g. @coinType(optimism); only EVM-style addresses are supported)",
     },
   ],
   async run(module, { name, address, coinType }) {

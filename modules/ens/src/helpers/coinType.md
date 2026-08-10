@@ -1,5 +1,5 @@
 ---
-title: "@ens:cointype"
+title: "@ens:coinType"
 ---
 
 ENSIP-11 coin type of an EVM chain, for multichain address records.
@@ -9,7 +9,7 @@ ENSIP-11 coin type of an EVM chain, for multichain address records.
 ## Syntax
 
 ```evml
-@ens:cointype(chain?)
+@ens:coinType(chain?)
 ```
 
 ## Arguments
@@ -22,7 +22,7 @@ ENSIP-11 coin type of an EVM chain, for multichain address records.
 
 ```evml
 # Coin type for an L2 address record
-set $ct @ens:cointype(optimism)
+set $ct @ens:coinType(optimism)
 print $ct
 ```
 

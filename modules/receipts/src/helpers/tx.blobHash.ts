@@ -12,7 +12,7 @@ import {
 import type Receipts from "..";
 
 export default defineHelper<Receipts>({
-  name: "tx.blobhash",
+  name: "tx.blobHash",
   description:
     "Versioned hash of a blob carried by the executing transaction, or 0 when the index is out of range.",
   returnType: "bytes32",
@@ -26,11 +26,11 @@ export default defineHelper<Receipts>({
   ],
   compile: async (ctx, node): Promise<Operand> => {
     if (node.args.length === 0) {
-      throw new ErrorException("@tx.blobhash! expects a blob index");
+      throw new ErrorException("@tx.blobHash! expects a blob index");
     }
     const n = await compileExpr(ctx, node.args, "num");
     if (n.cat === "Int") {
-      throw new ErrorException("@tx.blobhash! index must be unsigned");
+      throw new ErrorException("@tx.blobHash! index must be unsigned");
     }
     if (n.kind === "const") {
       return opsCall(

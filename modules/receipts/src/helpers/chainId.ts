@@ -1,9 +1,9 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import { encodeOperator, opsCall } from "@evmcrispr/sdk/onchain";
-import type Assertions from "..";
+import type Receipts from "..";
 
-export default defineHelper<Assertions>({
-  name: "chainid",
+export default defineHelper<Receipts>({
+  name: "chainId",
   batchable: false,
   description:
     "The chain id. Unlike assert-chainid it composes into expressions.",
@@ -15,7 +15,7 @@ export default defineHelper<Assertions>({
   },
   compile: async (ctx, node) => {
     if (node.args.length > 0)
-      throw new ErrorException("@chainid! takes no arguments");
+      throw new ErrorException("@chainId! takes no arguments");
     return opsCall(ctx, encodeOperator("chainId"), "Uint");
   },
 });

@@ -8,7 +8,7 @@ import { RECEIVER, SOME_ADDRESS, USDCX, XDAIX } from "../../fixtures";
  *
  * These are the faces where the two routes differ most: off-chain the module
  * reads through the CFA/GDA forwarders with viem, on-chain it staticcalls them
- * from the assertion. `@netflow` in particular has two shapes upstream
+ * from the assertion. `@netFlow` in particular has two shapes upstream
  * (`getAccountFlowrate` and `getNetFlow`), so agreeing means both faces picked
  * the same one.
  *
@@ -57,8 +57,8 @@ describeParity("@superfluid", {
     },
     {
       name: "netflow of an account with no streams is zero",
-      run: `@superfluid:netflow(${XDAIX} ${SOME_ADDRESS})`,
-      compile: `@superfluid:netflow!(${XDAIX} ${SOME_ADDRESS})`,
+      run: `@superfluid:netFlow(${XDAIX} ${SOME_ADDRESS})`,
+      compile: `@superfluid:netFlow!(${XDAIX} ${SOME_ADDRESS})`,
     },
     {
       name: "flow between two accounts with no stream is zero",

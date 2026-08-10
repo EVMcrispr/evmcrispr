@@ -10,7 +10,7 @@ load math
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@math:absdiff](src/helpers/absdiff.md) | `number` | Absolute difference |a - b|. |
+| [@math:absDiff](src/helpers/absDiff.md) | `number` | Absolute difference |a - b|. |
 | [@math:exp](src/helpers/exp.md) | `number` | e raised to a wad-scaled power, in wad (1e18) fixed point. Continuous growth over a period: a rate r compounded continuously multiplies a balance by exp(r). |
 | [@math:ln](src/helpers/ln.md) | `number` | The natural logarithm of a wad-scaled value, in wad (1e18) fixed point. The inverse of exp: it turns a growth factor back into the rate that produced it. |
 | [@math:log2](src/helpers/log2.md) | `number` | The base-2 logarithm of a whole number, rounded down — the position of its highest set bit, so it also gives a bit length. Undefined at zero. |

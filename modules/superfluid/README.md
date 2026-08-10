@@ -51,7 +51,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@superfluid:distributionFlowrate](src/helpers/distributionFlowrate.md) | `number` | Flow rate a distributor is currently streaming into a GDA pool, in wei per second. |
 | [@superfluid:flow](src/helpers/flow.md) | `number` | Current flow rate between a sender and a receiver, in wei per second (0 when no stream exists). |
 | [@superfluid:memberFlowrate](src/helpers/memberFlowrate.md) | `number` | The slice of the distribution flow of a GDA pool currently streaming to a member, in wei per second. |
-| [@superfluid:netflow](src/helpers/netflow.md) | `number` | Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining. |
+| [@superfluid:netFlow](src/helpers/netFlow.md) | `number` | Net flow rate of an account (all incoming minus all outgoing streams, CFA plus GDA), in wei per second. Negative means the balance is draining. |
 | [@superfluid:token](src/helpers/token.md) | `address` | Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx). |
 | [@superfluid:totalUnits](src/helpers/totalUnits.md) | `number` | Total units across all members of a GDA pool. |
 | [@superfluid:underlying](src/helpers/underlying.md) | `address` | Underlying ERC-20 of a SuperToken (the zero address for native-asset SuperTokens like ETHx or xDAIx). |

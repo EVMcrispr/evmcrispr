@@ -170,7 +170,7 @@ export default defineCommand<Assertions>({
     if (lhs.kind === "call" && rhs.kind === "call") {
       if (op === "~=") {
         throw new ErrorException(
-          "~= needs a constant side — compare two live values with `@num!(@absdiff!(a b)) <= <delta>` instead",
+          "~= needs a constant side — compare two live values with `@num!(@absDiff!(a b)) <= <delta>` instead",
         );
       }
       const fragment = operatorFragment(op, [

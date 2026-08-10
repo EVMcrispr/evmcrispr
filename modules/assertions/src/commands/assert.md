@@ -109,7 +109,7 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   `address`/`bool`/`bytes32`/`string`/`bytes` support `== !=`. Bool `!=`
   folds into the `EQ 0`/`EQ 1` constraint bound.
 - `~=` needs `--delta` and a constant side; for two live values use
-  `@absdiff!(a b) <= delta`.
+  `@absDiff!(a b) <= delta`.
 - `<head>::!{sig(argTypes)(returnTypes) args}` constructs a whole call at
   assertion time via the core's `read`: the head may be any expression (a
   `::` chain, an on-chain helper, a computed word — e.g.

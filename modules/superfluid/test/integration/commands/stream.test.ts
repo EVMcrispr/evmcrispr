@@ -52,7 +52,7 @@ sim:fork --using anvil (
   sim:expect @bool(@superfluid:flow(xDAIx @me ${RECEIVER}) == ${RATE_2000_PER_MONTH})
   superfluid:stop-stream xDAIx to ${RECEIVER}
   sim:expect @bool(@superfluid:flow(xDAIx @me ${RECEIVER}) == 0)
-  sim:expect @bool(@superfluid:netflow(xDAIx @me) == 0)
+  sim:expect @bool(@superfluid:netFlow(xDAIx @me) == 0)
 )`,
       validate: () => {
         // Reaching this point means wrap, stream, retarget, stop and every

@@ -110,54 +110,54 @@ describeHelper(
 );
 
 describeHelper(
-  "@receipts:block.basefee",
+  "@receipts:block.baseFee",
   {
     module: "receipts",
     cases: [
       {
         name: "should read the base fee of a sealed block",
-        input: `@receipts:block.basefee(${DENCUN_BLOCK} mainnet)`,
+        input: `@receipts:block.baseFee(${DENCUN_BLOCK} mainnet)`,
         expected: 61952457264n,
       },
     ],
     errorCases: [
       {
         name: "should error for blocks predating EIP-1559",
-        input: `@receipts:block.basefee(${FRONTIER_BLOCK} mainnet)`,
+        input: `@receipts:block.baseFee(${FRONTIER_BLOCK} mainnet)`,
         error: "predates EIP-1559",
       },
     ],
     docCases: [
       {
         description: "Read the base fee of a sealed block",
-        code: `set $fee @receipts:block.basefee(19426587 mainnet)`,
+        code: `set $fee @receipts:block.baseFee(19426587 mainnet)`,
       },
     ],
     sampleArgs: [DEPOSIT_BLOCK, "gnosis"],
   },
-  helpers["block.basefee"].argDefs,
+  helpers["block.baseFee"].argDefs,
 );
 
 describeHelper(
-  "@receipts:block.gaslimit",
+  "@receipts:block.gasLimit",
   {
     module: "receipts",
     cases: [
       {
         name: "should read the gas limit of a sealed block",
-        input: `@receipts:block.gaslimit(${FRONTIER_BLOCK} mainnet)`,
+        input: `@receipts:block.gasLimit(${FRONTIER_BLOCK} mainnet)`,
         expected: 21003n,
       },
     ],
     docCases: [
       {
         description: "Read the gas limit of a sealed block",
-        code: `set $limit @receipts:block.gaslimit(46147 mainnet)`,
+        code: `set $limit @receipts:block.gasLimit(46147 mainnet)`,
       },
     ],
     sampleArgs: [DEPOSIT_BLOCK, "gnosis"],
   },
-  helpers["block.gaslimit"].argDefs,
+  helpers["block.gasLimit"].argDefs,
 );
 
 describeHelper(
@@ -230,23 +230,23 @@ describeHelper(
 );
 
 describeHelper(
-  "@receipts:block.blobbasefee",
+  "@receipts:block.blobBaseFee",
   {
     module: "receipts",
     cases: [
       {
         name: "should compute the blob base fee of a zero-excess sealed block",
-        input: `@receipts:block.blobbasefee(${DENCUN_BLOCK} mainnet)`,
+        input: `@receipts:block.blobBaseFee(${DENCUN_BLOCK} mainnet)`,
         expected: 1n,
       },
       {
         name: "should compute the blob base fee of a congested sealed block via fake_exponential",
-        input: `@receipts:block.blobbasefee(${BLOB_SPIKE_BLOCK} mainnet)`,
+        input: `@receipts:block.blobBaseFee(${BLOB_SPIKE_BLOCK} mainnet)`,
         expected: BLOB_SPIKE_FEE,
       },
       {
         name: "should read the live blob base fee over RPC with no arguments",
-        input: "@receipts:block.blobbasefee",
+        input: "@receipts:block.blobBaseFee",
         validate: (result) => {
           expect(Number(String(result))).to.be.at.least(1);
         },
@@ -255,17 +255,17 @@ describeHelper(
     errorCases: [
       {
         name: "should error for blocks predating EIP-4844",
-        input: `@receipts:block.blobbasefee(${FRONTIER_BLOCK} mainnet)`,
+        input: `@receipts:block.blobBaseFee(${FRONTIER_BLOCK} mainnet)`,
         error: "predates EIP-4844",
       },
     ],
     docCases: [
       {
         description: "Read the blob base fee a sealed block charged",
-        code: `set $blobfee @receipts:block.blobbasefee(19529728 mainnet)`,
+        code: `set $blobfee @receipts:block.blobBaseFee(19529728 mainnet)`,
       },
     ],
     sampleArgs: [DEPOSIT_BLOCK, "gnosis"],
   },
-  helpers["block.blobbasefee"].argDefs,
+  helpers["block.blobBaseFee"].argDefs,
 );

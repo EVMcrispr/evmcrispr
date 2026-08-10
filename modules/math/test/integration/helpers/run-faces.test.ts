@@ -68,20 +68,20 @@ describeHelper("@math:max", {
 });
 
 describeHelper(
-  "@math:absdiff",
+  "@math:absDiff",
   {
     module: "math",
     cases: [
       {
         name: "should never underflow",
-        input: "@math:absdiff(3 10)",
+        input: "@math:absDiff(3 10)",
         validate: (result) => {
           expect(String(result)).to.equal("7");
         },
       },
       {
         name: "should be symmetric",
-        input: "@math:absdiff(10 3)",
+        input: "@math:absDiff(10 3)",
         validate: (result) => {
           expect(String(result)).to.equal("7");
         },
@@ -90,12 +90,12 @@ describeHelper(
     docCases: [
       {
         description: "Distance between two amounts",
-        code: "set $drift @math:absdiff(100e18 99e18)",
+        code: "set $drift @math:absDiff(100e18 99e18)",
       },
     ],
     sampleArgs: ["3", "10"],
   },
-  helpers.absdiff.argDefs,
+  helpers.absDiff.argDefs,
 );
 
 describeHelper("@math:sqrt", {

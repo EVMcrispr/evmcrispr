@@ -1,10 +1,10 @@
 ---
-title: "@receipts:block.gaslimit"
+title: "@receipts:block.gasLimit"
 ---
 
 Gas limit of a sealed block, addressed by number or tag (default: latest).
 
-**On-chain (`@receipts:block.gaslimit!`)**: Reads the block being written, and takes no arguments.
+**On-chain (`@receipts:block.gasLimit!`)**: Reads the block being written, and takes no arguments.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -13,7 +13,7 @@ Gas limit of a sealed block, addressed by number or tag (default: latest).
 ## Syntax
 
 ```evml
-@receipts:block.gaslimit(block? chain?)
+@receipts:block.gasLimit(block? chain?)
 ```
 
 ## Arguments
@@ -27,12 +27,12 @@ Gas limit of a sealed block, addressed by number or tag (default: latest).
 
 ```evml
 # Read the gas limit of a sealed block
-set $limit @receipts:block.gaslimit(46147 mainnet)
+set $limit @receipts:block.gasLimit(46147 mainnet)
 ```
 
 <!-- HAND-WRITTEN -->
 
-## On-chain face (@block.gaslimit!)
+## On-chain face (@block.gasLimit!)
 
 With `!` and no arguments the read happens on-chain at assertion time: the gas limit of the block being written.
 

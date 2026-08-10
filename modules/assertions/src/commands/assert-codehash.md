@@ -23,12 +23,13 @@ assertions:assert-codehash <target> <expected> [message]
 ## Examples
 
 ```evml
-load assertions [@codehash]
+load assertions
+load contracts [@codeHash]
 
 # Pin an implementation by its runtime code hash
-assertions:assert-codehash 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb @codehash(0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9) "implementation changed"
+assertions:assert-codehash 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb @codeHash(0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9) "implementation changed"
 ```
 
 ## See Also
 
-- [@assertions:codehash](../helpers/codehash.md), [assertions:assert-chainid](assert-chainid.md)
+- [@contracts:codeHash](../../../contracts/src/helpers/codeHash.md), [assertions:assert-chainid](assert-chainid.md)

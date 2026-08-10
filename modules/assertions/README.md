@@ -32,8 +32,6 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@assertions:chainid](src/helpers/chainid.md) | `number` | The chain id. Unlike assert-chainid it composes into expressions. |
-| [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Code hash of an address, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. |
 | [@assertions:not!](src/helpers/not.md) | `any` | Negation dispatched on the operand: logical not for a boolean (stays a bool), bitwise complement of the raw word for a number or bytes32. Never a conversion: cast with `@bytes!(x)` first. |
 | [@assertions:ok!](src/helpers/ok.md) | `bool` | Whether a live call resolves without reverting: true when the call succeeds, false when it reverts. |
 

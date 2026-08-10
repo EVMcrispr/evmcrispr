@@ -41,7 +41,7 @@ export default defineHelper<Superfluid>({
     const superToken = await compileSuperToken(ctx, node.args[0], "@flow!");
     // int96: the ABI sign-extends it into the full word, so the operand
     // reads as a signed value (a receiver-side rate is never negative,
-    // but @netflow! shares the category).
+    // but @netFlow! shares the category).
     return callReadOperand(
       ctx,
       cfaForwarder(chainId),
