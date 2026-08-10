@@ -1,5 +1,9 @@
 import "../../setup";
-import { describeParity } from "@evmcrispr/test-utils/onchain";
+import {
+  describeParity,
+  installConstantMock,
+} from "@evmcrispr/test-utils/onchain";
+import { encodeAbiParameters } from "viem";
 import { helpers } from "../../../src/_generated";
 
 /**
@@ -22,10 +26,30 @@ const RESERVES = `${POOL}::{getReservesList()(address[])}`;
 /** The same call read as words, so the elements arrive as raw bigint. */
 const WORDS = `${POOL}::{getReservesList()(uint256[])}`;
 
+/**
+ * A live `int256[]` with negatives, so the signed sort path is exercised.
+ *
+ * Nothing on the fork returns one, and this is the case most worth having:
+ * `@sort!` flips the sign bit on the way in and back on the way out, because
+ * `sortWords` is unsigned and a two's-complement negative reads as a huge
+ * unsigned number. Without a signed case that flip is only pinned by the
+ * calldata-shape tests, which assert the bytes we expect rather than the
+ * order that comes back.
+ */
+const SIGNED = [-5n, 3n, -1n, 2n, 0n];
+const SIGNED_SRC = "0x0000000000000000000000000000000000005147";
+const SIGNED_CALL = `${SIGNED_SRC}::{values()(int256[])}`;
+
 describeParity("@lang", {
   module:
     "lang [@at @len @reverse @slice @sort @unique @concat @includes @sum]",
   helpers,
+  setup: (client) =>
+    installConstantMock(
+      client,
+      SIGNED_SRC,
+      encodeAbiParameters([{ type: "int256[]" }], [SIGNED]),
+    ),
   cases: [
     // ---- one case per category -------------------------------------------
     {
@@ -106,6 +130,21 @@ describeParity("@lang", {
     // Before the comparison sites went through sdk/utils/compare.ts, @sort
     // ordered these lexicographically ([1160…, 1265…, 1330…, 1440…, 240…])
     // and @includes answered a silent false for an element that was present.
+    {
+      // sortWords is UNSIGNED, so the compiler flips the sign bit on the way
+      // in and back on the way out. Sorted by value the negatives come first;
+      // without the flip they sort by raw word and land last, which is what
+      // this case catches.
+      name: "sort of a live int256[] orders by value, not by raw word",
+      run: `@sort(${SIGNED_CALL})`,
+      compile: `@sort!(${SIGNED_CALL})`,
+      decodeAs: "int256[]",
+    },
+    {
+      name: "includes finds a negative element given as a number",
+      run: `@includes(${SIGNED_CALL} @num(0 - 5))`,
+      compile: `@includes!(${SIGNED_CALL} @num!(0 - 5))`,
+    },
     {
       name: "sort of a live uint256[] agrees with the on-chain sort",
       run: `@sort(${WORDS})`,

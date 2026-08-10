@@ -12,6 +12,7 @@ import { helpers } from "../../../src/_generated";
  */
 
 const POOL = "0xb50201558B00496A145fE76f7424749556E326D8";
+const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
 const WORDS = `${POOL}::{getReservesList()(uint256[])}`;
 
 describeParity("@math", {
@@ -22,6 +23,19 @@ describeParity("@math", {
       name: "max of a constant array",
       run: "@max([1 2 3])",
       compile: "@max!([1 2 3])",
+    },
+    {
+      // Constant operands fold at composition time, so the two cases above
+      // never reach the chain. These two do: both operands are live reads,
+      // so arithCombine's Max/Min really run through Operators.
+      name: "max of two live reads",
+      run: `@max(${WXDAI}::{totalSupply()(uint256)} ${WXDAI}::{decimals()(uint8)})`,
+      compile: `@max!(${WXDAI}::{totalSupply()(uint256)} ${WXDAI}::{decimals()(uint8)})`,
+    },
+    {
+      name: "min of two live reads",
+      run: `@min(${WXDAI}::{totalSupply()(uint256)} ${WXDAI}::{decimals()(uint8)})`,
+      compile: `@min!(${WXDAI}::{totalSupply()(uint256)} ${WXDAI}::{decimals()(uint8)})`,
     },
     {
       name: "min of a constant array",
