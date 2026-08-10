@@ -1,134 +1,104 @@
 import "../../setup";
+import { afterAll, beforeAll } from "bun:test";
+import { resetAnvil } from "@evmcrispr/test-utils";
 import {
   describeParity,
-  installConstantMock,
-  installSelectorMock,
+  getMainnetForkTransports,
 } from "@evmcrispr/test-utils/onchain";
-import { encodeAbiParameters, toFunctionSelector } from "viem";
+import { createPublicClient, http, type PublicClient } from "viem";
+import { mainnet } from "viem/chains";
 import { helpers } from "../../../src/_generated";
 
 /**
- * @safe's single-read helpers, against constant-returning mocks.
+ * @safe against a REAL Safe: giv.eth on mainnet.
  *
- * No Safe on either fork answers `getThreshold()`, so the alternative to a
- * mock is no coverage at all. What this proves is narrower than the other
- * suites and worth stating plainly: each helper issues the SAME call on both
- * faces and decodes the returned bytes the same way. It proves nothing about
- * Safe's own behaviour, because the mock has none.
+ * This replaces a set of constant-returning mocks. A mock could only ever
+ * show that both faces issue the same call and decode the bytes the same way;
+ * against a live Safe the answers have to match something neither face
+ * controls, and two of these helpers could not be covered by a mock at all:
+ * `@guard` decoded differently on the two faces against fabricated slot
+ * bytes, and `@modules` walks pages until `next` is zero, which never
+ * terminates against a mock that answers every page identically.
  *
- * The first three use a constant mock, sound because both faces call one
- * identical function. `@isOwner` cannot: the plain face SCANS `getOwners()`
- * while the `!` face calls `isOwner()`, so it needs a selector-dispatching
- * mock whose two answers are consistent with each other — and it is covered
- * in both directions, since a scan and a direct call are exactly the pair
- * that could disagree about an absent owner.
- *
- * `@guard` and `@modules` are still out, and a dispatching mock is not enough
- * for either. Against a mock returning an abi-encoded address as the guard
- * slot the two faces decode it differently (zero vs the address), and
- * `@modules` walks pages until `next` is zero and does not stop on a mock
- * that answers every page identically — it times out. Both need a mock that
- * models the contract rather than one that answers a selector, which is the
- * point at which the mock is what is under test.
+ * `@isOwner` is the one that most needed a real subject: the plain face SCANS
+ * getOwners() while the ! face asks isOwner() directly, so the two routes
+ * agree here only because the Safe is consistent about its own membership.
  */
 
-const T = "0x0000000000000000000000000000000000005a01";
-const N = "0x0000000000000000000000000000000000005a02";
-const O = "0x0000000000000000000000000000000000005a03";
+/** giv.eth. Resolved once and pinned, so the suite does not depend on the
+ *  name still pointing here. */
+const SAFE = "0x4D9339dd97db55e3B9bCBE65dE39fF9c04d1C2cd";
+/** An owner of that Safe at the fork block. */
+const OWNER = "0xb411b1D939606198f6cbccD38496879d27937ff0";
+/** Never an owner: the all-ones address. */
+const STRANGER = "0x1111111111111111111111111111111111111111";
 
-/** getOwners() lists A; isOwner() agrees. */
-const IN = "0x0000000000000000000000000000000000005a04";
-/** getOwners() omits A; isOwner() agrees. */
-const OUT = "0x0000000000000000000000000000000000005a05";
-const A = "0x1111111111111111111111111111111111111111";
+const client = createPublicClient({
+  chain: mainnet,
+  transport: http("http://127.0.0.1:8545"),
+}) as PublicClient;
 
-const OWNERS = [
-  "0x1111111111111111111111111111111111111111",
-  "0x2222222222222222222222222222222222222222",
-  "0x3333333333333333333333333333333333333333",
-];
+beforeAll(async () => {
+  await resetAnvil(1);
+}, 60_000);
+
+afterAll(async () => {
+  // Restore the pinned gnosis fork for whatever runs next in this package.
+  await resetAnvil();
+}, 60_000);
 
 describeParity("@safe", {
   module: "safe",
   helpers,
-  setup: async (client) => {
-    await installConstantMock(
-      client,
-      T,
-      encodeAbiParameters([{ type: "uint256" }], [3n]),
-    );
-    await installConstantMock(
-      client,
-      N,
-      encodeAbiParameters([{ type: "uint256" }], [42n]),
-    );
-    await installConstantMock(
-      client,
-      O,
-      encodeAbiParameters([{ type: "address[]" }], [OWNERS as never]),
-    );
-    const getOwners = toFunctionSelector(
-      "function getOwners() view returns (address[])",
-    );
-    const isOwner = toFunctionSelector(
-      "function isOwner(address) view returns (bool)",
-    );
-    await installSelectorMock(client, IN, [
-      {
-        selector: getOwners,
-        data: encodeAbiParameters([{ type: "address[]" }], [OWNERS as never]),
-      },
-      {
-        selector: isOwner,
-        data: encodeAbiParameters([{ type: "bool" }], [true]),
-      },
-    ]);
-    await installSelectorMock(client, OUT, [
-      {
-        selector: getOwners,
-        data: encodeAbiParameters(
-          [{ type: "address[]" }],
-          [OWNERS.slice(1) as never],
-        ),
-      },
-      {
-        selector: isOwner,
-        data: encodeAbiParameters([{ type: "bool" }], [false]),
-      },
-    ]);
-  },
+  chainId: mainnet.id,
+  transports: getMainnetForkTransports(),
+  client,
   cases: [
     {
-      name: "threshold reads getThreshold on both faces",
-      run: `@safe:threshold(${T})`,
-      compile: `@safe:threshold!(${T})`,
+      name: "threshold of a live Safe",
+      run: `@safe:threshold(${SAFE})`,
+      compile: `@safe:threshold!(${SAFE})`,
     },
     {
-      name: "nonce reads nonce on both faces",
-      run: `@safe:nonce(${N})`,
-      compile: `@safe:nonce!(${N})`,
+      name: "nonce of a live Safe",
+      run: `@safe:nonce(${SAFE})`,
+      compile: `@safe:nonce!(${SAFE})`,
     },
     {
-      // The `!` face re-frames the getOwners envelope as a words payload, so
-      // this also pins that the re-framing lands on the same addresses.
-      name: "owners reads getOwners and decodes to the same addresses",
-      run: `@safe:owners(${O})`,
-      compile: `@safe:owners!(${O})`,
+      // The ! face re-frames the getOwners envelope as a words payload, so
+      // this pins that the re-framing lands on the same addresses.
+      name: "owners of a live Safe",
+      run: `@safe:owners(${SAFE})`,
+      compile: `@safe:owners!(${SAFE})`,
       decodeAs: "address[]",
     },
     {
-      // A scan off-chain against a direct call on-chain: the two must agree
-      // that the owner IS present.
+      // A scan against a direct call, on a Safe with a dozen owners.
       name: "isOwner is true whether scanned or asked directly",
-      run: `@safe:isOwner(${A} ${IN})`,
-      compile: `@safe:isOwner!(${A} ${IN})`,
+      run: `@safe:isOwner(${OWNER} ${SAFE})`,
+      compile: `@safe:isOwner!(${OWNER} ${SAFE})`,
     },
     {
-      // And that it is NOT — the direction where a scan and a call are most
-      // likely to part company.
-      name: "isOwner is false whether scanned or asked directly",
-      run: `@safe:isOwner(${A} ${OUT})`,
-      compile: `@safe:isOwner!(${A} ${OUT})`,
+      // The direction where a scan and a call are most likely to part company.
+      name: "isOwner is false for an address that is not an owner",
+      run: `@safe:isOwner(${STRANGER} ${SAFE})`,
+      compile: `@safe:isOwner!(${STRANGER} ${SAFE})`,
+    },
+    {
+      // No guard set, so both faces must agree on the zero address rather
+      // than one of them inventing a value out of an empty slot.
+      name: "guard of a Safe with none set",
+      run: `@safe:guard(${SAFE})`,
+      compile: `@safe:guard!(${SAFE})`,
+    },
+    {
+      // The ! face reads ONE page; the plain face walks until `next` is zero.
+      // They agree when a single page holds them all, which the
+      // compileDescription says is the limit.
+      name: "modules of a live Safe",
+      run: `@safe:modules(${SAFE})`,
+      compile: `@safe:modules!(${SAFE})`,
+      decodeAs: "address[]",
     },
   ],
 });
