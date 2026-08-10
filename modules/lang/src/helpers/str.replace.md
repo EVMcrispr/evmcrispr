@@ -4,7 +4,7 @@ title: "@lang:str.replace"
 
 Replace all occurrences of a substring (every non-overlapping left-to-right match).
 
-**On-chain (`@lang:str.replace!`)**: The substring to match must be non-empty.
+**On-chain (`@lang:str.replace!`)**: The needle and replacement may be live calls; a constant needle must be non-empty, and an empty live one reverts.
 
 **Returns**: `string`
 
@@ -48,6 +48,8 @@ assertions:assert @str.replace!($pool::{name()(string)} "LP" "Pool") == "Curve P
 
 ### Notes
 
+- A constant needle must be non-empty; a live one that resolves empty
+  reverts on-chain with EmptyNeedle, so it fails loudly either way.
 - The needle must be non-empty (EmptyNeedle on-chain).
 - Byte-exact and case-sensitive; matches are scanned left to right
   without overlap, exactly like `indexOf`'s scan.

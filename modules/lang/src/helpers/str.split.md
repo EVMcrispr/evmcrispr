@@ -4,7 +4,7 @@ title: "@lang:str.split"
 
 Split a string by a delimiter into an array of strings, or select one segment when an index is given.
 
-**On-chain (`@lang:str.split!`)**: The segment index is required.
+**On-chain (`@lang:str.split!`)**: The segment index is required; the delimiter may be a live call, which costs three reads of it per segment.
 
 **Returns**: `array | string`
 
@@ -49,6 +49,9 @@ assertions:assert @str.split!($pool::{name()(string)} " " -1) == "Token"
 
 ### Notes
 
+- A live delimiter costs three reads of it per segment: the two indexOf
+  bounds and its own length. Index 0 is the exception, needing neither
+  the length nor a second indexOf.
 - Splits on the exact byte sequence; adjacent delimiters produce empty
   segments and an out-of-range index (in either direction) reverts with
   SegmentIndexOutOfBounds.

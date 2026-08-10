@@ -871,6 +871,68 @@ describeCommand("assert (lang on-chain faces, wave 3)", {
       },
     },
     {
+      // A live needle. indexOf takes two dynamic arguments, so before the
+      // splice generalization this could only be a build-time constant.
+      name: "splices a live needle into @str.includes!",
+      script: `assertions:assert @str.includes!(${TOKEN}::{name()(string)} ${TOKEN}::{symbol()(string)})`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        d.expectConstraint(param, "Eq", 1n);
+        const cmp = d.opReadOf(param, "lt(uint256,uint256)");
+        const idx = d.opReadOf(cmp[0], "indexOf(bytes,bytes,int256)");
+        // [offset_s literal][live offset_needle][occurrence][s][needle]
+        expect(idx.length).to.be.greaterThan(3);
+        const addArgs = d.opReadOf(idx[1], "add(uint256,uint256)");
+        d.opReadOf(addArgs[0], "bitAnd(uint256,uint256)");
+      },
+    },
+    {
+      name: "splices a live needle and replacement into @str.replace!",
+      script: `assertions:assert @str.replace!(${TOKEN}::{name()(string)} ${TOKEN}::{symbol()(string)} ${TOKEN}::{version()(string)}) == "x"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const segs = d.opReadOf(
+          d.opReadOf(param, "hash(bytes)")[0],
+          "replace(bytes,bytes,bytes)",
+        );
+        // Three live envelopes: offset_s stays literal, the other two are
+        // computed from the payloads before them.
+        d.expectRawWord(segs[0], 128n);
+        d.opReadOf(segs[1], "add(uint256,uint256)");
+        d.opReadOf(segs[2], "add(uint256,uint256)");
+      },
+    },
+    {
+      name: "compiles @str.split! with a live delimiter",
+      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} ${TOKEN}::{sep()(string)} 0) == "a"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const segs = d.opReadOf(
+          d.opReadOf(param, "hash(bytes)")[0],
+          "slice(bytes,uint256,uint256)",
+        );
+        // Segment 0 is slice(s, 0, indexOf(s, delim, 0)) — the delimiter
+        // length never appears, which is why index 0 is the cheap case.
+        d.opReadOf(segs[1], "indexOf(bytes,bytes,int256)");
+      },
+    },
+    {
+      // Any other index needs the delimiter's LENGTH to step past it, and
+      // for a live delimiter that length is itself a read of its envelope.
+      name: "reads a live @str.split! delimiter's length for a later segment",
+      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} ${TOKEN}::{sep()(string)} 1) == "b"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const segs = d.opReadOf(
+          d.opReadOf(param, "hash(bytes)")[0],
+          "slice(bytes,uint256,uint256)",
+        );
+        const startAdd = d.opReadOf(segs[1], "add(uint256,uint256)");
+        d.opReadOf(startAdd[0], "indexOf(bytes,bytes,int256)");
+        expect(d.core(startAdd[1]).functionName).to.equal("pick");
+      },
+    },
+    {
       name: "compiles @enumerate! to zipWords(iotaWords(n), payload) with a live offset_b",
       script: `assertions:assert @enumerate!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
       validate: (actions) => {

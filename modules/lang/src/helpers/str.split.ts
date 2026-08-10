@@ -6,14 +6,15 @@ import {
   requireBytesLike,
   splitParam,
 } from "@evmcrispr/sdk/onchain";
-import { stringToHex } from "viem";
 import type Lang from "..";
+import { stringArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "str.split",
   description:
     "Split a string by a delimiter into an array of strings, or select one segment when an index is given.",
-  compileDescription: "The segment index is required.",
+  compileDescription:
+    "The segment index is required; the delimiter may be a live call, which costs three reads of it per segment.",
   returnType: ["array", "string"],
   args: [
     {
@@ -54,8 +55,13 @@ export default defineHelper<Lang>({
     }
     const arg = await chainArgWithLens(ctx, "str.split!", node.args[0]);
     requireBytesLike(arg, "str.split!");
-    const delimiter = await ctx.interpreters.interpretNode(node.args[1]);
-    if (typeof delimiter !== "string" || delimiter.length === 0) {
+    const { part: delimiter, text: delimiterText } = await stringArg(
+      ctx,
+      node.args[1],
+      "str.split!",
+      "delimiter",
+    );
+    if (delimiterText !== undefined && delimiterText.length === 0) {
       throw new ErrorException(
         "@str.split! delimiter must be a non-empty string",
       );
@@ -63,12 +69,7 @@ export default defineHelper<Lang>({
     const index = await constIntArg(ctx, "str.split!", "index", node.args[2]);
     return {
       kind: "call",
-      param: splitParam(
-        ctx,
-        lensedDataOperand(ctx, arg),
-        stringToHex(delimiter),
-        index,
-      ),
+      param: splitParam(ctx, lensedDataOperand(ctx, arg), delimiter, index),
       cat: "String",
     };
   },

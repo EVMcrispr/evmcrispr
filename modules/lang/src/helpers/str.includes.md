@@ -4,7 +4,7 @@ title: "@lang:str.includes"
 
 Check whether a string contains a substring (exact byte sequence, case-sensitive).
 
-**On-chain (`@lang:str.includes!`)**: The substring must be non-empty.
+**On-chain (`@lang:str.includes!`)**: The substring may be a live call; a constant one must be non-empty, since every string contains the empty string.
 
 **Returns**: `bool`
 
@@ -49,10 +49,12 @@ assertions:assert @str.includes!($pool::{name()(string)} "Sushi") == false
 
 ### Notes
 
+- An empty `part` is rejected at build time when it is a constant —
+  every string contains it, so the assertion could never fail. A LIVE
+  part that resolves empty reports found at 0, which is the same answer
+  stated honestly rather than a guard that cannot run.
 - Matches the exact byte sequence: case-sensitive, no wildcards or regex; a
   multi-byte UTF-8 `part` matches its exact encoding.
-- An empty `part` is rejected at build time — every string contains it, so
-  the assertion could never fail.
 - Boolean-valued: usable bare, compared with `== true` / `== false`, or
   nested inside `@bool!(...)` logic.
 

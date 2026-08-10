@@ -6,6 +6,7 @@ import { rawParam, staticCallParam, toWord } from "./erc8211";
 import {
   bytesPayloadParam,
   bytesTail,
+  envelopeLenParam,
   mergeSegments,
   type Slot,
   spliceLayout,
@@ -53,20 +54,18 @@ const byteLen = (payload: Hex): number => (payload.length - 2) / 2;
 export function indexOfParam(
   ctx: CompileCtx,
   s: InputParam,
-  needle: Hex,
+  needle: BytesPart,
   occurrence: bigint,
 ): InputParam {
-  const needleTail = bytesTail(needle);
-  const envelopeAt = 96 + needleTail.length / 2;
+  const { offsets, tail } = spliceLayout(ctx, toSlots(ctx, [s, needle]), 96);
   return opReadParam(
     ctx,
     OP_SELECTORS.indexOf,
     mergeSegments([
-      wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
-      wordSpan(96n), // offset_needle
+      wordPiece(offsets[0]), // offset_s
+      wordPiece(offsets[1]), // offset_needle
       wordSpan(occurrence),
-      needleTail,
-      s,
+      ...tail,
     ]),
   );
 }
@@ -98,7 +97,7 @@ export function sliceParam(
 export function includesParam(
   ctx: CompileCtx,
   s: InputParam,
-  needle: Hex,
+  needle: BytesPart,
 ): InputParam {
   return wordOpParam(
     ctx,
@@ -397,23 +396,22 @@ export function arrayWordsParam(
 export function replaceParam(
   ctx: CompileCtx,
   s: InputParam,
-  needle: Hex,
-  repl: Hex,
+  needle: BytesPart,
+  repl: BytesPart,
 ): InputParam {
-  const needleTail = bytesTail(needle);
-  const replAt = 96 + needleTail.length / 2;
-  const replTail = bytesTail(repl);
-  const envelopeAt = replAt + replTail.length / 2;
+  const { offsets, tail } = spliceLayout(
+    ctx,
+    toSlots(ctx, [s, needle, repl]),
+    96,
+  );
   return opReadParam(
     ctx,
     OP_SELECTORS.replace,
     mergeSegments([
-      wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
-      wordSpan(96n), // offset_needle
-      wordSpan(BigInt(replAt)), // offset_repl
-      needleTail,
-      replTail,
-      s,
+      wordPiece(offsets[0]), // offset_s
+      wordPiece(offsets[1]), // offset_needle
+      wordPiece(offsets[2]), // offset_repl
+      ...tail,
     ]),
   );
 }
@@ -566,12 +564,27 @@ export function zipParam(
 export function splitParam(
   ctx: CompileCtx,
   s: InputParam,
-  delimiter: Hex,
+  delimiter: BytesPart,
   index: bigint,
 ): InputParam {
-  const dlen = BigInt(byteLen(delimiter));
-  const add = (a: InputParam, b: bigint): InputParam =>
-    wordOpParam(ctx, "add", false, a, rawParam(toWord(b)));
+  // A constant delimiter contributes its length as a literal; a live one
+  // has to read it from its own envelope, which is the only difference
+  // between the two paths.
+  const dlen: bigint | InputParam =
+    typeof delimiter === "string"
+      ? BigInt(byteLen(delimiter))
+      : envelopeLenParam(
+          ctx,
+          "aligned" in delimiter ? delimiter.param : delimiter,
+        );
+  const add = (a: InputParam, b: bigint | InputParam): InputParam =>
+    wordOpParam(
+      ctx,
+      "add",
+      false,
+      a,
+      typeof b === "bigint" ? rawParam(toWord(b)) : b,
+    );
   const sub = (a: InputParam, b: InputParam): InputParam =>
     wordOpParam(ctx, "sub", false, a, b);
 
