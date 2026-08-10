@@ -1,12 +1,18 @@
 import { ErrorException, encodeAction, Num } from "@evmcrispr/sdk";
-import type { Address } from "viem";
-import { maxUint256 } from "viem";
+import {
+  callReadOperand,
+  directReadOperand,
+  operandNode,
+} from "@evmcrispr/sdk/onchain";
+import type { AbiFunction, Address } from "viem";
+import { encodeFunctionData, getAbiItem, maxUint256 } from "viem";
 import { COMPOUND_V3 } from "../../addresses";
 import { sameAddress } from "../../utils/amounts";
+import { compileCompoundedApy } from "../../utils/compileRates";
+import { perSecondRateToApy, WAD } from "../../utils/rates";
 import type { LendingAdapter } from "../types";
 import { cometAbi } from "./abis";
 import { marketForBase, marketForToken } from "./market";
-import { perSecondRateToApy } from "./rates";
 
 /**
  * Compound v3 (Comet). Each market lends a single base asset: borrowing is
@@ -136,6 +142,30 @@ const compoundV3: LendingAdapter = {
       args: [utilization],
     });
     return perSecondRateToApy(rate);
+  },
+
+  async compileApy(ctx, module, chainId, token, side) {
+    const { comet } = await marketForBase(module, chainId, token);
+    // The rate depends on utilization, so the utilization read feeds the
+    // rate read as a live argument: two hops, spliced by the core.
+    const utilization = directReadOperand(
+      ctx,
+      comet,
+      encodeFunctionData({ abi: cometAbi, functionName: "getUtilization" }),
+      "Uint",
+    );
+    const rate = await callReadOperand(
+      ctx,
+      comet,
+      getAbiItem({
+        abi: cometAbi,
+        name: side === "supply" ? "getSupplyRate" : "getBorrowRate",
+      }) as AbiFunction,
+      [operandNode(utilization)],
+      "Uint",
+    );
+    // Comet already quotes per second, in wad.
+    return compileCompoundedApy(ctx, rate, WAD, 18, { perSecond: true });
   },
 
   async maxBorrow(module, chainId, account, token) {

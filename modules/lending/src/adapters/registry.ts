@@ -72,3 +72,36 @@ export function requireRead<K extends ReadMethod>(
   }
   return fn;
 }
+
+type CompileMethod = "compileApy";
+
+const COMPILE_OF: Record<ReadMethod & string, CompileMethod | undefined> = {
+  apy: "compileApy",
+  healthFactor: undefined,
+  maxBorrow: undefined,
+  debt: undefined,
+};
+
+/**
+ * Get an adapter's on-chain form of a read.
+ *
+ * Being readable off-chain does not imply being expressible on-chain, so
+ * this is a separate capability rather than a derived one: Comet prices a
+ * borrow by looping over every collateral asset, and a loop has no
+ * composition at any node count. Where that is the case the adapter omits
+ * the slot and the error says which protocol cannot do it, rather than a
+ * face quietly meaning something else.
+ */
+export function requireCompile<K extends ReadMethod>(
+  adapter: LendingAdapter,
+  method: K,
+): NonNullable<LendingAdapter[CompileMethod]> {
+  const key = COMPILE_OF[method];
+  const fn = key ? adapter[key] : undefined;
+  if (!fn) {
+    throw new ErrorException(
+      `${adapter.name} cannot evaluate ${method} on-chain — use the plain @${method} face, or pass --using with a protocol that can`,
+    );
+  }
+  return fn;
+}

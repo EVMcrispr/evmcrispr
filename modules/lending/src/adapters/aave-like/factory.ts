@@ -1,12 +1,14 @@
 import { ErrorException, encodeAction, Num } from "@evmcrispr/sdk";
+import { directReadOperand } from "@evmcrispr/sdk/onchain";
 import type { Address } from "viem";
-import { maxUint256 } from "viem";
+import { encodeFunctionData, maxUint256 } from "viem";
 import { sameAddress } from "../../utils/amounts";
+import { compileCompoundedApy } from "../../utils/compileRates";
+import { RAY, rayAprToApy } from "../../utils/rates";
 import type { LendingAdapter } from "../types";
 import { erc20Abi, oracleAbi, poolAbi } from "./abis";
 import type { AaveStyleMarket } from "./market";
 import { getMarket, readReserve, readVariableDebt } from "./market";
-import { rayAprToApy } from "./rates";
 
 // Stable-rate borrowing was removed in Aave v3.2; every market built from
 // this factory runs 3.x (or a fork of it), so all borrows and repays are
@@ -168,6 +170,30 @@ export function makeAaveStyleAdapter(
           ? reserve.currentLiquidityRate
           : reserve.currentVariableBorrowRate;
       return rayAprToApy(rate);
+    },
+
+    async compileApy(ctx, module, chainId, token, side) {
+      const { pool } = await getMarket(module, market, chainId);
+      // Listing is checked at composition time; the rate itself is read
+      // at assertion time, which is the point of the face.
+      await readReserve(module, market, chainId, token);
+      // ReserveDataLegacy is all value types, so the struct encodes
+      // inline and each field is one word: currentLiquidityRate is word
+      // 2, currentVariableBorrowRate word 4 (see abis.ts).
+      const rate = directReadOperand(
+        ctx,
+        pool,
+        encodeFunctionData({
+          abi: poolAbi,
+          functionName: "getReserveData",
+          args: [token],
+        }),
+        "Uint",
+        side === "supply" ? 2n : 4n,
+      );
+      return compileCompoundedApy(ctx, rate, RAY, 27, {
+        perSecond: false,
+      });
     },
 
     async maxBorrow(module, chainId, account, token) {

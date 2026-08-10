@@ -1,6 +1,13 @@
 import type { Action } from "@evmcrispr/sdk";
+import type { CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
 import type { Address } from "viem";
 import type Lending from "..";
+
+/** An exact fractional rate: `value` divided by 10^`scale`. */
+export interface ScaledRate {
+  value: bigint;
+  scale: number;
+}
 
 /**
  * How an adapter produces its actions:
@@ -70,13 +77,32 @@ export interface LendingAdapter {
     chainId: number,
     account: Address,
   ): Promise<bigint>;
-  /** APY as a plain decimal fraction (2.04% -> 0.0204). */
+  /**
+   * APY as a scaled integer: the word times 10^-scale is the fraction
+   * (2.04% is 204e23 at scale 27). Scaled rather than a decimal so the
+   * value is exact and so it agrees with {@link compileApy}, which has
+   * only words to work with.
+   */
   apy?(
     module: Lending,
     chainId: number,
     token: Address,
     side: RateSide,
-  ): Promise<number>;
+  ): Promise<ScaledRate>;
+  /**
+   * The on-chain form of {@link apy}: the same rate as an expression
+   * evaluated at assertion time. Optional independently of `apy`, because
+   * an adapter can be readable off-chain and still have no expressible
+   * form — an unbounded loop over collateral assets has no composition,
+   * and saying so beats a face that quietly means something else.
+   */
+  compileApy?(
+    ctx: CompileCtx,
+    module: Lending,
+    chainId: number,
+    token: Address,
+    side: RateSide,
+  ): Promise<Operand>;
   maxBorrow?(
     module: Lending,
     chainId: number,
