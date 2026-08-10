@@ -8,7 +8,7 @@ export default defineHelper<Lang>({
   name: "unzip",
   description: "Transpose an array of pairs into two separate arrays.",
   compileDescription:
-    "The `lane` argument is required, and an odd word count gives lane 0 the extra word.",
+    "The `lane` argument defaults to 0 (`@keys!` is lane 0 and `@values!` lane 1), and an odd word count gives lane 0 the extra word.",
   returnType: "array",
   args: [
     { name: "pairs", type: "array", description: "Array of [a, b] pairs" },
@@ -35,13 +35,17 @@ export default defineHelper<Lang>({
     return [firsts, seconds];
   },
   compile: async (ctx, node) => {
-    if (node.args.length !== 2) {
+    if (node.args.length !== 1 && node.args.length !== 2) {
       throw new ErrorException(
-        "@unzip! expects (call lane) with lane 0 or 1, e.g. @unzip!($amm::reservePairs() 0)",
+        "@unzip! expects (call lane?) with lane 0 or 1, e.g. @unzip!($amm::reservePairs() 0)",
       );
     }
     const { payload } = await wordsArg(ctx, node.args[0], "unzip!");
-    const which = await constIntArg(ctx, "unzip!", "lane", node.args[1]);
+    /** An omitted lane keeps lane 0, the same half `@keys!` selects. */
+    const which =
+      node.args.length === 2
+        ? await constIntArg(ctx, "unzip!", "lane", node.args[1])
+        : 0n;
     if (which !== 0n && which !== 1n) {
       throw new ErrorException("@unzip! lane must be 0 or 1");
     }

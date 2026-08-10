@@ -679,6 +679,32 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
       },
     },
     {
+      name: "defaults an omitted @unzip! lane to 0",
+      script: `assertions:assert @unzip!(${TOKEN}::{pairs()(uint256[])}) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const hashArgs = d.opReadOf(param, "hash(bytes)");
+        const segs = d.opReadOf(hashArgs[0], "unzipWords(bytes,uint256)");
+        expect(segs).to.have.lengthOf(2);
+        // the lane word after the payload offset is 0, as for @keys!
+        expect(segs[0].paramData).to.equal(
+          `0x${word(96n).slice(2)}${word(0n).slice(2)}`,
+        );
+        expectWordsPayload(segs[1]);
+      },
+    },
+    {
+      name: "emits the same calldata for an omitted @unzip! lane and an explicit 0",
+      script:
+        `assertions:assert @unzip!(${TOKEN}::{pairs()(uint256[])}) == 0x1122\n` +
+        `assertions:assert @unzip!(${TOKEN}::{pairs()(uint256[])} 0) == 0x1122`,
+      validate: (actions) => {
+        expect(actions).to.have.lengthOf(2);
+        const [defaulted, explicit] = actions as unknown as { data: Hex }[];
+        expect(defaulted.data).to.equal(explicit.data);
+      },
+    },
+    {
       name: "compiles @flat! of a constant part and a live part",
       script: `assertions:assert @flat!([[1 2] ${TOKEN}::{caps()(uint256[])}]) == 0x1122`,
       validate: (actions) => {
