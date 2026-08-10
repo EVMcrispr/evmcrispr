@@ -46,9 +46,18 @@ describeParity("@receipts", {
       compile: "@block.gaslimit!()",
     },
     {
-      name: "block base fee",
+      // The sealed block carries the base fee it was mined with; the block
+      // being written has one DERIVED from it by the 1559 rule, so an empty
+      // pending block decays towards the floor. Number, timestamp, gaslimit
+      // and prevrandao all carry over unchanged — the base fee is the one
+      // that is recomputed, which is what "the block being written" costs.
+      name: "diverges: base fee is recomputed for the block being written",
       run: "@block.basefee()",
       compile: "@block.basefee!()",
+      helper: "block.basefee",
+      diverges: {
+        reason: "the pending block's base fee is derived, not the sealed one",
+      },
     },
     {
       name: "block prevrandao",
