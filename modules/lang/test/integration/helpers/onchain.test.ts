@@ -448,7 +448,7 @@ assertions:assert @sum!(@map!(${TOKEN}::{caps()(uint256[])} @dbl!)) >= 10`,
     {
       name: "rejects a non-helper @all! predicate",
       script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} 5)`,
-      error: "helper-reference predicate",
+      error: "expects a named on-chain definition",
     },
     {
       name: "rejects a non-boolean predicate",
@@ -790,7 +790,7 @@ assertions:assert @filter!(${TOKEN}::{caps()(uint256[])} @inc!) == 0x11`,
     {
       name: "rejects a comparator on @sort!",
       script: `assertions:assert @sort!(${TOKEN}::{caps()(uint256[])} @max) == 0x11`,
-      error: "no comparator",
+      error: "orders by direction, not by a comparator",
     },
   ],
 });
@@ -1053,6 +1053,59 @@ assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} @weighted! 0) > 0`,
       },
     },
     {
+      // Descending composes: sort ascending, then reverse. No comparator
+      // hook is needed and no contract function was added for it.
+      name: "compiles a descending @sort! to a reverse over the sort",
+      script: `assertions:assert @sort!(${TOKEN}::{caps()(uint256[])} desc) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const rev = d.opReadOf(
+          d.opReadOf(param, "hash(bytes)")[0],
+          "reverseWords(bytes)",
+        );
+        d.opReadOf(rev[0], "sortWords(bytes)");
+      },
+    },
+    {
+      // Signed elements would otherwise sort by raw word, putting every
+      // negative after every positive. The sign bit is flipped in and back
+      // out, which is two mapWords passes around the sort.
+      name: "flips the sign bit around a signed @sort!",
+      script: `assertions:assert @sort!(${TOKEN}::{deltas()(int256[])}) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const outer = d.opReadOf(
+          d.opReadOf(param, "hash(bytes)")[0],
+          "mapWords(bytes,address,bytes,uint256[])",
+        );
+        const lambda = lambdaOf(outer[0].paramData, 3);
+        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.elemOffsets).to.deep.equal([4n]);
+        expect(lambda.template).to.equal(
+          template2("bitXor(uint256,uint256)", 0n, 1n << 255n),
+        );
+        // The payload is the LAST segment: the sort, whose own input is
+        // the inbound flip.
+        const sorted = d.opReadOf(outer[outer.length - 1], "sortWords(bytes)");
+        d.opReadOf(
+          sorted[sorted.length - 1],
+          "mapWords(bytes,address,bytes,uint256[])",
+        );
+      },
+    },
+    {
+      name: "leaves an unsigned @sort! as a bare sortWords",
+      script: `assertions:assert @sort!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(
+          d.opReadOf(param, "hash(bytes)")[0],
+          "sortWords(bytes)",
+        );
+        expectWordsPayload(args[0]);
+      },
+    },
+    {
       name: "compiles @enumerate! to zipWords(iotaWords(n), payload) with a live offset_b",
       script: `assertions:assert @enumerate!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
       validate: (actions) => {
@@ -1189,7 +1242,7 @@ assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} @weighted! 0) > 0`,
     {
       name: "rejects a non-helper @find! predicate",
       script: `assertions:assert @find!(${TOKEN}::{caps()(uint256[])} 5) > 0`,
-      error: "helper-reference predicate",
+      error: "expects a named on-chain definition",
     },
     {
       name: "rejects a dynamic-element array in @enumerate!",

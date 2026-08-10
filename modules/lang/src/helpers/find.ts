@@ -40,7 +40,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@find! expects (call predicate), e.g. @find!($vault::caps() @bool!(>= 100))",
+        '@find! expects (call predicate), e.g. @find!($vault::caps() @ge100!) with def @ge100! "$x: number -> bool" @bool!($x >= 100)',
       );
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "find!");

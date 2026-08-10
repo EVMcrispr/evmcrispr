@@ -233,7 +233,7 @@ function buildDef(
 export default defineCommand<Std>({
   name: "def",
   description:
-    "Define a user command, helper, or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).",
+    "Define a user command, helper, on-chain helper (`def @name!`), or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).",
   args: [
     { name: "name", type: ["command", "helper"] },
     {

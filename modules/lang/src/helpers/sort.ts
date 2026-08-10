@@ -1,5 +1,13 @@
-import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
-import { OP_SELECTORS, opReadParam } from "@evmcrispr/sdk/onchain";
+import { defineHelper, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
+import {
+  categoryFromAbiType,
+  mapWordsParam,
+  OP_SELECTORS,
+  opReadParam,
+  opSelector,
+  toWord,
+} from "@evmcrispr/sdk/onchain";
+import type { Hex } from "viem";
 import type Lang from "..";
 import { wordsArg } from "../utils/onchain";
 
@@ -38,37 +46,101 @@ async function asyncMerge(
   return result;
 }
 
+/** Natural order, used when no comparator is given: numbers compare
+ *  numerically, everything else by its string form. */
+async function naturalOrder(a: unknown, b: unknown): Promise<number> {
+  if (a instanceof Num && b instanceof Num) {
+    return a.eq(b) ? 0 : a.lt(b) ? -1 : 1;
+  }
+  const [x, y] = [String(a), String(b)];
+  return x === y ? 0 : x < y ? -1 : 1;
+}
+
+/** The sign bit. Flipping it maps signed order onto unsigned order
+ *  exactly, and unlike adding 2^255 it cannot overflow a checked add. */
+const SIGN_BIT = 1n << 255n;
+
+function isDirection(v: unknown): v is "asc" | "desc" {
+  return v === "asc" || v === "desc";
+}
+
 export default defineHelper<Lang>({
   name: "sort",
-  description: "Sort an array using a comparator helper.",
+  description:
+    "Sort an array: ascending by default, `desc` for descending, or by a comparator helper.",
   compileDescription:
-    "Sorts in unsigned ascending order and takes no comparator; signed values sort by their raw word, so negatives need the sign-flip recipe.",
+    "Takes a direction rather than a comparator, and signed elements sort by value: the sign bit is flipped on the way in and back on the way out.",
   returnType: "array",
   args: [
     { name: "arr", type: "array", description: "Source array" },
     {
-      name: "fn",
-      type: "helper",
-      description: "Comparator helper returning a number",
+      name: "order",
+      type: ["helper", "string"],
+      optional: true,
+      description:
+        "`asc` (default) or `desc`, or a comparator helper returning a number",
     },
   ],
-  async run(_, { arr, fn }) {
+  async run(_, { arr, order }) {
     if (arr.length > 10_000) {
       throw new ErrorException("@sort: maximum array length is 10,000");
     }
-    return asyncMergeSort([...arr], fn);
-  },
-  compile: async (ctx, node) => {
-    if (node.args.length !== 1) {
+    if (
+      order !== undefined &&
+      !isDirection(order) &&
+      typeof order !== "function"
+    ) {
       throw new ErrorException(
-        "@sort! sorts in unsigned ascending word order and takes no comparator — @sort!($safe::getOwners())",
+        `@sort order must be \`asc\`, \`desc\`, or a comparator helper — got ${String(order)}`,
       );
     }
-    const { payload } = await wordsArg(ctx, node.args[0], "sort!");
-    return {
-      kind: "call",
-      param: opReadParam(ctx, OP_SELECTORS.sortWords, [payload]),
-      cat: "Bytes",
+    const cmp = typeof order === "function" ? order : naturalOrder;
+    const sorted = await asyncMergeSort([...arr], cmp);
+    return order === "desc" ? sorted.reverse() : sorted;
+  },
+  compile: async (ctx, node) => {
+    if (node.args.length > 2) {
+      throw new ErrorException(
+        "@sort! expects (call order?), e.g. @sort!($safe::getOwners() desc)",
+      );
+    }
+    const { payload, elemType } = await wordsArg(ctx, node.args[0], "sort!");
+
+    let order: "asc" | "desc" = "asc";
+    if (node.args[1]) {
+      // Check the SHAPE before interpreting: a bare `@cmp` reference would
+      // otherwise be called with no arguments, and the user would see the
+      // comparator's own arity error instead of the real problem.
+      const value =
+        node.args[1].type === NodeType.HelperFunctionExpression
+          ? undefined
+          : await ctx.interpreters.interpretNode(node.args[1]);
+      if (!isDirection(value)) {
+        throw new ErrorException(
+          `@sort! orders by direction, not by a comparator — pass \`asc\` or \`desc\`, got ${node.args[1].type === NodeType.HelperFunctionExpression ? `@${(node.args[1] as { name: string }).name}` : String(value)}. A word sort has no comparator hook on-chain`,
+        );
+      }
+      order = value;
+    }
+
+    // Signed elements sort by their raw word otherwise, which puts every
+    // negative after every positive. Flipping the sign bit maps signed
+    // order onto unsigned order exactly, so the fix is to flip on the way
+    // in and back on the way out: two extra passes, one call per element
+    // each, which is why it is only done when the elements are signed.
+    const signed = categoryFromAbiType(elemType) === "Int";
+    const flip = (words: typeof payload) => {
+      const template: Hex = `0x${opSelector("bitXor").slice(2)}${toWord(0n).slice(2)}${toWord(SIGN_BIT).slice(2)}`;
+      return mapWordsParam(ctx, words, ctx.operators, template, [4n]);
     };
+
+    let out = opReadParam(ctx, OP_SELECTORS.sortWords, [
+      signed ? flip(payload) : payload,
+    ]);
+    if (signed) out = flip(out);
+    if (order === "desc") {
+      out = opReadParam(ctx, OP_SELECTORS.reverseWords, [out]);
+    }
+    return { kind: "call", param: out, cat: "Bytes" };
   },
 });

@@ -33,7 +33,7 @@ load lang
 | [@lang:reduce](src/helpers/reduce.md) | `any` | Reduce an array to a single value by applying a helper. |
 | [@lang:reverse](src/helpers/reverse.md) | `array` | Reverse the order of an array's elements. |
 | [@lang:slice](src/helpers/slice.md) | `array` | Extract a section of an array. |
-| [@lang:sort](src/helpers/sort.md) | `array` | Sort an array using a comparator helper. |
+| [@lang:sort](src/helpers/sort.md) | `array` | Sort an array: ascending by default, `desc` for descending, or by a comparator helper. |
 | [@lang:str.at](src/helpers/str.at.md) | `string` | Access a character by index in a string. |
 | [@lang:str.charset](src/helpers/str.charset.md) | `bool` | Check whether every byte of a string is in a character class (ranges like `a-z0-9-`; a leading or trailing dash is the literal `-`). |
 | [@lang:str.concat](src/helpers/str.concat.md) | `string` | Concatenate strings together. |

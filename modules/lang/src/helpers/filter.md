@@ -33,8 +33,8 @@ Keep elements of an array for which a helper returns truthy.
 ## On-chain face (@filter!)
 
 Keep the matching elements of the array return of a call on-chain
-through `filterWords`. The predicate names an Operators-backed helper,
-applied with the element prepended to its own arguments
+through `filterWords`. The predicate is a `def @name!` of one parameter
+returning bool
 (a def whose body is `@bool!($x >= 100)` keeps each element with
 `element >= 100`) — the same
 lambda machinery @map! and @all! use. A predicate reducing to one

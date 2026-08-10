@@ -34,10 +34,9 @@ Check every element of the array return of a call against a predicate,
 on-chain: a `foldWords` with the All exit (init 1), stopping at the first
 failure.
 
-The predicate names an Operators-backed helper and is compiled into a
-lambda template with the element prepended to the reference's own
-parameter: a def of one parameter returning bool. `def @ge100! "$x:
-number -> bool" @bool!($x >= 100)` tests `element >= 100`; `@not!` tests
+The predicate is a `def @name!` of one parameter returning bool, applied
+by name. Its parameter substitutes wherever the body names it. `def @ge100! "$x:
+number -> bool" @bool!($x >= 100)` tests `element >= 100`; a body of `@not!($x)` tests
 `element == 0`. A predicate reducing to ONE Operators call becomes a
 single-staticcall template; a composed one — a nested live call, a
 multi-call body like `@bool!($x > $vault::floor())` — routes through

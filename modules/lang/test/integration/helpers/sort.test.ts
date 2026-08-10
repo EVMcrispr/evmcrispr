@@ -53,9 +53,9 @@ def @cmpDesc "$a: number $b: number -> number" @num($b - $a)
     ],
     errorCases: [
       {
-        name: "should fail when second argument is not a helper",
+        name: "should fail on an order that is neither a direction nor a helper",
         input: `@sort([1 2] "notAHelper")`,
-        error: "must be a helper reference",
+        error: "must be `asc`, `desc`, or a comparator helper",
       },
     ],
     skipArgLengthCheck: true,

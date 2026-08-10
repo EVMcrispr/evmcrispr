@@ -2,7 +2,7 @@
 title: "def"
 ---
 
-Define a user command, helper, or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).
+Define a user command, helper, on-chain helper (`def @name!`), or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).
 
 ## Syntax
 
@@ -87,7 +87,57 @@ def return
 - The type signature string defines parameter names, types, and return type
 - Parameters are prefixed with `$`, optional params wrapped in `[]`
 - Helpers defined inside blocks (e.g. `if`) are scoped to that block
-- Type inference: if the return type is omitted, it is inferred from the body
+- Type inference: if the return type is omitted, it is inferred from the
+  body. A `def @name!` is the exception and must be fully typed (below)
+
+## On-chain definitions (`def @name!`)
+
+A name ending in `!` defines an ON-CHAIN helper: one that compiles into an
+assertion instead of running when the script is built.
+
+```evml
+load assertions
+load lang
+
+set $vault 0x44fA8E6f47987339850636F88629646662444217
+
+def @ge100! "$x: number -> bool" @bool!($x >= 100)
+assertions:assert @all!($vault::{caps()(uint256[])} @ge100!)
+```
+
+This is the only way to write the predicate, transform or reducer that
+`@all!`, `@any!`, `@filter!`, `@find!`, `@map!` and `@reduce!` apply. The
+face takes the definition by NAME and supplies the arguments it declares.
+
+Four things follow from a body that compiles rather than runs:
+
+- **`@name` and `@name!` are independent.** Neither derives from the
+  other; defining one leaves the other free, and they may have different
+  bodies or none at all.
+- **It cannot be called off-chain.** `set $x @ge100!(5)` is an error: there
+  is nothing to run. Use it inside an assertion, or define the non-`!`
+  twin.
+- **It must be fully typed.** Return-type inference reads the body
+  expecting helpers it can reason about off-chain, and an on-chain body is
+  made of compile-only ones, so the signature has to say what inference
+  otherwise would.
+- **It is inlined, not called.** The body is compiled with the caller's
+  argument expressions substituted for its parameters — which is why
+  naming a parameter more than once is meaningful:
+
+```evml
+def @sq! "$x: number -> number" @num!($x * $x)
+```
+
+  `$x` appears twice, so the element is stamped at two places in one
+  call rather than being read twice.
+
+Two limits come from the same place. **Rest parameters** are refused,
+because the calldata layout is fixed when the assertion is built and the
+argument count has to be known then. **Recursion** is refused, directly or
+mutually, because inlining a definition that reaches itself would never
+terminate. Nesting is fine: `def @quad! "$x: number -> number"
+@dbl!(@dbl!($x))` calls `@dbl!` twice and neither call is recursive.
 
 ## Early return
 

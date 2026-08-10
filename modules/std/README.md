@@ -16,7 +16,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | Command | Description |
 |---------|-------------|
 | [batch](src/commands/batch.md) | Group multiple commands into a single transaction. |
-| [def](src/commands/def.md) | Define a user command, helper, or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`). |
+| [def](src/commands/def.md) | Define a user command, helper, on-chain helper (`def @name!`), or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
 | [exit](src/commands/exit.md) | Stop script execution immediately. |
 | [if](src/commands/if.md) | Conditionally execute a block of commands, with an optional else block. |

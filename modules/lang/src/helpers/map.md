@@ -32,8 +32,8 @@ Transform each element of an array by applying a helper.
 ## On-chain face (@map!)
 
 Transform every element of the array return of a call on-chain through
-`mapWords`. The lambda names an Operators-backed helper, applied with
-its parameter substituted at each occurrence (`def @dbl! "$x: number ->
+`mapWords`. The transform is a `def @name!` of one parameter,
+applied by name with its parameter substituted at each occurrence (`def @dbl! "$x: number ->
 number" @num!($x * 2)` maps each
 element to `element * 2`). A lambda reducing to one Operators call runs
 as a single staticcall per element; a composed one (a nested live call,

@@ -2,16 +2,16 @@
 title: "@lang:sort"
 ---
 
-Sort an array using a comparator helper.
+Sort an array: ascending by default, `desc` for descending, or by a comparator helper.
 
-**On-chain (`@lang:sort!`)**: Sorts in unsigned ascending order and takes no comparator; signed values sort by their raw word, so negatives need the sign-flip recipe.
+**On-chain (`@lang:sort!`)**: Takes a direction rather than a comparator, and signed elements sort by value: the sign bit is flipped on the way in and back on the way out.
 
 **Returns**: `array`
 
 ## Syntax
 
 ```evml
-@lang:sort(arr fn)
+@lang:sort(arr order?)
 ```
 
 ## Arguments
@@ -19,7 +19,7 @@ Sort an array using a comparator helper.
 | Name | Type | Description |
 |------|------|-------------|
 | `arr` | `array` | Source array |
-| `fn` | `helper` | Comparator helper returning a number |
+| `[order]` | `helper \| string` | `asc` (default) or `desc`, or a comparator helper returning a number |
 
 <!-- HAND-WRITTEN -->
 
@@ -29,11 +29,8 @@ Sort an array using a comparator helper.
 
 ## On-chain face (@sort!)
 
-Sort the word payload of the array return of a call on-chain through
-`sortWords`: UNSIGNED ascending word order, insertion sort (O(n2) gas,
-fine for the short arrays assertions read). No comparator.
-
-### Examples
+Sort the array return of a call on-chain through `sortWords`, ascending by
+default and descending with a second argument:
 
 ```evml
 load assertions
@@ -41,23 +38,25 @@ load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
-# Set-uniqueness: sorted then adjacent-deduped
-assertions:assert @unique!(@sort!($safe::{getOwners()(address[])})) == 0x1122
+assertions:assert @at!(@sort!($safe::{caps()(uint256[])} desc) 0) >= 100
 ```
 
-### Notes
+`desc` composes rather than adding anything on-chain: the array is sorted
+ascending and then reversed, which is one extra node and no new contract
+function.
 
-- Sign-flip recipe (the signed sort): map the sign bit away, sort, map
-  it back. Flipping the top bit maps signed order onto unsigned order
-  exactly, and unlike adding 2^255 it can never overflow. Name the flip
-  once and apply it on the way in and on the way out:
+Signed elements sort by VALUE, not by their raw word. Without that, every
+negative would land after every positive, because a two's-complement
+negative has its top bit set and reads as a huge unsigned number. The
+compiler flips the sign bit on the way in and back on the way out, which
+maps signed order onto unsigned order exactly and, unlike adding 2^255,
+cannot overflow a checked add. It costs two extra passes of one call per
+element, so it is only done when the elements are actually signed.
 
-  ```evml
-  def @flip! "$x: bytes32 -> bytes32" @bytes!($x "xor" 0x8000000000000000000000000000000000000000000000000000000000000000)
-  set $sorted @map!(@sort!(@map!($c::{vals()(int256[])} @flip!)) @flip!)
-  ```
-- The result is a words payload (bytes), composable with the other
-  array faces.
+A comparator is refused. `sortWords` has no comparator hook, and a fold
+lambda cannot express one either: sorting is not a reduction over
+elements. Order by direction, and if you need a different key, `@map!` it
+into one first and sort that.
 
 ### See Also
 

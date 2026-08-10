@@ -34,10 +34,9 @@ Check whether at least one element of the array return of a call passes a
 predicate, on-chain: a `foldWords` with the Any exit (init 0), stopping at
 the first pass.
 
-The predicate names an Operators-backed helper compiled into a lambda
-template with the element prepended to the reference's own arguments:
-A def of one parameter returning bool: `def @isZero! "$x: number ->
-bool" @bool!($x == 0)` tests `element == 0`. A body reducing to ONE
+The predicate is a `def @name!` of one parameter returning bool, applied
+by name: `def @isZero! "$x: number -> bool" @bool!($x == 0)` tests
+`element == 0`. A body reducing to ONE
 Operators call becomes a single-staticcall template; a composed one —
 a nested live call, a multi-call expression — routes through the core
 and costs several staticcalls per element instead of one.

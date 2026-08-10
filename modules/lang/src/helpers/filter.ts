@@ -38,7 +38,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@filter! expects (call predicate), e.g. @filter!($vault::caps() @bool!(>= 100))",
+        '@filter! expects (call predicate), e.g. @filter!($vault::caps() @ge100!) with def @ge100! "$x: number -> bool" @bool!($x >= 100)',
       );
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "filter!");

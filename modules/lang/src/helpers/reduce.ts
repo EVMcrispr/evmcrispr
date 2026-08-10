@@ -181,7 +181,7 @@ export default defineHelper<Lang>({
     }
     if (!name || !(REDUCERS as readonly string[]).includes(name)) {
       throw new ErrorException(
-        `@reduce! reduces with a binary Operators lambda — one of ${REDUCERS.join(", ")} — got ${name ?? "an unsupported reducer"}. Order-sensitive operations are excluded on purpose: the accumulator is always the LEFT argument, so a wrong guess about the side would change the value silently`,
+        `@reduce! reduces with a binary Operators lambda — one of ${REDUCERS.join(", ")} — got ${name ?? "an unsupported reducer"}. Order-sensitive operations are excluded as BARE names because the accumulator is always the LEFT argument and a wrong guess about the side would change the value silently. Name it instead and the order is written down: def @subFrom! \`$acc: number $e: number -> number\` @num!($acc - $e)`,
       );
     }
     const init = await constIntArg(ctx, "reduce!", "initial", node.args[2]);

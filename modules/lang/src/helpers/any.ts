@@ -38,7 +38,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@any! expects (call predicate), e.g. @any!($vault::caps() @bool!(== 0))",
+        '@any! expects (call predicate), e.g. @any!($vault::caps() @isZero!) with def @isZero! "$x: number -> bool" @bool!($x == 0)',
       );
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "any!");

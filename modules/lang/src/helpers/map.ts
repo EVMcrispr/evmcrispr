@@ -35,7 +35,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@map! expects (call lambda), e.g. @map!($vault::caps() @num!(* 2))",
+        '@map! expects (call transform), e.g. @map!($vault::caps() @dbl!) with def @dbl! "$x: number -> number" @num!($x * 2)',
       );
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "map!");

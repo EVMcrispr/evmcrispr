@@ -165,7 +165,7 @@ function findAllWindows(
 
 /** True when `node` (or a descendant) is a precompiled operand carrying
  *  the fold-element marker — the outer element leaked into an inner
- *  lambda's AST. Same global marker as the inner prepend, so admitting
+ *  lambda's AST. Same global marker as the inner binder's, so admitting
  *  it would stamp the wrong binder's windows. */
 function astCapturesOuterElement(node: Node): boolean {
   const pre = (node as unknown as Record<string, unknown>)[
@@ -400,6 +400,6 @@ export async function compilePredicateTemplate(
     return compiled;
   }
   throw new ErrorException(
-    `${label} expects a helper-reference predicate, e.g. @bool!(> 100) — the element is prepended to the reference's own arguments`,
+    `${label} expects a named on-chain definition returning bool, e.g. ${DEF_EXAMPLE[1]}`,
   );
 }

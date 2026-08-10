@@ -186,8 +186,28 @@ export function defineHelper<M extends Module>(
         continue;
       }
 
-      if (def.type === "helper") {
+      // A union including "helper" accepts EITHER a helper reference or an
+      // ordinary value: the reference becomes a callable below, anything
+      // else falls through to the normal coercion. `@sort` uses it to take
+      // a comparator or a plain direction in the same slot.
+      const acceptsHelper = Array.isArray(def.type)
+        ? def.type.includes("helper")
+        : def.type === "helper";
+      const helperOptional = acceptsHelper && Array.isArray(def.type);
+
+      if (acceptsHelper) {
         const cbNode = nodeFor(def);
+        if (
+          helperOptional &&
+          (!cbNode || cbNode.type !== NodeType.HelperFunctionExpression)
+        ) {
+          // Not a reference. `nodeFor` already consumed it, so interpret it
+          // as an ordinary value and move on.
+          parsedArgs[def.name] = cbNode
+            ? await interpretNode(cbNode)
+            : undefined;
+          continue;
+        }
         if (!cbNode || cbNode.type !== NodeType.HelperFunctionExpression) {
           throw new ErrorException(
             `<${def.name}> must be a helper reference like @helperName`,
@@ -237,7 +257,11 @@ export function defineHelper<M extends Module>(
     // 4. Validate argument types
     for (let vi = 0; vi < argDefs.length; vi++) {
       const def = argDefs[vi];
-      if (def.type === "helper") continue;
+      if (
+        def.type === "helper" ||
+        (Array.isArray(def.type) && def.type.includes("helper"))
+      )
+        continue;
       const formatted = def.optional ? `[${def.name}]` : `<${def.name}>`;
       const value = parsedArgs[def.name];
       if (value !== undefined && !def.rest) {
