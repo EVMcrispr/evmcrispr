@@ -65,6 +65,7 @@ let CORE: `0x${string}`;
 let OPERATORS: `0x${string}`;
 
 async function send(
+  step: string,
   wallet: typeof adminWallet,
   to: string,
   data: `0x${string}`,
@@ -77,7 +78,7 @@ async function send(
   } as never);
   const receipt = await pub.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success") {
-    throw new Error(`GDA setup reverted: ${hash}`);
+    throw new Error(`GDA setup reverted at "${step}": ${hash}`);
   }
   return receipt;
 }
@@ -106,8 +107,24 @@ function expectParity(offchain: Norm, onchain: Norm, label: string) {
 describe("@superfluid GDA > parity", () => {
   beforeAll(async () => {
     ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(pub));
+    // Retried once. Building the fixture sends five transactions against a
+    // shared anvil that the rest of the package is also using, and it has
+    // failed intermittently for a reason not yet pinned down. A retry is
+    // honest here because this is fixture CONSTRUCTION: if it were masking a
+    // parity failure the comparison below would still catch it, and a setup
+    // that fails outright fails the suite loudly rather than silently
+    // skipping. Remove the retry once the cause is understood.
+    try {
+      await buildPool();
+    } catch (first) {
+      console.warn(`GDA fixture setup failed once, retrying: ${first}`);
+      await buildPool();
+    }
+  }, 180_000);
 
+  async function buildPool() {
     await send(
+      "wrap xDAI into xDAIx",
       adminWallet,
       XDAIX,
       encodeFunctionData({
@@ -119,6 +136,7 @@ describe("@superfluid GDA > parity", () => {
 
     // The pool address comes from the receipt, not from a prediction.
     const receipt = await send(
+      "createPool",
       adminWallet,
       GDA_FORWARDER,
       encodeFunctionData({
@@ -151,6 +169,7 @@ describe("@superfluid GDA > parity", () => {
     if (!POOL) throw new Error("no PoolCreated event in the creation receipt");
 
     await send(
+      "updateMemberUnits",
       adminWallet,
       GDA_FORWARDER,
       encodeFunctionData({
@@ -161,6 +180,7 @@ describe("@superfluid GDA > parity", () => {
     );
     // The member connects itself; nobody else can.
     await send(
+      "connectPool",
       memberWallet,
       GDA_FORWARDER,
       encodeFunctionData({
@@ -170,6 +190,7 @@ describe("@superfluid GDA > parity", () => {
       }),
     );
     await send(
+      "distributeFlow",
       adminWallet,
       GDA_FORWARDER,
       encodeFunctionData({
@@ -178,7 +199,7 @@ describe("@superfluid GDA > parity", () => {
         args: [XDAIX as `0x${string}`, ADMIN, POOL, RATE_1000_PER_MONTH, "0x"],
       }),
     );
-  }, 180_000);
+  }
 
   it("totalUnits of a pool that has one member", async () => {
     const [a, b] = await bothFaces(

@@ -4,8 +4,6 @@ title: "@superfluid:token"
 
 Resolve a SuperToken from the Superfluid token list: by SuperToken symbol (USDCx), or by underlying token address (the USDC address returns USDCx).
 
-**On-chain (`@superfluid:token!`)**: The token list is off-chain, so the resolved address folds in as a constant; pair it with `@underlying!` for a live check.
-
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `address`
@@ -34,12 +32,25 @@ print "USDCx:" $usdcx
 
 ## See Also
 
-## On-chain face (@token!)
+## No on-chain face
 
-The token list is an off-chain service, so resolution still happens at
-composition time; the resolved SuperToken address folds into the
-on-chain expression as a build-time constant. Pair it with
-`@underlying!` for a live check that the wrapper still points at the
-expected ERC-20.
+There is deliberately no `@token!`. The token list is an off-chain service, so
+resolution can only happen at composition time — a `!` face would have done
+exactly what this one does and then handed back a constant, which is a face
+that claims to evaluate on-chain and does not.
 
-#
+Nothing is lost. A plain helper folds into an on-chain expression as a
+build-time constant, so the nesting still works, just without the bang:
+
+```evml
+load assertions
+load superfluid
+
+# The wrapper still points at the ERC-20 we expect
+assertions:assert @superfluid:underlying!(@superfluid:token(USDCx)) == 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83
+```
+
+`@underlying!` is the live part: it reads the SuperToken at assertion time, so
+the assertion still fails if the wrapper is repointed. The address the token
+list resolved is fixed when the script is built, which is the honest reading of
+what an off-chain lookup can promise.

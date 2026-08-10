@@ -72,11 +72,11 @@ describeCommand("assert (superfluid on-chain faces)", {
       },
     },
     {
-      name: "folds @token! to the composition-time list resolution",
-      script: `assertions:assert @underlying!(@superfluid:token!(USDCx)) == ${USDC}`,
+      name: "folds a nested @token to the composition-time list resolution",
+      script: `assertions:assert @underlying!(@superfluid:token(USDCx)) == ${USDC}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        // @token! folded to the SuperToken address at composition time;
+        // @token folded to the SuperToken address at composition time;
         // the assertion carries only the live underlying read.
         const call = d.staticCallOf(param);
         expect(call.target).to.equal(getAddress(USDCX));
