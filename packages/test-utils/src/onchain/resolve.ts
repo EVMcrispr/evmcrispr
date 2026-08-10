@@ -6,6 +6,12 @@ import { decodeResolved, type Norm, normalizeRun } from "./decode";
 
 export interface ResolveOpts {
   core: Address;
+  /**
+   * Sender to evaluate the call as. Anything reading ORIGIN or CALLER sees
+   * this; without it a call has no sender and `@tx.from!` reads the zero
+   * address, which looks like the face being broken rather than unasked.
+   */
+  from?: Address;
   /** ABI type of the resolved bytes, for when the category cannot say.
    *  Any array needs it: an on-chain array is a `Bytes` payload of packed
    *  words and the operand carries no element type. */
@@ -34,6 +40,7 @@ export async function resolveValue(
   const { data } = await client.call({
     to: opts.core,
     data: encodeResolve({ ...operand.param, constraints: [] }),
+    ...(opts.from === undefined ? {} : { account: opts.from }),
   });
 
   return decodeResolved(

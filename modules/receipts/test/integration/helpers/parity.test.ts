@@ -1,6 +1,10 @@
 import "../../setup";
 import { it } from "bun:test";
-import { expect, getPublicClient } from "@evmcrispr/test-utils";
+import {
+  expect,
+  getPublicClient,
+  getWalletClients,
+} from "@evmcrispr/test-utils";
 import {
   compileExpression,
   describeParity,
@@ -144,3 +148,43 @@ it("@block.hash of the previous block agrees on both faces", async () => {
     `block hash came back empty (${show(onchain)})`,
   ).to.be.true;
 }, 30_000);
+
+/**
+ * `@tx.from` reconciled with the ORIGIN opcode.
+ *
+ * The two faces ask different questions — the plain one "who sent transaction
+ * X", the ! one "who is sending the transaction I am in" — so they agree
+ * exactly when X IS that transaction. This sends one, then asks each face
+ * about it.
+ *
+ * The ! face needs the call to have a sender. A read-only eth_call has none by
+ * default, so ORIGIN reads the zero address, which is why this looked
+ * untestable at first: the face was answering correctly about a call that
+ * nobody sent. Giving resolveValue a `from` is the whole fix.
+ */
+it("@tx.from agrees with the origin of the transaction it is asked about", async () => {
+  const pub = getPublicClient();
+  const { core, operators } = await installAssertionsCore(pub);
+  const wallet = getWalletClients()[3]!;
+  const sender = wallet.account!.address;
+
+  // A transaction that does nothing, so the only thing under test is who sent
+  // it. Sent to self with no value.
+  const hash = await wallet.sendTransaction({ to: sender, value: 0n } as never);
+  await pub.waitForTransactionReceipt({ hash });
+
+  const env = { module: "receipts [@tx.from]", core, operators };
+  const { operand } = await compileExpression("@tx.from!()", env);
+  const onchain = await resolveValue(pub, operand, { core, from: sender });
+  const offchain = normalizeRun(await runExpression(`@tx.from(${hash})`, env));
+
+  expect(
+    sameValue(offchain, onchain),
+    `tx.from\n  run     -> ${show(offchain)}\n  compile -> ${show(onchain)}`,
+  ).to.be.true;
+  // Both faces reading zero would agree while proving nothing.
+  expect(
+    onchain.t === "addr" && onchain.v.toLowerCase() === sender.toLowerCase(),
+    `expected the sender ${sender}, got ${show(onchain)}`,
+  ).to.be.true;
+}, 60_000);
