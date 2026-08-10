@@ -59,6 +59,17 @@ export function elementOperand(cat: Category = "Uint"): Operand {
   return { kind: "call", param: rawParam(ELEMENT_MARKER), cat };
 }
 
+/** The accumulator's marker, for the folds that carry one. Distinct from
+ *  the element's so a two-parameter definition can name both. */
+export const ACCUMULATOR_MARKER: Hex = keccak256(
+  stringToHex("evmcrispr/fold-accumulator"),
+);
+
+/** The accumulator placeholder, same shape as {@link elementOperand}. */
+export function accumulatorOperand(cat: Category = "Uint"): Operand {
+  return { kind: "call", param: rawParam(ACCUMULATOR_MARKER), cat };
+}
+
 /** A single-staticcall lambda template: fixed calldata for `target` with
  *  the element windows at `elemOffsets` (ascending byte offsets). `target`
  *  is the Operators contract when the predicate flattened to one direct
@@ -68,6 +79,9 @@ export function elementOperand(cat: Category = "Uint"): Operand {
  *  than once, e.g. `@num!($x * $x)`. */
 export interface LambdaTemplate {
   target: Address;
+  /** Where the accumulator is stamped, when the body names it. Absent for
+   *  a predicate, whose caller parks it on the first element window. */
+  accOffset?: bigint;
   template: Hex;
   elemOffsets: readonly bigint[];
 }
@@ -79,35 +93,74 @@ export interface LambdaTemplate {
  */
 function findWindows(
   bytes: string,
+  marker: Hex,
+  what: string,
   label: string,
   base = 0,
 ): { offsets: bigint[]; zeroed: string } {
-  const marker = ELEMENT_MARKER.slice(2);
-  const fail = (why: string): never => {
-    throw new ErrorException(
-      `${label} must compile to a single staticcall over the element — ${why}`,
-    );
-  };
+  const needle = marker.slice(2);
   const offsets: bigint[] = [];
   let from = 0;
   let zeroed = bytes;
   // Walk left-to-right so later overlapping writes win — matching the
-  // contract's ascending stamp order (element still wins on overlap with
-  // the accumulator because the engine writes acc first).
-  while (from <= zeroed.length - marker.length) {
-    const at = zeroed.indexOf(marker, from);
+  // contract's ascending stamp order (the element still wins on overlap
+  // with the accumulator, because the engine writes the accumulator first).
+  while (from <= zeroed.length - needle.length) {
+    const at = zeroed.indexOf(needle, from);
     if (at === -1) break;
     if (at % 2 !== 0) {
-      return fail("the element window is not byte-aligned");
+      throw new ErrorException(
+        `${label} must compile to a single staticcall over the element — the ${what} window is not byte-aligned`,
+      );
     }
     offsets.push(BigInt(base + at / 2));
-    zeroed = `${zeroed.slice(0, at)}${"0".repeat(64)}${zeroed.slice(at + marker.length)}`;
-    from = at + marker.length;
-  }
-  if (offsets.length === 0) {
-    return fail("the element does not appear in the call");
+    zeroed = `${zeroed.slice(0, at)}${"0".repeat(64)}${zeroed.slice(at + needle.length)}`;
+    from = at + needle.length;
   }
   return { offsets, zeroed };
+}
+
+/**
+ * Both markers, with the rules the engine imposes on each.
+ *
+ * The element may be named any number of times: `_fold` and `_applyWords`
+ * stamp every entry of the `elemOffsets` array. The ACCUMULATOR may be
+ * named at most once, because the engine takes a single `accOffset` — so
+ * `@num!($acc + $acc)` has nowhere to put the second one.
+ *
+ * A body that never names the accumulator is fine, and is what every
+ * predicate does. Its `accOffset` parks on the first element window: the
+ * engine writes the accumulator before the elements, so the element
+ * overwrites it and the value is never read.
+ */
+function findAllWindows(
+  bytes: string,
+  label: string,
+  base = 0,
+): { elemOffsets: bigint[]; accOffset?: bigint; zeroed: string } {
+  const elem = findWindows(bytes, ELEMENT_MARKER, "element", label, base);
+  const acc = findWindows(
+    elem.zeroed,
+    ACCUMULATOR_MARKER,
+    "accumulator",
+    label,
+    base,
+  );
+  if (elem.offsets.length === 0) {
+    throw new ErrorException(
+      `${label} must compile to a single staticcall over the element — the element does not appear in the call`,
+    );
+  }
+  if (acc.offsets.length > 1) {
+    throw new ErrorException(
+      `${label} names the accumulator ${acc.offsets.length} times, and a fold carries exactly one accumulator window — hold it in the element side of the expression instead`,
+    );
+  }
+  return {
+    elemOffsets: elem.offsets,
+    accOffset: acc.offsets[0],
+    zeroed: acc.zeroed,
+  };
 }
 
 /** True when `node` (or a descendant) is a precompiled operand carrying
@@ -213,11 +266,16 @@ export function extractLambdaTemplate(
         // concatenated segments (none in the read wrapper). Otherwise the
         // general form keeps the whole read calldata.
         if (at !== -1 && at % 2 === 0) {
-          const { offsets, zeroed } = findWindows(bytes, label, 4);
+          const { elemOffsets, accOffset, zeroed } = findAllWindows(
+            bytes,
+            label,
+            4,
+          );
           return {
             target: ctx.operators,
             template: `0x${selector.slice(2)}${zeroed}`,
-            elemOffsets: offsets,
+            elemOffsets,
+            accOffset,
           };
         }
       }
@@ -229,11 +287,15 @@ export function extractLambdaTemplate(
   // in the calldata, re-resolved per element — several staticcalls per
   // element where the fast path costs one. A non-core single call folds
   // directly at its contract, as cheap as the fast path.
-  const { offsets, zeroed } = findWindows(data.slice(2), label);
+  const { elemOffsets, accOffset, zeroed } = findAllWindows(
+    data.slice(2),
+    label,
+  );
   return {
     target: getAddress(target),
     template: `0x${zeroed}`,
-    elemOffsets: offsets,
+    elemOffsets,
+    accOffset,
   };
 }
 
@@ -301,10 +363,18 @@ export async function compileLambdaTemplate(
 
   // The face supplies the arguments the definition declares. Each is a
   // precompiled marker operand, so it lands wherever the body names the
-  // corresponding parameter — including more than once.
+  // corresponding parameter — including more than once. Two parameters
+  // means a fold: the accumulator first, matching `f(acc, element)`.
+  const supplied =
+    arity === 2
+      ? [
+          operandNode(accumulatorOperand(elemCat)),
+          operandNode(elementOperand(elemCat)),
+        ]
+      : [operandNode(elementOperand(elemCat))];
   const synthetic: HelperFunctionNode = {
     ...lambda,
-    args: [operandNode(elementOperand(elemCat))] as never,
+    args: supplied as never,
   };
   const o = await compileOnchainHelper(ctx, synthetic);
   return { ...extractLambdaTemplate(ctx, o, `${label} lambda`), operand: o };

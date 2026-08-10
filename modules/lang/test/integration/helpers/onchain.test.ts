@@ -1016,6 +1016,43 @@ assertions:assert @quad!(${TOKEN}::{cap()(uint256)}) > 8`,
       },
     },
     {
+      // A named reducer may be order-sensitive: the signature says which
+      // side the accumulator is on, which is exactly what the bare `sub`
+      // cannot say and why it stays rejected.
+      name: "compiles @reduce! with an order-sensitive definition",
+      script: `def @subFrom! "$acc: number $e: number -> number" @num!($acc - $e)
+assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} @subFrom! 1000) > 0`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(param, FOLD_SIG);
+        // acc at 4, element at 36 — the canonical windows, reached by
+        // naming the parameters rather than by convention.
+        expect(args[0].paramData).to.equal(
+          foldLiteral(
+            template2("sub(uint256,uint256)", 0n, 0n),
+            4n,
+            36n,
+            1000n,
+            0n,
+          ),
+        );
+      },
+    },
+    {
+      name: "compiles a composed @reduce! definition through a core-target template",
+      script: `def @weighted! "$acc: number $e: number -> number" @num!($acc + $e * 2)
+assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} @weighted! 0) > 0`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(param, FOLD_SIG);
+        // A two-call body cannot flatten to one direct Operators call, so
+        // the lambda target is the CORE and the template is the whole read.
+        const lambda = lambdaOf(args[0].paramData, 4);
+        expect(lambda.target).to.equal(ASSERTIONS);
+        expect(lambda.elemOffsets.length).to.be.greaterThan(0);
+      },
+    },
+    {
       name: "compiles @enumerate! to zipWords(iotaWords(n), payload) with a live offset_b",
       script: `assertions:assert @enumerate!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
       validate: (actions) => {
@@ -1582,6 +1619,20 @@ assertions:assert @dbl!(1 2) > 0`,
       script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
 assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @ge100!(5))`,
       error: "takes the definition by NAME, with no arguments",
+    },
+    {
+      // The engine takes ONE accOffset, so there is nowhere to stamp a
+      // second accumulator window.
+      name: "rejects a reducer naming the accumulator twice",
+      script: `def @bad! "$acc: number $e: number -> number" @num!($acc + $acc + $e)
+assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} @bad! 0) > 0`,
+      error: "exactly one accumulator window",
+    },
+    {
+      name: "rejects a one-parameter definition as a reducer",
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} @dbl! 0) > 0`,
+      error: "applies a definition of 2 parameter(s), and @dbl! declares 1",
     },
     {
       name: "rejects a module helper where a definition is required",

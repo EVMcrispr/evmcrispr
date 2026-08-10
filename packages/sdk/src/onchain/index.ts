@@ -12,6 +12,7 @@ export * from "./compile";
 export * from "./composition";
 export * from "./construct";
 export * from "./core";
+export * from "./defs";
 export * from "./dispatch";
 export * from "./erc8211";
 export * from "./lambda";

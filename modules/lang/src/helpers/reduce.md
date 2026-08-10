@@ -4,7 +4,7 @@ title: "@lang:reduce"
 
 Reduce an array to a single value by applying a helper.
 
-**On-chain (`@lang:reduce!`)**: The reducer is one of `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr` or `bitXor`, and the initial accumulator a build-time value.
+**On-chain (`@lang:reduce!`)**: The reducer is a two-parameter `def @name!` (accumulator first), or one of the bare names `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr`, `bitXor`.
 
 **Returns**: `any`
 
@@ -35,33 +35,33 @@ Fold the array return of a call into one word, on-chain: a `foldWords`
 with a binary Operators lambda at the canonical accumulator/element
 offsets (4/36) and a build-time initial accumulator.
 
-The reducer is one of the binary Operators functions `add`, `mul`, `min`,
-`max`, `bitAnd`, `bitOr`, `bitXor` (as a bareword, string, or helper
-reference like `@min`).
+The reducer is either a NAMED definition of two parameters, or one of the
+bare Operators names `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr`,
+`bitXor`.
 
-That list is exactly the commutative and associative ones, and the reason
-is the window convention. The template is a LEFT fold — the accumulator
-is always the first argument — so for an order-sensitive operation the
-answer depends on a detail the script never sees. `@reduce!(caps sub 0)`
-would compute `((0 - c0) - c1) …`, which is a different number from the
-`c - acc` most readers picture, and the two differ in the value rather
-than in a revert. `sub`, `div`, `mod`, `exp`, `shl` and `shr` therefore
-stay out until the language can name which side the accumulator sits on.
-`absDiff` is commutative but not associative, so a fold over it has no
-statable meaning.
+A definition takes the accumulator first and the element second, and may
+be anything — order-sensitive, composed, several calls deep:
 
-Comparisons (`eq`, `lt`, `ge`, …) are rejected with a pointer rather than
-a list: folding a comparison over the elements is what `@all!` and
-`@any!` already are, and they stop early on the exit that decides them.
+```evml
+def @subFrom! "$acc: number $e: number -> number" @num!($acc - $e)
+```
 
-The elements' own type picks the overload. Over an `int256[]` the signed
-`add`, `mul`, `min` and `max` are used and the result is judged as a
-signed word; the bitwise three have no signed reading and stay unsigned.
+The bare names, by contrast, are restricted to the commutative and
+associative ones. That is not an inconsistency: the template is a left
+fold, so with a bare `sub` the accumulator's side is invisible and
+`@reduce!(caps sub 1000)` computes `((1000 - c0) - c1) …` while half of
+readers picture `c - acc`. The two differ in the VALUE rather than in a
+revert. A definition says which side the accumulator is on, so it has
+nothing to hide and no gate to pass.
 
-An initial accumulator that ABSORBS is rejected, because it makes the
-whole fold constant: `mul` or `bitAnd` or `min` with `0` is always `0`.
-A non-absorbing initial value is a legitimate clamp — `min 500` is "the
-smallest cap, but no more than 500".
+The accumulator may be named at most ONCE in the body: the engine carries
+a single accumulator window, so `@num!($acc + $acc)` has nowhere to put the
+second. The element has no such limit. A body that never names the
+accumulator is accepted too, and behaves like a predicate.
+
+The absorbing-initial-value check applies to the bare names only. It is
+keyed on the reducer's identity, and there is no way to know what absorbs
+a definition.
 
 ### Examples
 
@@ -82,6 +82,11 @@ assertions:assert @reduce!($vault::{ratios()(uint256[])} mul 1) > 0
 
 # Signed elements pick the signed overload; the result is judged signed
 assertions:assert @reduce!($vault::{deltas()(int256[])} min 0) <= 0
+
+# A named reducer may be order-sensitive: the signature says which side
+# the accumulator is on
+def @subFrom! "$acc: number $e: number -> number" @num!($acc - $e)
+assertions:assert @reduce!($vault::{caps()(uint256[])} @subFrom! 1000) > 0
 ```
 
 ### Notes

@@ -2,9 +2,11 @@ import type { HelperFunctionNode } from "@evmcrispr/sdk";
 import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import {
   categoryFromAbiType,
+  compileLambdaTemplate,
   constIntArg,
   FOLD_EXIT,
   foldParam,
+  lookupOnchainDef,
   opSelector,
   toWord,
 } from "@evmcrispr/sdk/onchain";
@@ -98,7 +100,7 @@ export default defineHelper<Lang>({
   name: "reduce",
   description: "Reduce an array to a single value by applying a helper.",
   compileDescription:
-    "The reducer is one of `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr` or `bitXor`, and the initial accumulator a build-time value.",
+    "The reducer is a two-parameter `def @name!` (accumulator first), or one of the bare names `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr`, `bitXor`.",
   returnType: "any",
   args: [
     {
@@ -127,8 +129,44 @@ export default defineHelper<Lang>({
       );
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "reduce!");
+    const elemCat = categoryFromAbiType(elemType);
 
     const fnNode = node.args[1];
+
+    // A named definition is the general form: it says which side the
+    // accumulator is on, so it is free to be order-sensitive in a way the
+    // bare names below deliberately are not.
+    if (
+      fnNode?.type === NodeType.HelperFunctionExpression &&
+      lookupOnchainDef(ctx, (fnNode as HelperFunctionNode).name)
+    ) {
+      const init = await constIntArg(ctx, "reduce!", "initial", node.args[2]);
+      const tpl = await compileLambdaTemplate(
+        ctx,
+        fnNode,
+        "@reduce!",
+        elemCat,
+        2,
+      );
+      return {
+        kind: "call",
+        param: foldParam(
+          ctx,
+          "foldWords",
+          payload,
+          tpl.target,
+          tpl.template,
+          // A body that never names the accumulator parks it on the first
+          // element window: the engine writes the accumulator first, so
+          // the element overwrites it and it is never read.
+          tpl.accOffset ?? tpl.elemOffsets[0],
+          tpl.elemOffsets,
+          init,
+          FOLD_EXIT.Full,
+        ),
+        cat: tpl.operand.kind === "call" ? tpl.operand.cat : elemCat,
+      };
+    }
     let name: string | undefined;
     if (fnNode.type === NodeType.HelperFunctionExpression) {
       name = (fnNode as HelperFunctionNode).name.replace(/!$/, "");
@@ -151,7 +189,6 @@ export default defineHelper<Lang>({
     // over an int256[] would read two's-complement negatives as huge
     // positives and return the wrong element. The bitwise reducers have
     // no signed reading, so they stay on the uint256 overload either way.
-    const elemCat = categoryFromAbiType(elemType);
     const signed = elemCat === "Int" && SIGNED_REDUCERS.has(name);
     const absorbing = absorbingInit(name, signed);
     // Compared as WORDS, so `-1` and `2^256 - 1` are recognised as the
