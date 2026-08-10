@@ -1,9 +1,5 @@
 import "../../setup";
-import {
-  describeParity,
-  installSelectorMock,
-} from "@evmcrispr/test-utils/onchain";
-import { encodeAbiParameters, toFunctionSelector } from "viem";
+import { describeParity } from "@evmcrispr/test-utils/onchain";
 import { helpers } from "../../../src/_generated";
 import { RECEIVER, SOME_ADDRESS, USDCX, XDAIX } from "../../fixtures";
 
@@ -20,80 +16,34 @@ import { RECEIVER, SOME_ADDRESS, USDCX, XDAIX } from "../../fixtures";
  * the Int path through the operand layer rather than the Uint one — and the
  * GDA reads below use negative flow rates on purpose for that reason.
  *
- * The pool reads have no live pool to point at, so they go against a mock
- * standing in for an ISuperfluidPool.
- *
- * `@connected`, `@distributionFlowrate` and `@buffer` are deliberately left
- * out. They read the GDA and CFA forwarders — fixed addresses that the live
- * netflow and flow cases above also read — so mocking either would replace
- * real answers with fixed ones for the whole suite. Measured, not assumed:
- * mocking the GDA forwarder broke `@netflow`, which turns out to route
- * through it too.
+ * The pool reads live in parity-gda.test.ts, against a pool built on the fork
+ * rather than a mock — mocking them here replaced the GDA forwarder, which
+ * these netflow and flow cases also read, and broke them.
  */
 
 /** Stands in for an ISuperfluidPool. */
-const POOL = "0x0000000000000000000000000000000000900100";
-const MEMBER = "0x1111111111111111111111111111111111111111";
-const word = (t: string, v: unknown) =>
-  encodeAbiParameters([{ type: t }], [v as never]);
 
 describeParity("@superfluid", {
   module: "superfluid",
   helpers,
-  setup: async (client) => {
-    await installSelectorMock(client, POOL, [
-      {
-        selector: toFunctionSelector(
-          "function getUnits(address) view returns (uint128)",
-        ),
-        data: word("uint128", 500n),
-      },
-      {
-        selector: toFunctionSelector(
-          "function getTotalUnits() view returns (uint128)",
-        ),
-        data: word("uint128", 1500n),
-      },
-      {
-        // Negative on purpose: a member flow rate is signed, so this walks
-        // the Int path rather than the Uint one.
-        selector: toFunctionSelector(
-          "function getMemberFlowRate(address) view returns (int96)",
-        ),
-        data: word("int96", -385802469135802n),
-      },
-      {
-        // A tuple, so each face must take the FIRST word.
-        selector: toFunctionSelector(
-          "function getClaimableNow(address) view returns (int256,uint256)",
-        ),
-        data: encodeAbiParameters(
-          [{ type: "int256" }, { type: "uint256" }],
-          [-42n, 1700000000n],
-        ),
-      },
-    ]);
-  },
   cases: [
     {
-      name: "units of a pool member",
-      run: `@superfluid:units(${POOL} ${MEMBER})`,
-      compile: `@superfluid:units!(${POOL} ${MEMBER})`,
+      // Reads the real CFA forwarder — it needs no stream, just a token and a
+      // rate, so it works live.
+      name: "buffer for a monthly rate",
+      run: `@superfluid:buffer(${XDAIX} 1000e18/mo)`,
+      compile: `@superfluid:buffer!(${XDAIX} 1000e18/mo)`,
     },
     {
-      name: "totalUnits of a pool",
-      run: `@superfluid:totalUnits(${POOL})`,
-      compile: `@superfluid:totalUnits!(${POOL})`,
-    },
-    {
-      name: "memberFlowrate is negative and signed",
-      run: `@superfluid:memberFlowrate(${POOL} ${MEMBER})`,
-      compile: `@superfluid:memberFlowrate!(${POOL} ${MEMBER})`,
-    },
-    {
-      name: "claimable takes the balance, not the timestamp",
-      run: `@superfluid:claimable(${POOL} ${MEMBER})`,
-      compile: `@superfluid:claimable!(${POOL} ${MEMBER})`,
+      // The plain face accepts a zero rate and answers zero; the ! face
+      // refuses it at composition time, because parseFlowRate guards against
+      // a tiny rate flooring to 0 wei/second. Pinned rather than smoothed
+      // over: the two faces disagree about what is a valid argument.
+      name: "refuses: a zero flowrate, which the plain face accepts",
+      run: `@superfluid:buffer(${XDAIX} 0)`,
+      compile: `@superfluid:buffer!(${XDAIX} 0)`,
+      helper: "buffer",
+      refuses: /must be greater than zero/,
     },
     {
       name: "underlying resolves a wrapper SuperToken's asset",
