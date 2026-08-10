@@ -153,6 +153,41 @@ describe("extractLambdaTemplate", () => {
     expect(BigInt(innerSegs[1].paramData)).toBe(2n);
   });
 
+  it("folds a direct non-core staticcall at its own contract", () => {
+    // A single call on another contract is already the exact staticcall
+    // the fold engine makes: (target, calldata) pass through verbatim.
+    const data: Hex = `0x12345678${ELEMENT_MARKER.slice(2)}${toWord(7n).slice(2)}`;
+    const o = call(staticCallParam(TOKEN, data));
+    const tpl = extractLambdaTemplate(ctx, o, "@test");
+    expect(getAddress(tpl.target)).toBe(getAddress(TOKEN));
+    expect(tpl.template).toBe(
+      `0x12345678${toWord(0n).slice(2)}${toWord(7n).slice(2)}`,
+    );
+    expect(tpl.elemOffset).toBe(4n);
+    expect(substitute(tpl.template, tpl.elemOffset)).toBe(
+      `0x12345678${SENTINEL.slice(2)}${toWord(7n).slice(2)}`,
+    );
+  });
+
+  it("keeps a pick-wrapped call as a core-target template", () => {
+    // wordAtParam / sha256Param wrap their result in the core's pick;
+    // pick ABI-returns one bytes32, so the first-return-word convention
+    // holds and the pick calldata is the template.
+    const o = call(
+      staticCallParam(CORE, encodePick(rawParam(ELEMENT_MARKER), 0n)),
+    );
+    const tpl = extractLambdaTemplate(ctx, o, "@test");
+    expect(getAddress(tpl.target)).toBe(getAddress(CORE));
+    const decoded = decodeFunctionData({
+      abi: CORE_ABI,
+      data: substitute(tpl.template, tpl.elemOffset),
+    });
+    expect(decoded.functionName).toBe("pick");
+    const [picked, word] = decoded.args as unknown as [InputParam, bigint];
+    expect(picked.paramData).toBe(SENTINEL);
+    expect(word).toBe(0n);
+  });
+
   it("rejects a build-time constant", () => {
     const o: Operand = { kind: "const", cat: "Bool", value: true };
     expect(() => extractLambdaTemplate(ctx, o, "@test")).toThrow(
@@ -160,17 +195,21 @@ describe("extractLambdaTemplate", () => {
     );
   });
 
-  it("rejects a direct staticcall that bypasses the core", () => {
-    const o = call(staticCallParam(TOKEN, "0x12345678"));
-    expect(() => extractLambdaTemplate(ctx, o, "@test")).toThrow(
-      /staticcalls a contract directly/,
+  it("rejects a bytes- or string-producing lambda", () => {
+    // The engine reads ONE return word; a bytes/string result's first
+    // word is its ABI offset. The guard fires on the category alone,
+    // before any template-shape inspection.
+    const template = opRead(GE, [
+      rawParam(ELEMENT_MARKER),
+      rawParam(toWord(100n)),
+    ]);
+    const asBytes: Operand = { kind: "call", param: template, cat: "Bytes" };
+    expect(() => extractLambdaTemplate(ctx, asBytes, "@test")).toThrow(
+      /produces a Bytes value/,
     );
-  });
-
-  it("rejects a non-read core call", () => {
-    const o = call(staticCallParam(CORE, encodePick(rawParam(toWord(1n)), 0n)));
-    expect(() => extractLambdaTemplate(ctx, o, "@test")).toThrow(
-      /the core's pick/,
+    const asString: Operand = { kind: "call", param: template, cat: "String" };
+    expect(() => extractLambdaTemplate(ctx, asString, "@test")).toThrow(
+      /produces a String value/,
     );
   });
 
@@ -196,8 +235,10 @@ describe("extractLambdaTemplate", () => {
         opRead(MUL, [rawParam(ELEMENT_MARKER), rawParam(toWord(2n))]),
       ]),
     );
+    // The message names the nested-capture cause: two identical markers
+    // are what an inner lambda capturing the OUTER element produces.
     expect(() => extractLambdaTemplate(ctx, nested, "@test")).toThrow(
-      /only once/,
+      /nested lambda capturing the outer element/,
     );
   });
 });
