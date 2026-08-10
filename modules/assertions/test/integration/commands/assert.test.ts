@@ -1640,7 +1640,7 @@ describeCommand("assert", {
     {
       name: "rejects an unknown @bytes! operator",
       script: `assertions:assert @bytes!(${TOKEN}::{supply()(uint256)} "+" 1) > 0`,
-      error: '@bytes! operator must be one of "&" "|" "^" "<<" ">>"',
+      error: '@bytes! operator must be one of "&" "|" "xor" "<<" ">>"',
     },
     {
       name: "rejects @bytes! on a string return",

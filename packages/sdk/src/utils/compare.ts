@@ -21,9 +21,13 @@ export function asNum(value: unknown): Num | null {
   if (value instanceof Num) return value;
   if (typeof value === "bigint") return Num.fromBigInt(value);
   if (typeof value === "number") {
-    // Num rejects `number` outright rather than silently taking a float's
-    // rounding, so only an exact integer can convert.
-    return Number.isInteger(value) ? Num.fromBigInt(BigInt(value)) : null;
+    // Num handles the conversion (and refuses a number past exact range);
+    // asNum's contract is to answer null rather than throw.
+    try {
+      return Num(value);
+    } catch {
+      return null;
+    }
   }
   if (typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value)) {
     return Num(value);

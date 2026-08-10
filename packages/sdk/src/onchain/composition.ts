@@ -83,7 +83,11 @@ export const LOGIC_FN: Record<LogicOpName, string> = {
 export const BITWISE_FN: Record<string, string> = {
   "&": "bitAnd",
   "|": "bitOr",
-  "^": "bitXor",
+  // `xor`, not `^`: in an arithmetic expression `^` already means
+  // exponentiation, and @num spells the bitwise one `xor`. Using `^` for two
+  // different operations depending on which helper wraps them is the kind of
+  // thing that reads fine and compiles to the wrong op.
+  xor: "bitXor",
   "<<": "shl",
   ">>": "shr",
 };
@@ -129,7 +133,7 @@ export const CMP_SYMBOL: Record<string, CmpOpName> = {
 };
 
 /** EVML `@bytes!` operator symbols (bitwise word ops). */
-export const BITWISE_SYMBOLS = ["&", "|", "^", "<<", ">>"] as const;
+export const BITWISE_SYMBOLS = ["&", "|", "xor", "<<", ">>"] as const;
 
 /** Why a category cannot be an arithmetic operand, or null when it can.
  *  Bools are accepted implicitly: they pass as their raw 0/1 words. */
@@ -262,7 +266,9 @@ export const INFIX_OPS: readonly InfixOp[] = [
   { symbol: "xor", family: "logic" },
   { symbol: "&", family: "bytes" },
   { symbol: "|", family: "bytes" },
-  { symbol: "^", family: "bytes" },
+  // Shares the spelling with the logic-family xor above on purpose: the word
+  // means the same thing, and `^` is exponentiation in an arith expression.
+  { symbol: "xor", family: "bytes" },
   { symbol: "<<", family: "bytes" },
   { symbol: ">>", family: "bytes" },
 ];

@@ -40,6 +40,11 @@ function bitwiseOp(left: bigint, op: string, right: bigint): bigint {
       return left & right;
     case "|":
       return left | right;
+    // Spelled `xor` rather than `^`, matching @num, where `^` is
+    // exponentiation. It was on-chain only until now, so the same expression
+    // compiled and then would not run.
+    case "xor":
+      return left ^ right;
     case "<<":
       return left << right;
     case ">>":
@@ -107,7 +112,9 @@ export default defineHelper<Std>({
       optional: true,
     },
   ],
-  completions: { b: () => ["&", "|", "^", "<<", ">>", "utf8"].map(fieldItem) },
+  completions: {
+    b: () => ["&", "|", "xor", "<<", ">>", "utf8"].map(fieldItem),
+  },
   async run(_, { a, b, c }) {
     if (b === undefined) return toBytes(a);
     if (b === "utf8") return toHex(String(a));
@@ -140,7 +147,7 @@ export default defineHelper<Std>({
     const fn = BITWISE_FN[String(opStr)];
     if (!fn) {
       throw new ErrorException(
-        `@bytes! operator must be one of "&" "|" "^" "<<" ">>", got "${String(opStr)}"`,
+        `@bytes! operator must be one of "&" "|" "xor" "<<" ">>", got "${String(opStr)}"`,
       );
     }
     const l = requireWord(await compileOperand(ctx, node.args[0]), "bytes!");

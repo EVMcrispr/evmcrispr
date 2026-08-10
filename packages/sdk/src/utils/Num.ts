@@ -152,10 +152,50 @@ function _parseDecimalString(s: string): Num {
   return new _Num(BigInt(withoutDot), 10n ** BigInt(decimals));
 }
 
+/**
+ * Plain decimal form of a finite number.
+ *
+ * `String(1e-7)` is `"1e-7"` and `String(1e21)` is `"1e+21"`, neither of which
+ * BigInt can parse, so exponent notation is expanded by shifting the point.
+ */
+function _plainDecimal(v: number): string {
+  const s = String(v);
+  const m = /^(-?)(\d+)(?:\.(\d+))?e([+-]\d+)$/i.exec(s);
+  if (!m) return s;
+  const [, sign, int, frac = "", expStr] = m;
+  const digits = int + frac;
+  const pointAt = int.length + Number(expStr);
+  if (pointAt <= 0) return `${sign}0.${"0".repeat(-pointAt)}${digits}`;
+  if (pointAt >= digits.length) {
+    return `${sign}${digits}${"0".repeat(pointAt - digits.length)}`;
+  }
+  return `${sign}${digits.slice(0, pointAt)}.${digits.slice(pointAt)}`;
+}
+
 function _Num_factory(v: unknown, den?: bigint): Num {
   if (v instanceof _Num && den === undefined) return v;
   if (typeof v === "bigint") return new _Num(v, den);
   if (typeof v === "string") return _parseDecimalString(v);
+  // A JS number converts through its shortest round-trip decimal, so the
+  // result is exactly the value the double stands for: Num(0.1) is 1/10, not
+  // a binary approximation of it. viem decodes any int of 48 bits or fewer as
+  // a JS number, so refusing them made `isNum` and `Num` disagree and every
+  // arithmetic expression over a `decimals()(uint8)` read throw.
+  if (typeof v === "number") {
+    if (!Number.isFinite(v)) {
+      throw new Error(`Cannot coerce ${v} to Num`);
+    }
+    if (!Number.isSafeInteger(v) && Number.isInteger(v)) {
+      // The double has already lost digits; converting would invent them.
+      throw new Error(
+        `${v} is past the range a JS number holds exactly — pass a bigint or a string`,
+      );
+    }
+    if (den !== undefined) {
+      throw new Error("Num(num, den) takes bigints; pass a bigint numerator");
+    }
+    return _parseDecimalString(_plainDecimal(v));
+  }
   throw new Error(`Cannot coerce ${typeof v} to Num`);
 }
 

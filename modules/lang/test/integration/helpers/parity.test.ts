@@ -40,6 +40,11 @@ const SIGNED = [-5n, 3n, -1n, 2n, 0n];
 const SIGNED_SRC = "0x0000000000000000000000000000000000005147";
 const SIGNED_CALL = `${SIGNED_SRC}::{values()(int256[])}`;
 
+/** A 20-element array, long enough to index with a live `decimals()` read. */
+const LONG_SRC = "0x0000000000000000000000000000000000005148";
+const LONG = Array.from({ length: 20 }, (_, i) => BigInt(i * 10));
+const LONG_CALL = `${LONG_SRC}::{values()(uint256[])}`;
+
 describeParity("@lang", {
   module:
     "lang [@at @len @reverse @slice @sort @unique @concat @includes @sum]",
@@ -49,6 +54,12 @@ describeParity("@lang", {
       client,
       SIGNED_SRC,
       encodeAbiParameters([{ type: "int256[]" }], [SIGNED]),
+    ).then(() =>
+      installConstantMock(
+        client,
+        LONG_SRC,
+        encodeAbiParameters([{ type: "uint256[]" }], [LONG]),
+      ),
     ),
   cases: [
     // ---- one case per category -------------------------------------------
@@ -94,14 +105,14 @@ describeParity("@lang", {
 
     // ---- the taxonomy -----------------------------------------------------
     {
-      name: "refuses: an index that is not known at composition time",
-      run: `@at(${RESERVES} 0)`,
-      compile: `@at!(${RESERVES} ${WXDAI}::{decimals()(uint8)})`,
-      helper: "at",
-      // The message is poor (it is the Num coercion failing, not a check
-      // saying the index must be constant). Worth improving; pinned here so
-      // the improvement is a deliberate change rather than a silent one.
-      refuses: /Cannot coerce/i,
+      // A live read as the index is NOT rejected: constIntArg interprets the
+      // node, which executes the call at composition time and freezes the
+      // value into the operand. So `decimals()` here means "18 as it was when
+      // the script was built", not a live index. Pinned because it is easy to
+      // read as live and is not.
+      name: "an index read from a call is frozen at composition time",
+      run: `@at(${LONG_CALL} ${WXDAI}::{decimals()(uint8)})`,
+      compile: `@at!(${LONG_CALL} ${WXDAI}::{decimals()(uint8)})`,
     },
     {
       name: "reverts: an index past the end of a live array",
