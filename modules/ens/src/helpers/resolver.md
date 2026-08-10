@@ -4,6 +4,8 @@ title: "@ens:resolver"
 
 Resolver contract address of an ENS name.
 
+**On-chain (`@ens:resolver!`)**: Mainnet only, since an assertion reads the chain it runs on, and a name with no resolver reads as the zero address.
+
 **Returns**: `address`
 
 ## Syntax

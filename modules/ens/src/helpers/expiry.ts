@@ -12,6 +12,8 @@ export default defineHelper<Ens>({
   name: "expiry",
   batchable: false,
   description: "Registration expiry timestamp of a .eth name.",
+  compileDescription:
+    "Mainnet only, since an assertion reads the chain it runs on, and an unregistered name reads as 0 rather than erroring.",
   returnType: "number",
   args: [
     {

@@ -47,6 +47,9 @@ export interface CommandTestConfig {
   errorCases?: CommandErrorCase[];
   /** Documentation examples — tested as runnable scripts and included in generated docs. */
   docCases?: DocExample[];
+  /** Start the interpreter on this chain instead of gnosis. For faces that
+   *  are chain-specific, e.g. the mainnet-only `@ens:*!` reads. */
+  chainId?: number;
   /** Custom describe name override. */
   describeName?: string;
   /** Skip the entire describe block. */
@@ -90,7 +93,9 @@ export function describeCommand(
           const fullScript = config.preamble
             ? `${config.preamble}\n${c.script}`
             : c.script;
-          const interpreter = createInterpreter(fullScript, client);
+          const interpreter = createInterpreter(fullScript, client, {
+            chainId: config.chainId,
+          });
           const actions = await interpreter.interpret();
 
           if (c.expectedActions) {
@@ -112,7 +117,9 @@ export function describeCommand(
             doc.preamble ??
             (config.module ? `load ${config.module}` : config.preamble);
           const fullScript = preamble ? `${preamble}\n${doc.code}` : doc.code;
-          const interpreter = createInterpreter(fullScript, client);
+          const interpreter = createInterpreter(fullScript, client, {
+            chainId: config.chainId,
+          });
           await interpretDoc(interpreter);
         });
       }
@@ -124,7 +131,9 @@ export function describeCommand(
           const fullScript = config.preamble
             ? `${config.preamble}\n${ec.script}`
             : ec.script;
-          const interpreter = createInterpreter(fullScript, client);
+          const interpreter = createInterpreter(fullScript, client, {
+            chainId: config.chainId,
+          });
 
           if (typeof ec.error === "function") {
             const errorObj = ec.error(interpreter);

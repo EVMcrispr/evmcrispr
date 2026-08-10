@@ -4,6 +4,8 @@ title: "@ens:available"
 
 Check whether a .eth name is available for registration.
 
+**On-chain (`@ens:available!`)**: Mainnet only: an assertion reads the chain it runs on, and ENS cannot be reached from another chain.
+
 **Returns**: `bool`
 
 ## Syntax

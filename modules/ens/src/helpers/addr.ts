@@ -28,7 +28,7 @@ export default defineHelper<Ens>({
   batchable: false,
   description: "Resolve an ENS name to an address, optionally per coin type.",
   compileDescription:
-    "A name with no resolver set reads as the zero address instead of reverting.",
+    "Mainnet only, and a name with no resolver set reads as the zero address instead of reverting.",
   returnType: "address",
   args: [
     {

@@ -6,11 +6,13 @@ import { numericValues } from "../utils";
 export default defineHelper<MathModule>({
   name: "max",
   description: "Maximum of two or more values.",
+  compileDescription:
+    "Operands are written out at the call site, or given as one literal array; an array a call returns has no on-chain form here.",
   returnType: "number",
   args: [
     {
       name: "values",
-      type: "number",
+      type: "any",
       rest: true,
       optional: true,
       description: "Two or more numeric operands (or one array of them)",

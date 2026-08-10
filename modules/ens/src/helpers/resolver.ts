@@ -11,6 +11,8 @@ export default defineHelper<Ens>({
   name: "resolver",
   batchable: false,
   description: "Resolver contract address of an ENS name.",
+  compileDescription:
+    "Mainnet only, since an assertion reads the chain it runs on, and a name with no resolver reads as the zero address.",
   returnType: "address",
   args: [
     {

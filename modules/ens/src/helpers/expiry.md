@@ -4,6 +4,8 @@ title: "@ens:expiry"
 
 Registration expiry timestamp of a .eth name.
 
+**On-chain (`@ens:expiry!`)**: Mainnet only, since an assertion reads the chain it runs on, and an unregistered name reads as 0 rather than erroring.
+
 **Returns**: `number`
 
 ## Syntax

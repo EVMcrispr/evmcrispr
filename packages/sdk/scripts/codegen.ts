@@ -161,6 +161,18 @@ function extractArgDefs(content: string): ArgDefMeta[] {
   return result;
 }
 
+/** Face detection reads the source text, so a commented-out face would
+ *  register a helper that does not exist: `@abi.encodePacked` carries a
+ *  `// compile: ...` design note and was published as having an on-chain
+ *  face, appearing in completions and docs and then failing at dispatch.
+ *  Only whole-line comments and block comments are removed, so a `//`
+ *  inside a string literal is left alone. */
+function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
 function extractHelperMeta(dir: string, name: string): HelperMeta {
   const filePath = join(dir, `${name}.ts`);
   if (!existsSync(filePath))
@@ -193,8 +205,9 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
   const nameMatch = topLevel.match(/name:\s*["']([^"']+)["']/);
   // `(?<!\.)` keeps method calls in face bodies (e.g. `client.run(...)`)
   // from registering as face declarations.
-  const hasRun = /(?<!\.)\brun\s*[:(]/.test(topLevel);
-  const hasCompile = /(?<!\.)\bcompile\s*[:(]/.test(topLevel);
+  const faces = stripComments(topLevel);
+  const hasRun = /(?<!\.)\brun\s*[:(]/.test(faces);
+  const hasCompile = /(?<!\.)\bcompile\s*[:(]/.test(faces);
   return {
     name: nameMatch?.[1] ?? null,
     returnType,

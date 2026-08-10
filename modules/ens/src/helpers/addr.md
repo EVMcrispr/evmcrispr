@@ -4,7 +4,7 @@ title: "@ens:addr"
 
 Resolve an ENS name to an address, optionally per coin type.
 
-**On-chain (`@ens:addr!`)**: A name with no resolver set reads as the zero address instead of reverting.
+**On-chain (`@ens:addr!`)**: Mainnet only, and a name with no resolver set reads as the zero address instead of reverting.
 
 **Returns**: `address`
 

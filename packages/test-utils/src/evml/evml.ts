@@ -152,12 +152,15 @@ export const runErrorCase = (
 export const createInterpreter = (
   script: string,
   _client: PublicClient,
+  opts: { chainId?: number } = {},
 ): TestInterpreter => {
   const { ast } = parseScript(script);
-  // Tests run against Gnosis by default.
+  // Tests run against Gnosis by default. `chainId` starts the interpreter on
+  // another chain, which a `switch` in the preamble cannot do without also
+  // emitting a wallet action that the single-action decoders would trip over.
   const evm = new Interpreter(evml.registry, {
     account: TEST_ACCOUNT_ADDRESS,
-    chainId: gnosis.id,
+    chainId: opts.chainId ?? gnosis.id,
     transports: getTransports(),
   });
 

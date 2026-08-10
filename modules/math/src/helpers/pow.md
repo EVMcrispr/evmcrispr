@@ -4,6 +4,8 @@ title: "@math:pow"
 
 Raise a fixed-point value to a whole power, where one unit is `base` (1e18 by default, 1e27 for a ray). Compounding a per-period rate over N periods is pow(unit + rate, N).
 
+**On-chain (`@math:pow!`)**: With `base` omitted the unit comes from the value's own scale, so a ray-scaled read needs no 1e27 at the call site.
+
 **Returns**: `number`
 
 ## Syntax

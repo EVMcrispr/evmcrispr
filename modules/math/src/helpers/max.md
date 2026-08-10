@@ -4,6 +4,8 @@ title: "@math:max"
 
 Maximum of two or more values.
 
+**On-chain (`@math:max!`)**: Operands are written out at the call site, or given as one literal array; an array a call returns has no on-chain form here.
+
 **Returns**: `number`
 
 ## Syntax
@@ -16,7 +18,7 @@ Maximum of two or more values.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `[...values]` | `number` | Two or more numeric operands (or one array of them) |
+| `[...values]` | `any` | Two or more numeric operands (or one array of them) |
 
 <!-- HAND-WRITTEN -->
 

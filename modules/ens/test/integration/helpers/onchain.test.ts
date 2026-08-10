@@ -27,6 +27,10 @@ const NODE = namehash(NAME);
 
 describeCommand("assert (ens registry faces)", {
   describeName: "Ens > helpers > registry on-chain faces",
+  // The ENS on-chain faces are mainnet-only: an assertion reads the chain it
+  // runs on, and ENS cannot be reached from anywhere else. The suites default
+  // to gnosis, so start this one on mainnet.
+  chainId: 1,
   preamble,
   cases: [
     {
@@ -93,6 +97,21 @@ describeCommand("assert (ens registry faces)", {
         // A bool read judged directly: false is EQ 0.
         d.expectConstraint(param, "Eq", 0n);
       },
+    },
+  ],
+});
+
+// The refusal itself is a user-visible property, so pin the message rather
+// than only testing the mainnet happy path. This is the whole reason the
+// helpers carry a compileDescription.
+describeCommand("assert (ens off mainnet)", {
+  describeName: "Ens > helpers > registry on-chain faces off mainnet",
+  preamble,
+  errorCases: [
+    {
+      name: "refuses @ens:owner! on a chain ENS cannot be read from",
+      script: `assertions:assert @ens:owner!(${NAME}) != 0x0000000000000000000000000000000000000000`,
+      error: /has no on-chain face on .*use the off-chain @ens: face/is,
     },
   ],
 });

@@ -28,6 +28,8 @@ export default defineHelper<Ens>({
   batchable: false,
   description:
     "Owner of an ENS name (the real owner when the name is wrapped).",
+  compileDescription:
+    "Mainnet only, since an assertion reads the chain it runs on, and an unowned name reads as the zero address rather than an error.",
   returnType: "address",
   args: [
     {

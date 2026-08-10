@@ -12,6 +12,8 @@ export default defineHelper<Ens>({
   name: "available",
   batchable: false,
   description: "Check whether a .eth name is available for registration.",
+  compileDescription:
+    "Mainnet only: an assertion reads the chain it runs on, and ENS cannot be reached from another chain.",
   returnType: "bool",
   args: [
     {

@@ -30,6 +30,8 @@ export default defineHelper<MathModule>({
   name: "pow",
   description:
     "Raise a fixed-point value to a whole power, where one unit is `base` (1e18 by default, 1e27 for a ray). Compounding a per-period rate over N periods is pow(unit + rate, N).",
+  compileDescription:
+    "With `base` omitted the unit comes from the value's own scale, so a ray-scaled read needs no 1e27 at the call site.",
   returnType: "number",
   args: [
     {

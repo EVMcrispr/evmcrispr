@@ -42,6 +42,18 @@ interface ModuleInfo {
   experimental: boolean;
 }
 
+/** Face detection reads the source text, so a commented-out face would
+ *  register a helper that does not exist: `@abi.encodePacked` carries a
+ *  `// compile: ...` design note and was published as having an on-chain
+ *  face, appearing in completions and docs and then failing at dispatch.
+ *  Only whole-line comments and block comments are removed, so a `//`
+ *  inside a string literal is left alone. */
+function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
 function discoverModules(): ModuleInfo[] {
   const modulesRoot = join(ROOT, "modules");
   const names = readdirSync(modulesRoot).filter((dir) =>
@@ -161,8 +173,9 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
     // A compile-only helper has no off-chain surface: its page carries the
     // `!` face name (`@min!`). Two-faced helpers keep the bare name and
     // document the `!` face in an "On-chain face" section.
-    const hasRun = /(?<!\.)\brun\s*[:(]/.test(stripped);
-    const hasCompile = /(?<!\.)\bcompile\s*[:(]/.test(stripped);
+    const faces = stripComments(stripped);
+    const hasRun = /(?<!\.)\brun\s*[:(]/.test(faces);
+    const hasCompile = /(?<!\.)\bcompile\s*[:(]/.test(faces);
     if (hasCompile && !hasRun) declaredName += "!";
   }
   return {
