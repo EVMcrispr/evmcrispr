@@ -2,9 +2,11 @@ import type { Transport } from "viem";
 import { http } from "viem";
 import { mainnet } from "viem/chains";
 
+import { anvilUrl } from "../../../../scripts/anvil-config";
 import { getTransports } from "../client";
 
-const ANVIL = http("http://127.0.0.1:8545");
+/** The runner's anvil, whichever port it claimed. */
+const anvil = () => http(anvilUrl());
 
 /**
  * Transports with mainnet routed at the shared anvil instead of DRPC.
@@ -23,5 +25,5 @@ const ANVIL = http("http://127.0.0.1:8545");
  * but `switchChainId` is what every module actually branches on.
  */
 export function getMainnetForkTransports(): Record<number, Transport> {
-  return { ...getTransports(), [mainnet.id]: ANVIL };
+  return { ...getTransports(), [mainnet.id]: anvil() };
 }

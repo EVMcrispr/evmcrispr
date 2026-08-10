@@ -1,7 +1,36 @@
-import { resolve } from "node:path";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 export const CHAIN_ID = 100;
-export const ANVIL_URL = "http://127.0.0.1:8545";
+
+/**
+ * The anvil this process talks to.
+ *
+ * A port rather than a constant, because more than one test runner can be
+ * working in the same checkout at once — a second runner sharing an anvil
+ * resets the fork, mines and mutates state under the first, which surfaces as
+ * failures that reproduce nowhere and look like flakiness in whatever suite
+ * happened to be reading at the time.
+ *
+ * `run-integration-tests.ts` acquires a port and exports it, so its child test
+ * processes inherit it. A bare `bun test` with nothing set falls back to the
+ * default, which keeps the common single-runner case exactly as it was.
+ *
+ * Read through the functions, never cached at module load: the runner sets the
+ * variable after this module is imported.
+ */
+export const DEFAULT_ANVIL_PORT = 8545;
+export const ANVIL_PORT_ENV = "EVMCRISPR_ANVIL_PORT";
+
+export function anvilPort(): number {
+  const raw = process.env[ANVIL_PORT_ENV];
+  const port = raw === undefined ? DEFAULT_ANVIL_PORT : Number(raw);
+  return Number.isInteger(port) && port > 0 ? port : DEFAULT_ANVIL_PORT;
+}
+
+export function anvilUrl(): string {
+  return `http://127.0.0.1:${anvilPort()}`;
+}
 
 /**
  * Fallback gnosis fork block for when the upstream RPC can't be asked for
@@ -75,7 +104,7 @@ export async function loadEnv(): Promise<void> {
 
 export async function isAnvilRunning(): Promise<boolean> {
   try {
-    const res = await fetch(ANVIL_URL, {
+    const res = await fetch(anvilUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", method: "net_version", id: 1 }),
@@ -98,7 +127,7 @@ export async function isAnvilRunning(): Promise<boolean> {
  */
 export async function resetAnvil(endpoint: string): Promise<boolean> {
   try {
-    const res = await fetch(ANVIL_URL, {
+    const res = await fetch(anvilUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -126,12 +155,12 @@ export async function resetAnvil(endpoint: string): Promise<boolean> {
 
 /**
  * Kill a wedged anvil squatting on the port: anvil 1.5.x can deadlock (see
- * FALLBACK_FORK_BLOCK note) leaving a process that holds :8545 but answers
+ * FALLBACK_FORK_BLOCK note) leaving a process that holds the port but answers
  * nothing — every later test run then fails with a confusing startup
  * timeout. Returns true if a listener was killed.
  */
 export function killStaleAnvil(): boolean {
-  const port = new URL(ANVIL_URL).port || "8545";
+  const port = String(anvilPort());
   const lsof = Bun.spawnSync(["lsof", "-t", `-i:${port}`, "-sTCP:LISTEN"]);
   const pids = lsof.stdout.toString().trim().split("\n").filter(Boolean);
   let killed = false;
@@ -159,6 +188,8 @@ export async function spawnAnvil(
       String(await getForkBlockNumber()),
       "--chain-id",
       String(CHAIN_ID),
+      "--port",
+      String(anvilPort()),
       "--silent",
     ],
     // Quiet the expected "Address already in use" of a lost startup race;
@@ -177,7 +208,7 @@ export async function waitForAnvil(timeoutMs: number): Promise<boolean> {
 }
 
 /**
- * Make sure a responsive anvil is serving ANVIL_URL: reuse a live one,
+ * Make sure a responsive anvil is serving this process's anvil URL: reuse a live one,
  * replace a wedged one, or start a fresh one. Returns the spawned process
  * when this call started it (the caller owns shutdown), undefined when an
  * existing instance was reused or no endpoint is configured.
@@ -215,4 +246,62 @@ export async function ensureAnvil(): Promise<
   // exited — nothing for the caller to kill later.
   if (anvil && anvil.exitCode !== null) return undefined;
   return anvil;
+}
+
+/**
+ * Claim a port for this runner, so two runners in the same checkout never
+ * share an anvil.
+ *
+ * Lowest free port wins, which means a single runner reuses the same one run
+ * after run and keeps its anvil warm — the reason the fork block is bucketed
+ * in the first place. A lock file holds the owning pid; a lock whose process
+ * is gone is reclaimed, so a killed runner does not strand a port.
+ *
+ * Creation is exclusive (`wx`), so two runners racing for the same port cannot
+ * both win it.
+ */
+const LOCK_DIR = resolve(import.meta.dir, "../node_modules/.cache/anvil-ports");
+const PORT_RANGE = 16;
+
+function pidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function acquireAnvilPort(): { port: number; release: () => void } {
+  mkdirSync(LOCK_DIR, { recursive: true });
+  for (let i = 0; i < PORT_RANGE; i++) {
+    const port = DEFAULT_ANVIL_PORT + i;
+    const lock = join(LOCK_DIR, `${port}.lock`);
+    try {
+      writeFileSync(lock, String(process.pid), { flag: "wx" });
+    } catch {
+      // Taken, unless whoever took it is gone.
+      let owner = 0;
+      try {
+        owner = Number(readFileSync(lock, "utf8"));
+      } catch {
+        continue;
+      }
+      if (owner !== process.pid && pidAlive(owner)) continue;
+      writeFileSync(lock, String(process.pid));
+    }
+    return {
+      port,
+      release: () => {
+        try {
+          if (Number(readFileSync(lock, "utf8")) === process.pid) rmSync(lock);
+        } catch {
+          // Already gone; nothing to release.
+        }
+      },
+    };
+  }
+  throw new Error(
+    `no free anvil port in ${DEFAULT_ANVIL_PORT}..${DEFAULT_ANVIL_PORT + PORT_RANGE - 1}`,
+  );
 }

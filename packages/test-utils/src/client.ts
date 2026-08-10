@@ -10,10 +10,14 @@ import {
   polygon,
 } from "viem/chains";
 
-const transport = http("http://127.0.0.1:8545");
+import { anvilUrl } from "../../../scripts/anvil-config";
+
+/** Built per call: the port is chosen by the test runner and exported into
+ *  the environment, so it is not known when this module is imported. */
+const transport = () => http(anvilUrl());
 
 export function getPublicClient() {
-  return createPublicClient({ chain: gnosis, transport });
+  return createPublicClient({ chain: gnosis, transport: transport() });
 }
 
 /**
@@ -35,7 +39,7 @@ export function getPublicClient() {
 export function getTransports(): Record<number, Transport> {
   const drpcKey = process.env.VITE_DRPC_API_KEY;
   const drpc = (network: string) =>
-    drpcKey ? http(`https://lb.drpc.live/${network}/${drpcKey}`) : transport;
+    drpcKey ? http(`https://lb.drpc.live/${network}/${drpcKey}`) : transport();
 
   return {
     [mainnet.id]: drpc("ethereum"),
@@ -43,7 +47,7 @@ export function getTransports(): Record<number, Transport> {
     [polygon.id]: drpc("polygon"),
     [base.id]: drpc("base"),
     [arbitrum.id]: drpc("arbitrum"),
-    [gnosis.id]: transport,
+    [gnosis.id]: transport(),
   };
 }
 
@@ -54,7 +58,7 @@ export function getWalletClients() {
     createWalletClient({
       account: mnemonicToAccount(mnemonic, { addressIndex: i }),
       chain: gnosis,
-      transport,
+      transport: transport(),
     }),
   );
 }

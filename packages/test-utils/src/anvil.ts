@@ -1,11 +1,6 @@
 import { createPublicClient, http, type PublicClient } from "viem";
 import { arbitrum, gnosis, mainnet, optimism, polygon } from "viem/chains";
-import {
-  getForkBlockNumber,
-  ANVIL_URL as SHARED_ANVIL_URL,
-} from "../../../scripts/anvil-config";
-
-const ANVIL_URL = SHARED_ANVIL_URL;
+import { anvilUrl, getForkBlockNumber } from "../../../scripts/anvil-config";
 
 const chainIdToRpcUrl = {
   1: "ethereum",
@@ -32,7 +27,7 @@ export async function resetAnvil(
 ): Promise<PublicClient> {
   const forkBlock =
     blockNumber ?? (chainId === 100 ? await getForkBlockNumber() : undefined);
-  await fetch(ANVIL_URL, {
+  await fetch(anvilUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -51,6 +46,6 @@ export async function resetAnvil(
   });
   return createPublicClient({
     chain: viemChains[chainId],
-    transport: http(ANVIL_URL),
+    transport: http(anvilUrl()),
   }) as PublicClient;
 }

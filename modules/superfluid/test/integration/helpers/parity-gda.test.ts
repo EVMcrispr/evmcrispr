@@ -17,6 +17,7 @@ import {
   show,
 } from "@evmcrispr/test-utils/onchain";
 import { decodeEventLog, encodeFunctionData, parseAbi } from "viem";
+import { anvilUrl } from "../../../../../scripts/anvil-config";
 import { GDA_FORWARDER, RATE_1000_PER_MONTH, XDAIX } from "../../fixtures";
 
 /**
@@ -100,7 +101,7 @@ async function send(
     // Replay the call at the block it reverted in, so the error carries the
     // reason rather than only a hash nobody can look up afterwards.
     let reason = "no reason returned";
-    const raw = (await fetch("http://127.0.0.1:8545", {
+    const raw = (await fetch(anvilUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

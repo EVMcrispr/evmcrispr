@@ -3,9 +3,10 @@ import { expect, getTransports } from "@evmcrispr/test-utils";
 import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import { gnosis } from "viem/chains";
+import { anvilUrl } from "../../../../../scripts/anvil-config";
 import { server } from "../../setup";
 
-const ANVIL_RPC = "http://127.0.0.1:8545";
+const ANVIL_RPC = anvilUrl();
 const AUTH = "someuser/someproject/somekey";
 
 const vnetRequests: any[] = [];

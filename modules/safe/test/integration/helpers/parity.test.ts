@@ -7,6 +7,7 @@ import {
 } from "@evmcrispr/test-utils/onchain";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { mainnet } from "viem/chains";
+import { anvilUrl } from "../../../../../scripts/anvil-config";
 import { helpers } from "../../../src/_generated";
 
 /**
@@ -35,7 +36,7 @@ const STRANGER = "0x1111111111111111111111111111111111111111";
 
 const client = createPublicClient({
   chain: mainnet,
-  transport: http("http://127.0.0.1:8545"),
+  transport: http(anvilUrl()),
 }) as PublicClient;
 
 beforeAll(async () => {

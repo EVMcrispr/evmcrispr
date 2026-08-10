@@ -14,6 +14,8 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+  ANVIL_PORT_ENV,
+  acquireAnvilPort,
   ensureAnvil,
   getEndpoint,
   killStaleAnvil,
@@ -46,6 +48,18 @@ const PACKAGES_WITH_INTEGRATION_TESTS =
   filters.length === 0
     ? allPackages
     : allPackages.filter((pkg) => filters.some((f) => pkg.includes(f)));
+
+// Claim a port before anything touches anvil, and export it so the child test
+// processes inherit it. Two runners in the same checkout otherwise share one
+// anvil, and whichever resets the fork first breaks the other's suite in ways
+// that reproduce nowhere.
+const anvilPortLock = acquireAnvilPort();
+process.env[ANVIL_PORT_ENV] = String(anvilPortLock.port);
+if (anvilPortLock.port !== 8545) {
+  console.log(
+    `anvil: port ${anvilPortLock.port} (8545 is in use by another runner)`,
+  );
+}
 
 await loadEnv();
 
@@ -216,6 +230,7 @@ try {
 } finally {
   console.log("\nStopping Anvil...");
   anvil?.kill();
+  anvilPortLock.release();
 }
 
 process.exit(exitCode);
