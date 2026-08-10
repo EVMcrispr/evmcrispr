@@ -3,6 +3,7 @@ import { defineCommand } from "@evmcrispr/sdk";
 import type Assertions from "..";
 import {
   assertParamAction,
+  boundWord,
   operatorFragment,
   resolveAssertionsContract,
   resolveOperatorsContract,
@@ -45,7 +46,7 @@ export default defineCommand<Assertions>({
       addrs,
       live,
       fragment,
-      (expected as Num).toBigInt(),
+      boundWord(expected as Num, fragment),
     );
     return [await assertParamAction(module, param, message ?? "")];
   },

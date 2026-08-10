@@ -98,8 +98,24 @@ class _Num {
     return this.den === 1n;
   }
 
+  /** Truncation TOWARD ZERO (bigint division), not a floor: -1.9 gives -1.
+   *  Use {@link floorBigInt}/{@link ceilBigInt} when the rounding direction
+   *  has to be exact for negatives. */
   toBigInt(): bigint {
     return this.num / this.den;
+  }
+
+  /** The greatest integer <= this value (den is always positive after
+   *  normalization, so only a negative numerator rounds away from zero). */
+  floorBigInt(): bigint {
+    const q = this.num / this.den;
+    return this.num < 0n && q * this.den !== this.num ? q - 1n : q;
+  }
+
+  /** The least integer >= this value. */
+  ceilBigInt(): bigint {
+    const q = this.num / this.den;
+    return this.num > 0n && q * this.den !== this.num ? q + 1n : q;
   }
 
   toNumber(): number {

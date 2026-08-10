@@ -4,9 +4,11 @@ import { zeroAddress } from "viem";
 import type Assertions from "..";
 import {
   assertParamAction,
+  boundWord,
   operatorFragment,
   resolveAssertionsContract,
   resolveOperatorsContract,
+  wholeDelta,
 } from "../lib/assertions";
 import { balanceParam } from "../lib/erc8211";
 import { wordJudge } from "../lib/judge";
@@ -54,7 +56,7 @@ export default defineCommand<Assertions>({
       if (opts.delta === undefined) {
         throw new ErrorException("the ~= operator requires a --delta value");
       }
-      delta = (opts.delta as Num).toBigInt();
+      delta = wholeDelta(opts.delta as Num);
     }
 
     // The ERC-8211 BALANCE fetcher: token 0 reads the native balance.
@@ -67,7 +69,7 @@ export default defineCommand<Assertions>({
       addrs,
       live,
       fragment,
-      (expected as Num).toBigInt(),
+      boundWord(expected as Num, fragment),
       { delta },
     );
     return [await assertParamAction(module, param, message ?? "")];

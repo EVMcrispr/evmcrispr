@@ -234,6 +234,63 @@ describeCommand("assert", {
       },
     },
     {
+      // The value side is an integer word, so rounding the bound the way
+      // the predicate points is exact — and truncating it (0.5 -> 0) would
+      // make this assertion vacuously true.
+      name: "rounds a fractional >= bound up to the next whole number",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} >= 0.5`,
+      validate: (actions) => {
+        expectConstraint(decodeAssert(actions).param, "Gte", 1n);
+      },
+    },
+    {
+      name: "rounds a fractional < bound so the strict form stays exact",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} < 0.5`,
+      validate: (actions) => {
+        // x < 0.5 over the integers is x <= 0.
+        expectConstraint(decodeAssert(actions).param, "Lte", 0n);
+      },
+    },
+    {
+      name: "rounds a fractional <= bound down",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} <= 1.9`,
+      validate: (actions) => {
+        expectConstraint(decodeAssert(actions).param, "Lte", 1n);
+      },
+    },
+    {
+      name: "rounds a fractional > bound to the next whole number up",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} > 1.9`,
+      validate: (actions) => {
+        expectConstraint(decodeAssert(actions).param, "Gte", 2n);
+      },
+    },
+    {
+      // 1000e18/mo is the exact rational 10^21/2592000 = 385802469135802.46…,
+      // so the smallest rate that satisfies >= is one wei/second higher
+      // than the floor the plain face would compute.
+      name: "takes the ceiling of a rate literal bound",
+      script: `assertions:assert ${TOKEN}::{flowrate()(uint256)} >= 1000e18/mo`,
+      validate: (actions) => {
+        expectConstraint(decodeAssert(actions).param, "Gte", 385802469135803n);
+      },
+    },
+    {
+      name: "fuses a fractional factor into one mulDiv",
+      script: `assertions:assert @num!(${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} * 0.5) >= 1`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        // Scaling by 1/2 has no integer factor, but it is exactly
+        // mulDiv(x, 1, 2) through the 512-bit intermediate.
+        const args = opReadOf(param, "mulDiv(uint256,uint256,uint256)");
+        expect(args).to.have.lengthOf(3);
+        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
+        expectRawWord(args[1], 1n);
+        expectRawWord(args[2], 2n);
+        expectConstraint(param, "Gte", 1n);
+      },
+    },
+    {
       name: "selects a tuple element with a destructure lens via pick",
       script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"`,
       validate: (actions) => {
@@ -1414,6 +1471,28 @@ describeCommand("assert", {
       name: "rejects an unknown on-chain helper",
       script: `assertions:assert @frobnicate!(${TOKEN}::{value()(uint256)}) == 1`,
       error: "unknown on-chain helper",
+    },
+    {
+      // Equality has no predicate-preserving rounding: truncating would
+      // silently assert something the user did not write.
+      name: "rejects equality against a fractional value",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} == 0.5`,
+      error: "could never hold",
+    },
+    {
+      name: "rejects inequality against a fractional value",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} != 0.5`,
+      error: "always holds",
+    },
+    {
+      name: "rejects a fractional ~= centre",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} ~= 0.5 --delta 2`,
+      error: "whole-number centre",
+    },
+    {
+      name: "rejects a fractional --delta",
+      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} ~= 100 --delta 0.5`,
+      error: "--delta must be a whole number",
     },
     {
       name: "rejects a lens step into a non-composite value",

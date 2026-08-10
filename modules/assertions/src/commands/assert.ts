@@ -14,9 +14,11 @@ import { isHex, keccak256 } from "viem";
 import type Assertions from "..";
 import {
   assertParamAction,
+  boundWord,
   operatorFragment,
   resolveAssertionsContract,
   resolveOperatorsContract,
+  wholeDelta,
 } from "../lib/assertions";
 import type { InputParam } from "../lib/erc8211";
 import { constraint } from "../lib/erc8211";
@@ -216,7 +218,7 @@ export default defineCommand<Assertions>({
       if (opts.delta === undefined) {
         throw new ErrorException("the ~= operator requires a --delta value");
       }
-      delta = (opts.delta as Num).toBigInt();
+      delta = wholeDelta(opts.delta as Num);
     }
 
     // Dynamic values (string/bytes envelopes) judge via keccak of their
@@ -255,17 +257,24 @@ export default defineCommand<Assertions>({
     let expectedWord: bigint;
     switch (category) {
       case "Uint": {
-        const num = requireNum(cnst, "the expected value");
-        if (num.lt(Num(0n))) {
+        // Round first: `x >= -0.5` is `x >= 0`, a perfectly good unsigned
+        // bound, while `x <= -0.5` stays negative and is rejected below.
+        expectedWord = boundWord(
+          requireNum(cnst, "the expected value"),
+          fragment,
+        );
+        if (expectedWord < 0n) {
           throw new ErrorException(
             "cannot compare an unsigned return against a negative value — cast the return as int256 with an inline ABI, e.g. ::{method()(int256)}",
           );
         }
-        expectedWord = num.toBigInt();
         break;
       }
       case "Int":
-        expectedWord = requireNum(cnst, "the expected value").toBigInt();
+        expectedWord = boundWord(
+          requireNum(cnst, "the expected value"),
+          fragment,
+        );
         break;
       case "Address": {
         if (cnst.cat !== "Address") {

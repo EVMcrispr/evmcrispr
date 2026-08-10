@@ -1,4 +1,4 @@
-import type { Address, Module, TransactionAction } from "@evmcrispr/sdk";
+import type { Address, Module, Num, TransactionAction } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
 import {
   CORE_ADDRESS,
@@ -55,6 +55,59 @@ export async function assertParamAction(
     data: encodeAssertParam(param, message),
     readOnly: true,
   };
+}
+
+/**
+ * The value side of an on-chain comparison is always an integer word, so a
+ * fractional bound has an EXACT integer equivalent: round it the way the
+ * predicate points and the predicate is unchanged. `x >= 0.5` is exactly
+ * `x >= 1`; `x <= 1.9` is exactly `x <= 1`. Equality has no such form.
+ *
+ * Rate literals make this everyday rather than exotic: `1000e18/mo` is the
+ * rational 10^21/2592000, so `>= 1000e18/mo` means `>= 385802469135803`,
+ * one wei/second above the floor.
+ */
+const BOUND_ROUNDING: Record<string, "floor" | "ceil"> = {
+  Ge: "ceil",
+  Gt: "floor",
+  Le: "floor",
+  Lt: "ceil",
+};
+
+/**
+ * The integer word a comparison bound resolves to. Whole numbers pass
+ * through; fractions round in the predicate-preserving direction, and the
+ * comparisons that have no such form say so instead of truncating.
+ */
+export function boundWord(value: Num, fragment: string): bigint {
+  if (value.isInteger()) return value.toBigInt();
+  const mode = BOUND_ROUNDING[fragment];
+  if (mode === "ceil") return value.ceilBigInt();
+  if (mode === "floor") return value.floorBigInt();
+  if (fragment === "Eq") {
+    throw new ErrorException(
+      `no whole number equals ${value} — this assertion could never hold. Bound it with >= and <=, or scale both sides to base units.`,
+    );
+  }
+  if (fragment === "Ne") {
+    throw new ErrorException(
+      `every whole number differs from ${value} — this assertion always holds. Bound it with >= and <=, or scale both sides to base units.`,
+    );
+  }
+  throw new ErrorException(
+    `~= needs a whole-number centre, got ${value} — round it and widen --delta, or bound the value with >= and <=`,
+  );
+}
+
+/** A tolerance is counted in base units, so a fraction is a mistake rather
+ *  than something to round. */
+export function wholeDelta(value: Num): bigint {
+  if (!value.isInteger()) {
+    throw new ErrorException(
+      `--delta must be a whole number of base units, got ${value}`,
+    );
+  }
+  return value.toBigInt();
 }
 
 /** Map a DSL comparison operator to its assertions-contract name fragment. */

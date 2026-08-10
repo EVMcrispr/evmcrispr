@@ -191,12 +191,28 @@ export function constOperand(value: unknown): Operand {
   );
 }
 
-export function constBigInt(o: Operand & { kind: "const" }): bigint {
+/**
+ * How a fractional constant resolves to its word.
+ *
+ * `exact` is the default and the only safe choice inside arithmetic: there
+ * is no integer answer to `x + 0.5`, so it errors. A comparison against an
+ * integer-valued operand DOES have an exact integer form, because rounding
+ * the bound in the direction the predicate points preserves the predicate
+ * (`x >= 0.5` ⟺ `x >= 1`); those callers pass `floor`/`ceil`.
+ */
+export type ConstRounding = "exact" | "floor" | "ceil";
+
+export function constBigInt(
+  o: Operand & { kind: "const" },
+  rounding: ConstRounding = "exact",
+): bigint {
   const v = o.value;
   if (typeof v === "boolean") return v ? 1n : 0n;
   if (v instanceof Num || isNum(v)) {
     const num = v instanceof Num ? v : Num(v as any);
     if (!num.isInteger()) {
+      if (rounding === "floor") return num.floorBigInt();
+      if (rounding === "ceil") return num.ceilBigInt();
       throw new ErrorException(
         "on-chain values are integers — scale fractional amounts to base units (e.g. wei) first",
       );
@@ -1097,6 +1113,11 @@ export function arithCombine(
   const check = checkArith(op, constLenientCat(l), constLenientCat(r));
   if (!check.ok) throw new ErrorException(check.reason);
   const signed = l.cat === "Int" || r.cat === "Int";
+  // A fractional constant FACTOR has an exact on-chain form even though it
+  // has no integer form of its own: scaling by 3/4 is one 512-bit mulDiv.
+  // Must come before materializeWord, which has no integer to hand back.
+  const fused = fuseRationalFactor(ctx, op, l, r, signed, check.result);
+  if (fused) return fused;
   const lp = materializeWord(ctx, l);
   const rp = materializeWord(ctx, r);
   // mul-then-div fuses into one 512-bit mulDiv read, so a * b / c never
@@ -1114,6 +1135,54 @@ export function arithCombine(
     param: wordOpParam(ctx, ARITH_FN[op], signed, lp, rp),
     cat: check.result,
     ...(op === "Mul" && !signed ? { mulOf: { a: lp, b: rp } } : {}),
+  };
+}
+
+/** The positive rational behind a fractional constant operand, if that is
+ *  what this operand is. Integers are left alone — plain mul/div is
+ *  cheaper than a mulDiv — and negatives bail to the signed path, which
+ *  has no mulDiv to fuse into. */
+function positiveFraction(
+  o: Operand,
+): { num: bigint; den: bigint } | undefined {
+  if (o.kind !== "const" || !(o.value instanceof Num)) return undefined;
+  const v = o.value;
+  if (v.isInteger() || v.num <= 0n) return undefined;
+  return { num: v.num, den: v.den };
+}
+
+/**
+ * Scaling by a rational is exact on-chain: `x * 3/4` is `mulDiv(x, 3, 4)`
+ * and `x / (3/4)` is `mulDiv(x, 4, 3)`, both through the 512-bit
+ * intermediate so the product never has to fit a word. Without this a rate
+ * literal or a percentage would have to be pre-scaled by hand, since the
+ * factor itself is not an integer.
+ */
+function fuseRationalFactor(
+  ctx: CompileCtx,
+  op: ArithOpName,
+  l: Operand,
+  r: Operand,
+  signed: boolean,
+  cat: Category,
+): Operand | undefined {
+  if (signed || (op !== "Mul" && op !== "Div")) return undefined;
+  // The live side stays the multiplicand; a constant denominator or
+  // numerator becomes the other two mulDiv slots.
+  const live = l.kind === "call" ? l : op === "Mul" ? r : undefined;
+  if (live?.kind !== "call") return undefined;
+  const factor = positiveFraction(live === l ? r : l);
+  if (!factor) return undefined;
+  const [a, b] =
+    op === "Mul" ? [factor.num, factor.den] : [factor.den, factor.num];
+  return {
+    kind: "call",
+    param: opReadParam(ctx, OP_SELECTORS.mulDiv, [
+      live.param,
+      rawParam(toWord(a)),
+      rawParam(toWord(b)),
+    ]),
+    cat,
   };
 }
 
