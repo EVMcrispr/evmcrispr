@@ -96,6 +96,9 @@ interface HelperMeta {
    *  `balance.ts` declaring `name: "balance!"`). Used for display. */
   declaredName: string;
   description: string;
+  /** On-chain-face-only note, rendered under the description as a labelled
+   *  line on the `@name!` spelling. */
+  compileDescription: string;
   returnType: string | string[];
   hasArgs: boolean;
   argDefs: ArgDef[];
@@ -166,6 +169,7 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
     name,
     declaredName,
     description: extractStringProp(content, "description") ?? "",
+    compileDescription: extractStringProp(content, "compileDescription") ?? "",
     returnType,
     hasArgs: argDefs.length > 0,
     argDefs,
@@ -488,7 +492,9 @@ function parseDocCaseObjects(arrayContent: string): DocCase[] {
 }
 
 function extractStringProp(objContent: string, key: string): string | null {
-  const re = new RegExp(`${key}\\s*:\\s*`);
+  // `\b` keeps `description` from matching inside `compileDescription`
+  // whichever order the two fields appear in.
+  const re = new RegExp(`\\b${key}\\s*:\\s*`);
   const match = re.exec(objContent);
   if (!match) return null;
   let i = match.index + match[0].length;
@@ -706,6 +712,16 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
   lines.push("");
   lines.push(helper.description || "*No description available.*");
   lines.push("");
+  // The `!`-only note, if the helper declares one. Compile-only helpers
+  // already carry the `!` in `declaredName`, so it reads as one sentence
+  // there rather than a contrast between two faces.
+  if (helper.compileDescription) {
+    const face = helper.declaredName.endsWith("!")
+      ? `@${fullName}`
+      : `@${fullName}!`;
+    lines.push(`**On-chain (\`${face}\`)**: ${helper.compileDescription}`);
+    lines.push("");
+  }
   // Module-level experimental applies to every item in it.
   if (mod.experimental || helper.experimental) {
     lines.push(EXPERIMENTAL_BADGE);
@@ -959,6 +975,23 @@ function cleanBrokenSymlinks(dir: string): void {
     } catch {}
   }
 }
+
+/** Drop reference directories for modules that no longer exist. Renaming a
+ *  module (explorer -> receipts) otherwise leaves its whole tree behind:
+ *  `cleanBrokenSymlinks` only visits directories of modules still present,
+ *  so the orphan keeps its stale index page and dangling links. */
+function pruneOrphanedModuleDirs(): void {
+  if (!existsSync(WEBSITE_DOCS)) return;
+  const live = new Set(MODULES.map((m) => m.name));
+  for (const entry of readdirSync(WEBSITE_DOCS)) {
+    const full = join(WEBSITE_DOCS, entry);
+    if (!lstatSync(full).isDirectory() || live.has(entry)) continue;
+    console.log(`  pruned orphaned reference dir ${entry}/`);
+    rmSync(full, { recursive: true, force: true });
+  }
+}
+
+pruneOrphanedModuleDirs();
 
 // ── Main ─────────────────────────────────────────────────────────────
 

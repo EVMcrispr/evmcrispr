@@ -40,20 +40,36 @@ export type HelperRun<M extends Module> = (
 /**
  * Shared helper-config fields (everything but the `run`/`compile` faces).
  *
- * NOTE on field order: the codegen that builds `_generated.ts` regex-scans
- * each helper's source, first match wins. Keep `name`, `description`,
- * `returnType` and `args` BEFORE `run` and `compile` in every config
- * literal, and avoid the literal substrings `name: "`, `description: "`,
- * `returnType: "` and `args: [` inside face bodies — use backticks for
- * strings containing quotes or apostrophes.
+ * NOTE on field order: the codegen that builds `_generated.ts` scans each
+ * helper's source, first match wins. Keep `name`, `description`,
+ * `compileDescription`, `returnType` and `args` BEFORE `run` and `compile`
+ * in every config literal, and avoid the literal substrings `name: "`,
+ * `description: "`, `returnType: "` and `args: [` inside face bodies.
  */
 export interface HelperConfigShared<M extends Module> {
   /** Registration name. NEVER includes a trailing `!` (codegen enforces
    *  this) — the on-chain face of a helper is addressed as `@name!` and
    *  dispatched to `compile` automatically. */
   name: string;
-  /** Human-readable description shown in hover tooltips. */
+  /**
+   * What the helper means, in one sentence, for BOTH faces. Shown in
+   * hover tooltips, completions and the generated reference page.
+   *
+   * It describes the helper, not the machinery: `@name!` evaluating
+   * on-chain at assertion time is the `!` convention itself (documented
+   * once in the EVML guide), and how a face compiles belongs to the
+   * `## On-chain face` section of the helper's `.md`. Anything that is
+   * genuinely `!`-only goes in `compileDescription`.
+   */
   description?: string;
+  /**
+   * One short sentence appended to `description` for the `@name!` spelling
+   * only. Reserved for a user-visible difference in the on-chain face:
+   * what it accepts, what it can no longer do, or how it fails (truncates
+   * a page, reverts on no match, dedups adjacent elements only). Never the
+   * compilation strategy, and never an Operators function name.
+   */
+  compileDescription?: string;
   returnType?: ArgType;
   args: ArgDef[];
   /** Override type-driven completions for specific args by name. */
@@ -284,6 +300,9 @@ export function defineHelper<M extends Module>(
 
   if (config.description) {
     (fn as any).description = config.description;
+  }
+  if (config.compileDescription) {
+    (fn as any).compileDescription = config.compileDescription;
   }
   if (config.batchable !== undefined) {
     (fn as any).batchable = config.batchable;

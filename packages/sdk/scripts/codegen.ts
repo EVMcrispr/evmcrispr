@@ -42,6 +42,8 @@ interface HelperMeta {
   hasArgs: boolean;
   argDefs: ArgDefMeta[];
   description: string | null;
+  /** Appended to `description` on the `"name!"` entry only. */
+  compileDescription: string | null;
   experimental: boolean;
   /** Whether the config declares a `run` (off-chain) face. */
   hasRun: boolean;
@@ -50,6 +52,39 @@ interface HelperMeta {
   /** Whether the config declares `batchable: false` (recorded as registry
    *  metadata so the analyzer needs no dynamic import). */
   batchableFalse: boolean;
+}
+
+/**
+ * Read a string-literal property out of source text, honouring the quote
+ * style and escapes. A naive `["']([^"']+)["']` regex stops at the first
+ * apostrophe or nested quote, which silently truncated descriptions in the
+ * generated registry while the docs (which scan properly) showed them whole.
+ * Template literals are read too, so a description may contain either quote.
+ */
+function extractStringProp(text: string, prop: string): string | null {
+  const match = new RegExp(`\\b${prop}\\s*:\\s*`).exec(text);
+  if (!match) return null;
+  let i = match.index + match[0].length;
+  while (i < text.length && /\s/.test(text[i])) i++;
+  const quote = text[i];
+  if (quote !== '"' && quote !== "'" && quote !== "`") return null;
+  i++;
+  let result = "";
+  while (i < text.length && text[i] !== quote) {
+    if (text[i] === "\\") {
+      const escaped = text[i + 1];
+      result +=
+        escaped === "n" ? "\n" : escaped === "t" ? "\t" : (escaped ?? "");
+      i += 2;
+      continue;
+    }
+    result += text[i];
+    i++;
+  }
+  if (i >= text.length) return null;
+  // Prettier wraps long literals across lines; collapse to one line so the
+  // registry carries the same single-paragraph string the docs render.
+  return result.replace(/\s+/g, " ").trim();
 }
 
 /** Parse a type value from source: either `"string"` or `["string", "array"]`. */
@@ -118,8 +153,8 @@ function extractArgDefs(content: string): ArgDefMeta[] {
     if (/optional:\s*true/.test(obj)) arg.optional = true;
     if (/rest:\s*true/.test(obj)) arg.rest = true;
     if (/namedOnly:\s*true/.test(obj)) arg.namedOnly = true;
-    const descMatch = obj.match(/description:\s*["']([^"']+)["']/);
-    if (descMatch) arg.description = descMatch[1];
+    const argDesc = extractStringProp(obj, "description");
+    if (argDesc) arg.description = argDesc;
     result.push(arg);
   }
 
@@ -135,6 +170,7 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
       hasArgs: false,
       argDefs: [],
       description: null,
+      compileDescription: null,
       experimental: false,
       hasRun: true,
       hasCompile: false,
@@ -147,7 +183,7 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
   const defineIdx = raw.search(/\bdefine\w*Helper\s*[<(]/);
   const content = defineIdx === -1 ? raw : raw.slice(defineIdx);
   const returnType = parseTypeValue(content, "returnType");
-  const descMatch = content.match(/description:\s*["']([^"']+)["']/);
+  const description = extractStringProp(content, "description");
   const argDefs = extractArgDefs(content);
   const hasArgs = argDefs.length > 0;
   // The declared name and face detection, ignoring the args array (arg
@@ -164,7 +200,8 @@ function extractHelperMeta(dir: string, name: string): HelperMeta {
     returnType,
     hasArgs,
     argDefs,
-    description: descMatch?.[1] ?? null,
+    description,
+    compileDescription: extractStringProp(topLevel, "compileDescription"),
     experimental: hasTopLevelExperimental(content),
     hasRun,
     hasCompile,
@@ -182,9 +219,8 @@ function extractCommandMeta(
   // Same anchoring as extractHelperMeta: skip constants above the define.
   const defineIdx = raw.search(/\bdefine\w*Command\s*[<(]/);
   const content = defineIdx === -1 ? raw : raw.slice(defineIdx);
-  const descMatch = content.match(/description:\s*["']([^"']+)["']/);
   return {
-    description: descMatch?.[1] ?? null,
+    description: extractStringProp(content, "description"),
     experimental: hasTopLevelExperimental(content),
   };
 }
@@ -249,13 +285,21 @@ if (helperNames.length > 0) {
         .join(", ");
       parts.push(`argDefs: [${defsStr}]`);
     }
-    if (meta.description)
-      parts.push(`description: ${JSON.stringify(meta.description)}`);
     if (meta.experimental) parts.push("experimental: true");
     // One helper file emits up to two registry keys sharing one loader:
     // `"name"` for the off-chain `run` face and `"name!"` for the
     // on-chain `compile` face. The declared name itself never carries
     // the `!` — that suffix is the on-chain-face addressing convention.
+    //
+    // The two keys share one `description` (what the helper means) and the
+    // `!` key alone appends `compileDescription`, so hovering `@name` never
+    // shows on-chain-only caveats and hovering `@name!` shows exactly the
+    // ones that apply.
+    const descProp = (extra?: string | null): string[] => {
+      if (!meta.description) return [];
+      const text = extra ? `${meta.description} ${extra}` : meta.description;
+      return [`description: ${JSON.stringify(text)}`];
+    };
     const key = meta.name ?? name;
     if (key.endsWith("!")) {
       console.error(
@@ -267,15 +311,16 @@ if (helperNames.length > 0) {
     }
     const load = `load: () => import("./helpers/${name}")`;
     if (meta.hasRun || !meta.hasCompile) {
-      const runParts = [...parts];
+      const runParts = [...parts, ...descProp()];
       if (meta.batchableFalse) runParts.push("batchable: false");
       lines.push(
         `  ${JSON.stringify(key)}: { ${load}, ${runParts.join(", ")} },`,
       );
     }
     if (meta.hasCompile) {
+      const compileParts = [...parts, ...descProp(meta.compileDescription)];
       lines.push(
-        `  ${JSON.stringify(`${key}!`)}: { ${load}, ${parts.join(", ")}, onchain: true },`,
+        `  ${JSON.stringify(`${key}!`)}: { ${load}, ${compileParts.join(", ")}, onchain: true },`,
       );
     }
   }
