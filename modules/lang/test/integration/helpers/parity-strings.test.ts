@@ -27,7 +27,7 @@ const BLOB = "0x00112233445566778899aabbccddeeff";
 
 describeParity("@lang strings", {
   module:
-    "lang [@str.len @str.at @str.slice @str.upper @str.lower @str.concat @str.includes @str.split @str.join @str.replace @str.charset @bytes.len @bytes.at @bytes.slice @bytes.concat]",
+    "lang [@str.len @str.at @str.slice @str.upper @str.lower @str.concat @str.includes @str.split @str.join @str.replace @str.charset @bytes.len @bytes.at @bytes.slice @bytes.concat @bytes.not]",
   helpers,
   setup: async (client) => {
     await installConstantMock(
@@ -126,6 +126,26 @@ describeParity("@lang strings", {
       name: "bytes.slice extracts a range",
       run: `@bytes.slice(${B} 0 4)`,
       compile: `@bytes.slice!(${B} 0 4)`,
+    },
+    {
+      name: "bytes.concat joins a live value to a constant",
+      run: `@bytes.concat(${B} 0xdead)`,
+      compile: `@bytes.concat!(${B} 0xdead)`,
+    },
+    {
+      // Complements one 32-byte word, so the result is Bytes32 rather than
+      // the input's width; the plain face complements the 256-bit value too.
+      name: "bytes.not complements a single word",
+      run: "@bytes.not(0x00000000000000000000000000000000000000000000000000000000000000ff)",
+      compile:
+        "@bytes.not!(0x00000000000000000000000000000000000000000000000000000000000000ff)",
+    },
+    {
+      // Both faces need the parts written out: the on-chain one builds the
+      // concatenation at composition time with the delimiter interleaved.
+      name: "str.join interleaves a delimiter",
+      run: `@str.join([${S} "tail"] "-")`,
+      compile: `@str.join!([${S} "tail"] "-")`,
     },
   ],
 });

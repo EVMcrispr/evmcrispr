@@ -40,6 +40,14 @@ describeParity("@lang records", {
   },
   cases: [
     {
+      // The on-chain face needs a literal element list; each element may be a
+      // live array. Flattening two live arrays is the shape that matters.
+      name: "flat concatenates two live arrays",
+      run: `@flat([${AC} ${BC}])`,
+      compile: `@flat!([${AC} ${BC}])`,
+      decodeAs: "uint256[]",
+    },
+    {
       // Off-chain a zip is an array of PAIRS, so @len counts 3; on-chain it is
       // a flat word-pair payload, so @len! counts 6. Anyone composing the two
       // gets double, which is why zip's compileDescription now says so.
