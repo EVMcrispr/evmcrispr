@@ -27,9 +27,25 @@ describeParity("@std", {
       compile: `@num!(${DEC} + 4)`,
     },
     {
-      name: "num multiplies and divides two live reads",
-      run: `@num(${SUPPLY} / ${DEC})`,
-      compile: `@num!(${SUPPLY} / ${DEC})`,
+      // A division that divides evenly: the only kind on which the two
+      // faces agree.
+      name: "num divides evenly",
+      run: `@num(${DEC} / 2)`,
+      compile: `@num!(${DEC} / 2)`,
+    },
+    {
+      // And one that does not. Off-chain `/` is EXACT RATIONAL arithmetic, so
+      // 18/4 is 9/2; on-chain a word is an integer and the division floors to
+      // 4. Nothing warns, and the same source text means two different things
+      // — which is why the case is written to divide unevenly on purpose
+      // rather than left to whatever a live read happens to be.
+      name: "diverges: an uneven division is exact off-chain and floored on-chain",
+      run: `@num(${DEC} / 4)`,
+      compile: `@num!(${DEC} / 4)`,
+      helper: "num",
+      diverges: {
+        reason: "off-chain / is exact rational, on-chain it floors",
+      },
     },
     {
       name: "num applies precedence across several live terms",
