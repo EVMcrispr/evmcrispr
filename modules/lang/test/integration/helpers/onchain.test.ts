@@ -962,6 +962,49 @@ describeCommand("assert (lang on-chain faces, wave 3)", {
       },
     },
     {
+      // A def is INLINED: its body compiles with the call's argument nodes
+      // substituted for its parameters, so this must emit exactly what
+      // writing the body at the call site emits.
+      name: "inlines a bang def called directly in an assertion",
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @dbl!(${TOKEN}::{cap()(uint256)}) > 100`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        d.expectConstraint(param, "Gte", 101n);
+        const args = d.opReadOf(param, "mul(uint256,uint256)");
+        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        d.expectRawWord(args[1], 2n);
+      },
+    },
+    {
+      // The parameter may be named more than once. Each occurrence is an
+      // independent substitution, so the operand is duplicated — the same
+      // tree-not-a-DAG property that makes it re-resolve on-chain.
+      name: "substitutes a def parameter at every occurrence",
+      script: `def @sq! "$x: number -> number" @num!($x * $x)
+assertions:assert @sq!(${TOKEN}::{cap()(uint256)}) > 4`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(param, "mul(uint256,uint256)");
+        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(d.staticCallOf(args[1]).target).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "lets a bang def call another bang def",
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+def @quad! "$x: number -> number" @dbl!(@dbl!($x))
+assertions:assert @quad!(${TOKEN}::{cap()(uint256)}) > 8`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const outer = d.opReadOf(param, "mul(uint256,uint256)");
+        d.expectRawWord(outer[1], 2n);
+        const inner = d.opReadOf(outer[0], "mul(uint256,uint256)");
+        d.expectRawWord(inner[1], 2n);
+        expect(d.staticCallOf(inner[0]).target).to.equal(TOKEN);
+      },
+    },
+    {
       name: "compiles @enumerate! to zipWords(iotaWords(n), payload) with a live offset_b",
       script: `assertions:assert @enumerate!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
       validate: (actions) => {
@@ -1494,6 +1537,26 @@ describeCommand("assert (lang on-chain faces, wave 5)", {
       name: "rejects a non-boolean composed lambda in @all!",
       script: `assertions:assert @all!(${TOKEN}::{caps()(uint256[])} @num!(* 2 + 1))`,
       error: "must evaluate to a boolean",
+    },
+    {
+      // Inlining is textual, so a def reaching itself would expand forever.
+      name: "rejects a self-referential bang def",
+      script: `def @loop! "$x: number -> number" @loop!($x)
+assertions:assert @loop!(1) > 0`,
+      error: "defined in terms of itself",
+    },
+    {
+      name: "rejects an indirectly recursive bang def",
+      script: `def @a! "$x: number -> number" @b!($x)
+def @b! "$x: number -> number" @a!($x)
+assertions:assert @a!(1) > 0`,
+      error: "defined in terms of itself",
+    },
+    {
+      name: "checks a bang def's arity at the call site",
+      script: `def @dbl! "$x: number -> number" @num!($x * 2)
+assertions:assert @dbl!(1 2) > 0`,
+      error: "expects 1 argument(s), got 2",
     },
     {
       name: "rejects @it! outside a lambda",

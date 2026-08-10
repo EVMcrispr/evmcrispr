@@ -47,7 +47,11 @@ import {
   encodeRead,
   LEN_STEP,
 } from "./core";
-import { compileOnchainHelper, isBangHelperNode } from "./dispatch";
+import {
+  compileOnchainHelper,
+  isBangHelperNode,
+  setOperandCompiler,
+} from "./dispatch";
 import type { Constraint, InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import { bytesPayloadParam, envelopeLenParam } from "./layout";
@@ -1864,3 +1868,8 @@ export async function loadFunctionAbi(
   }
   return item;
 }
+
+// A user-defined on-chain helper is inlined by compiling its body, and the
+// dispatcher is where that is noticed — but it cannot import this module
+// without closing a cycle. Hand it the entry point instead.
+setOperandCompiler(compileOperand);
