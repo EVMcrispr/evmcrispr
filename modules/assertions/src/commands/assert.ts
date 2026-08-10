@@ -8,6 +8,7 @@ import {
   compileTopCall,
   hashParamOf,
   isBangHelperNode,
+  scaleOf,
   stringDigest,
 } from "@evmcrispr/sdk/onchain";
 import { isHex, keccak256 } from "viem";
@@ -196,6 +197,15 @@ export default defineCommand<Assertions>({
 
     const fragment = operatorFragment(op, PLAIN_OPERATORS[category]);
 
+    // A scaled live value (a ray rate, a wad price) is compared in ITS
+    // units, so both the bound and the tolerance move up to meet it:
+    // against a ray read, 0.05 is the whole number 5e25 and the rounding
+    // below never has to fire.
+    const scale = scaleOf(live);
+    const upscale = (n: Num): Num =>
+      scale ? n.mul(Num(10n ** BigInt(scale))) : n;
+    const asWord = (n: Num): bigint => boundWord(upscale(n), fragment, n);
+
     // Booleans fold != into EQ 0 / EQ 1 constraints.
     if (category === "Bool") {
       if (cnst.cat !== "Bool") {
@@ -218,7 +228,7 @@ export default defineCommand<Assertions>({
       if (opts.delta === undefined) {
         throw new ErrorException("the ~= operator requires a --delta value");
       }
-      delta = wholeDelta(opts.delta as Num);
+      delta = wholeDelta(upscale(opts.delta as Num), opts.delta as Num);
     }
 
     // Dynamic values (string/bytes envelopes) judge via keccak of their
@@ -259,10 +269,7 @@ export default defineCommand<Assertions>({
       case "Uint": {
         // Round first: `x >= -0.5` is `x >= 0`, a perfectly good unsigned
         // bound, while `x <= -0.5` stays negative and is rejected below.
-        expectedWord = boundWord(
-          requireNum(cnst, "the expected value"),
-          fragment,
-        );
+        expectedWord = asWord(requireNum(cnst, "the expected value"));
         if (expectedWord < 0n) {
           throw new ErrorException(
             "cannot compare an unsigned return against a negative value — cast the return as int256 with an inline ABI, e.g. ::{method()(int256)}",
@@ -271,10 +278,7 @@ export default defineCommand<Assertions>({
         break;
       }
       case "Int":
-        expectedWord = boundWord(
-          requireNum(cnst, "the expected value"),
-          fragment,
-        );
+        expectedWord = asWord(requireNum(cnst, "the expected value"));
         break;
       case "Address": {
         if (cnst.cat !== "Address") {

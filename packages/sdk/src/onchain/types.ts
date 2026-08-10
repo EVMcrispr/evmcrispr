@@ -23,12 +23,30 @@ export type Category =
  * ERC-8211 `InputParam` resolved on-chain at assertion time (a staticcall,
  * balance read, or nested core/operator expression).
  */
+/**
+ * How many decimal places the integer word carries: the word is the real
+ * value times 10^scale. Absent (or 0) is a plain integer, which is nearly
+ * everything — a balance in wei is scale 0, because wei IS the unit.
+ *
+ * A scale lets a genuinely fractional quantity travel as a word without
+ * anyone pre-multiplying by hand: an Aave rate is ray (scale 27), a Comet
+ * rate is wad (scale 18), and `apy > 0.05` compares them exactly, because
+ * aligning the literal 0.05 to scale 27 makes it the integer 5e25.
+ */
+export type Scale = number;
+
 export type Operand =
-  | { kind: "const"; cat: Category; value: Num | boolean | string }
+  | {
+      kind: "const";
+      cat: Category;
+      value: Num | boolean | string;
+      scale?: Scale;
+    }
   | {
       kind: "call";
       param: InputParam;
       cat: Category;
+      scale?: Scale;
       /** When this param is `eq(inner, 0)`, the inner param — lets the top
        *  level judge `inner EQ 0` instead of `eq(inner, 0) EQ 1`. */
       notOf?: InputParam;

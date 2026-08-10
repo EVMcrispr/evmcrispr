@@ -79,32 +79,39 @@ const BOUND_ROUNDING: Record<string, "floor" | "ceil"> = {
  * through; fractions round in the predicate-preserving direction, and the
  * comparisons that have no such form say so instead of truncating.
  */
-export function boundWord(value: Num, fragment: string): bigint {
+export function boundWord(
+  value: Num,
+  fragment: string,
+  /** What the user actually wrote, when `value` has already been scaled up
+   *  to meet the live side — otherwise an error would quote 5e25 at
+   *  someone who typed 0.05. */
+  display: Num = value,
+): bigint {
   if (value.isInteger()) return value.toBigInt();
   const mode = BOUND_ROUNDING[fragment];
   if (mode === "ceil") return value.ceilBigInt();
   if (mode === "floor") return value.floorBigInt();
   if (fragment === "Eq") {
     throw new ErrorException(
-      `no whole number equals ${value} — this assertion could never hold. Bound it with >= and <=, or scale both sides to base units.`,
+      `no whole number equals ${display} — this assertion could never hold. Bound it with >= and <=, or scale both sides to base units.`,
     );
   }
   if (fragment === "Ne") {
     throw new ErrorException(
-      `every whole number differs from ${value} — this assertion always holds. Bound it with >= and <=, or scale both sides to base units.`,
+      `every whole number differs from ${display} — this assertion always holds. Bound it with >= and <=, or scale both sides to base units.`,
     );
   }
   throw new ErrorException(
-    `~= needs a whole-number centre, got ${value} — round it and widen --delta, or bound the value with >= and <=`,
+    `~= needs a whole-number centre, got ${display} — round it and widen --delta, or bound the value with >= and <=`,
   );
 }
 
 /** A tolerance is counted in base units, so a fraction is a mistake rather
  *  than something to round. */
-export function wholeDelta(value: Num): bigint {
+export function wholeDelta(value: Num, display: Num = value): bigint {
   if (!value.isInteger()) {
     throw new ErrorException(
-      `--delta must be a whole number of base units, got ${value}`,
+      `--delta must be a whole number of base units, got ${display}`,
     );
   }
   return value.toBigInt();

@@ -1102,40 +1102,119 @@ export function arithCombine(
       if (reason) throw new ErrorException(reason);
     }
   }
+  // Scale bookkeeping. Adding requires a common scale; multiplying and
+  // dividing just accumulate one, so their operands are left as they are.
+  const scale = resultScale(op, scaleOf(l), scaleOf(r));
+  if (op === "Exp") {
+    // An exponent counts repetitions, not units: raising to the power of
+    // 2 must not become the power of 2e18. And x^n over a scaled x would
+    // land at scale n*s, which needs a fixed-point pow, not this.
+    if (scaleOf(l) || scaleOf(r)) {
+      throw new ErrorException(
+        "exponentiation needs plain integer operands — a value carrying decimal places has to be rescaled first",
+      );
+    }
+  } else if (op !== "Mul" && op !== "Div") {
+    ({ l, r } = alignScales(ctx, l, r));
+  } else if (op === "Div" && scale < 0) {
+    throw new ErrorException(
+      `dividing a value with ${scaleOf(l)} decimal places by one with ${scaleOf(r)} leaves a fraction — scale the numerator up first`,
+    );
+  }
   if (l.kind === "const" && r.kind === "const") {
     const value = foldArith(op, constBigInt(l), constBigInt(r));
     return {
       kind: "const",
       cat: value < 0n ? "Int" : "Uint",
       value: Num.fromBigInt(value),
+      ...(scale ? { scale } : {}),
     };
   }
   const check = checkArith(op, constLenientCat(l), constLenientCat(r));
   if (!check.ok) throw new ErrorException(check.reason);
   const signed = l.cat === "Int" || r.cat === "Int";
+  const scaled = <T extends Operand>(o: T): T =>
+    scale ? ({ ...o, scale } as T) : o;
   // A fractional constant FACTOR has an exact on-chain form even though it
   // has no integer form of its own: scaling by 3/4 is one 512-bit mulDiv.
   // Must come before materializeWord, which has no integer to hand back.
   const fused = fuseRationalFactor(ctx, op, l, r, signed, check.result);
-  if (fused) return fused;
+  if (fused) return scaled(fused);
   const lp = materializeWord(ctx, l);
   const rp = materializeWord(ctx, r);
   // mul-then-div fuses into one 512-bit mulDiv read, so a * b / c never
   // reverts on an intermediate past 2^256 (unsigned only: there is no
   // signed mulDiv on-chain).
   if (op === "Div" && !signed && l.kind === "call" && l.mulOf) {
-    return {
+    return scaled({
       kind: "call",
       param: opReadParam(ctx, OP_SELECTORS.mulDiv, [l.mulOf.a, l.mulOf.b, rp]),
       cat: check.result,
-    };
+    });
   }
-  return {
+  return scaled({
     kind: "call",
     param: wordOpParam(ctx, ARITH_FN[op], signed, lp, rp),
     cat: check.result,
     ...(op === "Mul" && !signed ? { mulOf: { a: lp, b: rp } } : {}),
+  });
+}
+
+/** Decimal places the operand's word carries; absent means a plain
+ *  integer. */
+export function scaleOf(o: Operand): number {
+  return o.scale ?? 0;
+}
+
+/**
+ * Restate an operand at a higher scale. A constant absorbs the factor into
+ * its own exact rational — which is the whole point, since `0.05` at scale
+ * 27 becomes the integer 5e25 and needs no rounding — while a live value
+ * has to multiply on-chain.
+ */
+function rescaleTo(ctx: CompileCtx, o: Operand, target: number): Operand {
+  const delta = target - scaleOf(o);
+  if (delta === 0) return o;
+  const factor = 10n ** BigInt(delta);
+  if (o.kind === "const") {
+    if (!(o.value instanceof Num)) return { ...o, scale: target };
+    return { ...o, value: o.value.mul(Num(factor)), scale: target };
+  }
+  return {
+    kind: "call",
+    param: wordOpParam(
+      ctx,
+      "mul",
+      o.cat === "Int",
+      o.param,
+      rawParam(toWord(factor)),
+    ),
+    cat: o.cat,
+    scale: target,
   };
+}
+
+/**
+ * Bring both operands to a common scale so their words are comparable and
+ * addable. Rescaling UP only — scaling down would divide away precision
+ * the caller never agreed to lose.
+ */
+function alignScales(
+  ctx: CompileCtx,
+  l: Operand,
+  r: Operand,
+): { l: Operand; r: Operand; scale: number } {
+  const scale = Math.max(scaleOf(l), scaleOf(r));
+  return { l: rescaleTo(ctx, l, scale), r: rescaleTo(ctx, r, scale), scale };
+}
+
+/** Scale of an arithmetic result: multiplying adds decimal places and
+ *  dividing removes them, while the additive family needs both sides at
+ *  one scale and keeps it. */
+function resultScale(op: ArithOpName, l: number, r: number): number {
+  if (op === "Mul") return l + r;
+  if (op === "Div") return l - r;
+  return Math.max(l, r);
 }
 
 /** The positive rational behind a fractional constant operand, if that is
@@ -1274,6 +1353,10 @@ export function cmpCombine(
       cat: "Bool",
     };
   }
+  // Two words only mean the same thing at the same scale: comparing a ray
+  // rate against the literal 0.05 works because aligning turns the literal
+  // into 5e25, not because the words happen to line up.
+  ({ l, r } = alignScales(ctx, l, r));
   if (l.kind === "const" && r.kind === "const") {
     return {
       kind: "const",
