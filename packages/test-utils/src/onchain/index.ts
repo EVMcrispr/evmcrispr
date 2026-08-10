@@ -7,5 +7,24 @@ export {
   OPERATORS_RUNTIME_BYTECODE,
   OPERATORS_RUNTIME_HASH,
 } from "./assertions-bytecode";
+export {
+  type CompileEnv,
+  compileExpression,
+  moduleBaseName,
+  runExpression,
+} from "./compile";
+export {
+  decodeResolved,
+  type Norm,
+  normalizeRun,
+  sameValue,
+  show,
+} from "./decode";
+export {
+  describeParity,
+  type ParityCase,
+  type ParityConfig,
+} from "./describeParity";
 export { type InstalledCore, installAssertionsCore } from "./install";
 export { getMainnetForkTransports } from "./mainnet";
+export { type ResolveOpts, resolveValue } from "./resolve";
