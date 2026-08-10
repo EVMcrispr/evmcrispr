@@ -42,6 +42,10 @@ export function normalizeRun(value: unknown): Norm {
   // bigint[]. Accepting both is the harness declining to hide that: the
   // helpers that compare values themselves are where it actually bites.
   if (typeof value === "bigint") return { t: "num", v: Num.fromBigInt(value) };
+  // And a JS number reaches here because viem decodes any int of 48 bits or
+  // fewer as one: a `decimals()(uint8)` read is 18, not 18n. A helper that
+  // passes a branch through untouched (@orElse) hands that straight back.
+  if (typeof value === "number") return { t: "num", v: Num(value) };
   if (typeof value === "string") {
     if (isAddress(value)) return { t: "addr", v: getAddress(value) };
     if (isHex(value)) return { t: "hex", v: value.toLowerCase() as Hex };

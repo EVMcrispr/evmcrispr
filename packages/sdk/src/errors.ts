@@ -171,6 +171,39 @@ export class RevertError extends ErrorException {
   }
 }
 
+/** viem error names that mean "the chain executed the call and it did not
+ *  produce a value": a revert (with or without a reason), or a response the
+ *  ABI cannot decode because there was nothing there — a call into an
+ *  address with no code, which on-chain leaves the core's `read` with no
+ *  word to splice and so reverts too. */
+const CHAIN_FAILURE_NAMES = new Set([
+  "ContractFunctionRevertedError",
+  "ExecutionRevertedError",
+  "RawContractError",
+  "AbiDecodingZeroDataError",
+  "ContractFunctionZeroDataError",
+  "RevertError",
+]);
+
+/**
+ * Whether an error means the CHAIN rejected a read, as opposed to the
+ * script being wrong about it (no ABI, bad target, unknown variable) or the
+ * node being unreachable.
+ *
+ * The distinction is what makes an off-chain revert probe honest: `@ok`
+ * may only answer `false` for a failure the on-chain `ok()` primitive
+ * would also see. Errors are walked through their `cause` chain, since
+ * viem nests the revert several wrappers deep and the interpreter adds its
+ * own node-located error on top.
+ */
+export function isChainFailure(err: unknown): boolean {
+  for (let e: unknown = err, depth = 0; e && depth < 10; depth++) {
+    if (e instanceof Error && CHAIN_FAILURE_NAMES.has(e.name)) return true;
+    e = (e as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
 /**
  * Base class for interpreter control-flow signals (`exit`, `loop break`,
  * `loop continue`, `def return`). Not errors — they unwind interpretation

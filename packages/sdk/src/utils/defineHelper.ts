@@ -186,6 +186,15 @@ export function defineHelper<M extends Module>(
         continue;
       }
 
+      // A lazy arg reaches `run` unevaluated: the helper interprets it
+      // itself, which is the only way to observe the evaluation failing
+      // (see ArgDef.lazy). Type validation below is skipped for the same
+      // reason — the value it would check does not exist yet.
+      if (def.lazy) {
+        parsedArgs[def.name] = nodeFor(def);
+        continue;
+      }
+
       // A union including "helper" accepts EITHER a helper reference or an
       // ordinary value: the reference becomes a callable below, anything
       // else falls through to the normal coercion. `@sort` uses it to take
@@ -258,6 +267,7 @@ export function defineHelper<M extends Module>(
     for (let vi = 0; vi < argDefs.length; vi++) {
       const def = argDefs[vi];
       if (
+        def.lazy ||
         def.type === "helper" ||
         (Array.isArray(def.type) && def.type.includes("helper"))
       )

@@ -16,6 +16,12 @@ const HOLDER = "0xd0Dd6cEF72143E22cCED4867eb0d5F2328715533";
 
 const SUPPLY = `${WXDAI}::{totalSupply()(uint256)}`;
 const DEC = `${WXDAI}::{decimals()(uint8)}`;
+/** A staticcall that reverts inside the token: nobody approved this. */
+const REVERTING = `${WXDAI}::{transferFrom(address,address,uint256)(bool) ${HOLDER} ${WXDAI} 1000000000000000000000000000000}`;
+/** The same reverting call, declared as returning a number so it can pair
+ *  with a numeric fallback — @orElse! requires both branches to be the same
+ *  kind of value, and the declared return never materializes anyway. */
+const REVERTING_NUM = `${WXDAI}::{transferFrom(address,address,uint256)(uint256) ${HOLDER} ${WXDAI} 1000000000000000000000000000000}`;
 
 describeParity("@std", {
   helpers,
@@ -128,6 +134,38 @@ describeParity("@std", {
       name: "balance reads an ERC-20 balance",
       run: `@balance(${WXDAI} ${HOLDER})`,
       compile: `@balance!(${WXDAI} ${HOLDER})`,
+    },
+
+    // ---- @ok! and @orElse!: the revert probe and its fallback ---------------
+    //
+    // These are the two faces most at risk of quietly disagreeing, because
+    // the off-chain side infers "the chain refused this read" from an error
+    // object while the on-chain side gets it from the EVM. Both directions
+    // are pinned: a call that resolves and one that reverts.
+    {
+      name: "ok is true for a call that resolves",
+      run: `@ok(${DEC})`,
+      compile: `@ok!(${DEC})`,
+    },
+    {
+      name: "ok is false for a call that reverts",
+      run: `@ok(${REVERTING})`,
+      compile: `@ok!(${REVERTING})`,
+    },
+    {
+      name: "orElse keeps the first branch when it resolves",
+      run: `@orElse(${DEC} 99)`,
+      compile: `@orElse!(${DEC} 99)`,
+    },
+    {
+      name: "orElse takes the fallback when the first branch reverts",
+      run: `@orElse(${REVERTING_NUM} ${DEC})`,
+      compile: `@orElse!(${REVERTING_NUM} ${DEC})`,
+    },
+    {
+      name: "orElse takes a constant fallback when the first branch reverts",
+      run: `@orElse(${REVERTING_NUM} 7)`,
+      compile: `@orElse!(${REVERTING_NUM} 7)`,
     },
   ],
 });

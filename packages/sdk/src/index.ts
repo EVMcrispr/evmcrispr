@@ -13,6 +13,7 @@ export {
   ExperimentalDisabledError,
   ExpressionError,
   HelperFunctionError,
+  isChainFailure,
   NodeError,
   ReturnSignal,
   RevertError,

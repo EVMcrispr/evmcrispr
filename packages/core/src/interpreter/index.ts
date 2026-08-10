@@ -438,7 +438,7 @@ function interpretVariableIdentifier(
       });
       if (value !== undefined) return value;
     } catch (err) {
-      panic(n, (err as Error).message);
+      panic(n, (err as Error).message, err);
     }
     panic(n, `${n.value} is not set and has no default`);
   }
@@ -646,7 +646,7 @@ export function makeExecutionResolveHelper(
       );
     } catch (err) {
       if (err instanceof NodeError) throw err;
-      panic(h, (err as Error).message);
+      panic(h, (err as Error).message, err);
     }
   };
 }
@@ -689,7 +689,7 @@ export function makeExecutionResolveCommand(
         } catch (err) {
           if (err instanceof NodeError || err instanceof ControlFlowSignal)
             throw err;
-          panic(c, (err as Error).message);
+          panic(c, (err as Error).message, err);
         }
       }
     }
@@ -741,7 +741,7 @@ export function makeExecutionResolveCommand(
     } catch (err) {
       if (err instanceof NodeError || err instanceof ControlFlowSignal)
         throw err;
-      panic(c, (err as Error).message);
+      panic(c, (err as Error).message, err);
     }
   };
 }
@@ -847,6 +847,7 @@ export function makeExecutionResolveCallExpression(
       panic(
         n,
         `error occured whe calling ${n.target.value ?? targetAddress}: ${err_.message}`,
+        err,
       );
     }
   };
@@ -1219,19 +1220,27 @@ export function makePrewarmResolveHelper(
 // Errors
 // ---------------------------------------------------------------------------
 
-function panic(n: Node, msg: string): never {
-  switch (n.type) {
-    case CommandExpression:
-      throw new CommandError(n as CommandExpressionNode, msg);
-    case HelperFunctionExpression:
-      throw new HelperFunctionError(n as HelperFunctionNode, msg);
-    case Bareword:
-      throw new ExpressionError(n, msg, { name: "IdentifierError" });
-    case VariableIdentifier:
-      throw new ExpressionError(n, msg, { name: "VariableIdentifierError" });
-    default:
-      throw new ErrorException(msg);
-  }
+/** Throw the node-located error for `n`. `cause` is preserved when given:
+ *  the message is for the user, but a caller that must tell WHY something
+ *  failed (a chain revert vs a script mistake — see `isChainFailure`) can
+ *  only do that from the original error. */
+function panic(n: Node, msg: string, cause?: unknown): never {
+  const error = ((): Error => {
+    switch (n.type) {
+      case CommandExpression:
+        return new CommandError(n as CommandExpressionNode, msg);
+      case HelperFunctionExpression:
+        return new HelperFunctionError(n as HelperFunctionNode, msg);
+      case Bareword:
+        return new ExpressionError(n, msg, { name: "IdentifierError" });
+      case VariableIdentifier:
+        return new ExpressionError(n, msg, { name: "VariableIdentifierError" });
+      default:
+        return new ErrorException(msg);
+    }
+  })();
+  if (cause !== undefined) error.cause = cause;
+  throw error;
 }
 
 // Note: deliberately kept out of the public surface — `Address` is only

@@ -67,6 +67,15 @@ export interface ArgDef {
   /** Allow a `variable`-typed arg to bind a config variable (`$mod:key`).
    *  Only `set` declares this — config vars are set-only everywhere else. */
   allowConfig?: boolean;
+  /**
+   * Hand the `run` face the unevaluated AST node instead of its value, so
+   * the helper decides when (and whether) to interpret it. Only for helpers
+   * whose meaning IS the evaluation — `@ok` probes whether a call reverts,
+   * which it cannot observe if the framework resolves the call first and
+   * throws. `type` still drives completions and the docs; the value-shape
+   * validation is skipped, since the helper receives a node.
+   */
+  lazy?: boolean;
 }
 
 /**
