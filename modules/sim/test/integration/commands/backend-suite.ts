@@ -68,11 +68,11 @@ export function describeIntegrationBackendSuite(
     // =========================================================================
 
     describe("B. State manipulation", () => {
-      it("set-balance and verify via @token:balance", async () => {
+      it("set-balance and verify via @balance", async () => {
         await run(
           [
             `  sim:set-balance ${ADDR} 100e18`,
-            `  sim:expect @bool(@token:balance(XDAI ${ADDR}) > 0)`,
+            `  sim:expect @bool(@balance(XDAI ${ADDR}) > 0)`,
           ].join("\n"),
           client,
         );
@@ -82,7 +82,7 @@ export function describeIntegrationBackendSuite(
         await run(
           [
             `  sim:set-balance ${ADDR} 0`,
-            `  sim:expect @bool(@token:balance(XDAI ${ADDR}) == 0)`,
+            `  sim:expect @bool(@balance(XDAI ${ADDR}) == 0)`,
           ].join("\n"),
           client,
         );
@@ -197,7 +197,7 @@ export function describeIntegrationBackendSuite(
           [
             `  sim:set-balance ${ADDR} 10e18`,
             "  wait 86400",
-            `  sim:expect @bool(@token:balance(XDAI ${ADDR}) > 0)`,
+            `  sim:expect @bool(@balance(XDAI ${ADDR}) > 0)`,
           ].join("\n"),
           client,
         );
@@ -207,7 +207,7 @@ export function describeIntegrationBackendSuite(
         await run(
           [
             `  sim:set-balance ${ADDR} 1000e18`,
-            `  sim:expect @bool(@token:balance(XDAI ${ADDR}) > 0)`,
+            `  sim:expect @bool(@balance(XDAI ${ADDR}) > 0)`,
             `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18 --from ${ADDR}`,
             "  wait 3600",
             `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 2e18 --from ${ADDR}`,

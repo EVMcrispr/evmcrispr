@@ -9,7 +9,7 @@ evml.use({
   name: "contracts",
   load: () => import("@evmcrispr/module-contracts"),
 });
-// token (a devDependency) backs the @token:balance checks in backend tests.
+// token (a devDependency) backs the @balance checks in backend tests.
 evml.use({
   name: "token",
   load: () => import("@evmcrispr/module-token"),

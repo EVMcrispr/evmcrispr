@@ -138,7 +138,7 @@ describeCommand("assert (safe array faces)", {
         d.expectConstraint(param, "Eq", 1n);
         const args = d.opReadOf(
           param,
-          "foldWords(bytes,address,bytes,uint256,uint256,bytes32,uint8)",
+          "foldWords(bytes,address,bytes,uint256,uint256[],bytes32,uint8)",
         );
         expect(args).to.have.lengthOf(2);
         const envelope = expectWordsPayload(args[1]);
