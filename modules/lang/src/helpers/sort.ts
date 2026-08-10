@@ -42,7 +42,7 @@ export default defineHelper<Lang>({
   name: "sort",
   description: "Sort an array using a comparator helper.",
   compileDescription:
-    "Sorts in unsigned ascending order and takes no comparator; see the docs for the signed recipe.",
+    "Sorts in unsigned ascending order and takes no comparator; signed values sort by their raw word, so negatives need the sign-flip recipe.",
   returnType: "array",
   args: [
     { name: "arr", type: "array", description: "Source array" },

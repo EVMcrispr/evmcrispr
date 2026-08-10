@@ -4,7 +4,7 @@ title: "@lang:sort"
 
 Sort an array using a comparator helper.
 
-**On-chain (`@lang:sort!`)**: Sorts in unsigned ascending order and takes no comparator; see the docs for the signed recipe.
+**On-chain (`@lang:sort!`)**: Sorts in unsigned ascending order and takes no comparator; signed values sort by their raw word, so negatives need the sign-flip recipe.
 
 **Returns**: `array`
 
@@ -47,7 +47,9 @@ assertions:assert @unique!(@sort!($safe::{getOwners()(address[])})) == 0x1122
 
 ### Notes
 
-- Signed recipe: map the sign bit away, sort, map it back:
+- Sign-flip recipe (the signed sort): map the sign bit away, sort, map
+  it back. Flipping the top bit maps signed order onto unsigned order
+  exactly, and unlike adding 2^255 it can never overflow:
   `@map!(@sort!(@map!($c::{vals()(int256[])} @bytes!("xor" 0x8000000000000000000000000000000000000000000000000000000000000000))) @bytes!("xor" 0x8000000000000000000000000000000000000000000000000000000000000000))`.
 - The result is a words payload (bytes), composable with the other
   array faces.
