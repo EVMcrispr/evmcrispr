@@ -57,6 +57,10 @@ export interface ParityConfig extends CompileEnv {
    * `argDefs`. Required by any case declaring `diverges`.
    */
   helpers?: Record<string, { description?: string } | undefined>;
+  /** Runs before each case, after the core is installed. For suites that need
+   *  a mock deployed (see `installConstantMock`). Must be idempotent: it runs
+   *  per case, because anvil_reset between packages discards any install. */
+  setup?: (client: PublicClient) => Promise<void> | void;
 }
 
 interface Attempt<T> {
@@ -129,6 +133,7 @@ export function describeParity(label: string, config: ParityConfig): void {
         // the test timeout, and anvil_reset between packages discards the
         // install anyway. Two local eth_getCode calls are the whole cost.
         const { core, operators } = await installAssertionsCore(client);
+        await config.setup?.(client);
         const env = { ...config, core, operators };
 
         const compiled = await attempt(() => compileExpression(c.compile, env));

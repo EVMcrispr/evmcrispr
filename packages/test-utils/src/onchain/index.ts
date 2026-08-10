@@ -27,4 +27,9 @@ export {
 } from "./describeParity";
 export { type InstalledCore, installAssertionsCore } from "./install";
 export { getMainnetForkTransports } from "./mainnet";
+export {
+  constantReturnCode,
+  encodeBytes32ArrayReturn,
+  installConstantMock,
+} from "./mock";
 export { type ResolveOpts, resolveValue } from "./resolve";
