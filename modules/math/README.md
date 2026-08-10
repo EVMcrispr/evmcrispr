@@ -1,6 +1,6 @@
 # math module
 
-Plain math over numbers: composable off-chain as @min, @max, @absdiff and @sqrt, and on-chain at execution time via the `!` faces.
+Plain math over numbers: minimum, maximum, absolute difference and integer square root.
 
 ```evml
 load math

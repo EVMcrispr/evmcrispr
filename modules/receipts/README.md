@@ -1,6 +1,6 @@
 # receipts module
 
-Transaction and block receipts: addressed by hash or number you read a sealed receipt off-chain; with `!` you read the one being written, on-chain at execution time.
+Transaction and block data: sealed receipts and blocks addressed by hash or number, and the transaction and block currently being written.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

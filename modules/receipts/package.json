@@ -1,7 +1,7 @@
 {
   "name": "@evmcrispr/module-receipts",
   "version": "0.11.0",
-  "description": "Transaction and block receipts: addressed by hash or number you read a sealed receipt off-chain; with `!` you read the one being written, on-chain at execution time.",
+  "description": "Transaction and block data: sealed receipts and blocks addressed by hash or number, and the transaction and block currently being written.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",

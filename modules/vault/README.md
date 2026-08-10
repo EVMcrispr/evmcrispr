@@ -1,6 +1,6 @@
 # vault module
 
-ERC-4626 tokenized vaults: deposit, mint, withdraw and redeem (with `max` sugar) with automatic approvals, plus share/asset conversion and inspection helpers. Works with any 4626-compliant vault — sDAI, Morpho (MetaMorpho), Yearn v3 and more. Also supports ERC-7540 asynchronous vaults (request/claim flows, operators) and ERC-7575 multi-asset vaults with external share tokens, such as Centrifuge.
+ERC-4626 tokenized vaults: deposit, mint, withdraw and redeem (with `max` sugar) with automatic approvals, plus share/asset conversion and inspection helpers. Works with any 4626-compliant vault: sDAI, Morpho (MetaMorpho), Yearn v3 and more. Also supports ERC-7540 asynchronous vaults (request/claim flows, operators) and ERC-7575 multi-asset vaults with external share tokens, such as Centrifuge.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

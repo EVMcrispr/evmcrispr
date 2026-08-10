@@ -207,7 +207,7 @@ for (const file of files) {
 interface DescRule {
   test: RegExp;
   /** Which fields the rule applies to. */
-  fields: ("description" | "compileDescription" | "arg")[];
+  fields: ("description" | "compileDescription" | "arg" | "module")[];
   message: string;
 }
 
@@ -217,25 +217,25 @@ const OPERATOR_INTERNALS =
 const DESC_RULES: DescRule[] = [
   {
     test: /\bAs\s+`?@[\w.:]+!/i,
-    fields: ["description"],
+    fields: ["description", "module"],
     message:
       "drop the `As @name! …` clause: put a user-visible on-chain difference in `compileDescription`, and the compilation detail in the doc's `## On-chain face` section",
   },
   {
-    test: /\bat (assertion|composition) time\b/i,
-    fields: ["description", "compileDescription", "arg"],
+    test: /\bat (assertion|composition|execution) time\b/i,
+    fields: ["description", "compileDescription", "arg", "module"],
     message:
       "`@name!` evaluating on-chain at assertion time is the `!` convention itself, documented once in the EVML guide",
   },
   {
     test: OPERATOR_INTERNALS,
-    fields: ["description", "compileDescription", "arg"],
+    fields: ["description", "compileDescription", "arg", "module"],
     message:
       "name the behaviour, not the Operators function that implements it (that belongs in the doc's `## On-chain face` section)",
   },
   {
     test: /\b(words payload|lambda template|core pick|typed nav)\b/i,
-    fields: ["description", "compileDescription", "arg"],
+    fields: ["description", "compileDescription", "arg", "module"],
     message:
       "compiler vocabulary belongs in the doc's `## On-chain face` section, not in a hover tooltip",
   },
@@ -297,6 +297,30 @@ function reportDesc(where: string, field: string, value: string, why: string) {
 }
 
 for (const modName of readdirSync(join(ROOT, "modules"))) {
+  // The module's own one-liner (package.json `description`) opens its README
+  // and its website index page. It says what the module is for; it is not a
+  // second place to teach the `!` convention or enumerate the faces, which
+  // the generated helper index right below it already lists.
+  const modPkg = join(ROOT, "modules", modName, "package.json");
+  if (existsSync(modPkg)) {
+    const modDesc: string | undefined = JSON.parse(
+      readFileSync(modPkg, "utf-8"),
+    ).description;
+    if (modDesc) {
+      descsChecked++;
+      for (const rule of DESC_RULES) {
+        if (rule.fields.includes("module") && rule.test.test(modDesc)) {
+          reportDesc(
+            relative(ROOT, modPkg),
+            "module description",
+            modDesc,
+            rule.message,
+          );
+        }
+      }
+    }
+  }
+
   for (const kind of ["helpers", "commands"] as const) {
     const dir = join(ROOT, "modules", modName, "src", kind);
     if (!existsSync(dir)) continue;

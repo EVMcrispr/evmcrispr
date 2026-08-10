@@ -1,7 +1,7 @@
 {
   "name": "@evmcrispr/module-math",
   "version": "0.11.0",
-  "description": "Plain math over numbers: composable off-chain as @min, @max, @absdiff and @sqrt, and on-chain at execution time via the `!` faces.",
+  "description": "Plain math over numbers: minimum, maximum, absolute difference and integer square root.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
