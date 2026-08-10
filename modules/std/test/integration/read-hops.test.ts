@@ -53,7 +53,7 @@ async function num(expression: string): Promise<bigint> {
   return BigInt(value.v.toString());
 }
 
-describe("assertions > ::! read hops (resolved)", () => {
+describe("std > ::! read hops (resolved)", () => {
   beforeAll(async () => {
     ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(
       getPublicClient(),

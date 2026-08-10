@@ -46,18 +46,17 @@ staticcalls each. Both compile; the one-call form is the cheap one.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # Every cap at least 100
 def @ge100! "$x: number -> bool" @bool!($x >= 100)
-assertions:assert @all!($vault::{caps()(uint256[])} @ge100!)
+assert @all!($vault::{caps()(uint256[])} @ge100!)
 
 # No flag set
 def @isOff! "$x: bool -> bool" @not!($x)
-assertions:assert @all!($vault::{flags()(bool[])} @isOff!)
+assert @all!($vault::{flags()(bool[])} @isOff!)
 ```
 
 ### Notes
@@ -67,4 +66,4 @@ assertions:assert @all!($vault::{flags()(bool[])} @isOff!)
 
 ### See Also
 
-- `assertions:assert`, `@any!`, `@reduce!`
+- `assert`, `@any!`, `@reduce!`

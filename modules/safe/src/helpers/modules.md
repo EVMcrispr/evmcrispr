@@ -50,22 +50,21 @@ off-chain @safe:modules follows `next` across pages instead). Raise
 ### Examples
 
 ```evml
-load assertions
 load safe
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
 # No module enabled at all
-assertions:assert @len!(@safe:modules!($safe)) == 0 "unexpected module"
+assert @len!(@safe:modules!($safe)) == 0 "unexpected module"
 
 # A specific module stays enabled (default page size 100)
-assertions:assert @includes!(@safe:modules!($safe) 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
+assert @includes!(@safe:modules!($safe) 0x9641d764fc13c8B624c04430C7356C1C7C8102e2)
 
 # A wider page for a module-heavy Safe
-assertions:assert @len!(@safe:modules!($safe 500)) == 12
+assert @len!(@safe:modules!($safe 500)) == 12
 ```
 
 ### See Also
 
-- `assertions:assert`, `@safe:owners!`, `@safe:guard!`
+- `assert`, `@safe:owners!`, `@safe:guard!`

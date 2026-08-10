@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -8,10 +9,10 @@ import {
 import { getAddress } from "viem";
 import { AAVE_POOL, SOME_ADDRESS, WXDAI } from "../../fixtures";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 
-const preamble = `load assertions\nload lending\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load lending`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -27,7 +28,7 @@ describeCommand("assert (lending on-chain faces)", {
   cases: [
     {
       name: "compounds the supply rate on-chain, in ray",
-      script: `assertions:assert @lending:apy!(${WXDAI} supply) > 0.01`,
+      script: `assert @lending:apy!(${WXDAI} supply) > 0.01`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // APY is growth minus principal: sub(rpow(...), 1 ray).
@@ -59,7 +60,7 @@ describeCommand("assert (lending on-chain faces)", {
     },
     {
       name: "picks the variable borrow rate for the borrow side",
-      script: `assertions:assert @lending:apy!(${WXDAI} borrow) > 0.01`,
+      script: `assert @lending:apy!(${WXDAI} borrow) > 0.01`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const sub = d.opReadOf(param, "sub(uint256,uint256)");
@@ -74,7 +75,7 @@ describeCommand("assert (lending on-chain faces)", {
     },
     {
       name: "scales the bound to ray instead of rounding it away",
-      script: `assertions:assert @lending:apy!(${WXDAI} supply) >= 0.05`,
+      script: `assert @lending:apy!(${WXDAI} supply) >= 0.05`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // The result is ray-scaled, so 5% travels as 5e25 — truncating it
@@ -84,7 +85,7 @@ describeCommand("assert (lending on-chain faces)", {
     },
     {
       name: "picks the health factor out of the account data, wad-scaled",
-      script: `assertions:assert @lending:healthFactor!(${SOME_ADDRESS}) >= 1.5`,
+      script: `assert @lending:healthFactor!(${SOME_ADDRESS}) >= 1.5`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const pick = d.core(param);
@@ -101,7 +102,7 @@ describeCommand("assert (lending on-chain faces)", {
     },
     {
       name: "reads debt off the address the reserve struct holds",
-      script: `assertions:assert @lending:debt!(${SOME_ADDRESS} ${WXDAI}) == 0`,
+      script: `assert @lending:debt!(${SOME_ADDRESS} ${WXDAI}) == 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // read(target, balanceOf, [account]) where the target is itself a
@@ -124,12 +125,12 @@ describeCommand("assert (lending on-chain faces)", {
   errorCases: [
     {
       name: "still rejects an unlisted reserve at composition time",
-      script: `assertions:assert @lending:apy!(${SOME_ADDRESS} supply) > 0`,
+      script: `assert @lending:apy!(${SOME_ADDRESS} supply) > 0`,
       error: "not listed on AaveV3",
     },
     {
       name: "rejects a side other than supply or borrow",
-      script: `assertions:assert @lending:apy!(${WXDAI} sideways) > 0`,
+      script: `assert @lending:apy!(${WXDAI} sideways) > 0`,
       error: "must be `supply` or `borrow`",
     },
   ],

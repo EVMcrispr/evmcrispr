@@ -58,14 +58,13 @@ cond(isOperationPending, 1, 0)))`. The result is OZ's NUMERIC
 ### Examples
 
 ```evml
-load assertions
 load governor
 
 set $timelock 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 set $opId 0x83f6db63dbcae7ea6a625e442c00b74a4707ce6c4a91667c8b5cf01b6f3159a1
 
 # The operation must be Ready (2) when the batch executes
-assertions:assert @governor:timelockOperationState!($timelock $opId) == 2 "not ready"
+assert @governor:timelockOperationState!($timelock $opId) == 2 "not ready"
 ```
 
 ### Notes

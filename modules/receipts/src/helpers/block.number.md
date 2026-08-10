@@ -37,14 +37,13 @@ set $finalized @receipts:block.number(finalized)
 With `!` and no arguments the read happens on-chain at assertion time: the number of the block being written.
 
 ```evml
-load assertions
 load receipts
 
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
-assertions:assert @num!($gov::{voteEnd()(uint256)} - @block.number!) > 100
+assert @num!($gov::{voteEnd()(uint256)} - @block.number!) > 100
 ```
 
 ## See Also
 
-- [@receipts:block.timestamp!](block.timestamp.md), [assertions:assert-block-number](../../../assertions/src/commands/assert-block-number.md)
+- [@receipts:block.timestamp!](block.timestamp.md), [assert](../../../std/src/commands/assert.md)

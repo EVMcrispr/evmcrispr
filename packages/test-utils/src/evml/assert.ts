@@ -1,5 +1,5 @@
 /**
- * Decoders for `assertions:assert` actions — the shared vocabulary of the
+ * Decoders for `assert` actions — the shared vocabulary of the
  * on-chain (`!`) helper-face tests. Module suites pin the emitted
  * calldata byte-exactly: every fold template, ABI offset and envelope
  * splice is validated against the recipes' documented layout.
@@ -9,7 +9,9 @@ import {
   ASSERTIONS_ABI,
   CONSTRAINT_TYPE,
   CORE_ABI,
+  CORE_ADDRESS,
   FETCHER_TYPE,
+  OPERATORS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "chai";
 import type { Address, Hex } from "viem";
@@ -87,12 +89,15 @@ export interface AssertDecoders {
   ): { a: DecodedParam; b: DecodedParam };
 }
 
-/** Build the decoder set against the assertions/operators addresses a
- *  suite pins in its preamble. */
-export function createAssertDecoders(addresses: {
-  assertions: Address;
-  operators: Address;
-}): AssertDecoders {
+/** Build the decoder set against the canonical core/operators addresses —
+ *  the only ones a compiled expression ever targets. A suite that installs
+ *  the contracts somewhere else passes those addresses instead. */
+export function createAssertDecoders(
+  addresses: { assertions: Address; operators: Address } = {
+    assertions: CORE_ADDRESS,
+    operators: OPERATORS_ADDRESS,
+  },
+): AssertDecoders {
   const ASSERTIONS = getAddress(addresses.assertions);
   const OPERATORS = getAddress(addresses.operators);
 

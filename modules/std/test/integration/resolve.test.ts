@@ -36,11 +36,11 @@ import { decodeAbiParameters, type Hex } from "viem";
 const AAVE_POOL = "0xb50201558B00496A145fE76f7424749556E326D8";
 const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
 
-const PREAMBLE = "load assertions\nload lang";
+const PREAMBLE = "load lang";
 
 /** Compile one expression to its raw, PRE-JUDGE operand.
  *
- * Deliberately not routed through `assertions:assert`: the judge folds a
+ * Deliberately not routed through `assert`: the judge folds a
  * String/Bytes side into `hash(x) EQ digest`, after which the value cannot be
  * recovered. This mirrors assert.ts's own side dispatch and stops before it.
  */
@@ -60,7 +60,7 @@ async function compileExpression(expression: string): Promise<Operand> {
   const node = setCommand.args[1]!;
 
   const ctx: CompileCtx = {
-    module: preambleOnly.getModule("assertions")!,
+    module: preambleOnly.getModule("std")!,
     interpreters: {
       interpretNode: preambleOnly.evm.interpretNode,
       interpretNodes: preambleOnly.evm.interpretNodes,
@@ -102,7 +102,7 @@ async function resolveRaw(operand: Operand): Promise<Hex> {
 let CORE: `0x${string}`;
 let OPERATORS: `0x${string}`;
 
-describe("assertions > resolve (execution spike)", () => {
+describe("std > resolve (execution spike)", () => {
   beforeAll(async () => {
     ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(
       getPublicClient(),

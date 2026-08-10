@@ -33,14 +33,13 @@ the other array faces.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @at!($safe::{getOwners()(address[])} -1) == @me
+assert @at!($safe::{getOwners()(address[])} -1) == @me
 ```
 
 ### See Also
 
-- `assertions:assert`, `@sort!`, `@map!`
+- `assert`, `@sort!`, `@map!`

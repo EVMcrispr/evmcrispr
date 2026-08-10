@@ -44,16 +44,15 @@ other array faces: `@len!(@slice!(…))`, `@at!(@slice!(…) 0)`,
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
 # Elements [1, 3)
-assertions:assert @slice!($safe::{getOwners()(address[])} 1 3) == 0x1122
+assert @slice!($safe::{getOwners()(address[])} 1 3) == 0x1122
 
 # The last two elements, resolved against the live length
-assertions:assert @len!(@slice!($safe::{getOwners()(address[])} -2)) == 2
+assert @len!(@slice!($safe::{getOwners()(address[])} -2)) == 2
 ```
 
 ### Notes
@@ -66,4 +65,4 @@ assertions:assert @len!(@slice!($safe::{getOwners()(address[])} -2)) == 2
 
 ### See Also
 
-- `assertions:assert`, `@at!`, `@len!`, `@sort!`
+- `assert`, `@at!`, `@len!`, `@sort!`

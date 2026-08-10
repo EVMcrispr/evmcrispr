@@ -1,5 +1,9 @@
 import "../setup";
-import { LEN_STEP } from "@evmcrispr/sdk/onchain";
+import {
+  CORE_ADDRESS,
+  LEN_STEP,
+  OPERATORS_ADDRESS,
+} from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -10,15 +14,15 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress, keccak256 } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const SAFE = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const OWNER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 // keccak256("guard_manager.guard.address")
 const GUARD_SLOT =
   "0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8";
 
-const preamble = `load assertions\nload safe\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load safe`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -31,7 +35,7 @@ describeCommand("assert (safe on-chain faces)", {
   cases: [
     {
       name: "compiles @threshold! to a direct getThreshold() staticcall",
-      script: `assertions:assert @safe:threshold!(${SAFE}) >= 3 "threshold lowered"`,
+      script: `assert @safe:threshold!(${SAFE}) >= 3 "threshold lowered"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -42,7 +46,7 @@ describeCommand("assert (safe on-chain faces)", {
     },
     {
       name: "compiles @nonce! to a direct nonce() staticcall",
-      script: `assertions:assert @safe:nonce!(${SAFE}) == 42 "nonce moved"`,
+      script: `assert @safe:nonce!(${SAFE}) == 42 "nonce moved"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -53,7 +57,7 @@ describeCommand("assert (safe on-chain faces)", {
     },
     {
       name: "compiles @isOwner! to the Safe's own isOwner(address) view",
-      script: `assertions:assert @safe:isOwner!(${OWNER} ${SAFE})`,
+      script: `assert @safe:isOwner!(${OWNER} ${SAFE})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -66,7 +70,7 @@ describeCommand("assert (safe on-chain faces)", {
     },
     {
       name: "reads the @guard! slot through getStorageAt with pick word 2",
-      script: `assertions:assert @safe:guard!(${SAFE}) == 0x0000000000000000000000000000000000000000 "guard installed"`,
+      script: `assert @safe:guard!(${SAFE}) == 0x0000000000000000000000000000000000000000 "guard installed"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const pick = d.core(param);
@@ -119,7 +123,7 @@ describeCommand("assert (safe array faces)", {
   cases: [
     {
       name: "compiles @owners! to the live getOwners() words payload",
-      script: `assertions:assert @safe:owners!(${SAFE}) == 0x1122`,
+      script: `assert @safe:owners!(${SAFE}) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -132,7 +136,7 @@ describeCommand("assert (safe array faces)", {
     },
     {
       name: "composes @owners! with @includes! as a nested array face",
-      script: `assertions:assert @includes!(@safe:owners!(${SAFE}) ${OWNER})`,
+      script: `assert @includes!(@safe:owners!(${SAFE}) ${OWNER})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         d.expectConstraint(param, "Eq", 1n);
@@ -147,7 +151,7 @@ describeCommand("assert (safe array faces)", {
     },
     {
       name: "composes @owners! with @len! as the live owner count",
-      script: `assertions:assert @len!(@safe:owners!(${SAFE})) >= 3`,
+      script: `assert @len!(@safe:owners!(${SAFE})) >= 3`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const divArgs = d.opReadOf(param, "div(uint256,uint256)");
@@ -160,7 +164,7 @@ describeCommand("assert (safe array faces)", {
     },
     {
       name: "composes @owners! with @at! as a pick into the payload",
-      script: `assertions:assert @at!(@safe:owners!(${SAFE}) 0) != 0`,
+      script: `assert @at!(@safe:owners!(${SAFE}) 0) != 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "ne(uint256,uint256)");
@@ -173,7 +177,7 @@ describeCommand("assert (safe array faces)", {
     },
     {
       name: "compiles @modules! to one getModulesPaginated page navigated to its array",
-      script: `assertions:assert @safe:modules!(${SAFE}) == 0x1122`,
+      script: `assert @safe:modules!(${SAFE}) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
@@ -194,7 +198,7 @@ describeCommand("assert (safe array faces)", {
     },
     {
       name: "bakes a custom @modules! pageSize at composition time",
-      script: `assertions:assert @len!(@safe:modules!(${SAFE} 500)) == 12`,
+      script: `assert @len!(@safe:modules!(${SAFE} 500)) == 12`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const divArgs = d.opReadOf(param, "div(uint256,uint256)");
@@ -212,7 +216,7 @@ describeCommand("assert (safe array faces)", {
   errorCases: [
     {
       name: "rejects a non-positive @modules! pageSize",
-      script: `assertions:assert @len!(@safe:modules!(${SAFE} 0)) == 0`,
+      script: `assert @len!(@safe:modules!(${SAFE} 0)) == 0`,
       error: "pageSize must be positive",
     },
   ],

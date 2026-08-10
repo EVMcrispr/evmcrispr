@@ -43,11 +43,10 @@ Nothing is lost. A plain helper folds into an on-chain expression as a
 build-time constant, so the nesting still works, just without the bang:
 
 ```evml
-load assertions
 load superfluid
 
 # The wrapper still points at the ERC-20 we expect
-assertions:assert @superfluid:underlying!(@superfluid:token(USDCx)) == 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83
+assert @superfluid:underlying!(@superfluid:token(USDCx)) == 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83
 ```
 
 `@underlying!` is the live part: it reads the SuperToken at assertion time, so

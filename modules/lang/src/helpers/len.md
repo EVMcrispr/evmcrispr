@@ -33,17 +33,16 @@ The decoded length of the dynamic return value of a call, on-chain: element coun
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
 # Top level: compiles to a core nav ending in the LEN sentinel
-assertions:assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
-assertions:assert @len!($gov::{voters()(address[])}) != 0
+assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
+assert @len!($gov::{voters()(address[])}) != 0
 
 # Nested: the same LEN-sentinel nav, composable as a number
-assertions:assert @num!(@len!($gov::{voters()(address[])}) * 2) > 4
+assert @num!(@len!($gov::{voters()(address[])}) * 2) > 4
 ```
 
 ### Notes
@@ -58,4 +57,4 @@ assertions:assert @num!(@len!($gov::{voters()(address[])}) * 2) > 4
 
 ### See Also
 
-- `assertions:assert`, `@bytes.len!`
+- `assert`, `@bytes.len!`

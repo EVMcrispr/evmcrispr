@@ -104,7 +104,12 @@ function resolveOwner(ctx: CompileCtx, node: HelperFunctionNode): Resolved {
     return { kind: "module", owner: m, localName: imported.name };
   }
 
-  if (ctx.module.helpers[name]) {
+  // The compiling module gets first pick of an unqualified name — EXCEPT
+  // std, which stays the fallback it has always been. `assert` lives in
+  // std, so every assertion compiles with std as `ctx.module`; letting
+  // that win would shadow every loaded module's same-named face (the
+  // signed `@superfluid:balance!` behind std's unsigned `@balance!`).
+  if (ctx.module !== std && ctx.module.helpers[name]) {
     return { kind: "module", owner: ctx.module, localName: name };
   }
   const scanned = modules.find((mod) => mod.helpers[name]);

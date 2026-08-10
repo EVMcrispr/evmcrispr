@@ -39,10 +39,9 @@ the connected account).
 ### Examples
 
 ```evml
-load assertions
 load safe
 
 set $safe 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-assertions:assert @safe:threshold!($safe) >= 3 "threshold lowered"
+assert @safe:threshold!($safe) >= 3 "threshold lowered"
 ```

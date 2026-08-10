@@ -38,12 +38,11 @@ replaced.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @str.replace!($pool::{name()(string)} "LP" "Pool") == "Curve Pool Token"
+assert @str.replace!($pool::{name()(string)} "LP" "Pool") == "Curve Pool Token"
 ```
 
 ### Notes
@@ -56,4 +55,4 @@ assertions:assert @str.replace!($pool::{name()(string)} "LP" "Pool") == "Curve P
 
 ### See Also
 
-- `assertions:assert`, `@str.split!`, `@str.includes!`
+- `assert`, `@str.split!`, `@str.includes!`

@@ -39,14 +39,13 @@ WordCountMismatch.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $amm 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @zip!($amm::{caps()(uint256[])} [7 8]) == 0x1122
+assert @zip!($amm::{caps()(uint256[])} [7 8]) == 0x1122
 ```
 
 ### See Also
 
-- `assertions:assert`, `@unzip!`
+- `assert`, `@unzip!`

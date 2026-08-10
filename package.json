@@ -47,7 +47,6 @@
     "@evmcrispr/module-acl": "workspace:*",
     "@evmcrispr/module-aragonos": "workspace:*",
     "@evmcrispr/module-aragonosx": "workspace:*",
-    "@evmcrispr/module-assertions": "workspace:*",
     "@evmcrispr/module-bridges": "workspace:*",
     "@evmcrispr/module-circom": "workspace:*",
     "@evmcrispr/module-contracts": "workspace:*",

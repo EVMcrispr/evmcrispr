@@ -37,13 +37,12 @@ on-chain. A negative index resolves against the live byte length
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @str.at!($pool::{symbol()(string)} 0) == "W"
-assertions:assert @str.at!($pool::{symbol()(string)} -1) == "H"
+assert @str.at!($pool::{symbol()(string)} 0) == "W"
+assert @str.at!($pool::{symbol()(string)} -1) == "H"
 ```
 
 ### Notes
@@ -54,4 +53,4 @@ assertions:assert @str.at!($pool::{symbol()(string)} -1) == "H"
 
 ### See Also
 
-- `assertions:assert`, `@str.slice!`
+- `assert`, `@str.slice!`

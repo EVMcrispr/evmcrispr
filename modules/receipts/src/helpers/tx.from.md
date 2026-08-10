@@ -37,10 +37,9 @@ set $sender @receipts:tx.from(0x16df2e878e23ff261844fc9252f6c8bfcd4cb69f9f80895c
 With `!` and no arguments the read happens on-chain at execution time: the origin (ORIGIN opcode) of the transaction being written, which is exactly the `from` field its receipt will seal. Gate a batch on who is executing it:
 
 ```evml
-load assertions
 load receipts
 
-assertions:assert @tx.from! == @me "someone else is executing this batch"
+assert @tx.from! == @me "someone else is executing this batch"
 ```
 
 ## See Also

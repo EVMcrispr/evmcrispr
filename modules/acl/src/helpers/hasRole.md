@@ -59,10 +59,9 @@ through a core pick).
 ### Examples
 
 ```evml
-load assertions
 load acl
 
 set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-assertions:assert @hasRole!($token MINTER_ROLE @me) "minter role revoked"
+assert @hasRole!($token MINTER_ROLE @me) "minter role revoked"
 ```

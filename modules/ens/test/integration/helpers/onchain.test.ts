@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -8,15 +9,15 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress, labelhash, namehash } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const REGISTRY = getAddress("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e");
 const NAME_WRAPPER = getAddress("0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401");
 const BASE_REGISTRAR = getAddress("0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85");
 const CONTROLLER = getAddress("0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547");
 const NAME = "vitalik.eth";
 
-const preamble = `load assertions\nload ens\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load ens`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -35,7 +36,7 @@ describeCommand("assert (ens registry faces)", {
   cases: [
     {
       name: "reads the resolver straight off the registry",
-      script: `assertions:assert @ens:resolver!(${NAME}) != 0x0000000000000000000000000000000000000000`,
+      script: `assert @ens:resolver!(${NAME}) != 0x0000000000000000000000000000000000000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a } = d.expectOpJudge(param, "ne(uint256,uint256)");
@@ -48,7 +49,7 @@ describeCommand("assert (ens registry faces)", {
     },
     {
       name: "unwraps a wrapped owner through a cond",
-      script: `assertions:assert @ens:owner!(${NAME}) == 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`,
+      script: `assert @ens:owner!(${NAME}) == 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const cond = d.core(param);
@@ -74,7 +75,7 @@ describeCommand("assert (ens registry faces)", {
     },
     {
       name: "reads the expiry off the base registrar by labelhash",
-      script: `assertions:assert @ens:expiry!(${NAME}) > 1700000000`,
+      script: `assert @ens:expiry!(${NAME}) > 1700000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -87,7 +88,7 @@ describeCommand("assert (ens registry faces)", {
     },
     {
       name: "asks the controller whether a label is available",
-      script: `assertions:assert @ens:available!(${NAME}) == false`,
+      script: `assert @ens:available!(${NAME}) == false`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -110,7 +111,7 @@ describeCommand("assert (ens off mainnet)", {
   errorCases: [
     {
       name: "refuses @ens:owner! on a chain ENS cannot be read from",
-      script: `assertions:assert @ens:owner!(${NAME}) != 0x0000000000000000000000000000000000000000`,
+      script: `assert @ens:owner!(${NAME}) != 0x0000000000000000000000000000000000000000`,
       error: /has no on-chain face on .*use the off-chain @ens: face/is,
     },
   ],

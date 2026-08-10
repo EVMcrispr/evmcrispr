@@ -1,8 +1,8 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import { compileOperand, coreCall, encodeOk } from "@evmcrispr/sdk/onchain";
-import type Assertions from "..";
+import type Std from "..";
 
-export default defineHelper<Assertions>({
+export default defineHelper<Std>({
   name: "ok",
   description:
     "Whether a live call resolves without reverting: true when the call succeeds, false when it reverts.",

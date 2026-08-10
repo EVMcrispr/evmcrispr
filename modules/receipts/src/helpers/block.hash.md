@@ -39,10 +39,9 @@ The two faces deliberately diverge in reach. The off-chain face above reads ANY 
 With `!` the block number is required (there is no "latest" at assertion time) and composes live:
 
 ```evml
-load assertions
 load receipts
 
-assertions:assert @block.hash!(@block.number! - 1) != 0x0
+assert @block.hash!(@block.number! - 1) != 0x0
 ```
 
 ## See Also

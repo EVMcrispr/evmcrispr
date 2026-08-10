@@ -36,16 +36,15 @@ assertion time.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $oracle 0x44fA8E6f47987339850636F88629646662444217
 
 # The version byte leads the blob
-assertions:assert @bytes.at!($oracle::{blob()(bytes)} 0) == 0x01
+assert @bytes.at!($oracle::{blob()(bytes)} 0) == 0x01
 
 # The checksum byte trails it, resolved against the live length
-assertions:assert @bytes.at!($oracle::{blob()(bytes)} -1) == 0xff
+assert @bytes.at!($oracle::{blob()(bytes)} -1) == 0xff
 ```
 
 ### Notes
@@ -55,4 +54,4 @@ assertions:assert @bytes.at!($oracle::{blob()(bytes)} -1) == 0xff
 
 ### See Also
 
-- `assertions:assert`, `@bytes.slice!`, `@str.at!`
+- `assert`, `@bytes.slice!`, `@str.at!`

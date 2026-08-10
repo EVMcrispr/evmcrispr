@@ -38,16 +38,15 @@ byte length at assertion time.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $oracle 0x44fA8E6f47987339850636F88629646662444217
 
 # Bytes [1, 3) of the blob
-assertions:assert @bytes.slice!($oracle::{blob()(bytes)} 1 3) == 0xabcd
+assert @bytes.slice!($oracle::{blob()(bytes)} 1 3) == 0xabcd
 
 # The last four bytes, resolved against the live length
-assertions:assert @bytes.slice!($oracle::{blob()(bytes)} -4) == 0xdeadbeef
+assert @bytes.slice!($oracle::{blob()(bytes)} -4) == 0xdeadbeef
 ```
 
 ### Notes
@@ -58,4 +57,4 @@ assertions:assert @bytes.slice!($oracle::{blob()(bytes)} -4) == 0xdeadbeef
 
 ### See Also
 
-- `assertions:assert`, `@bytes.at!`, `@str.slice!`, `@slice!`
+- `assert`, `@bytes.at!`, `@str.slice!`, `@slice!`

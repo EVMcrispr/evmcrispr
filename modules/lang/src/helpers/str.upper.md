@@ -34,14 +34,13 @@ ASCII letters only, every other byte passes verbatim (UTF-8 safe).
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @str.upper!($pool::{symbol()(string)}) == "WETH"
+assert @str.upper!($pool::{symbol()(string)}) == "WETH"
 ```
 
 ### See Also
 
-- `assertions:assert`, `@str.lower!`
+- `assert`, `@str.lower!`

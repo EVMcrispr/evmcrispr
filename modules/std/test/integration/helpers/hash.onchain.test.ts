@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -8,13 +9,11 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const TOKEN = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const DIGEST =
   "0x0102030405060708091011121314151617181920212223242526272829303132";
-
-const preamble = `load assertions\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -23,11 +22,10 @@ const d = createAssertDecoders({
 
 describeCommand("assert (@hash! algorithms)", {
   describeName: "Std > helpers > @hash! on-chain algorithms",
-  preamble,
   cases: [
     {
       name: "compiles the sha256 branch through a rawCall to precompile 0x02",
-      script: `assertions:assert @hash!(${TOKEN}::{name()(string)} "sha256") == ${DIGEST}`,
+      script: `assert @hash!(${TOKEN}::{name()(string)} "sha256") == ${DIGEST}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // The digest is the third word of the returned bytes envelope.
@@ -49,7 +47,7 @@ describeCommand("assert (@hash! algorithms)", {
     },
     {
       name: "keeps the keccak256 branch on the Operators hash",
-      script: `assertions:assert @hash!(${TOKEN}::{name()(string)} "keccak256") == ${DIGEST}`,
+      script: `assert @hash!(${TOKEN}::{name()(string)} "keccak256") == ${DIGEST}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, "hash(bytes)");
@@ -61,7 +59,7 @@ describeCommand("assert (@hash! algorithms)", {
   errorCases: [
     {
       name: "rejects an unknown on-chain algorithm",
-      script: `assertions:assert @hash!(${TOKEN}::{name()(string)} "blake2b") == ${DIGEST}`,
+      script: `assert @hash!(${TOKEN}::{name()(string)} "blake2b") == ${DIGEST}`,
       error: "not supported at assertion time",
     },
   ],

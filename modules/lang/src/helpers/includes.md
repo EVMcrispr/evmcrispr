@@ -57,16 +57,15 @@ single read it always had.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
 # Constant element: one read, the eq fold
-assertions:assert @includes!($safe::{getOwners()(address[])} @me) "not an owner"
+assert @includes!($safe::{getOwners()(address[])} @me) "not an owner"
 
 # Live element: the guard must still be an owner after the batch rewires it
-assertions:assert @includes!($safe::{getOwners()(address[])} $safe::{getGuard()(address)}) "guard is not an owner"
+assert @includes!($safe::{getOwners()(address[])} $safe::{getGuard()(address)}) "guard is not an owner"
 ```
 
 ### Notes
@@ -80,4 +79,4 @@ assertions:assert @includes!($safe::{getOwners()(address[])} $safe::{getGuard()(
 
 ### See Also
 
-- `assertions:assert`, `@str.includes!`, `@any!`
+- `assert`, `@str.includes!`, `@any!`

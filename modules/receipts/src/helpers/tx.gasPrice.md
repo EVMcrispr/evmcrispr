@@ -19,11 +19,10 @@ Gas price of the executing transaction, in wei.
 ## Examples
 
 ```evml
-load assertions
 load receipts
 
 # Refuse to execute when gas is expensive
-assertions:assert @tx.gasPrice! <= 50e9 "gas too pricey"
+assert @tx.gasPrice! <= 50e9 "gas too pricey"
 ```
 
 ## See Also

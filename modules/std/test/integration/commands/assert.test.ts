@@ -1,5 +1,14 @@
 import "../../setup";
 import { isTransactionAction } from "@evmcrispr/sdk";
+import {
+  ASSERTIONS_ABI,
+  CONSTRAINT_TYPE,
+  CORE_ABI,
+  CORE_ADDRESS,
+  FETCHER_TYPE,
+  LEN_STEP,
+  OPERATORS_ADDRESS,
+} from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import {
@@ -14,19 +23,12 @@ import {
   toFunctionSelector,
   zeroAddress,
 } from "viem";
-import {
-  ASSERTIONS_ADDRESS,
-  OPERATORS_ADDRESS,
-} from "../../../src/lib/assertions";
-import { CORE_ABI, LEN_STEP } from "../../../src/lib/core";
-import {
-  ASSERTIONS_ABI,
-  CONSTRAINT_TYPE,
-  FETCHER_TYPE,
-} from "../../../src/lib/erc8211";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+// The canonical deployments: identical on every chain and no longer
+// overridable, so the compiled calldata a test decodes is byte-for-byte
+// what production emits.
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const TOKEN = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const HOLDER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 // DAI on gnosis in the mocked token list.
@@ -38,7 +40,7 @@ const C = getAddress("0xc333333333333333333333333333333333333333");
 const D = getAddress("0xd444444444444444444444444444444444444444");
 const ME = getAddress("0xe555555555555555555555555555555555555555");
 
-const preamble = `load assertions\nload lang\nload receipts\nload math\nload contracts\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load lang\nload receipts\nload math\nload contracts`;
 
 const WORD_MASK = (1n << 256n) - 1n;
 const word = (v: bigint) => numberToHex(v & WORD_MASK, { size: 32 });
@@ -218,12 +220,12 @@ function charsetLiteral(mask: bigint): `0x${string}` {
 }
 
 describeCommand("assert", {
-  describeName: "Assertions > commands > assert",
+  describeName: "Std > commands > assert",
   preamble,
   cases: [
     {
       name: "encodes a >= comparison as a GTE constraint (inline ABI)",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} >= 10e18 "insufficient"`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} >= 10e18 "insufficient"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         const { target, data } = staticCallOf(param);
@@ -238,14 +240,14 @@ describeCommand("assert", {
       // the predicate points is exact — and truncating it (0.5 -> 0) would
       // make this assertion vacuously true.
       name: "rounds a fractional >= bound up to the next whole number",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} >= 0.5`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} >= 0.5`,
       validate: (actions) => {
         expectConstraint(decodeAssert(actions).param, "Gte", 1n);
       },
     },
     {
       name: "rounds a fractional < bound so the strict form stays exact",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} < 0.5`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} < 0.5`,
       validate: (actions) => {
         // x < 0.5 over the integers is x <= 0.
         expectConstraint(decodeAssert(actions).param, "Lte", 0n);
@@ -253,14 +255,14 @@ describeCommand("assert", {
     },
     {
       name: "rounds a fractional <= bound down",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} <= 1.9`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} <= 1.9`,
       validate: (actions) => {
         expectConstraint(decodeAssert(actions).param, "Lte", 1n);
       },
     },
     {
       name: "rounds a fractional > bound to the next whole number up",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} > 1.9`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} > 1.9`,
       validate: (actions) => {
         expectConstraint(decodeAssert(actions).param, "Gte", 2n);
       },
@@ -270,14 +272,14 @@ describeCommand("assert", {
       // so the smallest rate that satisfies >= is one wei/second higher
       // than the floor the plain face would compute.
       name: "takes the ceiling of a rate literal bound",
-      script: `assertions:assert ${TOKEN}::{flowrate()(uint256)} >= 1000e18/mo`,
+      script: `assert ${TOKEN}::{flowrate()(uint256)} >= 1000e18/mo`,
       validate: (actions) => {
         expectConstraint(decodeAssert(actions).param, "Gte", 385802469135803n);
       },
     },
     {
       name: "fuses a fractional factor into one mulDiv",
-      script: `assertions:assert @num!(${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} * 0.5) >= 1`,
+      script: `assert @num!(${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} * 0.5) >= 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // Scaling by 1/2 has no integer factor, but it is exactly
@@ -292,7 +294,7 @@ describeCommand("assert", {
     },
     {
       name: "selects a tuple element with a destructure lens via pick",
-      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"`,
+      script: `assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const pick = core(param);
@@ -305,7 +307,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles an element lens to a typed nav judged as the terminal type",
-      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[_ $]] == ${HOLDER}`,
+      script: `assert ${TOKEN}::{signers()(address[],address)}[[_ $]] == ${HOLDER}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -319,7 +321,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a deep lens through nested arrays",
-      script: `assertions:assert ${TOKEN}::{matrix()(address[][])}[[_ _ _ [_ $]]] == ${HOLDER}`,
+      script: `assert ${TOKEN}::{matrix()(address[][])}[[_ _ _ [_ $]]] == ${HOLDER}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -330,7 +332,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a struct-array field lens against a tuple descriptor",
-      script: `assertions:assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ [_ _ $]]] == true`,
+      script: `assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ [_ _ $]]] == true`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -342,7 +344,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a nested element lens inside an expression",
-      script: `assertions:assert @bool!(${TOKEN}::{tiers()(uint256[])}[[_ _ $]] > 5)`,
+      script: `assert @bool!(${TOKEN}::{tiers()(uint256[])}[[_ _ $]] > 5)`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "gt(uint256,uint256)");
@@ -355,7 +357,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @len! over a lensed call through a LEN-path nav",
-      script: `assertions:assert @len!(${TOKEN}::{matrix()(address[][])}[[_ $]]) >= 3`,
+      script: `assert @len!(${TOKEN}::{matrix()(address[][])}[[_ $]]) >= 3`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -367,7 +369,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @str.split! over a lensed struct-array string field",
-      script: `assertions:assert @str.split!(${TOKEN}::{items()((string,uint256)[])}[[[$ _]]] " " -1) == "LP"`,
+      script: `assert @str.split!(${TOKEN}::{items()((string,uint256)[])}[[[$ _]]] " " -1) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // string == constant → hash of the slice judged EQ the payload digest
@@ -392,7 +394,7 @@ describeCommand("assert", {
     },
     {
       name: "resolves a rest-lens over a known-arity return at build time",
-      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ _] >= 1000 "low reserve"`,
+      script: `assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ _] >= 1000 "low reserve"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const pick = core(param);
@@ -402,7 +404,7 @@ describeCommand("assert", {
     },
     {
       name: "resolves a fixed-array element lens (end-anchored) at build time",
-      script: `assertions:assert ${TOKEN}::{config()(address,address[2])}[_ [... $]] == ${HOLDER}`,
+      script: `assert ${TOKEN}::{config()(address,address[2])}[_ [... $]] == ${HOLDER}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -413,7 +415,7 @@ describeCommand("assert", {
     },
     {
       name: "keeps a rest-lens over a dynamic array negative for on-chain resolution",
-      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[... $]] == ${HOLDER}`,
+      script: `assert ${TOKEN}::{signers()(address[],address)}[[... $]] == ${HOLDER}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -424,7 +426,7 @@ describeCommand("assert", {
     },
     {
       name: "judges a bare boolean assertion as EQ 1",
-      script: `assertions:assert ${TOKEN}::{paused()(bool)}`,
+      script: `assert ${TOKEN}::{paused()(bool)}`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         const { target } = staticCallOf(param);
@@ -435,7 +437,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles ~= with --delta to an IN range constraint",
-      script: `assertions:assert ${TOKEN}::{price()(uint256)} ~= 2000 --delta 50 "off"`,
+      script: `assert ${TOKEN}::{price()(uint256)} ~= 2000 --delta 50 "off"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expectIn(param, 1950n, 2050n);
@@ -445,7 +447,7 @@ describeCommand("assert", {
     // ---- int256 --------------------------------------------------------
     {
       name: "routes an int256 comparison through the int256 overload",
-      script: `assertions:assert ${TOKEN}::{drift()(int256)} <= -5`,
+      script: `assert ${TOKEN}::{drift()(int256)} <= -5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "le(int256,int256)");
@@ -455,7 +457,7 @@ describeCommand("assert", {
     },
     {
       name: "judges a tuple-indexed int256 equality directly (words compare exactly)",
-      script: `assertions:assert ${TOKEN}::{pair()(int256,uint256)}[$ _] == -1`,
+      script: `assert ${TOKEN}::{pair()(int256,uint256)}[$ _] == -1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const pick = core(param);
@@ -466,7 +468,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles ~= on an int return to absDiff(int256) LTE delta",
-      script: `assertions:assert ${TOKEN}::{drift()(int256)} ~= -100 --delta 5`,
+      script: `assert ${TOKEN}::{drift()(int256)} ~= -100 --delta 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Lte", 5n);
@@ -478,7 +480,7 @@ describeCommand("assert", {
     // ---- booleans fold != into EQ constraints --------------------------
     {
       name: "compiles `!= true` to an EQ 0 constraint",
-      script: `assertions:assert ${TOKEN}::{paused()(bool)} != true`,
+      script: `assert ${TOKEN}::{paused()(bool)} != true`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(staticCallOf(param).target).to.equal(TOKEN);
@@ -487,7 +489,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles `== false` to an EQ 0 constraint",
-      script: `assertions:assert ${TOKEN}::{paused()(bool)} == false`,
+      script: `assert ${TOKEN}::{paused()(bool)} == false`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 0n);
@@ -495,7 +497,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles an indexed bool != through pick with the negated bound",
-      script: `assertions:assert ${TOKEN}::{flags()(bool,bool)}[$ _] != true`,
+      script: `assert ${TOKEN}::{flags()(bool,bool)}[$ _] != true`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const pick = core(param);
@@ -507,7 +509,7 @@ describeCommand("assert", {
     // ---- strings and bytes ----------------------------------------------
     {
       name: "judges a string equality via hash against the payload digest",
-      script: `assertions:assert ${TOKEN}::{name()(string)} == "Wrapped Ether"`,
+      script: `assert ${TOKEN}::{name()(string)} == "Wrapped Ether"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -518,7 +520,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a string != to ne over the digest",
-      script: `assertions:assert ${TOKEN}::{name()(string)} != "Foo"`,
+      script: `assert ${TOKEN}::{name()(string)} != "Foo"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "ne(uint256,uint256)");
@@ -529,7 +531,7 @@ describeCommand("assert", {
     },
     {
       name: "judges a bytes equality via hash of the decoded payload",
-      script: `assertions:assert ${TOKEN}::{payload()(bytes)} == 0x1234`,
+      script: `assert ${TOKEN}::{payload()(bytes)} == 0x1234`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -540,7 +542,7 @@ describeCommand("assert", {
     // ---- constant side normalization -------------------------------------
     {
       name: "mirrors the operator when the constant is on the left",
-      script: `assertions:assert 5 < ${TOKEN}::{supply()(uint256)}`,
+      script: `assert 5 < ${TOKEN}::{supply()(uint256)}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(staticCallOf(param).target).to.equal(TOKEN);
@@ -550,7 +552,7 @@ describeCommand("assert", {
     },
     {
       name: "folds constant subexpressions at build time",
-      script: `assertions:assert ${TOKEN}::{supply()(uint256)} >= @num!(2 * 3e18)`,
+      script: `assert ${TOKEN}::{supply()(uint256)} >= @num!(2 * 3e18)`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(staticCallOf(param).target).to.equal(TOKEN);
@@ -560,7 +562,7 @@ describeCommand("assert", {
     // ---- :: chains → core chain -------------------------------------------
     {
       name: "compiles a :: chain through the core chain primitive",
-      script: `assertions:assert ${TOKEN}::{vault()(address)}::{symbol()(string)} == "WETH"`,
+      script: `assert ${TOKEN}::{vault()(address)}::{symbol()(string)} == "WETH"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -577,7 +579,7 @@ describeCommand("assert", {
     },
     {
       name: "chains through a lens-selected address of a multi-value return",
-      script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"`,
+      script: `assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -595,7 +597,7 @@ describeCommand("assert", {
     },
     {
       name: "chains through an array-element lens by rewrapping in nav",
-      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[[$]]::{decimals()(uint256)} == 18`,
+      script: `assert ${TOKEN}::{signers()(address[],address)}[[$]]::{decimals()(uint256)} == 18`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const chain = core(param);
@@ -614,7 +616,7 @@ describeCommand("assert", {
     // ---- @len! -----------------------------------------------------------
     {
       name: "compiles a top-level @len! to a LEN-sentinel nav",
-      script: `assertions:assert @len!(${TOKEN}::{holders()(address[])}) >= 3`,
+      script: `assert @len!(${TOKEN}::{holders()(address[])}) >= 3`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -629,7 +631,7 @@ describeCommand("assert", {
     },
     {
       name: "supports != on @len! via ne judged EQ 1",
-      script: `assertions:assert @len!(${TOKEN}::{holders()(address[])}) != 0`,
+      script: `assert @len!(${TOKEN}::{holders()(address[])}) != 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "ne(uint256,uint256)");
@@ -639,7 +641,7 @@ describeCommand("assert", {
     },
     {
       name: "routes a chained @len! argument through the core chain",
-      script: `assertions:assert @len!(${TOKEN}::{vault()(address)}::{holders()(address[])}) == 2`,
+      script: `assert @len!(${TOKEN}::{vault()(address)}::{holders()(address[])}) == 2`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const nav = core(param);
@@ -651,7 +653,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a nested @len! inside an expression",
-      script: `assertions:assert @num!(@len!(${TOKEN}::{holders()(address[])}) * 2) > 4`,
+      script: `assert @num!(@len!(${TOKEN}::{holders()(address[])}) * 2) > 4`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 5n);
@@ -666,7 +668,7 @@ describeCommand("assert", {
     // ---- other chain-call helpers -----------------------------------------
     {
       name: "compiles @str.split! to an indexOf + slice composition hashed for the string equality",
-      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " " 1) == "LP"`,
+      script: `assert @str.split!(${TOKEN}::{name()(string)} " " 1) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -688,7 +690,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles the -1 @str.split! index via the last-occurrence indexOf",
-      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " " -1) == "Token"`,
+      script: `assert @str.split!(${TOKEN}::{name()(string)} " " -1) == "Token"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -703,7 +705,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a -2 @str.split! index between two end-anchored occurrences",
-      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " " -2) == "LP"`,
+      script: `assert @str.split!(${TOKEN}::{name()(string)} " " -2) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -721,7 +723,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a nested string equality to an on-chain keccak comparison",
-      script: `assertions:assert @bool!(@str.split!(${TOKEN}::{name()(string)} " " -1) == "LP")`,
+      script: `assert @bool!(@str.split!(${TOKEN}::{name()(string)} " " -1) == "LP")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "eq(uint256,uint256)");
@@ -732,7 +734,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles two live strings to a keccak-vs-keccak comparison",
-      script: `assertions:assert ${TOKEN}::{name()(string)} == ${TOKEN}::{symbol()(string)}`,
+      script: `assert ${TOKEN}::{name()(string)} == ${TOKEN}::{symbol()(string)}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "eq(uint256,uint256)");
@@ -745,7 +747,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @hash! to hash judged EQ the expected digest",
-      script: `assertions:assert @hash!(${TOKEN}::{name()(string)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @hash!(${TOKEN}::{name()(string)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const hashArgs = opReadOf(param, "hash(bytes)");
@@ -762,7 +764,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a bare @str.includes! to lt(indexOf, byteLen) judged EQ 1",
-      script: `assertions:assert @str.includes!(${TOKEN}::{name()(string)} "LP")`,
+      script: `assert @str.includes!(${TOKEN}::{name()(string)} "LP")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "lt(uint256,uint256)");
@@ -775,7 +777,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @str.includes! == false to an EQ 0 constraint",
-      script: `assertions:assert @str.includes!(${TOKEN}::{name()(string)} "Sushi") == false "rebranded"`,
+      script: `assert @str.includes!(${TOKEN}::{name()(string)} "Sushi") == false "rebranded"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expectConstraint(param, "Eq", 0n);
@@ -786,7 +788,7 @@ describeCommand("assert", {
     },
     {
       name: "nests @str.includes! inside @bool! logic",
-      script: `assertions:assert @bool!(@str.includes!(${TOKEN}::{name()(string)} "LP") and @str.charset!(${TOKEN}::{symbol()(string)} "a-z"))`,
+      script: `assert @bool!(@str.includes!(${TOKEN}::{name()(string)} "LP") and @str.charset!(${TOKEN}::{symbol()(string)} "a-z"))`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "bitAnd(uint256,uint256)");
@@ -796,7 +798,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @str.charset! to a native charset call with the class bitmap",
-      script: `assertions:assert @str.charset!(${TOKEN}::{symbol()(string)} "a-z") == true`,
+      script: `assert @str.charset!(${TOKEN}::{symbol()(string)} "a-z") == true`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // Native charset(s, mask): one op read, not a foldBytes(bitSet)
@@ -813,7 +815,7 @@ describeCommand("assert", {
     },
     {
       name: "@str.charset! treats a trailing dash as the literal `-`",
-      script: `assertions:assert @str.charset!(${TOKEN}::{name()(string)} "a-z0-9-")`,
+      script: `assert @str.charset!(${TOKEN}::{name()(string)} "a-z0-9-")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "charset(bytes,uint256)");
@@ -823,7 +825,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @bytes.len! to byteLen of the decoded payload",
-      script: `assertions:assert @bytes.len!(${TOKEN}::{payload()(bytes)}) == 2`,
+      script: `assert @bytes.len!(${TOKEN}::{payload()(bytes)}) == 2`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "byteLen(bytes)");
@@ -835,7 +837,7 @@ describeCommand("assert", {
     // ---- @balance! --------------------------------------------------------
     {
       name: "compiles a native @balance! to the BALANCE fetcher",
-      script: `assertions:assert @balance!(XDAI ${HOLDER}) > 1e18`,
+      script: `assert @balance!(XDAI ${HOLDER}) > 1e18`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(param.fetcherType).to.equal(FETCHER_TYPE.Balance);
@@ -847,7 +849,7 @@ describeCommand("assert", {
     },
     {
       name: "resolves a token symbol in @balance! to the ERC-20 BALANCE fetcher",
-      script: `assertions:assert @balance!(DAI ${HOLDER}) >= 10e18`,
+      script: `assert @balance!(DAI ${HOLDER}) >= 10e18`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(param.fetcherType).to.equal(FETCHER_TYPE.Balance);
@@ -859,7 +861,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a native @balance! of a call-resolved account to a spliced balance read",
-      script: `assertions:assert @balance!(XDAI ${TOKEN}::{treasury()(address)}) >= 1e18`,
+      script: `assert @balance!(XDAI ${TOKEN}::{treasury()(address)}) >= 1e18`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "balance(address)");
@@ -871,7 +873,7 @@ describeCommand("assert", {
     // ---- @num! / @bool! composition ---------------------------------------
     {
       name: "compiles live addition through add",
-      script: `assertions:assert @num!(@balance!(XDAI ${HOLDER}) + ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}}) > 0`,
+      script: `assert @num!(@balance!(XDAI ${HOLDER}) + ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}}) > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 1n);
@@ -883,7 +885,7 @@ describeCommand("assert", {
     },
     {
       name: "promotes mixed int operands to the int256 overloads",
-      script: `assertions:assert @num!(${TOKEN}::{drift()(int256)} + 5) < 0`,
+      script: `assert @num!(${TOKEN}::{drift()(int256)} + 5) < 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a } = expectOpJudge(param, "lt(int256,int256)");
@@ -892,7 +894,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a bare @bool! or-expression to bitOr judged EQ 1",
-      script: `assertions:assert @bool!((${TOKEN}::{supply()(uint256)} > 0) or (${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} > 10))`,
+      script: `assert @bool!((${TOKEN}::{supply()(uint256)} > 0) or (${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} > 10))`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "bitOr(uint256,uint256)");
@@ -902,7 +904,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a bare @bool!(not …) to EQ 0 on the inner call",
-      script: `assertions:assert @bool!(not ${TOKEN}::{paused()(bool)})`,
+      script: `assert @bool!(not ${TOKEN}::{paused()(bool)})`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(staticCallOf(param).target).to.equal(TOKEN);
@@ -911,7 +913,7 @@ describeCommand("assert", {
     },
     {
       name: "left-folds variadic @min! into nested min calls",
-      script: `assertions:assert @min!(${TOKEN}::{supply()(uint256)} ${TOKEN}::{cap()(uint256)} 5) <= 5`,
+      script: `assert @min!(${TOKEN}::{supply()(uint256)} ${TOKEN}::{cap()(uint256)} 5) <= 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Lte", 5n);
@@ -924,7 +926,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @absDiff! to absDiff",
-      script: `assertions:assert @absDiff!(${TOKEN}::{supply()(uint256)} 100) <= 5`,
+      script: `assert @absDiff!(${TOKEN}::{supply()(uint256)} 100) <= 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Lte", 5n);
@@ -934,7 +936,7 @@ describeCommand("assert", {
     },
     {
       name: "judges two live sides with gt EQ 1",
-      script: `assertions:assert ${TOKEN}::{supply()(uint256)} > ${TOKEN}::{cap()(uint256)}`,
+      script: `assert ${TOKEN}::{supply()(uint256)} > ${TOKEN}::{cap()(uint256)}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "gt(uint256,uint256)");
@@ -942,10 +944,10 @@ describeCommand("assert", {
         expect(staticCallOf(b).target).to.equal(TOKEN);
       },
     },
-    // ---- @bytes! / @not! ---------------------------------------------------
+    // ---- @bytes! / negation --------------------------------------------------
     {
       name: "compiles @bytes! bitwise-and through bitAnd",
-      script: `assertions:assert @bytes!(${TOKEN}::{flags()(bytes32)} "&" 0x00000000000000000000000000000000000000000000000000000000000000ff) == 3`,
+      script: `assert @bytes!(${TOKEN}::{flags()(bytes32)} "&" 0x00000000000000000000000000000000000000000000000000000000000000ff) == 3`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 3n);
@@ -956,7 +958,7 @@ describeCommand("assert", {
     },
     {
       name: "folds a constant @bytes! shift at build time",
-      script: `assertions:assert ${TOKEN}::{supply()(uint256)} < @bytes!(1 "<<" 128)`,
+      script: `assert ${TOKEN}::{supply()(uint256)} < @bytes!(1 "<<" 128)`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Lte", (1n << 128n) - 1n);
@@ -964,7 +966,7 @@ describeCommand("assert", {
     },
     {
       name: "casts a live bool to its raw 0/1 word with single-arg @bytes!",
-      script: `assertions:assert @num!(@bytes!(${TOKEN}::{paused()(bool)}) + 1) > 0`,
+      script: `assert @num!(@bytes!(${TOKEN}::{paused()(bool)}) + 1) > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "add(uint256,uint256)");
@@ -972,38 +974,10 @@ describeCommand("assert", {
         expect(staticCallOf(args[0]).target).to.equal(TOKEN);
       },
     },
-    {
-      name: "compiles @not! on a live bool to EQ 0 on the inner call",
-      script: `assertions:assert @not!(${TOKEN}::{paused()(bool)})`,
-      validate: (actions) => {
-        const { param } = decodeAssert(actions);
-        expect(staticCallOf(param).target).to.equal(TOKEN);
-        expectConstraint(param, "Eq", 0n);
-      },
-    },
-    {
-      name: "compiles @not! on a numeric value to bitXor against all-ones",
-      script: `assertions:assert @not!(${TOKEN}::{supply()(uint256)}) > 0`,
-      validate: (actions) => {
-        const { param } = decodeAssert(actions);
-        expectConstraint(param, "Gte", 1n);
-        const args = opReadOf(param, "bitXor(uint256,uint256)");
-        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
-        expectRawWord(args[1], WORD_MASK);
-      },
-    },
-    {
-      name: "folds @not! on a bytes32 constant to its complement",
-      script: `assertions:assert ${TOKEN}::{flags()(bytes32)} == @not!(0x00000000000000000000000000000000000000000000000000000000000000ff)`,
-      validate: (actions) => {
-        const { param } = decodeAssert(actions);
-        expectConstraint(param, "Eq", BigInt(`0x${"f".repeat(62)}00`));
-      },
-    },
     // ---- env getters -------------------------------------------------------
     {
       name: "compiles @chainId! to a plain chainId read at the operators",
-      script: `assertions:assert @chainId! == 100 "wrong chain"`,
+      script: `assert @chainId! == 100 "wrong chain"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("chainId()"));
@@ -1013,7 +987,7 @@ describeCommand("assert", {
     },
     {
       name: "composes @chainId! inside arithmetic",
-      script: `assertions:assert @num!(@chainId! + 1) > 100`,
+      script: `assert @num!(@chainId! + 1) > 100`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 101n);
@@ -1024,7 +998,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @block.baseFee! to a plain baseFee read at the operators",
-      script: `assertions:assert @block.baseFee! <= 100e9 "basefee too high"`,
+      script: `assert @block.baseFee! <= 100e9 "basefee too high"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("baseFee()"));
@@ -1034,7 +1008,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @block.hash! of a live block number through the read splice",
-      script: `assertions:assert @block.hash!(@block.number! - 1) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @block.hash!(@block.number! - 1) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "blockHash(uint256)");
@@ -1051,7 +1025,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @tx.from! to a plain origin read at the operators",
-      script: `assertions:assert @tx.from! == ${ME}`,
+      script: `assert @tx.from! == ${ME}`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("origin()"));
@@ -1060,7 +1034,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @tx.gasPrice! to a plain gasPrice read at the operators",
-      script: `assertions:assert @tx.gasPrice! <= 50e9 "gas too pricey"`,
+      script: `assert @tx.gasPrice! <= 50e9 "gas too pricey"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(selectorOf("gasPrice()"));
@@ -1070,7 +1044,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @tx.blobHash! of a literal index to plain calldata",
-      script: `assertions:assert @tx.blobHash!(0) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @tx.blobHash!(0) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(
@@ -1085,7 +1059,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @tx.blobHash! of a live index through the read splice",
-      script: `assertions:assert @tx.blobHash!(${TOKEN}::{blobIndex()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @tx.blobHash!(${TOKEN}::{blobIndex()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "blobHash(uint256)");
@@ -1095,7 +1069,7 @@ describeCommand("assert", {
     },
     {
       name: "fuses a * b / c into one 512-bit mulDiv read",
-      script: `assertions:assert @num!(${TOKEN}::{supply()(uint256)} * 2 / 3) >= 1`,
+      script: `assert @num!(${TOKEN}::{supply()(uint256)} * 2 / 3) >= 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "mulDiv(uint256,uint256,uint256)");
@@ -1108,7 +1082,7 @@ describeCommand("assert", {
     },
     {
       name: "keeps signed mul-then-div nested (no signed mulDiv)",
-      script: `assertions:assert @num!(${TOKEN}::{supply()(int256)} * 2 / 3) >= 1`,
+      script: `assert @num!(${TOKEN}::{supply()(int256)} * 2 / 3) >= 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // signed >= judges through ge(int256,int256) instead of a GTE
@@ -1124,7 +1098,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles @sqrt! over a fused reserve product",
-      script: `assertions:assert @sqrt!(${TOKEN}::{supply()(uint256)} * ${TOKEN}::{supply()(uint256)}) >= 4`,
+      script: `assert @sqrt!(${TOKEN}::{supply()(uint256)} * ${TOKEN}::{supply()(uint256)}) >= 4`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "sqrt(uint256)");
@@ -1136,7 +1110,7 @@ describeCommand("assert", {
     },
     {
       name: "coerces a live string operand in arithmetic through parseUint",
-      script: `assertions:assert @num!(@str.split!(${TOKEN}::{name()(string)} " " 0) + 1) >= 2`,
+      script: `assert @num!(@str.split!(${TOKEN}::{name()(string)} " " 0) + 1) >= 2`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const addArgs = opReadOf(param, "add(uint256,uint256)");
@@ -1149,7 +1123,7 @@ describeCommand("assert", {
     },
     {
       name: "picks the arithmetic shift for >> on a signed value",
-      script: `assertions:assert @bytes!(${TOKEN}::{supply()(int256)} ">>" 2) == 0`,
+      script: `assert @bytes!(${TOKEN}::{supply()(int256)} ">>" 2) == 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "shr(int256,uint256)");
@@ -1159,12 +1133,12 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @codeHash! of a literal address to plain codehash calldata",
-      script: `assertions:assert @codeHash!(${TOKEN}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "compiles @codeHash! of a literal address to plain codeHash calldata",
+      script: `assert @codeHash!(${TOKEN}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(opsDirect(param)).to.equal(
-          `${selectorOf("codehash(address)")}${word(BigInt(TOKEN)).slice(2)}`,
+          `${selectorOf("codeHash(address)")}${word(BigInt(TOKEN)).slice(2)}`,
         );
         expectConstraint(
           param,
@@ -1176,12 +1150,12 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles @codeHash! of a call-resolved address to a spliced codehash read",
-      script: `assertions:assert @codeHash!(${TOKEN}::{implementation()(address)}) != 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      name: "compiles @codeHash! of a call-resolved address to a spliced codeHash read",
+      script: `assert @codeHash!(${TOKEN}::{implementation()(address)}) != 0x0102030405060708091011121314151617181920212223242526272829303132`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "ne(uint256,uint256)");
-        const args = opReadOf(a, "codehash(address)");
+        const args = opReadOf(a, "codeHash(address)");
         expect(args).to.have.lengthOf(1);
         const call = staticCallOf(args[0]);
         expect(call.target).to.equal(TOKEN);
@@ -1196,22 +1170,22 @@ describeCommand("assert", {
     },
     {
       name: "judges two live @codeHash! sides with eq",
-      script: `assertions:assert @codeHash!(${TOKEN}) == @codeHash!(${HOLDER})`,
+      script: `assert @codeHash!(${TOKEN}) == @codeHash!(${HOLDER})`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "eq(uint256,uint256)");
         expect(opsDirect(a)).to.equal(
-          `${selectorOf("codehash(address)")}${word(BigInt(TOKEN)).slice(2)}`,
+          `${selectorOf("codeHash(address)")}${word(BigInt(TOKEN)).slice(2)}`,
         );
         expect(opsDirect(b)).to.equal(
-          `${selectorOf("codehash(address)")}${word(BigInt(HOLDER)).slice(2)}`,
+          `${selectorOf("codeHash(address)")}${word(BigInt(HOLDER)).slice(2)}`,
         );
       },
     },
     // ---- nested live call arguments ----------------------------------------
     {
       name: "compiles a nested call argument to a core read",
-      script: `assertions:assert ${A}::{a(address)(uint256) ${B}::{b()(address)}} == 7`,
+      script: `assert ${A}::{a(address)(uint256) ${B}::{b()(address)}} == 7`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 7n);
@@ -1227,7 +1201,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles example 1: two read levels with a lens on the outer call",
-      script: `assertions:assert ${A}::{a(address)(uint256,uint256[]) ${B}::{b(uint256,uint256)(address) ${C}::{c(address)(uint256) ${ME}} ${D}::{d()(uint256)}}}[_ [$]] == 7 "nested"`,
+      script: `assert ${A}::{a(address)(uint256,uint256[]) ${B}::{b(uint256,uint256)(address) ${C}::{c(address)(uint256) ${ME}} ${D}::{d()(uint256)}}}[_ [$]] == 7 "nested"`,
       validate: (actions) => {
         const { param, message } = decodeAssert(actions);
         expect(message).to.equal("nested");
@@ -1263,7 +1237,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles example 2: a nav-backed dynamic lens as a word segment",
-      script: `assertions:assert ${A}::{a(address)(uint256) ${B}::{b()(address,address[][])}[_ [_ [$]]]} == 5`,
+      script: `assert ${A}::{a(address)(uint256) ${B}::{b()(address,address[][])}[_ [_ [$]]]} == 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 5n);
@@ -1283,7 +1257,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles example 2 (dynamic envelope): an address[] argument as the trailing segment",
-      script: `assertions:assert ${A}::{a(address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
+      script: `assert ${A}::{a(address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 5n);
@@ -1309,7 +1283,7 @@ describeCommand("assert", {
       // the second is computed on-chain from the first array's element
       // count, so nothing has to know its length at build time.
       name: "splices two dynamic nested arguments with a computed second offset",
-      script: `assertions:assert ${A}::{a(address[],address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]] ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
+      script: `assert ${A}::{a(address[],address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]] ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { selector, segments } = readOf(param);
@@ -1329,7 +1303,7 @@ describeCommand("assert", {
     },
     {
       name: "splits a chain around a live-arg hop: the read becomes the next hop's start",
-      script: `assertions:assert ${A}::{f(uint256)(address) ${B}::{g()(uint256)}}::{h()(uint256)} == 1`,
+      script: `assert ${A}::{f(uint256)(address) ${B}::{g()(uint256)}}::{h()(uint256)} == 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 1n);
@@ -1347,7 +1321,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a dynamic envelope inside a nested (non-outermost) call",
-      script: `assertions:assert ${A}::{a(uint256)(uint256) ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]}} == 1`,
+      script: `assert ${A}::{a(uint256)(uint256) ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]}} == 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 1n);
@@ -1367,7 +1341,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles two dynamic envelopes in different nested calls",
-      script: `assertions:assert ${A}::{a(uint256,uint256)(uint256) ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]} ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]}} == 1`,
+      script: `assert ${A}::{a(uint256,uint256)(uint256) ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]} ${B}::{b(address[])(uint256) ${C}::{c()(address,address[][])}[_ [_ $]]}} == 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const aRead = readOf(param);
@@ -1383,7 +1357,7 @@ describeCommand("assert", {
     // ---- ::!{} on-chain read hops -----------------------------------------
     {
       name: "compiles ::! with a literal target and constant argument",
-      script: `assertions:assert ${TOKEN}::!{balanceOf(address)(uint256) ${HOLDER}} >= 10e18`,
+      script: `assert ${TOKEN}::!{balanceOf(address)(uint256) ${HOLDER}} >= 10e18`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 10n * 10n ** 18n);
@@ -1396,7 +1370,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles ::! with a call-resolved target",
-      script: `assertions:assert ${A}::{asset()(address)}::!{totalSupply()(uint256)} > 0`,
+      script: `assert ${A}::{asset()(address)}::!{totalSupply()(uint256)} > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { target, selector, segments } = readOf(param);
@@ -1409,7 +1383,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles ::! with a live call argument",
-      script: `assertions:assert ${A}::!{convertToAssets(uint256)(uint256) ${B}::{totalSupply()(uint256)}} > 0`,
+      script: `assert ${A}::!{convertToAssets(uint256)(uint256) ${B}::{totalSupply()(uint256)}} > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { target, selector, segments } = readOf(param);
@@ -1423,7 +1397,7 @@ describeCommand("assert", {
     },
     {
       name: "composes a ::! read inside @num! arithmetic",
-      script: `assertions:assert @num!(${A}::!{convertToAssets(uint256)(uint256) 1e18} * 2) > 0`,
+      script: `assert @num!(${A}::!{convertToAssets(uint256)(uint256) 1e18} * 2) > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // Unsigned `> 0` folds to a GTE 1 constraint on the expression.
@@ -1438,7 +1412,7 @@ describeCommand("assert", {
     },
     {
       name: "judges a string-returning ::! read via keccak of the payload",
-      script: `assertions:assert ${TOKEN}::!{name()(string)} == "Wrapped Ether"`,
+      script: `assert ${TOKEN}::!{name()(string)} == "Wrapped Ether"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", BigInt(stringDigest("Wrapped Ether")));
@@ -1449,7 +1423,7 @@ describeCommand("assert", {
     },
     {
       name: "reads from a computed head (@bytes! word) via ::!",
-      script: `assertions:assert @bytes!(${C}::{packedPool()(uint256)} ">>" 96)::!{fee()(uint24)} > 0`,
+      script: `assert @bytes!(${C}::{packedPool()(uint256)} ">>" 96)::!{fee()(uint24)} > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // fee() read whose target is the shifted packedPool word.
@@ -1466,7 +1440,7 @@ describeCommand("assert", {
     },
     {
       name: "accepts a single-word non-address value as a ::! read target",
-      script: `assertions:assert ${TOKEN}::{decimals()(uint256)}::!{totalSupply()(uint256)} > 0`,
+      script: `assert ${TOKEN}::{decimals()(uint256)}::!{totalSupply()(uint256)} > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { target, selector } = readOf(param);
@@ -1478,7 +1452,7 @@ describeCommand("assert", {
     },
     {
       name: "applies a destructure lens to a ::! read via pick",
-      script: `assertions:assert ${A}::!{getReserves()(uint112,uint112)}[$ _] > 0`,
+      script: `assert ${A}::!{getReserves()(uint112,uint112)}[$ _] > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const pick = core(param);
@@ -1492,124 +1466,124 @@ describeCommand("assert", {
   errorCases: [
     {
       name: "rejects an unknown on-chain helper",
-      script: `assertions:assert @frobnicate!(${TOKEN}::{value()(uint256)}) == 1`,
+      script: `assert @frobnicate!(${TOKEN}::{value()(uint256)}) == 1`,
       error: "unknown on-chain helper",
     },
     {
       // Equality has no predicate-preserving rounding: truncating would
       // silently assert something the user did not write.
       name: "rejects equality against a fractional value",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} == 0.5`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} == 0.5`,
       error: "could never hold",
     },
     {
       name: "rejects inequality against a fractional value",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} != 0.5`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} != 0.5`,
       error: "always holds",
     },
     {
       name: "rejects a fractional ~= centre",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} ~= 0.5 --delta 2`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} ~= 0.5 --delta 2`,
       error: "whole-number centre",
     },
     {
       name: "rejects a fractional --delta",
-      script: `assertions:assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} ~= 100 --delta 0.5`,
+      script: `assert ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} ~= 100 --delta 0.5`,
       error: "--delta must be a whole number",
     },
     {
       name: "rejects a lens step into a non-composite value",
-      script: `assertions:assert ${TOKEN}::{signers()(address[],address)}[_ [$]] == ${HOLDER}`,
+      script: `assert ${TOKEN}::{signers()(address[],address)}[_ [$]] == ${HOLDER}`,
       error: "cannot select into a address value",
     },
     {
       name: "rejects a mid-chain nested lens landing on a non-address",
-      script: `assertions:assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]]::{decimals()(uint256)} == 18`,
+      script: `assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]]::{decimals()(uint256)} == 18`,
       error: "must continue on an address",
     },
     {
       name: "rejects a lens with two rest markers on one level",
-      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ ...] >= 1000`,
+      script: `assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ ...] >= 1000`,
       error: "at most one ... per nesting level",
     },
     {
       name: "rejects an end-anchored index past the start of the returns",
-      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ _ _ _] >= 1000`,
+      script: `assert ${TOKEN}::{getReserves()(uint112,uint112,uint32)}[... $ _ _ _] >= 1000`,
       error: "out of range",
     },
     {
       name: "rejects a value lens landing on a struct",
-      script: `assertions:assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]] == 1`,
+      script: `assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]] == 1`,
       error: "must select a single value",
     },
     {
       name: "rejects @len! over a lens selecting a word",
-      script: `assertions:assert @len!(${TOKEN}::{signers()(address[],address)}[_ $]) > 0`,
+      script: `assert @len!(${TOKEN}::{signers()(address[],address)}[_ $]) > 0`,
       error: "must select a single value",
     },
     {
       name: "rejects @hash! over a non-bytes return",
-      script: `assertions:assert @hash!(${TOKEN}::{holders()(address[])}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @hash!(${TOKEN}::{holders()(address[])}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       error: "needs a string or bytes value",
     },
     {
       name: "rejects @bytes.len! over a non-bytes return",
-      script: `assertions:assert @bytes.len!(${TOKEN}::{holders()(address[])}) == 128`,
+      script: `assert @bytes.len!(${TOKEN}::{holders()(address[])}) == 128`,
       error: "needs a string or bytes value",
     },
     {
       name: "rejects an empty @str.includes! part",
-      script: `assertions:assert @str.includes!(${TOKEN}::{name()(string)} "")`,
+      script: `assert @str.includes!(${TOKEN}::{name()(string)} "")`,
       error: "@str.includes! part must be a non-empty string",
     },
     {
       name: "rejects a reversed @str.charset! range",
-      script: `assertions:assert @str.charset!(${TOKEN}::{symbol()(string)} "z-a")`,
+      script: `assert @str.charset!(${TOKEN}::{symbol()(string)} "z-a")`,
       error: "the range is reversed",
     },
     {
       name: "rejects an assertion where both sides are constants",
-      script: `assertions:assert 10 >= 5`,
+      script: `assert 10 >= 5`,
       error: "nothing to assert on-chain",
     },
     {
       name: "rejects an unsupported operator for an address return",
-      script: `assertions:assert ${TOKEN}::{owner()(address)} >= ${HOLDER}`,
+      script: `assert ${TOKEN}::{owner()(address)} >= ${HOLDER}`,
       error: "not supported",
     },
     {
       name: "requires a --delta for the ~= operator",
-      script: `assertions:assert ${TOKEN}::{price()(uint256)} ~= 2000`,
+      script: `assert ${TOKEN}::{price()(uint256)} ~= 2000`,
       error: "requires a --delta",
     },
     {
       name: "rejects unwrapped top-level infix with a wrap hint",
-      script: `assertions:assert ${TOKEN}::{supply()(uint256)} + 1 > 0`,
+      script: `assert ${TOKEN}::{supply()(uint256)} + 1 > 0`,
       error: "wrap arithmetic in @num!",
     },
     {
       name: "rejects ~= between two live values",
-      script: `assertions:assert ${TOKEN}::{supply()(uint256)} ~= ${TOKEN}::{cap()(uint256)} --delta 5`,
+      script: `assert ${TOKEN}::{supply()(uint256)} ~= ${TOKEN}::{cap()(uint256)} --delta 5`,
       error: "@absDiff!",
     },
     {
       name: "rejects ~= on a string return",
-      script: `assertions:assert ${TOKEN}::{name()(string)} ~= "x" --delta 1`,
+      script: `assert ${TOKEN}::{name()(string)} ~= "x" --delta 1`,
       error: "not supported",
     },
     {
       name: "rejects comparing an unsigned return against a negative value",
-      script: `assertions:assert ${TOKEN}::{supply()(uint256)} >= -5`,
+      script: `assert ${TOKEN}::{supply()(uint256)} >= -5`,
       error: "negative value",
     },
     {
       name: "rejects an ERC-20 @balance! of a call-resolved account",
-      script: `assertions:assert @balance!(DAI ${TOKEN}::{treasury()(address)}) > 0`,
+      script: `assert @balance!(DAI ${TOKEN}::{treasury()(address)}) > 0`,
       error: "only supports the native token",
     },
     {
       name: "detects missing spaces around operators",
-      script: `assertions:assert @num!(supply+1) > 0`,
+      script: `assert @num!(supply+1) > 0`,
       error: "Missing spaces around operator",
     },
     {
@@ -1619,42 +1593,42 @@ describeCommand("assert", {
     },
     {
       name: "rejects @chainId! with arguments",
-      script: `assertions:assert @chainId!(1) == 100`,
+      script: `assert @chainId!(1) == 100`,
       error: "@chainId! takes no arguments",
     },
     {
       name: "rejects a non-address @codeHash! account",
-      script: `assertions:assert @codeHash!(123) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @codeHash!(123) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       error: "must resolve to an address",
     },
     {
       name: "rejects a @codeHash! call not returning a single address",
-      script: `assertions:assert @codeHash!(${TOKEN}::{decimals()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @codeHash!(${TOKEN}::{decimals()(uint256)}) == 0x0102030405060708091011121314151617181920212223242526272829303132`,
       error: "must return a single address",
     },
     {
       name: "rejects an ordering comparison on @codeHash!",
-      script: `assertions:assert @codeHash!(${TOKEN}) > 0x0102030405060708091011121314151617181920212223242526272829303132`,
+      script: `assert @codeHash!(${TOKEN}) > 0x0102030405060708091011121314151617181920212223242526272829303132`,
       error: "not supported",
     },
     {
       name: "rejects an unknown @bytes! operator",
-      script: `assertions:assert @bytes!(${TOKEN}::{supply()(uint256)} "+" 1) > 0`,
+      script: `assert @bytes!(${TOKEN}::{supply()(uint256)} "+" 1) > 0`,
       error: '@bytes! operator must be one of "&" "|" "xor" "<<" ">>"',
     },
     {
       name: "rejects @bytes! on a string return",
-      script: `assertions:assert @bytes!(${TOKEN}::{name()(string)}) > 0`,
+      script: `assert @bytes!(${TOKEN}::{name()(string)}) > 0`,
       error: "needs 32-byte word operands",
     },
     {
-      name: "rejects @not! on a string return",
-      script: `assertions:assert @not!(${TOKEN}::{name()(string)})`,
-      error: "needs a boolean or 32-byte word operand",
+      name: "rejects negating a string return",
+      script: `assert @bool!(not ${TOKEN}::{name()(string)})`,
+      error: "expected a boolean operand",
     },
     {
       name: "rejects @str.split! without its index",
-      script: `assertions:assert @str.split!(${TOKEN}::{name()(string)} " ") == "LP"`,
+      script: `assert @str.split!(${TOKEN}::{name()(string)} " ") == "LP"`,
       error: "@str.split! expects (call delimiter index)",
     },
     {
@@ -1662,48 +1636,48 @@ describeCommand("assert", {
       // (@bytes.len!(@str.split!(…)) composes); a face resolving a WORD
       // still is not — there is no envelope to measure.
       name: "rejects a word-valued face as the call of another chain helper",
-      script: `assertions:assert @bytes.len!(@balance!(XDAI ${HOLDER})) == 32`,
+      script: `assert @bytes.len!(@balance!(XDAI ${HOLDER})) == 32`,
       error: "must resolve a string/bytes value on-chain",
     },
     {
       name: "rejects ordering comparisons on strings",
-      script: `assertions:assert @bool!(@str.split!(${TOKEN}::{name()(string)} " " 0) > "A")`,
+      script: `assert @bool!(@str.split!(${TOKEN}::{name()(string)} " " 0) > "A")`,
       error: "strings only support == and !=",
     },
     {
       name: "rejects arithmetic operators inside @bool!",
-      script: `assertions:assert @bool!(${TOKEN}::{supply()(uint256)} + 1)`,
+      script: `assert @bool!(${TOKEN}::{supply()(uint256)} + 1)`,
       error: "Use @num!",
     },
     {
       name: "rejects a mid-chain lens that selects a non-address",
-      script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}[$ _ _]::{symbol()(string)} == "WETH"`,
+      script: `assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}[$ _ _]::{symbol()(string)} == "WETH"`,
       error: "must continue on an address",
     },
     {
       name: "rejects a multi-value intermediate hop without a lens",
-      script: `assertions:assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}::{symbol()(string)} == "WETH"`,
+      script: `assert ${TOKEN}::{poolInfo()(uint112,uint112,address)}::{symbol()(string)} == "WETH"`,
       error: "select one with a lens",
     },
     // ---- ::!{} on-chain read hops -----------------------------------------
     {
       name: "rejects a multi-return ::! read without a lens",
-      script: `assertions:assert ${TOKEN}::!{getReserves()(uint112,uint112)} > 0`,
+      script: `assert ${TOKEN}::!{getReserves()(uint112,uint112)} > 0`,
       error: "use a destructure lens to select one",
     },
     {
       name: "rejects a non-address constant ::! read target",
-      script: `assertions:assert 123::!{totalSupply()(uint256)} > 0`,
+      script: `assert 123::!{totalSupply()(uint256)} > 0`,
       error: "must resolve to an address",
     },
     {
       name: "rejects a multi-word value as a ::! read target",
-      script: `assertions:assert ${TOKEN}::{getReserves()(uint112,uint112)}::!{totalSupply()(uint256)} > 0`,
+      script: `assert ${TOKEN}::{getReserves()(uint112,uint112)}::!{totalSupply()(uint256)} > 0`,
       error: "must be a single-word value",
     },
     {
       name: "rejects a ::! argument-count mismatch",
-      script: `assertions:assert ${TOKEN}::!{balanceOf(address)(uint256)} > 0`,
+      script: `assert ${TOKEN}::!{balanceOf(address)(uint256)} > 0`,
       error: "expects 1 argument",
     },
     {
@@ -1714,40 +1688,13 @@ describeCommand("assert", {
     // ---- nested live call arguments ----------------------------------------
     {
       name: "rejects a word-typed nested call argument with a mismatched type",
-      script: `assertions:assert ${A}::{a(uint256)(uint256) ${B}::{b()(address)}} == 1`,
+      script: `assert ${A}::{a(uint256)(uint256) ${B}::{b()(address)}} == 1`,
       error: "resolves a address value",
     },
     {
       name: "rejects a dynamic nested argument with a mismatched envelope type",
-      script: `assertions:assert ${A}::{a(uint256[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]]} == 1`,
+      script: `assert ${A}::{a(uint256[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]]} == 1`,
       error: "adjust the lens to select a matching value",
-    },
-  ],
-});
-
-// Without overrides the module targets the canonical deployments.
-describeCommand("assert", {
-  describeName: "Assertions > commands > assert (canonical addresses)",
-  preamble: "load assertions\nload receipts",
-  cases: [
-    {
-      name: "defaults to the canonical core v2 address",
-      script: `assertions:assert ${TOKEN}::{paused()(bool)}`,
-      validate: (actions) => {
-        const { param } = decodeAssert(actions, ASSERTIONS_ADDRESS);
-        expectConstraint(param, "Eq", 1n);
-      },
-    },
-    {
-      name: "defaults to the canonical operators v1 address",
-      script: `assertions:assert @chainId! == 100`,
-      validate: (actions) => {
-        const { param } = decodeAssert(actions, ASSERTIONS_ADDRESS);
-        expect(opsDirect(param, OPERATORS_ADDRESS)).to.equal(
-          selectorOf("chainId()"),
-        );
-        expectConstraint(param, "Eq", 100n);
-      },
     },
   ],
 });

@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -8,8 +9,8 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress, type Hex } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const DIST = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const ME = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 const ROOT =
@@ -17,7 +18,7 @@ const ROOT =
 const LEAF =
   "0x1112131415161718192021222324252627282930313233343536373839404142";
 
-const preamble = `load assertions\nload crypto\nload lang\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load crypto\nload lang`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -46,7 +47,7 @@ describeCommand("assert (@merkle.verify!)", {
   cases: [
     {
       name: "folds a live proof through hashPairSorted from the leaf and compares the root",
-      script: `assertions:assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
+      script: `assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "eq(uint256,uint256)");
@@ -66,7 +67,7 @@ describeCommand("assert (@merkle.verify!)", {
     },
     {
       name: "compares against a live root read",
-      script: `assertions:assert @merkle.verify!(${DIST}::{root()(bytes32)} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
+      script: `assert @merkle.verify!(${DIST}::{root()(bytes32)} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "eq(uint256,uint256)");
@@ -78,7 +79,7 @@ describeCommand("assert (@merkle.verify!)", {
     },
     {
       name: "accepts a nested array face as the proof",
-      script: `assertions:assert @merkle.verify!(${ROOT} ${LEAF} @reverse!(${DIST}::{proofOf(address)(bytes32[]) ${ME}}))`,
+      script: `assert @merkle.verify!(${ROOT} ${LEAF} @reverse!(${DIST}::{proofOf(address)(bytes32[]) ${ME}}))`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a } = d.expectOpJudge(param, "eq(uint256,uint256)");
@@ -94,7 +95,7 @@ describeCommand("assert (@merkle.verify!)", {
       // thing entirely, and is not expressible: the reduction halves the
       // array each round, and mapWords is one-to-one.)
       name: "folds a plain @merkle.root into the expression as a constant",
-      script: `assertions:assert ${DIST}::{merkleRoot()(bytes32)} == @crypto:merkle.root([${LEAF} ${ROOT}])`,
+      script: `assert ${DIST}::{merkleRoot()(bytes32)} == @crypto:merkle.root([${LEAF} ${ROOT}])`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -108,17 +109,17 @@ describeCommand("assert (@merkle.verify!)", {
   errorCases: [
     {
       name: "keeps positional (indexed) verification off-chain",
-      script: `assertions:assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}} 1)`,
+      script: `assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}} 1)`,
       error: "positional (indexed) verification stays off-chain",
     },
     {
       name: "rejects a constant proof array",
-      script: `assertions:assert @merkle.verify!(${ROOT} ${LEAF} [${LEAF}])`,
+      script: `assert @merkle.verify!(${ROOT} ${LEAF} [${LEAF}])`,
       error: "expects a `::` call expression",
     },
     {
       name: "rejects a non-bytes32 live root",
-      script: `assertions:assert @merkle.verify!(${DIST}::{rootCount()(uint256)} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
+      script: `assert @merkle.verify!(${DIST}::{rootCount()(uint256)} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
       error: "root must be a bytes32 value",
     },
   ],

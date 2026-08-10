@@ -49,14 +49,13 @@ composable with the other array faces: `@len!(@filter!(…))`,
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # Exactly two caps at or above the floor
 def @ge100! "$x: number -> bool" @bool!($x >= 100)
-assertions:assert @len!(@filter!($vault::{caps()(uint256[])} @ge100!)) == 2
+assert @len!(@filter!($vault::{caps()(uint256[])} @ge100!)) == 2
 ```
 
 ### Notes
@@ -70,4 +69,4 @@ assertions:assert @len!(@filter!($vault::{caps()(uint256[])} @ge100!)) == 2
 
 ### See Also
 
-- `assertions:assert`, `@map!`, `@find!`, `@all!`
+- `assert`, `@map!`, `@find!`, `@all!`

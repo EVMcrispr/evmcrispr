@@ -50,11 +50,10 @@ calldata still encodes at composition time.
 ### Examples
 
 ```evml
-load assertions
 load acl
 
 set $manager 0xa111111111111111111111111111111111111111
 set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-assertions:assert @operationSchedule!($manager @operationId!($manager @me $token "pause()")) == 0
+assert @operationSchedule!($manager @operationId!($manager @me $token "pause()")) == 0
 ```

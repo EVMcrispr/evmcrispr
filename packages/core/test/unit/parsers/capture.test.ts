@@ -716,10 +716,10 @@ describe("Parsers - tx capture", () => {
       // assertions-style infix comparison: the operand after `>` is a
       // value, not a `$variable`, so it must stay an argument.
       const { ast, errors } = parseScript(
-        'load assertions\nassertions:assert-balance @me > 1e18 "needs ETH"',
+        'assert @balance!(ETH @me) > 1e18 "needs ETH"',
       );
       expect(errors).to.have.length(0);
-      const cmd = ast.body[1] as CommandExpressionNode;
+      const cmd = ast.body[0] as CommandExpressionNode;
       expect(cmd.txCaptures).to.be.undefined;
       expect(cmd.args).to.have.length(4);
     });

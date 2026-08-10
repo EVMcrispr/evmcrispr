@@ -33,12 +33,11 @@ Sort the array return of a call on-chain through `sortWords`, ascending by
 default and descending with a second argument:
 
 ```evml
-load assertions
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @at!(@sort!($safe::{caps()(uint256[])} desc) 0) >= 100
+assert @at!(@sort!($safe::{caps()(uint256[])} desc) 0) >= 100
 ```
 
 `desc` composes rather than adding anything on-chain: the array is sorted
@@ -60,4 +59,4 @@ into one first and sort that.
 
 ### See Also
 
-- `assertions:assert`, `@unique!`, `@map!`
+- `assert`, `@unique!`, `@map!`

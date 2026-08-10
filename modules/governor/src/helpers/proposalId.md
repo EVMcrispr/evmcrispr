@@ -65,10 +65,9 @@ composition time.
 ### Examples
 
 ```evml
-load assertions
 load governor
 
 set $governor 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-assertions:assert @proposalId!($governor [$target] [0] [$calldata] "do the thing") != 0
+assert @proposalId!($governor [$target] [0] [$calldata] "do the thing") != 0
 ```

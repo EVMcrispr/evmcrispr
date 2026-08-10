@@ -50,10 +50,9 @@ contracts, a uint64 role id on AccessManagers.
 ### Examples
 
 ```evml
-load assertions
 load acl
 
 set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-assertions:assert @roleAdmin!($token MINTER_ROLE) == 0x0000000000000000000000000000000000000000000000000000000000000000
+assert @roleAdmin!($token MINTER_ROLE) == 0x0000000000000000000000000000000000000000000000000000000000000000
 ```

@@ -37,10 +37,9 @@ set $fee @receipts:block.baseFee(19426587 mainnet)
 With `!` and no arguments the read happens on-chain at assertion time: the base fee of the block being written, e.g. to gate a batch on fee conditions.
 
 ```evml
-load assertions
 load receipts
 
-assertions:assert @block.baseFee! <= 100e9 "basefee too high"
+assert @block.baseFee! <= 100e9 "basefee too high"
 ```
 
 ## See Also

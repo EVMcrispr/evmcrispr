@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -9,14 +10,14 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 // DAI on gnosis in the mocked token list.
 const DAI = getAddress("0x44fA8E6f47987339850636F88629646662444217");
 const OWNER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 const SPENDER = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 
-const preamble = `load assertions\nload token\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load token`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -29,7 +30,7 @@ describeCommand("assert (token on-chain faces)", {
   cases: [
     {
       name: "compiles @decimals! of a symbol to a direct decimals() staticcall",
-      script: `assertions:assert @decimals!(DAI) == 18`,
+      script: `assert @decimals!(DAI) == 18`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -40,7 +41,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "folds native @decimals! to the chain constant",
-      script: `assertions:assert @totalSupply!(DAI) > @num!(10 ^ @decimals!(XDAI))`,
+      script: `assert @totalSupply!(DAI) > @num!(10 ^ @decimals!(XDAI))`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // exp folds at build time: 10^18 becomes the GTE bound.
@@ -50,7 +51,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "compiles @totalSupply! to a direct totalSupply() staticcall",
-      script: `assertions:assert @totalSupply!(DAI) >= 1e18 "supply drained"`,
+      script: `assert @totalSupply!(DAI) >= 1e18 "supply drained"`,
       validate: (actions) => {
         const { param, message } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -62,7 +63,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "compiles @allowance! with literal owner/spender to plain calldata",
-      script: `assertions:assert @allowance!(DAI ${OWNER} ${SPENDER}) == 0 "unexpected approval"`,
+      script: `assert @allowance!(DAI ${OWNER} ${SPENDER}) == 0 "unexpected approval"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -75,7 +76,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "folds a live @allowance! owner into a core read splice",
-      script: `assertions:assert @allowance!(DAI ${OWNER}::{treasury()(address)} ${SPENDER}) == 0`,
+      script: `assert @allowance!(DAI ${OWNER}::{treasury()(address)} ${SPENDER}) == 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { target, selector, segments } = d.readOf(param);
@@ -90,7 +91,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "compiles @amount! against the live decimals read",
-      script: `assertions:assert @allowance!(DAI ${OWNER} ${SPENDER}) >= @amount!(DAI 25)`,
+      script: `assert @allowance!(DAI ${OWNER} ${SPENDER}) >= @amount!(DAI 25)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "ge(uint256,uint256)");
@@ -107,7 +108,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "scales a fractional @amount! mantissa with decimals minus k",
-      script: `assertions:assert @totalSupply!(DAI) >= @amount!(DAI 1.5)`,
+      script: `assert @totalSupply!(DAI) >= @amount!(DAI 1.5)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { b } = d.expectOpJudge(param, "ge(uint256,uint256)");
@@ -123,7 +124,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "folds a native @amount! to base units at build time",
-      script: `assertions:assert @totalSupply!(DAI) >= @amount!(XDAI 2.5)`,
+      script: `assert @totalSupply!(DAI) >= @amount!(XDAI 2.5)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         expect(d.staticCallOf(param).target).to.equal(DAI);
@@ -134,12 +135,12 @@ describeCommand("assert (token on-chain faces)", {
   errorCases: [
     {
       name: "rejects @totalSupply! of the native token",
-      script: `assertions:assert @totalSupply!(XDAI) > 0`,
+      script: `assert @totalSupply!(XDAI) > 0`,
       error: "native token has no total supply",
     },
     {
       name: "rejects a negative @amount!",
-      script: `assertions:assert @totalSupply!(DAI) >= @amount!(DAI -1)`,
+      script: `assert @totalSupply!(DAI) >= @amount!(DAI -1)`,
       error: "non-negative decimal",
     },
   ],
@@ -156,7 +157,7 @@ describeCommand("assert (token string faces)", {
   cases: [
     {
       name: "compiles @symbol! to a digest-judged symbol() staticcall",
-      script: `assertions:assert @token:symbol!(DAI) == "DAI" "symbol changed"`,
+      script: `assert @token:symbol!(DAI) == "DAI" "symbol changed"`,
       validate: (actions) => {
         const { param, message } = d.decodeAssert(actions);
         // Top-level string equality judges the keccak digest of the
@@ -172,7 +173,7 @@ describeCommand("assert (token string faces)", {
     },
     {
       name: "composes @symbol! with @str.lower! as a nested string face",
-      script: `assertions:assert @str.lower!(@token:symbol!(DAI)) == "dai"`,
+      script: `assert @str.lower!(@token:symbol!(DAI)) == "dai"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");

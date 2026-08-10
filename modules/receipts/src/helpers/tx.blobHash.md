@@ -25,11 +25,10 @@ Versioned hash of a blob carried by the executing transaction, or 0 when the ind
 ## Examples
 
 ```evml
-load assertions
 load receipts
 
 # The batch only executes as part of a blob-carrying transaction
-assertions:assert @tx.blobHash!(0) != 0x0000000000000000000000000000000000000000000000000000000000000000 "no blob attached"
+assert @tx.blobHash!(0) != 0x0000000000000000000000000000000000000000000000000000000000000000 "no blob attached"
 ```
 
 ## See Also

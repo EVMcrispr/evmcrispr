@@ -49,17 +49,16 @@ reports `DAI` on-chain.
 ### Usage
 
 ```evml
-load assertions
 load token
 
 set $token 0x44fA8E6f47987339850636F88629646662444217
 
 # The token at this address still reports the expected symbol
-assertions:assert @token:symbol!($token) == "DAI" "unexpected token"
+assert @token:symbol!($token) == "DAI" "unexpected token"
 
 # Composes with the lang string faces
 load lang
-assertions:assert @str.lower!(@token:symbol!($token)) == "dai"
+assert @str.lower!(@token:symbol!($token)) == "dai"
 ```
 
 ## See Also

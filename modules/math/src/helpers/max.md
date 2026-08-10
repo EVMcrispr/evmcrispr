@@ -25,12 +25,11 @@ Maximum of two or more values.
 ## Examples
 
 ```evml
-load assertions
 load math
 
 set $vault 0x0102030405060708090a0b0c0d0e0f1011121314
 
-assertions:assert @max!($vault::{a()(uint256)} $vault::{b()(uint256)}) > 0
+assert @max!($vault::{a()(uint256)} $vault::{b()(uint256)}) > 0
 ```
 
 ## See Also

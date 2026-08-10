@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -9,13 +10,13 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const VAULT = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const OWNER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 const OPERATOR = getAddress("0xa111111111111111111111111111111111111111");
 
-const preamble = `load assertions\nload vault\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load vault`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -28,7 +29,7 @@ describeCommand("assert (vault on-chain faces)", {
   cases: [
     {
       name: "compiles @asset! to a direct asset() staticcall",
-      script: `assertions:assert @asset!(${VAULT}) == ${OWNER} "asset changed"`,
+      script: `assert @asset!(${VAULT}) == ${OWNER} "asset changed"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -39,7 +40,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "compiles @share! to orElse(share(), vault) for plain 4626 fallback",
-      script: `assertions:assert @share!(${VAULT}) == ${VAULT}`,
+      script: `assert @share!(${VAULT}) == ${VAULT}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const orElse = d.core(param);
@@ -57,7 +58,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "compiles @totalAssets! to a direct staticcall",
-      script: `assertions:assert @totalAssets!(${VAULT}) >= 1e18`,
+      script: `assert @totalAssets!(${VAULT}) >= 1e18`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         expect(d.staticCallOf(param).data).to.equal(
@@ -68,7 +69,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "compiles @convertToAssets! with a literal amount to plain calldata",
-      script: `assertions:assert @convertToAssets!(${VAULT} 100) >= 100`,
+      script: `assert @convertToAssets!(${VAULT} 100) >= 100`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -79,7 +80,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "folds a live @convertToShares! amount into a core read splice",
-      script: `assertions:assert @convertToShares!(${VAULT} ${VAULT}::{totalAssets()(uint256)}) > 0`,
+      script: `assert @convertToShares!(${VAULT} ${VAULT}::{totalAssets()(uint256)}) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { target, selector, segments } = d.readOf(param);
@@ -91,7 +92,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "compiles @maxWithdraw! with an explicit owner",
-      script: `assertions:assert @maxWithdraw!(${VAULT} ${OWNER}) > 0 "nothing to withdraw"`,
+      script: `assert @maxWithdraw!(${VAULT} ${OWNER}) > 0 "nothing to withdraw"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -103,7 +104,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "orders @isOperator! calldata as isOperator(controller, operator)",
-      script: `assertions:assert @isOperator!(${VAULT} ${OPERATOR} ${OWNER}) == false`,
+      script: `assert @isOperator!(${VAULT} ${OPERATOR} ${OWNER}) == false`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -115,7 +116,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "orders @pendingDeposit! calldata as pendingDepositRequest(requestId, controller)",
-      script: `assertions:assert @pendingDeposit!(${VAULT} ${OWNER} 3) == 0`,
+      script: `assert @pendingDeposit!(${VAULT} ${OWNER} 3) == 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -126,7 +127,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "defaults the @claimableRedeem! request id to 0",
-      script: `assertions:assert @claimableRedeem!(${VAULT} ${OWNER}) == 0 "claim pending"`,
+      script: `assert @claimableRedeem!(${VAULT} ${OWNER}) == 0 "claim pending"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -137,7 +138,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "compiles @pendingRedeem! and @claimableDeposit! reads",
-      script: `assertions:assert @num!(@pendingRedeem!(${VAULT} ${OWNER}) + @claimableDeposit!(${VAULT} ${OWNER})) == 0`,
+      script: `assert @num!(@pendingRedeem!(${VAULT} ${OWNER}) + @claimableDeposit!(${VAULT} ${OWNER})) == 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, "add(uint256,uint256)");

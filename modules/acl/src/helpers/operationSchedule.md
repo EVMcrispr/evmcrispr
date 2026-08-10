@@ -50,11 +50,10 @@ Read getSchedule(id) at assertion time — assert an operation is not
 ### Examples
 
 ```evml
-load assertions
 load acl
 
 set $manager 0xa111111111111111111111111111111111111111
 set $id 0x0102030405060708091011121314151617181920212223242526272829303132
 
-assertions:assert @operationSchedule!($manager $id) == 0 "still scheduled"
+assert @operationSchedule!($manager $id) == 0 "still scheduled"
 ```

@@ -40,14 +40,13 @@ faces (`@len!`, `@includes!`, `@sort!`, …).
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $amm 0x44fA8E6f47987339850636F88629646662444217
 
 # Every pair key (lane 0) is nonzero
 def @pos! "$x: number -> bool" @bool!($x > 0)
-assertions:assert @all!(@keys!($amm::{reservePairs()(uint256[])}) @pos!)
+assert @all!(@keys!($amm::{reservePairs()(uint256[])}) @pos!)
 ```
 
 ### Notes
@@ -59,4 +58,4 @@ assertions:assert @all!(@keys!($amm::{reservePairs()(uint256[])}) @pos!)
 
 ### See Also
 
-- `assertions:assert`, `@values!`, `@lookup!`, `@enumerate!`, `@unzip!`
+- `assert`, `@values!`, `@lookup!`, `@enumerate!`, `@unzip!`

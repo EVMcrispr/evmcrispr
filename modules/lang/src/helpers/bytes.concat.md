@@ -51,14 +51,13 @@ from one that legitimately failed. Better to refuse at build time.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $oracle 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @bytes.concat!(0x1234 $oracle::{blob()(bytes)}) == 0xabcd
+assert @bytes.concat!(0x1234 $oracle::{blob()(bytes)}) == 0xabcd
 ```
 
 ### See Also
 
-- `assertions:assert`, `@str.join!`, `@concat!`
+- `assert`, `@str.join!`, `@concat!`

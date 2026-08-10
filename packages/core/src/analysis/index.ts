@@ -1487,7 +1487,7 @@ class SemanticAnalyzer {
         if (!this.#schemas.isLoaded(owningModule)) continue; // load line already flagged
       } else if (h.name.endsWith("!")) {
         // On-chain `!` helpers are dispatched by local name inside
-        // expression-taking commands (e.g. assertions:assert), so an
+        // expression-taking commands (e.g. assert), so an
         // unqualified reference resolves against any loaded module that
         // declares it.
         const owner = this.#schemas

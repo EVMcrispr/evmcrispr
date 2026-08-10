@@ -46,14 +46,13 @@ the other array faces: `@reduce!(@map!(…) add 0)`, `@sort!(@map!(…))`.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # Sum of the doubled caps
 def @dbl! "$x: number -> number" @num!($x * 2)
-assertions:assert @reduce!(@map!($vault::{caps()(uint256[])} @dbl!) add 0) >= 100
+assert @reduce!(@map!($vault::{caps()(uint256[])} @dbl!) add 0) >= 100
 ```
 
 ### Notes
@@ -67,4 +66,4 @@ assertions:assert @reduce!(@map!($vault::{caps()(uint256[])} @dbl!) add 0) >= 10
 
 ### See Also
 
-- `assertions:assert`, `@reduce!`, `@all!`
+- `assert`, `@reduce!`, `@all!`

@@ -49,10 +49,9 @@ timelock's delay.
 ### Examples
 
 ```evml
-load assertions
 load governor
 
 set $timelock 0xa111111111111111111111111111111111111111
 
-assertions:assert @timelockMinDelay!($timelock) >= 3600 "delay lowered"
+assert @timelockMinDelay!($timelock) >= 3600 "delay lowered"
 ```

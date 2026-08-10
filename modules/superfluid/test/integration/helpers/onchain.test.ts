@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import type { DecodedParam } from "@evmcrispr/test-utils/evml";
 import {
@@ -18,14 +19,14 @@ import {
   USDCX,
 } from "../../fixtures";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 
 /** A GDA pool is a composition-time staticcall TARGET, never called while
  *  the expression is built, so any address exercises the encoding. */
 const POOL = getAddress("0x1111111111111111111111111111111111111111");
 
-const preamble = `load assertions\nload superfluid\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load superfluid`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -62,7 +63,7 @@ describeCommand("assert (superfluid on-chain faces)", {
   cases: [
     {
       name: "compiles @underlying! to a direct getUnderlyingToken() staticcall",
-      script: `assertions:assert @underlying!(${USDCX}) == ${USDC} "underlying changed"`,
+      script: `assert @underlying!(${USDCX}) == ${USDC} "underlying changed"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -73,7 +74,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "folds a nested @token to the composition-time list resolution",
-      script: `assertions:assert @underlying!(@superfluid:token(USDCx)) == ${USDC}`,
+      script: `assert @underlying!(@superfluid:token(USDCx)) == ${USDC}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // @token folded to the SuperToken address at composition time;
@@ -85,7 +86,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "compiles @flow! to a CFA forwarder getFlowrate() staticcall",
-      script: `assertions:assert @flow!(${USDCX} ${SOME_ADDRESS} ${RECEIVER}) > 0 "stream stopped"`,
+      script: `assert @flow!(${USDCX} ${SOME_ADDRESS} ${RECEIVER}) > 0 "stream stopped"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(signedCmp(param, "gt", 0n));
@@ -101,7 +102,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "resolves a @flow! SuperToken symbol at composition time",
-      script: `assertions:assert @flow!(USDCx ${SOME_ADDRESS} ${RECEIVER}) > 0`,
+      script: `assert @flow!(USDCx ${SOME_ADDRESS} ${RECEIVER}) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(signedCmp(param, "gt", 0n));
@@ -110,7 +111,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "sums the CFA and GDA halves of @netFlow! on-chain",
-      script: `assertions:assert @netFlow!(${USDCX} ${SOME_ADDRESS}) >= 0 "account is draining"`,
+      script: `assert @netFlow!(${USDCX} ${SOME_ADDRESS}) >= 0 "account is draining"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // int96 rates go signed: the add picks its int256 overload.
@@ -139,7 +140,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "floors the @buffer! rate literal at composition time",
-      script: `assertions:assert @buffer!(${USDCX} 1000e18/mo) < 1e18 "buffer too large"`,
+      script: `assert @buffer!(${USDCX} 1000e18/mo) < 1e18 "buffer too large"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -154,7 +155,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "picks the available balance word of @balance!",
-      script: `assertions:assert @balance!(${USDCX} ${SOME_ADDRESS}) > 0 "account is critical"`,
+      script: `assert @balance!(${USDCX} ${SOME_ADDRESS}) > 0 "account is critical"`,
       validate: (actions) => {
         // realtimeBalanceOfNow returns four words; word 0 is the
         // available balance, so the operand stays one word.
@@ -170,7 +171,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "picks the claimable word of @claimable!",
-      script: `assertions:assert @claimable!(${POOL} ${RECEIVER}) > 0 "nothing to claim"`,
+      script: `assert @claimable!(${POOL} ${RECEIVER}) > 0 "nothing to claim"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = pickedCall(signedCmp(param, "gt", 0n), 0n);
@@ -182,7 +183,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "judges @connected! as a bool read on the GDA forwarder",
-      script: `assertions:assert @connected!(${POOL} ${RECEIVER})`,
+      script: `assert @connected!(${POOL} ${RECEIVER})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -198,7 +199,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "compiles the pool-targeted unit reads",
-      script: `assertions:assert @units!(${POOL} ${RECEIVER}) > 0`,
+      script: `assert @units!(${POOL} ${RECEIVER}) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -210,7 +211,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "compiles @totalUnits! to a no-argument pool read",
-      script: `assertions:assert @totalUnits!(${POOL}) > 0`,
+      script: `assert @totalUnits!(${POOL}) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -220,7 +221,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "compiles @memberFlowrate! as a signed pool read",
-      script: `assertions:assert @memberFlowrate!(${POOL} ${RECEIVER}) >= 0`,
+      script: `assert @memberFlowrate!(${POOL} ${RECEIVER}) >= 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(signedCmp(param, "ge", 0n));
@@ -232,7 +233,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "compiles @distributionFlowrate! on the GDA forwarder",
-      script: `assertions:assert @distributionFlowrate!(${USDCX} ${SOME_ADDRESS} ${POOL}) > 0`,
+      script: `assert @distributionFlowrate!(${USDCX} ${SOME_ADDRESS} ${POOL}) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(signedCmp(param, "gt", 0n));
@@ -248,7 +249,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "folds a live @connected! member into a core read splice",
-      script: `assertions:assert @connected!(${POOL} ${POOL}::{admin()(address)})`,
+      script: `assert @connected!(${POOL} ${POOL}::{admin()(address)})`,
       validate: (actions) => {
         // The pool travels as calldata to the forwarder here, so the
         // member may resolve on-chain: the read is spliced, not baked.
@@ -267,7 +268,7 @@ describeCommand("assert (superfluid on-chain faces)", {
   errorCases: [
     {
       name: "rejects a live SuperToken argument",
-      script: `assertions:assert @flow!(${USDCX}::{getUnderlyingToken()(address)} ${SOME_ADDRESS} ${RECEIVER}) > 0`,
+      script: `assert @flow!(${USDCX}::{getUnderlyingToken()(address)} ${SOME_ADDRESS} ${RECEIVER}) > 0`,
       error: "resolves its SuperToken at composition time",
     },
   ],

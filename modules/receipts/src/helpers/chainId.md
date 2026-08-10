@@ -2,7 +2,7 @@
 title: "@receipts:chainId"
 ---
 
-The chain id. Unlike assert-chainid it composes into expressions.
+The chain id of the chain the script runs against.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -19,15 +19,14 @@ The chain id. Unlike assert-chainid it composes into expressions.
 ## Examples
 
 ```evml
-load assertions
 load receipts
 
-assertions:assert @chainId! == 100 "wrong chain"
+assert @chainId! == 100 "wrong chain"
 ```
 
 ## See Also
 
-- [assertions:assert-chainid](../../../assertions/src/commands/assert-chainid.md), [@receipts:block.timestamp!](block.timestamp.md), [@receipts:block.number!](block.number.md)
+- [assert](../../../std/src/commands/assert.md), [@receipts:block.timestamp!](block.timestamp.md), [@receipts:block.number!](block.number.md)
 
 ## On-chain face (@chainId!)
 

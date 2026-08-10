@@ -26,13 +26,12 @@ Absolute difference |a - b|.
 ## Examples
 
 ```evml
-load assertions
 load math
 
 set $oracle 0x0102030405060708090a0b0c0d0e0f1011121314
 
 # Composable approximate equality between two live values
-assertions:assert @absDiff!($oracle::{price()(uint256)} $oracle::{twap()(uint256)}) <= 50e8 "price diverged"
+assert @absDiff!($oracle::{price()(uint256)} $oracle::{twap()(uint256)}) <= 50e8 "price diverged"
 ```
 
 ## See Also

@@ -66,27 +66,26 @@ a definition.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # The caps sum to at least 100
-assertions:assert @reduce!($vault::{caps()(uint256[])} add 0) >= 100
+assert @reduce!($vault::{caps()(uint256[])} add 0) >= 100
 
 # The largest cap (init 0 = identity for max over uints)
-assertions:assert @reduce!($vault::{caps()(uint256[])} max 0) <= 1e18
+assert @reduce!($vault::{caps()(uint256[])} max 0) <= 1e18
 
 # A product needs init 1, the identity for mul (init 0 is rejected)
-assertions:assert @reduce!($vault::{ratios()(uint256[])} mul 1) > 0
+assert @reduce!($vault::{ratios()(uint256[])} mul 1) > 0
 
 # Signed elements pick the signed overload; the result is judged signed
-assertions:assert @reduce!($vault::{deltas()(int256[])} min 0) <= 0
+assert @reduce!($vault::{deltas()(int256[])} min 0) <= 0
 
 # A named reducer may be order-sensitive: the signature says which side
 # the accumulator is on
 def @subFrom! "$acc: number $e: number -> number" @num!($acc - $e)
-assertions:assert @reduce!($vault::{caps()(uint256[])} @subFrom! 1000) > 0
+assert @reduce!($vault::{caps()(uint256[])} @subFrom! 1000) > 0
 ```
 
 ### Notes
@@ -105,4 +104,4 @@ assertions:assert @reduce!($vault::{caps()(uint256[])} @subFrom! 1000) > 0
 
 ### See Also
 
-- `assertions:assert`, `@all!`, `@len!`
+- `assert`, `@all!`, `@len!`

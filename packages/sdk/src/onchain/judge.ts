@@ -1,5 +1,5 @@
-import type { Address } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { ErrorException } from "../errors";
+import type { Address } from "../types";
 import { encodeOpRead } from "./core";
 import type { Constraint, InputParam } from "./erc8211";
 import {

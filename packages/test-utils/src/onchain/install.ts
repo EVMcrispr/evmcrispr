@@ -20,10 +20,11 @@ export interface InstalledCore {
  * CREATE2 proxy, no dependence on whether the canonical addresses have
  * actually been deployed on the forked chain (they have not).
  *
- * Installs at the canonical addresses by default so no `$assertions:address`
- * override is needed and the compiled calldata is byte-identical to what
- * production emits — the calldata-shape suites deliberately pin fake
- * addresses instead, and would not catch a mistake in the default path.
+ * Installs at the canonical addresses, which is where a compiled expression
+ * always points: those addresses are baked into the compiler and are no
+ * longer overridable, so the calldata a test decodes here is byte-identical
+ * to what production emits. The `at` argument exists for a suite that wants
+ * the code somewhere else on purpose.
  *
  * Idempotent but NOT memoized: `anvil_reset` (between packages in
  * scripts/run-integration-tests.ts, and inside `sim:fork`) discards the code,

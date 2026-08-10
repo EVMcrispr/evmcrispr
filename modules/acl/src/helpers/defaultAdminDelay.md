@@ -42,10 +42,9 @@ Read defaultAdminDelay() at assertion time.
 ### Examples
 
 ```evml
-load assertions
 load acl
 
 set $registry 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-assertions:assert @defaultAdminDelay!($registry) >= 3600 "delay lowered"
+assert @defaultAdminDelay!($registry) >= 3600 "delay lowered"
 ```

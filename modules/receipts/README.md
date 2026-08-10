@@ -20,7 +20,7 @@ load receipts
 | [@receipts:block.number](src/helpers/block.number.md) | `number` | Number of a sealed block, addressed by number or tag (default: latest, so tags like finalized resolve to their current number). |
 | [@receipts:block.prevrandao](src/helpers/block.prevrandao.md) | `number` | RANDAO mix of a sealed block, as a number, addressed by number or tag (default: latest; pre-merge blocks carry proof-of-work difficulty semantics). |
 | [@receipts:block.timestamp](src/helpers/block.timestamp.md) | `number` | Timestamp of a sealed block, addressed by number or tag (default: latest). |
-| [@receipts:chainId](src/helpers/chainId.md) | `number` | The chain id. Unlike assert-chainid it composes into expressions. |
+| [@receipts:chainId](src/helpers/chainId.md) | `number` | The chain id of the chain the script runs against. |
 | [@receipts:tx](src/helpers/tx.md) ⚗️ | `string` | Human-readable summary of a transaction: status, labeled from/to, value, decoded function call, gas, fee and decoded logs. Use the @receipts:tx.* field helpers for machine-readable values. |
 | [@receipts:tx.blobHash!](src/helpers/tx.blobHash.md) | `bytes32` | Versioned hash of a blob carried by the executing transaction, or 0 when the index is out of range. |
 | [@receipts:tx.block](src/helpers/tx.block.md) ⚗️ | `number` | Block number a transaction was mined in. |

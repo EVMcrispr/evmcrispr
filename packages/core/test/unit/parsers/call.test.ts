@@ -720,7 +720,7 @@ describe("Parsers - call expression (::! read hops)", () => {
   it("does not silently re-parse the retired !:: spelling in a chain", () => {
     const error = runParser(
       commandExpressionParser,
-      `assertions:assert $a::{asset()(address)}!::{totalSupply()(uint256)} > 0`,
+      `assert $a::{asset()(address)}!::{totalSupply()(uint256)} > 0`,
     );
     expect(String(error)).to.include("ParserError");
   });

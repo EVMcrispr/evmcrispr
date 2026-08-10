@@ -37,17 +37,16 @@ accumulator.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # The caps sum to at least 100
-assertions:assert @sum!($vault::{caps()(uint256[])}) >= 100
+assert @sum!($vault::{caps()(uint256[])}) >= 100
 
 # Sum a mapped payload (double each element first)
 def @dbl! "$x: number -> number" @num!($x * 2)
-assertions:assert @sum!(@map!($vault::{caps()(uint256[])} @dbl!)) >= 200
+assert @sum!(@map!($vault::{caps()(uint256[])} @dbl!)) >= 200
 ```
 
 ### Notes
@@ -59,4 +58,4 @@ assertions:assert @sum!(@map!($vault::{caps()(uint256[])} @dbl!)) >= 200
 
 ### See Also
 
-- `assertions:assert`, `@reduce!`, `@len!`
+- `assert`, `@reduce!`, `@len!`

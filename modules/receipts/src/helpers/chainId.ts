@@ -5,8 +5,7 @@ import type Receipts from "..";
 export default defineHelper<Receipts>({
   name: "chainId",
   batchable: false,
-  description:
-    "The chain id. Unlike assert-chainid it composes into expressions.",
+  description: "The chain id of the chain the script runs against.",
   returnType: "number",
   args: [],
   async run(module) {

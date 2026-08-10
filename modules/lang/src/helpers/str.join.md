@@ -55,12 +55,11 @@ from one that legitimately failed. Better to refuse at build time.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $reg 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @str.join!(["v" $reg::{version()(string)}] ".") == "v.2"
+assert @str.join!(["v" $reg::{version()(string)}] ".") == "v.2"
 ```
 
 ### Notes
@@ -71,4 +70,4 @@ assertions:assert @str.join!(["v" $reg::{version()(string)}] ".") == "v.2"
 
 ### See Also
 
-- `assertions:assert`, `@str.split!`, `@bytes.concat!`
+- `assert`, `@str.split!`, `@bytes.concat!`

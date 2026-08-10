@@ -55,12 +55,11 @@ off-chain — compare against the numeric value.
 ### Examples
 
 ```evml
-load assertions
 load governor
 
 set $governor 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 set $proposalId 42
 
 # Succeeded = 4
-assertions:assert @proposalState!($governor $proposalId) == 4 "proposal not succeeded"
+assert @proposalState!($governor $proposalId) == 4 "proposal not succeeded"
 ```

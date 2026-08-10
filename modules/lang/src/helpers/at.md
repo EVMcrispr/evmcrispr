@@ -35,16 +35,15 @@ bounds-check) them at build time.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
 # The second owner
-assertions:assert @at!($safe::{getOwners()(address[])} 1) == @me
+assert @at!($safe::{getOwners()(address[])} 1) == @me
 
 # The last owner, resolved against the live length
-assertions:assert @at!($safe::{getOwners()(address[])} -1) == @me
+assert @at!($safe::{getOwners()(address[])} -1) == @me
 ```
 
 ### Notes
@@ -62,4 +61,4 @@ assertions:assert @at!($safe::{getOwners()(address[])} -1) == @me
 
 ### See Also
 
-- `assertions:assert`, `@len!`
+- `assert`, `@len!`

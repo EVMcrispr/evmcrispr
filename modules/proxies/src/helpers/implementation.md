@@ -52,13 +52,12 @@ beacon() -> implementation() hop through the core chain.
 ### Examples
 
 ```evml
-load assertions
 load proxies
 
 set $proxy 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 set $logic 0xd8da6bf26964af9d7eed9e03e53415d37aa96045
 
-assertions:assert @implementation!($proxy) == $logic "implementation changed"
+assert @implementation!($proxy) == $logic "implementation changed"
 ```
 
 ### Notes
@@ -69,4 +68,4 @@ assertions:assert @implementation!($proxy) == $logic "implementation changed"
 
 ### See Also
 
-- `assertions:assert`, `@codeHash!`
+- `assert`, `@codeHash!`

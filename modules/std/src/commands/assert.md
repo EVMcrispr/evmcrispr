@@ -1,5 +1,5 @@
 ---
-title: "assertions:assert"
+title: "assert"
 ---
 
 Assert that an on-chain expression satisfies a comparison, on-chain.
@@ -7,7 +7,7 @@ Assert that an on-chain expression satisfies a comparison, on-chain.
 ## Syntax
 
 ```evml
-assertions:assert <call> [operator] [expected] [message] [...extra]
+assert <call> [operator] [expected] [message] [...extra]
 ```
 
 ## Arguments
@@ -31,50 +31,49 @@ assertions:assert <call> [operator] [expected] [message] [...extra]
 ## Examples
 
 ```evml
-load assertions
 load lang
 load token
 
 # Compare a view return against a value (named method; ABI fetched automatically)
-assertions:assert @token(WETH)::balanceOf(@me) >= @token:amount(WETH 10) "insufficient bal"
+assert @token(WETH)::balanceOf(@me) >= @token:amount(WETH 10) "insufficient bal"
 
 # Inline ABI when the return type must be explicit (no ABI lookup)
-assertions:assert @token(WETH)::{balanceOf(address)(uint256) @me} >= @token:amount(WETH 10) "insufficient bal"
+assert @token(WETH)::{balanceOf(address)(uint256) @me} >= @token:amount(WETH 10) "insufficient bal"
 
 # int256 returns compare signed
 set $oracle 0x0102030405060708090a0b0c0d0e0f1011121314
-assertions:assert $oracle::{drift()(int256)} <= -5 "drifted"
+assert $oracle::{drift()(int256)} <= -5 "drifted"
 
 # Select a tuple element with a destructure lens ($ marks the element)
 set $pool 0x44fA8E6f47987339850636F88629646662444217
-assertions:assert $pool::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"
+assert $pool::{getReserves()(uint112,uint112,uint32)}[_ $ _] >= 1000 "low reserve"
 
 # A nested lens navigates the return: each level steps into an array
 # (element by position, bounds-checked against the live length on-chain)
 # or a struct (field by position) — to any depth
 set $safe 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E2
-assertions:assert $safe::{getOwners()(address[])}[[_ $]] == @me "second owner changed"
-assertions:assert $safe::{proposals()((address,uint256,bool)[])}[[_ [_ _ $]]] == true
-assertions:assert @len!($safe::{matrix()(address[][])}[[$]]) >= 3
+assert $safe::{getOwners()(address[])}[[_ $]] == @me "second owner changed"
+assert $safe::{proposals()((address,uint256,bool)[])}[[_ [_ _ $]]] == true
+assert @len!($safe::{matrix()(address[][])}[[$]]) >= 3
 
 # Approximate comparison with an allowed delta
-assertions:assert $oracle::{price()(uint256)} ~= 2000e8 --delta 50e8 "price out of range"
+assert $oracle::{price()(uint256)} ~= 2000e8 --delta 50e8 "price out of range"
 
 # Bare boolean assertion (asserts the return is true)
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
-assertions:assert $gov::{paused()(bool)}
+assert $gov::{paused()(bool)}
 
 # Chain calls: every hop but the last must return an address —
 # or select one from a multi-value return with a destructure lens
-assertions:assert $pool::{token()(address)}::{symbol()(string)} == "WETH"
-assertions:assert $pool::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"
+assert $pool::{token()(address)}::{symbol()(string)} == "WETH"
+assert $pool::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"
 
 # On-chain composition: ! helpers evaluate at assertion time via the
 # core read primitive splicing operands into Operators calls
-assertions:assert @num!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))
-assertions:assert @bool!(($gov::{quorum()(uint256)} > 0) or ($gov::{paused()(bool)} == false))
-assertions:assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
-assertions:assert @str.split!($pool::{name()(string)} " " 1) == "LP"
+assert @num!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))
+assert @bool!(($gov::{quorum()(uint256)} > 0) or ($gov::{paused()(bool)} == false))
+assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
+assert @str.split!($pool::{name()(string)} " " 1) == "LP"
 
 # Nested live calls as arguments: inner calls resolve at assertion time and
 # splice into the enclosing call's calldata (any nesting depth)
@@ -82,11 +81,11 @@ set $a 0x0102030405060708090a0b0c0d0e0f1011121315
 set $b 0x0102030405060708090a0b0c0d0e0f1011121316
 set $c 0x0102030405060708090a0b0c0d0e0f1011121317
 set $d 0x0102030405060708090a0b0c0d0e0f1011121318
-assertions:assert $a::{a(address)(uint256,uint256[]) $b::{b(uint256,uint256)(address) $c::{c(address)(uint256) @me} $d::{d()(uint256)}}}[_ [$]] == 7
+assert $a::{a(address)(uint256,uint256[]) $b::{b(uint256,uint256)(address) $c::{c(address)(uint256) @me} $d::{d()(uint256)}}}[_ [$]] == 7
 
 # A lens on a nested call argument selects the value to splice — including
 # dynamic values (arrays) navigated at runtime
-assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
+assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
 ```
 
 ## Notes
@@ -136,8 +135,11 @@ assertions:assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_
   follows it, so the cost grows with the square.
 - Inside a `batch`, a failed assertion reverts the whole transaction. Run
   standalone, the assertion is evaluated as a read-only `eth_call`.
-- Set `$assertions:address` / `$assertions:operators` to override the
-  canonical contracts (forks / testing).
+- The two contracts an assertion is built against — the ERC-8211 core that
+  judges and the Operators periphery that computes — sit at deterministic
+  CREATE2 addresses, identical on every chain, so there is nothing to
+  configure. A fork that wants different code there installs it at those
+  addresses, which keeps the compiled calldata unchanged.
 
 ## See Also
 

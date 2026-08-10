@@ -27,15 +27,14 @@ Code hash of an address, with EXTCODEHASH semantics: `bytes32(0)` for a nonexist
 ## Examples
 
 ```evml
-load assertions
 load contracts [@codeHash]
 
-assertions:assert-codehash 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb @codeHash(0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9) "implementation changed"
+assert @codeHash!(0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb) == @codeHash(0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9) "implementation changed"
 ```
 
 ## See Also
 
-- [assertions:assert-codehash](../../../assertions/src/commands/assert-codehash.md)
+- [assert](../../../std/src/commands/assert.md)
 
 ## On-chain face (@codeHash!)
 
@@ -46,18 +45,17 @@ Unlike the plain `@codeHash` face, which snapshots the hash at script *build* ti
 ### Examples
 
 ```evml
-load assertions
 load contracts
 
 set $proxy 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
 
 # The proxy's current implementation is the audited contract
-assertions:assert @codeHash!($proxy::{implementation()(address)}) == 0xf5175b73708be1e8daf1aad42b8788d13ac9adbcc61a5945743c167a76ba7dc5 "implementation changed"
+assert @codeHash!($proxy::{implementation()(address)}) == 0xf5175b73708be1e8daf1aad42b8788d13ac9adbcc61a5945743c167a76ba7dc5 "implementation changed"
 
 # Two deployments share the same runtime code
-assertions:assert @codeHash!(0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9) == @codeHash!(0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5)
+assert @codeHash!(0xf8D1677c8a0c961938bf2f9aDc3F3CFDA759A9d9) == @codeHash!(0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5)
 ```
 
 ### See Also
 
-- [assertions:assert-codehash](../../../assertions/src/commands/assert-codehash.md)
+- [assert](../../../std/src/commands/assert.md)

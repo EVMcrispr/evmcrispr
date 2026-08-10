@@ -9,7 +9,6 @@
         "@evmcrispr/module-acl": "workspace:*",
         "@evmcrispr/module-aragonos": "workspace:*",
         "@evmcrispr/module-aragonosx": "workspace:*",
-        "@evmcrispr/module-assertions": "workspace:*",
         "@evmcrispr/module-bridges": "workspace:*",
         "@evmcrispr/module-circom": "workspace:*",
         "@evmcrispr/module-contracts": "workspace:*",
@@ -171,20 +170,6 @@
       "name": "@evmcrispr/module-aragonosx",
       "version": "0.11.0",
       "dependencies": {
-        "@evmcrispr/sdk": "workspace:^",
-      },
-      "devDependencies": {
-        "@evmcrispr/test-utils": "workspace:*",
-      },
-      "peerDependencies": {
-        "viem": "^2.54.1",
-      },
-    },
-    "modules/assertions": {
-      "name": "@evmcrispr/module-assertions",
-      "version": "0.11.0",
-      "dependencies": {
-        "@evmcrispr/module-std": "workspace:^",
         "@evmcrispr/sdk": "workspace:^",
       },
       "devDependencies": {
@@ -620,7 +605,6 @@
         "@evmcrispr/module-acl": "workspace:^",
         "@evmcrispr/module-aragonos": "workspace:^",
         "@evmcrispr/module-aragonosx": "workspace:^",
-        "@evmcrispr/module-assertions": "workspace:^",
         "@evmcrispr/module-bridges": "workspace:^",
         "@evmcrispr/module-circom": "workspace:^",
         "@evmcrispr/module-contracts": "workspace:^",
@@ -980,8 +964,6 @@
     "@evmcrispr/module-aragonos": ["@evmcrispr/module-aragonos@workspace:modules/aragonos"],
 
     "@evmcrispr/module-aragonosx": ["@evmcrispr/module-aragonosx@workspace:modules/aragonosx"],
-
-    "@evmcrispr/module-assertions": ["@evmcrispr/module-assertions@workspace:modules/assertions"],
 
     "@evmcrispr/module-bridges": ["@evmcrispr/module-bridges@workspace:modules/bridges"],
 

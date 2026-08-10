@@ -15,6 +15,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Command | Description |
 |---------|-------------|
+| [assert](src/commands/assert.md) | Assert that an on-chain expression satisfies a comparison, on-chain. |
 | [batch](src/commands/batch.md) | Group multiple commands into a single transaction. |
 | [def](src/commands/def.md) | Define a user command, helper, on-chain helper (`def @name!`), or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
@@ -55,6 +56,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@me](src/helpers/me.md) | `address` | Connected wallet address. |
 | [@nonce](src/helpers/nonce.md) | `number` | Number of transactions sent from an address (its account nonce), read over plain RPC. For contracts it counts the CREATEs they performed. There is no on-chain form: the EVM has no nonce opcode. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
+| [@ok!](src/helpers/ok.md) | `bool` | Whether a live call resolves without reverting: true when the call succeeds, false when it reverts. |
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
 | [@Ether](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |

@@ -48,17 +48,16 @@ corresponding `@unzip!` lane.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $amm 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @unzip!($amm::{reservePairs()(uint256[])} 0) == 0x1122
+assert @unzip!($amm::{reservePairs()(uint256[])} 0) == 0x1122
 
 # the lane may be omitted, and then it is lane 0
-assertions:assert @unzip!($amm::{reservePairs()(uint256[])}) == 0x1122
+assert @unzip!($amm::{reservePairs()(uint256[])}) == 0x1122
 ```
 
 ### See Also
 
-- `assertions:assert`, `@zip!`
+- `assert`, `@zip!`

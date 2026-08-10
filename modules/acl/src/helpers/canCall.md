@@ -57,11 +57,10 @@ assertion time. The selector computes at composition time; the
 ### Examples
 
 ```evml
-load assertions
 load acl
 
 set $manager 0xa111111111111111111111111111111111111111
 set $token 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 
-assertions:assert @canCall!($manager @me $token "mint(address,uint256)")
+assert @canCall!($manager @me $token "mint(address,uint256)")
 ```

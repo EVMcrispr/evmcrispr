@@ -96,13 +96,12 @@ A name ending in `!` defines an ON-CHAIN helper: one that compiles into an
 assertion instead of running when the script is built.
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 def @ge100! "$x: number -> bool" @bool!($x >= 100)
-assertions:assert @all!($vault::{caps()(uint256[])} @ge100!)
+assert @all!($vault::{caps()(uint256[])} @ge100!)
 ```
 
 This is the only way to write the predicate, transform or reducer that

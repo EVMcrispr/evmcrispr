@@ -51,14 +51,13 @@ from one that legitimately failed. Better to refuse at build time.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
-assertions:assert @concat!($safe::{caps()(uint256[])} [1 2]) == 0x1122
+assert @concat!($safe::{caps()(uint256[])} [1 2]) == 0x1122
 ```
 
 ### See Also
 
-- `assertions:assert`, `@flat!`, `@bytes.concat!`
+- `assert`, `@flat!`, `@bytes.concat!`

@@ -41,20 +41,19 @@ like any nested array face.
 ### Examples
 
 ```evml
-load assertions
 load safe
 load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
 # Membership, live at judge time
-assertions:assert @includes!(@safe:owners!($safe) @me) "signer removed"
+assert @includes!(@safe:owners!($safe) @me) "signer removed"
 
 # Owner-set size and a specific slot
-assertions:assert @len!(@safe:owners!($safe)) >= 3
-assertions:assert @at!(@safe:owners!($safe) 0) != 0x0000000000000000000000000000000000000000
+assert @len!(@safe:owners!($safe)) >= 3
+assert @at!(@safe:owners!($safe) 0) != 0x0000000000000000000000000000000000000000
 ```
 
 ### See Also
 
-- `assertions:assert`, `@safe:threshold!`, `@safe:isOwner!`, `@safe:modules!`
+- `assert`, `@safe:threshold!`, `@safe:isOwner!`, `@safe:modules!`

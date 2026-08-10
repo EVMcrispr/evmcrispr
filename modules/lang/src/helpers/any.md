@@ -44,14 +44,13 @@ and costs several staticcalls per element instead of one.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # Some cap is unset
 def @isZero! "$x: number -> bool" @bool!($x == 0)
-assertions:assert @any!($vault::{caps()(uint256[])} @isZero!) == false
+assert @any!($vault::{caps()(uint256[])} @isZero!) == false
 ```
 
 ### Notes
@@ -61,4 +60,4 @@ assertions:assert @any!($vault::{caps()(uint256[])} @isZero!) == false
 
 ### See Also
 
-- `assertions:assert`, `@all!`, `@includes!`
+- `assert`, `@all!`, `@includes!`

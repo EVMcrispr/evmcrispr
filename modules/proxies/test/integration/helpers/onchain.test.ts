@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -8,12 +9,12 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const PROXY = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const LOGIC = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 
-const preamble = `load assertions\nload proxies\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load proxies`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -26,7 +27,7 @@ describeCommand("assert (@implementation!)", {
   cases: [
     {
       name: "compiles to orElse(implementation(), beacon() -> implementation())",
-      script: `assertions:assert @implementation!(${PROXY}) == ${LOGIC} "implementation changed"`,
+      script: `assert @implementation!(${PROXY}) == ${LOGIC} "implementation changed"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const orElse = d.core(param);

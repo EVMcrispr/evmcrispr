@@ -2,28 +2,28 @@ import type { Action, CallExpressionNode, Node } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
 import type { Category, CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
 import {
+  assertParamAction,
+  boundWord,
+  CORE_ADDRESS,
   cmpCombine,
   compileOnchainHelper,
   compileOperand,
   compileTopCall,
+  constraint,
   hashParamOf,
+  type InputParam,
   isBangHelperNode,
+  judged,
+  OPERATORS_ADDRESS,
+  operatorFragment,
+  opJudge,
   scaleOf,
   stringDigest,
+  wholeDelta,
+  wordJudge,
 } from "@evmcrispr/sdk/onchain";
 import { isHex, keccak256 } from "viem";
-import type Assertions from "..";
-import {
-  assertParamAction,
-  boundWord,
-  operatorFragment,
-  resolveAssertionsContract,
-  resolveOperatorsContract,
-  wholeDelta,
-} from "../lib/assertions";
-import type { InputParam } from "../lib/erc8211";
-import { constraint } from "../lib/erc8211";
-import { judged, opJudge, wordJudge } from "../lib/judge";
+import type Std from "..";
 
 /** Operators each category supports at the top level of an assertion. */
 const PLAIN_OPERATORS: Record<Category, string[]> = {
@@ -56,7 +56,7 @@ function requireNum(o: Operand & { kind: "const" }, what: string): Num {
   throw new ErrorException(`${what} must be a number, got a ${o.cat} value`);
 }
 
-export default defineCommand<Assertions>({
+export default defineCommand<Std>({
   name: "assert",
   description:
     "Assert that an on-chain expression satisfies a comparison, on-chain.",
@@ -114,11 +114,11 @@ export default defineCommand<Assertions>({
     const ctx: CompileCtx = {
       module,
       interpreters,
-      core: await resolveAssertionsContract(module),
-      operators: await resolveOperatorsContract(module),
+      core: CORE_ADDRESS,
+      operators: OPERATORS_ADDRESS,
     };
-    const emit = async (param: InputParam): Promise<Action[]> => [
-      await assertParamAction(module, param, msg),
+    const emit = (param: InputParam): Action[] => [
+      assertParamAction(param, msg),
     ];
 
     const lhsNode = call as Node;

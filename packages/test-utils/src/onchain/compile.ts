@@ -30,15 +30,9 @@ export interface CompileEnv {
 }
 
 function preambleOf(env: CompileEnv): string {
-  // `load assertions` is implicit, since every on-chain expression needs it —
-  // but a suite whose own module IS assertions supplies its own load line
-  // (with an import list), and loading it twice is an error.
-  const ownsAssertions = moduleBaseName(env.module) === "assertions";
-  return [
-    ownsAssertions ? "" : "load assertions",
-    env.module ? `load ${env.module}` : "",
-    env.preamble ?? "",
-  ]
+  // Nothing to load for the expression layer itself: `assert` and `@ok!`
+  // live in std, which is always loaded.
+  return [env.module ? `load ${env.module}` : "", env.preamble ?? ""]
     .filter(Boolean)
     .join("\n");
 }
@@ -54,7 +48,7 @@ function interpreterFor(env: CompileEnv): Interpreter {
 /**
  * Compile one expression to its raw, PRE-JUDGE operand.
  *
- * Deliberately not routed through `assertions:assert`. The judge folds a
+ * Deliberately not routed through `assert`. The judge folds a
  * String/Bytes side into `hash(x) EQ digest`, after which the value cannot be
  * recovered — so going through assert would only ever tell you pass/fail.
  * This mirrors assert's own side dispatch and stops before the judging step.
@@ -79,7 +73,7 @@ export async function compileExpression(
   await evm.interpret(preamble);
 
   const ctx: CompileCtx = {
-    module: evm.getModule("assertions")!,
+    module: evm.getModule("std")!,
     interpreters: {
       interpretNode: evm.interpretNode,
       interpretNodes: evm.interpretNodes,

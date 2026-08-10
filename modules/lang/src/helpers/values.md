@@ -36,13 +36,12 @@ array faces (`@reduce!`, `@sort!`, `@len!`, …).
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $amm 0x44fA8E6f47987339850636F88629646662444217
 
 # The pair values (lane 1) sum past the floor
-assertions:assert @reduce!(@values!($amm::{reservePairs()(uint256[])}) add 0) >= 100
+assert @reduce!(@values!($amm::{reservePairs()(uint256[])}) add 0) >= 100
 ```
 
 ### Notes
@@ -52,4 +51,4 @@ assertions:assert @reduce!(@values!($amm::{reservePairs()(uint256[])}) add 0) >=
 
 ### See Also
 
-- `assertions:assert`, `@keys!`, `@lookup!`, `@enumerate!`, `@unzip!`
+- `assert`, `@keys!`, `@lookup!`, `@enumerate!`, `@unzip!`

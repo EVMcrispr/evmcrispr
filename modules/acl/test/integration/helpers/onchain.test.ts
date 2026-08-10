@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -9,15 +10,15 @@ import {
 } from "@evmcrispr/test-utils/evml";
 import { getAddress, keccak256, stringToHex, toFunctionSelector } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const TARGET = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const MANAGER = getAddress("0xa111111111111111111111111111111111111111");
 const ACCOUNT = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 const OP_ID =
   "0x0102030405060708091011121314151617181920212223242526272829303132";
 
-const preamble = `load assertions\nload acl\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load acl`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -39,7 +40,7 @@ describeCommand("assert (acl on-chain faces)", {
   cases: [
     {
       name: "compiles @owner! to a direct owner() staticcall",
-      script: `assertions:assert @owner!(${TARGET}) == ${ACCOUNT} "owner rotated"`,
+      script: `assert @owner!(${TARGET}) == ${ACCOUNT} "owner rotated"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -50,7 +51,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "compiles @pendingOwner! to a direct pendingOwner() staticcall",
-      script: `assertions:assert @pendingOwner!(${TARGET}) == 0x0000000000000000000000000000000000000000`,
+      script: `assert @pendingOwner!(${TARGET}) == 0x0000000000000000000000000000000000000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         expect(d.staticCallOf(param).data).to.equal(
@@ -61,7 +62,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "compiles @defaultAdmin! and @defaultAdminDelay! to direct reads",
-      script: `assertions:assert @bool!((@defaultAdmin!(${TARGET}) == ${ACCOUNT}) and (@defaultAdminDelay!(${TARGET}) >= 3600))`,
+      script: `assert @bool!((@defaultAdmin!(${TARGET}) == ${ACCOUNT}) and (@defaultAdminDelay!(${TARGET}) >= 3600))`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "bitAnd(uint256,uint256)");
@@ -77,7 +78,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "unwraps the @pendingDefaultAdmin! pair through pick word 0",
-      script: `assertions:assert @pendingDefaultAdmin!(${TARGET}) == 0x0000000000000000000000000000000000000000 "transfer pending"`,
+      script: `assert @pendingDefaultAdmin!(${TARGET}) == 0x0000000000000000000000000000000000000000 "transfer pending"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = pickedCall(param, 0n);
@@ -88,7 +89,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "hashes AccessControl role names at composition time in @hasRole!",
-      script: `assertions:assert @hasRole!(${TARGET} MINTER_ROLE ${ACCOUNT})`,
+      script: `assert @hasRole!(${TARGET} MINTER_ROLE ${ACCOUNT})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -101,7 +102,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "routes numeric roles through the AccessManager overload with pick 0",
-      script: `assertions:assert @hasRole!(${MANAGER} 1 ${ACCOUNT}) == true`,
+      script: `assert @hasRole!(${MANAGER} 1 ${ACCOUNT}) == true`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = pickedCall(param, 0n);
@@ -114,7 +115,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "compiles @roleAdmin! for AccessControl roles as a bytes32 read",
-      script: `assertions:assert @roleAdmin!(${TARGET} MINTER_ROLE) == 0x0000000000000000000000000000000000000000000000000000000000000000`,
+      script: `assert @roleAdmin!(${TARGET} MINTER_ROLE) == 0x0000000000000000000000000000000000000000000000000000000000000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -126,7 +127,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "compiles @roleAdmin! for AccessManager role ids as a uint read",
-      script: `assertions:assert @roleAdmin!(${MANAGER} 7) == 0`,
+      script: `assert @roleAdmin!(${MANAGER} 7) == 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -137,7 +138,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "compiles @canCall! with the composition-time selector and pick 0",
-      script: `assertions:assert @canCall!(${MANAGER} ${ACCOUNT} ${TARGET} "mint(address,uint256)")`,
+      script: `assert @canCall!(${MANAGER} ${ACCOUNT} ${TARGET} "mint(address,uint256)")`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = pickedCall(param, 0n);
@@ -151,7 +152,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "compiles @operationSchedule! of an @operationId! read",
-      script: `assertions:assert @operationSchedule!(${MANAGER} ${OP_ID}) == 0 "still scheduled"`,
+      script: `assert @operationSchedule!(${MANAGER} ${OP_ID}) == 0 "still scheduled"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -164,7 +165,7 @@ describeCommand("assert (acl on-chain faces)", {
     },
     {
       name: "compiles @operationId! to a hashOperation read",
-      script: `assertions:assert @operationId!(${MANAGER} ${ACCOUNT} ${TARGET} "pause()") != 0x0000000000000000000000000000000000000000000000000000000000000000`,
+      script: `assert @operationId!(${MANAGER} ${ACCOUNT} ${TARGET} "pause()") != 0x0000000000000000000000000000000000000000000000000000000000000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "ne(uint256,uint256)");

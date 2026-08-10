@@ -1,4 +1,5 @@
 import "../../setup";
+import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -15,13 +16,13 @@ import {
   stringToHex,
 } from "viem";
 
-const ASSERTIONS = getAddress("0x00000000000000000000000000000000000a55e7");
-const OPERATORS = getAddress("0x000000000000000000000000000000000097e7a7");
+const ASSERTIONS = getAddress(CORE_ADDRESS);
+const OPERATORS = getAddress(OPERATORS_ADDRESS);
 const GOVERNOR = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const TIMELOCK = getAddress("0xa111111111111111111111111111111111111111");
 const TARGET = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 
-const preamble = `load assertions\nload governor\nset $assertions:address ${ASSERTIONS}\nset $assertions:operators ${OPERATORS}`;
+const preamble = `load governor`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
@@ -39,7 +40,7 @@ describeCommand("assert (governor on-chain faces)", {
   cases: [
     {
       name: "compiles @timelockMinDelay! to a direct getMinDelay() staticcall",
-      script: `assertions:assert @timelockMinDelay!(${TIMELOCK}) >= 3600 "delay lowered"`,
+      script: `assert @timelockMinDelay!(${TIMELOCK}) >= 3600 "delay lowered"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -50,7 +51,7 @@ describeCommand("assert (governor on-chain faces)", {
     },
     {
       name: "compiles @proposalState! to the raw uint8 enum read",
-      script: `assertions:assert @proposalState!(${GOVERNOR} 123) == 4 "proposal not succeeded"`,
+      script: `assert @proposalState!(${GOVERNOR} 123) == 4 "proposal not succeeded"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -65,7 +66,7 @@ describeCommand("assert (governor on-chain faces)", {
     },
     {
       name: "compiles @timelockOperationState! to nested conds over the state views",
-      script: `assertions:assert @timelockOperationState!(${TIMELOCK} 0x83f6db63dbcae7ea6a625e442c00b74a4707ce6c4a91667c8b5cf01b6f3159a1) == 2 "not ready"`,
+      script: `assert @timelockOperationState!(${TIMELOCK} 0x83f6db63dbcae7ea6a625e442c00b74a4707ce6c4a91667c8b5cf01b6f3159a1) == 2 "not ready"`,
       validate: (actions) => {
         const OP_ID =
           "83f6db63dbcae7ea6a625e442c00b74a4707ce6c4a91667c8b5cf01b6f3159a1";
@@ -113,7 +114,7 @@ describeCommand("assert (governor on-chain faces)", {
     },
     {
       name: "compiles @proposalId! to orElse(getProposalId, hashProposal)",
-      script: `assertions:assert @proposalId!(${GOVERNOR} [${TARGET}] [0] [0x12345678] "do the thing") != 0`,
+      script: `assert @proposalId!(${GOVERNOR} [${TARGET}] [0] [0x12345678] "do the thing") != 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "ne(uint256,uint256)");

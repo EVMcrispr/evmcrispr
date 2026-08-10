@@ -37,14 +37,13 @@ uses) and a core `pick` of the kept payload's first word.
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # The first cap at or above the floor is exactly the floor
 def @ge100! "$x: number -> bool" @bool!($x >= 100)
-assertions:assert @find!($vault::{caps()(uint256[])} @ge100!) == 100
+assert @find!($vault::{caps()(uint256[])} @ge100!) == 100
 ```
 
 ### Notes
@@ -58,4 +57,4 @@ assertions:assert @find!($vault::{caps()(uint256[])} @ge100!) == 100
 
 ### See Also
 
-- `assertions:assert`, `@filter!`, `@includes!`, `@any!`
+- `assert`, `@filter!`, `@includes!`, `@any!`

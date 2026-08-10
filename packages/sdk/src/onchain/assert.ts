@@ -1,57 +1,20 @@
-import type { Address, Module, Num, TransactionAction } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
-import {
-  CORE_ADDRESS,
-  encodeAssertParam,
-  type InputParam,
-  resolveCoreAddress,
-  resolveOperatorsAddress,
-} from "@evmcrispr/sdk/onchain";
-
-/** Canonical address of the Assertions core v2.0 (interim deployment) —
- *  the historical name of the shared layer's `CORE_ADDRESS`. */
-export const ASSERTIONS_ADDRESS: Address = CORE_ADDRESS;
-
-/** Canonical address of the Operators v1.0 (interim deployment). */
-/** ABI loading moved to the shared layer; re-exported for old importers. */
-export { loadFunctionAbi, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
-
-/**
- * Resolve the assertions core contract address. Honours the
- * `$assertions:address` override when set, otherwise uses the canonical
- * deployment. Thin wrapper over the shared layer's `resolveCoreAddress`.
- */
-export async function resolveAssertionsContract(
-  module: Module,
-): Promise<Address> {
-  return resolveCoreAddress(module.bindingsManager);
-}
-
-/**
- * Resolve the operators contract address. Honours the
- * `$assertions:operators` override when set, otherwise uses the canonical
- * deployment. Thin wrapper over the shared layer's
- * `resolveOperatorsAddress`.
- */
-export async function resolveOperatorsContract(
-  module: Module,
-): Promise<Address> {
-  return resolveOperatorsAddress(module.bindingsManager);
-}
+import { ErrorException } from "../errors";
+import type { TransactionAction } from "../types";
+import type { Num } from "../utils/Num";
+import { CORE_ADDRESS } from "./addresses";
+import { encodeAssertParam, type InputParam } from "./erc8211";
 
 /**
  * Encode an `assertParam(param[, message])` action against the assertions
- * contract, flagged `readOnly` so it runs as an `eth_call` check when
- * executed standalone, but as a real atomic call when included in a batch.
+ * core, flagged `readOnly` so it runs as an `eth_call` check when executed
+ * standalone, but as a real atomic call when included in a batch.
  */
-export async function assertParamAction(
-  module: Module,
+export function assertParamAction(
   param: InputParam,
   message = "",
-): Promise<TransactionAction> {
-  const target = await resolveAssertionsContract(module);
+): TransactionAction {
   return {
-    to: target,
+    to: CORE_ADDRESS,
     data: encodeAssertParam(param, message),
     readOnly: true,
   };
@@ -117,7 +80,7 @@ export function wholeDelta(value: Num, display: Num = value): bigint {
   return value.toBigInt();
 }
 
-/** Map a DSL comparison operator to its assertions-contract name fragment. */
+/** Map a DSL comparison operator to its assertions-core name fragment. */
 const OPERATORS: Record<string, string> = {
   "==": "Eq",
   "!=": "Ne",

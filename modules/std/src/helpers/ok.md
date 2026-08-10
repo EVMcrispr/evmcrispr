@@ -1,5 +1,5 @@
 ---
-title: "@assertions:ok!"
+title: "@ok!"
 ---
 
 Whether a live call resolves without reverting: true when the call succeeds, false when it reverts.
@@ -9,7 +9,7 @@ Whether a live call resolves without reverting: true when the call succeeds, fal
 ## Syntax
 
 ```evml
-@assertions:ok!(call)
+@ok!(call)
 ```
 
 ## Arguments
@@ -23,15 +23,14 @@ Whether a live call resolves without reverting: true when the call succeeds, fal
 ## Examples
 
 ```evml
-load assertions
 
 set $token 0x6B175474E89094C44Da98b954EedeAC495271d0F
 
 # True when the call resolves without reverting
-assertions:assert @ok!($token::{symbol()(string)})
+assert @ok!($token::{symbol()(string)})
 
 # Compose into boolean logic
-assertions:assert @bool!(@ok!($token::{decimals()(uint8)}) and $token::{decimals()(uint8)} <= 18)
+assert @bool!(@ok!($token::{decimals()(uint8)}) and $token::{decimals()(uint8)} <= 18)
 ```
 
 ## Notes
@@ -43,4 +42,4 @@ assertions:assert @bool!(@ok!($token::{decimals()(uint8)}) and $token::{decimals
 
 ## See Also
 
-- [assertions:assert](../commands/assert.md), [assertions:assert-code](../commands/assert-code.md)
+- [assert](../commands/assert.md), [@contracts:codeAt!](../../../contracts/src/helpers/codeAt.md)

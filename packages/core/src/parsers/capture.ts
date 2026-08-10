@@ -397,7 +397,7 @@ export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
  * Look-ahead that checks for a tx-capture arrow (`$>` or `$*>`) followed
  * by whitespace, without consuming. The `$` prefix keeps every other use
  * of `>` intact: the no-whitespace import rename (`@addr>@myAddr`) and
- * infix comparison args like `assertions:assert-balance @me > 1e18`.
+ * infix comparison args like `assert @balance!(ETH @me) > 1e18`.
  */
 export const txCaptureArrowLookahead = lookAhead(
   sequenceOf([choice([str("$*>"), str("$>")]), whitespace]),

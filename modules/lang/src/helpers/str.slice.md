@@ -39,16 +39,15 @@ resolve against the live byte length at assertion time (`-k` compiles to
 ### Examples
 
 ```evml
-load assertions
 load lang
 
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 
 # First five bytes of the name
-assertions:assert @str.slice!($pool::{name()(string)} 0 5) == "Curve"
+assert @str.slice!($pool::{name()(string)} 0 5) == "Curve"
 
 # Last five bytes: the start resolves against the live length
-assertions:assert @str.slice!($pool::{name()(string)} -5) == "Token"
+assert @str.slice!($pool::{name()(string)} -5) == "Token"
 ```
 
 ### Notes
@@ -61,4 +60,4 @@ assertions:assert @str.slice!($pool::{name()(string)} -5) == "Token"
 
 ### See Also
 
-- `assertions:assert`, `@str.at!`, `@str.split!`
+- `assert`, `@str.at!`, `@str.split!`

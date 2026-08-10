@@ -227,7 +227,7 @@
     },
     "command": {
       "comment": "Auto-generated from modules/std/src/commands by scripts/codegen-grammar.ts — do not edit by hand.",
-      "match": "\\b(?:batch|def|exec|exit|if|load|loop|print|send|set|sign|switch|wait)\\b",
+      "match": "\\b(?:assert|batch|def|exec|exit|if|load|loop|print|send|set|sign|switch|wait)\\b",
       "name": "keyword.control.evml"
     },
     "named-arg": {
