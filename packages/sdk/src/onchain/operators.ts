@@ -60,7 +60,7 @@ export const OPERATORS_ABI = parseAbi([
   "function bitSet(uint256 mask, uint256 index) pure returns (bool)",
   // environment
   "function balance(address account) view returns (uint256)",
-  "function codehash(address account) view returns (bytes32)",
+  "function codeHash(address account) view returns (bytes32)",
   "function timestamp() view returns (uint256)",
   "function blockNumber() view returns (uint256)",
   "function chainId() view returns (uint256)",
@@ -150,7 +150,7 @@ const sel = (signature: string): Hex =>
  *  splices operands into through the core's `read`. */
 export const OP_SELECTORS = {
   balance: sel("balance(address)"),
-  codehash: sel("codehash(address)"),
+  codeHash: sel("codeHash(address)"),
   hash: sel("hash(bytes)"),
   byteLen: sel("byteLen(bytes)"),
   indexOf: sel("indexOf(bytes,bytes,int256)"),
@@ -202,7 +202,7 @@ export const OP_SELECTORS = {
 
 type OperatorFn =
   | "balance"
-  | "codehash"
+  | "codeHash"
   | "timestamp"
   | "blockNumber"
   | "chainId"

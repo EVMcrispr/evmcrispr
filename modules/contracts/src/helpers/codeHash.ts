@@ -51,8 +51,8 @@ export default defineHelper<Contracts>({
 
     if (accountNode.type === NodeType.CallExpression) {
       // Runtime account: the core's read splices the resolved address
-      // word into codehash(address).
-      const chain = await requireChainArg(ctx, "codehash!", accountNode);
+      // word into codeHash(address).
+      const chain = await requireChainArg(ctx, "codeHash!", accountNode);
       const out = chain.lastAbi.outputs?.[0];
       if (chain.lastAbi.outputs?.length !== 1 || out?.type !== "address") {
         throw new ErrorException(
@@ -61,7 +61,7 @@ export default defineHelper<Contracts>({
       }
       return coreCall(
         ctx,
-        encodeOpRead(ctx.operators, OP_SELECTORS.codehash, [
+        encodeOpRead(ctx.operators, OP_SELECTORS.codeHash, [
           chainParam(ctx, chain),
         ]),
         "Bytes32",
@@ -74,11 +74,11 @@ export default defineHelper<Contracts>({
         `@codeHash! account must resolve to an address, got ${account}`,
       );
     }
-    // Composition-time account: plain codehash(account) calldata pointed
+    // Composition-time account: plain codeHash(account) calldata pointed
     // straight at the Operators contract.
     return opsCall(
       ctx,
-      encodeOperator("codehash", [getAddress(account)]),
+      encodeOperator("codeHash", [getAddress(account)]),
       "Bytes32",
     );
   },
