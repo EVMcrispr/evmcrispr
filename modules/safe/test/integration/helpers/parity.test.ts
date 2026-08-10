@@ -23,8 +23,13 @@ import { helpers } from "../../../src/_generated";
  * in both directions, since a scan and a direct call are exactly the pair
  * that could disagree about an absent owner.
  *
- * `@guard` reads a storage slot off-chain and `@modules` paginates, so both
- * stay out.
+ * `@guard` and `@modules` are still out, and a dispatching mock is not enough
+ * for either. Against a mock returning an abi-encoded address as the guard
+ * slot the two faces decode it differently (zero vs the address), and
+ * `@modules` walks pages until `next` is zero and does not stop on a mock
+ * that answers every page identically — it times out. Both need a mock that
+ * models the contract rather than one that answers a selector, which is the
+ * point at which the mock is what is under test.
  */
 
 const T = "0x0000000000000000000000000000000000005a01";
