@@ -82,6 +82,44 @@ describeCommand("assert (lending on-chain faces)", {
         d.expectConstraint(param, "Gte", 5n * 10n ** 25n);
       },
     },
+    {
+      name: "picks the health factor out of the account data, wad-scaled",
+      script: `assertions:assert @lending:healthFactor!(${SOME_ADDRESS}) >= 1.5`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const pick = d.core(param);
+        expect(pick.functionName).to.equal("pick");
+        // getUserAccountData returns six words; the health factor is last.
+        expect(pick.args[1]).to.equal(5n);
+        const call = d.staticCallOf(pick.args[0] as never);
+        expect(call.target).to.equal(getAddress(AAVE_POOL));
+        expect(call.data.startsWith(selectorOf("getUserAccountData(address)")))
+          .to.be.true;
+        // Wad-scaled, so 1.5 travels as 1.5e18 rather than rounding to 2.
+        d.expectConstraint(param, "Gte", 15n * 10n ** 17n);
+      },
+    },
+    {
+      name: "reads debt off the address the reserve struct holds",
+      script: `assertions:assert @lending:debt!(${SOME_ADDRESS} ${WXDAI}) == 0`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        // read(target, balanceOf, [account]) where the target is itself a
+        // pick of word 10 — the variable debt token — off the reserve.
+        const { target, selector, segments } = d.readOf(param);
+        expect(selector).to.equal(selectorOf("balanceOf(address)"));
+        expect(segments).to.have.lengthOf(1);
+        d.expectRawWord(segments[0], BigInt(getAddress(SOME_ADDRESS)));
+
+        const pick = d.core(target);
+        expect(pick.functionName).to.equal("pick");
+        expect(pick.args[1]).to.equal(10n);
+        const reserve = d.staticCallOf(pick.args[0] as never);
+        expect(reserve.target).to.equal(getAddress(AAVE_POOL));
+        expect(reserve.data.startsWith(selectorOf("getReserveData(address)")))
+          .to.be.true;
+      },
+    },
   ],
   errorCases: [
     {

@@ -1,7 +1,20 @@
 import { ErrorException, encodeAction, Num } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import type { Address } from "viem";
-import { encodeFunctionData, maxUint256 } from "viem";
+import {
+  callReadOperand,
+  directReadOperand,
+  encodePick,
+  encodeRead,
+  materializeWord,
+  operandNode,
+  staticCallParam,
+} from "@evmcrispr/sdk/onchain";
+import type { AbiFunction, Address } from "viem";
+import {
+  encodeFunctionData,
+  getAbiItem,
+  maxUint256,
+  toFunctionSelector,
+} from "viem";
 import { sameAddress } from "../../utils/amounts";
 import { compileCompoundedApy } from "../../utils/compileRates";
 import { RAY, rayAprToApy } from "../../utils/rates";
@@ -13,6 +26,9 @@ import { getMarket, readReserve, readVariableDebt } from "./market";
 // Stable-rate borrowing was removed in Aave v3.2; every market built from
 // this factory runs 3.x (or a fork of it), so all borrows and repays are
 // variable rate.
+/** ERC-20 balanceOf, the second hop of the debt read. */
+const BALANCE_OF = toFunctionSelector("function balanceOf(address)");
+
 const VARIABLE_RATE = "2";
 const REFERRAL_CODE = "0";
 
@@ -161,6 +177,51 @@ export function makeAaveStyleAdapter(
         args: [account],
       });
       return healthFactor;
+    },
+
+    async compileHealthFactor(ctx, module, chainId, account) {
+      const { pool } = await getMarket(module, market, chainId);
+      // getUserAccountData returns six words; the health factor is the
+      // last, wad-scaled, so `>= 1.5` compares against 1.5e18.
+      const read = await callReadOperand(
+        ctx,
+        pool,
+        getAbiItem({
+          abi: poolAbi,
+          name: "getUserAccountData",
+        }) as AbiFunction,
+        [operandNode(account)],
+        "Uint",
+        5n,
+      );
+      return { ...read, scale: 18 };
+    },
+
+    async compileDebt(ctx, module, chainId, account, token) {
+      const { pool } = await getMarket(module, market, chainId);
+      await readReserve(module, market, chainId, token);
+      // Two hops with a computed target: the variable debt token is word
+      // 10 of the reserve struct, and the balance is read off whatever
+      // address that word holds at assertion time — so a market that
+      // migrates its debt token between build and execution is followed,
+      // not cached.
+      const reserve = staticCallParam(
+        pool,
+        encodeFunctionData({
+          abi: poolAbi,
+          functionName: "getReserveData",
+          args: [token],
+        }),
+      );
+      const debtToken = staticCallParam(ctx.core, encodePick(reserve, 10n));
+      return {
+        kind: "call",
+        param: staticCallParam(
+          ctx.core,
+          encodeRead(debtToken, BALANCE_OF, [materializeWord(ctx, account)]),
+        ),
+        cat: "Uint",
+      };
     },
 
     async apy(module, chainId, token, side) {

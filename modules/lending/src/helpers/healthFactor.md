@@ -2,7 +2,7 @@
 title: "@lending:healthFactor"
 ---
 
-Health factor of an account's lending position, 1e18-scaled (below 1e18 the position is liquidatable; uint256.max when the account has no debt). Composes with assertions: assert @lending:healthFactor(@me) >= 1.5e18.
+Health factor of an account's lending position: below 1 the position is liquidatable, and an account with no debt reads as effectively unbounded. Compare it directly, as in `>= 1.5`.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -24,10 +24,23 @@ Health factor of an account's lending position, 1e18-scaled (below 1e18 the posi
 ## Examples
 
 ```evml
-# Print the health factor (1e18-scaled; below 1e18 is liquidatable)
+# Print the health factor (below 1 is liquidatable)
 print "Health factor:" @lending:healthFactor(@me)
 ```
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@healthFactor!)
+
+Reads the account data at assertion time and takes the health factor out
+of it, so a batch that borrows can check what it left behind rather than
+what it started from.
+
+The value is wad-scaled by the protocol, and the face says so, which is
+what lets `>= 1.5` mean one and a half. Comparing against `1.5e18` would
+now be off by eighteen orders of magnitude — that spelling belongs to
+the older raw-integer contract and no longer applies to either face.
+
+Only Aave-style markets answer: Comet exposes `isBorrowCollateralized`
+rather than a ratio, so it omits the slot and the face names it.
 ## See Also

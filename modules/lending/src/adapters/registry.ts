@@ -73,13 +73,15 @@ export function requireRead<K extends ReadMethod>(
   return fn;
 }
 
-type CompileMethod = "compileApy";
+type CompileMethod = "compileApy" | "compileHealthFactor" | "compileDebt";
 
 const COMPILE_OF: Record<ReadMethod & string, CompileMethod | undefined> = {
   apy: "compileApy",
-  healthFactor: undefined,
+  healthFactor: "compileHealthFactor",
+  debt: "compileDebt",
+  // maxBorrow prices collateral by walking every listed asset on Comet,
+  // and a loop has no composition at any node count.
   maxBorrow: undefined,
-  debt: undefined,
 };
 
 /**
@@ -92,10 +94,19 @@ const COMPILE_OF: Record<ReadMethod & string, CompileMethod | undefined> = {
  * the slot and the error says which protocol cannot do it, rather than a
  * face quietly meaning something else.
  */
+/** The compile face matching a read, so call sites keep exact arities. */
+type CompileOf<K extends ReadMethod> = K extends "apy"
+  ? NonNullable<LendingAdapter["compileApy"]>
+  : K extends "healthFactor"
+    ? NonNullable<LendingAdapter["compileHealthFactor"]>
+    : K extends "debt"
+      ? NonNullable<LendingAdapter["compileDebt"]>
+      : never;
+
 export function requireCompile<K extends ReadMethod>(
   adapter: LendingAdapter,
   method: K,
-): NonNullable<LendingAdapter[CompileMethod]> {
+): CompileOf<K> {
   const key = COMPILE_OF[method];
   const fn = key ? adapter[key] : undefined;
   if (!fn) {
@@ -103,5 +114,5 @@ export function requireCompile<K extends ReadMethod>(
       `${adapter.name} cannot evaluate ${method} on-chain — use the plain @${method} face, or pass --using with a protocol that can`,
     );
   }
-  return fn;
+  return fn as CompileOf<K>;
 }

@@ -77,6 +77,13 @@ export interface LendingAdapter {
     chainId: number,
     account: Address,
   ): Promise<bigint>;
+  /** The on-chain form of {@link healthFactor}, wad-scaled like the read. */
+  compileHealthFactor?(
+    ctx: CompileCtx,
+    module: Lending,
+    chainId: number,
+    account: Operand,
+  ): Promise<Operand>;
   /**
    * APY as a scaled integer: the word times 10^-scale is the fraction
    * (2.04% is 204e23 at scale 27). Scaled rather than a decimal so the
@@ -115,4 +122,12 @@ export interface LendingAdapter {
     account: Address,
     token: Address,
   ): Promise<bigint>;
+  /** The on-chain form of {@link debt}, in the token's base units. */
+  compileDebt?(
+    ctx: CompileCtx,
+    module: Lending,
+    chainId: number,
+    account: Operand,
+    token: Address,
+  ): Promise<Operand>;
 }

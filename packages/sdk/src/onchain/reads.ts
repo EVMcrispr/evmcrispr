@@ -10,7 +10,11 @@ import { ErrorException } from "../errors";
 import type { Node } from "../types";
 import { NodeType } from "../types";
 import { encodeCalldata } from "../utils/encoders";
-import { compileOperand, materializeWord } from "./compile";
+import {
+  compileOperand,
+  materializeWord,
+  PRECOMPILED_OPERAND,
+} from "./compile";
 import type { ArgSpec } from "./construct";
 import { buildCallSegments } from "./construct";
 import { encodePick, encodeRead } from "./core";
@@ -36,7 +40,11 @@ async function argSpec(
   if (
     node.type === NodeType.CallExpression ||
     (node.type === NodeType.HelperFunctionExpression &&
-      (node as { name?: string }).name?.endsWith("!"))
+      (node as { name?: string }).name?.endsWith("!")) ||
+    // An operand a caller already compiled (operandNode) is a value like
+    // any other; without this it would fall through to the interpreter,
+    // which sees only the synthetic bareword.
+    PRECOMPILED_OPERAND in (node as unknown as Record<string, unknown>)
   ) {
     const o = await compileOperand(ctx, node);
     if (o.kind === "const") {

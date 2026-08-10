@@ -31,4 +31,16 @@ print "WXDAI debt:" @lending:debt(@me 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@debt!)
+
+Aave keeps the balance on a per-reserve debt token, so this is two hops
+with a computed target: the debt token address is word 10 of the reserve
+struct, and the balance is read off whatever address that word holds at
+assertion time. A market that migrates its debt token between building a
+batch and executing it is followed rather than cached.
+
+Comet keeps the borrow on the market itself, so it is a single read.
+
+The account may be a live value on either protocol; the token and the
+market resolve at composition time.
 ## See Also

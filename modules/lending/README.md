@@ -25,6 +25,6 @@ load lending
 |--------|---------|-------------|
 | [@lending:apy](src/helpers/apy.md) | `number` | Current APY of a lending-market reserve as a decimal fraction (2.04% is 0.0204), compounded the way the protocol accrues. Pass `supply` for the deposit rate or `borrow` for the variable borrow rate. |
 | [@lending:debt](src/helpers/debt.md) | `number` | Current variable-rate debt of an account in a token, in base units (grows every block as interest accrues). |
-| [@lending:healthFactor](src/helpers/healthFactor.md) | `number` | Health factor of an account's lending position, 1e18-scaled (below 1e18 the position is liquidatable; uint256.max when the account has no debt). Composes with assertions: assert @lending:healthFactor(@me) >= 1.5e18. |
+| [@lending:healthFactor](src/helpers/healthFactor.md) | `number` | Health factor of an account's lending position: below 1 the position is liquidatable, and an account with no debt reads as effectively unbounded. Compare it directly, as in `>= 1.5`. |
 | [@lending:maxBorrow](src/helpers/maxBorrow.md) | `number` | How much of a token an account can still borrow against its current collateral, in base units of the token. |
 

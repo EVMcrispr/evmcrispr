@@ -100,7 +100,7 @@ sim:fork --using anvil (
   exec ${WXDAI} deposit() --value 10000e18
   lending:supply 5000e18 ${WXDAI}
   lending:borrow 1000e18 ${WXDAI}
-  sim:expect @bool(@lending:healthFactor(@me) >= 1.4e18)
+  sim:expect @bool(@lending:healthFactor(@me) >= 1.4)
   sim:expect @bool(@lending:debt(@me ${WXDAI}) >= 1000e18)
   lending:repay max ${WXDAI}
   sim:expect @bool(@lending:debt(@me ${WXDAI}) == 0)

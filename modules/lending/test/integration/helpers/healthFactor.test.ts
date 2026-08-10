@@ -1,20 +1,26 @@
 import "../../setup";
+import { expect } from "@evmcrispr/test-utils";
 import { describeHelper } from "@evmcrispr/test-utils/evml";
-import { maxUint256 } from "viem";
 import { SOME_ADDRESS } from "../../fixtures";
 
 describeHelper("@lending:healthFactor", {
   module: "lending",
   cases: [
     {
-      name: "returns uint256.max for a debt-free account",
+      name: "reads as effectively unbounded for a debt-free account",
       input: `@lending:healthFactor(${SOME_ADDRESS})`,
-      expected: maxUint256.toString(),
+      validate: (result) => {
+        // The protocol's no-debt sentinel is uint256.max, which as the
+        // ratio it stands for is astronomically above any real position.
+        expect(Number(result)).to.be.greaterThan(1e50);
+      },
     },
     {
       name: "accepts an explicit adapter",
       input: `@lending:healthFactor(${SOME_ADDRESS} AaveV3)`,
-      expected: maxUint256.toString(),
+      validate: (result) => {
+        expect(Number(result)).to.be.greaterThan(1e50);
+      },
     },
   ],
   errorCases: [
@@ -26,8 +32,7 @@ describeHelper("@lending:healthFactor", {
   ],
   docCases: [
     {
-      description:
-        "Print the health factor (1e18-scaled; below 1e18 is liquidatable)",
+      description: "Print the health factor (below 1 is liquidatable)",
       code: 'print "Health factor:" @lending:healthFactor(@me)',
     },
   ],

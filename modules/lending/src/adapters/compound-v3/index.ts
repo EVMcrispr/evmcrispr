@@ -214,6 +214,17 @@ const compoundV3: LendingAdapter = {
     return capacityBase > borrowBalance ? capacityBase - borrowBalance : 0n;
   },
 
+  async compileDebt(ctx, module, chainId, account, token) {
+    const { comet } = await marketForBase(module, chainId, token);
+    return callReadOperand(
+      ctx,
+      comet,
+      getAbiItem({ abi: cometAbi, name: "borrowBalanceOf" }) as AbiFunction,
+      [operandNode(account)],
+      "Uint",
+    );
+  },
+
   async debt(module, chainId, account, token) {
     const { comet } = await marketForBase(module, chainId, token);
     const client = await module.getClient();
