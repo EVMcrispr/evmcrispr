@@ -12,6 +12,7 @@
       "!**/playwright-report",
       "!**/generated",
       "!**/_generated.ts",
+    "!**/onchain/assertions-bytecode.ts",
       "!**/editor/evml.ts",
       "!**/lib/revm/pkg"
     ]

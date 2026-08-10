@@ -16,6 +16,11 @@
       "types": "./src/evml/index.ts",
       "import": "./src/evml/index.ts"
     },
+    "./onchain": {
+      "bun": "./src/onchain/index.ts",
+      "types": "./src/onchain/index.ts",
+      "import": "./src/onchain/index.ts"
+    },
     "./msw/server": {
       "bun": "./src/msw/server.ts",
       "types": "./src/msw/server.ts",
