@@ -295,6 +295,70 @@ describeCommand("assert (lang on-chain faces)", {
       },
     },
     {
+      name: "compiles @reduce! with mul, whose identity init is 1",
+      script: `assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} mul 1) > 0`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(param, FOLD_SIG);
+        expect(args[0].paramData).to.equal(
+          foldLiteral(
+            template2("mul(uint256,uint256)", 0n, 0n),
+            4n,
+            36n,
+            1n,
+            0n, // FoldExit.Full
+          ),
+        );
+      },
+    },
+    {
+      // The elements' own signedness picks the overload. Folding an
+      // int256[] with the unsigned `min` would read two's-complement
+      // negatives as huge positives and return the wrong element, so this
+      // case pins the int256 selector specifically.
+      name: "picks the signed overload from the element type",
+      script: `assertions:assert @reduce!(${TOKEN}::{deltas()(int256[])} min 0) <= 0`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        // The fold is now an Int operand, so the ordering comparison
+        // cannot ride an ERC-8211 constraint (those are unsigned): it
+        // lowers to a signed `le` judged Eq 1, with the fold as its
+        // left operand.
+        d.expectConstraint(param, "Eq", 1n);
+        const cmp = d.opReadOf(param, "le(int256,int256)");
+        d.expectRawWord(cmp[1], 0n);
+        const args = d.opReadOf(cmp[0], FOLD_SIG);
+        expect(args[0].paramData).to.equal(
+          foldLiteral(
+            template2("min(int256,int256)", 0n, 0n),
+            4n,
+            36n,
+            0n,
+            0n, // FoldExit.Full
+          ),
+        );
+      },
+    },
+    {
+      // The bitwise reducers have no signed reading, so they stay on the
+      // uint256 overload even over signed elements.
+      name: "keeps a bitwise reducer unsigned over signed elements",
+      script: `assertions:assert @reduce!(${TOKEN}::{deltas()(int256[])} bitXor 0) >= 0`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const args = d.opReadOf(param, FOLD_SIG);
+        expect(args[0].paramData).to.equal(
+          foldLiteral(
+            template2("bitXor(uint256,uint256)", 0n, 0n),
+            4n,
+            36n,
+            0n,
+            0n, // FoldExit.Full
+          ),
+        );
+      },
+    },
+    {
       name: "accepts a helper-reference reducer and a nonzero init",
       script: `assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} @max 7) >= 7`,
       validate: (actions) => {
@@ -360,9 +424,23 @@ describeCommand("assert (lang on-chain faces)", {
       error: "str./bytes. faces",
     },
     {
-      name: "rejects an unsupported @reduce! lambda",
-      script: `assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} mul 1) > 0`,
+      // `mul 1` compiles now, so the rejection case moves to an
+      // order-sensitive reducer — the accumulator is always the LEFT
+      // argument, so `sub` would differ silently from what most readers
+      // picture.
+      name: "rejects an order-sensitive @reduce! lambda",
+      script: `assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} sub 0) > 0`,
       error: "binary Operators lambda",
+    },
+    {
+      name: "points a folded comparison at @all!/@any!",
+      script: `assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} lt 0) > 0`,
+      error: "@all! and @any!",
+    },
+    {
+      name: "rejects an absorbing initial accumulator",
+      script: `assertions:assert @reduce!(${TOKEN}::{caps()(uint256[])} mul 0) > 0`,
+      error: "always yields the accumulator itself",
     },
     {
       name: "rejects @at! on a non-array return",
