@@ -47,3 +47,24 @@ no decimal places attached to it, and the third argument is how you say
 which unit it is in.
 
 ## See Also
+
+## On-chain face (@math:pow!)
+
+Fixed-point exponentiation as one `rpow` read: binary exponentiation with the
+unit divided back out at every squaring step.
+
+This is not `^`. Plain `^` multiplies the scale in too, so `1.05e18 ^ 10` is
+`1.05^10 * 1e180` and leaves the word after about four steps. `@pow!` keeps the
+result at the unit it started from.
+
+With `base` omitted the unit comes from the value's own scale, so a ray-scaled
+rate needs no `1e27` at the call site. The off-chain face cannot see a scale —
+a `Num` does not carry one — so it defaults to `1e18`. **Pass `base`
+explicitly whenever both faces have to agree**, which is what `@lending:apy`
+does and why its two faces agree to the last unit.
+
+### Notes
+
+- `base` is resolved at composition time; it cannot be a live value.
+- Unsigned only, and the exponent counts repetitions so it cannot carry
+  decimal places.

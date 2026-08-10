@@ -38,3 +38,16 @@ assertions:assert @absdiff!($oracle::{price()(uint256)} $oracle::{twap()(uint256
 ## See Also
 
 - [@math:min!](min.md), [@math:max!](max.md)
+
+## On-chain face (@math:absdiff!)
+
+`|a - b|` as one `absDiff` read, over exactly two operands.
+
+The point of having it at all is that it never underflows. Written as a
+comparison it would need a branch (`a > b ? a - b : b - a`); as a single
+operand it composes, so `@absdiff!(a b) <= d` is the approximate-equality an
+assertion can express directly.
+
+### Notes
+
+- Exactly two operands. Unlike `@min!`/`@max!` there is no list form.

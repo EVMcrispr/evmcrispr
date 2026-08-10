@@ -39,3 +39,18 @@ set $side @math:sqrt(1e18)
 ## See Also
 
 - [@math:min!](min.md), [@math:max!](max.md), [@math:absdiff!](absdiff.md)
+
+## On-chain face (@math:sqrt!)
+
+Integer square root as one `sqrt` read: `floor(sqrt(x))`, so `@sqrt!(8)` is
+`2`.
+
+The argument is a full expression rather than a single operand, so
+`@sqrt!($a::x() * $b::y())` compiles the product first and takes the root of
+the result — which is how a geometric mean is written without a temporary.
+
+### Notes
+
+- Unsigned only; a negative constant or an `Int` operand is rejected.
+- Not fixed point: taking the root of a wad gives a wad-of-half-scale, so
+  scale it yourself if you need one back.

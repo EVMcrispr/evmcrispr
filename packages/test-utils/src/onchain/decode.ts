@@ -1,4 +1,4 @@
-import { Num } from "@evmcrispr/sdk";
+import { asNum, Num } from "@evmcrispr/sdk";
 import type { Category } from "@evmcrispr/sdk/onchain";
 import type { Address, Hex } from "viem";
 import { decodeAbiParameters, getAddress, isAddress, isHex } from "viem";
@@ -127,7 +127,7 @@ function decodeWord(word: Hex, abiType: string, scale: number): Norm {
  * that no test could ever see again.
  */
 export function sameValue(a: Norm, b: Norm): boolean {
-  [a, b] = bridgeBool(a, b);
+  [a, b] = bridgeScalar(a, b);
   if (a.t !== b.t) return false;
   if (a.t === "num") {
     // Num.eq compares exact rationals. toString() truncates at 18 decimals
@@ -145,22 +145,33 @@ export function sameValue(a: Norm, b: Norm): boolean {
 }
 
 /**
- * The one coercion the harness allows: the strings "true"/"false" ARE booleans
- * in this language. Off-chain predicates return them as strings (`@includes`
- * returns `"true"`), and the compiler already treats them as `Bool` when
- * folding a constant, so refusing the bridge would flag every bool helper as
- * divergent for a difference the language does not recognise.
+ * The one class of coercion the harness allows: EVML is stringly typed at the
+ * value boundary, so `"true"` IS a boolean and `"18"` IS a number. Off-chain
+ * helpers return both shapes freely — `@includes` returns `"true"`,
+ * `@token:decimals` returns `"18"` — and the language agrees with itself about
+ * it: `isNum` accepts a decimal string, and the compiler folds `"true"` to a
+ * Bool constant. Refusing the bridge would flag every bool and every
+ * string-returning numeric helper as divergent over a difference the language
+ * does not recognise.
  *
- * Narrow on purpose: it only fires when the OTHER side is genuinely a bool, so
- * a string that happens to read "true" still compares as a string.
+ * Narrow on purpose: a bridge only fires when the OTHER side is genuinely of
+ * that kind, so a String-category result that happens to read "true" or "18"
+ * still compares as a string.
  */
-function bridgeBool(a: Norm, b: Norm): [Norm, Norm] {
-  const asBool = (n: Norm): Norm =>
+function bridgeScalar(a: Norm, b: Norm): [Norm, Norm] {
+  const toBool = (n: Norm): Norm =>
     n.t === "str" && (n.v === "true" || n.v === "false")
       ? { t: "bool", v: n.v === "true" }
       : n;
-  if (a.t === "bool" && b.t === "str") return [a, asBool(b)];
-  if (b.t === "bool" && a.t === "str") return [asBool(a), b];
+  const toNum = (n: Norm): Norm => {
+    if (n.t !== "str") return n;
+    const v = asNum(n.v);
+    return v ? { t: "num", v } : n;
+  };
+  if (a.t === "bool" && b.t === "str") return [a, toBool(b)];
+  if (b.t === "bool" && a.t === "str") return [toBool(a), b];
+  if (a.t === "num" && b.t === "str") return [a, toNum(b)];
+  if (b.t === "num" && a.t === "str") return [toNum(a), b];
   return [a, b];
 }
 

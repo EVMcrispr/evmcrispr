@@ -27,3 +27,17 @@ e raised to a wad-scaled power, in wad (1e18) fixed point. Continuous growth ove
 ```
 
 ## See Also
+
+## On-chain face (@math:exp!)
+
+`e^x` in wad fixed point, as one `expWad` read.
+
+The result is signed (`Int`) and carries a scale of 18, so it is a wad
+whichever way the input was written: `@exp!(0)` is `1e18`, not `1`. Because
+the scale travels with the operand, arithmetic around it lines up on its own
+and a later `^` over the result becomes fixed-point exponentiation rather
+than integer exponentiation.
+
+### Notes
+
+- A constant argument folds at composition time; nothing is read on-chain.

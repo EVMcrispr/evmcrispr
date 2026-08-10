@@ -42,3 +42,17 @@ set $floor @math:min(100e18 $budget)
 ## See Also
 
 - [@math:max!](max.md), [@math:absdiff!](absdiff.md)
+
+## On-chain face (@math:min!)
+
+Folds the operands pairwise through `min`, so N operands cost N-1 reads.
+
+The operands are collected at composition time — written out, or given as one
+literal array. An array a CALL returns has no form here, unlike `@sum!`, which
+folds a words payload. If you need the minimum of a live array, sort it and
+take the first element: `@at!(@sort!($v::caps()) 0)`.
+
+### Notes
+
+- Signedness follows the operands: an `Int` among them picks the signed
+  overload, so negative values order correctly.
