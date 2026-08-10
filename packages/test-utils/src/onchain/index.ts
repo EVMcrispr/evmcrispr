@@ -31,5 +31,7 @@ export {
   constantReturnCode,
   encodeBytes32ArrayReturn,
   installConstantMock,
+  installSelectorMock,
+  selectorReturnCode,
 } from "./mock";
 export { type ResolveOpts, resolveValue } from "./resolve";
