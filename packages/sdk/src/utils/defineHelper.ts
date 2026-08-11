@@ -189,9 +189,16 @@ export function defineHelper<M extends Module>(
       // A lazy arg reaches `run` unevaluated: the helper interprets it
       // itself, which is the only way to observe the evaluation failing
       // (see ArgDef.lazy). Type validation below is skipped for the same
-      // reason — the value it would check does not exist yet.
+      // reason — the value it would check does not exist yet. A lazy REST
+      // arg takes every remaining node raw: helpers that interpret a token
+      // stream themselves (@ifElse's ternary) get the whole tail.
       if (def.lazy) {
-        parsedArgs[def.name] = nodeFor(def);
+        if (def.rest) {
+          parsedArgs[def.name] = positional.slice(cursor);
+          cursor = positional.length;
+        } else {
+          parsedArgs[def.name] = nodeFor(def);
+        }
         continue;
       }
 

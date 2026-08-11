@@ -1,5 +1,9 @@
 import "../../setup";
-import { describeParity } from "@evmcrispr/test-utils/onchain";
+import {
+  describeParity,
+  installMockTarget,
+  MOCK_TARGET_ADDRESS,
+} from "@evmcrispr/test-utils/onchain";
 import { helpers } from "../../../src/_generated";
 
 /**
@@ -23,8 +27,16 @@ const REVERTING = `${WXDAI}::{transferFrom(address,address,uint256)(bool) ${HOLD
  *  kind of value, and the declared return never materializes anyway. */
 const REVERTING_NUM = `${WXDAI}::{transferFrom(address,address,uint256)(uint256) ${HOLDER} ${WXDAI} 1000000000000000000000000000000}`;
 
+/** The vendored MockTarget fixture: known custom errors to match. */
+const MOCK = MOCK_TARGET_ADDRESS;
+const MOCK_REVERTS = `${MOCK}::{revertsWithArgs()()}`;
+const MOCK_VALUE = `${MOCK}::{getValue()(uint256)}`;
+
 describeParity("@std", {
   helpers,
+  setup: async (client) => {
+    await installMockTarget(client);
+  },
   cases: [
     // ---- @num!: arithmetic over live reads ---------------------------------
     {
@@ -136,21 +148,21 @@ describeParity("@std", {
       compile: `@balance!(${WXDAI} ${HOLDER})`,
     },
 
-    // ---- @ok! and @orElse!: the revert probe and its fallback ---------------
+    // ---- @reverts! and @orElse!: the revert probe and its fallback ----------
     //
     // These are the two faces most at risk of quietly disagreeing, because
     // the off-chain side infers "the chain refused this read" from an error
     // object while the on-chain side gets it from the EVM. Both directions
     // are pinned: a call that resolves and one that reverts.
     {
-      name: "ok is true for a call that resolves",
-      run: `@ok(${DEC})`,
-      compile: `@ok!(${DEC})`,
+      name: "reverts is false for a call that resolves",
+      run: `@reverts(${DEC})`,
+      compile: `@reverts!(${DEC})`,
     },
     {
-      name: "ok is false for a call that reverts",
-      run: `@ok(${REVERTING})`,
-      compile: `@ok!(${REVERTING})`,
+      name: "reverts is true for a call that reverts",
+      run: `@reverts(${REVERTING})`,
+      compile: `@reverts!(${REVERTING})`,
     },
     {
       name: "orElse keeps the first branch when it resolves",
@@ -166,6 +178,132 @@ describeParity("@std", {
       name: "orElse takes a constant fallback when the first branch reverts",
       run: `@orElse(${REVERTING_NUM} 7)`,
       compile: `@orElse!(${REVERTING_NUM} 7)`,
+    },
+
+    // ---- the @reverts arrow: match the reason, select its arguments ---------
+    //
+    // The compile face routes through `revertData`, which re-performs the
+    // call IN-FRAME so the target's revert data survives; the run face
+    // decodes the same data out of the RPC error. Matching, mismatching,
+    // and the selected-argument value are all pinned against the vendored
+    // MockTarget fixture.
+    {
+      name: "arrow matches the expected custom error",
+      run: `@reverts(${MOCK_REVERTS} -!> InsufficientBalance(uint256,uint256))`,
+      compile: `@reverts!(${MOCK_REVERTS} -!> InsufficientBalance(uint256,uint256))`,
+    },
+    {
+      name: "arrow is false for a different error",
+      run: `@reverts(${MOCK_REVERTS} -!> Unauthorized())`,
+      compile: `@reverts!(${MOCK_REVERTS} -!> Unauthorized())`,
+    },
+    {
+      name: "arrow is false when the call resolves",
+      run: `@reverts(${MOCK_VALUE} -!> Unauthorized())`,
+      compile: `@reverts!(${MOCK_VALUE} -!> Unauthorized())`,
+    },
+    {
+      name: "arrow is false for a bare revert with no data",
+      run: `@reverts(${MOCK}::{revertsBare()()} -!> Unauthorized())`,
+      compile: `@reverts!(${MOCK}::{revertsBare()()} -!> Unauthorized())`,
+    },
+    {
+      name: "a lens selects an error argument as the value",
+      run: `@reverts(${MOCK_REVERTS} -!> InsufficientBalance(uint256,uint256) [_ $])`,
+      compile: `@reverts!(${MOCK_REVERTS} -!> InsufficientBalance(uint256,uint256) [_ $])`,
+    },
+    {
+      name: "a lens decodes an Error(string) reason",
+      run: `@reverts(${MOCK}::{revertingFunction()()} -!> Error(string) [$])`,
+      compile: `@reverts!(${MOCK}::{revertingFunction()()} -!> Error(string) [$])`,
+    },
+    {
+      name: "a nested lens descends into an array error argument",
+      run: `@reverts(${MOCK}::{revertsWithRedirect()()} -!> Redirect(address,address[]) [_ [$]])`,
+      compile: `@reverts!(${MOCK}::{revertsWithRedirect()()} -!> Redirect(address,address[]) [_ [$]])`,
+    },
+    {
+      // The payoff of word-aligned error arguments: the selected address
+      // is a live account, so the probe's result seeds a further read —
+      // a revert reason as a stepping stone.
+      name: "a lens-selected address continues a chain",
+      run: `@reverts(${MOCK}::{revertsWithRedirect()()} -!> Redirect(address,address[]) [_ [$]])::{getValue()(uint256)}`,
+      compile: `@reverts!(${MOCK}::{revertsWithRedirect()()} -!> Redirect(address,address[]) [_ [$]])::!{getValue()(uint256)}`,
+    },
+    {
+      // Reason-matching needs the target's OWN revert data, which only a
+      // direct call preserves — a live-argument read routes through the
+      // core and the reason drowns in CallFailed. The off-chain face has
+      // the real error object and can afford to be permissive.
+      name: "arrow refuses a core-routed probe",
+      helper: "reverts",
+      run: `@reverts(${MOCK}::{checkValue(uint256)() ${MOCK_VALUE}} -!> Error(string))`,
+      compile: `@reverts!(${MOCK}::{checkValue(uint256)() ${MOCK_VALUE}} -!> Error(string))`,
+      refuses: "DIRECT call",
+    },
+
+    // ---- @ifElse: the lazy ternary over the core's cond ---------------------
+    {
+      name: "ifElse takes the then branch on a true live condition",
+      run: `@ifElse(${MOCK_VALUE} > 41 ? 7 : 9)`,
+      compile: `@ifElse!(${MOCK_VALUE} > 41 ? 7 : 9)`,
+    },
+    {
+      name: "ifElse takes the else branch on a false live condition",
+      run: `@ifElse(${MOCK_VALUE} > 100 ? 7 : 9)`,
+      compile: `@ifElse!(${MOCK_VALUE} > 100 ? 7 : 9)`,
+    },
+    {
+      name: "ifElse judges a bare word by truthiness",
+      run: `@ifElse(${MOCK_VALUE} ? 7 : 9)`,
+      compile: `@ifElse!(${MOCK_VALUE} ? 7 : 9)`,
+    },
+    {
+      // The losing branch reverts — and is never resolved, on either face.
+      name: "ifElse never resolves the losing branch",
+      run: `@ifElse(${MOCK_VALUE} > 41 ? ${MOCK_VALUE} : ${MOCK}::{revertsWithArgs()(uint256)})`,
+      compile: `@ifElse!(${MOCK_VALUE} > 41 ? ${MOCK_VALUE} : ${MOCK}::{revertsWithArgs()(uint256)})`,
+    },
+    {
+      // A build-time condition folds: the compiled operand IS the winning
+      // branch, no cond wrapper at all.
+      name: "ifElse folds a constant condition",
+      run: `@ifElse(true ? ${MOCK_VALUE} : 5)`,
+      compile: `@ifElse!(true ? ${MOCK_VALUE} : 5)`,
+    },
+    {
+      // Dynamic winners pass through raw as their canonical envelope.
+      name: "ifElse selects between live string reads",
+      run: `@ifElse(${MOCK_VALUE} > 41 ? ${WXDAI}::{symbol()(string)} : ${WXDAI}::{name()(string)})`,
+      compile: `@ifElse!(${MOCK_VALUE} > 41 ? ${WXDAI}::{symbol()(string)} : ${WXDAI}::{name()(string)})`,
+    },
+    {
+      name: "ifElse refuses branches of different kinds",
+      helper: "ifElse",
+      run: `@ifElse(${MOCK_VALUE} > 41 ? 7 : ${WXDAI}::{symbol()(string)})`,
+      compile: `@ifElse!(${MOCK_VALUE} > 41 ? 7 : ${WXDAI}::{symbol()(string)})`,
+      refuses: "same kind of value",
+    },
+    {
+      // The off-chain face happily returns a string constant; on-chain the
+      // core splices words, so a string constant cannot ride a branch.
+      name: "ifElse refuses a string constant branch",
+      helper: "ifElse",
+      run: `@ifElse(${MOCK_VALUE} > 41 ? "yes" : "no")`,
+      compile: `@ifElse!(${MOCK_VALUE} > 41 ? "yes" : "no")`,
+      refuses: "string or bytes constant",
+    },
+    {
+      name: "ifElse branches can be expressions",
+      run: `@ifElse(${MOCK_VALUE} > 41 ? ${MOCK_VALUE} + 8 : ${MOCK_VALUE} - 8)`,
+      compile: `@ifElse!(${MOCK_VALUE} > 41 ? ${MOCK_VALUE} + 8 : ${MOCK_VALUE} - 8)`,
+    },
+    {
+      // A parenthesized ternary rides a branch: cond inside cond, with the
+      // inner losing read never resolved on either face.
+      name: "ifElse nests parenthesized ternaries",
+      run: `@ifElse(${MOCK_VALUE} > 41 ? (${MOCK_VALUE} > 100 ? ${MOCK}::{revertsWithArgs()(uint256)} : ${MOCK_VALUE} - 40) : 3)`,
+      compile: `@ifElse!(${MOCK_VALUE} > 41 ? (${MOCK_VALUE} > 100 ? ${MOCK}::{revertsWithArgs()(uint256)} : ${MOCK_VALUE} - 40) : 3)`,
     },
   ],
 });

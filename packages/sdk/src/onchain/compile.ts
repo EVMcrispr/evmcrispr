@@ -15,6 +15,7 @@ import type {
   Abi,
   Address,
   CallExpressionNode,
+  DestructureSlot,
   HelperFunctionNode,
   Node,
 } from "../types";
@@ -242,6 +243,18 @@ export function materializeWord(_ctx: CompileCtx, o: Operand): InputParam {
   return rawParam(toWord(constBigInt(o)));
 }
 
+/** Whether two operands can stand in for one another as branches of a
+ *  merge point (`orElse`'s fallback, `cond`'s then/else): both travel as
+ *  raw words through the core and the judge compares whichever one
+ *  resolved, so a branch of a different category would be compared as if
+ *  it were the other. Signed and unsigned are the one pair that shares an
+ *  encoding: a word is a word, and the int256 overloads read it
+ *  two-complement either way. */
+export function branchCompatible(a: Category, b: Category): boolean {
+  const numeric = (c: Category) => c === "Uint" || c === "Int";
+  return a === b || (numeric(a) && numeric(b));
+}
+
 /** Materialize an operand as a bool-word InputParam. */
 function materializeBool(_ctx: CompileCtx, o: Operand): InputParam {
   if (o.kind === "call") {
@@ -429,6 +442,12 @@ function readParam(ctx: CompileCtx, chain: Chain, call: ReadCall): InputParam {
 export async function compileChain(
   ctx: CompileCtx,
   node: CallExpressionNode,
+  opts: {
+    /** Accept a void LAST hop. A revert probe's call has no value to
+     *  assert on — reverting is the point — and revert-guard functions
+     *  typically return nothing. Mid-chain hops still need values. */
+    voidTail?: boolean;
+  } = {},
 ): Promise<Chain> {
   const { hops, rootTarget } = flattenCallNodes(node);
 
@@ -488,7 +507,10 @@ export async function compileChain(
       calls,
       liveArgs,
     });
-    if (!fnAbi.outputs || fnAbi.outputs.length === 0) {
+    if (
+      (!fnAbi.outputs || fnAbi.outputs.length === 0) &&
+      !(opts.voidTail && last)
+    ) {
       throw new ErrorException(
         `${hop.method} has no return value to assert on`,
       );
@@ -628,6 +650,35 @@ export function lensPath(slots: unknown[]): number[] {
   return path;
 }
 
+/** Apply a return-lens to an already-DECODED value: the off-chain twin of
+ *  {@link lensSelectData}. Walks the path {@link lensPath} computes, with
+ *  end-anchored (negative) indices resolved against the actual lengths —
+ *  so `[... $]` selects the same element the on-chain `nav` selects. A
+ *  single non-tuple value counts as a one-slot tuple, matching how a
+ *  single-return call decodes. */
+export function applyValueLens(
+  value: unknown,
+  slots: DestructureSlot[],
+): unknown {
+  const path = lensPath(slots);
+  let current: unknown = Array.isArray(value) ? value : [value];
+  for (const index of path) {
+    if (!Array.isArray(current)) {
+      throw new ErrorException(
+        "a lens descends into a value that is not a tuple or array",
+      );
+    }
+    const pos = index < 0 ? current.length + index : index;
+    if (pos < 0 || pos >= current.length) {
+      throw new ErrorException(
+        `lens index ${index} out of bounds (length ${current.length})`,
+      );
+    }
+    current = current[pos];
+  }
+  return current;
+}
+
 const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
 const ARRAY_SUFFIX = /\[(\d*)\]$/;
 
@@ -752,6 +803,35 @@ function checkNavigableDynamic(
   }
 }
 
+/** Fold a lens selection over a resolved value into the core calldata
+ *  that extracts it: raw `pick` when the target word position is static,
+ *  typed `nav` otherwise. `outputs` describes the value's ABI shape — a
+ *  call's return tuple, or an error's arguments once `revertData` has
+ *  stripped the selector. Validates the terminal exactly as a call's
+ *  return lens does. */
+export function lensSelectData(
+  base: InputParam,
+  outputs: readonly AbiParameter[],
+  slots: unknown[],
+  context: string,
+): { data: Hex; terminal: AbiParameter } {
+  const path = lensPath(slots);
+  const { terminal, resolved } = walkNavPath(outputs, path, context);
+  if (SINGLE_WORD_ABI.test(terminal.type)) {
+    return {
+      data: pickableIndex(outputs, resolved)
+        ? encodePick(base, BigInt(resolved[0]))
+        : encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
+      terminal,
+    };
+  }
+  checkNavigableDynamic(terminal, context, "a value lens");
+  return {
+    data: encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
+    terminal,
+  };
+}
+
 /**
  * Compile a call expression into the InputParam that resolves its value,
  * folding a destructure lens into `pick` (raw word, when the target word
@@ -778,25 +858,13 @@ export async function compileCallValue(
     return { param: base, terminal: outputs[0] };
   }
 
-  const path = lensPath(node.returnDestructure);
-  const { terminal, resolved } = walkNavPath(outputs, path, node.method);
-  if (SINGLE_WORD_ABI.test(terminal.type)) {
-    const data = pickableIndex(outputs, resolved)
-      ? encodePick(base, BigInt(resolved[0]))
-      : encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt));
-    return {
-      param: staticCallParam(ctx.core, data),
-      terminal,
-    };
-  }
-  checkNavigableDynamic(terminal, node.method, "a value lens");
-  return {
-    param: staticCallParam(
-      ctx.core,
-      encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
-    ),
-    terminal,
-  };
+  const { data, terminal } = lensSelectData(
+    base,
+    outputs,
+    node.returnDestructure,
+    node.method,
+  );
+  return { param: staticCallParam(ctx.core, data), terminal };
 }
 
 // ---------------------------------------------------------------------------

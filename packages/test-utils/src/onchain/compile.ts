@@ -30,7 +30,7 @@ export interface CompileEnv {
 }
 
 function preambleOf(env: CompileEnv): string {
-  // Nothing to load for the expression layer itself: `assert` and `@ok!`
+  // Nothing to load for the expression layer itself: `assert` and `@reverts!`
   // live in std, which is always loaded.
   return [env.module ? `load ${env.module}` : "", env.preamble ?? ""]
     .filter(Boolean)

@@ -738,7 +738,17 @@ describe("Completions – std helpers", () => {
       const items = await evm.getCompletions(script, position);
       const helperItems = onlyKind(items, "helper");
       for (const h of helperItems) {
-        expect(["@block", "@get", "@ipfs.get"]).to.include(h.label);
+        expect([
+          "@block",
+          "@get",
+          "@ifElse",
+          "@ifElse!",
+          "@ipfs.get",
+          "@orElse",
+          "@orElse!",
+          "@reverts",
+          "@reverts!",
+        ]).to.include(h.label);
       }
     });
 

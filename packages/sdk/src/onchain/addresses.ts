@@ -11,7 +11,7 @@ import type { Address } from "../types";
 
 /** Canonical address of the Assertions core v2.0 (interim deployment). */
 export const CORE_ADDRESS: Address =
-  "0x637d99Ff8bcB919e5203b0B96Ad0520A9943a32C";
+  "0xA01bC220Efc4c730BBcBC9ee52EE570D33EA956F";
 
 /** Canonical address of the Operators v1.0 (interim deployment). */
 export const OPERATORS_ADDRESS: Address =

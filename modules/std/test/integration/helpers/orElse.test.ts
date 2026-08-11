@@ -47,7 +47,7 @@ describeHelper(
         error: "needs a live read as its first branch",
       },
       {
-        // Same taxonomy as @ok: only the chain refusing the read selects
+        // Same taxonomy as @reverts: only the chain refusing the read selects
         // the fallback, so a script mistake still surfaces.
         name: "propagates an unknown variable instead of falling back",
         input: `@orElse($notdefined::{decimals()(uint8)} ${DECIMALS})`,
@@ -59,7 +59,7 @@ describeHelper(
         // Written out rather than interpolated: generate-docs reads this
         // file as TEXT, so a template variable would reach the docs raw.
         description: "Read a value, with a fallback for contracts that lack it",
-        code: 'set $d @orElse(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} 18)\nprint $d',
+        code: "set $d @orElse(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} 18)\nprint $d",
       },
     ],
   },

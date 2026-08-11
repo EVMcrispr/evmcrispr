@@ -190,8 +190,8 @@ const CHAIN_FAILURE_NAMES = new Set([
  * script being wrong about it (no ABI, bad target, unknown variable) or the
  * node being unreachable.
  *
- * The distinction is what makes an off-chain revert probe honest: `@ok`
- * may only answer `false` for a failure the on-chain `ok()` primitive
+ * The distinction is what makes an off-chain revert probe honest: `@reverts`
+ * may only answer `true` for a failure the on-chain `isValid()` primitive
  * would also see. Errors are walked through their `cause` chain, since
  * viem nests the revert several wrappers deep and the interpreter adds its
  * own node-located error on top.

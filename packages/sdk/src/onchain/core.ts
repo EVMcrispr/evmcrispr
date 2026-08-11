@@ -7,9 +7,9 @@ import { rawParam, toWord } from "./erc8211";
  * ABI of the ERC-8211-speaking primitives of the Assertions core (v2.0).
  * The frozen core owns everything that holds unresolved `InputParam`
  * operands: selection (`resolve`, `pick`, `nav`), call construction
- * (`chain`, `read`) and resolution control (`cond`, `orElse`, `ok`).
- * Operands nest recursively through STATIC_CALL fetchers pointed back at
- * the core address. Enums travel as uint8.
+ * (`chain`, `read`) and resolution control (`cond`, `orElse`, `isValid`,
+ * `revertData`). Operands nest recursively through STATIC_CALL fetchers
+ * pointed back at the core address. Enums travel as uint8.
  */
 export const CORE_ABI = parseAbi([
   "struct Constraint { uint8 constraintType; bytes referenceData; }",
@@ -21,7 +21,8 @@ export const CORE_ABI = parseAbi([
   "function read(InputParam target, bytes4 selector, InputParam[] args) view",
   "function cond(InputParam c, InputParam then_, InputParam else_) view",
   "function orElse(InputParam a, InputParam b) view",
-  "function ok(InputParam a) view returns (uint256)",
+  "function isValid(InputParam a) view returns (uint256)",
+  "function revertData(InputParam a, bytes4 expectedSelector) view",
 ]);
 
 /** Sentinel path entry (Assertions.LEN = type(int256).min): as the last
@@ -37,7 +38,8 @@ type CoreFn =
   | "read"
   | "cond"
   | "orElse"
-  | "ok";
+  | "isValid"
+  | "revertData";
 
 /** Encode a call to a core ERC-8211 primitive. */
 export function encodeCore(
@@ -122,7 +124,18 @@ export function encodeOrElse(a: InputParam, b: InputParam): Hex {
   return encodeCore("orElse", [a, b]);
 }
 
-/** Encode `ok(a)` — 1 when `a` resolves without reverting, else 0. */
-export function encodeOk(a: InputParam): Hex {
-  return encodeCore("ok", [a]);
+/** Encode `isValid(a)` — 1 when `a` resolves AND passes its constraints,
+ *  else 0. */
+export function encodeIsValid(a: InputParam): Hex {
+  return encodeCore("isValid", [a]);
+}
+
+/** Encode `revertData(a, expectedSelector)` — the revert data of a call
+ *  that MUST fail. With a non-zero selector the first four bytes must
+ *  match and are stripped, leaving the error's arguments word-aligned for
+ *  `pick`/`nav`; a zero selector accepts any revert and passes the data
+ *  through whole. A success (`DidNotRevert`) or a selector mismatch
+ *  (`UnexpectedRevertData`) reverts instead of resolving. */
+export function encodeRevertData(a: InputParam, expectedSelector: Hex): Hex {
+  return encodeCore("revertData", [a, expectedSelector]);
 }

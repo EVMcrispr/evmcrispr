@@ -50,6 +50,13 @@ export type Operand =
       /** When this param is `eq(inner, 0)`, the inner param — lets the top
        *  level judge `inner EQ 0` instead of `eq(inner, 0) EQ 1`. */
       notOf?: InputParam;
+      /** When this param is `isValid(inner)`, the inner param — asserting
+       *  the bool true is exactly `inner` resolving, so the top level can
+       *  judge a ZERO-constraint entry on `inner` instead of
+       *  `isValid(inner) EQ 1`. The raw form fails with the resolution's
+       *  own error (e.g. revertData's UnexpectedRevertData) rather than a
+       *  flat ConstraintFailed. */
+      validOf?: InputParam;
       /** When this param is `mul(a, b)` over unsigned operands, the
        *  operand params — lets a following division fuse into one 512-bit
        *  `mulDiv(a, b, d)` read instead of div(mul(a, b), d), which would

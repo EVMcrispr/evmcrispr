@@ -51,13 +51,14 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@gas.price](src/helpers/gas.price.md) | `number` | Current gas price in wei. |
 | [@get](src/helpers/get.md) | `any` | Call a read-only contract function and return its result. |
 | [@hash](src/helpers/hash.md) | `bytes32` | Compute the hash of a string with keccak256 (default) or sha256. |
+| [@ifElse](src/helpers/ifElse.md) | `any` | A ternary over live reads: `cond ? then : else`, evaluating only the winning branch. Parenthesized ternaries nest as branches. |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
 | [@ipfs.get](src/helpers/ipfs.get.md) | `string` | Fetch content from IPFS, verified against its CID, and return it as text. |
 | [@me](src/helpers/me.md) | `address` | Connected wallet address. |
 | [@nonce](src/helpers/nonce.md) | `number` | Number of transactions sent from an address (its account nonce), read over plain RPC. For contracts it counts the CREATEs they performed. There is no on-chain form: the EVM has no nonce opcode. |
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
-| [@ok](src/helpers/ok.md) | `bool` | Whether a live call resolves without reverting: true when the call succeeds, false when it reverts. |
 | [@orElse](src/helpers/orElse.md) | `any` | The value of the first read, or the second one when the first reverts. |
+| [@reverts](src/helpers/reverts.md) | `any` | Whether a live call reverts: true when the chain refuses the call, false when it resolves; `-!>` matches the reason and a lens selects an error argument. |
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
 | [@Ether](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |

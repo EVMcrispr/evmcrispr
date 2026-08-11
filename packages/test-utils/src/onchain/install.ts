@@ -3,6 +3,7 @@ import type { Address, Hex, PublicClient } from "viem";
 
 import {
   ASSERTIONS_RUNTIME_BYTECODE,
+  MOCK_TARGET_RUNTIME_BYTECODE,
   OPERATORS_RUNTIME_BYTECODE,
 } from "./assertions-bytecode";
 
@@ -52,4 +53,38 @@ async function putCode(client: PublicClient, address: Address, code: Hex) {
     method: "anvil_setCode",
     params: [address, code],
   } as never);
+}
+
+/** Where {@link installMockTarget} puts the fixture by default: an address
+ *  no fork state ever occupies, stable enough to interpolate into test
+ *  scripts. */
+export const MOCK_TARGET_ADDRESS: Address =
+  "0x00000000000000000000000000000000000f1a7e";
+
+/**
+ * Install the contracts repo's MockTarget fixture on the anvil fork — the
+ * revert-probe target with known custom errors (`InsufficientBalance(7,100)`
+ * via `revertsWithArgs()`, `Unauthorized()` via `revertsUnauthorized()`,
+ * `Redirect(address,address[])` via `revertsWithRedirect()`, a string
+ * reason via `revertingFunction()`, a bare revert via `revertsBare()`) and
+ * `getValue()` returning 42.
+ *
+ * Unlike the core, MockTarget has one storage slot (`storedValue = 42`,
+ * slot 0) that `anvil_setCode` cannot populate, so it is set explicitly.
+ * Idempotent for the same reason installAssertionsCore is not memoized.
+ */
+export async function installMockTarget(
+  client: PublicClient,
+  at: Address = MOCK_TARGET_ADDRESS,
+): Promise<Address> {
+  await putCode(client, at, MOCK_TARGET_RUNTIME_BYTECODE);
+  await client.request({
+    method: "anvil_setStorageAt",
+    params: [
+      at,
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "0x000000000000000000000000000000000000000000000000000000000000002a",
+    ],
+  } as never);
+  return at;
 }

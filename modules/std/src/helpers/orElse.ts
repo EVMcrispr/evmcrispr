@@ -5,8 +5,8 @@ import {
   type Node,
   NodeType,
 } from "@evmcrispr/sdk";
-import type { Category } from "@evmcrispr/sdk/onchain";
 import {
+  branchCompatible,
   compileOperand,
   coreCall,
   encodeOrElse,
@@ -20,16 +20,6 @@ const PROBEABLE = new Set<string>([
   NodeType.CallExpression,
   NodeType.HelperFunctionExpression,
 ]);
-
-/** Both branches travel as raw words through the core, and the judge
- *  compares whatever comes back, so a fallback of a different category
- *  would be compared as if it were the first branch. Signed and unsigned
- *  are the one pair that shares an encoding: a word is a word, and the
- *  int256 overloads read it two-complement either way. */
-function compatible(a: Category, b: Category): boolean {
-  const numeric = (c: Category) => c === "Uint" || c === "Int";
-  return a === b || (numeric(a) && numeric(b));
-}
 
 export default defineHelper<Std>({
   name: "orElse",
@@ -90,7 +80,7 @@ export default defineHelper<Std>({
       );
     }
     const second = await compileOperand(ctx, node.args[1]);
-    if (!compatible(first.cat, second.cat)) {
+    if (!branchCompatible(first.cat, second.cat)) {
       throw new ErrorException(
         `@orElse! branches must resolve to the same kind of value, got ${first.cat} and ${second.cat} — the judge compares whichever one resolved`,
       );

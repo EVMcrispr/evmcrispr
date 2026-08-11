@@ -137,6 +137,12 @@ export default defineCommand<Std>({
       if (lhs.notOf) {
         return emit(judged(lhs.notOf, [constraint("Eq", 0n)]));
       }
+      // assertTrue(isValid(x)) ≡ x resolving: judge a zero-constraint
+      // entry on the raw operand, so a failure reports the resolution's
+      // own error (e.g. UnexpectedRevertData) instead of ConstraintFailed.
+      if (lhs.validOf) {
+        return emit(judged(lhs.validOf, []));
+      }
       return emit(judged(lhs.param, [constraint("Eq", 1n)]));
     }
 
@@ -218,6 +224,12 @@ export default defineCommand<Std>({
       // bound.
       if (live.notOf) {
         return emit(judged(live.notOf, [constraint("Eq", want ? 0n : 1n)]));
+      }
+      // isValid(x) == true ≡ x resolving: same zero-constraint fold as the
+      // bare form. Expecting false keeps the word comparison — "does not
+      // resolve" has no raw-entry spelling.
+      if (live.validOf && want) {
+        return emit(judged(live.validOf, []));
       }
       return emit(judged(live.param, [constraint("Eq", want ? 1n : 0n)]));
     }

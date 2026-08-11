@@ -51,6 +51,7 @@ import {
   setBoolVarsFalse,
   timeUnits,
 } from "@evmcrispr/sdk";
+import { applyValueLens } from "@evmcrispr/sdk/onchain";
 import type { Abi, Address, PublicClient } from "viem";
 import { isAddress, parseAbiItem } from "viem";
 
@@ -751,22 +752,11 @@ function applyReturnLens(
   slots: DestructureSlot[],
   n: CallExpressionNode,
 ): unknown {
-  const arr = Array.isArray(value) ? value : [value];
-  for (let i = 0; i < slots.length; i++) {
-    const slot = slots[i];
-    if (slot === null) continue;
-    if (slot === "$") return arr[i];
-    if (Array.isArray(slot)) {
-      if (i >= arr.length) {
-        panic(
-          n,
-          `return destructure index ${i} out of bounds (length ${arr.length})`,
-        );
-      }
-      return applyReturnLens(arr[i], slot, n);
-    }
+  try {
+    return applyValueLens(value, slots);
+  } catch (err) {
+    panic(n, (err as Error).message, err);
   }
-  panic(n, "return destructure has no $ capture marker");
 }
 
 /** Whether any hop of a (possibly chained) call expression is a `::!`

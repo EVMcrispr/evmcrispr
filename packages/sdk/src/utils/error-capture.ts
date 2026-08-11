@@ -1,6 +1,11 @@
 import type { AbiError } from "abitype";
-import type { Abi } from "viem";
-import { decodeErrorResult, getAbiItem, parseAbiItem } from "viem";
+import type { Abi, Hex } from "viem";
+import {
+  decodeErrorResult,
+  getAbiItem,
+  parseAbiItem,
+  toFunctionSelector,
+} from "viem";
 
 import type { BindingsManager } from "../BindingsManager";
 import { ErrorException, RevertError } from "../errors";
@@ -60,14 +65,17 @@ const STANDARD_ERROR_ABI = parseAbiItem("error Error(string)") as AbiError;
 const PANIC_ABI = parseAbiItem("error Panic(uint256)") as AbiError;
 
 /**
- * Build an ABI error item from an ErrorCaptureNode.
+ * Build an ABI error item from a name and inline parameter types, with the
+ * `Error(string)` / `Panic(uint256)` builtins recognized by bare name.
+ * This is the build-time face of an error signature: no contract ABI is
+ * consulted, so anything else must spell its types inline.
  */
-function getErrorAbi(
-  capture: ErrorCaptureNode,
-  abi: Abi | undefined,
+export function errorAbiFromSignature(
+  errorName: string,
+  errorParams: string[] | undefined,
 ): AbiError {
-  if (capture.errorParams != null) {
-    const sig = `error ${capture.errorName}(${capture.errorParams.join(",")})`;
+  if (errorParams != null) {
+    const sig = `error ${errorName}(${errorParams.join(",")})`;
     try {
       return parseAbiItem(sig) as AbiError;
     } catch (err) {
@@ -77,12 +85,42 @@ function getErrorAbi(
       );
     }
   }
+  if (errorName === "Error") return STANDARD_ERROR_ABI;
+  if (errorName === "Panic") return PANIC_ABI;
+  throw new ErrorException(
+    `error "${errorName}" needs its parameter types spelled inline, e.g. ${errorName}(uint256,address)`,
+  );
+}
 
-  if (capture.errorName === "Error") {
-    return STANDARD_ERROR_ABI;
-  }
-  if (capture.errorName === "Panic") {
-    return PANIC_ABI;
+/**
+ * The 4-byte selector of an ABI error. Errors hash exactly as functions do
+ * (keccak of `Name(canonicalTypes)`), so the item is recast through the
+ * function selector path — `parseAbiItem` has already canonicalized the
+ * types (`uint` -> `uint256`, tuples flattened to their components).
+ */
+export function errorSelector(error: AbiError): Hex {
+  return toFunctionSelector({
+    type: "function",
+    name: error.name,
+    inputs: error.inputs,
+    outputs: [],
+    stateMutability: "view",
+  });
+}
+
+/**
+ * Build an ABI error item from an ErrorCaptureNode.
+ */
+function getErrorAbi(
+  capture: ErrorCaptureNode,
+  abi: Abi | undefined,
+): AbiError {
+  if (
+    capture.errorParams != null ||
+    capture.errorName === "Error" ||
+    capture.errorName === "Panic"
+  ) {
+    return errorAbiFromSignature(capture.errorName!, capture.errorParams);
   }
 
   if (!abi) {

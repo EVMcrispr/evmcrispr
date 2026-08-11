@@ -42,12 +42,12 @@ print $d
 - Neither branch is resolved before the helper runs, and the fallback is
   only resolved if it is needed.
 - A fallback that papers over a failure weakens whatever is asserted on the
-  result. Reach for [@ok](ok.md) when the failure itself is the thing worth
-  observing.
+  result. Reach for [@reverts](reverts.md) when the failure itself is the
+  thing worth observing.
 
 ## See Also
 
-- [@ok](ok.md), [assert](../commands/assert.md)
+- [@reverts](reverts.md), [assert](../commands/assert.md)
 
 ## On-chain face (@orElse!)
 
@@ -62,14 +62,22 @@ fallback is spliced as one raw word, so it can be a number, a bool, an
 address or a `bytes32` — a string or bytes fallback has to be read
 on-chain.
 
-Worth preferring over the `@ok!`-plus-conditional spelling of the same
-fallback, which names the probed call twice: an `InputParam` is a tree, not
-a DAG, so a repeated operand is duplicated in the calldata AND resolved
-again at judge time. `@orElse!` resolves the first branch once.
+This is the only way to guard a comparison on a read that may revert.
+Writing the guard as `@bool!(not @reverts!(x) and x <= 18)` does not work:
+`and` is an Operators call, so the core resolves BOTH operands before
+combining them, and `x` reverting takes the assertion down before the
+probe's answer is ever read. It also names `x` twice, and an `InputParam`
+is a tree, not a DAG — the repeated operand is duplicated in the calldata
+AND resolved again at judge time. `@orElse!` resolves the first branch
+once, and the revert never escapes it.
 
 ### Usage
 
 ```evml
 # Prefer the vault's own preview, fall back to the linear conversion
 assert @orElse!(0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5::{previewRedeem(uint256)(uint256) 1000000000000000000} 0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5::{convertToAssets(uint256)(uint256) 1000000000000000000}) >= 1000000000000000000
+
+# Bound a view that a non-standard token may not implement: the fallback
+# stands in for the missing read, so the comparison always has a value
+assert @bool!(@orElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} 18) <= 18)
 ```

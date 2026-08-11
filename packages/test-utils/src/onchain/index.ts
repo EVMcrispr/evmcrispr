@@ -25,7 +25,12 @@ export {
   type ParityCase,
   type ParityConfig,
 } from "./describeParity";
-export { type InstalledCore, installAssertionsCore } from "./install";
+export {
+  type InstalledCore,
+  installAssertionsCore,
+  installMockTarget,
+  MOCK_TARGET_ADDRESS,
+} from "./install";
 export { getMainnetForkTransports } from "./mainnet";
 export {
   constantReturnCode,

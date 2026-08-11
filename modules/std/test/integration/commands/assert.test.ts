@@ -435,6 +435,114 @@ describeCommand("assert", {
         expect(message).to.equal("");
       },
     },
+    // ---- @reverts!: the probe folds ------------------------------------
+    {
+      name: "folds a bare @reverts! to isValid EQ 0",
+      script: `assert @reverts!(${TOKEN}::{paused()(bool)})`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", 0n);
+        const isValid = core(param);
+        expect(isValid.functionName).to.equal("isValid");
+        const inner = isValid.args[0] as unknown as Param;
+        expect(staticCallOf(inner).target).to.equal(TOKEN);
+      },
+    },
+    {
+      // The validOf fold: asserting "reverted with this reason" bare drops
+      // the isValid wrapper entirely — the entry resolves revertData with
+      // ZERO constraints, so a failure reports DidNotRevert or
+      // UnexpectedRevertData instead of a flat ConstraintFailed.
+      name: "folds a bare arrow assert to a zero-constraint revertData entry",
+      script: `assert @reverts!(${TOKEN}::{transferFrom(address,address,uint256)(bool) ${A} ${B} 1} -!> InsufficientBalance(uint256,uint256))`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expect(param.constraints).to.have.lengthOf(0);
+        const probe = core(param);
+        expect(probe.functionName).to.equal("revertData");
+        expect(probe.args[1]).to.equal(
+          selectorOf("InsufficientBalance(uint256,uint256)"),
+        );
+        const inner = probe.args[0] as unknown as Param;
+        expect(staticCallOf(inner).target).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "folds an arrow assert == true to the same raw entry",
+      script: `assert @reverts!(${TOKEN}::{transferFrom(address,address,uint256)(bool) ${A} ${B} 1} -!> InsufficientBalance(uint256,uint256)) == true`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expect(param.constraints).to.have.lengthOf(0);
+        expect(core(param).functionName).to.equal("revertData");
+      },
+    },
+    {
+      // Expecting false has no raw-entry spelling ("did not revert with
+      // Err" is a word question), so the isValid wrapper stays, judged 0.
+      name: "keeps the isValid wrapper for an arrow assert == false",
+      script: `assert @reverts!(${TOKEN}::{transferFrom(address,address,uint256)(bool) ${A} ${B} 1} -!> InsufficientBalance(uint256,uint256)) == false`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Eq", 0n);
+        const isValid = core(param);
+        expect(isValid.functionName).to.equal("isValid");
+        const inner = core(isValid.args[0] as unknown as Param);
+        expect(inner.functionName).to.equal("revertData");
+      },
+    },
+    {
+      // A flat static selection compiles to the cheaper raw `pick`, the
+      // same choice a call's return lens makes — the stripped payload IS
+      // a return tuple as far as the word machinery is concerned.
+      name: "compiles an error-argument lens to pick over revertData",
+      script: `assert @reverts!(${TOKEN}::{transferFrom(address,address,uint256)(bool) ${A} ${B} 1} -!> InsufficientBalance(uint256,uint256) [_ $]) >= 100`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Gte", 100n);
+        const pick = core(param);
+        expect(pick.functionName).to.equal("pick");
+        expect(pick.args[1]).to.equal(1n);
+        const probe = core(pick.args[0] as unknown as Param);
+        expect(probe.functionName).to.equal("revertData");
+        expect(probe.args[1]).to.equal(
+          selectorOf("InsufficientBalance(uint256,uint256)"),
+        );
+      },
+    },
+    {
+      // The ternary compiles to the core's lazy cond: condition operand
+      // first, then/else as raw words — only the winner resolves at
+      // judge time.
+      name: "compiles @ifElse! to a judged cond",
+      script: `assert @ifElse!(${TOKEN}::{paused()(bool)} ? 100 : 200) >= 100`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        expectConstraint(param, "Gte", 100n);
+        const cond = core(param);
+        expect(cond.functionName).to.equal("cond");
+        const condition = cond.args[0] as unknown as Param;
+        expect(staticCallOf(condition).target).to.equal(TOKEN);
+        expectRawWord(cond.args[1] as unknown as Param, 100n);
+        expectRawWord(cond.args[2] as unknown as Param, 200n);
+      },
+    },
+    {
+      // A dynamic selection (the string reason) has no static word
+      // position, so it navigates: nav over the stripped payload typed as
+      // the error's argument tuple.
+      name: "compiles a dynamic error-argument lens to nav over revertData",
+      script: `assert @reverts!(${TOKEN}::{transferFrom(address,address,uint256)(bool) ${A} ${B} 1} -!> Error(string) [$]) == "insufficient allowance"`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const hash = opReadOf(param, "hash(bytes)");
+        const nav = core(hash[0] as unknown as Param);
+        expect(nav.functionName).to.equal("nav");
+        expect(nav.args[1]).to.equal("(string)");
+        expect(nav.args[2]).to.deep.equal([0n]);
+        const probe = core(nav.args[0] as unknown as Param);
+        expect(probe.functionName).to.equal("revertData");
+      },
+    },
     {
       name: "compiles ~= with --delta to an IN range constraint",
       script: `assert ${TOKEN}::{price()(uint256)} ~= 2000 --delta 50 "off"`,

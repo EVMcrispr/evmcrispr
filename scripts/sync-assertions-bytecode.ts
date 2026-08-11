@@ -38,8 +38,29 @@ const OUTPUT = join(
 );
 
 const CONTRACTS = [
-  { name: "Assertions", prefix: "ASSERTIONS", label: "Assertions core" },
-  { name: "Operators", prefix: "OPERATORS", label: "Operators vocabulary" },
+  {
+    name: "Assertions",
+    path: "contracts/Assertions.sol/Assertions.json",
+    prefix: "ASSERTIONS",
+    label: "Assertions core",
+  },
+  {
+    name: "Operators",
+    path: "contracts/Operators.sol/Operators.json",
+    prefix: "OPERATORS",
+    label: "Operators vocabulary",
+  },
+  {
+    // The contracts repo's own test mock, vendored for the same reason as
+    // the core: revert-probe integration tests need a target that reverts
+    // with KNOWN custom errors (InsufficientBalance, Unauthorized,
+    // Redirect(address,address[])) and known reasons. Unlike the core it
+    // has one storage slot (storedValue = 42) — the installer sets it.
+    name: "MockTarget",
+    path: "contracts/tests/Mocks.sol/MockTarget.json",
+    prefix: "MOCK_TARGET",
+    label: "MockTarget revert fixture",
+  },
 ] as const;
 
 function die(message: string): never {
@@ -58,8 +79,8 @@ if (!existsSync(artifactsDir)) {
 
 const parts: string[] = [];
 
-for (const { name, prefix, label } of CONTRACTS) {
-  const path = join(artifactsDir, `contracts/${name}.sol/${name}.json`);
+for (const { name, path: artifactPath, prefix, label } of CONTRACTS) {
+  const path = join(artifactsDir, artifactPath);
   if (!existsSync(path)) die(`missing artifact ${path}`);
 
   const artifact = JSON.parse(readFileSync(path, "utf8"));

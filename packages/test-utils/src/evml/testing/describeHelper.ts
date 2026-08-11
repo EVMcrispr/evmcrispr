@@ -1,4 +1,4 @@
-import { beforeAll, describe, it } from "bun:test";
+import { beforeAll, beforeEach, describe, it } from "bun:test";
 import type { ErrorException, HelperArgDefEntry } from "@evmcrispr/sdk";
 import { ComparisonType, NodeType, Num } from "@evmcrispr/sdk";
 import { expect } from "chai";
@@ -72,6 +72,10 @@ export interface HelperTestConfig {
   describeName?: string;
   /** Skip the entire describe block. */
   skip?: boolean;
+  /** Runs before each case. For suites that need a fixture installed on
+   *  the fork (see `installMockTarget`). Must be idempotent: it runs per
+   *  case, because anvil_reset between packages discards any install. */
+  setup?: (client: PublicClient) => Promise<void> | void;
 }
 
 const SAMPLE_VALUES: Record<string, string> = {
@@ -161,6 +165,12 @@ export function describeHelper(
     beforeAll(() => {
       client = getPublicClient();
     });
+
+    if (config.setup) {
+      beforeEach(async () => {
+        await config.setup!(client);
+      });
+    }
 
     if (config.cases) {
       for (const c of config.cases) {
