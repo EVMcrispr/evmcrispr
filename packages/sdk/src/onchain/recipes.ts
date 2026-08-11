@@ -409,6 +409,35 @@ export function arrayWordsParam(
 }
 
 /**
+ * `slice(data, 4, byteLen(data) - 4)` over a live calldata value: the args
+ * tuple of an ABI call as a bytes value, the 4-byte selector sliced off so
+ * every word realigns. The layout is {@link arrayWordsParam}'s re-framing
+ * with a byte-granular start: the synthesized length word covers the whole
+ * envelope and `start = 68` skips its two head words plus the selector.
+ * The calldata operand is spliced twice (the length read and the slice
+ * tail) — the tree-not-DAG tax, paid knowingly.
+ */
+export function calldataArgsParam(
+  ctx: CompileCtx,
+  envelope: InputParam,
+): InputParam {
+  const len = byteLenParamOf(ctx, envelope);
+  const argsLen = wordOpParam(ctx, "sub", false, len, rawParam(toWord(4n)));
+  const total = wordOpParam(ctx, "add", false, len, rawParam(toWord(64n)));
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.slice,
+    mergeSegments([
+      wordSpan(96n), // offset_data: the re-framed envelope at 96
+      wordSpan(68n), // start: the [0x20][len] head words + the selector
+      argsLen, // len = byteLen(data) - 4 (live word)
+      total, // synthesized bytes length word (live)
+      envelope, // the raw calldata envelope [0x20][len][payload…]
+    ]),
+  );
+}
+
+/**
  * `replace(s, needle, repl)` with a live `s`: heads are
  * [offset_s][offset_needle = 96][offset_repl], the constant needle and
  * replacement tails follow at 96, and the runtime envelope of `s` is

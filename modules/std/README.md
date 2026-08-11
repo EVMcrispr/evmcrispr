@@ -35,7 +35,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | Helper | Returns | Description |
 |--------|---------|-------------|
 | [@abi.decode](src/helpers/abi.decode.md) | `any` | Decode ABI-encoded bytes into values given a comma-separated type list; a lens selects one of them. |
-| [@abi.decodeCall](src/helpers/abi.decodeCall.md) | `array` | Decode calldata into `[contract signature [args]]` with human-readable EVML values. |
+| [@abi.decodeCall](src/helpers/abi.decodeCall.md) | `any` | Decode calldata into `[contract signature [args]]` with human-readable EVML values. |
 | [@abi.encode](src/helpers/abi.encode.md) | `bytes` | ABI-encode values given a comma-separated type list, like Solidity abi.encode. |
 | [@abi.encodeCall](src/helpers/abi.encodeCall.md) | `bytes` | ABI-encode a function call from its signature and arguments. |
 | [@abi.encodePacked](src/helpers/abi.encodePacked.md) | `bytes` | ABI non-standard packed encoding, matching Solidity's abi.encodePacked. |

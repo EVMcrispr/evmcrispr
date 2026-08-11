@@ -5,7 +5,12 @@ import {
   installMockTarget,
   MOCK_TARGET_ADDRESS,
 } from "@evmcrispr/test-utils/onchain";
-import { encodeAbiParameters, parseAbiParameters } from "viem";
+import {
+  encodeAbiParameters,
+  encodeFunctionData,
+  parseAbi,
+  parseAbiParameters,
+} from "viem";
 import { helpers } from "../../../src/_generated";
 
 /**
@@ -52,12 +57,27 @@ const NOTE_RETURN = encodeAbiParameters(parseAbiParameters("bytes"), [
 const REPORT_CALL = `${REPORT_MOCK}::{lastReport()(uint256,bytes)}`;
 const BLOB_CALL = `${BLOB_MOCK}::{note()(bytes)}`;
 
+/** A constant mock returning a bytes value holding full transfer calldata,
+ *  for @abi.decodeCall!. The run spellings decode the args hex directly. */
+const QUEUE_MOCK = "0x00000000000000000000000000000000000dec0f";
+const TRANSFER_CALLDATA = encodeFunctionData({
+  abi: parseAbi(["function transfer(address to, uint256 amount)"]),
+  functionName: "transfer",
+  args: [HOLDER, 42n],
+});
+const TRANSFER_ARGS_HEX = `0x${TRANSFER_CALLDATA.slice(10)}`;
+const QUEUE_RETURN = encodeAbiParameters(parseAbiParameters("bytes"), [
+  TRANSFER_CALLDATA,
+]);
+const QUEUE_CALL = `${QUEUE_MOCK}::{queuedCalldata()(bytes)}`;
+
 describeParity("@std", {
   helpers,
   setup: async (client) => {
     await installMockTarget(client);
     await installConstantMock(client, REPORT_MOCK, REPORT_RETURN);
     await installConstantMock(client, BLOB_MOCK, NOTE_RETURN);
+    await installConstantMock(client, QUEUE_MOCK, QUEUE_RETURN);
   },
   cases: [
     // ---- @num!: arithmetic over live reads ---------------------------------
@@ -396,6 +416,50 @@ describeParity("@std", {
       run: `@abi.decode("address,uint256,uint256" ${REPORT_CALL}[_ $] [_ _ $])`,
       compile: `@abi.decode!("address,uint256,uint256" ${REPORT_CALL}[_ $] [_ _ $])`,
       reverts: /reverted/i,
+    },
+
+    // ---- @abi.decodeCall!: judged calldata with a selector guard ----
+    {
+      // The selector is sliced off with a live length so the args realign;
+      // the run spelling decodes the same args hex directly.
+      name: "abi.decodeCall selects the amount out of live calldata",
+      run: `@abi.decode("address,uint256" ${TRANSFER_ARGS_HEX} [_ $])`,
+      compile: `@abi.decodeCall!(${QUEUE_CALL} transfer(address,uint256) [_ $])`,
+    },
+    {
+      name: "abi.decodeCall selects the recipient",
+      run: `@abi.decode("address,uint256" ${TRANSFER_ARGS_HEX} [$ _])`,
+      compile: `@abi.decodeCall!(${QUEUE_CALL} transfer(address,uint256) [$ _])`,
+    },
+    {
+      // The guard, doing its one job: claiming approve over transfer
+      // calldata compiles, then the selector constraint reverts the cond.
+      name: "abi.decodeCall reverts on a selector mismatch",
+      helper: "abi.decodeCall",
+      run: `@abi.decode("address,uint256" ${TRANSFER_ARGS_HEX} [_ $])`,
+      compile: `@abi.decodeCall!(${QUEUE_CALL} approve(address,uint256) [_ $])`,
+      reverts: /reverted/i,
+    },
+    {
+      name: "abi.decodeCall refuses a missing lens",
+      helper: "abi.decodeCall",
+      run: `@abi.decode("address,uint256" ${TRANSFER_ARGS_HEX} [_ $])`,
+      compile: `@abi.decodeCall!(${QUEUE_CALL} transfer(address,uint256))`,
+      refuses: "needs a lens",
+    },
+    {
+      name: "abi.decodeCall refuses a missing signature",
+      helper: "abi.decodeCall",
+      run: `@abi.decode("address,uint256" ${TRANSFER_ARGS_HEX} [_ $])`,
+      compile: `@abi.decodeCall!(${QUEUE_CALL} [_ $])`,
+      refuses: "function signature",
+    },
+    {
+      name: "abi.decodeCall refuses a constant blob",
+      helper: "abi.decodeCall",
+      run: `@abi.decode("address,uint256" ${TRANSFER_ARGS_HEX} [_ $])`,
+      compile: `@abi.decodeCall!(${TRANSFER_CALLDATA} transfer(address,uint256) [_ $])`,
+      refuses: "call expression",
     },
   ],
 });
