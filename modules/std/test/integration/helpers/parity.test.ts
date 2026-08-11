@@ -1,9 +1,11 @@
 import "../../setup";
 import {
   describeParity,
+  installConstantMock,
   installMockTarget,
   MOCK_TARGET_ADDRESS,
 } from "@evmcrispr/test-utils/onchain";
+import { encodeAbiParameters, parseAbiParameters } from "viem";
 import { helpers } from "../../../src/_generated";
 
 /**
@@ -32,10 +34,30 @@ const MOCK = MOCK_TARGET_ADDRESS;
 const MOCK_REVERTS = `${MOCK}::{revertsWithArgs()()}`;
 const MOCK_VALUE = `${MOCK}::{getValue()(uint256)}`;
 
+/** Constant mocks for @abi.decode!: a (uint256, bytes) report whose blob
+ *  encodes (address, uint256), and a bare bytes note whose payload
+ *  encodes (uint256, string). */
+const REPORT_MOCK = "0x00000000000000000000000000000000000dec0d";
+const BLOB_MOCK = "0x00000000000000000000000000000000000dec0e";
+const REPORT_RETURN = encodeAbiParameters(
+  parseAbiParameters("uint256, bytes"),
+  [
+    7n,
+    encodeAbiParameters(parseAbiParameters("address, uint256"), [HOLDER, 42n]),
+  ],
+);
+const NOTE_RETURN = encodeAbiParameters(parseAbiParameters("bytes"), [
+  encodeAbiParameters(parseAbiParameters("uint256, string"), [5n, "hello"]),
+]);
+const REPORT_CALL = `${REPORT_MOCK}::{lastReport()(uint256,bytes)}`;
+const BLOB_CALL = `${BLOB_MOCK}::{note()(bytes)}`;
+
 describeParity("@std", {
   helpers,
   setup: async (client) => {
     await installMockTarget(client);
+    await installConstantMock(client, REPORT_MOCK, REPORT_RETURN);
+    await installConstantMock(client, BLOB_MOCK, NOTE_RETURN);
   },
   cases: [
     // ---- @num!: arithmetic over live reads ---------------------------------
@@ -304,6 +326,76 @@ describeParity("@std", {
       name: "ifElse nests parenthesized ternaries",
       run: `@ifElse(${MOCK_VALUE} > 41 ? (${MOCK_VALUE} > 100 ? ${MOCK}::{revertsWithArgs()(uint256)} : ${MOCK_VALUE} - 40) : 3)`,
       compile: `@ifElse!(${MOCK_VALUE} > 41 ? (${MOCK_VALUE} > 100 ? ${MOCK}::{revertsWithArgs()(uint256)} : ${MOCK_VALUE} - 40) : 3)`,
+    },
+
+    // ---- @abi.decode!: typed re-entry into an encoded blob ----
+    {
+      // The flagship shape: the blob's payload is re-entered in place, so
+      // the compiled form is nav over nav with a PAYLOAD-terminated inner
+      // path — one frame for the strip, one for the claim.
+      name: "abi.decode selects a word out of a blob field",
+      run: `@abi.decode("address,uint256" ${REPORT_CALL}[_ $] [_ $])`,
+      compile: `@abi.decode!("address,uint256" ${REPORT_CALL}[_ $] [_ $])`,
+    },
+    {
+      name: "abi.decode selects the address",
+      run: `@abi.decode("address,uint256" ${REPORT_CALL}[_ $] [$ _])`,
+      compile: `@abi.decode!("address,uint256" ${REPORT_CALL}[_ $] [$ _])`,
+    },
+    {
+      // A dynamic member inside the payload: its offset is payload-relative,
+      // which is exactly what the in-place re-entry preserves.
+      name: "abi.decode reaches a string inside the payload",
+      run: `@abi.decode("uint256,string" ${BLOB_CALL} [_ $])`,
+      compile: `@abi.decode!("uint256,string" ${BLOB_CALL} [_ $])`,
+    },
+    {
+      name: "abi.decode refuses a missing lens",
+      helper: "abi.decode",
+      run: `@abi.decode("address,uint256" ${REPORT_CALL}[_ $])`,
+      compile: `@abi.decode!("address,uint256" ${REPORT_CALL}[_ $])`,
+      refuses: "needs a lens",
+    },
+    {
+      // The off-chain face decodes constants happily; on-chain a constant
+      // has nothing to assert about.
+      name: "abi.decode refuses a constant blob",
+      helper: "abi.decode",
+      run: `@abi.decode("uint256" 0x0000000000000000000000000000000000000000000000000000000000000064 [$])`,
+      compile: `@abi.decode!("uint256" 0x0000000000000000000000000000000000000000000000000000000000000064 [$])`,
+      refuses: "call expression",
+    },
+    {
+      // The call's own lens guard fires first: a word field is not a
+      // navigable dynamic selection, let alone a bytes blob.
+      name: "abi.decode refuses a non-bytes field as the blob",
+      helper: "abi.decode",
+      run: `@abi.decode("uint256" ${REPORT_CALL}[$ _] [$])`,
+      compile: `@abi.decode!("uint256" ${REPORT_CALL}[$ _] [$])`,
+      refuses: "the selection in lastReport is uint256",
+    },
+    {
+      name: "abi.decode refuses a struct selection",
+      helper: "abi.decode",
+      run: `@abi.decode("(address,uint256),uint256" ${REPORT_CALL}[_ $] [$ _])`,
+      compile: `@abi.decode!("(address,uint256),uint256" ${REPORT_CALL}[_ $] [$ _])`,
+      refuses: "must select a single value",
+    },
+    {
+      name: "abi.decode refuses an array selection",
+      helper: "abi.decode",
+      run: `@abi.decode("uint256[],uint256" ${REPORT_CALL}[_ $] [$ _])`,
+      compile: `@abi.decode!("uint256[],uint256" ${REPORT_CALL}[_ $] [$ _])`,
+      refuses: "array selection",
+    },
+    {
+      // The type list is the author's claim: a claim wider than the payload
+      // compiles, then the out-of-payload read reverts at judge time.
+      name: "abi.decode reverts on a claim wider than the payload",
+      helper: "abi.decode",
+      run: `@abi.decode("address,uint256,uint256" ${REPORT_CALL}[_ $] [_ _ $])`,
+      compile: `@abi.decode!("address,uint256,uint256" ${REPORT_CALL}[_ $] [_ _ $])`,
+      reverts: /reverted/i,
     },
   ],
 });

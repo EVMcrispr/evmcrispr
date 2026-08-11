@@ -1,5 +1,4 @@
 import type {
-  ArrayExpressionNode,
   CallExpressionNode,
   DestructureSlot,
   Node,
@@ -25,6 +24,7 @@ import {
   encodeRevertData,
   lensPath,
   lensSelectData,
+  lensSlots,
   notCombine,
   staticCallParam,
   walkNavPath,
@@ -77,33 +77,10 @@ function splitParamTypes(raw: string): string[] {
   return params;
 }
 
-/** Reinterpret a `[_ $]` argument as lens slots. The grammar parses it as
- *  an array literal whose elements arrive as `_`, `$`, `...` (barewords
- *  off-chain, plain strings once evaluated) and nested arrays — anything
- *  else is not a lens. */
-function lensSlots(value: unknown): DestructureSlot[] {
-  const elements = Array.isArray(value)
-    ? value
-    : (value as Node)?.type === NodeType.ArrayExpression
-      ? (value as ArrayExpressionNode).elements
-      : undefined;
-  if (!elements) {
-    throw new ErrorException(
-      `expected a [_ $] lens selecting one error argument, ${CLAUSE_HINT}`,
-    );
-  }
-  return elements.map((el): DestructureSlot => {
-    if (Array.isArray(el) || (el as Node)?.type === NodeType.ArrayExpression) {
-      return lensSlots(el);
-    }
-    const word = typeof el === "string" ? el : barewordValue(el as Node);
-    if (word === "_") return null;
-    if (word === "$" || word === "...") return word;
-    throw new ErrorException(
-      "an error lens can only contain `$` (take), `_` (skip), `...` (rest) and nested `[ ]`",
-    );
-  });
-}
+/** The `[_ $]` lens argument, funneled through the SDK's shared
+ *  {@link lensSlots} with this helper's clause hint. */
+const errorLensSlots = (value: unknown): DestructureSlot[] =>
+  lensSlots(value, `selecting one error argument, ${CLAUSE_HINT}`);
 
 /** Read the `-!> ErrName(types) [lens]` clause out of the helper's extra
  *  arguments. The arrow and signature travel as barewords — the grammar
@@ -142,7 +119,7 @@ function parseProbeClause(
 
   const clause: ProbeClause = { optional: arrow === "-?!>", errorName };
   if (paramsRaw !== undefined) clause.errorParams = splitParamTypes(paramsRaw);
-  if (lensPart != null) clause.lens = lensSlots(lensPart);
+  if (lensPart != null) clause.lens = errorLensSlots(lensPart);
   return clause;
 }
 

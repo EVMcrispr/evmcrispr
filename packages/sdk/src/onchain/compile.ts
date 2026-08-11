@@ -47,6 +47,7 @@ import {
   encodePick,
   encodeRead,
   LEN_STEP,
+  PAYLOAD_STEP,
 } from "./core";
 import {
   compileOnchainHelper,
@@ -677,6 +678,39 @@ export function applyValueLens(
     current = current[pos];
   }
   return current;
+}
+
+/** Reinterpret a `[_ $]` argument as lens slots. The grammar parses it as
+ *  an array literal whose elements arrive as `_`, `$`, `...` (barewords in
+ *  raw nodes, plain strings once evaluated) and nested arrays — anything
+ *  else is not a lens. Helper nodes cannot carry a return-lens, so faces
+ *  that take one accept it as an ordinary argument and funnel it through
+ *  here. `context` names the selection in the missing-lens message. */
+export function lensSlots(value: unknown, context: string): DestructureSlot[] {
+  const elements = Array.isArray(value)
+    ? value
+    : (value as Node)?.type === NodeType.ArrayExpression
+      ? ((value as any).elements as unknown[])
+      : undefined;
+  if (!elements) {
+    throw new ErrorException(`expected a [_ $] lens ${context}`);
+  }
+  return elements.map((el): DestructureSlot => {
+    if (Array.isArray(el) || (el as Node)?.type === NodeType.ArrayExpression) {
+      return lensSlots(el, context);
+    }
+    const word =
+      typeof el === "string"
+        ? el
+        : (el as Node)?.type === NodeType.Bareword
+          ? String((el as any).value)
+          : undefined;
+    if (word === "_") return null;
+    if (word === "$" || word === "...") return word;
+    throw new ErrorException(
+      "a value lens can only contain `$` (take), `_` (skip), `...` (rest) and nested `[ ]`",
+    );
+  });
 }
 
 const SINGLE_WORD_ABI = /^(u?int\d*|address|bool|bytes32)$/;
@@ -1885,6 +1919,27 @@ export function lenParam(
     encodeNav(param, formatReturnTuple(outputs), [
       ...path.map(BigInt),
       LEN_STEP,
+    ]),
+  );
+}
+
+/** Compile payload access: a nav path ending in the PAYLOAD sentinel
+ *  returns the navigated string/bytes value's raw payload — exact byte
+ *  length, no envelope, no padding — so a nav over the result re-enters
+ *  it with an ordinary descriptor. Appended to the base nav's own path,
+ *  one core frame. The terminal must be string/bytes (callers guard with
+ *  {@link requireBytesLike}); the contract refuses everything else. */
+export function payloadParam(
+  ctx: CompileCtx,
+  param: InputParam,
+  outputs: readonly AbiParameter[],
+  path: readonly number[],
+): InputParam {
+  return staticCallParam(
+    ctx.core,
+    encodeNav(param, formatReturnTuple(outputs), [
+      ...path.map(BigInt),
+      PAYLOAD_STEP,
     ]),
   );
 }

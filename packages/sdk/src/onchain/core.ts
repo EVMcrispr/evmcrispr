@@ -30,6 +30,13 @@ export const CORE_ABI = parseAbi([
  *  the preceding steps navigate to. */
 export const LEN_STEP = -(1n << 255n);
 
+/** Sentinel path entry (Assertions.PAYLOAD = type(int256).min + 1): as the
+ *  last entry of a nav path it selects the raw PAYLOAD of the string or
+ *  bytes value the preceding steps navigate to — exact byte length, no
+ *  envelope, no padding. A nav over the result re-enters the payload with
+ *  an ordinary descriptor. */
+export const PAYLOAD_STEP = LEN_STEP + 1n;
+
 type CoreFn =
   | "resolve"
   | "pick"
