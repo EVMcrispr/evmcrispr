@@ -1,13 +1,21 @@
 import { defineHelper, HelperFunctionError } from "@evmcrispr/sdk";
-import { createPublicClient } from "viem";
+import { createPublicClient, encodeFunctionData, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import type Ens from "..";
+import { EMPTY_DYNAMIC_RETURN, resolverGatedChain } from "../onchain";
+import { getNode } from "../utils";
+
+const textAbi = parseAbi([
+  "function text(bytes32 node, string key) view returns (string)",
+]);
 
 export default defineHelper<Ens>({
   name: "text",
   batchable: false,
   description: "Read a text record from an ENS name.",
+  compileDescription:
+    "Mainnet only, and a missing record or a name with no resolver reads as an empty string instead of erroring.",
   returnType: "string",
   args: [
     {
@@ -34,5 +42,21 @@ export default defineHelper<Ens>({
       );
     }
     return text;
+  },
+  compile: async (ctx, node) => {
+    const name = String(await ctx.interpreters.interpretNode(node.args[0]));
+    const key = String(await ctx.interpreters.interpretNode(node.args[1]));
+    const ensNode = getNode(name);
+    return resolverGatedChain(
+      ctx,
+      ensNode,
+      encodeFunctionData({
+        abi: textAbi,
+        functionName: "text",
+        args: [ensNode, key],
+      }),
+      EMPTY_DYNAMIC_RETURN,
+      "String",
+    );
   },
 });

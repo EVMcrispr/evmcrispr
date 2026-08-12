@@ -1,7 +1,18 @@
 import { chainLabel, ErrorException } from "@evmcrispr/sdk";
-import type { CompileCtx } from "@evmcrispr/sdk/onchain";
-import type { Address } from "viem";
+import type { Category, CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
+import {
+  coreCall,
+  encodeChain,
+  encodeCond,
+  rawParam,
+  staticCallParam,
+  toWord,
+  wordOpParam,
+} from "@evmcrispr/sdk/onchain";
+import type { Address, Hex } from "viem";
+import { encodeFunctionData } from "viem";
 import { registryMap, requireAddress } from "./addresses";
+import { registryAbi } from "./utils";
 
 /**
  * Mainnet, or refuse.
@@ -44,4 +55,46 @@ export async function onchainAddress(
 ): Promise<Address> {
   await requireMainnet(ctx, label);
   return requireAddress(map, 1, label);
+}
+
+/** A valid empty ABI `string`/`bytes` return: [0x20][0]. The `cond`
+ *  fallback must match the winning branch's encoding, since the winning
+ *  bytes pass through raw. */
+export const EMPTY_DYNAMIC_RETURN: Hex = `0x${toWord(32n).slice(2)}${toWord(0n).slice(2)}`;
+
+/**
+ * The two-hop resolver read every record face shares (the `@addr!`
+ * shape): `resolver(node)` on the registry, a `chain` hop into the
+ * resolver with `callData`, and a `cond` that turns an unset resolver
+ * into `emptyReturn` instead of a revert.
+ */
+export async function resolverGatedChain(
+  ctx: CompileCtx,
+  ensNode: Hex,
+  callData: Hex,
+  emptyReturn: Hex,
+  cat: Category,
+): Promise<Operand> {
+  const registry = await onchainRegistry(ctx);
+  const resolverParam = staticCallParam(
+    registry,
+    encodeFunctionData({
+      abi: registryAbi,
+      functionName: "resolver",
+      args: [ensNode],
+    }),
+  );
+  const gated = staticCallParam(
+    ctx.core,
+    encodeChain(resolverParam, [callData]),
+  );
+  return coreCall(
+    ctx,
+    encodeCond(
+      wordOpParam(ctx, "eq", false, resolverParam, rawParam(toWord(0n))),
+      rawParam(emptyReturn),
+      gated,
+    ),
+    cat,
+  );
 }

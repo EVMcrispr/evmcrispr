@@ -28,6 +28,20 @@ print $name
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@ens:name!)
+
+Mainnet only, and the address must be a composition-time constant: the
+reverse node is a namehash over the address's hex label, and there is no
+on-chain path from a live address word to it. The face reads the reverse
+registrar's `name()` record through the `@addr!`-shaped resolver chain,
+with two declared divergences from the plain face: an address with no
+reverse record reads as the empty string instead of erroring, and the
+plain face's forward check — that the returned name resolves back to the
+address — is skipped, so a stale or hostile reverse record reads as
+whatever string it holds. Pair it with `@ens:addr!` when the forward
+direction matters: `@ens:addr!(@ens:name(x)) == x` at composition time,
+or assert both reads separately.
+
 ## See Also
 
 - [@ens:avatar](avatar.md) — get the avatar URI
