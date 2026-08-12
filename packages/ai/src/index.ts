@@ -1,5 +1,12 @@
 // ── Nexus config & client ──
 
+export type { ChatErrorInfo, ChatErrorKind } from "./chat-errors";
+export {
+  AUTH_ERROR_MESSAGE,
+  BALANCE_ERROR_MESSAGE,
+  classifyChatError,
+  RATE_LIMIT_ERROR_MESSAGE,
+} from "./chat-errors";
 export type { ChatMeta, StoredChat } from "./chat-store";
 export {
   createChatStore,

@@ -1,0 +1,6 @@
+[test]
+root = "./test"
+# Deliberately no preload: these suites are pure and need neither the repo
+# root's anvil bootstrap nor a .env. Bun does not merge bunfig.toml files —
+# the closest one wins — so declaring it here keeps `bun test` from picking
+# up the root config.
