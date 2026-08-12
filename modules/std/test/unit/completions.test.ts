@@ -739,6 +739,10 @@ describe("Completions – std helpers", () => {
       const helperItems = onlyKind(items, "helper");
       for (const h of helperItems) {
         expect([
+          "@abi.decode",
+          "@abi.decode!",
+          "@abi.decodeCall",
+          "@abi.decodeCall!",
           "@block",
           "@get",
           "@ifElse",
