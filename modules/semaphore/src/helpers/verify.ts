@@ -1,4 +1,6 @@
 import { defineHelper } from "@evmcrispr/sdk";
+import { staticCallParam } from "@evmcrispr/sdk/onchain";
+import { encodeFunctionData } from "viem";
 import type Semaphore from "..";
 import { parseProofJson } from "../utils/proof";
 import {
@@ -11,6 +13,8 @@ export default defineHelper<Semaphore>({
   name: "verify",
   description:
     "Check a Semaphore membership proof against a group with the contract's view verifier: no transaction and no nullifier recording.",
+  compileDescription:
+    "The proof and group id are taken as constants; validity is judged against the group's state when the assertion runs, so a root rotation flips the answer.",
   returnType: "bool",
   batchable: false,
   args: [
@@ -51,5 +55,47 @@ export default defineHelper<Semaphore>({
       ],
     })) as boolean;
     return valid ? "true" : "false";
+  },
+  // The proof tuple is all value types, so the whole call is one flat
+  // literal staticcall; only the verdict is read at judgement.
+  compile: async (ctx, node) => {
+    const { address } = await requireSemaphore(ctx.module);
+    const proof = parseProofJson(
+      String(await ctx.interpreters.interpretNode(node.args[0])),
+    );
+    const group = parseGroupId(
+      await ctx.interpreters.interpretNode(node.args[1]),
+    );
+    return {
+      kind: "call",
+      param: staticCallParam(
+        address,
+        encodeFunctionData({
+          abi: SEMAPHORE_ABI,
+          functionName: "verifyProof",
+          args: [
+            group,
+            {
+              merkleTreeDepth: proof.merkleTreeDepth,
+              merkleTreeRoot: proof.merkleTreeRoot,
+              nullifier: proof.nullifier,
+              message: proof.message,
+              scope: proof.scope,
+              points: proof.points as [
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+              ],
+            },
+          ],
+        }),
+      ),
+      cat: "Bool",
+    };
   },
 });

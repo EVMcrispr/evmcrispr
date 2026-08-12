@@ -23,6 +23,16 @@ Check a Semaphore membership proof against a group with the contract's view veri
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@semaphore:verify!)
+
+The proof JSON and group id are taken as composition-time constants — the
+proof tuple is all value types, so the whole verification is one flat
+literal staticcall to the singleton's view `verifyProof`. What the face
+buys over the plain one is WHEN it answers: validity is judged against the
+group's state at assertion time, so a root rotation between composition
+and judgement flips the answer. A group that does not exist reverts the
+judge on both faces.
+
 ## See Also
 
 - [semaphore:validate](../commands/validate.md) — the transactional counterpart
