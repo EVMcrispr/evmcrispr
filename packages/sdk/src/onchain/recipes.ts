@@ -1,6 +1,6 @@
 import type { Address, Hex } from "viem";
 import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
-import { encodePick } from "./core";
+import { encodePick, encodeRead } from "./core";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import {
@@ -8,6 +8,7 @@ import {
   bytesTail,
   envelopeLenParam,
   mergeSegments,
+  type Piece,
   type Slot,
   spliceLayout,
   wordPiece,
@@ -528,20 +529,83 @@ export function sha256Param(ctx: CompileCtx, s: InputParam): InputParam {
   return staticCallParam(ctx.core, encodePick(raw, 2n));
 }
 
+/**
+ * A live WORD as a bytes envelope of its bytes [start, start+len), via
+ * one `slice` whose data argument is a synthesized [32][word] envelope:
+ * heads are [offset_data = 96][start][len], then the literal length word
+ * and the raw word itself. This is how a word-cat operand (a balance, a
+ * picked return word) becomes a part of a byte concatenation — full
+ * width with the defaults, or narrowed to its type's packed width
+ * (address = (12, 20), uintN = (32 - N/8, N/8), bytesN = (0, N)).
+ */
+export function wordPartParam(
+  ctx: CompileCtx,
+  w: InputParam,
+  start = 0n,
+  len = 32n,
+): InputParam {
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.slice,
+    mergeSegments([
+      wordSpan(96n), // offset_data: the synthesized envelope below
+      wordSpan(start),
+      wordSpan(len),
+      wordSpan(32n), // the envelope's length word
+      w,
+    ]),
+  );
+}
+
+/**
+ * A judge-time-constructed staticcall with literal heads and ONE live
+ * bytes argument spliced last: calldata is the selector, the head
+ * pieces, then the resolved envelope with the +32 offset trick (a head
+ * offset pointing at the live argument must already account for it).
+ * The {@link sha256Param} shape, generalized to any target.
+ */
+export function oneLiveBytesCallParam(
+  ctx: CompileCtx,
+  target: InputParam,
+  selector: Hex,
+  heads: readonly Piece[],
+  live: InputParam,
+): InputParam {
+  return staticCallParam(
+    ctx.core,
+    encodeRead(target, selector, mergeSegments([...heads, live])),
+  );
+}
+
 /** A part of a spliced `bytes[]`: a literal payload, or ONE live operand
- *  resolving to a bytes envelope. */
-export type BytesPart = Hex | InputParam | { param: InputParam; aligned: true };
+ *  resolving to a bytes envelope. `aligned` claims a whole-word payload;
+ *  `size` claims an EXACT payload byte length known at composition time
+ *  (a sliced word part), which keeps every later offset a literal. */
+export type BytesPart =
+  | Hex
+  | InputParam
+  | { param: InputParam; aligned: true }
+  | { param: InputParam; size: number };
 
 const _isLivePart = (p: BytesPart): p is Exclude<BytesPart, Hex> =>
   typeof p !== "string";
 
+/** The live operand behind a non-literal part, whatever its sizing. */
+export const livePartParam = (p: Exclude<BytesPart, Hex>): InputParam =>
+  "param" in p ? p.param : p;
+
 /** A parts list as layout slots. A bare live param is sized as a
  *  bytes/string envelope; `aligned` opts into the cheaper word-payload
  *  sizing and must only be used where the payload really is a whole
- *  number of words, since an over-claim shifts every later offset. */
+ *  number of words, since an over-claim shifts every later offset; a
+ *  `size` part's padded payload is a build-time literal, so it does not
+ *  count toward the offsets' live-add chains at all. */
 function toSlots(ctx: CompileCtx, parts: readonly BytesPart[]): Slot[] {
   return parts.map((p) => {
     if (typeof p === "string") return { tail: bytesTail(p) };
+    if ("size" in p) {
+      return { param: p.param, payload: BigInt(Math.ceil(p.size / 32) * 32) };
+    }
     if ("aligned" in p) {
       return { param: p.param, payload: wordsPayloadParam(ctx, p.param) };
     }
@@ -623,10 +687,7 @@ export function splitParam(
   const dlen: bigint | InputParam =
     typeof delimiter === "string"
       ? BigInt(byteLen(delimiter))
-      : envelopeLenParam(
-          ctx,
-          "aligned" in delimiter ? delimiter.param : delimiter,
-        );
+      : envelopeLenParam(ctx, livePartParam(delimiter));
   const add = (a: InputParam, b: bigint | InputParam): InputParam =>
     wordOpParam(
       ctx,
