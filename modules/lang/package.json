@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-lang",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Language primitives: string, number, bytes, array, and boolean helpers for data manipulation. Requires `load lang` (import the helpers you use, e.g. `load lang [@map @filter]`, or qualify them as `@lang:map`).",
   "license": "AGPL-3.0-or-later",
   "repository": {

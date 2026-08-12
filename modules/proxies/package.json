@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-proxies",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Proxy operations: ERC-1167 clones and ERC-1967 proxy/beacon upgrades.",
   "license": "AGPL-3.0-or-later",
   "repository": {

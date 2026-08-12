@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.11.1
+
+A patch release: fixes for problems found right after 0.11.0 shipped, plus a few small editor and CLI improvements. No breaking changes.
+
+### Fixed
+
+- WalletConnect sessions are broken in production builds: `cross-fetch` is no longer externalized.
+- Plain-CREATE address prediction (`reserveNextAddress`/`predictNextAddress`), and `--nonce` is honored in the sim backends.
+- `simulate` now reports `sim:fork` executions: the interpreter observes dispatched actions.
+- On-chain revert reasons are decoded into simulation error messages.
+- Corrupted Optimism USDC address in the bridges registry.
+- Codegen meta extraction is anchored at the `define` call — std's `@token` was registering as "Ether", so analysis flagged every `@token` use as an unknown helper.
+- Monaco assets are self-hosted instead of loaded from a CDN, and Monaco is bumped to 0.56.0, which fixes the first keystroke being dropped after a backward selection.
+- Editor and viewer agree on word wrap and bracket-pair colors.
+- shadcn enter/exit animations render again (`tw-animate-css`), and utilities renamed in Tailwind v4 (`bg-linear-to-*`, `wrap-break-word`, suffix `!`) are migrated.
+- `lint-staged` tasks now run on `modules/`, which the globs had never covered.
+
+### Added
+
+- `--version` flag and `--help` on every CLI subcommand.
+- Editor hovers describe command options and parameters.
+- Side-panel inputs autofocus when their tab is revealed.
+
+### Internal
+
+- Lint and pre-commit checks for utilities renamed in Tailwind v4.
+- Astro frontmatter is linted and formatted with Biome, and `astro check` runs on astro-only commits.
+- Integration suites are capped at 8G via systemd-run scopes.
+
 ## 0.11.0 — "New Foundations"
 
 We rebuilt EVMcrispr from the ground up: EVML is now a real scripting language, every module lives in its own package, simulations run in the browser with no API key, and the whole toolchain is AI-ready.

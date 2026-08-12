@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-token",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Token operations: mint, burn, and approvals.",
   "license": "AGPL-3.0-or-later",
   "repository": {

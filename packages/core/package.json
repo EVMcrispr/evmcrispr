@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/core",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "EVML interpreter and workspace runtime: parse, validate, simulate and execute EVML scripts with any viem wallet",
   "license": "AGPL-3.0-or-later",
   "repository": {
