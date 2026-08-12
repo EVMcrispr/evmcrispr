@@ -2,7 +2,7 @@
 title: "@assertions:codehash"
 ---
 
-Read the keccak256 code hash of an address.
+Read the code hash of an address at script build time, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise.
 
 **Returns**: `bytes32`
 
