@@ -281,7 +281,7 @@ async function findCommandArgDefAtPosition(
     moduleCache,
     collectScriptImports(script),
   );
-  if (!resolved) return null;
+  if (!resolved?.command.argDefs) return null;
 
   const defIdx = resolveArgDefIndex(
     resolved.command.argDefs,
