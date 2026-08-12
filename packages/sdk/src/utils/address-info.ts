@@ -37,8 +37,8 @@ export interface AddressContractExtras {
 /**
  * Everything `classifyAddress` learns about an address: what kind of
  * account it is plus best-effort on-chain and verification metadata.
- * Shared by the editor's address hover card and the explorer module's
- * `@explorer:account` helper.
+ * Shared by the editor's address hover card and the contracts module's
+ * `@contracts:account` helper.
  */
 export interface AddressInfo extends AddressChainData, AddressContractExtras {
   address: Address;

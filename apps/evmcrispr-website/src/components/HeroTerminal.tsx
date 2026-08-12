@@ -83,7 +83,7 @@ export default function HeroTerminal() {
             (mb-[-2px]) visible and gives the script some air. */}
         <Tabs.List className="w-full border-b-0 mb-3">
           {EXAMPLES.map((_, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static list, index is the tab identity
+            // The list is static and the index IS the tab identity.
             <Tabs.Trigger key={i} value={String(i)} className="flex-1">
               Example {i + 1}
             </Tabs.Trigger>

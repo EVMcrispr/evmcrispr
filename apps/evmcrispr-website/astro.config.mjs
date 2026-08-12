@@ -9,7 +9,15 @@ import {
   writeFileSync,
 } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, extname, join, normalize, relative, resolve, sep } from "node:path";
+import {
+  dirname,
+  extname,
+  join,
+  normalize,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import circomGrammar from "@evmcrispr/editor/grammars/circom";

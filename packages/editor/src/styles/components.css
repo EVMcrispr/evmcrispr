@@ -122,6 +122,9 @@
   position: relative;
   padding: 0 0.75rem 0 3.25rem;
   min-height: 1em;
+  /* biome-ignore lint/suspicious/noDuplicateProperties: 1lh is the real
+     intent (an empty line keeps exactly one line box); 1em is the
+     fallback browsers without the lh unit fall back to. */
   min-height: 1lh;
   white-space: pre-wrap;
   /* Unbroken tokens (addresses, calldata) wrap mid-token instead of
