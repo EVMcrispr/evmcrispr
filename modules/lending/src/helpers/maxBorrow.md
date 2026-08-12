@@ -31,4 +31,18 @@ print "Can still borrow:" @lending:maxBorrow(@me 0xe91D153E0b41518A2Ce8Dd3D7944F
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@lending:maxBorrow!)
+
+Aave-style markets express the read as `availableBorrowsBase ×
+10^decimals ÷ oracle price` — the headroom (word 2 of
+`getUserAccountData`) and the price are live reads, the token's decimals
+are pinned at composition (the token is a constant), and the division is
+one 512-bit mul-div so zero headroom reads 0 with no branch. A zero
+oracle price also reads 0, matching the plain face, instead of reverting
+the judge on the division.
+
+CompoundV3 refuses: Comet prices collateral by walking every listed
+asset, and a loop has no composition at any node count. The error says
+so and points at `--using` with a protocol that can.
+
 ## See Also

@@ -3,6 +3,7 @@ import type { Module } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 import {
   ADAPTERS,
+  requireCompile,
   requireRead,
   resolveAdapter,
 } from "../../src/adapters/registry";
@@ -108,5 +109,15 @@ describe("Lending > adapters > registry", () => {
       "Bare does not expose healthFactor",
     );
     expect(requireRead(ADAPTERS.aavev3, "healthFactor")).to.be.a("function");
+  });
+
+  it("maxBorrow compiles on Aave-style markets and refuses on Comet", async () => {
+    // Not reachable as a parity case: CompoundV3 has no Gnosis deployment,
+    // so resolveAdapter refuses before requireCompile ever runs there.
+    expect(requireCompile(ADAPTERS.aavev3, "maxBorrow")).to.be.a("function");
+    await expectRejection(
+      () => requireCompile(ADAPTERS.compoundv3, "maxBorrow"),
+      "CompoundV3 cannot evaluate maxBorrow on-chain",
+    );
   });
 });

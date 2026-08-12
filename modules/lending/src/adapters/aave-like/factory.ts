@@ -2,11 +2,17 @@ import { ErrorException, encodeAction, Num } from "@evmcrispr/sdk";
 import {
   callReadOperand,
   directReadOperand,
+  encodeCond,
   encodePick,
   encodeRead,
   materializeWord,
+  OP_SELECTORS,
   operandNode,
+  opReadParam,
+  rawParam,
   staticCallParam,
+  toWord,
+  wordOpParam,
 } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction, Address } from "viem";
 import {
@@ -285,6 +291,64 @@ export function makeAaveStyleAdapter(
       ]);
       if (price === 0n) return 0n;
       return (availableBorrowsBase * 10n ** BigInt(decimals)) / price;
+    },
+
+    async compileMaxBorrow(ctx, module, chainId, account, token) {
+      const { pool, oracle } = await getMarket(module, market, chainId);
+      await readReserve(module, market, chainId, token);
+      // The token is a composition-time constant, so its decimals are
+      // pinned at build; the borrow headroom (word 2 of the six-word
+      // getUserAccountData return) and the oracle price are live.
+      const client = await module.getClient();
+      const decimals = await client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: "decimals",
+      });
+      const available = await callReadOperand(
+        ctx,
+        pool,
+        getAbiItem({
+          abi: poolAbi,
+          name: "getUserAccountData",
+        }) as AbiFunction,
+        [operandNode(account)],
+        "Uint",
+        2n,
+      );
+      const price = directReadOperand(
+        ctx,
+        oracle,
+        encodeFunctionData({
+          abi: oracleAbi,
+          functionName: "getAssetPrice",
+          args: [token],
+        }),
+        "Uint",
+      );
+      // One 512-bit mulDiv keeps zero headroom at zero with no branch;
+      // only the zero-price case needs the guard the plain read has,
+      // since an unguarded division by it would revert the judge.
+      const amount = opReadParam(ctx, OP_SELECTORS.mulDiv, [
+        materializeWord(ctx, available),
+        rawParam(toWord(10n ** BigInt(decimals))),
+        materializeWord(ctx, price),
+      ]);
+      const guarded = staticCallParam(
+        ctx.core,
+        encodeCond(
+          wordOpParam(
+            ctx,
+            "gt",
+            false,
+            materializeWord(ctx, price),
+            rawParam(toWord(0n)),
+          ),
+          amount,
+          rawParam(toWord(0n)),
+        ),
+      );
+      return { kind: "call", param: guarded, cat: "Uint" };
     },
 
     async debt(module, chainId, account, token) {

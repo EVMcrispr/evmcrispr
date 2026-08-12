@@ -116,6 +116,16 @@ export interface LendingAdapter {
     account: Address,
     token: Address,
   ): Promise<bigint>;
+  /** The on-chain form of {@link maxBorrow}, in the token's base units.
+   *  Comet omits it: it prices collateral by walking every listed asset,
+   *  and a loop has no composition at any node count. */
+  compileMaxBorrow?(
+    ctx: CompileCtx,
+    module: Lending,
+    chainId: number,
+    account: Operand,
+    token: Address,
+  ): Promise<Operand>;
   debt?(
     module: Lending,
     chainId: number,

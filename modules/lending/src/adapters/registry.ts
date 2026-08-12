@@ -73,15 +73,18 @@ export function requireRead<K extends ReadMethod>(
   return fn;
 }
 
-type CompileMethod = "compileApy" | "compileHealthFactor" | "compileDebt";
+type CompileMethod =
+  | "compileApy"
+  | "compileHealthFactor"
+  | "compileDebt"
+  | "compileMaxBorrow";
 
 const COMPILE_OF: Record<ReadMethod & string, CompileMethod | undefined> = {
   apy: "compileApy",
   healthFactor: "compileHealthFactor",
   debt: "compileDebt",
-  // maxBorrow prices collateral by walking every listed asset on Comet,
-  // and a loop has no composition at any node count.
-  maxBorrow: undefined,
+  // Aave-style markets express it; Comet omits the slot (see types.ts).
+  maxBorrow: "compileMaxBorrow",
 };
 
 /**
@@ -101,7 +104,9 @@ type CompileOf<K extends ReadMethod> = K extends "apy"
     ? NonNullable<LendingAdapter["compileHealthFactor"]>
     : K extends "debt"
       ? NonNullable<LendingAdapter["compileDebt"]>
-      : never;
+      : K extends "maxBorrow"
+        ? NonNullable<LendingAdapter["compileMaxBorrow"]>
+        : never;
 
 export function requireCompile<K extends ReadMethod>(
   adapter: LendingAdapter,
