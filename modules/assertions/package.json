@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-assertions",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "On-chain assertions backed by the assertions.eth contract: verify view return values and chain state atomically. Requires `load assertions`.",
   "license": "AGPL-3.0-or-later",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-aragonosx",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Interact with Aragon OSx DAOs: connect to a DAO, manage permissions, route actions through governance plugins (Admin, Multisig, Token Voting, Staged Proposal Processor) as proposals, install, upgrade and uninstall plugins via the Plugin Setup Processor, and create new DAOs.",
   "license": "AGPL-3.0-or-later",
   "repository": {

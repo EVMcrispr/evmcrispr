@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-governor",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Governance operations: Governor proposals, voting, vote delegation, and TimelockController scheduling.",
   "license": "AGPL-3.0-or-later",
   "repository": {

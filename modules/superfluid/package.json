@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-superfluid",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Superfluid streaming payments: open, update and stop money streams (CFA) with native rate literals like 1000e18/mo, distribute to many receivers at once through GDA pools, wrap and unwrap SuperTokens, and automate with scheduled flows, vesting schedules and auto-wrap — approvals and flow-operator permissions handled automatically.",
   "license": "AGPL-3.0-or-later",
   "repository": {
