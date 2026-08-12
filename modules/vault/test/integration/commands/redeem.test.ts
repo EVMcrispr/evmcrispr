@@ -31,13 +31,13 @@ describeCommand("redeem", {
         expect(actions).to.have.length(1);
         const action = actions[0] as any;
         expect((action.to as string).toLowerCase()).to.eq(SDAI.toLowerCase());
-        const { functionName, args } = decodeRedeem(action);
+        const { functionName, args = [] } = decodeRedeem(action);
         expect(functionName).to.eq("redeem");
-        expect(args?.[0]).to.eq(SHARES);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(SHARES);
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -46,11 +46,11 @@ describeCommand("redeem", {
       name: "sends the redeemed assets to --to, burning the callers shares",
       script: `vault:redeem 50e18 of ${SDAI} --to ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeRedeem(actions[0]);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        const { args = [] } = decodeRedeem(actions[0]);
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },

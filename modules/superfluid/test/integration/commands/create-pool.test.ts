@@ -23,16 +23,16 @@ describeCommand("create-pool", {
         expect((action.to as string).toLowerCase()).to.eq(
           GDA_FORWARDER.toLowerCase(),
         );
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: action.data,
         });
         expect(functionName).to.eq("createPool");
-        expect((args?.[0] as string).toLowerCase()).to.eq(XDAIX.toLowerCase());
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect((args[0] as string).toLowerCase()).to.eq(XDAIX.toLowerCase());
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect(args?.[2]).to.deep.eq({
+        expect(args[2]).to.deep.eq({
           transferabilityForUnitsOwner: false,
           distributionFromAnyAddress: false,
         });
@@ -42,14 +42,14 @@ describeCommand("create-pool", {
       name: "honors --admin and the pool config flags",
       script: `superfluid:create-pool $pool ${XDAIX} --admin ${SOME_ADDRESS} --transferable-units true --open-distribution true`,
       validate: (actions) => {
-        const { args } = decodeFunctionData({
+        const { args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: (actions[0] as any).data,
         });
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect(args?.[2]).to.deep.eq({
+        expect(args[2]).to.deep.eq({
           transferabilityForUnitsOwner: true,
           distributionFromAnyAddress: true,
         });

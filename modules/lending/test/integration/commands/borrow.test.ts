@@ -24,13 +24,13 @@ describeCommand("borrow", {
         expect(actions).to.have.length(1);
         const action = actions[0] as any;
         expect(action.to).to.eq(AAVE_POOL);
-        const { functionName, args } = decodeBorrow(action);
+        const { functionName, args = [] } = decodeBorrow(action);
         expect(functionName).to.eq("borrow");
-        expect(args?.[0]).to.eq(WXDAI);
-        expect(args?.[1]).to.eq(100n * 10n ** 18n);
-        expect(args?.[2]).to.eq(2n); // variable rate
-        expect(args?.[3]).to.eq(0);
-        expect((args?.[4] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(WXDAI);
+        expect(args[1]).to.eq(100n * 10n ** 18n);
+        expect(args[2]).to.eq(2n); // variable rate
+        expect(args[3]).to.eq(0);
+        expect((args[4] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -39,8 +39,8 @@ describeCommand("borrow", {
       name: "borrows against delegated credit with --on-behalf-of",
       script: `lending:borrow 100e18 ${WXDAI} --on-behalf-of ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeBorrow(actions[0]);
-        expect(args?.[4]).to.eq(SOME_ADDRESS);
+        const { args = [] } = decodeBorrow(actions[0]);
+        expect(args[4]).to.eq(SOME_ADDRESS);
       },
     },
   ],

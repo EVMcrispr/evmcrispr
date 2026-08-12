@@ -31,13 +31,13 @@ describeCommand("withdraw", {
         expect(actions).to.have.length(1);
         const action = actions[0] as any;
         expect((action.to as string).toLowerCase()).to.eq(SDAI.toLowerCase());
-        const { functionName, args } = decodeWithdraw(action);
+        const { functionName, args = [] } = decodeWithdraw(action);
         expect(functionName).to.eq("withdraw");
-        expect(args?.[0]).to.eq(AMOUNT);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(AMOUNT);
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -46,11 +46,11 @@ describeCommand("withdraw", {
       name: "sends the withdrawn assets to --to, burning the callers shares",
       script: `vault:withdraw 50e18 from ${SDAI} --to ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeWithdraw(actions[0]);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        const { args = [] } = decodeWithdraw(actions[0]);
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },

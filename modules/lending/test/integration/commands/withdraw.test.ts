@@ -24,11 +24,11 @@ describeCommand("withdraw", {
         expect(actions).to.have.length(1);
         const action = actions[0] as any;
         expect(action.to).to.eq(AAVE_POOL);
-        const { functionName, args } = decodeWithdraw(action);
+        const { functionName, args = [] } = decodeWithdraw(action);
         expect(functionName).to.eq("withdraw");
-        expect(args?.[0]).to.eq(WXDAI);
-        expect(args?.[1]).to.eq(50n * 10n ** 18n);
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(WXDAI);
+        expect(args[1]).to.eq(50n * 10n ** 18n);
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -37,16 +37,16 @@ describeCommand("withdraw", {
       name: "encodes `max` as uint256.max so the pool burns the full balance",
       script: `lending:withdraw max ${WXDAI}`,
       validate: (actions) => {
-        const { args } = decodeWithdraw(actions[0]);
-        expect(args?.[1]).to.eq(maxUint256);
+        const { args = [] } = decodeWithdraw(actions[0]);
+        expect(args[1]).to.eq(maxUint256);
       },
     },
     {
       name: "sends the withdrawn tokens to --to when given",
       script: `lending:withdraw 50e18 ${WXDAI} --to ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeWithdraw(actions[0]);
-        expect(args?.[2]).to.eq(SOME_ADDRESS);
+        const { args = [] } = decodeWithdraw(actions[0]);
+        expect(args[2]).to.eq(SOME_ADDRESS);
       },
     },
   ],

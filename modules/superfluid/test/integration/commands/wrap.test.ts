@@ -40,15 +40,15 @@ describeCommand("wrap", {
         const [approve, upgrade] = actions as any[];
 
         expect((approve.to as string).toLowerCase()).to.eq(USDC.toLowerCase());
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect((approval.args?.[0] as string).toLowerCase()).to.eq(
+        expect((approvalArgs[0] as string).toLowerCase()).to.eq(
           USDCX.toLowerCase(),
         );
         // allowance covers the 6-decimal underlying amount
-        expect(approval.args?.[1]).to.eq(100n * 10n ** 6n);
+        expect(approvalArgs[1]).to.eq(100n * 10n ** 6n);
 
         expect((upgrade.to as string).toLowerCase()).to.eq(USDCX.toLowerCase());
         const decoded = decodeFunctionData({

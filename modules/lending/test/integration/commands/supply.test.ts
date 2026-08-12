@@ -36,21 +36,21 @@ describeCommand("supply", {
         const [approve, supply] = actions as any[];
 
         expect(approve.to).to.eq(WXDAI);
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect(approval.args).to.eql([AAVE_POOL, AMOUNT]);
+        expect(approvalArgs).to.eql([AAVE_POOL, AMOUNT]);
 
         expect(supply.to).to.eq(AAVE_POOL);
-        const { functionName, args } = decodeSupply(supply);
+        const { functionName, args = [] } = decodeSupply(supply);
         expect(functionName).to.eq("supply");
-        expect(args?.[0]).to.eq(WXDAI);
-        expect(args?.[1]).to.eq(AMOUNT);
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(WXDAI);
+        expect(args[1]).to.eq(AMOUNT);
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect(args?.[3]).to.eq(0);
+        expect(args[3]).to.eq(0);
       },
     },
     {
@@ -65,8 +65,8 @@ describeCommand("supply", {
       name: "credits --on-behalf-of with the supplied position",
       script: `lending:supply 100e18 ${WXDAI} --on-behalf-of ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeSupply(actions.at(-1));
-        expect(args?.[2]).to.eq(SOME_ADDRESS);
+        const { args = [] } = decodeSupply(actions.at(-1));
+        expect(args[2]).to.eq(SOME_ADDRESS);
       },
     },
     {
@@ -82,11 +82,11 @@ describeCommand("supply", {
       validate: (actions) => {
         expect(actions).to.have.length(2);
         const [approve, supply] = actions as any[];
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect(approval.args).to.eql([SPARK_POOL, AMOUNT]);
+        expect(approvalArgs).to.eql([SPARK_POOL, AMOUNT]);
         expect(supply.to).to.eq(SPARK_POOL);
         const { functionName } = decodeSupply(supply);
         expect(functionName).to.eq("supply");
