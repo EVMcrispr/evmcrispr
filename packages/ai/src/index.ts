@@ -25,7 +25,11 @@ export type {
   NexusBrokerClientOptions,
   NexusBrokerOptions,
 } from "./nexus-broker";
-export { initNexusBroker, NexusBrokerClient } from "./nexus-broker";
+export {
+  initNexusBroker,
+  NEXUS_BROKER_STORAGE_NAMESPACE,
+  NexusBrokerClient,
+} from "./nexus-broker";
 export { createNexusModel } from "./nexus-client";
 // ── Prompt helpers ──
 export { nowLine, nowStamp, withClock } from "./prompt";
