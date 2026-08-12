@@ -1,5 +1,5 @@
 import type { Param } from "@evmcrispr/sdk";
-import { defineHelper } from "@evmcrispr/sdk";
+import { defineHelper, valueKey } from "@evmcrispr/sdk";
 import type Lang from "..";
 
 export default defineHelper<Lang>({
@@ -12,7 +12,7 @@ export default defineHelper<Lang>({
     const seen = new Set<string>();
     const result: Param[] = [];
     for (const item of arr) {
-      const key = String(item);
+      const key = valueKey(item);
       if (!seen.has(key)) {
         seen.add(key);
         result.push(item);

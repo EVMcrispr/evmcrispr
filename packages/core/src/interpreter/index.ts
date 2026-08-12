@@ -748,6 +748,10 @@ export function makeExecutionResolveCallExpression(
         ? applyReturnLens(res, n.returnDestructure, n)
         : res;
 
+      // Only a TOP-LEVEL bigint becomes a Num, so a uint256[] return stays
+      // bigint[] and a tuple keeps its raw viem members. Helpers that compare
+      // values must therefore not test `instanceof Num` — they go through
+      // sdk/utils/compare.ts, which treats every numeric shape alike.
       return typeof result === "bigint" ? Num.fromBigInt(result) : result;
     } catch (err) {
       const err_ = err as Error;
