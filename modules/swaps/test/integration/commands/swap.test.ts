@@ -62,19 +62,19 @@ describeCommand("swap", {
         const [approve, swap] = actions as any[];
 
         expect(approve.to).to.eq(WXDAI);
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect(approval.args).to.eql([HONEYSWAP_ROUTER, AMOUNT]);
+        expect(approvalArgs).to.eql([HONEYSWAP_ROUTER, AMOUNT]);
 
         expect(swap.to).to.eq(HONEYSWAP_ROUTER);
-        const { functionName, args } = decodeSwap(swap);
+        const { functionName, args = [] } = decodeSwap(swap);
         expect(functionName).to.eq("swapExactTokensForTokens");
-        expect(args?.[0]).to.eq(AMOUNT);
-        expect(args?.[1]).to.eq((quoted * 9950n) / 10000n);
-        expect(args?.[2]).to.eql([WXDAI, GNO]);
-        expect((args?.[3] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(AMOUNT);
+        expect(args[1]).to.eq((quoted * 9950n) / 10000n);
+        expect(args[2]).to.eql([WXDAI, GNO]);
+        expect((args[3] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -92,11 +92,11 @@ describeCommand("swap", {
       validate: (actions) => {
         expect(actions).to.have.length(2);
         const [approve, swap] = actions as any[];
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect((approval.args?.[0] as string).toLowerCase()).to.eq(
+        expect((approvalArgs[0] as string).toLowerCase()).to.eq(
           DELORA_TARGET.toLowerCase(),
         );
         expect(swap.to).to.eq(DELORA_TARGET);
@@ -107,8 +107,8 @@ describeCommand("swap", {
       name: "lets an explicit --min override the slippage-derived bound",
       script: `swaps:swap 100e18 ${WXDAI} to ${GNO} --using Honeyswap --min 1`,
       validate: (actions) => {
-        const { args } = decodeSwap(actions.at(-1));
-        expect(args?.[1]).to.eq(1n);
+        const { args = [] } = decodeSwap(actions.at(-1));
+        expect(args[1]).to.eq(1n);
       },
     },
     {
@@ -116,8 +116,8 @@ describeCommand("swap", {
       script: `swaps:swap 100e18 ${WXDAI} to ${GNO} --using Honeyswap --slippage 1`,
       setup: () => quoteOut(HONEYSWAP_ROUTER, [WXDAI, GNO], AMOUNT),
       validate: (actions, _interpreter, quoted: bigint) => {
-        const { args } = decodeSwap(actions.at(-1));
-        expect(args?.[1]).to.eq((quoted * 9900n) / 10000n);
+        const { args = [] } = decodeSwap(actions.at(-1));
+        expect(args[1]).to.eq((quoted * 9900n) / 10000n);
       },
     },
     {
@@ -132,8 +132,8 @@ describeCommand("swap", {
       name: "sends the output to --to when given",
       script: `swaps:swap 100e18 ${WXDAI} to ${GNO} --using Honeyswap --to ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeSwap(actions.at(-1));
-        expect(args?.[3]).to.eq(SOME_ADDRESS);
+        const { args = [] } = decodeSwap(actions.at(-1));
+        expect(args[3]).to.eq(SOME_ADDRESS);
       },
     },
     {
@@ -143,18 +143,18 @@ describeCommand("swap", {
         expect(actions).to.have.length(1);
         const action = actions[0] as any;
         expect(action.value).to.eq(10n ** 18n);
-        const { functionName, args } = decodeSwap(action);
+        const { functionName, args = [] } = decodeSwap(action);
         expect(functionName).to.eq("swapExactETHForTokens");
-        expect(args?.[1]).to.eql([WXDAI, GNO]);
+        expect(args[1]).to.eql([WXDAI, GNO]);
       },
     },
     {
       name: "swaps into the native token via the ETH router variant",
       script: `swaps:swap 100e18 ${GNO} to ${ZERO_ADDRESS} --using Honeyswap`,
       validate: (actions) => {
-        const { functionName, args } = decodeSwap(actions.at(-1));
+        const { functionName, args = [] } = decodeSwap(actions.at(-1));
         expect(functionName).to.eq("swapExactTokensForETH");
-        expect(args?.[2]).to.eql([GNO, WXDAI]);
+        expect(args[2]).to.eql([GNO, WXDAI]);
       },
     },
     {

@@ -18,12 +18,12 @@ describeCommand("claim", {
       script: `superfluid:claim from ${SOME_ADDRESS}`,
       validate: (actions) => {
         expect(actions).to.have.length(1);
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: (actions[0] as any).data,
         });
         expect(functionName).to.eq("claimAll");
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -32,13 +32,11 @@ describeCommand("claim", {
       name: "claims for another member with --for",
       script: `superfluid:claim from ${SOME_ADDRESS} --for ${RECEIVER}`,
       validate: (actions) => {
-        const { args } = decodeFunctionData({
+        const { args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: (actions[0] as any).data,
         });
-        expect((args?.[1] as string).toLowerCase()).to.eq(
-          RECEIVER.toLowerCase(),
-        );
+        expect((args[1] as string).toLowerCase()).to.eq(RECEIVER.toLowerCase());
       },
     },
   ],

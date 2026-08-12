@@ -70,6 +70,20 @@
   }
 }
 
+/* Hover popover content. Portaled outside `.evml-viewer` (the content
+   element carries `.evmcrispr-root` itself), so the typography has to
+   be re-applied here. JetBrains Mono everywhere keeps prose, code blocks,
+   and inline code visually consistent with the highlighted script
+   behind the popover. Kept ahead of the `.evml-viewer pre/code` rules
+   below so the `code`/`pre` selectors here are not flagged as descending
+   specificity; nothing matches both, since the popover is portaled out. */
+.evml-hover-popover,
+.evml-hover-popover *,
+.evml-hover-popover code,
+.evml-hover-popover pre {
+  font-family: var(--terminal-font-mono);
+}
+
 .evmcrispr-root .evml-viewer pre,
 .evmcrispr-root .evml-viewer code {
   font-family: inherit;
@@ -141,18 +155,6 @@
 .evmcrispr-root .evml-viewer .evml-hover-target:focus-visible {
   background-color: rgba(255, 255, 255, 0.08);
   outline: none;
-}
-
-/* Hover popover content. Portaled outside `.evml-viewer` (the content
-   element carries `.evmcrispr-root` itself), so the typography has to
-   be re-applied here. JetBrains Mono everywhere keeps prose, code blocks,
-   and inline code visually consistent with the highlighted script
-   behind the popover. */
-.evml-hover-popover,
-.evml-hover-popover *,
-.evml-hover-popover code,
-.evml-hover-popover pre {
-  font-family: var(--terminal-font-mono);
 }
 
 /* Dark scrollbars for the viewer + popover + Monaco hover. The default
@@ -302,7 +304,8 @@
 /* Size hover code blocks (the IPFS file preview and doc examples)
    below the editor's 22px. `.monaco-tokenized-source` is the wrapper
    around every tokenized code fence, so all token spans inherit. */
-.evmcrispr-root .monaco-editor
+.evmcrispr-root
+  .monaco-editor
   .monaco-hover
   .hover-contents
   .monaco-tokenized-source,

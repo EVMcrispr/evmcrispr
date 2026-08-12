@@ -29,39 +29,39 @@ describeCommand("auto-wrap", {
         const [approve, create] = actions as any[];
 
         expect((approve.to as string).toLowerCase()).to.eq(USDC.toLowerCase());
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect((approval.args?.[0] as string).toLowerCase()).to.eq(
+        expect((approvalArgs[0] as string).toLowerCase()).to.eq(
           AUTOWRAP_STRATEGY.toLowerCase(),
         );
-        expect(approval.args?.[1]).to.eq(maxUint256);
+        expect(approvalArgs[1]).to.eq(maxUint256);
 
         expect((create.to as string).toLowerCase()).to.eq(
           AUTOWRAP_MANAGER.toLowerCase(),
         );
-        const { args } = decodeFunctionData({
+        const { args = [] } = decodeFunctionData({
           abi: managerAbi,
           data: create.data,
         });
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect((args[1] as string).toLowerCase()).to.eq(
           AUTOWRAP_STRATEGY.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(USDC.toLowerCase());
-        expect(args?.[4]).to.eq(604800n); // 7d lower
-        expect(args?.[5]).to.eq(1209600n); // 14d upper
+        expect((args[2] as string).toLowerCase()).to.eq(USDC.toLowerCase());
+        expect(args[4]).to.eq(604800n); // 7d lower
+        expect(args[5]).to.eq(1209600n); // 14d upper
       },
     },
     {
       name: "caps the allowance with --allowance",
       script: `superfluid:auto-wrap ${USDCX} --allowance 5000e6`,
       validate: (actions) => {
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: (actions[0] as any).data,
         });
-        expect(approval.args?.[1]).to.eq(5000n * 10n ** 6n);
+        expect(approvalArgs[1]).to.eq(5000n * 10n ** 6n);
       },
     },
     {

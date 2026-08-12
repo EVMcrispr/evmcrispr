@@ -46,13 +46,13 @@ vault:claim-redeem 100e6 from ${CENTRIFUGE_JTRSY_VAULT}`,
         expect((action.to as string).toLowerCase()).to.eq(
           CENTRIFUGE_JTRSY_VAULT.toLowerCase(),
         );
-        const { functionName, args } = decodeClaim(action);
+        const { functionName, args = [] } = decodeClaim(action);
         expect(functionName).to.eq("redeem");
-        expect(args?.[0]).to.eq(SHARES);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(SHARES);
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -62,9 +62,9 @@ vault:claim-redeem 100e6 from ${CENTRIFUGE_JTRSY_VAULT}`,
       script: `switch mainnet
 vault:claim-redeem 100e6 from ${CENTRIFUGE_JTRSY_VAULT} --exact assets`,
       validate: (actions) => {
-        const { functionName, args } = decodeClaim(txs(actions)[0]);
+        const { functionName, args = [] } = decodeClaim(txs(actions)[0]);
         expect(functionName).to.eq("withdraw");
-        expect(args?.[0]).to.eq(SHARES);
+        expect(args[0]).to.eq(SHARES);
       },
     },
     {
@@ -72,11 +72,11 @@ vault:claim-redeem 100e6 from ${CENTRIFUGE_JTRSY_VAULT} --exact assets`,
       script: `switch mainnet
 vault:claim-redeem 100e6 from ${CENTRIFUGE_JTRSY_VAULT} --to ${SOME_ADDRESS} --controller ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeClaim(txs(actions)[0]);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        const { args = [] } = decodeClaim(txs(actions)[0]);
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
       },

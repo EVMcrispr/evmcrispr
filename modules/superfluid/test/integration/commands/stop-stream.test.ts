@@ -23,12 +23,12 @@ describeCommand("stop-stream", {
         expect((action.to as string).toLowerCase()).to.eq(
           CFA_FORWARDER.toLowerCase(),
         );
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: action.data,
         });
         expect(functionName).to.eq("setFlowrate");
-        expect(args?.[2]).to.eq(0n);
+        expect(args[2]).to.eq(0n);
       },
     },
     {
@@ -36,17 +36,15 @@ describeCommand("stop-stream", {
       script: `superfluid:stop-stream ${XDAIX} to ${RECEIVER} --from ${SOME_ADDRESS}`,
       validate: (actions) => {
         expect(actions).to.have.length(1);
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: (actions[0] as any).data,
         });
         expect(functionName).to.eq("deleteFlow");
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
-          RECEIVER.toLowerCase(),
-        );
+        expect((args[2] as string).toLowerCase()).to.eq(RECEIVER.toLowerCase());
       },
     },
   ],

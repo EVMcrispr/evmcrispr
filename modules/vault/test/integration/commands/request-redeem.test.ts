@@ -45,13 +45,13 @@ vault:request-redeem 100e6 of ${CENTRIFUGE_JTRSY_VAULT}`,
         expect((action.to as string).toLowerCase()).to.eq(
           CENTRIFUGE_JTRSY_VAULT.toLowerCase(),
         );
-        const { functionName, args } = decodeRequestRedeem(action);
+        const { functionName, args = [] } = decodeRequestRedeem(action);
         expect(functionName).to.eq("requestRedeem");
-        expect(args?.[0]).to.eq(SHARES);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(SHARES);
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -61,11 +61,11 @@ vault:request-redeem 100e6 of ${CENTRIFUGE_JTRSY_VAULT}`,
       script: `switch mainnet
 vault:request-redeem 100e6 of ${CENTRIFUGE_JTRSY_VAULT} --controller ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeRequestRedeem(txs(actions)[0]);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        const { args = [] } = decodeRequestRedeem(txs(actions)[0]);
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },

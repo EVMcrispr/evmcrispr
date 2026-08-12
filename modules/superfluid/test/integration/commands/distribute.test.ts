@@ -22,18 +22,18 @@ describeCommand("distribute", {
         expect((action.to as string).toLowerCase()).to.eq(
           GDA_FORWARDER.toLowerCase(),
         );
-        const { functionName, args } = decodeFunctionData({
+        const { functionName, args = [] } = decodeFunctionData({
           abi: forwarderAbi,
           data: action.data,
         });
         expect(functionName).to.eq("distribute");
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
-        expect((args?.[2] as string).toLowerCase()).to.eq(
+        expect((args[2] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
-        expect(args?.[3]).to.eq(400n * 10n ** 18n);
+        expect(args[3]).to.eq(400n * 10n ** 18n);
       },
     },
   ],

@@ -36,20 +36,20 @@ describeCommand("deposit", {
         const [approve, deposit] = actions as any[];
 
         expect((approve.to as string).toLowerCase()).to.eq(WXDAI.toLowerCase());
-        const approval = decodeFunctionData({
+        const { args: approvalArgs = [] } = decodeFunctionData({
           abi: erc20Abi,
           data: approve.data,
         });
-        expect((approval.args?.[0] as string).toLowerCase()).to.eq(
+        expect((approvalArgs[0] as string).toLowerCase()).to.eq(
           SDAI.toLowerCase(),
         );
-        expect(approval.args?.[1]).to.eq(AMOUNT);
+        expect(approvalArgs[1]).to.eq(AMOUNT);
 
         expect((deposit.to as string).toLowerCase()).to.eq(SDAI.toLowerCase());
-        const { functionName, args } = decodeDeposit(deposit);
+        const { functionName, args = [] } = decodeDeposit(deposit);
         expect(functionName).to.eq("deposit");
-        expect(args?.[0]).to.eq(AMOUNT);
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        expect(args[0]).to.eq(AMOUNT);
+        expect((args[1] as string).toLowerCase()).to.eq(
           TEST_ACCOUNT_ADDRESS.toLowerCase(),
         );
       },
@@ -68,8 +68,8 @@ describeCommand("deposit", {
       name: "mints the shares to --to when given",
       script: `vault:deposit 100e18 into ${SDAI} --to ${SOME_ADDRESS}`,
       validate: (actions) => {
-        const { args } = decodeDeposit(actions.at(-1));
-        expect((args?.[1] as string).toLowerCase()).to.eq(
+        const { args = [] } = decodeDeposit(actions.at(-1));
+        expect((args[1] as string).toLowerCase()).to.eq(
           SOME_ADDRESS.toLowerCase(),
         );
       },
