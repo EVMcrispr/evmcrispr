@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-std",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "The standard module is loaded by default. It provides core language constructs, contract interaction, control flow, and data manipulation.",
   "license": "AGPL-3.0-or-later",
   "repository": {

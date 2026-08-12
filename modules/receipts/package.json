@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-receipts",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Transaction and block data: sealed receipts and blocks addressed by hash or number, and the transaction and block currently being written.",
   "license": "AGPL-3.0-or-later",
   "repository": {

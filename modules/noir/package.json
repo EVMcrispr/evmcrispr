@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-noir",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Noir circuit tooling for EVML scripts: in-place compilation of Noir source, UltraHonk proving and off-chain verification via Barretenberg, and Solidity verifier generation for on-chain proof verification.",
   "license": "AGPL-3.0-or-later",
   "repository": {

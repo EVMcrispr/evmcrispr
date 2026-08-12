@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-circom",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Circom proving stack for EVML scripts: proofs from pre-built wasm/zkey artifacts or in-place circuit compilation with groth16, plonk and fflonk setups via snarkjs, BN254 field arithmetic, circomlib Poseidon hashing and Merkle trees (LeanIMT and fixed-depth), EdDSA over Baby Jubjub, and verifier-calldata accessors for on-chain proof verification.",
   "license": "AGPL-3.0-or-later",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/sdk",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Module-authoring SDK for EVMcrispr: defineModule, defineCommand, defineHelper, shared types and build tooling",
   "license": "AGPL-3.0-or-later",
   "repository": {

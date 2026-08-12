@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/module-ens",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "ENS domain operations: renewal and content hash encoding.",
   "license": "AGPL-3.0-or-later",
   "repository": {

@@ -140,7 +140,7 @@
     },
     "modules/acl": {
       "name": "@evmcrispr/module-acl",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -153,7 +153,7 @@
     },
     "modules/aragonos": {
       "name": "@evmcrispr/module-aragonos",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -168,7 +168,7 @@
     },
     "modules/aragonosx": {
       "name": "@evmcrispr/module-aragonosx",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -181,7 +181,7 @@
     },
     "modules/bridges": {
       "name": "@evmcrispr/module-bridges",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -194,7 +194,7 @@
     },
     "modules/circom": {
       "name": "@evmcrispr/module-circom",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
         "@zk-kit/eddsa-poseidon": "^1.1.0",
@@ -217,7 +217,7 @@
     },
     "modules/contracts": {
       "name": "@evmcrispr/module-contracts",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -230,7 +230,7 @@
     },
     "modules/crypto": {
       "name": "@evmcrispr/module-crypto",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -244,7 +244,7 @@
     },
     "modules/ens": {
       "name": "@evmcrispr/module-ens",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@ensdomains/content-hash": "^3.1.1",
         "@evmcrispr/sdk": "workspace:^",
@@ -259,7 +259,7 @@
     },
     "modules/giveth": {
       "name": "@evmcrispr/module-giveth",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -275,7 +275,7 @@
     },
     "modules/governor": {
       "name": "@evmcrispr/module-governor",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -289,7 +289,7 @@
     },
     "modules/http": {
       "name": "@evmcrispr/module-http",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -302,7 +302,7 @@
     },
     "modules/lang": {
       "name": "@evmcrispr/module-lang",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -315,7 +315,7 @@
     },
     "modules/lending": {
       "name": "@evmcrispr/module-lending",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -328,7 +328,7 @@
     },
     "modules/math": {
       "name": "@evmcrispr/module-math",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -341,7 +341,7 @@
     },
     "modules/noir": {
       "name": "@evmcrispr/module-noir",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@aztec/bb.js": "5.1.0",
         "@evmcrispr/sdk": "workspace:^",
@@ -359,7 +359,7 @@
     },
     "modules/proxies": {
       "name": "@evmcrispr/module-proxies",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -372,7 +372,7 @@
     },
     "modules/receipts": {
       "name": "@evmcrispr/module-receipts",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -386,7 +386,7 @@
     },
     "modules/safe": {
       "name": "@evmcrispr/module-safe",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -399,7 +399,7 @@
     },
     "modules/semaphore": {
       "name": "@evmcrispr/module-semaphore",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/module-circom": "workspace:^",
         "@evmcrispr/sdk": "workspace:^",
@@ -416,7 +416,7 @@
     },
     "modules/sim": {
       "name": "@evmcrispr/module-sim",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@ethereumjs/common": "^10.1.2",
         "@ethereumjs/statemanager": "^10.1.2",
@@ -435,7 +435,7 @@
     },
     "modules/std": {
       "name": "@evmcrispr/module-std",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -449,7 +449,7 @@
     },
     "modules/superfluid": {
       "name": "@evmcrispr/module-superfluid",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -462,7 +462,7 @@
     },
     "modules/swaps": {
       "name": "@evmcrispr/module-swaps",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -475,7 +475,7 @@
     },
     "modules/token": {
       "name": "@evmcrispr/module-token",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/module-std": "workspace:^",
         "@evmcrispr/sdk": "workspace:^",
@@ -489,7 +489,7 @@
     },
     "modules/vault": {
       "name": "@evmcrispr/module-vault",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/sdk": "workspace:^",
       },
@@ -503,7 +503,7 @@
     },
     "packages/ai": {
       "name": "@evmcrispr/ai",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@ai-sdk/openai-compatible": "^3.0.14",
         "@evmcrispr/sdk": "workspace:^",
@@ -525,7 +525,7 @@
     },
     "packages/cli": {
       "name": "evmcrispr",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "bin": {
         "evmcrispr": "./dist/bin.js",
       },
@@ -543,7 +543,7 @@
     },
     "packages/core": {
       "name": "@evmcrispr/core",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/module-std": "workspace:^",
         "@evmcrispr/sdk": "workspace:^",
@@ -566,7 +566,7 @@
     },
     "packages/editor": {
       "name": "@evmcrispr/editor",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/core": "workspace:^",
         "@heroicons/react": "^2.2.0",
@@ -599,7 +599,7 @@
     },
     "packages/modules": {
       "name": "@evmcrispr/modules",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "dependencies": {
         "@evmcrispr/core": "workspace:^",
         "@evmcrispr/module-acl": "workspace:^",
@@ -635,7 +635,7 @@
     },
     "packages/sdk": {
       "name": "@evmcrispr/sdk",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "bin": {
         "evmcrispr-build": "./scripts/build.ts",
       },

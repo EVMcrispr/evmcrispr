@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/modules",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Meta-package that registers all official EVMcrispr modules",
   "license": "AGPL-3.0-or-later",
   "repository": {

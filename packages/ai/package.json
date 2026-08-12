@@ -1,6 +1,6 @@
 {
   "name": "@evmcrispr/ai",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Headless AI agent toolkit for EVML hosts: DappNode Nexus client + auth, script/contract/docs/web tools, and a React hook to drive any chat UI",
   "license": "AGPL-3.0-or-later",
   "repository": {
