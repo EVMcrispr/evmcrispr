@@ -34,7 +34,7 @@ const WORKING_STATUSES = [
 ];
 
 const PROSE_CLASSES =
-  "prose prose-invert prose-base max-w-none break-words prose-headings:text-foreground prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:break-words prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-pre:overflow-x-auto prose-li:text-foreground/80";
+  "prose prose-invert prose-base max-w-none wrap-break-word prose-headings:text-foreground prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:wrap-break-word prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-pre:overflow-x-auto prose-li:text-foreground/80";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -119,7 +119,7 @@ export function ChatMessageList({
             return (
               <div
                 key={i}
-                className="text-base text-foreground bg-foreground/10 rounded-md px-3 py-2 whitespace-pre-wrap break-words"
+                className="text-base text-foreground bg-foreground/10 rounded-md px-3 py-2 whitespace-pre-wrap wrap-break-word"
               >
                 {item.text}
               </div>
@@ -129,7 +129,7 @@ export function ChatMessageList({
             return (
               <div
                 key={i}
-                className="text-xs text-foreground/50 font-mono break-words"
+                className="text-xs text-foreground/50 font-mono wrap-break-word"
               >
                 ⚙ {item.text}
               </div>
@@ -174,7 +174,7 @@ export function ChatMessageList({
           </div>
         )}
         {error && (
-          <p className="text-base text-red-400 break-words">
+          <p className="text-base text-red-400 wrap-break-word">
             {error}
             {isAuthError && (
               <>

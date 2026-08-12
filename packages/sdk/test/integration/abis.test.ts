@@ -55,7 +55,7 @@ describe("SDK > utils > fetchAbi", () => {
   });
 
   describe("non-proxy contract", () => {
-    const NON_PROXY: Address = "0xCE579ae642e40f8356a9f538c6db4e2ea91C5850";
+    const NON_PROXY: Address = "0xCE579ae642E40F8356a9f538c6dB4E2Ea91C5850";
 
     it(
       "should return the contract's own ABI",

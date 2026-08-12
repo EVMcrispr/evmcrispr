@@ -43,7 +43,7 @@ export default function TerminalHeader({
           <Link to="/">
             <img src={logo} alt="Logo" className="h-14" />
           </Link>
-          <div className="flex items-end -mb-[5px]">
+          <div className="flex items-end mb-[-5px]">
             <span className="hidden md:inline">
               <TypeWriter
                 text={`${codename ? ` "${codename}"` : null} v${version}`}
@@ -56,7 +56,7 @@ export default function TerminalHeader({
           </div>
         </div>
         {address ? (
-          <div className="flex items-center gap-3 -mb-[20px]">
+          <div className="flex items-center gap-3 mb-[-20px]">
             <div className="flex items-center border border-evm-green-300 px-2 py-0.5">
               <img
                 src={makeBlockie(address.toLowerCase())}

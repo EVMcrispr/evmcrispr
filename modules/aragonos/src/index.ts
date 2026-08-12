@@ -1,10 +1,8 @@
 import type { Address } from "@evmcrispr/sdk";
 import { defineModule } from "@evmcrispr/sdk";
-import { getContractAddress } from "viem";
 import { commands, configs, helpers } from "./_generated";
 import { types } from "./argTypes";
 import type { DaoContext } from "./dao";
-import { buildNonceForAddress } from "./utils";
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from "./utils/acl";
 
 export { decodeCallScript } from "./utils/evmscripts";
@@ -42,12 +40,6 @@ export default class AragonOS extends defineModule(
   }
 
   async registerNextProxyAddress(kernelAddress: Address): Promise<Address> {
-    const nonce = await buildNonceForAddress(
-      kernelAddress,
-      await this.incrementNonce(kernelAddress),
-      await this.getClient(),
-    );
-
-    return getContractAddress({ from: kernelAddress, nonce });
+    return this.reserveNextAddress(kernelAddress);
   }
 }

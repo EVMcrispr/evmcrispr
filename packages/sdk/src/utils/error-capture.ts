@@ -112,13 +112,15 @@ function decodeGenericError(data: `0x${string}`): {
   errorName: string;
   args: readonly unknown[];
 } {
-  // Try Error(string)
+  // Try Error(string) — viem also decodes the built-in solidity errors
+  // (Error, Panic) no matter which ABI is passed, so trust its errorName
+  // rather than assuming the match was Error(string).
   try {
     const decoded = decodeErrorResult({
       abi: [STANDARD_ERROR_ABI],
       data,
     });
-    return { errorName: "Error", args: decoded.args };
+    return { errorName: decoded.errorName, args: decoded.args };
   } catch {
     // not Error(string)
   }
@@ -136,6 +138,44 @@ function decodeGenericError(data: `0x${string}`): {
 
   // Fall back to raw hex data as a single string arg
   return { errorName: "Unknown", args: [data] };
+}
+
+/** Panic(uint256) codes from the Solidity spec. */
+const PANIC_REASONS: Record<number, string> = {
+  1: "assertion failed",
+  17: "arithmetic overflow or underflow",
+  18: "division by zero",
+  33: "invalid enum conversion",
+  34: "corrupted storage byte array",
+  49: "pop on empty array",
+  50: "array index out of bounds",
+  65: "out of memory",
+  81: "call to uninitialized function",
+};
+
+/**
+ * Render ABI-encoded revert data as a human-readable reason for error
+ * messages: `Error(string)` reasons come back verbatim, `Panic` codes get
+ * their Solidity meaning, and custom errors show their selector plus raw
+ * data (the ABI isn't known here, so the name can't be recovered).
+ * Returns undefined for empty revert data.
+ */
+export function describeRevertData(
+  data: `0x${string}` | undefined,
+): string | undefined {
+  if (!data || data === "0x") return undefined;
+  const { errorName, args } = decodeGenericError(data);
+  if (errorName === "Error") return String(args[0]);
+  if (errorName === "Panic") {
+    const code = Number(args[0]);
+    const meaning = PANIC_REASONS[code];
+    const hex = `0x${code.toString(16).padStart(2, "0")}`;
+    return `Panic(${hex})${meaning ? `: ${meaning}` : ""}`;
+  }
+  const selector = data.slice(0, 10) as `0x${string}`;
+  return data.length > 10
+    ? `custom error ${selector} (data: ${data})`
+    : `custom error ${selector}`;
 }
 
 /**

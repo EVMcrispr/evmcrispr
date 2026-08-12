@@ -1,6 +1,12 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import type { Action } from "@evmcrispr/sdk";
-import { createPublicClient, type PublicClient } from "viem";
+import {
+  createPublicClient,
+  encodeErrorResult,
+  getContractAddress,
+  type PublicClient,
+  parseAbi,
+} from "viem";
 import { gnosis } from "viem/chains";
 import {
   CHAIN_ID,
@@ -14,6 +20,10 @@ const FORK_BLOCK_NUMBER = await getForkBlockNumber();
 
 const ADDR = "0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6";
 const WXDAI = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d";
+
+// Init code deploying a 10-byte runtime that returns 42.
+const RUNTIME = "0x602a60005260206000f3" as const;
+const INITCODE = `0x600a600c600039600a6000f3${RUNTIME.slice(2)}` as const;
 
 /**
  * Conformance suite for in-process simulation backends. Both the ethereumjs
@@ -195,6 +205,48 @@ export function describeBackendSuite(
     });
 
     // -------------------------------------------------------------------------
+    // handleAction: plain CREATE deployment
+    // -------------------------------------------------------------------------
+
+    it("deploys plain CREATE contracts at successive account nonces", async () => {
+      const { backend, client } = await makeBackend();
+      const txCount = await client.getTransactionCount({
+        address: ADDR,
+        blockNumber: BigInt(FORK_BLOCK_NUMBER),
+      });
+
+      await backend.handleAction({ from: ADDR, data: INITCODE } as Action);
+      const first = getContractAddress({ from: ADDR, nonce: BigInt(txCount) });
+      expect(await client.getCode({ address: first })).toBe(RUNTIME);
+
+      // A second deploy must land at exactly the next nonce — catches any
+      // double nonce accounting in the backend.
+      await backend.handleAction({ from: ADDR, data: INITCODE } as Action);
+      const second = getContractAddress({
+        from: ADDR,
+        nonce: BigInt(txCount + 1),
+      });
+      expect(await client.getCode({ address: second })).toBe(RUNTIME);
+    });
+
+    it("honors an explicit tx nonce for CREATE address derivation", async () => {
+      const { backend, client } = await makeBackend();
+      const txCount = await client.getTransactionCount({
+        address: ADDR,
+        blockNumber: BigInt(FORK_BLOCK_NUMBER),
+      });
+      const nonce = txCount + 7;
+
+      await backend.handleAction({
+        from: ADDR,
+        data: INITCODE,
+        nonce,
+      } as Action);
+      const at = getContractAddress({ from: ADDR, nonce: BigInt(nonce) });
+      expect(await client.getCode({ address: at })).toBe(RUNTIME);
+    });
+
+    // -------------------------------------------------------------------------
     // handleAction: reverting transaction
     // -------------------------------------------------------------------------
 
@@ -213,6 +265,39 @@ export function describeBackendSuite(
       await expect(backend.handleAction(action)).rejects.toThrow(
         "Transaction reverted",
       );
+    });
+
+    it("decodes the on-chain revert reason into the error message", async () => {
+      const { backend } = await makeBackend();
+      const reverter = "0x00000000000000000000000000000000000e1118";
+      const payload = encodeErrorResult({
+        abi: parseAbi(["error Error(string)"]),
+        errorName: "Error",
+        args: ["nope"],
+      });
+      // Runtime: CODECOPY(dest=0, offset=12, len); REVERT(0, len) — the
+      // ABI-encoded Error("nope") payload sits after the 12 code bytes.
+      const len = ((payload.length - 2) / 2).toString(16).padStart(2, "0");
+      const bytecode = `0x60${len}600c60003960${len}6000fd${payload.slice(2)}`;
+
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setCode`,
+        params: [reverter, bytecode],
+      });
+
+      // The message is exactly the decoded reason — no generic
+      // "Transaction reverted:" prefix when the revert carries data.
+      const err = await backend
+        .handleAction({
+          from: ADDR,
+          to: reverter,
+          data: "0x",
+        } as Action)
+        .then(() => null)
+        .catch((e: Error) => e);
+      expect(err).toBeInstanceOf(Error);
+      expect(err!.message).toBe("nope");
     });
 
     // -------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 {
   "$schema": "https://v2-9-7.turborepo.dev/schema.json",
   "daemon": false,
+  "globalPassThroughEnv": ["NPM_CONFIG_REGISTRY"],
   "tasks": {
     "codegen": {
       "outputs": ["src/_generated.ts"]

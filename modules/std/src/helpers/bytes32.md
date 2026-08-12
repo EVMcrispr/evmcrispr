@@ -31,4 +31,3 @@ set $b @bytes32(0x01 right)
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

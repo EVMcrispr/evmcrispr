@@ -30,7 +30,7 @@ export function experimentalDisabledMessage(
   const label =
     kind === "helper" ? `@${name}` : kind === "option" ? `--${name}` : name;
   const article = kind === "option" ? "Option" : capitalize(kind);
-  return `${article} "${label}" is experimental and not enabled. Set VITE_PUBLIC_EXPERIMENTAL=true to enable it.`;
+  return `${article} "${label}" is experimental and not enabled. Set VITE_PUBLIC_EXPERIMENTAL=true (or pass --experimental to the CLI) to enable it.`;
 }
 
 function capitalize(s: string): string {

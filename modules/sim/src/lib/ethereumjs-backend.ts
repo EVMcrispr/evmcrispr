@@ -13,6 +13,7 @@ import type { VM } from "@ethereumjs/vm";
 import { createVM } from "@ethereumjs/vm";
 import {
   type Action,
+  describeRevertData,
   ErrorException,
   isRpcAction,
   isTransactionAction,
@@ -177,6 +178,15 @@ export async function createEthereumJSBackend(
 
     const toAddr = action.to ? createAddressFromString(action.to) : undefined;
 
+    // Honor an explicit nonce override (--nonce): adopt it as the account
+    // nonce so CREATE addresses derive from it. Real nodes reject gaps; the
+    // sim instead accepts whatever the user pinned.
+    if (action.nonce !== undefined) {
+      await stateManager.modifyAccountFields(senderAddr, {
+        nonce: BigInt(action.nonce),
+      });
+    }
+
     await vm.evm.journal.checkpoint();
 
     const result = await vm.evm.runCall({
@@ -196,20 +206,20 @@ export async function createEthereumJSBackend(
         returnValue && returnValue.length > 0
           ? (bytesToHex(returnValue) as `0x${string}`)
           : undefined;
+      // The decoded on-chain reason (Error(string), Panic, custom error) is
+      // self-descriptive; fall back to the generic prefix with EthereumJS's
+      // internal exception kind (e.g. "revert") when there's no data.
+      const reason = describeRevertData(revertData);
       throw new RevertError(
-        `Transaction reverted: ${result.execResult.exceptionError.error}`,
+        reason ??
+          `Transaction reverted: ${result.execResult.exceptionError.error}`,
         revertData,
       );
     }
 
+    // runCall already bumped the sender nonce (depth-0 behavior mirroring a
+    // real tx), so the journal commit persists it — no manual increment.
     await vm.evm.journal.commit();
-
-    const account = await stateManager.getAccount(senderAddr);
-    if (account) {
-      await stateManager.modifyAccountFields(senderAddr, {
-        nonce: account.nonce + 1n,
-      });
-    }
 
     return {
       status: "success",
@@ -255,6 +265,20 @@ export async function createEthereumJSBackend(
           return bigIntToHex(currentBlockNumber);
         case "eth_chainId":
           return bigIntToHex(BigInt(chainId));
+        case "eth_getTransactionCount":
+          // Pin to the fork block: upstream may have advanced past it, and
+          // CREATE-address predictions must match the nonce the fork's state
+          // was seeded with. Deliberately frozen (in-fork txs don't show up) —
+          // callers layer their own offset for queued deployments.
+          return await rpcFetch(
+            upstreamRpcUrl,
+            method,
+            [
+              p[0],
+              typeof blockTag === "bigint" ? bigIntToHex(blockTag) : blockTag,
+            ],
+            signal,
+          );
         default:
           return await rpcFetch(upstreamRpcUrl, method, p, signal);
       }
@@ -285,7 +309,17 @@ async function handleEthCall(
       skipBalance: true,
     });
     if (result.execResult.exceptionError) {
-      throw new Error(result.execResult.exceptionError.error);
+      const returnValue = result.execResult.returnValue;
+      const revertData =
+        returnValue && returnValue.length > 0
+          ? (bytesToHex(returnValue) as `0x${string}`)
+          : undefined;
+      const reason = describeRevertData(revertData);
+      throw new RevertError(
+        reason ??
+          `execution reverted: ${result.execResult.exceptionError.error}`,
+        revertData,
+      );
     }
     return bytesToHex(result.execResult.returnValue);
   } finally {

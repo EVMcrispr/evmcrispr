@@ -63,8 +63,7 @@ export default defineCommand<Proxies>({
       });
       action = { to: factory, data: concatHex([salt, initCode]), from };
     } else {
-      const nonce = BigInt(await module.incrementNonce(from));
-      predicted = getContractAddress({ from, nonce });
+      predicted = await module.reserveNextAddress(from);
       action = { data: initCode, from };
     }
 

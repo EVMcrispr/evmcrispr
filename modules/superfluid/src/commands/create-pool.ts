@@ -5,7 +5,7 @@ import {
   ErrorException,
   encodeAction,
 } from "@evmcrispr/sdk";
-import { getContractAddress, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import type Superfluid from "..";
 import { GDA_AGREEMENT, GDA_FORWARDER } from "../addresses";
 import { requireCore } from "../utils/protocol";
@@ -67,17 +67,7 @@ export default defineCommand<Superfluid>({
 
     // SuperfluidPool proxies are deployed with plain CREATE from the GDA
     // agreement contract, so its account nonce predicts the pool address.
-    // incrementNonce only tracks the local offset for scripts that create
-    // several pools; the base nonce comes from the chain.
-    const client = await module.getClient();
-    const txCount = await client.getTransactionCount({
-      address: gdaAgreement,
-    });
-    const offset = await module.incrementNonce(gdaAgreement);
-    const predicted = getContractAddress({
-      from: gdaAgreement,
-      nonce: BigInt(txCount + offset),
-    });
+    const predicted = await module.reserveNextAddress(gdaAgreement);
     if (predicted === zeroAddress) {
       throw new ErrorException("create-pool: predicted address is zero");
     }

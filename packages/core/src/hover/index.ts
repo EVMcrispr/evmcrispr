@@ -1,5 +1,6 @@
 import type {
   Address,
+  ArgDef,
   CommandExpressionNode,
   HelperArgDefEntry,
   HelperFunctionNode,
@@ -14,6 +15,7 @@ import {
   BindingsSpace,
   NodeType,
   parseConfigVarName,
+  resolveArgDefIndex,
   resolveCommand,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
@@ -226,6 +228,71 @@ function formatHelperHover(
   return result;
 }
 
+/** Shared panel shape for option/parameter cards: a bold kind label plus
+ *  `name: type` and the owning command as the title line, description as
+ *  the body — mirrors the `**Variable**`/`**Config**` panel style. */
+function formatDefHover(
+  kind: "Option" | "Parameter",
+  name: string,
+  type: string | string[],
+  commandNode: CommandExpressionNode,
+  description: string | undefined,
+): string {
+  const typeLabel = Array.isArray(type) ? type.join(" | ") : type;
+  const commandLabel = `${commandNode.module ? `${commandNode.module}:` : ""}${commandNode.name}`;
+  let result = `**${kind}** \`${name}: ${typeLabel}\` of \`${commandLabel}\``;
+  if (description) {
+    result += `\n\n${description}`;
+  }
+  return result;
+}
+
+/**
+ * When the hovered token is a positional argument of a command, resolve
+ * which arg definition it fills so the hover can describe the parameter
+ * (name, type, description) alongside the token's own card.
+ */
+async function findCommandArgDefAtPosition(
+  script: string,
+  position: Position,
+  moduleCache: BindingsManager,
+  matchesNode: (node: Node) => boolean,
+): Promise<{ commandNode: CommandExpressionNode; argDef: ArgDef } | null> {
+  let ast: EvmlAST;
+  try {
+    ast = parseScript(script).ast;
+  } catch {
+    return null;
+  }
+
+  const commandNode = ast.getCommandAtLine(position.line);
+  if (!commandNode) return null;
+
+  // Only direct positional args count: a variable nested inside a helper
+  // call fills the helper's parameter, not the command's.
+  const argIndex = commandNode.args.findIndex(
+    (a) => matchesNode(a) && isInside(a, position.line, position.col),
+  );
+  if (argIndex === -1) return null;
+
+  const resolved = await resolveCommandFromCache(
+    commandNode.name,
+    commandNode.module,
+    moduleCache,
+    collectScriptImports(script),
+  );
+  if (!resolved?.command.argDefs) return null;
+
+  const defIdx = resolveArgDefIndex(
+    resolved.command.argDefs,
+    commandNode.args,
+    argIndex,
+  );
+  if (defIdx < 0) return null;
+
+  return { commandNode, argDef: resolved.command.argDefs[defIdx] };
+}
+
 // ---------------------------------------------------------------------------
 // Position helpers
 // ---------------------------------------------------------------------------
@@ -425,6 +492,26 @@ export async function getHoverInfo(
         : `**Variable** ${token.value}`;
     const sections: string[] = [labelCard];
 
+    // If the variable fills a command's positional argument (e.g.
+    // `verify $contract`), describe that parameter too.
+    const argCtx = await findCommandArgDefAtPosition(
+      script,
+      position,
+      moduleCache,
+      (n) => n.type === NodeType.VariableIdentifier,
+    );
+    if (argCtx) {
+      sections.push(
+        formatDefHover(
+          "Parameter",
+          argCtx.argDef.name,
+          argCtx.argDef.type,
+          argCtx.commandNode,
+          argCtx.argDef.description,
+        ),
+      );
+    }
+
     if (typeof value === "string" && isAddress(value) && ctx.chainId != null) {
       const info = await getAddressHoverInfo(
         value as Address,
@@ -463,10 +550,17 @@ export async function getHoverInfo(
     const optDef = resolved.command.optDefs.find((o) => o.name === optName);
     if (!optDef) return null;
 
-    const typeLabel = Array.isArray(optDef.type)
-      ? optDef.type.join(" | ")
-      : optDef.type;
-    return { contents: [`\`\`\`\n--${optDef.name}: ${typeLabel}\n\`\`\``] };
+    return {
+      contents: [
+        formatDefHover(
+          "Option",
+          `--${optDef.name}`,
+          optDef.type,
+          commandNode,
+          optDef.description,
+        ),
+      ],
+    };
   }
 
   // --- identifier: might be a command name ---

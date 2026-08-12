@@ -1,8 +1,15 @@
 {
   "name": "@evmcrispr/module-lang",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
+  "version": "0.11.1",
   "description": "Language primitives: string, number, bytes, array, and boolean helpers for data manipulation. Requires `load lang` (import the helpers you use, e.g. `load lang [@map @filter]`, or qualify them as `@lang:map`).",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/lang"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -16,7 +23,7 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:*"
+    "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"
@@ -25,7 +32,8 @@
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",

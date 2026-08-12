@@ -1,9 +1,16 @@
 {
   "name": "@evmcrispr/module-proxies",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
-  "experimental": true,
+  "version": "0.11.1",
   "description": "Proxy operations: ERC-1167 clones and ERC-1967 proxy/beacon upgrades.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/proxies"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
+  "experimental": true,
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -17,7 +24,7 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:*"
+    "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"
@@ -26,7 +33,8 @@
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",

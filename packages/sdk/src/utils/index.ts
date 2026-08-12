@@ -12,7 +12,6 @@ export * from "./clients";
 export * from "./configVars";
 export * from "./contract-source";
 export * from "./contract-verification";
-export * from "./contracts";
 export * from "./defineCommand";
 export * from "./defineHelper";
 export * from "./defineModule";

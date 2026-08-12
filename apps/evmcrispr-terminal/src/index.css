@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@repo/ui/styles/theme.css";
 @import "@evmcrispr/editor/styles/components.css";
+/* enter/exit utilities (`animate-in`, `fade-in-0`, `slide-in-from-top-2`, …)
+   used by the shadcn-style Dialog/Popover/Menu/Tooltip in @repo/ui. */
+@import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @source "../../../packages/ui/src";
@@ -25,6 +28,16 @@
   color: white;
 }
 
+html,
+body {
+  height: 100%;
+  /* X only: horizontal overscroll on the wide code/table blocks would fire
+     the browser's swipe-back gesture. Vertical overscroll must stay `auto`
+     so pulling down at the top of a scroller still reaches the viewport and
+     triggers pull-to-refresh on mobile. */
+  overscroll-behavior-x: none;
+}
+
 *,
 *::before,
 *::after {
@@ -35,4 +48,129 @@
    tables require one) — hide that row. */
 .prose thead tr:not(:has(th:not(:empty))) {
   display: none;
+}
+
+@media (max-width: 767px) {
+  /* On :root, not .App — vaul drawers portal to document.body and must
+     inherit the mobile sans font too. */
+  :root {
+    --font-sans:
+      "Instrument Sans Variable", "Instrument Sans", ui-sans-serif, sans-serif;
+  }
+
+  .mobile-terminal {
+    position: relative;
+    isolation: isolate;
+    min-height: 100dvh;
+    /* `overflow: hidden` makes this a scroll container, so `none` here would
+       swallow the chain from the chat/script scrollers before it reaches the
+       viewport — see the html/body rule above. */
+    overscroll-behavior-x: none;
+    background:
+      radial-gradient(
+        circle at 82% -8%,
+        rgb(140 244 103 / 0.09),
+        transparent 34%
+      ),
+      linear-gradient(rgb(255 255 255 / 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.018) 1px, transparent 1px),
+      #050706;
+    background-size:
+      auto,
+      28px 28px,
+      28px 28px,
+      auto;
+  }
+
+  .mobile-terminal::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    pointer-events: none;
+    opacity: 0.28;
+    background-image: repeating-linear-gradient(
+      115deg,
+      transparent 0,
+      transparent 7px,
+      rgb(255 255 255 / 0.015) 8px
+    );
+  }
+
+  .mobile-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .mobile-safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-chat-composer {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-terminal button,
+  [data-vaul-drawer] button {
+    touch-action: manipulation;
+    transform: none;
+    transition-duration: 120ms;
+    transition-property: color, background-color, border-color, opacity;
+    transition-timing-function: ease-out;
+  }
+
+  .mobile-terminal button:hover,
+  .mobile-terminal button:active,
+  [data-vaul-drawer] button:hover,
+  [data-vaul-drawer] button:active {
+    transform: none;
+  }
+
+  .mobile-terminal button:focus-visible,
+  [data-vaul-drawer] button:focus-visible,
+  .mobile-terminal textarea:focus-visible,
+  [data-vaul-drawer] input:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Font size only — line-height must stay the editor package's 0.3:
+     Shiki separates its block-level `.line` spans with newline text nodes,
+     which render as their own rows inside the <pre>; the tiny line-height
+     collapses them while `min-height: 1em` keeps real lines full height. */
+  .mobile-terminal .evml-viewer {
+    font-size: 13px;
+  }
+
+  .mobile-terminal .evml-viewer code .line {
+    padding-left: 2.9rem;
+  }
+
+  .mobile-terminal .evml-viewer code .line::before {
+    width: 2.25rem;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .mobile-terminal {
+    min-height: 100vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* `.mobile-terminal button` / `[data-vaul-drawer] button` are listed
+     explicitly: they match the specificity of the 120ms transition rule
+     above, and this block comes later in the cascade, so it wins. */
+  .App *,
+  .App *::before,
+  .App *::after,
+  .mobile-terminal button,
+  [data-vaul-drawer],
+  [data-vaul-drawer] *,
+  [data-vaul-drawer] button,
+  [data-vaul-overlay] {
+    scroll-behavior: auto;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
 }

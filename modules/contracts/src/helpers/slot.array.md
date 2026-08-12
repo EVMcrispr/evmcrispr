@@ -29,4 +29,3 @@ set $slot @contracts:slot.array(2 0)
 <!-- HAND-WRITTEN -->
 
 ## See Also
-

@@ -1,3 +1,4 @@
+use revm::primitives::Address;
 use revm_sim::Fork;
 use serde_json::Value;
 
@@ -10,6 +11,10 @@ const BOB: &str = "0x1000000000000000000000000000000000000002";
 const CONTRACT: &str = "0x1000000000000000000000000000000000000003";
 
 const ONE_ETH: &str = "0xde0b6b3a7640000";
+
+// Init code deploying a 10-byte runtime that returns 42.
+const INITCODE: &str = "0x600a600c600039600a6000f3602a60005260206000f3";
+const RUNTIME: &str = "0x602a60005260206000f3";
 
 fn fork() -> Fork {
     Fork::new(CHAIN_ID, BLOCK, TS)
@@ -70,6 +75,44 @@ fn revert_returns_revert_data() {
     let data = env["revertData"].as_str().unwrap();
     assert!(data.ends_with("42"), "revert data carries memory: {data}");
     assert_eq!(data.len(), 2 + 64);
+}
+
+#[test]
+fn create_deploys_at_account_nonce() {
+    let mut f = fork();
+    let env = parse(f.insert_account(ALICE, ONE_ETH, 5, "0x"));
+    assert_eq!(env["kind"], "ok", "{env}");
+    let created = ALICE.parse::<Address>().unwrap().create(5);
+    // Seed the target so the CREATE collision check doesn't miss.
+    seed_eoa(&mut f, &format!("{created:?}"), "0x0");
+
+    let tx_json = format!(r#"{{"from":"{ALICE}","data":"{INITCODE}"}}"#);
+    let env = parse(f.transact(&tx_json));
+    assert_eq!(env["kind"], "success", "{env}");
+    assert_eq!(parse(f.get_code(&format!("{created:?}")))["value"], RUNTIME);
+}
+
+#[test]
+fn create_honors_explicit_nonce_override() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH); // account nonce 0
+    let alice = ALICE.parse::<Address>().unwrap();
+    let created = alice.create(9);
+    seed_eoa(&mut f, &format!("{created:?}"), "0x0");
+
+    let tx_json = format!(r#"{{"from":"{ALICE}","data":"{INITCODE}","nonce":"0x9"}}"#);
+    let env = parse(f.transact(&tx_json));
+    assert_eq!(env["kind"], "success", "{env}");
+    assert_eq!(parse(f.get_code(&format!("{created:?}")))["value"], RUNTIME);
+
+    // The override becomes the account nonce: the next CREATE without an
+    // override continues from 10.
+    let next = alice.create(10);
+    seed_eoa(&mut f, &format!("{next:?}"), "0x0");
+    let tx_json = format!(r#"{{"from":"{ALICE}","data":"{INITCODE}"}}"#);
+    let env = parse(f.transact(&tx_json));
+    assert_eq!(env["kind"], "success", "{env}");
+    assert_eq!(parse(f.get_code(&format!("{next:?}")))["value"], RUNTIME);
 }
 
 #[test]

@@ -10,7 +10,14 @@ interface Props {
   animationClass?: string;
 }
 
-const { image, height = 130, name, info, description, animationClass = "" } = Astro.props;
+const {
+  image,
+  height = 130,
+  name,
+  info,
+  description,
+  animationClass = "",
+} = Astro.props;
 ---
 
 <div class:list={["w-[255px] relative opacity-0", animationClass]}>

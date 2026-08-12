@@ -5,13 +5,16 @@ import type {
 import type { Monaco } from "@monaco-editor/react";
 import MonacoEditorBase, { loader, useMonaco } from "@monaco-editor/react";
 
-// Pin the CDN-loaded monaco to 0.52.2: the 0.53 input-handling rewrite
-// swallows the first keystroke typed over a selection (legacy textarea
-// path, still broken as of 0.55). Keep in sync with the monaco-editor
-// version in package.json. Re-test select+type before bumping.
-loader.config({
-  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" },
-});
+// Monaco is self-hosted: the AMD build is served from /vs on the app's own
+// origin (dev middleware + build copy in the terminal's vite config) rather
+// than a third-party CDN — injected <script> tags can't be hash-verified,
+// so CDN trust is removed instead. Apps embedding this editor must serve
+// monaco-editor@0.56.0/min/vs at /vs (or call loader.config to override).
+// monaco-editor is pinned exact. 0.53–0.55 swallowed the first keystroke
+// typed over a backward (right-to-left) selection on the textarea path
+// (vscode#273146); 0.56.0 ships the fix. When bumping, re-test backward
+// select + type in a browser without the EditContext API (e.g. Firefox).
+loader.config({ paths: { vs: "/vs" } });
 
 import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -797,6 +800,15 @@ function Editor({
       tabSize: 2,
       minimap: { enabled: false },
       wordWrap: "on" as const,
+      // Match the Shiki viewer's CSS wrapping (`pre-wrap` +
+      // `overflow-wrap: anywhere` in components.css): break only at
+      // whitespace instead of Monaco's defaults, which split tokens like
+      // "balanceOf(address)(uint256)" at parentheses. Whitespace must stay
+      // in the after-list or Monaco falls back to breaking anywhere.
+      // Monaco still force-breaks a token too wide to fit on a line by
+      // itself, mirroring `overflow-wrap: anywhere`.
+      wordWrapBreakBeforeCharacters: "",
+      wordWrapBreakAfterCharacters: " \t",
       scrollbar: {
         useShadows: false,
         verticalScrollbarSize: 7,

@@ -1,9 +1,16 @@
 {
   "name": "@evmcrispr/core",
-  "version": "0.11.0",
+  "version": "0.11.1",
+  "description": "EVML interpreter and workspace runtime: parse, validate, simulate and execute EVML scripts with any viem wallet",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "codename": "new foundations",
-  "license": "GPL-3.0",
-  "description": "A library that encapsulates actions in EVM scripts for DAOs",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -39,15 +46,16 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@evmcrispr/module-std": "workspace:*",
-    "@evmcrispr/sdk": "workspace:*",
+    "@evmcrispr/module-std": "workspace:^",
+    "@evmcrispr/sdk": "workspace:^",
     "arcsecond": "^5.0.0"
   },
   "peerDependencies": {
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",

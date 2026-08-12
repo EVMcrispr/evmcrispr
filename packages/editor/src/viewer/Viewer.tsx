@@ -7,11 +7,15 @@ import {
 } from "react";
 import { useScriptAnalysis } from "../hooks/useScriptAnalysis";
 import { useShiki } from "../hooks/useShiki";
+import { evmlBracketColorizationTransformer } from "./bracketColorization";
 import { DiagnosticsChip } from "./DiagnosticsChip";
 import { HoverPopover } from "./HoverPopover";
 import { evmlTwoslashTransformer } from "./twoslashTransformer";
 
-const TRANSFORMERS = [evmlTwoslashTransformer()];
+const TRANSFORMERS = [
+  evmlBracketColorizationTransformer(),
+  evmlTwoslashTransformer(),
+];
 
 export interface ViewerProps {
   script: string;
@@ -116,7 +120,7 @@ export function Viewer({ script, executingLine, onActivateEdit }: ViewerProps) {
           // biome-ignore lint/security/noDangerouslySetInnerHtml: shiki produces trusted HTML from a known grammar / theme
           <div dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
-          <pre className="px-4 py-2 m-0 whitespace-pre-wrap break-words text-foreground/80">
+          <pre className="px-4 py-2 m-0 whitespace-pre-wrap wrap-break-word text-foreground/80">
             {script}
           </pre>
         )}

@@ -1,4 +1,11 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -78,6 +85,63 @@ function evmcrisprModules(modulesDir: string): Plugin {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Self-hosted Monaco assets
+// ---------------------------------------------------------------------------
+// The editor loads monaco's AMD build from `/vs` on our own origin instead
+// of a third-party CDN — injected <script> tags can't be hash-verified, so
+// the fix for CDN trust is not having a CDN. Dev serves straight out of the
+// installed monaco-editor package (version-pinned and integrity-checked by
+// the lockfile); build copies min/vs into the bundle output.
+// ---------------------------------------------------------------------------
+
+const MONACO_MIME: Record<string, string> = {
+  ".js": "text/javascript",
+  ".css": "text/css",
+  ".ttf": "font/ttf",
+  ".json": "application/json",
+};
+
+function monacoAssets(): Plugin {
+  const require = createRequire(import.meta.url);
+  // monaco's exports map hides package.json; the "." require entry points
+  // at min/vs/index.js, whose directory is the AMD build we serve.
+  const vsDir = path.dirname(require.resolve("monaco-editor"));
+  let copyTarget = "";
+  return {
+    name: "monaco-assets",
+    configResolved(config) {
+      copyTarget = path.join(
+        path.resolve(config.root, config.build.outDir),
+        "vs",
+      );
+    },
+    configureServer(server) {
+      server.middlewares.use("/vs", (req, res, next) => {
+        const rel = path
+          .normalize(decodeURIComponent((req.url ?? "/").split("?")[0]))
+          .replace(/^[/\\]+/, "");
+        const file = path.join(vsDir, rel);
+        if (
+          !file.startsWith(vsDir + path.sep) ||
+          !existsSync(file) ||
+          !statSync(file).isFile()
+        ) {
+          return next();
+        }
+        res.setHeader(
+          "Content-Type",
+          MONACO_MIME[path.extname(file)] ?? "application/octet-stream",
+        );
+        res.end(readFileSync(file));
+      });
+    },
+    closeBundle() {
+      if (copyTarget) cpSync(vsDir, copyTarget, { recursive: true });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
   envDir: path.resolve(__dirname, "../.."),
@@ -131,6 +195,7 @@ export default defineConfig({
   },
   plugins: [
     evmcrisprModules(path.resolve(__dirname, "../../modules")),
+    monacoAssets(),
     // Stub out @metamask/sdk – wagmi dynamically imports it inside a
     // try/catch for the MetaMask connector, but we don't use that connector
     // and the package isn't installed.
@@ -180,8 +245,13 @@ export default defineConfig({
   ],
   build: {
     rollupOptions: {
-      // Externalize @metamask/sdk's unresolvable transitive browser deps
-      external: ["eventemitter2", "cross-fetch", "socket.io-client"],
+      // Externalize @metamask/sdk's uninstalled transitive browser deps.
+      // cross-fetch does NOT belong here: WalletConnect's HTTP JSON-RPC
+      // connection imports it for real, and externalizing left a bare
+      // `import "cross-fetch"` in the bundle that the browser cannot resolve,
+      // killing every WalletConnect session in production (dev ignores this
+      // list, so it only ever failed in builds).
+      external: ["eventemitter2", "socket.io-client"],
       output: {
         // Rolldown splits @noble/hashes and @noble/curves into separate
         // chunks with a circular dependency, causing sha256 to be undefined

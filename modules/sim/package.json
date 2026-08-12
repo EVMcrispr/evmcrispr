@@ -1,8 +1,15 @@
 {
   "name": "@evmcrispr/module-sim",
-  "version": "0.1.0",
-  "license": "GPL-3.0",
+  "version": "0.11.1",
   "description": "Simulation module: fork chains and execute commands in a sandboxed environment using Anvil, Hardhat, Tenderly, EthereumJS or Revm (WASM) backends. Forks are multichain: `switch` moves between one fork per chain, and bridge transfers are auto-relayed to the destination fork.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/sim"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
   "author": "Blossom Labs",
   "type": "module",
   "sideEffects": false,
@@ -20,7 +27,7 @@
     "@ethereumjs/statemanager": "^10.1.2",
     "@ethereumjs/util": "^10.1.2",
     "@ethereumjs/vm": "^10.1.2",
-    "@evmcrispr/sdk": "workspace:*"
+    "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/module-contracts": "workspace:*",
@@ -31,7 +38,8 @@
     "viem": "^2.54.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "scripts": {
     "lint": "biome check src",
