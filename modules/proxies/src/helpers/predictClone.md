@@ -24,6 +24,14 @@ Predicted address of a deterministic ERC-1167 clone deployed with proxies:clone 
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@proxies:predictClone!)
+
+CREATE2 recomputed at judgement: `keccak(0xff . deployer . salt .
+keccak(initcode))` masked to its low 160 bits. The implementation and
+deployer shape the creation code and must be constants; the salt may be
+live — a counter or registry read — which is the case the face exists
+for, e.g. asserting where the NEXT clone of a factory will land.
+
 ## Examples
 
 ```evml
