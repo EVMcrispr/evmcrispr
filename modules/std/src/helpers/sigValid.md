@@ -30,6 +30,33 @@ print $ok
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@sigValid!)
+
+The digest — EIP-191 for a plain message, EIP-712 for typed-data JSON,
+sniffed like the plain face — is computed from the constant message at
+composition; only the verification runs at judgement.
+
+- **Signer without code**: the signature (a constant 65-byte ECDSA
+  signature) is recovered through the recovery precompile and the result
+  compared against the expected signer. A bad signature makes the
+  precompile return nothing, which surfaces as a revert the wrapping
+  `orElse` turns into `false` — same answer the plain face's catch-all
+  gives. A structurally malformed signature folds to constant `false`.
+  Valid-looking inputs are deliberately NOT folded to `true`: the
+  on-chain recovery is the assertable content.
+- **Signer with code**: `isValidSignature(bytes32,bytes)` is staticcalled
+  and the returned word compared against the ERC-1271 magic value; a
+  reverting handler (Safe-style, for unknown hashes) reads as `false`.
+  The signature may be LIVE here — read off a contract and spliced into
+  the call — which an EOA signer refuses.
+- **EIP-7702**: an account whose code is a delegation designator
+  (`0xef0100…`) is verified against its key, not its delegate — the
+  plain face verifies the same way.
+
+The plain face only recovers ECDSA signatures, so a contract signer is a
+declared divergence: it reads `false` off-chain and verifies on-chain.
+ERC-6492 counterfactual signatures verify on neither face.
+
 ## Behaviour
 
 If `data` parses as JSON with the EIP-712 shape (`types`, `primaryType`, `message`),

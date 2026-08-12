@@ -29,6 +29,17 @@ print $data
 
 <!-- HAND-WRITTEN -->
 
+## On-chain face (@abi.encode!)
+
+Standard encoding of static types is their 32-byte head words
+concatenated, so the face is one `concat` over full-width word parts —
+constants fold into hex runs, live words splice in place. Dynamic types
+(`string`, `bytes`, arrays, tuples) re-encode through offsets, which is
+the recursive re-encoder the core deliberately lacks: a call containing
+one refuses unless every value is constant, in which case the whole call
+folds at composition. For raw byte-appending of live dynamic values, use
+`@abi.encodePacked!`.
+
 ## See Also
 
 - [@abi.decode](abi.decode.md) — the inverse: decode ABI-encoded data

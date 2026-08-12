@@ -1,19 +1,19 @@
-import { defineHelper, HelperFunctionError, Num } from "@evmcrispr/sdk";
+import {
+  defineHelper,
+  ErrorException,
+  HelperFunctionError,
+} from "@evmcrispr/sdk";
+import { concatParam } from "@evmcrispr/sdk/onchain";
 import { encodePacked } from "viem";
 import type Std from "..";
-
-function toPackedValue(type: string, v: unknown): unknown {
-  if (v instanceof Num) return v.toBigInt();
-  if (type.startsWith("uint") || type.startsWith("int"))
-    return BigInt(String(v));
-  if (type === "bool") return v === "true" || v === true;
-  return v;
-}
+import { buildAbiParts, isLiveNode, toPackedValue } from "../utils/abiParts";
 
 export default defineHelper<Std>({
   name: "abi.encodePacked",
   description:
     "ABI non-standard packed encoding, matching Solidity's abi.encodePacked.",
+  compileDescription:
+    "Live values are cut to their packed width and live string/bytes values pass through whole, at most 4 per call; the type list, arrays and tuples stay constant.",
   returnType: "bytes",
   args: [
     {
@@ -50,13 +50,50 @@ export default defineHelper<Std>({
       );
     }
   },
-  // compile: @abi.encodePacked!'s future on-chain face needs no Operators
-  // encoder — packed encoding is pure composition over concat. Full-width
-  // words (uint256/int256/bytes32) and dynamic payloads (string/bytes) go
-  // straight into concat's parts (the compiler synthesizes the constant
-  // envelopes around spliced words); each NARROWED part (uintN/address/
-  // bool/bytesN) costs one slice over its word-as-bytes value, again with
-  // a constant envelope: address = slice(w, 12, 20), bool/uintN =
-  // slice(w, 32 - N/8, N/8), bytesN = slice(w, 0, N). One concat call
-  // total, delimiterless — the @str.join! face already composes this way.
+  // Packed encoding is pure composition over concat: every live part is
+  // one slice cutting its word to width (a live word is sliced even at
+  // full width, which synthesizes the bytes envelope concat expects), a
+  // live string/bytes payload rides whole, and constants merge into
+  // single hex runs — one concat call total, the way @str.join! composes.
+  compile: async (ctx, node) => {
+    const [typesNode, ...valueNodes] = node.args;
+    if (!typesNode || isLiveNode(typesNode)) {
+      throw new ErrorException(
+        "@abi.encodePacked! type list must be a constant string",
+      );
+    }
+    const types = String(await ctx.interpreters.interpretNode(typesNode))
+      .split(",")
+      .map((t) => t.trim());
+    if (types.length !== valueNodes.length) {
+      throw new ErrorException(
+        `@abi.encodePacked! expected ${types.length} value(s), got ${valueNodes.length}`,
+      );
+    }
+    if (!valueNodes.some(isLiveNode)) {
+      const values: unknown[] = [];
+      for (const n of valueNodes)
+        values.push(await ctx.interpreters.interpretNode(n));
+      try {
+        const resolved = types.map((t, i) => toPackedValue(t, values[i]));
+        return {
+          kind: "const",
+          cat: "Bytes",
+          value: encodePacked(types as never, resolved as never),
+        };
+      } catch (err) {
+        throw new ErrorException(
+          `@abi.encodePacked! failed: ${(err as Error).message}`,
+        );
+      }
+    }
+    const parts = await buildAbiParts(
+      ctx,
+      types,
+      valueNodes,
+      "packed",
+      "abi.encodePacked!",
+    );
+    return { kind: "call", param: concatParam(ctx, parts), cat: "Bytes" };
+  },
 });

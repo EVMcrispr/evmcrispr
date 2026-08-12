@@ -1,4 +1,5 @@
 import "../../setup";
+import { expect } from "@evmcrispr/test-utils";
 import {
   describeParity,
   installConstantMock,
@@ -71,6 +72,27 @@ const QUEUE_RETURN = encodeAbiParameters(parseAbiParameters("bytes"), [
 ]);
 const QUEUE_CALL = `${QUEUE_MOCK}::{queuedCalldata()(bytes)}`;
 
+/** Anvil account #0 and known-good signatures over "hello" and the Mail
+ *  typed-data payload (the sigValid.md fixtures). */
+const SIGNER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+const HELLO_SIG =
+  "0xf16ea9a3478698f695fd1401bfe27e9e4a7e8e3da94aa72b021125e31fa899cc573c48ea3fe1d4ab61a9db10c19032026e3ed2dbccba5a178235ac27f94504311c";
+/** HELLO_SIG with one nibble of r flipped: recovers a different address. */
+const TAMPERED_SIG = `0xe16e${HELLO_SIG.slice(6)}`;
+/** HELLO_SIG with an impossible v byte: malformed, folds to false. */
+const BAD_V_SIG = `${HELLO_SIG.slice(0, 130)}05`;
+const TYPED_PAYLOAD =
+  '{"types":{"Mail":[{"name":"to","type":"address"}]},"primaryType":"Mail","domain":{"name":"App"},"message":{"to":"0x1234567890abcdef1234567890abcdef12345678"}}';
+const TYPED_SIG =
+  "0x4213e2cd76eace2bcd180816df8088417f604b11db39a7478003e2fcb5c6d9201c771a631284a46d504baf815580904e1afc89a702bdb21dff5ce7bc17f6f8ec1c";
+
+/** ERC-1271 mocks: one answering the magic value, one rejecting, and one
+ *  serving a signature blob for the live-signature splice. */
+const MAGIC_MOCK = "0x0000000000000000000000000000000000127101";
+const REJECT_MOCK = "0x0000000000000000000000000000000000127102";
+const SIG_MOCK = "0x0000000000000000000000000000000000127103";
+const SIG_CALL = `${SIG_MOCK}::{sig()(bytes)}`;
+
 describeParity("@std", {
   helpers,
   setup: async (client) => {
@@ -78,6 +100,21 @@ describeParity("@std", {
     await installConstantMock(client, REPORT_MOCK, REPORT_RETURN);
     await installConstantMock(client, BLOB_MOCK, NOTE_RETURN);
     await installConstantMock(client, QUEUE_MOCK, QUEUE_RETURN);
+    await installConstantMock(
+      client,
+      MAGIC_MOCK,
+      encodeAbiParameters([{ type: "bytes4" }], ["0x1626ba7e"]),
+    );
+    await installConstantMock(
+      client,
+      REJECT_MOCK,
+      encodeAbiParameters([{ type: "bytes4" }], ["0xffffffff"]),
+    );
+    await installConstantMock(
+      client,
+      SIG_MOCK,
+      encodeAbiParameters([{ type: "bytes" }], [HELLO_SIG]),
+    );
   },
   cases: [
     // ---- @num!: arithmetic over live reads ---------------------------------
@@ -460,6 +497,161 @@ describeParity("@std", {
       run: `@abi.decode("address,uint256" ${TRANSFER_ARGS_HEX} [_ $])`,
       compile: `@abi.decodeCall!(${TRANSFER_CALLDATA} transfer(address,uint256) [_ $])`,
       refuses: "call expression",
+    },
+
+    // ---- @abi.encodePacked!: byte concatenation over live parts -----------
+    {
+      name: "encodePacked of constants folds to the plain answer",
+      run: `@abi.encodePacked("address,uint256" ${HOLDER} 42)`,
+      compile: `@abi.encodePacked!("address,uint256" ${HOLDER} 42)`,
+    },
+    {
+      name: "encodePacked splices a live full-width word",
+      run: `@abi.encodePacked("uint256,uint256" ${MOCK_VALUE} 7)`,
+      compile: `@abi.encodePacked!("uint256,uint256" ${MOCK_VALUE} 7)`,
+    },
+    {
+      // uint64 cuts the live word to its packed width through one slice.
+      name: "encodePacked narrows a live word to its type width",
+      run: `@abi.encodePacked("uint64,address" ${MOCK_VALUE} ${HOLDER})`,
+      compile: `@abi.encodePacked!("uint64,address" ${MOCK_VALUE} ${HOLDER})`,
+    },
+    {
+      // A live string part passes its decoded payload through raw.
+      name: "encodePacked passes a live string payload through",
+      run: `@abi.encodePacked("string,uint8" ${WXDAI}::{symbol()(string)} 7)`,
+      compile: `@abi.encodePacked!("string,uint8" ${WXDAI}::{symbol()(string)} 7)`,
+    },
+    {
+      name: "encodePacked refuses a live value at an array position",
+      helper: "abi.encodePacked",
+      run: `@abi.encodePacked("uint256" 1)`,
+      compile: `@abi.encodePacked!("uint256[]" ${MOCK_VALUE})`,
+      refuses: /elementary and string\/bytes values/,
+    },
+    {
+      name: "encodePacked refuses five live values",
+      helper: "abi.encodePacked",
+      run: `@abi.encodePacked("uint256" 1)`,
+      compile: `@abi.encodePacked!("uint256,uint256,uint256,uint256,uint256" ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE})`,
+      refuses: /at most 4 live values/,
+    },
+
+    // ---- @abi.encode!: static head words -----------------------------------
+    {
+      name: "encode of constants folds to the plain answer",
+      run: `@abi.encode("uint256,address" 42 ${HOLDER})`,
+      compile: `@abi.encode!("uint256,address" 42 ${HOLDER})`,
+    },
+    {
+      name: "encode splices a live word among constant heads",
+      run: `@abi.encode("uint256,uint256,address" 1 ${MOCK_VALUE} ${HOLDER})`,
+      compile: `@abi.encode!("uint256,uint256,address" 1 ${MOCK_VALUE} ${HOLDER})`,
+    },
+    {
+      name: "encode refuses a dynamic type when a value is live",
+      helper: "abi.encode",
+      run: `@abi.encode("uint256" 1)`,
+      compile: `@abi.encode!("string,uint256" note ${MOCK_VALUE})`,
+      refuses: /elementary static types/,
+    },
+
+    // ---- @abi.encodeCall!: selector plus argument words --------------------
+    {
+      name: "encodeCall of constants folds to the plain answer",
+      run: `@abi.encodeCall("transfer(address,uint256)" ${HOLDER} 42)`,
+      compile: `@abi.encodeCall!("transfer(address,uint256)" ${HOLDER} 42)`,
+    },
+    {
+      name: "encodeCall splices a live argument after the selector",
+      run: `@abi.encodeCall("transfer(address,uint256)" ${HOLDER} ${MOCK_VALUE})`,
+      compile: `@abi.encodeCall!("transfer(address,uint256)" ${HOLDER} ${MOCK_VALUE})`,
+    },
+    {
+      name: "encodeCall refuses a dynamic parameter with a live argument",
+      helper: "abi.encodeCall",
+      run: `@abi.encodeCall("transfer(address,uint256)" ${HOLDER} 1)`,
+      compile: `@abi.encodeCall!("post(string,uint256)" note ${MOCK_VALUE})`,
+      refuses: /elementary static types/,
+    },
+
+    // ---- @sigValid!: recovery and ERC-1271 at judgement --------------------
+    {
+      name: "sigValid verifies a personal-message signature",
+      run: `@sigValid(${SIGNER} "hello" ${HELLO_SIG})`,
+      compile: `@sigValid!(${SIGNER} "hello" ${HELLO_SIG})`,
+    },
+    {
+      name: "sigValid rejects the wrong expected signer",
+      run: `@sigValid(${HOLDER} "hello" ${HELLO_SIG})`,
+      compile: `@sigValid!(${HOLDER} "hello" ${HELLO_SIG})`,
+    },
+    {
+      name: "sigValid rejects a tampered signature",
+      run: `@sigValid(${SIGNER} "hello" ${TAMPERED_SIG})`,
+      compile: `@sigValid!(${SIGNER} "hello" ${TAMPERED_SIG})`,
+    },
+    {
+      // An impossible v byte folds to constant false, like the plain
+      // face's catch-all.
+      name: "sigValid folds a malformed signature to false",
+      run: `@sigValid(${SIGNER} "hello" ${BAD_V_SIG})`,
+      compile: `@sigValid!(${SIGNER} "hello" ${BAD_V_SIG})`,
+    },
+    {
+      name: "sigValid verifies an EIP-712 typed-data signature",
+      run: `@sigValid(${SIGNER} '${TYPED_PAYLOAD}' ${TYPED_SIG})`,
+      compile: `@sigValid!(${SIGNER} '${TYPED_PAYLOAD}' ${TYPED_SIG})`,
+    },
+    {
+      // The plain face only recovers ECDSA signatures, so a contract
+      // signer is exactly where the faces part company — declared, not
+      // papered over.
+      name: "sigValid accepts a contract signer answering the magic value",
+      run: `@sigValid(${MAGIC_MOCK} "hello" ${HELLO_SIG})`,
+      compile: `@sigValid!(${MAGIC_MOCK} "hello" ${HELLO_SIG})`,
+      helper: "sigValid",
+      diverges: {
+        reason: "ERC-1271 verification has no off-chain counterpart",
+        expect: (run, chain) => {
+          expect(run.v).to.equal("false");
+          expect(chain.v).to.equal(true);
+        },
+      },
+    },
+    {
+      name: "sigValid rejects a contract signer answering garbage",
+      run: `@sigValid(${REJECT_MOCK} "hello" ${HELLO_SIG})`,
+      compile: `@sigValid!(${REJECT_MOCK} "hello" ${HELLO_SIG})`,
+    },
+    {
+      // The signature itself read live off a contract, spliced into the
+      // ERC-1271 call.
+      name: "sigValid splices a live signature for a contract signer",
+      run: `@sigValid(${MAGIC_MOCK} "hello" ${HELLO_SIG})`,
+      compile: `@sigValid!(${MAGIC_MOCK} "hello" ${SIG_CALL})`,
+      helper: "sigValid",
+      diverges: {
+        reason: "ERC-1271 verification has no off-chain counterpart",
+        expect: (run, chain) => {
+          expect(run.v).to.equal("false");
+          expect(chain.v).to.equal(true);
+        },
+      },
+    },
+    {
+      name: "sigValid refuses a live message",
+      helper: "sigValid",
+      run: `@sigValid(${SIGNER} "hello" ${HELLO_SIG})`,
+      compile: `@sigValid!(${SIGNER} ${WXDAI}::{symbol()(string)} ${HELLO_SIG})`,
+      refuses: /signer and message must be constants/,
+    },
+    {
+      name: "sigValid refuses a live signature for an EOA signer",
+      helper: "sigValid",
+      run: `@sigValid(${SIGNER} "hello" ${HELLO_SIG})`,
+      compile: `@sigValid!(${SIGNER} "hello" ${SIG_CALL})`,
+      refuses: /contract signer implementing ERC-1271/,
     },
   ],
 });
