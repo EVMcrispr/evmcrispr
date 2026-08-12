@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import type { ChatError } from "../../../ai/nexus-errors";
 import type { ChatItem } from "../../../ai/useChatAgent";
 import { markdownComponents } from "../MarkdownComponents";
 import { ChatSuggestions } from "./ChatSuggestions";
@@ -65,15 +66,13 @@ export function ChatMessageList({
   items,
   isRunning,
   error,
-  isAuthError,
   onShowSettings,
   onRegenerate,
   onSuggestion,
 }: {
   items: ChatItem[];
   isRunning: boolean;
-  error: string | null;
-  isAuthError: boolean;
+  error: ChatError | null;
   onShowSettings: () => void;
   onRegenerate: () => void;
   onSuggestion: (text: string) => void;
@@ -175,11 +174,14 @@ export function ChatMessageList({
         )}
         {error && (
           <p className="text-base text-red-400 wrap-break-word">
-            {error}
-            {isAuthError && (
+            {error.message}
+            {/* An auth failure clears the key, so the panel has already
+                swapped to the login screen and never gets here; a balance
+                one keeps the session, and Recharge lives in settings. */}
+            {error.kind === "balance" && (
               <>
                 {" "}
-                Update it in{" "}
+                Recharge it from{" "}
                 <button
                   type="button"
                   onClick={onShowSettings}

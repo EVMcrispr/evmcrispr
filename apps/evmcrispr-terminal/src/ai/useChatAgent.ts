@@ -1,10 +1,11 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { useEvmlTag } from "@evmcrispr/editor";
-import { APICallError, type ModelMessage, stepCountIs, streamText } from "ai";
+import { type ModelMessage, stepCountIs, streamText } from "ai";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { clearNexusApiKey, getNexusApiKey, saveNexusApiKey } from "../utils";
 import { deriveTitle, getChat, removeChat, saveChat } from "./chat-store";
+import { type ChatError, handleChatError } from "./nexus-errors";
 import { createChatTools } from "./tools";
 
 const NEXUS_BASE_URL = "https://nexus-api.dappnode.com/v1";
@@ -70,8 +71,9 @@ export function useChatAgent() {
   );
   const [items, setItems] = useState<ChatItem[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isAuthError, setIsAuthError] = useState(false);
+  // One piece of state, so the message and the kind of failure can never
+  // disagree (and neither can outlive the other).
+  const [error, setError] = useState<ChatError | null>(null);
   // Each page load starts a fresh conversation; old ones live in the history.
   const [conversationId, setConversationId] = useState<string>(() =>
     crypto.randomUUID(),
@@ -125,12 +127,13 @@ export function useChatAgent() {
     saveNexusApiKey(key);
     setApiKeyState(key);
     setError(null);
-    setIsAuthError(false);
   }, []);
 
   const clearApiKey = useCallback(() => {
     clearNexusApiKey();
     setApiKeyState(null);
+    // Clear the banner too: it talks about a key that no longer exists.
+    setError(null);
   }, []);
 
   const send = useCallback(
@@ -138,7 +141,6 @@ export function useChatAgent() {
       if (!model || isRunning || !text.trim()) return;
 
       setError(null);
-      setIsAuthError(false);
       setIsRunning(true);
       stoppedRef.current = false;
       updateItems((prev) => [...prev, { role: "user", text }]);
@@ -202,12 +204,11 @@ export function useChatAgent() {
       } catch (e) {
         console.error("[chat] agent error", e);
         if (!stoppedRef.current) {
-          if (APICallError.isInstance(e) && e.statusCode === 401) {
-            setError("Invalid API key.");
-            setIsAuthError(true);
-          } else {
-            setError(e instanceof Error ? e.message : String(e));
-          }
+          // handleChatError drops a dead key from storage; mirroring that
+          // into state flips the panel to the login screen.
+          const chatError = handleChatError(e);
+          if (chatError.kind === "auth") setApiKeyState(null);
+          setError(chatError);
         }
       } finally {
         abortRef.current = null;
@@ -232,7 +233,6 @@ export function useChatAgent() {
     itemsRef.current = [];
     setItems([]);
     setError(null);
-    setIsAuthError(false);
   }, [isRunning]);
 
   const openChat = useCallback(
@@ -246,7 +246,6 @@ export function useChatAgent() {
       itemsRef.current = stored.items;
       setItems(stored.items);
       setError(null);
-      setIsAuthError(false);
     },
     [isRunning],
   );
@@ -288,7 +287,6 @@ export function useChatAgent() {
     items,
     isRunning,
     error,
-    isAuthError,
     send,
     stop,
     conversationId,

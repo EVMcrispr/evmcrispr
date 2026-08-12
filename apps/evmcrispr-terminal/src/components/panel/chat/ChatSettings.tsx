@@ -20,11 +20,14 @@ export function ChatSettings({
   onBack,
   onDisconnect,
   balanceCents,
+  notice,
 }: {
   onSave: (key: string) => void;
   onBack?: () => void;
   onDisconnect?: () => void;
   balanceCents?: number | null;
+  /** Why the user was sent here, e.g. a key that stopped working mid-chat. */
+  notice?: string;
 }) {
   const [loggingIn, setLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -102,6 +105,7 @@ export function ChatSettings({
           </>
         ) : (
           <>
+            {notice && <p className="text-sm text-red-400">{notice}</p>}
             <p className="text-sm text-foreground/70">
               New to DappNode Nexus? Sign up through the login and you get 5€ in
               free AI tokens.
