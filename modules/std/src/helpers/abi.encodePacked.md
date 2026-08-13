@@ -4,6 +4,8 @@ title: "@abi.encodePacked"
 
 ABI non-standard packed encoding, matching Solidity's abi.encodePacked.
 
+**On-chain (`@abi.encodePacked!`)**: Live values are cut to their packed width and live string/bytes values pass through whole, at most 4 per call; the type list, arrays and tuples stay constant.
+
 **Returns**: `bytes`
 
 ## Syntax

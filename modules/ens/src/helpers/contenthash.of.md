@@ -4,6 +4,8 @@ title: "@ens:contenthash.of"
 
 Read the decoded content hash of an ENS name (e.g. ipfs://…).
 
+**On-chain (`@ens:contenthash.of!`)**: Mainnet only; reads the raw content hash bytes (compare against @ens:contenthash) rather than the decoded URI, and a missing record reads as empty bytes.
+
 **Returns**: `string`
 
 ## Syntax

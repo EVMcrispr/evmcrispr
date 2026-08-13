@@ -4,6 +4,8 @@ title: "@ens:rentPrice"
 
 Total price in wei to register or renew a .eth name for a duration.
 
+**On-chain (`@ens:rentPrice!`)**: Mainnet only: an assertion reads the chain it runs on, and ENS cannot be reached from another chain.
+
 **Returns**: `number`
 
 ## Syntax

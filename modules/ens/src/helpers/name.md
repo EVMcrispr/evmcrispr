@@ -4,6 +4,8 @@ title: "@ens:name"
 
 Reverse-resolve an address to its primary ENS name.
 
+**On-chain (`@ens:name!`)**: Mainnet only; reads the reverse record of a constant address without the forward check, and an address with no record reads as an empty string.
+
 **Returns**: `string`
 
 ## Syntax

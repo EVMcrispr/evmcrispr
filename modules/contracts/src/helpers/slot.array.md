@@ -4,6 +4,8 @@ title: "@contracts:slot.array"
 
 Derive the storage slot of element index of a dynamic array declared at a base slot: keccak256(base) + index.
 
+**On-chain (`@contracts:slot.array!`)**: The base slot must be a constant; the index may be live, e.g. a length read. Reading the slot on-chain needs a target with an extsload-style getter.
+
 **Returns**: `bytes32`
 
 ## Syntax

@@ -4,6 +4,8 @@ title: "@lending:maxBorrow"
 
 How much of a token an account can still borrow against its current collateral, in base units of the token.
 
+**On-chain (`@lending:maxBorrow!`)**: Aave-style markets only — CompoundV3 prices collateral by walking every listed asset, which has no on-chain form; a zero oracle price reads as 0.
+
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `number`

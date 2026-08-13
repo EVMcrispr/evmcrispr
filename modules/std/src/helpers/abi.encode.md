@@ -4,6 +4,8 @@ title: "@abi.encode"
 
 ABI-encode values given a comma-separated type list, like Solidity abi.encode.
 
+**On-chain (`@abi.encode!`)**: Live values must be elementary static types, at most 4 per call; dynamic, array and tuple types only encode when every value is constant.
+
 **Returns**: `bytes`
 
 ## Syntax

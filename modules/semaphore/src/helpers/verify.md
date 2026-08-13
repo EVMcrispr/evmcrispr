@@ -4,6 +4,8 @@ title: "@semaphore:verify"
 
 Check a Semaphore membership proof against a group with the contract's view verifier: no transaction and no nullifier recording.
 
+**On-chain (`@semaphore:verify!`)**: The proof and group id are taken as constants; validity is judged against the group's state when the assertion runs, so a root rotation flips the answer.
+
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `bool`

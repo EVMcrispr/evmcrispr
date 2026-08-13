@@ -7,6 +7,8 @@ sidebar:
 
 Burned fuse names of a wrapped ENS name.
 
+**On-chain (`@ens:fuses.of!`)**: Mainnet only; reads the raw fuse bitmap (compare against @ens:fuses) rather than decoded names, and an unwrapped name reads as 0 instead of erroring.
+
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `array`

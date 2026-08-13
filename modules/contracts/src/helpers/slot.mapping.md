@@ -4,6 +4,8 @@ title: "@contracts:slot.mapping"
 
 Derive the storage slot of mapping[key] for a mapping declared at a base slot: keccak256(h(key) . base).
 
+**On-chain (`@contracts:slot.mapping!`)**: The base slot must be a constant; the key may be live. Reading the slot on-chain needs a target with an extsload-style getter.
+
 **Returns**: `bytes32`
 
 ## Syntax

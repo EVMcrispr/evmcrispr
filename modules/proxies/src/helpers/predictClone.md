@@ -4,6 +4,8 @@ title: "@proxies:predictClone"
 
 Predicted address of a deterministic ERC-1167 clone deployed with proxies:clone --salt. Pure computation, no chain read.
 
+**On-chain (`@proxies:predictClone!`)**: The salt may be a live value (a counter or registry read); the implementation and deployer shape the creation code and must be constants.
+
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 **Returns**: `address`

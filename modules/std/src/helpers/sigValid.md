@@ -4,6 +4,8 @@ title: "@sigValid"
 
 Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message.
 
+**On-chain (`@sigValid!`)**: Contract signers verify through ERC-1271 (the plain face cannot); the signer and message must be constants, and a delegated account verifies against its key.
+
 **Returns**: `bool`
 
 ## Syntax

@@ -4,6 +4,8 @@ title: "@ens:text"
 
 Read a text record from an ENS name.
 
+**On-chain (`@ens:text!`)**: Mainnet only, and a missing record or a name with no resolver reads as an empty string instead of erroring.
+
 **Returns**: `string`
 
 ## Syntax
