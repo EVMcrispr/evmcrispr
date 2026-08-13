@@ -31,5 +31,5 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the keccak256 code hash of an address. |
+| [@assertions:codehash](src/helpers/codehash.md) | `bytes32` | Read the code hash of an address at script build time, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise. |
 
