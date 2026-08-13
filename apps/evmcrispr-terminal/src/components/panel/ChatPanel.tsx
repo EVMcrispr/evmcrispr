@@ -16,7 +16,6 @@ export function ChatPanel() {
     items,
     isRunning,
     error,
-    isAuthError,
     send,
     stop,
     conversationId,
@@ -44,6 +43,9 @@ export function ChatPanel() {
         }}
         onBack={hasKey ? () => setShowSettings(false) : undefined}
         balanceCents={balanceCents}
+        // A run that died on a dead key lands the user here with the key
+        // already gone; say why, next to the login that fixes it.
+        notice={!hasKey && error?.kind === "auth" ? error.message : undefined}
         onDisconnect={
           hasKey
             ? () => {
@@ -71,7 +73,6 @@ export function ChatPanel() {
         items={items}
         isRunning={isRunning}
         error={error}
-        isAuthError={isAuthError}
         onShowSettings={() => setShowSettings(true)}
         onRegenerate={regenerate}
         onSuggestion={(text) => void send(text)}
