@@ -14,13 +14,18 @@ A patch release: fixes for problems found right after 0.11.0 shipped, plus a few
 - `@assertions:codehash` follows EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account, instead of the hash of the empty string. It now agrees with `assert-codehash`, which reads the hash on-chain.
 - Corrupted Optimism USDC address in the bridges registry.
 - Codegen meta extraction is anchored at the `define` call — std's `@token` was registering as "Ether", so analysis flagged every `@token` use as an unknown helper.
-- Monaco assets are self-hosted instead of loaded from a CDN, and Monaco is bumped to 0.56.0, which fixes the first keystroke being dropped after a backward selection.
+- Monaco assets are self-hosted instead of loaded from a CDN: injected `<script>` tags cannot be hash-verified, so the CDN is no longer trusted.
 - Editor and viewer agree on word wrap and bracket-pair colors.
 - shadcn enter/exit animations render again (`tw-animate-css`), and utilities renamed in Tailwind v4 (`bg-linear-to-*`, `wrap-break-word`, suffix `!`) are migrated.
 - `lint-staged` tasks now run on `modules/`, which the globs had never covered.
 
 ### Added
 
+- Monaco upgraded from 0.52.2 to 0.56.0, four upstream releases at once — 0.11.0 stayed on 0.52.2 because 0.53 swallowed the first keystroke typed over a backward selection, and 0.56.0 is the first release with that fixed. What the jump brings to the editor:
+  - Text input goes through the browser's EditContext API instead of a hidden textarea (0.53), which is what makes IME composition, dead keys and screen readers behave.
+  - Middle-click scrolling, with `editor.mouseMiddleClickAction` to configure it (0.53, 0.54).
+  - A hardened hover renderer: DOMPurify updated to 3.2.7 (0.55) and Markdown coming from language providers treated as untrusted (0.56) — this is the path our address and IPFS hover previews render through.
+  - Tree-shakeable ESM entry points and a native `lsp` namespace (0.55, 0.56), which is what a future EVML language server would plug into.
 - `--version` flag and `--help` on every CLI subcommand.
 - Editor hovers describe command options and parameters.
 - Side-panel inputs autofocus when their tab is revealed.
