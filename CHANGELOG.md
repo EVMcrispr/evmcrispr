@@ -13,6 +13,7 @@ A patch release: fixes for problems found right after 0.11.0 shipped, plus a few
 - `@includes` and `@unique` compare by value, not by JS shape. A `::` call's return is normalized to a number only when it is a top-level scalar, so an array read from a contract arrived in a different shape than a literal: `@includes` answered `false` for an element that was present, and `@unique` keyed on a truncated string form, collapsing values that differ beyond 18 decimals.
 - `@assertions:codehash` follows EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account, instead of the hash of the empty string. It now agrees with `assert-codehash`, which reads the hash on-chain.
 - Corrupted Optimism USDC address in the bridges registry.
+- A proxy whose ABI cannot be fetched raises the lookup failure instead of resolving to an empty ABI. Both halves of a proxy lookup failing — the ABI service down, or rate-limited by its upstream explorer — used to read downstream as "this contract has no functions".
 - Codegen meta extraction is anchored at the `define` call — std's `@token` was registering as "Ether", so analysis flagged every `@token` use as an unknown helper.
 - Monaco assets are self-hosted instead of loaded from a CDN: injected `<script>` tags cannot be hash-verified, so the CDN is no longer trusted.
 - Editor and viewer agree on word wrap and bracket-pair colors.

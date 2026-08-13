@@ -14,7 +14,39 @@ const hasFunctionNamed = (abi: Abi, name: string): boolean =>
 // transient miss on either side is retried rather than failing the run.
 const LIVE = { retry: 2 };
 
-describe("SDK > utils > fetchAbi", () => {
+const ABI_SERVICE = "https://api.evmcrispr.com/abi/100";
+// Verified on Gnosis since 2021 — if the service cannot answer for this one,
+// it is the service that is down, not the contract that changed.
+const KNOWN_VERIFIED = "0xCE579ae642E40F8356a9f538c6dB4E2Ea91C5850";
+
+/**
+ * The ABI service proxies Etherscan and Blockscout, both of which rate-limit
+ * and now and then stall for a minute or two — long enough to burn all of a
+ * test's retries (that is how run 31657953825 went red). A red build here
+ * should mean proxy resolution or ABI merging broke, so probe the service
+ * once up front and skip the suite when it is the one that is unavailable.
+ */
+const abiServiceReachable = async (): Promise<boolean> => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const res = await fetch(`${ABI_SERVICE}/${KNOWN_VERIFIED}`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) return true;
+    } catch {
+      // Network-level failure: retried like a non-OK response.
+    }
+  }
+  console.warn(
+    `Skipping fetchAbi integration tests: ${ABI_SERVICE} is unreachable`,
+  );
+  return false;
+};
+
+const SERVICE_UP = await abiServiceReachable();
+
+describe.skipIf(!SERVICE_UP)("SDK > utils > fetchAbi", () => {
   let client: PublicClient;
 
   beforeAll(() => {
