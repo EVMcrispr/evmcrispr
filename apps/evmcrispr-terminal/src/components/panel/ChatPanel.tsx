@@ -31,7 +31,7 @@ export function ChatPanel({
     items,
     isRunning,
     error,
-    isAuthError,
+    errorKind,
     send,
     stop,
     conversationId,
@@ -64,6 +64,11 @@ export function ChatPanel({
               setShowSettings(false);
             }}
             onBack={hasKey ? () => setShowSettings(false) : undefined}
+            notice={
+              errorKind === "auth" || errorKind === "balance"
+                ? error
+                : undefined
+            }
             balanceCents={balanceCents}
             onDisconnect={
               hasKey
@@ -113,7 +118,7 @@ export function ChatPanel({
         items={items}
         isRunning={isRunning}
         error={error}
-        isAuthError={isAuthError}
+        errorKind={errorKind}
         onShowSettings={() => setShowSettings(true)}
         onRegenerate={regenerate}
         onSuggestion={(text) => void send(text)}

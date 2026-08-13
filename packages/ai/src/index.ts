@@ -1,5 +1,12 @@
 // ── Nexus config & client ──
 
+export type { ChatErrorInfo, ChatErrorKind } from "./chat-errors";
+export {
+  AUTH_ERROR_MESSAGE,
+  BALANCE_ERROR_MESSAGE,
+  classifyChatError,
+  RATE_LIMIT_ERROR_MESSAGE,
+} from "./chat-errors";
 export type { ChatMeta, StoredChat } from "./chat-store";
 export {
   createChatStore,
@@ -25,7 +32,11 @@ export type {
   NexusBrokerClientOptions,
   NexusBrokerOptions,
 } from "./nexus-broker";
-export { initNexusBroker, NexusBrokerClient } from "./nexus-broker";
+export {
+  initNexusBroker,
+  NEXUS_BROKER_STORAGE_NAMESPACE,
+  NexusBrokerClient,
+} from "./nexus-broker";
 export { createNexusModel } from "./nexus-client";
 // ── Prompt helpers ──
 export { nowLine, nowStamp, withClock } from "./prompt";

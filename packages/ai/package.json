@@ -46,7 +46,8 @@
     "src"
   ],
   "scripts": {
-    "lint": "biome check src",
+    "lint": "biome check src test",
+    "test:unit": "bun test",
     "type-check": "tsgo --noEmit",
     "build": "evmcrispr-build --bundle",
     "types": "evmcrispr-build --types"

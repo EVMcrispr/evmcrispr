@@ -1,4 +1,5 @@
 import { createNexusAuth, type NexusAuthOptions } from "./nexus-auth";
+import { createLocalStorageChatStorage } from "./storage";
 
 /**
  * Nexus auth broker: lets a site whose origin is NOT allow-listed on the
@@ -16,6 +17,18 @@ import { createNexusAuth, type NexusAuthOptions } from "./nexus-auth";
  * `initNexusBroker` is called by the broker page; `NexusBrokerClient` by the
  * embedding site.
  */
+
+/**
+ * `localStorage` namespace the broker keeps its Nexus session under.
+ *
+ * The broker runs on the terminal's *own* origin, so with the default
+ * `evmcrispr` namespace it shared one session record with the terminal app
+ * itself. Since `loginWithNexus()` starts by revoking the stored session's
+ * provisioned API key, logging in (or disconnecting) on either side deleted
+ * the key the other side was still using. A separate namespace makes the two
+ * sessions independent.
+ */
+export const NEXUS_BROKER_STORAGE_NAMESPACE = "evmcrispr-broker";
 
 const MSG = {
   ready: "nexus-broker:ready",
@@ -42,7 +55,10 @@ export interface NexusBrokerOptions {
   loginButton: HTMLElement;
   /** Status/progress callback (e.g. to swap the button label). */
   onStatus?: (status: "idle" | "logging-in" | "done" | "error") => void;
-  /** Overrides for the underlying auth client (config, storage, redirect). */
+  /** Overrides for the underlying auth client (config, storage, redirect).
+   *  Storage defaults to `localStorage` under
+   *  {@link NEXUS_BROKER_STORAGE_NAMESPACE} rather than the shared default,
+   *  so the broker's session is not the host page's session. */
   auth?: NexusAuthOptions;
 }
 
@@ -53,7 +69,12 @@ export interface NexusBrokerOptions {
  */
 export function initNexusBroker(options: NexusBrokerOptions): void {
   const { allowedOrigins, loginButton, onStatus } = options;
-  const auth = createNexusAuth(options.auth);
+  const auth = createNexusAuth({
+    ...options.auth,
+    storage:
+      options.auth?.storage ??
+      createLocalStorageChatStorage(NEXUS_BROKER_STORAGE_NAMESPACE),
+  });
 
   const parentOrigin = new URLSearchParams(window.location.search).get(
     "parent",

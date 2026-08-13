@@ -1,12 +1,7 @@
-import {
-  APICallError,
-  type ModelMessage,
-  stepCountIs,
-  streamText,
-  type ToolSet,
-} from "ai";
+import { type ModelMessage, stepCountIs, streamText, type ToolSet } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { type ChatErrorKind, classifyChatError } from "./chat-errors";
 import { createChatStore, deriveTitle } from "./chat-store";
 import type { NexusConfig } from "./config";
 import { createNexusModel } from "./nexus-client";
@@ -138,7 +133,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthError, setIsAuthError] = useState(false);
+  const [errorKind, setErrorKind] = useState<ChatErrorKind | null>(null);
   // Each page load starts a fresh conversation; old ones live in the history.
   const [conversationId, setConversationId] = useState<string>(() =>
     crypto.randomUUID(),
@@ -192,7 +187,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
       storage.saveApiKey(key);
       setApiKeyState(key);
       setError(null);
-      setIsAuthError(false);
+      setErrorKind(null);
     },
     [storage],
   );
@@ -200,6 +195,10 @@ export function useChatAgent(options: UseChatAgentOptions) {
   const clearApiKey = useCallback(() => {
     storage.clearApiKey();
     setApiKeyState(null);
+    // Symmetrical with setApiKey: without this the last run's banner would
+    // outlive the key it complained about.
+    setError(null);
+    setErrorKind(null);
   }, [storage]);
 
   const send = useCallback(
@@ -207,7 +206,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
       if (!model || isRunning || !text.trim()) return;
 
       setError(null);
-      setIsAuthError(false);
+      setErrorKind(null);
       setIsRunning(true);
       stoppedRef.current = false;
       updateItems((prev) => [...prev, { role: "user", text }]);
@@ -326,11 +325,18 @@ export function useChatAgent(options: UseChatAgentOptions) {
       } catch (e) {
         console.error("[chat] agent error", e);
         if (!stoppedRef.current) {
-          if (APICallError.isInstance(e) && e.statusCode === 401) {
-            setError("Invalid API key.");
-            setIsAuthError(true);
-          } else {
-            setError(e instanceof Error ? e.message : String(e));
+          const { kind, message } = classifyChatError(e);
+          setError(message);
+          setErrorKind(kind);
+          // A dead key can only be replaced, so drop it: `hasKey` goes false
+          // and the host's settings screen offers a fresh login instead of a
+          // Disconnect button the user has no reason to press. The OAuth
+          // session stays — `loginWithNexus()` revokes and re-provisions
+          // from it. An empty balance is *not* an auth failure: logging in
+          // again would burn a working key and buy no credit.
+          if (kind === "auth") {
+            storage.clearApiKey();
+            setApiKeyState(null);
           }
         }
       } finally {
@@ -362,6 +368,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
       maxSteps,
       updateItems,
       persist,
+      storage,
     ],
   );
 
@@ -379,7 +386,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
     itemsRef.current = [];
     setItems([]);
     setError(null);
-    setIsAuthError(false);
+    setErrorKind(null);
   }, [isRunning]);
 
   const openChat = useCallback(
@@ -393,7 +400,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
       itemsRef.current = stored.items;
       setItems(stored.items);
       setError(null);
-      setIsAuthError(false);
+      setErrorKind(null);
     },
     [isRunning, chats],
   );
@@ -478,7 +485,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
     items,
     isRunning,
     error,
-    isAuthError,
+    errorKind,
     send,
     stop,
     conversationId,
