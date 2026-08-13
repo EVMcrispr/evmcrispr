@@ -17,6 +17,7 @@ A patch release: fixes for problems found right after 0.11.0 shipped, plus a few
 - Monaco assets are self-hosted instead of loaded from a CDN: injected `<script>` tags cannot be hash-verified, so the CDN is no longer trusted.
 - Editor and viewer agree on word wrap and bracket-pair colors.
 - shadcn enter/exit animations render again (`tw-animate-css`), and utilities renamed in Tailwind v4 (`bg-linear-to-*`, `wrap-break-word`, suffix `!`) are migrated.
+- Chat failures are classified instead of surfaced raw: a rejected Nexus API key is dropped so the panel offers a fresh login, while out-of-credit, rate-limit and network errors keep the key and say what to do about them.
 - `lint-staged` tasks now run on `modules/`, which the globs had never covered.
 
 ### Added
