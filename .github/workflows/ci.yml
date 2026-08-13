@@ -25,10 +25,14 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
+      # Stable, not nightly: a nightly shipped an anvil built without the
+      # optimism network family, so `anvil_reset` onto a Base fork failed with
+      # "network family `optimism` is not enabled in this build" and took the
+      # bridges cross-chain simulation down with it.
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
       - name: Install Dependencies
         run: bun i
 
