@@ -5,6 +5,7 @@ export {
   AUTH_ERROR_MESSAGE,
   BALANCE_ERROR_MESSAGE,
   classifyChatError,
+  NETWORK_ERROR_MESSAGE,
   RATE_LIMIT_ERROR_MESSAGE,
 } from "./chat-errors";
 export type { ChatMeta, StoredChat } from "./chat-store";

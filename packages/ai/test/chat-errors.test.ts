@@ -5,6 +5,7 @@ import {
   AUTH_ERROR_MESSAGE,
   BALANCE_ERROR_MESSAGE,
   classifyChatError,
+  NETWORK_ERROR_MESSAGE,
   RATE_LIMIT_ERROR_MESSAGE,
 } from "../src/chat-errors";
 
@@ -164,6 +165,13 @@ describe("classifyChatError", () => {
     });
   });
 
+  test("explains a failed fetch instead of showing 'Failed to fetch'", () => {
+    expect(classifyChatError(new TypeError("Failed to fetch"))).toEqual({
+      kind: "other",
+      message: NETWORK_ERROR_MESSAGE,
+    });
+  });
+
   test("survives bodies and errors that carry nothing useful", () => {
     expect(
       classifyChatError(apiError({ statusCode: 400, body: null })),
@@ -176,10 +184,6 @@ describe("classifyChatError", () => {
         apiError({ statusCode: 400, body: { error: { code: 42, type: [] } } }),
       ).kind,
     ).toBe("other");
-    expect(classifyChatError(new TypeError("Failed to fetch"))).toEqual({
-      kind: "other",
-      message: "Failed to fetch",
-    });
     expect(classifyChatError("boom")).toEqual({
       kind: "other",
       message: "boom",

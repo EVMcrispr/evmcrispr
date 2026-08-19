@@ -23,6 +23,8 @@ export const BALANCE_ERROR_MESSAGE =
   "Your Nexus account is out of credit. Recharge it to keep chatting.";
 export const RATE_LIMIT_ERROR_MESSAGE =
   "Nexus is rate-limiting this account. Wait a moment and try again.";
+export const NETWORK_ERROR_MESSAGE =
+  "Could not reach Nexus. Check your connection and try again.";
 
 // Matched as substrings against the error body's `type` and `code`, so a
 // spelling we have not seen ("api_key_revoked", "insufficient_credits", ...)
@@ -141,6 +143,12 @@ export function classifyChatError(error: unknown): ChatErrorInfo {
     return { kind: "auth", message: AUTH_ERROR_MESSAGE };
   if (status === 429)
     return { kind: "other", message: RATE_LIMIT_ERROR_MESSAGE };
+
+  // fetch() rejects with a TypeError for a dropped connection or a blocked
+  // CORS preflight; "Failed to fetch" on its own tells the user nothing, and
+  // a self-hosted Nexus makes both plausible.
+  if (error instanceof TypeError)
+    return { kind: "other", message: NETWORK_ERROR_MESSAGE };
 
   return {
     kind: "other",
