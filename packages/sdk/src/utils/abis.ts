@@ -49,10 +49,25 @@ export const fetchAbi = async (
     ];
   }
 
-  const [proxyAbi, implAbi] = await Promise.all([
-    getAbiEntries(contractAddress, chainId).catch(() => [] as Abi),
-    getAbiEntries(implementationAddress, chainId).catch(() => [] as Abi),
+  const [proxyAbi, implAbi] = await Promise.allSettled([
+    getAbiEntries(contractAddress, chainId),
+    getAbiEntries(implementationAddress, chainId),
   ]);
 
-  return [implementationAddress, mergeAbis(implAbi, proxyAbi), chainId];
+  // One unverified (or momentarily unreachable) side is fine — an ABI made of
+  // whichever half answered is still useful. Both failing is a lookup failure,
+  // not an empty contract: surfacing it beats handing back an ABI with no
+  // entries, which reads downstream as "this function does not exist".
+  if (proxyAbi.status === "rejected" && implAbi.status === "rejected") {
+    throw implAbi.reason;
+  }
+
+  return [
+    implementationAddress,
+    mergeAbis(
+      implAbi.status === "fulfilled" ? implAbi.value : [],
+      proxyAbi.status === "fulfilled" ? proxyAbi.value : [],
+    ),
+    chainId,
+  ];
 };

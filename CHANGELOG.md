@@ -22,10 +22,12 @@ A patch release: fixes for problems found right after 0.11.0 shipped, plus a few
 - `@includes` and `@unique` compare by value, not by JS shape. A `::` call's return is normalized to a number only when it is a top-level scalar, so an array read from a contract arrived in a different shape than a literal: `@includes` answered `false` for an element that was present, and `@unique` keyed on a truncated string form, collapsing values that differ beyond 18 decimals.
 - `@assertions:codehash` follows EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account, instead of the hash of the empty string. It now agrees with `assert-codehash`, which reads the hash on-chain.
 - Corrupted Optimism USDC address in the bridges registry.
+- A proxy whose ABI cannot be fetched raises the lookup failure instead of resolving to an empty ABI. Both halves of a proxy lookup failing — the ABI service down, or rate-limited by its upstream explorer — used to read downstream as "this contract has no functions".
 - Codegen meta extraction is anchored at the `define` call — std's `@token` was registering as "Ether", so analysis flagged every `@token` use as an unknown helper.
 - Monaco assets are self-hosted instead of loaded from a CDN: injected `<script>` tags cannot be hash-verified, so the CDN is no longer trusted.
 - Editor and viewer agree on word wrap and bracket-pair colors.
 - shadcn enter/exit animations render again (`tw-animate-css`), and utilities renamed in Tailwind v4 (`bg-linear-to-*`, `wrap-break-word`, suffix `!`) are migrated.
+- Chat failures are classified instead of surfaced raw: a rejected Nexus API key is dropped so the panel offers a fresh login, while out-of-credit, rate-limit and network errors keep the key and say what to do about them.
 - `lint-staged` tasks now run on `modules/`, which the globs had never covered.
 
 ### Added
