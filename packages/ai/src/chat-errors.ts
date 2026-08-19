@@ -123,17 +123,18 @@ function matches(hints: string[], values: (string | undefined)[]): boolean {
 export function classifyChatError(error: unknown): ChatErrorInfo {
   const { type, code, message } = nexusErrorFields(error);
   const tags = [type, code];
+  const status = APICallError.isInstance(error) ? error.statusCode : undefined;
 
-  if (matches(BALANCE_HINTS, tags))
+  // 402 counts as a balance hint rather than waiting its turn among the
+  // statuses: a body that says "payment required" in auth-ish words would
+  // otherwise classify as auth and cost the user a working key.
+  if (matches(BALANCE_HINTS, tags) || status === 402)
     return { kind: "balance", message: BALANCE_ERROR_MESSAGE };
   if (matches(AUTH_HINTS, tags))
     return { kind: "auth", message: AUTH_ERROR_MESSAGE };
   if (matches(RATE_LIMIT_HINTS, tags))
     return { kind: "other", message: RATE_LIMIT_ERROR_MESSAGE };
 
-  const status = APICallError.isInstance(error) ? error.statusCode : undefined;
-  if (status === 402)
-    return { kind: "balance", message: BALANCE_ERROR_MESSAGE };
   // 401: revoked or unknown key. 403: the key exists but may not use this
   // account/model — a freshly provisioned one is the user's way out.
   if (status === 401 || status === 403)

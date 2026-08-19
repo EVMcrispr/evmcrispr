@@ -100,6 +100,17 @@ describe("classifyChatError", () => {
     });
   });
 
+  test("a 402 stays a balance failure even with an auth-ish body", () => {
+    const error = apiError({
+      statusCode: 402,
+      body: { error: { type: "permission_error" } },
+    });
+    expect(classifyChatError(error)).toEqual({
+      kind: "balance",
+      message: BALANCE_ERROR_MESSAGE,
+    });
+  });
+
   test("402 with no body is a balance failure", () => {
     expect(classifyChatError(apiError({ statusCode: 402 })).kind).toBe(
       "balance",
