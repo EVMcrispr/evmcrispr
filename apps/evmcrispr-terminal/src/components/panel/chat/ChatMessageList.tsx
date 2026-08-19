@@ -1,4 +1,4 @@
-import type { ChatErrorKind, ChatItem } from "@evmcrispr/ai";
+import type { ChatErrorInfo, ChatItem } from "@evmcrispr/ai";
 import {
   ArrowDownIcon,
   ArrowPathIcon,
@@ -251,7 +251,6 @@ export function ChatMessageList({
   items,
   isRunning,
   error,
-  errorKind,
   onShowSettings,
   onRegenerate,
   onSuggestion,
@@ -262,8 +261,7 @@ export function ChatMessageList({
 }: {
   items: ChatItem[];
   isRunning: boolean;
-  error: string | null;
-  errorKind: ChatErrorKind | null;
+  error: ChatErrorInfo | null;
   onShowSettings: () => void;
   onRegenerate: () => void;
   onSuggestion: (text: string) => void;
@@ -387,12 +385,12 @@ export function ChatMessageList({
         )}
         {error && (
           <p className="text-base text-red-400 wrap-break-word">
-            {error}
+            {error.message}
             {/* An auth failure drops the key, so the panel has already
                 swapped to the settings screen — the only banner that still
                 needs a way out is the empty-balance one, and Recharge lives
                 in the same place. */}
-            {errorKind === "balance" && (
+            {error.kind === "balance" && (
               <>
                 {" "}
                 Recharge in{" "}

@@ -59,8 +59,10 @@ describe("useChatAgent auth recovery", () => {
 
     expect(result.current.hasKey).toBe(false);
     expect(localStorage.getItem(API_KEY_STORAGE_KEY)).toBeNull();
-    expect(result.current.errorKind).toBe("auth");
-    expect(result.current.error).toBe(AUTH_ERROR_MESSAGE);
+    expect(result.current.error).toEqual({
+      kind: "auth",
+      message: AUTH_ERROR_MESSAGE,
+    });
   });
 
   test("an empty balance keeps the key and says so", async () => {
@@ -80,8 +82,10 @@ describe("useChatAgent auth recovery", () => {
 
     expect(result.current.hasKey).toBe(true);
     expect(localStorage.getItem(API_KEY_STORAGE_KEY)).toBe("nexus-key");
-    expect(result.current.errorKind).toBe("balance");
-    expect(result.current.error).toBe(BALANCE_ERROR_MESSAGE);
+    expect(result.current.error).toEqual({
+      kind: "balance",
+      message: BALANCE_ERROR_MESSAGE,
+    });
   });
 
   test("an unrelated failure keeps the key and its own message", async () => {
@@ -99,8 +103,10 @@ describe("useChatAgent auth recovery", () => {
 
     expect(result.current.hasKey).toBe(true);
     expect(localStorage.getItem(API_KEY_STORAGE_KEY)).toBe("nexus-key");
-    expect(result.current.errorKind).toBe("other");
-    expect(result.current.error).toBe("model `kimi-k9` does not exist");
+    expect(result.current.error).toEqual({
+      kind: "other",
+      message: "model `kimi-k9` does not exist",
+    });
   });
 
   test("clearApiKey leaves no banner behind", async () => {
@@ -122,6 +128,5 @@ describe("useChatAgent auth recovery", () => {
 
     expect(result.current.hasKey).toBe(false);
     expect(result.current.error).toBeNull();
-    expect(result.current.errorKind).toBeNull();
   });
 });

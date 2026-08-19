@@ -31,7 +31,6 @@ export function ChatPanel({
     items,
     isRunning,
     error,
-    errorKind,
     send,
     stop,
     conversationId,
@@ -65,8 +64,8 @@ export function ChatPanel({
             }}
             onBack={hasKey ? () => setShowSettings(false) : undefined}
             notice={
-              errorKind === "auth" || errorKind === "balance"
-                ? error
+              error?.kind === "auth" || error?.kind === "balance"
+                ? error.message
                 : undefined
             }
             balanceCents={balanceCents}
@@ -118,7 +117,6 @@ export function ChatPanel({
         items={items}
         isRunning={isRunning}
         error={error}
-        errorKind={errorKind}
         onShowSettings={() => setShowSettings(true)}
         onRegenerate={regenerate}
         onSuggestion={(text) => void send(text)}

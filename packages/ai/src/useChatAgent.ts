@@ -1,7 +1,7 @@
 import { type ModelMessage, stepCountIs, streamText, type ToolSet } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { type ChatErrorKind, classifyChatError } from "./chat-errors";
+import { type ChatErrorInfo, classifyChatError } from "./chat-errors";
 import { createChatStore, deriveTitle } from "./chat-store";
 import type { NexusConfig } from "./config";
 import { createNexusModel } from "./nexus-client";
@@ -132,8 +132,9 @@ export function useChatAgent(options: UseChatAgentOptions) {
   );
   const [items, setItems] = useState<ChatItem[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [errorKind, setErrorKind] = useState<ChatErrorKind | null>(null);
+  // One piece of state, so the copy shown to the user and the kind of failure
+  // it describes can never disagree — or outlive one another.
+  const [error, setError] = useState<ChatErrorInfo | null>(null);
   // Each page load starts a fresh conversation; old ones live in the history.
   const [conversationId, setConversationId] = useState<string>(() =>
     crypto.randomUUID(),
@@ -187,7 +188,6 @@ export function useChatAgent(options: UseChatAgentOptions) {
       storage.saveApiKey(key);
       setApiKeyState(key);
       setError(null);
-      setErrorKind(null);
     },
     [storage],
   );
@@ -198,7 +198,6 @@ export function useChatAgent(options: UseChatAgentOptions) {
     // Symmetrical with setApiKey: without this the last run's banner would
     // outlive the key it complained about.
     setError(null);
-    setErrorKind(null);
   }, [storage]);
 
   const send = useCallback(
@@ -206,7 +205,6 @@ export function useChatAgent(options: UseChatAgentOptions) {
       if (!model || isRunning || !text.trim()) return;
 
       setError(null);
-      setErrorKind(null);
       setIsRunning(true);
       stoppedRef.current = false;
       updateItems((prev) => [...prev, { role: "user", text }]);
@@ -326,8 +324,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
         console.error("[chat] agent error", e);
         if (!stoppedRef.current) {
           const { kind, message } = classifyChatError(e);
-          setError(message);
-          setErrorKind(kind);
+          setError({ kind, message });
           // A dead key can only be replaced, so drop it: `hasKey` goes false
           // and the host's settings screen offers a fresh login instead of a
           // Disconnect button the user has no reason to press. The OAuth
@@ -386,7 +383,6 @@ export function useChatAgent(options: UseChatAgentOptions) {
     itemsRef.current = [];
     setItems([]);
     setError(null);
-    setErrorKind(null);
   }, [isRunning]);
 
   const openChat = useCallback(
@@ -400,7 +396,6 @@ export function useChatAgent(options: UseChatAgentOptions) {
       itemsRef.current = stored.items;
       setItems(stored.items);
       setError(null);
-      setErrorKind(null);
     },
     [isRunning, chats],
   );
@@ -485,7 +480,6 @@ export function useChatAgent(options: UseChatAgentOptions) {
     items,
     isRunning,
     error,
-    errorKind,
     send,
     stop,
     conversationId,
