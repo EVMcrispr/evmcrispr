@@ -110,6 +110,17 @@ describe("classifyChatError", () => {
     expect(classifyChatError(apiError({ statusCode: 403 })).kind).toBe("auth");
   });
 
+  test("permission_error is an auth failure whatever the status", () => {
+    const error = apiError({
+      statusCode: 400,
+      body: { error: { type: "permission_error" } },
+    });
+    expect(classifyChatError(error)).toEqual({
+      kind: "auth",
+      message: AUTH_ERROR_MESSAGE,
+    });
+  });
+
   test("rate limits are neither auth nor balance", () => {
     expect(classifyChatError(apiError({ statusCode: 429 }))).toEqual({
       kind: "other",

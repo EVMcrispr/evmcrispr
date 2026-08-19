@@ -37,6 +37,7 @@ const BALANCE_HINTS = [
 ];
 const AUTH_HINTS = [
   "authentication",
+  "permission",
   "api_key",
   "apikey",
   "access_token",
