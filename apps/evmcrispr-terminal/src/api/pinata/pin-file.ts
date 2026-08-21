@@ -1,3 +1,5 @@
+import { primeIpfsContent } from "@evmcrispr/core";
+
 type Res = {
   IpfsHash: string;
   PinSize: number;
@@ -42,7 +44,11 @@ const pinFile = async (file: File | Blob, name?: string): Promise<Res> => {
       throw new Error("Bad response from server");
     }
 
-    return response.json();
+    const res: Res = await response.json();
+    // A fresh pin can take a while to reach public gateways — remember the
+    // uploaded bytes so this session resolves the CID instantly.
+    primeIpfsContent(res.IpfsHash, new Uint8Array(await file.arrayBuffer()));
+    return res;
   } catch (_e) {
     throw new Error("Bad response from server");
   }

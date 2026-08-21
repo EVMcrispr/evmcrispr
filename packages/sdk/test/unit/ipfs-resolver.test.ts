@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { IPFS_GATEWAY, IPFSResolver } from "../../src/IPFSResolver";
 import {
+  primeIpfsContent,
   resetGatewayCapabilities,
+  resetPrimedIpfsContent,
   TRUSTLESS_GATEWAYS,
   verifiedIpfsEntity,
 } from "../../src/utils/verifiedIpfs";
@@ -439,5 +441,87 @@ describe("IPFSResolver (trusted gateway mode)", () => {
     await expect(resolver.text("QmMiss")).rejects.toThrow(/404/);
     await expect(resolver.text("QmMiss")).rejects.toThrow(/404/);
     expect(calls).toBe(2);
+  });
+});
+
+describe("primed upload cache", () => {
+  const realFetch = globalThis.fetch;
+  const realTrust = IPFSResolver.trustGateway;
+  let requestedUrls: string[];
+
+  beforeEach(() => {
+    IPFSResolver.trustGateway = false;
+    requestedUrls = [];
+    resetGatewayCapabilities();
+    resetPrimedIpfsContent();
+  });
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    IPFSResolver.trustGateway = realTrust;
+    resetGatewayCapabilities();
+    resetPrimedIpfsContent();
+  });
+
+  const recordFetches = () => {
+    globalThis.fetch = (async (url: string | URL) => {
+      requestedUrls.push(String(url));
+      return new Response(null, { status: 504 });
+    }) as any;
+  };
+
+  it("serves a primed CID from memory without touching the network", async () => {
+    const content = text("0xdeadbeef");
+    const cid = await cidV1Raw(content);
+    primeIpfsContent(cid.str, content);
+    recordFetches();
+
+    expect(await new IPFSResolver().text(cid.str)).toBe("0xdeadbeef");
+    expect(requestedUrls).toHaveLength(0);
+  });
+
+  it("serves primed directory-path keys (<cid>/name)", async () => {
+    const content = text("nested file");
+    const dirCid = await cidV0(pbNode({ data: unixfs(1) }));
+    primeIpfsContent(`${dirCid.str}/sub/file.txt`, content);
+    recordFetches();
+
+    expect(await new IPFSResolver().text(`${dirCid.str}/sub/file.txt`)).toBe(
+      "nested file",
+    );
+    expect(requestedUrls).toHaveLength(0);
+  });
+
+  it("still fetches unprimed CIDs from the gateway", async () => {
+    const content = text("remote content");
+    const cid = await cidV1Raw(content);
+    primeIpfsContent(cid.str, content);
+    const other = await cidV1Raw(text("something else"));
+    recordFetches();
+
+    await expect(new IPFSResolver().text(other.str)).rejects.toThrow();
+    expect(requestedUrls.length).toBeGreaterThan(0);
+  });
+
+  it("verifiedIpfsEntity returns a primed file, honoring maxBytes", async () => {
+    const content = text("long primed body");
+    const cid = await cidV1Raw(content);
+    primeIpfsContent(cid.str, content);
+    recordFetches();
+
+    const full = await verifiedIpfsEntity(cid.str, IPFS_GATEWAY);
+    expect(full.kind).toBe("file");
+    if (full.kind !== "file") throw new Error("unreachable");
+    expect(decode(full.bytes)).toBe("long primed body");
+    expect(full.size).toBe(content.length);
+    expect(full.complete).toBe(true);
+
+    const head = await verifiedIpfsEntity(cid.str, IPFS_GATEWAY, {
+      maxBytes: 4,
+    });
+    if (head.kind !== "file") throw new Error("unreachable");
+    expect(decode(head.bytes)).toBe("long");
+    expect(head.size).toBe(content.length);
+    expect(head.complete).toBe(false);
+    expect(requestedUrls).toHaveLength(0);
   });
 });

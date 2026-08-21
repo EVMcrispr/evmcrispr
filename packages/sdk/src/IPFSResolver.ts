@@ -1,5 +1,5 @@
 import { ErrorConnection, ErrorUnexpectedResult } from "./errors";
-import { verifiedIpfsFetch } from "./utils/verifiedIpfs";
+import { primedIpfsContent, verifiedIpfsFetch } from "./utils/verifiedIpfs";
 
 export const IPFS_GATEWAY = "https://ipfs.blossom.software/ipfs/"; // "https://gateway.pinata.cloud/ipfs/";
 
@@ -24,6 +24,10 @@ export class IPFSResolver {
    * content.
    */
   async bytes(cidPath: string, ipfsGateway?: string): Promise<Uint8Array> {
+    // Content this session uploaded needs no gateway (or verification —
+    // the bytes are the local originals): serve it straight from memory.
+    const primed = primedIpfsContent(cidPath);
+    if (primed) return primed;
     if (IPFSResolver.trustGateway) {
       const response = await this.#fetch(
         await this.url(cidPath, undefined, ipfsGateway),

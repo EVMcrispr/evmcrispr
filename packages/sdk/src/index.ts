@@ -136,4 +136,8 @@ export {
   parseNpmPackageName,
 } from "./utils/npmRegistry";
 export type { IpfsEntity } from "./utils/verifiedIpfs";
-export { verifiedIpfsEntity, verifiedIpfsFetch } from "./utils/verifiedIpfs";
+export {
+  primeIpfsContent,
+  verifiedIpfsEntity,
+  verifiedIpfsFetch,
+} from "./utils/verifiedIpfs";

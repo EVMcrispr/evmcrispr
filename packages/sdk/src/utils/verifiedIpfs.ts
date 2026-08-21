@@ -535,6 +535,35 @@ export function resetGatewayCapabilities(): void {
   nonTrustlessGateways.clear();
 }
 
+/**
+ * Content this session uploaded, keyed by "<cid>" or "<cid>/path/inside".
+ * Upload flows prime it so a just-pinned CID resolves instantly instead of
+ * waiting out gateway propagation. Primed bytes are byte-for-byte what left
+ * this machine — the very thing CAR verification would prove — so lookups
+ * skip the gateway entirely. In-memory only: after a reload, fetches fall
+ * back to the gateway list.
+ */
+const primedContent = new Map<string, Uint8Array>();
+
+function primedKey(cidPath: string): string {
+  return cidPath.split("/").filter(Boolean).join("/");
+}
+
+/** Record locally-known bytes for `cidPath` ("<cid>" or "<cid>/inside"). */
+export function primeIpfsContent(cidPath: string, bytes: Uint8Array): void {
+  primedContent.set(primedKey(cidPath), bytes);
+}
+
+/** The bytes this session uploaded under `cidPath`, if any. */
+export function primedIpfsContent(cidPath: string): Uint8Array | undefined {
+  return primedContent.get(primedKey(cidPath));
+}
+
+/** Forget primed uploads (tests start from a clean slate). */
+export function resetPrimedIpfsContent(): void {
+  primedContent.clear();
+}
+
 /** Download `cidPath` as a CAR, or throw if this gateway can't serve one. */
 async function fetchCar(
   cidPath: string,
@@ -652,6 +681,17 @@ export async function verifiedIpfsEntity(
   gatewayBase: string,
   opts: VerifiedFetchOptions = {},
 ): Promise<IpfsEntity> {
+  const primed = primedIpfsContent(cidPath);
+  if (primed) {
+    const bytes =
+      opts.maxBytes !== undefined ? primed.subarray(0, opts.maxBytes) : primed;
+    return {
+      kind: "file",
+      bytes,
+      size: primed.length,
+      complete: bytes.length === primed.length,
+    };
+  }
   try {
     const { source, target } = await fetchVerifiedTarget(
       cidPath,

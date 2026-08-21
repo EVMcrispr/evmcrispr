@@ -98,6 +98,7 @@ export {
   Module,
   NodeError,
   NodeType,
+  primeIpfsContent,
   ReturnSignal,
   resolveCommand,
   resolveHelper,

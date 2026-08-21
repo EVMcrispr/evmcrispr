@@ -1,3 +1,5 @@
+import { primeIpfsContent } from "@evmcrispr/core";
+
 type Res = {
   IpfsHash: string;
   PinSize: number;
@@ -44,7 +46,22 @@ const pinDirectory = async (
       throw new Error("Bad response from server");
     }
 
-    return response.json();
+    const res: Res = await response.json();
+    // The returned CID is the root folder itself (Pinata strips the shared
+    // folder-name prefix), so each file lives at <cid>/<path minus root>.
+    // Remember the uploaded bytes so this session resolves them instantly
+    // instead of waiting for the pin to reach public gateways. If the
+    // layout assumption ever proved wrong, these keys would simply never
+    // be requested — a cache miss, not wrong content.
+    for (const { file, path } of files) {
+      const inside = path.split("/").slice(1).join("/");
+      if (!inside) continue;
+      primeIpfsContent(
+        `${res.IpfsHash}/${inside}`,
+        new Uint8Array(await file.arrayBuffer()),
+      );
+    }
+    return res;
   } catch (_e) {
     throw new Error("Bad response from server");
   }
