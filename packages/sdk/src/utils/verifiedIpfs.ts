@@ -507,12 +507,17 @@ export type IpfsEntity =
 /**
  * Gateways tried when the requested one can't serve the CAR: plenty of
  * gateways (including ours) only speak plain HTTP paths, and a link must
- * still open. Ordered by how reliably they implement the trustless spec.
+ * still open. Pinata goes first: our uploads are pinned there, and it keeps
+ * CORS headers on its responses. trustless-gateway.link answers content it
+ * can't retrieve with a CORS-less Cloudflare 520, which browsers surface as
+ * a CORS failure after a long stall — usable only as a backstop. dweb.link
+ * is not listed at all: it 301-redirects to trustless-gateway.link without
+ * an Access-Control-Allow-Origin header, so every browser fetch dies in the
+ * redirect's CORS check.
  */
 export const TRUSTLESS_GATEWAYS = [
-  "https://trustless-gateway.link/ipfs/",
-  "https://dweb.link/ipfs/",
   "https://gateway.pinata.cloud/ipfs/",
+  "https://trustless-gateway.link/ipfs/",
 ];
 
 /**
