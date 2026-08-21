@@ -473,8 +473,11 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         const receipt = await ctx
           .getPublicClient(chainId)
           .waitForTransactionReceipt({ hash: tx });
+        const explorer = chainForId(chainId)?.blockExplorers?.default?.url;
         ctx.onLog(
-          `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${tx})`,
+          explorer
+            ? `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${explorer.replace(/\/$/, "")}/tx/${tx})`
+            : `:success:Transaction confirmed: ${tx}`,
         );
         return receipt;
       }
