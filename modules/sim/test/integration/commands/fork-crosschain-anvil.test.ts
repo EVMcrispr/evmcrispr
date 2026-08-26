@@ -1,5 +1,5 @@
 import "../../setup";
-import { afterAll, describe, it } from "bun:test";
+import { afterAll, beforeEach, describe, it } from "bun:test";
 import { expect, getTransports, resetAnvil } from "@evmcrispr/test-utils";
 import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import { gnosis } from "viem/chains";
@@ -25,8 +25,12 @@ function createRunner() {
 }
 
 describe("Sim > commands > fork > cross-chain (anvil network swap)", () => {
-  // The network swap re-forks the shared anvil node; restore the pinned
-  // gnosis fork for whatever test file runs next.
+  // The network swap re-forks the shared anvil node: start every test from
+  // a healthy pinned gnosis fork (replacing a wedged node if the previous
+  // swap left one), and restore it for whatever test file runs next.
+  beforeEach(async () => {
+    await resetAnvil();
+  });
   afterAll(async () => {
     await resetAnvil();
   });

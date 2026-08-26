@@ -103,24 +103,34 @@ export async function resolveLatestBlockNumber(
   return BigInt(result);
 }
 
+/** An upstream that is itself a fork node (anvil mid-reset, a lagging
+ *  load-balanced RPC) can report a head it cannot serve yet; give it a
+ *  few seconds before treating the block as missing. */
+const BLOCK_FETCH_ATTEMPTS = 5;
+const BLOCK_FETCH_RETRY_MS = 1_500;
+
 export async function fetchBlockTimestamp(
   rpcUrl: string,
   blockNumber: bigint,
   signal?: AbortSignal,
 ): Promise<bigint> {
-  const block = await rpcFetch(
-    rpcUrl,
-    "eth_getBlockByNumber",
-    [`0x${blockNumber.toString(16)}`, false],
-    signal,
-  );
-  if (block == null) {
-    throw new ErrorException(
-      `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +
-        `The RPC may not serve this block or may be rate-limiting requests.`,
+  for (let attempt = 1; ; attempt++) {
+    const block = await rpcFetch(
+      rpcUrl,
+      "eth_getBlockByNumber",
+      [`0x${blockNumber.toString(16)}`, false],
+      signal,
     );
+    if (block != null) return BigInt(block.timestamp);
+    if (attempt >= BLOCK_FETCH_ATTEMPTS) {
+      throw new ErrorException(
+        `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +
+          `The RPC may not serve this block or may be rate-limiting requests.`,
+      );
+    }
+    await new Promise((r) => setTimeout(r, BLOCK_FETCH_RETRY_MS));
+    if (signal?.aborted) throw new ErrorException("Execution cancelled");
   }
-  return BigInt(block.timestamp);
 }
 
 /**

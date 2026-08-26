@@ -44,18 +44,41 @@ const FALLBACK_FORK_BLOCK = 47440000;
 /** Stay clear of reorgs; gnosis finalizes well within this. */
 const REORG_MARGIN_BLOCKS = 100;
 /** Round the fork block down to this bucket (~85 min of gnosis blocks) so
- *  every test process in a session picks the SAME block — foundry's disk
- *  RPC cache and DRPC's cache are both keyed by (chain, block). */
+ *  every test process in a session — and CI runs close in time — pick the
+ *  SAME block: foundry's disk RPC cache and DRPC's cache are both keyed by
+ *  (chain, block). Gnosis only: on mainnet the same bucket is ~3.3 h of
+ *  blocks, which pushes DRPC onto its archive path for every state read
+ *  (first reads went from ~1 s to >30 s in CI), so other chains fork at
+ *  latest instead. */
 const BLOCK_BUCKET = 1000;
+
+/** DRPC network slugs for the chains the tests fork. */
+const DRPC_NETWORKS: Record<number, string> = {
+  1: "ethereum",
+  10: "optimism",
+  100: "gnosis",
+  137: "polygon",
+  8453: "base",
+  42161: "arbitrum",
+};
 
 let forkBlock: Promise<number> | undefined;
 
 /**
- * Recent gnosis fork block, resolved once per process: latest minus a
- * reorg margin, rounded down to a shared bucket. Never goes stale, stays
- * on state DRPC serves cheaply.
+ * Fork block for a chain. Gnosis (the shared anvil's chain) resolves once
+ * per process to latest minus a reorg margin, rounded down to the shared
+ * bucket — never stale, on state DRPC serves cheaply — with a pinned
+ * fallback offline. Every other chain resolves to undefined: fork at
+ * latest (see BLOCK_BUCKET for why pinning them back is a net loss).
  */
-export function getForkBlockNumber(): Promise<number> {
+export function getForkBlockNumber(): Promise<number>;
+export function getForkBlockNumber(
+  chainId: number,
+): Promise<number | undefined>;
+export function getForkBlockNumber(
+  chainId: number = CHAIN_ID,
+): Promise<number | undefined> {
+  if (chainId !== CHAIN_ID) return Promise.resolve(undefined);
   forkBlock ??= (async () => {
     const endpoint = getEndpoint();
     if (!endpoint) return FALLBACK_FORK_BLOCK;
@@ -84,9 +107,12 @@ export function getForkBlockNumber(): Promise<number> {
   return forkBlock;
 }
 
-export function getEndpoint(): string | undefined {
+export function getEndpoint(chainId: number = CHAIN_ID): string | undefined {
   const apiKey = process.env.VITE_DRPC_API_KEY;
-  return apiKey ? `https://lb.drpc.live/gnosis/${apiKey}` : undefined;
+  const network = DRPC_NETWORKS[chainId];
+  return apiKey && network
+    ? `https://lb.drpc.live/${network}/${apiKey}`
+    : undefined;
 }
 
 export async function loadEnv(): Promise<void> {
@@ -113,6 +139,33 @@ export async function isAnvilRunning(): Promise<boolean> {
       signal: AbortSignal.timeout(2000),
     });
     return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether anvil serves fork state, not just RPC: a node mid-reset (or one
+ * whose upstream stopped answering) reports a block number but returns
+ * null for the block itself, which forks built on top of it then trip
+ * over as "block not found on upstream".
+ */
+export async function isAnvilHealthy(): Promise<boolean> {
+  try {
+    const res = await fetch(anvilUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "eth_getBlockByNumber",
+        params: ["latest", false],
+        id: 1,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return false;
+    const body = (await res.json()) as { result?: unknown };
+    return body.result != null;
   } catch {
     return false;
   }

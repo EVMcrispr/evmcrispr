@@ -1,6 +1,6 @@
 import "../../setup";
-import { describe, it } from "bun:test";
-import { expect, getTransports } from "@evmcrispr/test-utils";
+import { beforeAll, describe, it } from "bun:test";
+import { expect, getTransports, resetAnvil } from "@evmcrispr/test-utils";
 import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import { gnosis } from "viem/chains";
 import TestBridge, {
@@ -28,6 +28,12 @@ function createRunner() {
 }
 
 describe("Sim > commands > fork > cross-chain (ethereumjs)", () => {
+  // The in-process forks read gnosis state through the shared anvil; make
+  // sure it is healthy after whatever network swaps ran before this file.
+  beforeAll(async () => {
+    await resetAnvil();
+  });
+
   it("keeps per-chain forks isolated and preserves state when switching back", async () => {
     const { evm } = createRunner();
     await evm.interpret(`load sim
