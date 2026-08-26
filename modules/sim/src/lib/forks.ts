@@ -20,6 +20,12 @@ import { rpcPrefix } from "./modes";
 
 const LOCAL_RPC = "http://localhost:8545";
 
+/** Transport for a fork node's RPC. A cold fork serves its first calls
+ *  only after pulling every touched account and slot from the upstream
+ *  RPC, which on a fresh node (or a loaded CI runner) outlives viem's
+ *  default 10s request timeout — the node isn't dead, it's fetching. */
+const forkTransport = (url: string) => http(url, { timeout: 60_000 });
+
 /** Loose equality for RPC URLs that should be treated as the same node. */
 export function isSameLocalRpc(a: string, b: string): boolean {
   const normalize = (u: string) =>
@@ -329,9 +335,12 @@ export class ForkManager {
       chain,
       publicClient: createPublicClient({
         chain,
-        transport: http(rpcUrl),
+        transport: forkTransport(rpcUrl),
       }) as PublicClient,
-      walletClient: createWalletClient({ chain, transport: http(rpcUrl) }),
+      walletClient: createWalletClient({
+        chain,
+        transport: forkTransport(rpcUrl),
+      }),
     };
   }
 
@@ -392,9 +401,12 @@ export class ForkManager {
         chain,
         publicClient: createPublicClient({
           chain,
-          transport: http(rpcUrl),
+          transport: forkTransport(rpcUrl),
         }) as PublicClient,
-        walletClient: createWalletClient({ chain, transport: http(rpcUrl) }),
+        walletClient: createWalletClient({
+          chain,
+          transport: forkTransport(rpcUrl),
+        }),
       });
     }
 
@@ -422,9 +434,12 @@ export class ForkManager {
         chain,
         publicClient: createPublicClient({
           chain,
-          transport: http(LOCAL_RPC),
+          transport: forkTransport(LOCAL_RPC),
         }) as PublicClient,
-        walletClient: createWalletClient({ chain, transport: http(LOCAL_RPC) }),
+        walletClient: createWalletClient({
+          chain,
+          transport: forkTransport(LOCAL_RPC),
+        }),
       };
       this.#handles.set(chainId, handle);
     }
