@@ -178,8 +178,6 @@ sim:fork --using anvil (
     });
     evm.switchChainId(gnosis.id);
 
-    // sim:fork drops the connected account when it ends, so the read after
-    // the fork names the account explicitly.
     await evm.interpret(`load giveth
 load sim
 sim:fork --using anvil (
@@ -188,7 +186,7 @@ sim:fork --using anvil (
   giveth:boost [evmcrispr] --by [10]
   set $merged @giveth:boostedBy()
 )
-set $after @giveth:boostedBy(${walletClient.account!.address})`);
+set $after @giveth:boostedBy()`);
 
     expect(boostsOf(evm, "$inside")).to.eql([
       ["wayback-machine", "evmcrispr"],
@@ -221,7 +219,7 @@ sim:fork --using anvil (
   giveth:boost [evmcrispr] --with [100]
   set $inside @giveth:boostedBy()
 )
-set $after @giveth:boostedBy(${stranger.account!.address})`);
+set $after @giveth:boostedBy()`);
 
     expect(boostsOf(evm, "$inside")).to.eql([["evmcrispr"], [100]]);
     expect(boostsOf(evm, "$after")).to.eql([[], []]);

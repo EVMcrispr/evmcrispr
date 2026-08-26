@@ -86,6 +86,11 @@ export default defineCommand<Sim>({
 
     const blockNumber = opts["block-number"];
     const from = opts.from;
+    // The script's own account, restored once the fork ends; --from only
+    // overrides it inside the fork.
+    const previousAccount = await module
+      .getConnectedAccount()
+      .catch(() => undefined);
     const using = opts.using as SimMode | undefined;
     const tenderlyOpt = opts["auth-token"] as string | undefined;
 
@@ -588,7 +593,7 @@ export default defineCommand<Sim>({
       // `switch` the script performed). `switchChainId` rebuilds the client
       // from the configured transports for that chain.
       module.context.switchChainId(chainId);
-      module.context.setConnectedAccount(undefined);
+      module.context.setConnectedAccount(previousAccount);
     }
 
     if (mode === "tenderly" || mode === "tenderly-multichain") {
