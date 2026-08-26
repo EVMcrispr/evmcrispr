@@ -86,7 +86,8 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
-async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
+/** Inflate a gzip stream with the native DecompressionStream. */
+export async function gunzip(bytes: Uint8Array): Promise<Uint8Array> {
   const stream = new Blob([bytes as BlobPart])
     .stream()
     .pipeThrough(new DecompressionStream("gzip"));
@@ -124,7 +125,7 @@ function paxRecord(data: string, key: string): string | undefined {
  * Regular files of a tarball, keyed by path with the archive's root
  * directory (npm's `package/`) stripped.
  */
-function untar(tar: Uint8Array): Map<string, Uint8Array> {
+export function untar(tar: Uint8Array): Map<string, Uint8Array> {
   const files = new Map<string, Uint8Array>();
   let offset = 0;
   let paxPath: string | undefined;

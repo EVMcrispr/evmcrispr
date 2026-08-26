@@ -37,6 +37,7 @@
     "@evmcrispr/module-contracts": "workspace:^",
     "@evmcrispr/module-crypto": "workspace:^",
     "@evmcrispr/module-ens": "workspace:^",
+    "@evmcrispr/module-gelato": "workspace:^",
     "@evmcrispr/module-giveth": "workspace:^",
     "@evmcrispr/module-governor": "workspace:^",
     "@evmcrispr/module-http": "workspace:^",

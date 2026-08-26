@@ -1,0 +1,51 @@
+{
+  "name": "@evmcrispr/module-gelato",
+  "version": "0.11.1",
+  "description": "Gelato automation: schedule or condition contract calls through Gelato Automate (interval, cron, on-chain checker, event and one-shot triggers, optional dedicated msg.sender), publish TypeScript Web3 Functions straight from a <<<TS heredoc and attach them to tasks, fund and withdraw the Gas Tank (1Balance) that pays for executions, and read tasks, balances and dedicated msg.senders back.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/gelato"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
+  "experimental": true,
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@evmcrispr/module-std": "workspace:^",
+    "@evmcrispr/sdk": "workspace:^",
+    "esbuild-wasm": "0.28.2"
+  },
+  "devDependencies": {
+    "@evmcrispr/test-utils": "workspace:*"
+  },
+  "peerDependencies": {
+    "viem": "^2.54.1"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsgo -p tsconfig.json",
+    "build": "evmcrispr-build --bundle",
+    "test:unit": "bun test ./test/unit",
+    "test:integration": "bun test ./test/integration",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
+  }
+}

@@ -140,6 +140,17 @@ export const createLanguage: (
       },
     ],
 
+    tsHeredoc: [
+      {
+        regex: /^TS\b/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@pop",
+          nextEmbedded: "@pop",
+        },
+      },
+    ],
+
     heredoc: [
       {
         regex: /^([A-Z][A-Z0-9]*)\b/,
@@ -191,6 +202,16 @@ export const createLanguage: (
           token: "string.heredoc.delimiter",
           next: "@noirHeredoc",
           nextEmbedded: "noir",
+        },
+      },
+      {
+        // <<<TS carries a Web3 Function for gelato:publish-function;
+        // "typescript" is a monaco built-in.
+        regex: /<<<TS\b[ \t]*$/,
+        action: {
+          token: "string.heredoc.delimiter",
+          next: "@tsHeredoc",
+          nextEmbedded: "typescript",
         },
       },
       {

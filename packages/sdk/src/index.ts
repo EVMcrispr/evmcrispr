@@ -131,9 +131,11 @@ export type { NpmFileSpec } from "./utils/npmRegistry";
 export {
   fetchNpmLatestVersion,
   fetchVerifiedNpmFile,
+  gunzip,
   NPM_REGISTRY,
   parseNpmFileSpec,
   parseNpmPackageName,
+  untar,
 } from "./utils/npmRegistry";
 export type { IpfsEntity } from "./utils/verifiedIpfs";
 export {
