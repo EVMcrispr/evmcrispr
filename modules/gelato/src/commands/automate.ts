@@ -199,7 +199,7 @@ export default defineCommand<Gelato>({
 
     if (isFunction) {
       const cid = String(opts.function);
-      const schema = await functionUserArgsSchema(cid);
+      const schema = await functionUserArgsSchema(module, cid);
       const given =
         opts.args === undefined ? [] : parseEntries(opts.args, "--args");
       web3Function = { cid, args: encodeUserArgs(schema, given).hex };

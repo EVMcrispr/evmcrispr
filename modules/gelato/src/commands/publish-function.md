@@ -2,7 +2,7 @@
 title: "gelato:publish-function"
 ---
 
-Bundle a TypeScript Web3 Function written inline (a <<<TS heredoc) and publish it to Gelato's function store, binding the resulting CID to <variable> for gelato:automate --function. Bundling runs in the terminal with esbuild: import @gelatonetwork/web3-functions-sdk, ethers or ky bare, anything else pinned as pkg@1.2.3; every package comes from a tarball verified against the npm registry. In a simulation the function is bundled and validated but not uploaded, and <variable> gets a placeholder CID.
+Bundle a TypeScript Web3 Function written inline (a <<<TS heredoc) and publish it to Gelato's function store, binding the resulting CID to <variable> for gelato:automate --function. Bundling runs in the terminal with esbuild: import @gelatonetwork/web3-functions-sdk, ethers or ky bare, anything else pinned as pkg@1.2.3; every package comes from a tarball verified against the npm registry. In a simulation the function is bundled and validated but not uploaded; <variable> gets a placeholder CID that gelato:automate --function accepts inside that simulation only.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

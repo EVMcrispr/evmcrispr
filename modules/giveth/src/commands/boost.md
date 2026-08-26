@@ -2,7 +2,7 @@
 title: "giveth:boost"
 ---
 
-Allocate your GIVpower across Giveth projects by percentage. With --with (or no option) it replaces your entire existing allocation; with --by it changes the listed projects by percentage points and the rest of your allocation absorbs the difference proportionally. Off-chain: signs you in to Giveth with the connected wallet (SIWE) and updates the allocation through the Giveth API; no transaction is sent, so it cannot be batched, and inside sim:fork the update is only logged, never sent.
+Allocate your GIVpower across Giveth projects by percentage. With --with (or no option) it replaces your entire existing allocation; with --by it changes the listed projects by percentage points and the rest of your allocation absorbs the difference proportionally. Off-chain: signs you in to Giveth with the connected wallet (SIWE) and updates the allocation through the Giveth API; no transaction is sent, so it cannot be batched; inside sim:fork the allocation is applied to the simulation only (later reads in the same sim:fork see it) and never sent to Giveth.
 
 ## Syntax
 

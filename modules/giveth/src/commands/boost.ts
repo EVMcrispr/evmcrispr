@@ -2,10 +2,13 @@ import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Giveth from "..";
 import { givethLogin } from "../utils/auth";
 import {
+  boostingsOverlayKey,
   fetchPowerBoostings,
   fetchProject,
   fetchUserId,
+  type PowerBoosting,
   setPowerBoostings,
+  userOverlayKey,
 } from "../utils/graphql";
 
 /** impact-graph's MAX_PROJECT_BOOST_LIMIT. */
@@ -92,7 +95,7 @@ function equalSplit(count: number): number[] {
 export default defineCommand<Giveth>({
   name: "boost",
   description:
-    "Allocate your GIVpower across Giveth projects by percentage. With --with (or no option) it replaces your entire existing allocation; with --by it changes the listed projects by percentage points and the rest of your allocation absorbs the difference proportionally. Off-chain: signs you in to Giveth with the connected wallet (SIWE) and updates the allocation through the Giveth API; no transaction is sent, so it cannot be batched, and inside sim:fork the update is only logged, never sent.",
+    "Allocate your GIVpower across Giveth projects by percentage. With --with (or no option) it replaces your entire existing allocation; with --by it changes the listed projects by percentage points and the rest of your allocation absorbs the difference proportionally. Off-chain: signs you in to Giveth with the connected wallet (SIWE) and updates the allocation through the Giveth API; no transaction is sent, so it cannot be batched; inside sim:fork the allocation is applied to the simulation only (later reads in the same sim:fork see it) and never sent to Giveth.",
   batchable: false,
   args: [
     {
@@ -145,6 +148,9 @@ export default defineCommand<Giveth>({
         "<projects> resolve to the same Giveth project more than once",
       );
     }
+    // Slugs of every project the final allocation may name, for the
+    // simulated allocation recorded below.
+    const slugById = new Map(boosted.map((p) => [p.id, p.slug]));
 
     let finalIds: number[];
     let finalPercentages: number[];
@@ -157,6 +163,7 @@ export default defineCommand<Giveth>({
           : (await fetchPowerBoostings(module, userId)).filter(
               (b) => b.percentage > 0,
             );
+      for (const b of current) slugById.set(b.project.id, b.project.slug);
       // Start from the existing allocation and shift the given projects;
       // the untouched rest absorbs the net change proportionally. All
       // arithmetic in hundredths of a percent so it stays exact.
@@ -227,10 +234,25 @@ export default defineCommand<Giveth>({
     }
 
     if (interpreters.simulation) {
+      // Not sent to Giveth: record the allocation in the simulation overlay
+      // so @giveth:boostedBy and later boosts in this sim:fork observe it.
+      const account = await module.getConnectedAccount(true);
+      let userId = await fetchUserId(module, account);
+      if (userId === undefined) {
+        // Giveth creates the user on first sign-in; stand in for that with
+        // an id no real user has.
+        userId = -1;
+        module.offchain.set(userOverlayKey(account), userId);
+      }
+      const allocation: PowerBoosting[] = finalIds.map((id, i) => ({
+        percentage: finalPercentages[i],
+        project: { id, slug: slugById.get(id) ?? String(id) },
+      }));
+      module.offchain.set(boostingsOverlayKey(userId), allocation);
       module.context.log(
-        `simulation: would boost [${finalPercentages
-          .map((p, i) => `${finalIds[i]}: ${p}%`)
-          .join(", ")}] — not sent to Giveth`,
+        `simulation: boosted [${allocation
+          .map((b) => `${b.project.slug}: ${b.percentage}%`)
+          .join(", ")}] — applied to the simulation only, not sent to Giveth`,
       );
       return [];
     }

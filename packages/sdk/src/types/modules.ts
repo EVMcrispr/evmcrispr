@@ -17,10 +17,29 @@ import type { CompletionOverrides } from "./completions";
  * Narrow context object passed to every module instead of the full EVMcrispr
  * instance.  Contains only the services a module actually needs.
  */
+/** Per-run store of simulated off-chain state. A command that skips a real
+ *  off-chain side effect inside `sim:fork` (an API write, an upload) records
+ *  the effect it would have had here; readers of the same off-chain source
+ *  consult the store before the network, so later commands and helpers in
+ *  the simulation observe it. Keys follow `<module>:<resource>:<id>`
+ *  (`giveth:boostings:<userId>`, `gelato:function-schema:<cid>`). The store
+ *  lives for one run and `sim:fork` clears it when its block ends, so a
+ *  simulated effect never reaches a live command. */
+export interface OffchainOverlay {
+  get<T>(key: string): T | undefined;
+  set<T>(key: string, value: T): void;
+  update<T>(key: string, fn: (prev: T | undefined) => T): T;
+  delete(key: string): void;
+  /** Drop every entry (`sim:fork` calls this when its block finishes). */
+  clear(): void;
+}
+
 export interface ModuleContext {
   readonly bindingsManager: BindingsManager;
   readonly nonces: Record<string, number>;
   readonly ipfsResolver: IPFSResolver;
+  /** Simulated off-chain state recorded inside `sim:fork`. */
+  readonly offchain: OffchainOverlay;
 
   /** Shared mutable array of loaded non-std modules. */
   readonly modules: Module[];
@@ -101,7 +120,10 @@ export interface InterpretOptions {
   origin?: ExecutionOrigin;
   /** True when the nodes run inside a simulated fork (`sim:fork`). Commands
    *  with off-chain side effects (API writes, wallet signatures) must skip
-   *  them when set — the chain is fake but the side effects would be real. */
+   *  them when set — the chain is fake but the side effects would be real.
+   *  Record the skipped effect in `context.offchain` instead (see
+   *  `OffchainOverlay`), so later reads of that off-chain source in the same
+   *  simulation see it. */
   simulation?: boolean;
 }
 

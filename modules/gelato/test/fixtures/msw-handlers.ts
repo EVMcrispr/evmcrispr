@@ -1,4 +1,8 @@
-import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
+import {
+  HttpResponse,
+  http,
+  passthrough,
+} from "@evmcrispr/test-utils/msw/server";
 import { ONE_BALANCE, W3F_UPLOAD_URL } from "../../src/addresses";
 
 /** CID the mocked Gelato upload endpoint hands back. */
@@ -60,6 +64,12 @@ export const gelatoHandlers = [
         },
       ],
     }),
+  ),
+  // The store has never seen a simulation's placeholder CID.
+  http.get(`${W3F_UPLOAD_URL}/:cid`, ({ params }) =>
+    String(params.cid).startsWith("simulated-")
+      ? new HttpResponse(null, { status: 404 })
+      : passthrough(),
   ),
   http.post(W3F_UPLOAD_URL, async ({ request }) => {
     const form = await request.formData();

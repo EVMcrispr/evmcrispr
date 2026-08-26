@@ -1,4 +1,4 @@
-import { ErrorException, type Module } from "@evmcrispr/sdk";
+import { ErrorException, type Module, overlaid } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { getAddress } from "viem";
 import { CORS_PROXY_PREFIX, GIVETH_GRAPHQL_URL } from "../addresses";
@@ -114,14 +114,24 @@ query GetUser($address: String!) {
 }
 `;
 
+/** Simulation-overlay keys (see `OffchainOverlay` in the sdk): a simulated
+ *  `boost` records the allocation it would have set so `@giveth:boostedBy`
+ *  and a later `boost --by` in the same `sim:fork` read it back. */
+export const userOverlayKey = (address: string) =>
+  `giveth:user:${address.toLowerCase()}`;
+export const boostingsOverlayKey = (userId: number) =>
+  `giveth:boostings:${userId}`;
+
 /** Giveth user id for a wallet address, or undefined for unknown accounts. */
 export async function fetchUserId(
   module: Module,
   address: string,
 ): Promise<number | undefined> {
-  const data = await postGraphql(module, USER_QUERY, { address });
-  const id = data?.userByAddress?.id;
-  return id == null ? undefined : Number(id);
+  return overlaid(module, userOverlayKey(address), async () => {
+    const data = await postGraphql(module, USER_QUERY, { address });
+    const id = data?.userByAddress?.id;
+    return id == null ? undefined : Number(id);
+  });
 }
 
 const BOOSTINGS_QUERY = `
@@ -147,15 +157,17 @@ export async function fetchPowerBoostings(
   module: Module,
   userId: number,
 ): Promise<PowerBoosting[]> {
-  const data = await postGraphql(module, BOOSTINGS_QUERY, { userId });
-  const boostings = data?.getPowerBoosting?.powerBoostings ?? [];
-  return boostings.map((b: any) => ({
-    percentage: b.percentage,
-    project: {
-      id: Number(b.project?.id),
-      slug: cleanSlug(b.project?.slug ?? ""),
-    },
-  }));
+  return overlaid(module, boostingsOverlayKey(userId), async () => {
+    const data = await postGraphql(module, BOOSTINGS_QUERY, { userId });
+    const boostings = data?.getPowerBoosting?.powerBoostings ?? [];
+    return boostings.map((b: any) => ({
+      percentage: b.percentage,
+      project: {
+        id: Number(b.project?.id),
+        slug: cleanSlug(b.project?.slug ?? ""),
+      },
+    }));
+  });
 }
 
 // The production impact-graph takes flat args (the input-object form is the

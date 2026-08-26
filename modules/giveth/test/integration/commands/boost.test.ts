@@ -1,6 +1,6 @@
 import "../../setup";
 import { beforeAll, beforeEach, describe, it } from "bun:test";
-import { type Action, isWalletAction } from "@evmcrispr/sdk";
+import { type Action, BindingsSpace, isWalletAction } from "@evmcrispr/sdk";
 import { expect, getTransports, getWalletClients } from "@evmcrispr/test-utils";
 import { describeCommand, evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import type { WalletClient } from "viem";
@@ -161,6 +161,70 @@ sim:fork --using anvil (
 
     expect(recordedLogins).to.have.length(0);
     expect(recordedBoosts).to.have.length(0);
+  }, 30000);
+
+  const boostsOf = (evm: Interpreter, name: string) => {
+    const [slugs, percentages] = evm.getBinding(name, BindingsSpace.USER) as [
+      string[],
+      { toNumber(): number }[],
+    ];
+    return [slugs, percentages.map((p) => p.toNumber())];
+  };
+
+  it("applies simulated boosts to later reads inside the same sim:fork only", async () => {
+    const evm = new Interpreter(evml.registry, {
+      account: walletClient.account!.address,
+      transports: getTransports(),
+    });
+    evm.switchChainId(gnosis.id);
+
+    // sim:fork drops the connected account when it ends, so the read after
+    // the fork names the account explicitly.
+    await evm.interpret(`load giveth
+load sim
+sim:fork --using anvil (
+  giveth:boost [evmcrispr wayback-machine] --with [40 60]
+  set $inside @giveth:boostedBy()
+  giveth:boost [evmcrispr] --by [10]
+  set $merged @giveth:boostedBy()
+)
+set $after @giveth:boostedBy(${walletClient.account!.address})`);
+
+    expect(boostsOf(evm, "$inside")).to.eql([
+      ["wayback-machine", "evmcrispr"],
+      [60, 40],
+    ]);
+    // --by merges against the simulated allocation, not the live one.
+    expect(boostsOf(evm, "$merged")).to.eql([
+      ["evmcrispr", "wayback-machine"],
+      [50, 50],
+    ]);
+    // Outside the fork the live allocation (fixture: 70/30) is back.
+    expect(boostsOf(evm, "$after")).to.eql([
+      ["evmcrispr", "wayback-machine"],
+      [70, 30],
+    ]);
+    expect(recordedBoosts).to.have.length(0);
+  }, 30000);
+
+  it("records simulated boosts for accounts Giveth does not know yet", async () => {
+    const stranger = getWalletClients()[3];
+    const evm = new Interpreter(evml.registry, {
+      account: stranger.account!.address,
+      transports: getTransports(),
+    });
+    evm.switchChainId(gnosis.id);
+
+    await evm.interpret(`load giveth
+load sim
+sim:fork --using anvil (
+  giveth:boost [evmcrispr] --with [100]
+  set $inside @giveth:boostedBy()
+)
+set $after @giveth:boostedBy(${stranger.account!.address})`);
+
+    expect(boostsOf(evm, "$inside")).to.eql([["evmcrispr"], [100]]);
+    expect(boostsOf(evm, "$after")).to.eql([[], []]);
   }, 30000);
 
   // Existing allocation fixture (user 25): wayback-machine 30, evmcrispr 70.

@@ -6,12 +6,14 @@ import type {
   ModuleContext,
   NodeInterpreter,
   NodesInterpreter,
+  OffchainOverlay,
   RelativeBinding,
 } from "@evmcrispr/sdk";
 import {
   BindingsManager,
   BindingsSpace,
   ControlFlowSignal,
+  createOffchainOverlay,
   ErrorException,
   ExitSignal,
   ExperimentalDisabledError,
@@ -57,6 +59,7 @@ export class Interpreter {
   #std!: Std;
   #modules: Module[];
   #nonces: Record<string, number>;
+  #offchain: OffchainOverlay;
   #account: Address | undefined;
   #chainId: number;
   #chain: Chain | undefined;
@@ -80,6 +83,7 @@ export class Interpreter {
     this.bindingsManager = new BindingsManager();
     this.#modules = [];
     this.#nonces = {};
+    this.#offchain = createOffchainOverlay();
     this.#chainId = config.chainId ?? mainnet.id;
     this.#chain = chainForId(this.#chainId);
     if (!this.#chain) {
@@ -173,6 +177,7 @@ export class Interpreter {
       },
       bindingsManager: this.bindingsManager,
       nonces: this.#nonces,
+      offchain: this.#offchain,
       ipfsResolver: this.#ipfsResolver,
       modules: this.#modules,
       getClient: () => this.getClient(),
@@ -224,6 +229,7 @@ export class Interpreter {
     // Reset per-execution state
     this.#modules = [];
     this.#nonces = {};
+    this.#offchain = createOffchainOverlay();
     this.#prevMessages = [];
     this.#initStd();
     this.bindingsManager.setBindings(this.#buildStdBinding());

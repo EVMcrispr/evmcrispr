@@ -29,6 +29,7 @@ export * from "./imports";
 export * from "./moduleSource";
 export { Num } from "./Num";
 export * from "./namedArgs";
+export * from "./offchain";
 export * from "./parsers";
 export * from "./parseSignature";
 export * from "./proxies";

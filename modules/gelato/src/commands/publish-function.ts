@@ -56,7 +56,7 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 export default defineCommand<Gelato>({
   name: "publish-function",
   description:
-    "Bundle a TypeScript Web3 Function written inline (a <<<TS heredoc) and publish it to Gelato's function store, binding the resulting CID to <variable> for gelato:automate --function. Bundling runs in the terminal with esbuild: import @gelatonetwork/web3-functions-sdk, ethers or ky bare, anything else pinned as pkg@1.2.3; every package comes from a tarball verified against the npm registry. In a simulation the function is bundled and validated but not uploaded, and <variable> gets a placeholder CID.",
+    "Bundle a TypeScript Web3 Function written inline (a <<<TS heredoc) and publish it to Gelato's function store, binding the resulting CID to <variable> for gelato:automate --function. Bundling runs in the terminal with esbuild: import @gelatonetwork/web3-functions-sdk, ethers or ky bare, anything else pinned as pkg@1.2.3; every package comes from a tarball verified against the npm registry. In a simulation the function is bundled and validated but not uploaded; <variable> gets a placeholder CID that gelato:automate --function accepts inside that simulation only.",
   batchable: false,
   args: [
     {
@@ -130,13 +130,19 @@ export default defineCommand<Gelato>({
     if (interpreters.simulation) {
       cid = `simulated-${(await sha256Hex(tgz)).slice(0, 16)}`;
       log(
-        `simulation: gelato:publish-function bundled ${kb} KB — not uploaded, ${variable} holds the placeholder ${cid}`,
+        `simulation: gelato:publish-function bundled ${kb} KB — not uploaded, ${variable} holds the placeholder ${cid}, valid inside this simulation only`,
       );
     } else {
       cid = await uploadWeb3Function(tgz, title);
       log(`:success: gelato:publish-function: ${kb} KB published as ${cid}`);
     }
-    rememberFunctionSchema(cid, schema.userArgs as Record<string, never>);
+    // The store can't serve a placeholder CID, and needn't re-serve one we
+    // just uploaded: record the schema for gelato:automate --function.
+    rememberFunctionSchema(
+      module,
+      cid,
+      schema.userArgs as Record<string, never>,
+    );
     module.bindingsManager.setBinding(
       variable,
       cid,

@@ -93,6 +93,7 @@ export type {
   Nullable,
   NullableBinding,
   NumericLiteralNode,
+  OffchainOverlay,
   Position,
   PrimaryExpressionNode,
   RelativeBinding,

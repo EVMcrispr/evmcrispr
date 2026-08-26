@@ -92,6 +92,11 @@ export abstract class Module {
     return this.context.ipfsResolver;
   }
 
+  /** Simulated off-chain state recorded inside `sim:fork`. */
+  get offchain() {
+    return this.context.offchain;
+  }
+
   buildConfigVar(name: string): string {
     return `$${this.name}:${name}`;
   }

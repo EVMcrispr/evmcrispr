@@ -1,4 +1,10 @@
-import { ErrorException, gunzip, untar } from "@evmcrispr/sdk";
+import {
+  ErrorException,
+  gunzip,
+  type Module,
+  overlaid,
+  untar,
+} from "@evmcrispr/sdk";
 import { W3F_UPLOAD_URL } from "../addresses";
 import type { UserArgsSchema } from "./entries";
 import { parseUserArgsSchema } from "./entries";
@@ -6,21 +12,29 @@ import { proxied } from "./upload";
 
 /**
  * User-args schemas by CID. `publish-function` records the schema of what
- * it just uploaded (placeholder CIDs in simulation included); anything else
- * is fetched from Gelato's function store, the only place a Web3 Function
- * tgz lives.
+ * it just published in the run's off-chain overlay — inside a simulation
+ * that is a placeholder CID nothing was uploaded for, and the overlay is
+ * cleared when the `sim:fork` ends; anything else is fetched from Gelato's
+ * function store, the only place a Web3 Function tgz lives.
  */
-const schemas = new Map<string, UserArgsSchema>();
+const schemaOverlayKey = (cid: string) => `gelato:function-schema:${cid}`;
 
-export function rememberFunctionSchema(cid: string, schema: UserArgsSchema) {
-  schemas.set(cid, schema);
+export function rememberFunctionSchema(
+  module: Module,
+  cid: string,
+  schema: UserArgsSchema,
+) {
+  module.offchain.set(schemaOverlayKey(cid), schema);
 }
 
-export async function functionUserArgsSchema(
+export function functionUserArgsSchema(
+  module: Module,
   cid: string,
 ): Promise<UserArgsSchema> {
-  const known = schemas.get(cid);
-  if (known) return known;
+  return overlaid(module, schemaOverlayKey(cid), () => fetchSchema(cid));
+}
+
+async function fetchSchema(cid: string): Promise<UserArgsSchema> {
   let res: Response;
   try {
     res = await fetch(proxied(`${W3F_UPLOAD_URL}/${cid}`));
@@ -52,10 +66,8 @@ export async function functionUserArgsSchema(
       `Web3 Function ${cid} has a malformed schema.json`,
     );
   }
-  const schema = parseUserArgsSchema(
+  return parseUserArgsSchema(
     Object.entries(json.userArgs ?? {}),
     `schema.json of ${cid}`,
   );
-  schemas.set(cid, schema);
-  return schema;
 }

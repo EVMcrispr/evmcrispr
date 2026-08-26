@@ -17,6 +17,7 @@ import type {
 import {
   BindingsManager,
   BindingsSpace,
+  createOffchainOverlay,
   ErrorException,
   ExperimentalDisabledError,
   experimentalDisabledMessage,
@@ -149,6 +150,7 @@ export class EvmlWorkspace {
     return {
       bindingsManager: new BindingsManager(),
       nonces: {},
+      offchain: createOffchainOverlay(),
       ipfsResolver: this.#ipfsResolver,
       modules: [],
       getClient: async () => {
@@ -440,6 +442,7 @@ export class EvmlWorkspace {
       const ctx: ModuleContext = {
         bindingsManager: bindings,
         nonces: {},
+        offchain: createOffchainOverlay(),
         ipfsResolver: this.#ipfsResolver,
         modules: [],
         getClient: () => Promise.resolve(client),

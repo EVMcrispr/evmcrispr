@@ -578,6 +578,10 @@ export default defineCommand<Sim>({
       }
       module.mode = null;
       module.activeChainId = null;
+      module.relayHandlers.length = 0;
+      // Simulated off-chain effects (recorded by commands that skipped a
+      // real API write) must not outlive the fork.
+      module.context.offchain.clear();
       // Restore the pre-fork chain so the rest of the script doesn't see the
       // simulated client. `chainId` was captured at the top of `run()` from
       // the script's chain at fork-entry time (preserves any preceding

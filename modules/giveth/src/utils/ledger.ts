@@ -11,6 +11,11 @@ import type Giveth from "..";
  */
 export type VirtualKind = "giv" | "staked" | "locked" | "unlocked" | "claimed";
 
+/* Not to be confused with the sdk's `OffchainOverlay` (`module.offchain`):
+ * that records simulated OFF-chain effects inside `sim:fork`, where this
+ * ledger is inert (an actionCallback is present). This ledger only bridges
+ * on-chain reads across still-pending actions in executor-less runs. */
+
 /** Bucket key for deltas recorded outside any batch context. */
 const GLOBAL: object = {};
 

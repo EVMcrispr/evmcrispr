@@ -9,6 +9,7 @@ import type {
 } from "../../src/types";
 import { BindingsSpace, resolveHelper } from "../../src/types";
 import { resolveModuleSource } from "../../src/utils/moduleSource";
+import { createOffchainOverlay } from "../../src/utils/offchain";
 import { encryptScript } from "../../src/utils/shareEnvelope";
 
 function fakeContext(): ModuleContext {
@@ -16,6 +17,7 @@ function fakeContext(): ModuleContext {
   return {
     bindingsManager: bm,
     nonces: {},
+    offchain: createOffchainOverlay(),
     ipfsResolver: new IPFSResolver(),
     modules: [],
     getClient: async () => {

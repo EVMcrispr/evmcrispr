@@ -39,8 +39,36 @@ gelato:automate --function $cid --args [[vault 0x4F2083f5fBede34C2714aFfb3105539
         expect(actions).to.have.length(1);
       },
     },
+    {
+      name: "inside sim:fork the placeholder CID feeds a --function task",
+      timeout: 120_000,
+      script: `load sim
+load lang
+sim:fork --using anvil (
+  sim:set-balance @me 100e18
+  gelato:publish-function $cid ${FUNCTION} --user-args [[vault string]]
+  gelato:automate --function $cid --args [[vault 0x4F2083f5fBede34C2714aFfb3105539775f7FE64]] --every 5m
+  sim:expect @bool(@lang:len(@gelato:tasks()) == 1)
+)`,
+      validate: (_actions, interpreter) => {
+        // The mocked upload endpoint always answers TEST_CID, so a
+        // placeholder proves nothing was uploaded.
+        expect(
+          String(interpreter.getBinding("$cid", BindingsSpace.USER)),
+        ).to.match(/^simulated-/);
+      },
+    },
   ],
   errorCases: [
+    {
+      name: "a placeholder CID is unknown once its sim:fork ends",
+      script: `load sim
+sim:fork --using anvil (
+  gelato:publish-function $cid ${FUNCTION} --user-args [[vault string]]
+)
+gelato:automate --function $cid --args [[vault 0x4F2083f5fBede34C2714aFfb3105539775f7FE64]] --every 5m`,
+      error: "Gelato's function store has no Web3 Function simulated-",
+    },
     {
       name: "rejects an unsupported memory size",
       script: `gelato:publish-function $cid ${FUNCTION} --memory 200`,
