@@ -4,6 +4,7 @@ import type { Action } from "@evmcrispr/sdk";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWalletClient } from "wagmi";
+import { browserSafeRpcUrl } from "../config/rpc";
 import { workerEvml } from "../evml/workerEvml";
 import {
   terminalStoreActions,
@@ -129,9 +130,20 @@ export function useTransactionExecutor(
       const result = await evmlScript.execute(walletClient, {
         signal: abortSignal,
         onLog: logListener,
-        handlers: safeConnector
-          ? { batched: makeSafeBatchedHandler(safeConnector) }
-          : undefined,
+        handlers: {
+          // Endpoints a module asks to submit through (`action.rpcUrl`)
+          // are declared as the module sees them; the browser can only
+          // use https, so route them like the chain RPCs.
+          transaction: (action, ctx) =>
+            ctx.next(
+              action.rpcUrl
+                ? { ...action, rpcUrl: browserSafeRpcUrl(action.rpcUrl) }
+                : action,
+            ),
+          ...(safeConnector
+            ? { batched: makeSafeBatchedHandler(safeConnector) }
+            : {}),
+        },
       });
       setExecuted(result.executed);
       setPhase("success");
