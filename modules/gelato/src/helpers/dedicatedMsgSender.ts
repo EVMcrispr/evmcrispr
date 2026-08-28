@@ -1,15 +1,14 @@
 import { defineHelper } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import type Gelato from "..";
-import { opsProxyFactoryAbi } from "../abis";
-import { OPS_PROXY_FACTORY_ADDRESS } from "../addresses";
 import { requireAutomate } from "../utils/protocol";
+import { dedicatedMsgSender } from "../utils/web3FunctionTask";
 
 export default defineHelper<Gelato>({
   name: "dedicatedMsgSender",
   batchable: false,
   description:
-    "The dedicated msg.sender Gelato assigns an account on this chain: the proxy that Web3 Function and --dedicated tasks call targets from, and the operator a VRF consumer is deployed with. Deterministic, so it resolves before the proxy is deployed.",
+    "The dedicated msg.sender Gelato assigns an account on this chain: the proxy every task of that account executes from (what @sender resolves to inside gelato:automate blocks and gelato:schedule scripts), and the operator a VRF consumer is deployed with. Deterministic, so it resolves before the proxy is deployed.",
   returnType: "address",
   args: [
     {
@@ -21,14 +20,6 @@ export default defineHelper<Gelato>({
   ],
   async run(module, { account }) {
     await requireAutomate(module);
-    const owner =
-      (account as Address | undefined) ?? (await module.getConnectedAccount());
-    const client = await module.getClient();
-    return client.readContract({
-      address: OPS_PROXY_FACTORY_ADDRESS,
-      abi: opsProxyFactoryAbi,
-      functionName: "determineProxyAddress",
-      args: [owner],
-    });
+    return dedicatedMsgSender(module, account as Address | undefined);
   },
 });

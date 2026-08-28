@@ -71,3 +71,6 @@ export function packWeb3Function(files: {
     "web3Function/schema.json": JSON.stringify(files.schema, null, 2),
   });
 }
+
+/** Gelato's function store refuses archives above 1 MiB (its download cap). */
+export const MAX_BUNDLE_BYTES = 1024 * 1024;

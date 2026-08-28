@@ -70,6 +70,9 @@ sync(join(ROOT, "package.json"), (pkg) => {
     [
       ["@evmcrispr/core", "workspace:*"],
       ["@evmcrispr/sdk", "workspace:*"],
+      // hoisted for the gelato EVML runner, which bundles every module
+      // (declaring it in modules/gelato would be a turbo package cycle)
+      ["@evmcrispr/modules", "workspace:*"],
       ...pkgNames.map((name) => [name, "workspace:*"]),
       ...kept,
     ].sort(([a], [b]) => a.localeCompare(b)),

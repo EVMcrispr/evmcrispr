@@ -70,6 +70,7 @@
     "@evmcrispr/module-swaps": "workspace:*",
     "@evmcrispr/module-token": "workspace:*",
     "@evmcrispr/module-vault": "workspace:*",
+    "@evmcrispr/modules": "workspace:*",
     "@evmcrispr/sdk": "workspace:*",
     "viem": "^2.46.3"
   }

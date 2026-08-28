@@ -2,7 +2,7 @@
 title: "@gelato:dedicatedMsgSender"
 ---
 
-The dedicated msg.sender Gelato assigns an account on this chain: the proxy that Web3 Function and --dedicated tasks call targets from, and the operator a VRF consumer is deployed with. Deterministic, so it resolves before the proxy is deployed.
+The dedicated msg.sender Gelato assigns an account on this chain: the proxy every task of that account executes from (what @sender resolves to inside gelato:automate blocks and gelato:schedule scripts), and the operator a VRF consumer is deployed with. Deterministic, so it resolves before the proxy is deployed.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

@@ -26,7 +26,9 @@ load sim
 
 sim:fork --using anvil (
   sim:set-balance @me 100e18
-  gelato:automate 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 rebalance() --every 1h
+  gelato:automate --every 1h (
+    exec 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 rebalance()
+  )
   gelato:cancel @gelato:lastTask()
 )
 ```

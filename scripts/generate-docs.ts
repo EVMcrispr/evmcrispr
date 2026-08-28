@@ -255,8 +255,16 @@ function extractOpts(
     "{",
     defMatch.index! + defMatch[0].length - 1,
   );
-  const optsBlock = extractArrayBlock(content, configStart, "opts");
-  if (!optsBlock) return [];
+  const rawOptsBlock =
+    extractArrayBlock(content, configStart, "opts") ??
+    sharedOptsBlock(content, configStart, modDir, filePath);
+  if (!rawOptsBlock) return [];
+  const optsBlock = expandSharedElements(
+    rawOptsBlock,
+    content,
+    modDir,
+    filePath,
+  );
 
   const opts: OptDef[] = [];
   const objRe = /\{([^}]+)\}/g;
@@ -278,6 +286,81 @@ function extractOpts(
     }
   }
   return opts;
+}
+
+/**
+ * Inline the shared definitions an `opts:` block references — `...triggerOpts`
+ * spreads an exported array, a bare `payOpt` element an exported object —
+ * so options declared once for several commands still document on each.
+ */
+function expandSharedElements(
+  block: string,
+  content: string,
+  modDir: string,
+  filePath?: string,
+): string {
+  return block.replace(
+    /(^\s*|[,[]\s*)(\.\.\.)?([A-Za-z_]\w*)(?=\s*(?:,|$))/gm,
+    (whole, lead, spread, name) => {
+      const source = resolveExportedSource(
+        content,
+        modDir,
+        name,
+        spread ? "[" : "{",
+        filePath,
+      );
+      if (source === undefined) return whole;
+      return `${lead}${spread ? source.slice(1, -1) : source}`;
+    },
+  );
+}
+
+/** The elements of an `opts: sharedOpts` reference (no array literal). */
+function sharedOptsBlock(
+  content: string,
+  configStart: number,
+  modDir: string,
+  filePath?: string,
+): string | null {
+  const m = /opts:\s*([A-Za-z_]\w*)\s*,/.exec(content.slice(configStart));
+  if (!m) return null;
+  const source = resolveExportedSource(content, modDir, m[1], "[", filePath);
+  return source ? source.slice(1, -1) : null;
+}
+
+/** Source text of `export const <name> = [...]` / `{...}` from the file the
+ *  given content imports it from (undefined when not found). */
+function resolveExportedSource(
+  fileContent: string,
+  modDir: string,
+  constName: string,
+  opener: "[" | "{",
+  filePath?: string,
+): string | undefined {
+  const importRe = new RegExp(
+    `import\\s*\\{[^}]*\\b${constName}\\b[^}]*\\}\\s*from\\s*"([^"]+)"`,
+  );
+  const importMatch = fileContent.match(importRe);
+  if (!importMatch) return undefined;
+  const { dirname } = require("node:path");
+  const fileDir = filePath ? dirname(filePath) : join(modDir, "src");
+  const candidates = [
+    resolve(fileDir, `${importMatch[1]}.ts`),
+    resolve(fileDir, importMatch[1], "index.ts"),
+  ];
+  for (const candidate of candidates) {
+    if (!existsSync(candidate)) continue;
+    const imported = readFileSync(candidate, "utf-8");
+    const defRe = new RegExp(`export\\s+const\\s+${constName}\\s*=\\s*`);
+    const defMatch = defRe.exec(imported);
+    if (!defMatch) continue;
+    const start = defMatch.index + defMatch[0].length;
+    if (imported[start] !== opener) continue;
+    const end = findClosingBracketStrAware(imported, start);
+    if (end === -1) continue;
+    return imported.slice(start, end + 1);
+  }
+  return undefined;
 }
 
 /** Find `key: [...]` within the config object starting at configStart. */

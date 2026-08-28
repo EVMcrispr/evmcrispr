@@ -23,8 +23,12 @@ load lang
 
 sim:fork --using anvil (
   sim:set-balance @me 100e18
-  gelato:automate 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 rebalance() --every 1h
-  gelato:automate 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 harvest() --cron "0 0 * * *"
+  gelato:automate --every 1h (
+    exec 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 rebalance()
+  )
+  gelato:automate --cron "0 0 * * *" (
+    exec 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 harvest()
+  )
   sim:expect @bool(@lang:len(@gelato:tasks()) == 2)
 )`,
       preamble: "load gelato",
@@ -49,7 +53,9 @@ load lang
 
 sim:fork --using anvil (
   sim:set-balance @me 100e18
-  gelato:automate 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 rebalance() --every 1h
+  gelato:automate --every 1h (
+    exec 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 rebalance()
+  )
   gelato:cancel @gelato:lastTask()
   sim:expect @bool(@lang:len(@gelato:tasks()) == 0)
 )`,

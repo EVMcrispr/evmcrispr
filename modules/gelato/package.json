@@ -1,7 +1,7 @@
 {
   "name": "@evmcrispr/module-gelato",
   "version": "0.11.1",
-  "description": "Gelato automation: schedule or condition contract calls through Gelato Automate (interval, cron, on-chain checker, event and one-shot triggers, optional dedicated msg.sender), publish TypeScript Web3 Functions straight from a <<<TS heredoc and attach them to tasks, fund and withdraw the Gas Tank (1Balance) that pays for executions, and read tasks, balances and dedicated msg.senders back.",
+  "description": "Gelato automation: run EVML scripts off-chain on a trigger through the EVML runner Web3 Function (gelato:schedule, interval, cron, event or one-shot), freeze the calls of an EVML block into an Automate task (gelato:automate, optionally gated by an on-chain checker), fund and withdraw the Gas Tank (1Balance) that pays for executions, run tasks inside a simulation, and read tasks, balances and dedicated msg.senders back.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -25,8 +25,7 @@
   },
   "dependencies": {
     "@evmcrispr/module-std": "workspace:^",
-    "@evmcrispr/sdk": "workspace:^",
-    "esbuild-wasm": "0.28.2"
+    "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"
@@ -46,6 +45,7 @@
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
     "codegen": "evmcrispr-build --codegen",
+    "publish-runner": "bun scripts/publish-runner.ts",
     "types": "evmcrispr-build --types"
   }
 }

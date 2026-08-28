@@ -1,6 +1,9 @@
 import { evml, registerAllModules } from "@evmcrispr/test-utils/evml";
 import { createTestServer } from "@evmcrispr/test-utils/msw/server";
-import { gelatoHandlers } from "./fixtures/msw-handlers";
+import { gelatoHandlers, TEST_RUNNER_CID } from "./fixtures/msw-handlers";
+
+// The runner the tests schedule with: served by the mocked function store.
+process.env.EVMCRISPR_RUNNER_CID = TEST_RUNNER_CID;
 
 registerAllModules();
 // Re-register with a local loader: the registry's own dynamic import

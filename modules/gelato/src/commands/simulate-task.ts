@@ -7,10 +7,12 @@ import {
   zeroAddress,
 } from "viem";
 import type Gelato from "..";
-import { automateAbi } from "../abis";
+import { automateAbi, opsProxyAbi } from "../abis";
 import { AUTOMATE_ADDRESS, ONE_BALANCE } from "../addresses";
+import { runnerCid } from "../runner/published";
 import { Module } from "../utils/moduleData";
 import { requireAutomate } from "../utils/protocol";
+import { interpretScheduled } from "../utils/scheduled";
 
 const TASK_CREATED = parseAbiItem(
   "event TaskCreated(address indexed taskCreator, address indexed execAddress, bytes execDataOrSelector, (uint8[] modules, bytes[] args) moduleData, address feeToken, bytes32 indexed taskId)",
@@ -23,7 +25,7 @@ const CHUNK = 20_000n;
 export default defineCommand<Gelato>({
   name: "simulate-task",
   description:
-    "Execute a Gelato Automate task the way Gelato's executors would — only inside a simulation: impersonates the Gelato executor and calls Automate.exec, so the resolver, the dedicated msg.sender proxy, single-exec cancellation and fee accounting all run for real against the fork. Resolver tasks are executed only when their checker says canExec; Web3 Function tasks cannot be simulated (the function runs off-chain).",
+    "Execute a Gelato Automate task the way Gelato's executors would — only inside a simulation: impersonates the Gelato executor and calls Automate.exec, so the resolver, the dedicated msg.sender proxy, single-exec cancellation and fee accounting all run for real against the fork. Resolver tasks are executed only when their checker says canExec; EVML tasks (gelato:schedule) have their script interpreted here, as the runner would, and execute what it produces; other Web3 Function tasks cannot be simulated (the function runs off-chain).",
   batchable: false,
   args: [
     { name: "taskId", type: "bytes32", description: "Task id to execute" },
@@ -75,12 +77,48 @@ export default defineCommand<Gelato>({
     }
 
     const { modules, args } = created.moduleData;
-    if (modules.includes(Module.WEB3_FUNCTION)) {
-      throw new ErrorException(
-        "Web3 Function tasks cannot be simulated on-chain: the function decides the calls off-chain",
-      );
-    }
     let execData = created.execDataOrSelector;
+    const w3fIndex = modules.indexOf(Module.WEB3_FUNCTION);
+    if (w3fIndex >= 0) {
+      const [cid, userArgs] = decodeAbiParameters(
+        [{ type: "string" }, { type: "bytes" }],
+        args[w3fIndex],
+      );
+      if (cid !== runnerCid()) {
+        throw new ErrorException(
+          "Web3 Function tasks cannot be simulated on-chain: the function decides the calls off-chain (only the EVML tasks gelato:schedule creates can)",
+        );
+      }
+      const [script, , sender] = decodeAbiParameters(
+        [
+          { type: "string" },
+          { type: "string" },
+          { type: "string" },
+          { type: "string" },
+        ],
+        userArgs,
+      );
+      const calls = await interpretScheduled(
+        module,
+        interpreters,
+        script,
+        sender as Address,
+      );
+      if (calls.length === 0) {
+        throw new ErrorException(
+          "the scheduled script produced no calls: Gelato would skip this execution (canExec = false)",
+        );
+      }
+      execData = encodeFunctionData({
+        abi: opsProxyAbi,
+        functionName: "batchExecuteCall",
+        args: [
+          calls.map((c) => c.to),
+          calls.map((c) => c.data),
+          calls.map((c) => BigInt(c.value ?? "0")),
+        ],
+      });
+    }
     const resolverIndex = modules.indexOf(Module.RESOLVER);
     if (resolverIndex >= 0) {
       const [resolver, data] = decodeAbiParameters(

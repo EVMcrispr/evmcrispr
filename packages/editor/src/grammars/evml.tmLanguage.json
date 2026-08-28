@@ -23,7 +23,7 @@
       "include": "#heredoc-noir"
     },
     {
-      "include": "#heredoc-typescript"
+      "include": "#heredoc-evml"
     },
     {
       "include": "#heredoc"
@@ -264,23 +264,23 @@
         }
       ]
     },
-    "heredoc-typescript": {
-      "begin": "<<<(TS)\\b[ \\t]*$",
+    "heredoc-evml": {
+      "begin": "<<<(EVML)\\b[ \\t]*$",
       "beginCaptures": {
         "0": {
           "name": "punctuation.definition.heredoc.begin.evml"
         }
       },
-      "end": "^(TS)\\b",
+      "end": "^(EVML)\\b",
       "endCaptures": {
         "0": {
           "name": "punctuation.definition.heredoc.end.evml"
         }
       },
-      "contentName": "meta.embedded.block.typescript",
+      "contentName": "meta.embedded.block.evml",
       "patterns": [
         {
-          "include": "source.ts"
+          "include": "$self"
         }
       ]
     }

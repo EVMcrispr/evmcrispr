@@ -4,12 +4,15 @@ import {
   passthrough,
 } from "@evmcrispr/test-utils/msw/server";
 import { ONE_BALANCE, W3F_UPLOAD_URL } from "../../src/addresses";
+import { RUNNER_SCHEMA } from "../../src/runner/schema";
+import { packTgz } from "../../src/utils/tgz";
 
-/** CID the mocked Gelato upload endpoint hands back. */
+/** CID the tests treat as the published EVML runner (EVMCRISPR_RUNNER_CID). */
+export const TEST_RUNNER_CID =
+  "QmTestEvmlRunnerCidEvmcrisprGelatoModule00000000";
+/** CID of a user Web3 Function the mocked store knows, with typed user args. */
 export const TEST_CID = "QmTestWeb3FunctionCidEvmcrisprGelatoModule0000000";
-
-/** Bodies received by the mocked upload endpoint, newest last. */
-export const uploads: { title: string | null; bytes: number }[] = [];
+export const TEST_CID_USER_ARGS = { vault: "string", threshold: "number" };
 
 /** Settlement the mocked 1Balance API publishes for TEST_SPONSOR. */
 export const SETTLED_TOTAL = 40_000_000n;
@@ -19,6 +22,16 @@ export const SETTLED_PROOF = [
 ] as const;
 /** Sponsors (account ids) the mocked 1Balance API knows a settlement for. */
 export const settledSponsors = new Set<string>();
+
+const archive = (userArgs: Record<string, string>) =>
+  packTgz({
+    "web3Function/schema.json": JSON.stringify({ ...RUNNER_SCHEMA, userArgs }),
+  });
+
+const storeArchives: Record<string, Record<string, string>> = {
+  [TEST_RUNNER_CID]: RUNNER_SCHEMA.userArgs,
+  [TEST_CID]: TEST_CID_USER_ARGS,
+};
 
 export const gelatoHandlers = [
   http.get(
@@ -65,19 +78,12 @@ export const gelatoHandlers = [
       ],
     }),
   ),
-  // The store has never seen a simulation's placeholder CID.
-  http.get(`${W3F_UPLOAD_URL}/:cid`, ({ params }) =>
-    String(params.cid).startsWith("simulated-")
-      ? new HttpResponse(null, { status: 404 })
-      : passthrough(),
-  ),
-  http.post(W3F_UPLOAD_URL, async ({ request }) => {
-    const form = await request.formData();
-    const file = form.get("file");
-    uploads.push({
-      title: form.get("title") as string | null,
-      bytes: file instanceof Blob ? file.size : 0,
+  // Gelato's function store: the archives the tests know, anything else live.
+  http.get(`${W3F_UPLOAD_URL}/:cid`, async ({ params }) => {
+    const userArgs = storeArchives[String(params.cid)];
+    if (!userArgs) return passthrough();
+    return new HttpResponse(await archive(userArgs), {
+      headers: { "content-type": "application/gzip" },
     });
-    return HttpResponse.json({ cid: TEST_CID });
   }),
 ];

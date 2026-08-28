@@ -1,40 +1,15 @@
-import {
-  ErrorException,
-  gunzip,
-  type Module,
-  overlaid,
-  untar,
-} from "@evmcrispr/sdk";
+import { ErrorException, gunzip, untar } from "@evmcrispr/sdk";
 import { W3F_UPLOAD_URL } from "../addresses";
 import type { UserArgsSchema } from "./entries";
 import { parseUserArgsSchema } from "./entries";
 import { proxied } from "./upload";
 
-/**
- * User-args schemas by CID. `publish-function` records the schema of what
- * it just published in the run's off-chain overlay — inside a simulation
- * that is a placeholder CID nothing was uploaded for, and the overlay is
- * cleared when the `sim:fork` ends; anything else is fetched from Gelato's
- * function store, the only place a Web3 Function tgz lives.
- */
-const schemaOverlayKey = (cid: string) => `gelato:function-schema:${cid}`;
-
-export function rememberFunctionSchema(
-  module: Module,
-  cid: string,
-  schema: UserArgsSchema,
-) {
-  module.offchain.set(schemaOverlayKey(cid), schema);
-}
-
-export function functionUserArgsSchema(
-  module: Module,
+/** The user-args schema a Web3 Function was published with, read from its
+ *  archive in Gelato's function store (the only place a Web3 Function
+ *  lives). */
+export async function functionUserArgsSchema(
   cid: string,
 ): Promise<UserArgsSchema> {
-  return overlaid(module, schemaOverlayKey(cid), () => fetchSchema(cid));
-}
-
-async function fetchSchema(cid: string): Promise<UserArgsSchema> {
   let res: Response;
   try {
     res = await fetch(proxied(`${W3F_UPLOAD_URL}/${cid}`));

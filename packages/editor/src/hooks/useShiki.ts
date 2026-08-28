@@ -4,7 +4,6 @@ import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import jsonGrammar from "shiki/langs/json.mjs";
 import solidityGrammar from "shiki/langs/solidity.mjs";
-import typescriptGrammar from "shiki/langs/typescript.mjs";
 import circomGrammar from "../grammars/circom.tmLanguage.json";
 import evmlGrammar from "../grammars/evml.tmLanguage.json";
 import { evmlTheme } from "../grammars/evml-theme";
@@ -19,10 +18,9 @@ function getHighlighter() {
       // solidity/json/circom/noir back the embedded `<<<SOL`/`<<<JSON`/
       // `<<<CIRCOM`/`<<<NOIR` heredoc blocks (their source.* scopes are
       // included from the evml grammar; circom and noir are our own
-      // grammar files).
+      // grammar files). `<<<EVML` blocks include the evml grammar itself.
       langs: [
         ...solidityGrammar,
-        ...typescriptGrammar,
         ...jsonGrammar,
         circomGrammar as LanguageRegistration,
         noirGrammar as LanguageRegistration,

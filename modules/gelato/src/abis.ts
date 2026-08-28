@@ -25,3 +25,9 @@ export const oneBalanceAbi = parseAbi([
   "function totalDepositedAmount(address sponsor, address token) view returns (uint256)",
   "function totalWithdrawnAmount(address sponsor, address token) view returns (uint256)",
 ]);
+
+/** The dedicated msg.sender (OpsProxy): what tasks execute through. */
+export const opsProxyAbi = parseAbi([
+  "function executeCall(address target, bytes data, uint256 value) payable",
+  "function batchExecuteCall(address[] targets, bytes[] datas, uint256[] values) payable",
+]);
