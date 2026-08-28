@@ -10,6 +10,9 @@ import type { Address, Transport } from "viem";
 export interface EvmlConfig {
   /** Sender account used by commands that need a connected account. */
   account?: Address;
+  /** The account calls are sent from when it is not the connected one
+   *  (what `@sender` resolves to); defaults to `account`. */
+  sender?: Address;
   /** Initial chain id. Defaults to mainnet. */
   chainId?: number;
   /** Per-chain viem transports. Chains without an entry fall back to

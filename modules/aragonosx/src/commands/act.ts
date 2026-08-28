@@ -1,5 +1,5 @@
 import type { Action, BlockExpressionNode } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException, withSender } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
 import { isHex, stringToHex } from "viem";
 import type AragonOSx from "..";
@@ -31,14 +31,17 @@ export default defineCommand<AragonOSx>({
     const { interpretNode } = interpreters;
     const dao = module.requireCurrentDAO("act");
 
-    const blockActions = (await interpretNode(block as BlockExpressionNode, {
-      // Inherit hasActions from any enclosing batch context: reads inside
-      // this block can't see the outer batch's actions either.
-      batchContext: {
-        name: "act",
-        hasActions: interpreters.batchContext?.hasActions ?? false,
-      },
-    })) as Action[];
+    // DAO.execute makes the calls: the DAO is `@sender` inside the block.
+    const blockActions = (await withSender(module, dao.address, () =>
+      interpretNode(block as BlockExpressionNode, {
+        // Inherit hasActions from any enclosing batch context: reads inside
+        // this block can't see the outer batch's actions either.
+        batchContext: {
+          name: "act",
+          hasActions: interpreters.batchContext?.hasActions ?? false,
+        },
+      }),
+    )) as Action[];
 
     const osxActions = toOsxActions(blockActions, "act");
 

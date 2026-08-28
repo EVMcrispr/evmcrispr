@@ -37,7 +37,7 @@ export default defineCommand<Std>({
     }
 
     const chainId = await module.getChainId();
-    const from = await module.getConnectedAccount();
+    const from = await module.getSender();
 
     const mismatch = txActions.find(
       (a) => a.from && a.from.toLowerCase() !== from.toLowerCase(),

@@ -10,6 +10,7 @@ import type { SimulateOptions } from "../evml/simulate";
  */
 export interface WorkerEvmlConfig {
   account?: Address;
+  sender?: Address;
   chainId?: number;
   /** Per-chain RPC endpoints. Chains without an entry fall back to viem's
    *  default `http()` transport, matching `EvmlConfig.transports`. */

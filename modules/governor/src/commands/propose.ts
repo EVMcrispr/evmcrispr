@@ -9,6 +9,7 @@ import type Governor from "..";
 import {
   collectBlockActions,
   governorAbi,
+  governorExecutor,
   hashDescription,
   hashProposalLocal,
 } from "../utils";
@@ -75,6 +76,10 @@ export default defineCommand<Governor>({
       "propose",
       actions,
       interpreters,
+      {
+        module,
+        sender: await governorExecutor(module, governor),
+      },
     );
 
     if (variable) {

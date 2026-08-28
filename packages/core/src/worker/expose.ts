@@ -55,6 +55,7 @@ export function exposeEvmlWorker(tag: EvmlTag): void {
     }
     return tag.with({
       account: config.account,
+      sender: config.sender,
       chainId: config.chainId,
       transports,
       onLog: (message) => post({ kind: "log", id, message }),

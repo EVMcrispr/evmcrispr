@@ -138,6 +138,7 @@ export {
   parseNpmPackageName,
   untar,
 } from "./utils/npmRegistry";
+export { withSender } from "./utils/sender";
 export type { IpfsEntity } from "./utils/verifiedIpfs";
 export {
   primeIpfsContent,

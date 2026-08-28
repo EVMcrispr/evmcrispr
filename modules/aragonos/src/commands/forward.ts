@@ -3,7 +3,12 @@ import type {
   BlockExpressionNode,
   TransactionAction,
 } from "@evmcrispr/sdk";
-import { commaListItems, defineCommand, ErrorException } from "@evmcrispr/sdk";
+import {
+  commaListItems,
+  defineCommand,
+  ErrorException,
+  withSender,
+} from "@evmcrispr/sdk";
 import { isAddress } from "viem";
 import type AragonOS from "..";
 import {
@@ -56,14 +61,21 @@ export default defineCommand<AragonOS>({
       );
     }
 
-    const blockActions = (await interpretNode(block as BlockExpressionNode, {
-      // Inherit hasActions from any enclosing batch context: reads inside
-      // this block can't see the outer batch's actions either.
-      batchContext: {
-        name: "forward",
-        hasActions: interpreters.batchContext?.hasActions ?? false,
-      },
-    })) as Action[];
+    // The last forwarder in the chain is what the targets see as
+    // msg.sender: `@sender` inside the block.
+    const blockActions = (await withSender(
+      module,
+      forwarderAppAddresses[forwarderAppAddresses.length - 1],
+      () =>
+        interpretNode(block as BlockExpressionNode, {
+          // Inherit hasActions from any enclosing batch context: reads inside
+          // this block can't see the outer batch's actions either.
+          batchContext: {
+            name: "forward",
+            hasActions: interpreters.batchContext?.hasActions ?? false,
+          },
+        }),
+    )) as Action[];
 
     assertAllTransactionActions(blockActions, "forward");
 

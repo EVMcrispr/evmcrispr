@@ -51,6 +51,10 @@ export interface ModuleContext {
   getChain(): Promise<Chain | undefined>;
   switchChainId(chainId: number): PublicClient;
   getConnectedAccount(retreiveInjected?: boolean): Promise<Address>;
+  /** The account the current calls are sent from: the connected account,
+   *  or the one an enclosing block executes as (a Safe, a forwarder, a
+   *  DAO, a Gelato dedicated msg.sender). What `@sender` resolves to. */
+  getSender(): Promise<Address>;
 
   /** Get a Transport for the given chain, using configured RPC endpoints. */
   getTransport(chainId: number): Transport;
@@ -58,6 +62,9 @@ export interface ModuleContext {
   // Mutation helpers used by fork / sim commands
   setClient(client: PublicClient): void;
   setConnectedAccount(account: Address | undefined): void;
+  /** Set (or clear, with undefined) the account the current calls are sent
+   *  from; block commands that execute as another account use it. */
+  setSender(sender: Address | undefined): void;
 
   // Logging
   log(message: string): void;

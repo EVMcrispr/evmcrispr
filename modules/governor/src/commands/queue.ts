@@ -1,6 +1,10 @@
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Governor from "..";
-import { collectBlockActions, hashDescription } from "../utils";
+import {
+  collectBlockActions,
+  governorExecutor,
+  hashDescription,
+} from "../utils";
 
 export default defineCommand<Governor>({
   name: "queue",
@@ -20,11 +24,15 @@ export default defineCommand<Governor>({
       description: "Block of commands making up the proposal",
     },
   ],
-  async run(_module, { governor, description, actions }, { interpreters }) {
+  async run(module, { governor, description, actions }, { interpreters }) {
     const { targets, values, calldatas } = await collectBlockActions(
       "queue",
       actions,
       interpreters,
+      {
+        module,
+        sender: await governorExecutor(module, governor),
+      },
     );
 
     return [

@@ -170,6 +170,10 @@ export class EvmlWorkspace {
       getTransport: (chainId) => this.#transports?.[chainId] ?? http(),
       setClient: () => {},
       setConnectedAccount: () => {},
+      getSender: () => {
+        throw new ErrorException("getSender not available in workspace");
+      },
+      setSender: () => {},
       log: () => {},
       loadModule: async (name) => {
         if (this.registry.isExperimental(name) && !isExperimentalEnabled()) {
@@ -461,6 +465,12 @@ export class EvmlWorkspace {
         getTransport: (cId) => this.#transports?.[cId] ?? http(),
         setClient: () => {},
         setConnectedAccount: () => {},
+        getSender: () => {
+          throw new ErrorException(
+            "getSender not available during completions",
+          );
+        },
+        setSender: () => {},
         log: () => {},
         loadModule: async (name) => {
           const l = this.registry.get(name);
