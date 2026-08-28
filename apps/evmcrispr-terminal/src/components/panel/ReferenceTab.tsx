@@ -333,7 +333,7 @@ export function ReferenceTab() {
             </h3>
             {entries.map((e) => (
               <ReferenceItem
-                key={`${mod}-${e.name}`}
+                key={`${mod}-${e.kind}-${e.name}`}
                 entry={e}
                 onClick={() => handleItemClick(e)}
               />
