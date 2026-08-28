@@ -562,8 +562,10 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
             }`,
           );
         }
+        const explorer = chainFor(chainId, ctx)?.blockExplorers?.default.url;
+        const link = explorer ? `${explorer.replace(/\/$/, "")}/tx/${tx}` : tx;
         ctx.onLog(
-          `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${tx})`,
+          `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${link})`,
         );
         return receipt;
       }
