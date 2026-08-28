@@ -1,6 +1,11 @@
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Eez from "..";
-import { eezConfig, ensureProxy, remoteLabel } from "../utils/eez";
+import {
+  eezConfig,
+  ensureProxy,
+  estimateCallGas,
+  remoteLabel,
+} from "../utils/eez";
 
 export default defineCommand<Eez>({
   name: "call",
@@ -40,7 +45,7 @@ export default defineCommand<Eez>({
       name: "gas",
       type: "number",
       description:
-        "Gas limit. The ingress simulates the far side, so the sending chain cannot always estimate it; set this if the call is evicted.",
+        "Gas limit. By default the remote leg is simulated on the other chain and the protocol overhead added; set this if the call still runs out of gas or is evicted.",
     },
     {
       name: "from",
@@ -59,9 +64,19 @@ export default defineCommand<Eez>({
 
     const call = encodeAction(proxy, signature, params);
     if (opts.value !== undefined) call.value = BigInt(opts.value);
-    if (opts.gas !== undefined) call.gas = BigInt(opts.gas);
     if (opts.from) call.from = opts.from;
     if (config.front) call.rpcUrl = config.front;
+    call.gas =
+      opts.gas !== undefined
+        ? BigInt(opts.gas)
+        : await estimateCallGas(
+            module,
+            config,
+            rollupId,
+            target,
+            call.data ?? "0x",
+            opts.from ?? (await module.getConnectedAccount()),
+          );
 
     module.context.log(
       `Calling ${target} on ${remoteLabel(config, rollupId)} through proxy ${proxy}`,

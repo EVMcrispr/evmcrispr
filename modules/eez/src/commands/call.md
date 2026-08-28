@@ -26,7 +26,7 @@ eez:call <target> <signature> [...params]
 |------|------|-------------|
 | `--rollup` | `number` | Rollup id the target lives on. Defaults to the other side of the current chain. |
 | `--value` | `number` | ETH to send with the call (in wei) |
-| `--gas` | `number` | Gas limit. The ingress simulates the far side, so the sending chain cannot always estimate it; set this if the call is evicted. |
+| `--gas` | `number` | Gas limit. By default the remote leg is simulated on the other chain and the protocol overhead added; set this if the call still runs out of gas or is evicted. |
 | `--from` | `address` | Sender address (requires simulation or connected wallet) |
 
 ## Examples
@@ -45,7 +45,7 @@ An EEZ rollup and its L1 share one sequencer, so a call can cross between them i
 - With a local signing key (CLI, scripts) the routing is automatic.
 - With a browser wallet the transaction leaves through the wallet's own RPC, so the wallet's network entry for the sending chain must point at the ingress URL (`$eez:front`); the run logs a reminder.
 - A receipt on the sending chain means the cross-chain effect was applied atomically; the rollup's state reflects it a few seconds later.
-- The sending chain cannot always estimate gas for a cross-chain call. If the ingress evicts the call, pass `--gas`.
+- Gas is estimated by simulating the remote leg on the other chain and adding the protocol overhead (the sending chain itself cannot estimate a cross-chain call). Pass `--gas` if the call still runs out of gas or is evicted.
 
 `--rollup` defaults to the other side of the current chain (the rollup from L1, L1 from the rollup); pass it when the target lives on a different rollup.
 

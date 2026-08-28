@@ -1,5 +1,5 @@
 import type { TransactionAction } from "@evmcrispr/sdk";
-import { chainLabel, ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { encodeFunctionData, getAddress, isAddress } from "viem";
 import type Eez from "..";
@@ -138,6 +138,46 @@ export function remoteLabel(config: EezConfig, rollupId: bigint): string {
   return rollupId === config.peerRollupId && config.peerChainId !== undefined
     ? chainLabel(config.peerChainId)
     : `rollup ${rollupId}`;
+}
+
+/** Gas the registry spends around the remote call on the sending chain:
+ *  a bare `setValue` through a proxy used ~105k on L1 in total. */
+const CROSS_CHAIN_OVERHEAD = 250_000n;
+/** Floor / ceiling-fallback when the far side can't be simulated. */
+const CROSS_CHAIN_MIN_GAS = 300_000n;
+const CROSS_CHAIN_FALLBACK_GAS = 700_000n;
+
+/**
+ * Gas limit for a cross-chain call. Neither the execution RPC nor the
+ * ingress can estimate it (the proxy only resolves inside a composed sync
+ * block), so simulate the remote leg on the far chain when we know it and
+ * add the protocol's own overhead; otherwise use a generous constant.
+ */
+export async function estimateCallGas(
+  module: Eez,
+  config: EezConfig,
+  rollupId: bigint,
+  target: Address,
+  data: `0x${string}`,
+  from: Address,
+): Promise<bigint> {
+  if (rollupId !== config.peerRollupId || config.peerChainId === undefined) {
+    return CROSS_CHAIN_FALLBACK_GAS;
+  }
+  try {
+    const remote = await clientFor(module, config.peerChainId);
+    // The far side sees the caller's proxy as msg.sender; the caller
+    // itself is close enough for a gas figure and never lacks funds.
+    const remoteGas = await remote.estimateGas({
+      account: from,
+      to: target,
+      data,
+    });
+    const estimate = (remoteGas * 3n) / 2n + CROSS_CHAIN_OVERHEAD;
+    return estimate > CROSS_CHAIN_MIN_GAS ? estimate : CROSS_CHAIN_MIN_GAS;
+  } catch {
+    return CROSS_CHAIN_FALLBACK_GAS;
+  }
 }
 
 export interface EnsuredProxy {

@@ -36,6 +36,10 @@ describeCommand("call", {
         expect(create.rpcUrl).to.be.undefined;
         expect(isAddressEqual(call.to, await proxyOf(fresh))).to.be.true;
         expect(call.rpcUrl).to.equal(front);
+        // Estimated for the caller: nothing at `fresh` on the rollup, so
+        // the remote simulation is a plain call and the floor applies.
+        expect(call.gas).to.be.a("bigint");
+        expect(call.gas >= 300_000n).to.be.true;
         const decoded = decodeFunctionData({ abi: valueAbi, data: call.data });
         expect(decoded.args).to.eql([42n]);
       },
