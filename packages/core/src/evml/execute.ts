@@ -553,6 +553,15 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         const receipt = await ctx
           .getPublicClient(chainId)
           .waitForTransactionReceipt({ hash: tx });
+        if (receipt.status === "reverted") {
+          throw new Error(
+            `Transaction reverted on-chain: ${tx}${
+              action.rpcUrl
+                ? ` — it was meant to be submitted through ${action.rpcUrl}; check the wallet's RPC for this network`
+                : ""
+            }`,
+          );
+        }
         ctx.onLog(
           `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${tx})`,
         );
