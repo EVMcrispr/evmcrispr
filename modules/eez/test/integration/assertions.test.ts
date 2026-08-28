@@ -46,6 +46,10 @@ for (const [label, chainId, client, proxy] of [
           const [action] = actions as any[];
           expect(action.readOnly).to.equal(true);
           expect(getAddress(action.to)).to.equal(getAddress(CORE_ADDRESS));
+          // An empty address would "succeed" too: make sure the core is there.
+          const code = await client.getCode({ address: CORE_ADDRESS });
+          expect(code && code !== "0x", "Assertions core not deployed").to.be
+            .true;
           // A passing assertParam returns without reverting.
           await client.call({ to: action.to, data: action.data });
         },
