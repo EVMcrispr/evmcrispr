@@ -90,6 +90,14 @@ export function resolveChain(
   chainId: number,
   transport?: Transport,
 ): Chain | undefined {
+  const registered = registry.get(chainId);
+  if (registered) {
+    // The host's transport wins over the declared RPC (e.g. a browser
+    // routing a plain-http devnet through an https proxy): wallets are
+    // handed the URL the host itself uses.
+    const url = transportUrl(transport);
+    return toViemChain(url ? { ...registered, rpcUrl: url } : registered);
+  }
   return (
     viemChainById(chainId) ??
     (transport ? synthesizeChain(chainId, transportUrl(transport)) : undefined)

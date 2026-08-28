@@ -43,6 +43,15 @@ describe("chains registry", () => {
     expect(transportUrl(defaultTransport(devnet.id))).toBe(devnet.rpcUrl);
   });
 
+  it("hands wallets the host's transport URL for a registered chain", () => {
+    const chain = resolveChain(devnet.id, http("https://proxy.example/rpc"));
+    expect(chain?.name).toBe("Unit Devnet");
+    expect(chain?.rpcUrls.default.http).toEqual(["https://proxy.example/rpc"]);
+    expect(resolveChain(devnet.id)?.rpcUrls.default.http).toEqual([
+      devnet.rpcUrl,
+    ]);
+  });
+
   it("lets a later registration replace an earlier one", () => {
     registerChains({ ...devnet, name: "Renamed" });
     expect(viemChainById(devnet.id)?.name).toBe("Renamed");
