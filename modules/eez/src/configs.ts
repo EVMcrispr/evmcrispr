@@ -20,4 +20,10 @@ export const configs: ConfigDef[] = [
     description:
       "Cross-chain ingress URL that cross-chain transactions from the current chain are submitted to. Known for the EEZ devnet chains.",
   },
+  {
+    name: "faucetKey",
+    type: "bytes32",
+    description:
+      "Private key of a funded account that `eez:faucet` sends from. Known for the EEZ devnet chains (a public hardhat key); set it for another devnet.",
+  },
 ];

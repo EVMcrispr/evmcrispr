@@ -19,6 +19,8 @@ export interface DocExample {
   code: string;
   /** Optional preamble prepended before the code when running as a test (not shown in docs). */
   preamble?: string;
+  /** Per-test timeout in ms, for examples that do real network work. */
+  timeout?: number;
 }
 
 export interface HelperTestCase {
@@ -233,14 +235,17 @@ export function describeHelper(
 
     if (config.docCases) {
       for (const doc of config.docCases) {
-        it(`[DOC] ${doc.description}`, async () => {
+        const docTest = async () => {
           const preamble =
             doc.preamble ??
             (config.module ? `load ${config.module}` : undefined);
           const fullScript = preamble ? `${preamble}\n${doc.code}` : doc.code;
           const interpreter = createInterpreter(fullScript, client);
           await interpretDoc(interpreter);
-        });
+        };
+        if (doc.timeout !== undefined)
+          it(`[DOC] ${doc.description}`, docTest, doc.timeout);
+        else it(`[DOC] ${doc.description}`, docTest);
       }
     }
 

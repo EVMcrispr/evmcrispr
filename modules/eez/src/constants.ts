@@ -15,7 +15,14 @@ export interface EezChainInfo {
   peerChainId: number;
   /** Cross-chain ingress for transactions leaving this chain. */
   front: string;
+  /** Private key of an account pre-funded on this (throwaway) devnet,
+   *  used by `eez:faucet`. Never a secret: it is a public hardhat key. */
+  faucetKey?: `0x${string}`;
 }
+
+/** Hardhat account #3 — funded in the devnet genesis on both chains. */
+const DEVNET_FAUCET_KEY =
+  "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
 
 /** Built-in deployments, keyed by chain id (see `chains.ts`). */
 export const EEZ_CHAINS: Record<number, EezChainInfo> = {
@@ -25,6 +32,7 @@ export const EEZ_CHAINS: Record<number, EezChainInfo> = {
     peerRollupId: 1n,
     peerChainId: 6290,
     front: "http://65.109.26.16:18999",
+    faucetKey: DEVNET_FAUCET_KEY,
   },
   6290: {
     registry: EEZ_L2_PREDEPLOY,
@@ -32,5 +40,6 @@ export const EEZ_CHAINS: Record<number, EezChainInfo> = {
     peerRollupId: 0n,
     peerChainId: 7331,
     front: "http://65.109.26.16:18998",
+    faucetKey: DEVNET_FAUCET_KEY,
   },
 };

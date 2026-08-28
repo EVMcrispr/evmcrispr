@@ -112,7 +112,7 @@ export function describeCommand(
 
     if (config.docCases) {
       for (const doc of config.docCases) {
-        it(`[DOC] ${doc.description}`, async () => {
+        const docTest = async () => {
           const preamble =
             doc.preamble ??
             (config.module ? `load ${config.module}` : config.preamble);
@@ -121,7 +121,10 @@ export function describeCommand(
             chainId: config.chainId,
           });
           await interpretDoc(interpreter);
-        });
+        };
+        if (doc.timeout !== undefined)
+          it(`[DOC] ${doc.description}`, docTest, doc.timeout);
+        else it(`[DOC] ${doc.description}`, docTest);
       }
     }
 
