@@ -3,7 +3,7 @@ import { createPublicClient } from "viem";
 
 import { ErrorException } from "../errors";
 import type { Module } from "../Module";
-import { viemChainById } from "./address-info";
+import { resolveChain } from "./chains";
 
 const cache = new WeakMap<Module, Map<number, PublicClient>>();
 
@@ -29,7 +29,7 @@ export async function clientFor(
     client = createPublicClient({
       // Attach the viem chain when it's known: features like multicall
       // aggregation need `chain.contracts.multicall3` to be present.
-      chain: viemChainById(chainId),
+      chain: resolveChain(chainId, module.getTransport(chainId)),
       transport: module.getTransport(chainId),
     }) as PublicClient;
     clients.set(chainId, client);

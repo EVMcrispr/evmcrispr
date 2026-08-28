@@ -6,9 +6,19 @@ import type {
   TransactionAction,
   WalletAction,
 } from "@evmcrispr/sdk";
-import { ExitSignal, isTransactionAction } from "@evmcrispr/sdk";
-import type { Address, Chain, Hash, PublicClient, WalletClient } from "viem";
-import * as viemChains from "viem/chains";
+import {
+  defaultTransport,
+  ExitSignal,
+  isTransactionAction,
+  resolveChain,
+} from "@evmcrispr/sdk";
+import type {
+  Address,
+  Hash,
+  PublicClient,
+  Transport,
+  WalletClient,
+} from "viem";
 import { mainnet } from "viem/chains";
 
 import { Interpreter } from "../interpreter/Interpreter";
@@ -72,6 +82,8 @@ export interface ActionHandlerCtx {
   getPublicClient(chainId?: number): PublicClient;
   onLog(message: string): void;
   signal?: AbortSignal;
+  /** Host-configured transports, keyed by chain id. */
+  transports?: Record<number, Transport>;
   /** Delegate to the built-in handler for this action. */
   next(action: Action): Promise<unknown>;
 }
@@ -122,15 +134,10 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-function chainForId(chainId: number): Chain | undefined {
-  return Object.values(viemChains).find((c) => (c as Chain).id === chainId) as
-    | Chain
-    | undefined;
-}
-
 export async function switchOrAddChain(
   walletClient: WalletClient,
   chainId: number,
+  transports?: Record<number, Transport>,
 ): Promise<void> {
   const currentChainId = await walletClient.getChainId();
   if (currentChainId === chainId) return;
@@ -138,7 +145,10 @@ export async function switchOrAddChain(
   try {
     await walletClient.switchChain({ id: chainId });
   } catch (_e: any) {
-    const newChain = chainForId(chainId);
+    const newChain = resolveChain(
+      chainId,
+      transports?.[chainId] ?? defaultTransport(chainId),
+    );
     if (newChain) {
       try {
         await walletClient.addChain({ chain: newChain });
@@ -177,6 +187,7 @@ function uniqueInOrder(values: number[]): number[] {
 export async function prepareChainsForScript(
   walletClient: WalletClient,
   script: string,
+  transports?: Record<number, Transport>,
 ): Promise<void> {
   let ast;
   try {
@@ -202,7 +213,7 @@ export async function prepareChainsForScript(
   const ensure = async (chain: number): Promise<void> => {
     if (chain === walletChainId) return;
     try {
-      await switchOrAddChain(walletClient, chain);
+      await switchOrAddChain(walletClient, chain, transports);
       walletChainId = chain;
     } catch {
       const walletSwitchArg = switchArgForChainId(walletChainId);
@@ -407,6 +418,72 @@ export interface ExecutorEnv {
   maximizeGasLimit: boolean;
 }
 
+function chainFor(chainId: number, ctx: ActionHandlerCtx) {
+  return resolveChain(
+    chainId,
+    ctx.transports?.[chainId] ?? defaultTransport(chainId),
+  );
+}
+
+/** Gas used when the endpoint can't estimate a transaction routed through
+ *  `rpcUrl` — cross-chain ingresses simulate the call on the far side, so
+ *  the sending chain's `eth_estimateGas` often has nothing to say. */
+const ROUTED_TX_FALLBACK_GAS = 1_000_000n;
+
+/**
+ * Submit a transaction through an endpoint other than the wallet's own RPC.
+ * Only a local signing key can be steered that way: the request is prepared
+ * against the chain, signed here and posted raw to `rpcUrl`. An injected
+ * wallet sends through whatever RPC it is configured with — the user must
+ * point it at `rpcUrl` themselves, so say so.
+ */
+async function sendThrough(
+  rpcUrl: string,
+  request: Parameters<WalletClient["sendTransaction"]>[0],
+  ctx: ActionHandlerCtx,
+): Promise<Hash> {
+  const account = ctx.walletClient.account;
+  if (account?.type !== "local") {
+    ctx.onLog(
+      `:warning:This transaction must reach ${rpcUrl} — make sure the wallet's RPC for this network points there`,
+    );
+    return ctx.walletClient.sendTransaction(request);
+  }
+
+  let prepared: any;
+  try {
+    prepared = await ctx.walletClient.prepareTransactionRequest(request as any);
+  } catch (err) {
+    if (request.gas !== undefined) throw err;
+    prepared = await ctx.walletClient.prepareTransactionRequest({
+      ...request,
+      gas: ROUTED_TX_FALLBACK_GAS,
+    } as any);
+  }
+  const raw = await ctx.walletClient.signTransaction(prepared);
+  const response = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_sendRawTransaction",
+      params: [raw],
+    }),
+    signal: ctx.signal,
+  });
+  const json = (await response.json()) as {
+    result?: Hash;
+    error?: { message?: string };
+  };
+  if (json.error || !json.result) {
+    throw new Error(
+      `${rpcUrl} rejected the transaction: ${json.error?.message ?? "no result"}`,
+    );
+  }
+  return json.result;
+}
+
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
     async transaction(action, ctx) {
@@ -459,9 +536,9 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           gasLimit = 16_777_216n;
         }
 
-        const tx = await ctx.walletClient.sendTransaction({
+        const request = {
           account: ctx.walletClient.account ?? action.from!,
-          chain: chainForId(chainId) ?? null,
+          chain: chainFor(chainId, ctx) ?? null,
           to: action.to,
           data: action.data,
           value: action.value,
@@ -469,7 +546,10 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           maxFeePerGas: action.maxFeePerGas,
           maxPriorityFeePerGas: action.maxPriorityFeePerGas,
           nonce: action.nonce,
-        });
+        };
+        const tx = action.rpcUrl
+          ? await sendThrough(action.rpcUrl, request, ctx)
+          : await ctx.walletClient.sendTransaction(request);
         const receipt = await ctx
           .getPublicClient(chainId)
           .waitForTransactionReceipt({ hash: tx });
@@ -511,7 +591,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         `Executing batch of ${actions.length} transactions from ${truncateAddress(action.from)}`,
       );
 
-      const chain = chainForId(chainId);
+      const chain = chainFor(chainId, ctx);
       if (chain) {
         await ctx.walletClient.switchChain({ id: chainId });
       }
@@ -560,7 +640,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
     async wallet(action, ctx) {
       if (action.method === "wallet_switchEthereumChain") {
         const chainId = Number((action.params[0] as any).chainId);
-        await switchOrAddChain(ctx.walletClient, chainId);
+        await switchOrAddChain(ctx.walletClient, chainId, ctx.transports);
         return;
       }
       return ctx.walletClient.request({
@@ -659,6 +739,7 @@ export async function executeScript(
     getPublicClient,
     onLog,
     signal: options.signal,
+    transports: config.transports,
     next: (action) => runDefault(action, ctx),
   };
 
@@ -684,7 +765,7 @@ export async function executeScript(
   };
 
   if (options.prepareChains ?? true) {
-    await prepareChainsForScript(walletClient, source);
+    await prepareChainsForScript(walletClient, source, config.transports);
   }
 
   const runInterpret: InterpretRunner =

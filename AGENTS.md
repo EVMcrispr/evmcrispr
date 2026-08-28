@@ -42,6 +42,13 @@ general smart contract interaction. Scripts run in a web terminal
   template; the package.json `description` doubles as the docs overview),
   then `bun run sync-modules && bun install`. Everything else (CLI, MCP,
   terminal reference panel, test registration, docs) auto-discovers it.
+- **Ship a chain viem doesn't know**: declare it (literal-only) in
+  `modules/<mod>/src/chains.ts` as `ChainDef[]`. It is registered as soon
+  as the module is `use`d — `switch <id>` works before `load` — and hosts
+  (terminal wallet networks, CLI RPC lookup, test transports) pick it up
+  from `@evmcrispr/modules`' `moduleChains`. Run the module codegen and
+  `packages/modules` codegen afterwards. Hosts override the RPC per id
+  (CLI/tests: `EVMCRISPR_RPC_URL_<id>`).
 - **Regenerate codegen**: `bun packages/sdk/scripts/codegen.ts` (from module dir)
 - **Regenerate docs**: `bun run scripts/generate-docs.ts`
 - **Run tests**: `bun test:unit` / `bun test:integration` (needs anvil)

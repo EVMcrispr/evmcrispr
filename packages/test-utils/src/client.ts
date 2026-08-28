@@ -1,3 +1,4 @@
+import { registeredChains } from "@evmcrispr/sdk";
 import type { Transport } from "viem";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
@@ -41,7 +42,7 @@ export function getTransports(): Record<number, Transport> {
   const drpc = (network: string) =>
     drpcKey ? http(`https://lb.drpc.live/${network}/${drpcKey}`) : transport();
 
-  return {
+  const transports: Record<number, Transport> = {
     [mainnet.id]: drpc("ethereum"),
     [optimism.id]: drpc("optimism"),
     [polygon.id]: drpc("polygon"),
@@ -49,6 +50,16 @@ export function getTransports(): Record<number, Transport> {
     [arbitrum.id]: drpc("arbitrum"),
     [gnosis.id]: transport(),
   };
+  // Module-shipped chains (registered by `registerAllModules()`): their
+  // declared RPC, overridable per chain with EVMCRISPR_RPC_URL_<id> — the
+  // same knob the CLI honours — so a local devnet can stand in.
+  for (const def of registeredChains()) {
+    if (transports[def.id]) continue;
+    transports[def.id] = http(
+      process.env[`EVMCRISPR_RPC_URL_${def.id}`] ?? def.rpcUrl,
+    );
+  }
+  return transports;
 }
 
 export function getWalletClients() {

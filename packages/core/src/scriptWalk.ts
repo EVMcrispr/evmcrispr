@@ -19,10 +19,12 @@ import type {
 import {
   BindingsManager,
   BindingsSpace,
+  defaultTransport,
   isBuiltinType,
   isNum,
   NodeType,
   parseImportList,
+  resolveChain,
   resolveCommand,
 } from "@evmcrispr/sdk";
 import type { Chain, PublicClient, Transport } from "viem";
@@ -197,9 +199,8 @@ export function clientForChain(
   chainId: number,
   transports?: Record<number, Transport>,
 ): PublicClient | undefined {
-  const chain = Object.values(viemChains).find(
-    (c) => (c as Chain).id === chainId,
-  ) as Chain | undefined;
+  const transport = transports?.[chainId] ?? defaultTransport(chainId);
+  const chain = resolveChain(chainId, transport);
   if (!chain) return undefined;
 
   const transportsKey =
@@ -216,7 +217,7 @@ export function clientForChain(
 
   const client = createPublicClient({
     chain,
-    transport: transports?.[chainId] ?? http(),
+    transport: transport ?? http(),
   }) as PublicClient;
   byChainId.set(chainId, client);
   return client;

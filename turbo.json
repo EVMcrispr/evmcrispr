@@ -3,6 +3,9 @@
   "daemon": false,
   "globalPassThroughEnv": [
     "ASSERTIONS_ARTIFACTS",
+    "EEZ_DEVNET",
+    "EVMCRISPR_RPC_URL_6290",
+    "EVMCRISPR_RPC_URL_7331",
     "FORCE_INTEGRATION",
     "NPM_CONFIG_REGISTRY"
   ],

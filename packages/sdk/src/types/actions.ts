@@ -25,6 +25,13 @@ export interface TransactionAction {
    */
   chainId?: number;
   /**
+   * Submit the signed transaction through this JSON-RPC endpoint instead of
+   * the chain's configured transport (e.g. a rollup's cross-chain ingress).
+   * Honoured when the executor holds a local signing key; with an injected
+   * wallet the transaction goes out through the wallet's own RPC.
+   */
+  rpcUrl?: string;
+  /**
    * The gas limit for the transaction (maximum gas units to consume).
    */
   gas?: bigint;

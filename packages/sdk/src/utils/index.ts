@@ -8,6 +8,7 @@ export * from "./arity";
 export * from "./ast";
 export * from "./blockscout";
 export * from "./chainArgType";
+export * from "./chains";
 export * from "./clients";
 export * from "./compare";
 export * from "./configVars";

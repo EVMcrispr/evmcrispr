@@ -848,6 +848,26 @@ function extractConfigs(mod: ModuleInfo): ConfigMeta[] {
   }
 }
 
+interface ChainMeta {
+  id: number;
+  name: string;
+  rpcUrl: string;
+  explorerUrl?: string;
+  testnet?: boolean;
+}
+
+/** Load a module's shipped chains from its literal-only `src/chains.ts`. */
+function extractChains(mod: ModuleInfo): ChainMeta[] {
+  const chainsPath = join(mod.dir, "src/chains.ts");
+  if (!existsSync(chainsPath)) return [];
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return (require(chainsPath).chains ?? []) as ChainMeta[];
+  } catch {
+    return [];
+  }
+}
+
 /** Starlight page slug for a doc file name: lowercased, dots stripped
  *  (e.g. `abi.decode` → `abidecode`). */
 function starlightSlug(name: string): string {
@@ -908,6 +928,25 @@ function generateModuleIndex(
       const def = c.default !== undefined ? `\`${c.default}\`` : "—";
       lines.push(
         `| \`$${mod.name}:${c.name}\` | \`${type}\` | ${def} | ${c.description} |`,
+      );
+    }
+    lines.push("");
+  }
+
+  const chains = extractChains(mod);
+  if (chains.length > 0) {
+    lines.push("## Chains");
+    lines.push("");
+    lines.push(
+      "Networks this module ships. They are available to `switch` as soon as the module is registered, with the RPC below unless the host overrides it.",
+    );
+    lines.push("");
+    lines.push("| Chain | Id | RPC | Explorer |");
+    lines.push("|-------|----|-----|----------|");
+    for (const c of chains) {
+      const explorer = c.explorerUrl ? `<${c.explorerUrl}>` : "—";
+      lines.push(
+        `| ${c.name}${c.testnet ? " (testnet)" : ""} | \`${c.id}\` | <${c.rpcUrl}> | ${explorer} |`,
       );
     }
     lines.push("");

@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 import { formatUnits, parseAbiItem, zeroAddress } from "viem";
 import type { Module } from "../Module";
-import { viemChainById } from "./address-info";
+import { viemChainById } from "./chains";
 
 const decimalsAbi = parseAbiItem("function decimals() view returns (uint8)");
 const symbolAbi = parseAbiItem("function symbol() view returns (string)");

@@ -1,5 +1,5 @@
 import { describe, it } from "bun:test";
-import { defineModule } from "@evmcrispr/sdk";
+import { defineModule, registeredChain, resolveChain } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 import { EvmlScript } from "../../../src/evml/script";
 import { createEvml } from "../../../src/evml/tag";
@@ -44,6 +44,21 @@ set $y 2`;
     });
     expect(evml.registry.has("lazystub")).to.be.true;
     expect(evml.registry.description("lazystub")).to.equal("a stub");
+  });
+
+  it("registers a lazy entry's chains before the module loads", () => {
+    const evml = createEvml();
+    evml.use({
+      name: "chainy",
+      load: async () => ({ default: StubModule }),
+      chains: [
+        { id: 6543210, name: "Chainy Net", rpcUrl: "http://127.0.0.1:2" },
+      ],
+    });
+    expect(registeredChain(6543210)?.name).to.equal("Chainy Net");
+    expect(resolveChain(6543210)?.rpcUrls.default.http).to.eql([
+      "http://127.0.0.1:2",
+    ]);
   });
 
   it("rejects module classes without a moduleName", () => {

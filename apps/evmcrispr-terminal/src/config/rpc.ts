@@ -3,6 +3,8 @@
  * can be imported from the EVML Web Worker (wagmi.ts touches `window` at
  * module scope and must stay main-thread only).
  */
+import { toViemChain } from "@evmcrispr/core";
+import { moduleChains } from "@evmcrispr/modules";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
 import {
@@ -170,18 +172,28 @@ const chainConfig: [Chain, string][] = [
   [baseSepolia, `base-sepolia`],
 ];
 
-export const chains = chainConfig.map(([chain]) => chain) as [
-  Chain,
-  ...Chain[],
-];
+/** Chains shipped by modules (`src/chains.ts`), minus any the DRPC list
+ *  already covers. They bring their own RPC, so no key is needed. */
+const extraChains = moduleChains.filter(
+  (def) => !chainConfig.some(([chain]) => chain.id === def.id),
+);
+
+export const chains = [
+  ...chainConfig.map(([chain]) => chain),
+  ...extraChains.map(toViemChain),
+] as [Chain, ...Chain[]];
 
 /** chainId → RPC URL. Serializable — this is what crosses into the EVML
- *  worker. Empty without a DRPC key (viem default transports apply). */
-export const rpcUrls: Record<number, string> = DRPC_API_KEY
-  ? Object.fromEntries(
-      chainConfig.map(([chain, slug]) => [chain.id, drpcUrl(slug)]),
-    )
-  : {};
+ *  worker. Without a DRPC key only module-shipped chains have a URL (viem
+ *  default transports apply to the rest). */
+export const rpcUrls: Record<number, string> = {
+  ...Object.fromEntries(extraChains.map((def) => [def.id, def.rpcUrl])),
+  ...(DRPC_API_KEY
+    ? Object.fromEntries(
+        chainConfig.map(([chain, slug]) => [chain.id, drpcUrl(slug)]),
+      )
+    : {}),
+};
 
 export const transports = chains.reduce(
   (acc, { id }) => {

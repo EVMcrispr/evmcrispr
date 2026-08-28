@@ -8,8 +8,9 @@ import type {
   IModuleConstructor,
   ModuleContext,
 } from "../types";
+import { registerChains } from "./chains";
 import { isExperimentalEnabled } from "./experimental";
-import type { ArgType, ConfigDef, CustomArgTypes } from "./schema";
+import type { ArgType, ChainDef, ConfigDef, CustomArgTypes } from "./schema";
 
 /**
  * Create a module class with the given name, commands, and helpers.
@@ -83,7 +84,11 @@ export function defineModule(
   types?: CustomArgTypes,
   constants?: Record<string, string>,
   configs?: ConfigDef[],
+  chains?: ChainDef[],
 ): IModuleConstructor {
+  // Chains a module ships become usable (`switch <id>`) as soon as the
+  // module class exists, even before any of its commands load.
+  if (chains?.length) registerChains(...chains);
   const experimentalOn = isExperimentalEnabled();
   const experimentalCommands: string[] = [];
   const experimentalHelpers: string[] = [];

@@ -18,18 +18,19 @@ import {
   BindingsManager,
   BindingsSpace,
   createOffchainOverlay,
+  defaultTransport,
   ErrorException,
   ExperimentalDisabledError,
   experimentalDisabledMessage,
   IPFSResolver,
   isExperimentalEnabled,
   NodeType,
+  resolveChain,
   resolveHelper as resolveHelperFn,
   resolveModuleSource,
 } from "@evmcrispr/sdk";
 import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
-import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
 import {
   getSemanticDiagnostics as getSemanticDiagnosticsImpl,
@@ -120,13 +121,13 @@ export class EvmlWorkspace {
   constructor(registry: ModuleRegistry, config: EvmlConfig = {}) {
     this.registry = registry;
     this.#chainId = config.chainId ?? mainnet.id;
-    this.#chain = Object.values(viemChains).find(
-      (c) => (c as Chain).id === this.#chainId,
-    ) as Chain | undefined;
+    const initialTransport =
+      config.transports?.[this.#chainId] ?? defaultTransport(this.#chainId);
+    this.#chain = resolveChain(this.#chainId, initialTransport);
     this.#client = this.#chain
       ? (createPublicClient({
           chain: this.#chain,
-          transport: config.transports?.[this.#chainId] ?? http(),
+          transport: initialTransport ?? http(),
         }) as PublicClient)
       : undefined;
     this.#transports = config.transports;
@@ -167,7 +168,8 @@ export class EvmlWorkspace {
           "getConnectedAccount not available in workspace",
         );
       },
-      getTransport: (chainId) => this.#transports?.[chainId] ?? http(),
+      getTransport: (chainId) =>
+        this.#transports?.[chainId] ?? defaultTransport(chainId) ?? http(),
       setClient: () => {},
       setConnectedAccount: () => {},
       log: () => {},
@@ -728,13 +730,12 @@ export class EvmlWorkspace {
 
   switchChainId(chainId: number): void {
     this.#chainId = chainId;
-    this.#chain = Object.values(viemChains).find(
-      (c) => (c as Chain).id === chainId,
-    ) as Chain | undefined;
+    const transport = this.#transports?.[chainId] ?? defaultTransport(chainId);
+    this.#chain = resolveChain(chainId, transport);
     this.#client = this.#chain
       ? (createPublicClient({
           chain: this.#chain,
-          transport: this.#transports?.[chainId] ?? http(),
+          transport: transport ?? http(),
         }) as PublicClient)
       : undefined;
     // Drop any prewarmed switched-to client; the next prewarm will

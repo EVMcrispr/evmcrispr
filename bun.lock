@@ -13,6 +13,7 @@
         "@evmcrispr/module-circom": "workspace:*",
         "@evmcrispr/module-contracts": "workspace:*",
         "@evmcrispr/module-crypto": "workspace:*",
+        "@evmcrispr/module-eez": "workspace:*",
         "@evmcrispr/module-ens": "workspace:*",
         "@evmcrispr/module-gelato": "workspace:*",
         "@evmcrispr/module-giveth": "workspace:*",
@@ -238,6 +239,19 @@
       "devDependencies": {
         "@evmcrispr/test-utils": "workspace:*",
         "@openzeppelin/merkle-tree": "^1.0.8",
+      },
+      "peerDependencies": {
+        "viem": "^2.54.1",
+      },
+    },
+    "modules/eez": {
+      "name": "@evmcrispr/module-eez",
+      "version": "0.11.1",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:^",
+      },
+      "devDependencies": {
+        "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
         "viem": "^2.54.1",
@@ -625,6 +639,7 @@
         "@evmcrispr/module-circom": "workspace:^",
         "@evmcrispr/module-contracts": "workspace:^",
         "@evmcrispr/module-crypto": "workspace:^",
+        "@evmcrispr/module-eez": "workspace:^",
         "@evmcrispr/module-ens": "workspace:^",
         "@evmcrispr/module-gelato": "workspace:^",
         "@evmcrispr/module-giveth": "workspace:^",
@@ -989,6 +1004,8 @@
     "@evmcrispr/module-contracts": ["@evmcrispr/module-contracts@workspace:modules/contracts"],
 
     "@evmcrispr/module-crypto": ["@evmcrispr/module-crypto@workspace:modules/crypto"],
+
+    "@evmcrispr/module-eez": ["@evmcrispr/module-eez@workspace:modules/eez"],
 
     "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
 

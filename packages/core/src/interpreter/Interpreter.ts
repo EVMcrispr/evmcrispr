@@ -14,16 +14,17 @@ import {
   BindingsSpace,
   ControlFlowSignal,
   createOffchainOverlay,
+  defaultTransport,
   ErrorException,
   ExitSignal,
   ExperimentalDisabledError,
   experimentalDisabledMessage,
   IPFSResolver,
   isExperimentalEnabled,
+  resolveChain,
 } from "@evmcrispr/sdk";
 import type { Address, Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
-import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
 
 import type { ModuleRegistry } from "../evml/registry";
@@ -38,12 +39,6 @@ import {
   makeExecutionResolveHelper,
   makeResolveBlockExpression,
 } from "./index";
-
-function chainForId(chainId: number): Chain | undefined {
-  return Object.values(viemChains).find((c) => (c as Chain).id === chainId) as
-    | Chain
-    | undefined;
-}
 
 /**
  * The low-level EVML runtime: parses and interprets a script against a
@@ -85,13 +80,14 @@ export class Interpreter {
     this.#nonces = {};
     this.#offchain = createOffchainOverlay();
     this.#chainId = config.chainId ?? mainnet.id;
-    this.#chain = chainForId(this.#chainId);
+    const initialTransport = this.#transportFor(this.#chainId);
+    this.#chain = resolveChain(this.#chainId, initialTransport);
     if (!this.#chain) {
       throw new ErrorException(`Unknown chain id ${this.#chainId}`);
     }
     this.#client = createPublicClient({
       chain: this.#chain,
-      transport: config.transports?.[this.#chainId] ?? http(),
+      transport: initialTransport ?? http(),
     }) as PublicClient;
     this.#account = config.account;
     this.#logListeners = config.onLog ? [config.onLog] : [];
@@ -186,7 +182,7 @@ export class Interpreter {
       switchChainId: (chainId) => this.switchChainId(chainId),
       getConnectedAccount: (retreiveInjected) =>
         this.getConnectedAccount(retreiveInjected),
-      getTransport: (chainId) => this.#transports?.[chainId] ?? http(),
+      getTransport: (chainId) => this.#transportFor(chainId) ?? http(),
       setClient: (client) => this.setClient(client),
       setConnectedAccount: (account) => this.setConnectedAccount(account),
       log: (message) => this.log(message),
@@ -294,15 +290,22 @@ export class Interpreter {
     return this.#chain;
   }
 
+  /** Host-configured transport for a chain, else the transport a module
+   *  declared for it (`ChainDef.rpcUrl`). Undefined for unknown chains. */
+  #transportFor(chainId: number): Transport | undefined {
+    return this.#transports?.[chainId] ?? defaultTransport(chainId);
+  }
+
   switchChainId(chainId: number): PublicClient {
     this.#chainId = chainId;
 
-    const chain = chainForId(chainId);
+    const transport = this.#transportFor(chainId);
+    const chain = resolveChain(chainId, transport);
     this.#chain = chain;
     const client = chain
       ? (createPublicClient({
           chain,
-          transport: this.#transports?.[chainId] ?? http(),
+          transport: transport ?? http(),
         }) as PublicClient)
       : undefined;
     this.#client = client;

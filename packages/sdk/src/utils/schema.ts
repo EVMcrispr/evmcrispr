@@ -142,6 +142,23 @@ export interface ConfigDef {
 }
 
 /**
+ * A chain a module ships that viem doesn't know about (devnets, app-chains).
+ * Declarations live in a module's `src/chains.ts` and must stay literal-only:
+ * codegen and docs import them, and hosts (terminal, CLI) read them before
+ * any module code runs. Registered as soon as the module is `use`d.
+ */
+export interface ChainDef {
+  id: number;
+  /** Human name, shown wherever a chain is labelled. */
+  name: string;
+  /** Default JSON-RPC endpoint; hosts may override it per chain id. */
+  rpcUrl: string;
+  nativeCurrency?: { name: string; symbol: string; decimals: number };
+  explorerUrl?: string;
+  testnet?: boolean;
+}
+
+/**
  * Coerce integer values (Num or bigint) passed where `bytes32` is expected
  * into a left-padded 32-byte hex string, mirroring Solidity's
  * `bytes32(uint256(...))` cast. Negative integers wrap two's-complement.

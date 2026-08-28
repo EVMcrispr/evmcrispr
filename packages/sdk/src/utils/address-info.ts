@@ -1,8 +1,7 @@
 import type { Chain, PublicClient } from "viem";
 import { getAddress } from "viem";
-import * as viemChains from "viem/chains";
-
 import type { Address } from "../types";
+import { viemChainById } from "./chains";
 import {
   fetchVerifiedContract,
   type VerifiedContractInfo,
@@ -52,14 +51,6 @@ export interface AddressInfo extends AddressChainData, AddressContractExtras {
 // ---------------------------------------------------------------------------
 // Chain / code helpers
 // ---------------------------------------------------------------------------
-
-/** Look up the viem `Chain` object for a chain id, if viem ships it. */
-export function viemChainById(chainId: number | undefined): Chain | undefined {
-  if (!chainId) return undefined;
-  return Object.values(viemChains).find((c) => (c as Chain).id === chainId) as
-    | Chain
-    | undefined;
-}
 
 export function codeSizeBytes(code: `0x${string}` | undefined): number {
   if (!code || code === "0x") return 0;

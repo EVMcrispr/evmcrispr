@@ -1,3 +1,5 @@
+import { registeredChain } from "@evmcrispr/core";
+
 const DRPC_API_KEY = process.env.VITE_DRPC_API_KEY;
 
 const DEFAULT_CHAIN_ID = Number(process.env.EVMCRISPR_DEFAULT_CHAIN_ID) || 1;
@@ -55,6 +57,11 @@ export function getRpcUrl(chainId?: number): string {
   // DRPC
   const slug = DRPC_SLUGS[id];
   if (slug && DRPC_API_KEY) return drpcUrl(slug);
+
+  // A chain some module ships, with its own RPC (registered by
+  // registerAllModules(), which every command runs first).
+  const declared = registeredChain(id);
+  if (declared) return declared.rpcUrl;
 
   throw new Error(
     `No RPC URL configured for chain ${id}. Set VITE_DRPC_API_KEY, EVMCRISPR_RPC_URL, or EVMCRISPR_RPC_URL_${id}.`,

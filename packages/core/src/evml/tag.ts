@@ -53,6 +53,7 @@ function registerModule(registry: ModuleRegistry, input: ModuleInput): void {
     input.load,
     input.description,
     input.experimental,
+    input.chains,
   );
 }
 

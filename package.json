@@ -51,6 +51,7 @@
     "@evmcrispr/module-circom": "workspace:*",
     "@evmcrispr/module-contracts": "workspace:*",
     "@evmcrispr/module-crypto": "workspace:*",
+    "@evmcrispr/module-eez": "workspace:*",
     "@evmcrispr/module-ens": "workspace:*",
     "@evmcrispr/module-gelato": "workspace:*",
     "@evmcrispr/module-giveth": "workspace:*",

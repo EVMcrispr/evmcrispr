@@ -1,0 +1,49 @@
+{
+  "name": "@evmcrispr/module-eez",
+  "version": "0.11.1",
+  "description": "Ethereum Economic Zone: call a contract on the other side of an EEZ rollup synchronously, through its deterministic cross-chain proxy. Point the script at an EEZ chain, then eez:call any L1 contract from the rollup (or any rollup contract from L1) with plain calldata; the proxy is created on first use and the transaction is routed through the EEZ cross-chain ingress.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/eez"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
+  "experimental": true,
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@evmcrispr/sdk": "workspace:^"
+  },
+  "devDependencies": {
+    "@evmcrispr/test-utils": "workspace:*"
+  },
+  "peerDependencies": {
+    "viem": "^2.54.1"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsgo -p tsconfig.json",
+    "build": "evmcrispr-build --bundle",
+    "test:unit": "bun test ./test/unit",
+    "test:integration": "bun test ./test/integration",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types"
+  }
+}

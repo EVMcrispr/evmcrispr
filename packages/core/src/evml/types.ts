@@ -1,4 +1,4 @@
-import type { IModuleConstructor } from "@evmcrispr/sdk";
+import type { ChainDef, IModuleConstructor } from "@evmcrispr/sdk";
 import type { Address, Transport } from "viem";
 
 /**
@@ -37,4 +37,7 @@ export type ModuleInput =
       description?: string;
       /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
       experimental?: boolean;
+      /** Chains the module ships (its `src/chains.ts`), registered on
+       *  `use` so `switch <id>` works before the module is even loaded. */
+      chains?: ChainDef[];
     };
