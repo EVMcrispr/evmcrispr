@@ -8,7 +8,6 @@ import { toViemChain } from "@evmcrispr/core";
 import { moduleChains } from "@evmcrispr/modules/chains";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
-import { EVMCRISPR_API_BASE } from "./api";
 import {
   abstract,
   apeChain,
@@ -75,6 +74,7 @@ import {
   zksync,
   zora,
 } from "viem/chains";
+import { EVMCRISPR_API_BASE } from "./api";
 
 const DRPC_API_KEY = import.meta.env.VITE_DRPC_API_KEY;
 
