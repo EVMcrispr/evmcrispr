@@ -80,6 +80,9 @@ export class Interpreter {
     this.#nonces = {};
     this.#offchain = createOffchainOverlay();
     this.#chainId = config.chainId ?? mainnet.id;
+    // Before the first client: the host's transports decide where the
+    // initial chain is read from (a test's anvil, a proxied RPC, ...).
+    this.#transports = config.transports;
     const initialTransport = this.#transportFor(this.#chainId);
     this.#chain = resolveChain(this.#chainId, initialTransport);
     if (!this.#chain) {
@@ -95,7 +98,6 @@ export class Interpreter {
     this.#actionObservers = [];
     this.#prevMessages = [];
     this.#ipfsResolver = new IPFSResolver();
-    this.#transports = config.transports;
 
     this.#initStd();
 
