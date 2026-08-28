@@ -25,6 +25,11 @@
       "bun": "./src/order.ts",
       "types": "./dist/order.d.ts",
       "import": "./dist/order.js"
+    },
+    "./chains": {
+      "bun": "./src/chains.ts",
+      "types": "./dist/chains.d.ts",
+      "import": "./dist/chains.js"
     }
   },
   "dependencies": {
@@ -68,7 +73,7 @@
   "scripts": {
     "lint": "biome check src scripts",
     "type-check": "tsgo --noEmit",
-    "build": "evmcrispr-build --bundle src/index.ts src/order.ts",
+    "build": "evmcrispr-build --bundle src/index.ts src/order.ts src/chains.ts",
     "codegen": "bun scripts/codegen.ts",
     "types": "evmcrispr-build --types"
   }

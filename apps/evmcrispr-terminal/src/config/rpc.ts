@@ -3,8 +3,9 @@
  * can be imported from the EVML Web Worker (wagmi.ts touches `window` at
  * module scope and must stay main-thread only).
  */
+import type { ChainDef } from "@evmcrispr/core";
 import { toViemChain } from "@evmcrispr/core";
-import { moduleChains } from "@evmcrispr/modules";
+import { moduleChains } from "@evmcrispr/modules/chains";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
 import {
@@ -174,7 +175,7 @@ const chainConfig: [Chain, string][] = [
 
 /** Chains shipped by modules (`src/chains.ts`), minus any the DRPC list
  *  already covers. They bring their own RPC, so no key is needed. */
-const extraChains = moduleChains.filter(
+const extraChains: ChainDef[] = (moduleChains as ChainDef[]).filter(
   (def) => !chainConfig.some(([chain]) => chain.id === def.id),
 );
 

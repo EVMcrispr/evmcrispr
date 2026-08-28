@@ -211,6 +211,10 @@ export default defineConfig({
         __dirname,
         "../../packages/modules/src/order.ts",
       ),
+      "@evmcrispr/modules/chains": path.resolve(
+        __dirname,
+        "../../packages/modules/src/chains.ts",
+      ),
       "@evmcrispr/sdk/onchain": path.resolve(
         __dirname,
         "../../packages/sdk/src/onchain/index.ts",
