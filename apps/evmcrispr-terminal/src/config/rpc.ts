@@ -8,6 +8,7 @@ import { toViemChain } from "@evmcrispr/core";
 import { moduleChains } from "@evmcrispr/modules/chains";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
+import { EVMCRISPR_API_BASE } from "./api";
 import {
   abstract,
   apeChain,
@@ -173,11 +174,23 @@ const chainConfig: [Chain, string][] = [
   [baseSepolia, `base-sepolia`],
 ];
 
+/**
+ * Plain-http RPCs can't be used from the https terminal (mixed content) and
+ * wallets refuse to add networks with them. Route those through the
+ * EVMcrispr CORS proxy, which allowlists them per deployment; https RPCs
+ * are used as declared.
+ */
+export function browserSafeRpcUrl(url: string): string {
+  return url.startsWith("http://")
+    ? `${EVMCRISPR_API_BASE}/cors-proxy/${url}`
+    : url;
+}
+
 /** Chains shipped by modules (`src/chains.ts`), minus any the DRPC list
  *  already covers. They bring their own RPC, so no key is needed. */
-const extraChains: ChainDef[] = (moduleChains as ChainDef[]).filter(
-  (def) => !chainConfig.some(([chain]) => chain.id === def.id),
-);
+const extraChains: ChainDef[] = (moduleChains as ChainDef[])
+  .filter((def) => !chainConfig.some(([chain]) => chain.id === def.id))
+  .map((def) => ({ ...def, rpcUrl: browserSafeRpcUrl(def.rpcUrl) }));
 
 export const chains = [
   ...chainConfig.map(([chain]) => chain),
