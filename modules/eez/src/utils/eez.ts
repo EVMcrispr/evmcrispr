@@ -1,5 +1,10 @@
 import type { TransactionAction } from "@evmcrispr/sdk";
-import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
+import {
+  chainIdForName,
+  chainLabel,
+  clientFor,
+  ErrorException,
+} from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { encodeFunctionData, getAddress, isAddress } from "viem";
 import type Eez from "..";
@@ -55,12 +60,23 @@ function configBigint(value: unknown): bigint | undefined {
  * config variables.
  */
 export async function eezConfig(module: Eez): Promise<EezConfig> {
-  const chainId = await module.getChainId();
+  return eezConfigFor(module, await module.getChainId());
+}
+
+/** Same for any chain; the config variables only speak for the current one. */
+export async function eezConfigFor(
+  module: Eez,
+  chainId: number,
+): Promise<EezConfig> {
+  const current = chainId === (await module.getChainId());
   const builtin = EEZ_CHAINS[chainId];
   const registry =
-    configAddress(module.getConfigBinding("registry")) ?? builtin?.registry;
+    (current
+      ? configAddress(module.getConfigBinding("registry"))
+      : undefined) ?? builtin?.registry;
   const rollupId =
-    configBigint(module.getConfigBinding("rollupId")) ?? builtin?.rollupId;
+    (current ? configBigint(module.getConfigBinding("rollupId")) : undefined) ??
+    builtin?.rollupId;
   if (!registry || rollupId === undefined) {
     throw new ErrorException(
       `${chainLabel(chainId)} is not a known EEZ chain — set $eez:registry and $eez:rollupId to use it`,
@@ -79,14 +95,35 @@ export async function eezConfig(module: Eez): Promise<EezConfig> {
   };
 }
 
-/** The rollup a target lives on: the explicit id, else the other side. */
+/**
+ * The rollup a target lives on: the other side of the current chain by
+ * default, else what the caller named — a chain (`eezL2`, or its chain
+ * id) when the module knows that chain's rollup id, otherwise a bare
+ * rollup id.
+ */
 export function resolveRollup(config: EezConfig, explicit?: unknown): bigint {
   const rollupId =
     explicit === undefined || explicit === null
       ? config.peerRollupId
-      : BigInt(String(explicit));
+      : rollupIdFor(explicit);
   assertForeignRollup(rollupId, config.rollupId, config.chainId);
   return rollupId;
+}
+
+export function rollupIdFor(value: unknown): bigint {
+  const text = String(value);
+  if (/^\d+$/.test(text)) {
+    const n = Number(text);
+    return EEZ_CHAINS[n]?.rollupId ?? BigInt(n);
+  }
+  const chainId = chainIdForName(text);
+  const known = chainId !== undefined ? EEZ_CHAINS[chainId] : undefined;
+  if (!known) {
+    throw new ErrorException(
+      `unknown rollup "${text}" — pass a rollup id, or an EEZ chain (eezL1, eezL2)`,
+    );
+  }
+  return known.rollupId;
 }
 
 export async function computeProxy(

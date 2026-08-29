@@ -18,16 +18,11 @@ eez:proxy <target>
 |------|------|-------------|
 | `target` | `address` | Contract address on the other rollup |
 
-## Options
-
-| Name | Type | Description |
-|------|------|-------------|
-| `--rollup` | `number` | Rollup id the target lives on. Defaults to the other side of the current chain. |
-
 ## Examples
 
 ```evml
 # Create the L1 proxy for a rollup contract, so L1 code can call it
+switch eezL1
 eez:proxy 0x000000000000000000000000000000000000dEaD
 ```
 

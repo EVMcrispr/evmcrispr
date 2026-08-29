@@ -27,7 +27,7 @@ describeCommand("faucet", {
   docCases: [
     {
       description: "Give the connected wallet some devnet ETH for gas",
-      code: "eez:faucet @me",
+      code: "switch eezL1\neez:faucet @me",
       // A real transfer: the receipt lands in the next 12s L1 slot.
       timeout: 120_000,
     },

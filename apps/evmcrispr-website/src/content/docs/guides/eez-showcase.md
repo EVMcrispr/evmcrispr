@@ -88,15 +88,15 @@ contract Badge {
   function mint(address to) external { require(msg.sender == gate, "only gate"); balanceOf[to] += 1; }
 }
 SOL
-# The Gate lives on L1 (rollup 0); its face on this rollup is deterministic.
-contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy($gate rollup:0)]
-contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy($gate rollup:0)]
+# The Gate lives on eezL1; its face on this rollup is deterministic.
+contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
+contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
 eez:proxy $gate                               # create that face so the callback resolves
 
 # ── 3. L1 → rollup, atomically ──────────────────────────────────
 switch eezL1
 eez:proxy $badge                              # the Badge's face on L1
-exec $gate mintBadge(address) @eez:proxy($badge)
+exec $gate mintBadge(address) @eez:proxy(eezL2 $badge)
 
 # Read the rollup from L1
 set $badges @eez:on(eezL2 $badge::{balanceOf(address)(uint256) @me})

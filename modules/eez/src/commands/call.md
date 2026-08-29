@@ -24,7 +24,6 @@ eez:call <target> <signature> [...params]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `--rollup` | `number` | Rollup id the target lives on. Defaults to the other side of the current chain. |
 | `--value` | `number` | ETH to send with the call (in wei) |
 | `--gas` | `number` | Gas limit. By default the remote leg is simulated on the other chain and the protocol overhead added; set this if the call still runs out of gas or is evicted. |
 | `--from` | `address` | Sender address (requires simulation or connected wallet) |
@@ -33,6 +32,7 @@ eez:call <target> <signature> [...params]
 
 ```evml
 # From L1, set a value on a rollup contract in one atomic transaction
+switch eezL1
 eez:call 0x000000000000000000000000000000000000bEEF setValue(uint256) 42
 ```
 
@@ -47,7 +47,7 @@ An EEZ rollup and its L1 share one sequencer, so a call can cross between them i
 - Gas is estimated by simulating the remote leg on the other chain and adding the protocol overhead (the sending chain itself cannot estimate a cross-chain call). Pass `--gas` if the call still runs out of gas or is evicted.
 - A contract on the current chain whose code calls a proxy needs no special command: a plain `exec` reaches across the same way.
 
-`--rollup` defaults to the other side of the current chain (the rollup from L1, L1 from the rollup); pass it when the target lives on a different rollup.
+`--chain` defaults to the other side of the current chain (the rollup from L1, L1 from the rollup); pass it when the target lives on a different rollup.
 
 ## See Also
 

@@ -74,7 +74,7 @@ describeCommand("call", {
   errorCases: [
     {
       name: "refuses to call the current chain through a proxy",
-      script: `eez:call ${KNOWN} setValue(uint256) 1 --rollup 0`,
+      script: `eez:call ${KNOWN} setValue(uint256) 1 --chain 0`,
       error: "itself",
     },
   ],
@@ -82,7 +82,7 @@ describeCommand("call", {
     {
       description:
         "From L1, set a value on a rollup contract in one atomic transaction",
-      code: "eez:call 0x000000000000000000000000000000000000bEEF setValue(uint256) 42",
+      code: "switch eezL1\neez:call 0x000000000000000000000000000000000000bEEF setValue(uint256) 42",
     },
   ],
 });

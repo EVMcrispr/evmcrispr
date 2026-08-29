@@ -18,13 +18,14 @@ Evaluate an expression as if the script were on another chain, and return its va
 
 | Name | Type | Description |
 |------|------|-------------|
-| `chain` | `chain` | Chain to evaluate on (id or viem name, e.g. `6290`) |
+| `chain` | `chain` | Chain to evaluate on (`eezL2`, a viem name or a chain id) |
 | `expression` | `any` | Expression evaluated as if the script had switched to that chain |
 
 ## Examples
 
 ```evml
 # From L1, read the connected account's balance on the rollup
+switch eezL1
 print @eez:on(eezL2 @balance(ETH @me))
 ```
 

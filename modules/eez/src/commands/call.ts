@@ -31,10 +31,10 @@ export default defineCommand<Eez>({
   ],
   opts: [
     {
-      name: "rollup",
-      type: "number",
+      name: "chain",
+      type: ["string", "number"],
       description:
-        "Rollup id the target lives on. Defaults to the other side of the current chain.",
+        "Chain the target lives on (`--chain eezL2`), or a bare rollup id. Defaults to the other side of the current chain.",
     },
     {
       name: "value",
@@ -59,7 +59,7 @@ export default defineCommand<Eez>({
       module,
       config,
       target,
-      opts.rollup,
+      opts.chain,
     );
 
     const call = encodeAction(proxy, signature, params);

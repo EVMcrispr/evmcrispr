@@ -28,6 +28,7 @@ eez:faucet [recipient]
 
 ```evml
 # Give the connected wallet some devnet ETH for gas
+switch eezL1
 eez:faucet @me
 ```
 

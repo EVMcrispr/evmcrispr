@@ -1,24 +1,36 @@
-import { chainLabel, defineHelper, ErrorException } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  clientFor,
+  defineHelper,
+  ErrorException,
+  resolveChainId,
+} from "@evmcrispr/sdk";
 import type Eez from "..";
 import { eezBaseAbi } from "../abis";
-import { eezConfig } from "../utils/eez";
+import { eezConfigFor } from "../utils/eez";
 
 export default defineHelper<Eez>({
   name: "target",
   batchable: false,
   description:
-    "The remote contract a cross-chain proxy on the current chain stands in for. Fails if the address is not a registered proxy.",
+    "The remote contract a cross-chain proxy stands in for: the reverse of @eez:proxy. Fails if the address is not a registered proxy on that chain.",
   returnType: "address",
   args: [
     {
+      name: "chain",
+      type: "chain",
+      description: "Chain the proxy lives on (`eezL1`, `eezL2`)",
+    },
+    {
       name: "proxy",
       type: "address",
-      description: "Cross-chain proxy address on the current chain",
+      description: "Cross-chain proxy address on that chain",
     },
   ],
-  async run(module, { proxy }) {
-    const config = await eezConfig(module);
-    const client = await module.getClient();
+  async run(module, { chain, proxy }) {
+    const chainId = resolveChainId(chain);
+    const config = await eezConfigFor(module, chainId);
+    const client = await clientFor(module, chainId);
     const [exists, originalAddress] = await client.readContract({
       address: config.registry,
       abi: eezBaseAbi,
@@ -27,7 +39,7 @@ export default defineHelper<Eez>({
     });
     if (!exists) {
       throw new ErrorException(
-        `${proxy} is not a cross-chain proxy on ${chainLabel(config.chainId)}`,
+        `${proxy} is not a cross-chain proxy on ${chainLabel(chainId)}`,
       );
     }
     return originalAddress;

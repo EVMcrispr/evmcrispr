@@ -25,15 +25,22 @@ describeHelper(
     preamble: "switch eezL1",
     cases: [
       {
-        name: "defaults to the rollup when called from L1",
-        input: `@eez:proxy(${DEAD})`,
+        name: "resolves the face of a rollup contract on L1",
+        input: `@eez:proxy(eezL2 ${DEAD})`,
+        validate: async (result) => {
+          expect(isAddressEqual(result, await onChain(1n))).to.be.true;
+        },
+      },
+      {
+        name: "accepts the chain id too",
+        input: `@eez:proxy(6290 ${DEAD})`,
         validate: async (result) => {
           expect(isAddressEqual(result, await onChain(1n))).to.be.true;
         },
       },
       {
         name: "accepts an explicit rollup id",
-        input: `@eez:proxy(${DEAD} rollup:5)`,
+        input: `@eez:proxy(5 ${DEAD})`,
         validate: async (result) => {
           expect(isAddressEqual(result, await onChain(5n))).to.be.true;
         },
@@ -42,7 +49,7 @@ describeHelper(
     errorCases: [
       {
         name: "refuses the current chain's own rollup id",
-        input: `@eez:proxy(${DEAD} rollup:0)`,
+        input: `@eez:proxy(eezL1 ${DEAD})`,
         error: "itself",
       },
     ],
@@ -50,8 +57,8 @@ describeHelper(
       {
         description:
           "Resolve where a rollup contract is reachable from L1, e.g. to pass it to another contract",
-        code: "print @eez:proxy(0x000000000000000000000000000000000000dEaD)",
-        preamble: `load eez\nswitch ${L1_ID}`,
+        code: "switch eezL1\nprint @eez:proxy(eezL2 0x000000000000000000000000000000000000dEaD)",
+        preamble: "load eez",
       },
     ],
   },

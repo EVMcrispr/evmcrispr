@@ -17,7 +17,7 @@ export default defineHelper<Eez>({
     {
       name: "chain",
       type: "chain",
-      description: "Chain to evaluate on (id or viem name, e.g. `6290`)",
+      description: "Chain to evaluate on (`eezL2`, a viem name or a chain id)",
     },
     {
       name: "expression",

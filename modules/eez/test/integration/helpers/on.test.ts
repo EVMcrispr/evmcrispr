@@ -30,7 +30,7 @@ describeHelper(
       },
       {
         name: "evaluates module helpers against the other chain",
-        input: `@eez:on(${L2_ID} @eez:proxy(${DEAD}))`,
+        input: `@eez:on(${L2_ID} @eez:proxy(eezL1 ${DEAD}))`,
         validate: async (result) => {
           const expected = await l2.readContract({
             address: EEZ_CHAINS[L2_ID].registry,
@@ -60,8 +60,8 @@ describeHelper(
       {
         description:
           "From L1, read the connected account's balance on the rollup",
-        code: "print @eez:on(eezL2 @balance(ETH @me))",
-        preamble: "load eez\nswitch eezL1",
+        code: "switch eezL1\nprint @eez:on(eezL2 @balance(ETH @me))",
+        preamble: "load eez",
       },
     ],
   },

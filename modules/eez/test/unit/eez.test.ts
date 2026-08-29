@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { registerChains } from "@evmcrispr/sdk";
 import { decodeFunctionData } from "viem";
 import { eezBaseAbi } from "../../src/abis";
 import { chains } from "../../src/chains";
@@ -9,6 +10,7 @@ import {
   peerRollup,
   remoteLabel,
   resolveRollup,
+  rollupIdFor,
 } from "../../src/utils/eez";
 
 const l1 = {
@@ -18,6 +20,9 @@ const l1 = {
   peerRollupId: 1n,
   peerChainId: 6290,
 };
+
+// Unit tests run without the module registry: declare the chains by hand.
+registerChains(...chains);
 
 describe("eez utils", () => {
   it("pairs L1 with the rollup and back", () => {
@@ -31,6 +36,16 @@ describe("eez utils", () => {
     );
     expect(() => assertForeignRollup(-1n, 0n, 7331)).toThrow(/negative/);
     expect(() => assertForeignRollup(1n, 0n, 7331)).not.toThrow();
+  });
+
+  it("names rollups by chain key, chain id or bare rollup id", () => {
+    expect(rollupIdFor("eezL2")).toBe(1n);
+    expect(rollupIdFor("eezL1")).toBe(0n);
+    expect(rollupIdFor(6290)).toBe(1n);
+    expect(rollupIdFor(7)).toBe(7n);
+    expect(() => rollupIdFor("nowhere")).toThrow(/unknown rollup/);
+    expect(() => resolveRollup(l1, "eezL1")).toThrow(/itself/);
+    expect(resolveRollup(l1, "eezL2")).toBe(1n);
   });
 
   it("defaults the rollup to the other side", () => {

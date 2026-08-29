@@ -96,13 +96,13 @@ contract Badge {
   function mint(address to) external { require(msg.sender == gate, "only gate"); balanceOf[to] += 1; }
 }
 SOL
-contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy($gate rollup:0)]
-contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy($gate rollup:0)]
+contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
+contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
 eez:proxy $gate
 
 switch eezL1
 eez:proxy $badge
-exec $gate mintBadge(address) @eez:proxy($badge)
+exec $gate mintBadge(address) @eez:proxy(eezL2 $badge)
 
 set $badges @eez:on(eezL2 $badge::{balanceOf(address)(uint256) @me})
 print "badges on the rollup:" $badges

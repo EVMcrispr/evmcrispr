@@ -34,7 +34,7 @@ describeCommand("proxy", {
     },
     {
       name: "honours an explicit rollup id",
-      script: `eez:proxy ${fresh} --rollup 7`,
+      script: `eez:proxy ${fresh} --chain 7`,
       validate: (actions) => {
         const decoded = decodeFunctionData({
           abi: eezBaseAbi,
@@ -47,7 +47,7 @@ describeCommand("proxy", {
   errorCases: [
     {
       name: "refuses a proxy for the current chain itself",
-      script: `eez:proxy ${DEAD} --rollup 0`,
+      script: `eez:proxy ${DEAD} --chain 0`,
       error: "itself",
     },
   ],
@@ -55,7 +55,7 @@ describeCommand("proxy", {
     {
       description:
         "Create the L1 proxy for a rollup contract, so L1 code can call it",
-      code: "eez:proxy 0x000000000000000000000000000000000000dEaD",
+      code: "switch eezL1\neez:proxy 0x000000000000000000000000000000000000dEaD",
     },
   ],
 });
