@@ -12,6 +12,7 @@ import {
 } from "../../src/utils/chains";
 
 const devnet = {
+  key: "unitDevnet",
   id: 987654,
   name: "Unit Devnet",
   rpcUrl: "http://127.0.0.1:9",

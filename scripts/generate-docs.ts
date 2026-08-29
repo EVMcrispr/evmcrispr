@@ -941,12 +941,12 @@ function generateModuleIndex(
       "Networks this module ships. They are available to `switch` as soon as the module is registered, with the RPC below unless the host overrides it.",
     );
     lines.push("");
-    lines.push("| Chain | Id | RPC | Explorer |");
-    lines.push("|-------|----|-----|----------|");
+    lines.push("| Chain | Key | Id | RPC | Explorer |");
+    lines.push("|-------|-----|----|-----|----------|");
     for (const c of chains) {
       const explorer = c.explorerUrl ? `<${c.explorerUrl}>` : "—";
       lines.push(
-        `| ${c.name}${c.testnet ? " (testnet)" : ""} | \`${c.id}\` | <${c.rpcUrl}> | ${explorer} |`,
+        `| ${c.name}${c.testnet ? " (testnet)" : ""} | \`${c.key}\` | \`${c.id}\` | <${c.rpcUrl}> | ${explorer} |`,
       );
     }
     lines.push("");

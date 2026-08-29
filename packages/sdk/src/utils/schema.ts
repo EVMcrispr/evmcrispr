@@ -149,12 +149,21 @@ export interface ConfigDef {
  */
 export interface ChainDef {
   id: number;
+  /** Identifier scripts use wherever a chain is named (`switch eezL1`,
+   *  `@eez:on(eezL2 …)`), in the camelCase style of viem's chain names.
+   *  Letters and digits only. */
+  key: string;
   /** Human name, shown wherever a chain is labelled. */
   name: string;
   /** Default JSON-RPC endpoint; hosts may override it per chain id. */
   rpcUrl: string;
   nativeCurrency?: { name: string; symbol: string; decimals: number };
+  /** Block explorer for links. */
   explorerUrl?: string;
+  /** Etherscan-compatible API of that explorer (e.g. Blockscout's
+   *  `<backend>/api`), used for source verification. Defaults to
+   *  `<explorerUrl>/api`. */
+  explorerApiUrl?: string;
   testnet?: boolean;
 }
 

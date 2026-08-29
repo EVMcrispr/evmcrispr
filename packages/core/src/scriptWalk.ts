@@ -19,11 +19,13 @@ import type {
 import {
   BindingsManager,
   BindingsSpace,
+  chainIdForName,
   defaultTransport,
   isBuiltinType,
   isNum,
   NodeType,
   parseImportList,
+  registeredChain,
   resolveChain,
   resolveCommand,
 } from "@evmcrispr/sdk";
@@ -59,7 +61,7 @@ function chainIdFromStaticValue(raw: unknown): number | undefined {
   if (typeof raw === "string") {
     const n = Number(raw);
     if (Number.isInteger(n) && n > 0) return n;
-    return nameToChainId[raw];
+    return chainIdForName(raw);
   }
   return undefined;
 }
@@ -170,6 +172,10 @@ export function collectPreparedSwitchTargets(
  * ids fall back to decimal `String(chainId)` which `switch` also accepts.
  */
 export function switchArgForChainId(chainId: number): string {
+  // A module-declared chain has exactly one key; viem chains may have
+  // several export aliases.
+  const declared = registeredChain(chainId);
+  if (declared) return declared.key;
   const aliases: string[] = [];
   for (const [exportName, id] of Object.entries(nameToChainId)) {
     if (id === chainId) aliases.push(exportName);

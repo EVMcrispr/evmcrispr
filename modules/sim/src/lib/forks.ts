@@ -2,7 +2,13 @@ import type {
   BlockExpressionNode,
   CommandExpressionNode,
 } from "@evmcrispr/sdk";
-import { chainLabel, ErrorException } from "@evmcrispr/sdk";
+import {
+  chainIdForName,
+  chainLabel,
+  ErrorException,
+  resolveChain,
+  synthesizeChain,
+} from "@evmcrispr/sdk";
 import {
   type Chain,
   createPublicClient,
@@ -12,7 +18,6 @@ import {
   type PublicClient,
   type WalletClient,
 } from "viem";
-import * as viemChains from "viem/chains";
 import type Sim from "..";
 import type { SimMode } from "..";
 import type { SimBackend } from "./backend";
@@ -34,31 +39,8 @@ export function isSameLocalRpc(a: string, b: string): boolean {
 }
 
 function chainForId(chainId: number): Chain {
-  const found = Object.values(viemChains).find(
-    (c) => c && typeof c === "object" && (c as Chain).id === chainId,
-  ) as Chain | undefined;
-  return (
-    found ??
-    ({
-      id: chainId,
-      name: `Chain ${chainId}`,
-      nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-      rpcUrls: { default: { http: [] } },
-    } as Chain)
-  );
+  return resolveChain(chainId) ?? synthesizeChain(chainId);
 }
-
-/** viem chain export name → chain id (same mapping std's `switch` uses). */
-const chainNameToId: Record<string, number> = Object.entries(viemChains).reduce(
-  (acc, [name, chain]) => {
-    if (chain && typeof chain === "object" && "id" in chain) {
-      const id = (chain as Chain).id;
-      if (typeof id === "number") acc[name] = id;
-    }
-    return acc;
-  },
-  {} as Record<string, number>,
-);
 
 function tryResolveChainId(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isInteger(value) && value > 0) {
@@ -67,7 +49,8 @@ function tryResolveChainId(value: unknown): number | undefined {
   if (typeof value === "string") {
     const n = Number(value);
     if (Number.isInteger(n) && n > 0) return n;
-    if (chainNameToId[value] !== undefined) return chainNameToId[value];
+    const named = chainIdForName(value);
+    if (named !== undefined) return named;
   }
   return undefined;
 }
