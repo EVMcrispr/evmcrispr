@@ -31,6 +31,7 @@
     "./style.css": "./dist/style.css",
     "./styles/components.css": "./src/styles/components.css",
     "./grammars/circom": "./src/grammars/circom.tmLanguage.json",
+    "./heredoc": "./src/heredocRanges.ts",
     "./grammars/evml": "./src/grammars/evml.tmLanguage.json",
     "./grammars/noir": "./src/grammars/noir.tmLanguage.json",
     "./package.json": "./package.json"
@@ -73,6 +74,7 @@
     "type-check": "tsgo --noEmit",
     "build": "evmcrispr-build --bundle ./src/index.ts ./src/editor/MonacoEditor.tsx --splitting --production && bun scripts/build-css.ts",
     "codegen": "evmcrispr-build --codegen && bun scripts/codegen-grammar.ts",
+    "test:unit": "bun test ./test/unit",
     "types": "evmcrispr-build --types"
   }
 }

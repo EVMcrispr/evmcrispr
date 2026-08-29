@@ -11,10 +11,12 @@ import { useShiki } from "../hooks/useShiki";
 import { evmlBracketColorizationTransformer } from "./bracketColorization";
 import { DiagnosticsChip } from "./DiagnosticsChip";
 import { HoverPopover } from "./HoverPopover";
+import { evmlHeredocTransformer } from "./heredocTransformer";
 import { evmlTwoslashTransformer } from "./twoslashTransformer";
 
 const TRANSFORMERS = [
   evmlBracketColorizationTransformer(),
+  evmlHeredocTransformer(),
   evmlTwoslashTransformer(),
 ];
 

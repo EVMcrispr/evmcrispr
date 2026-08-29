@@ -24,6 +24,7 @@ import circomGrammar from "@evmcrispr/editor/grammars/circom";
 import evmlGrammar from "@evmcrispr/editor/grammars/evml";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import { heredocPlugin } from "./ec-heredoc.mjs";
 
 // Build reference sidebar by scanning the reference/ content directory.
 // Modules with symlinked docs appear automatically after running generate-docs.
@@ -354,6 +355,7 @@ export default defineConfig({
         // expressiveCode's bundled shiki knows source.solidity/json but not
         // circom — the <<<CIRCOM heredoc grammar must be supplied explicitly.
         shiki: { langs: [evmlGrammar, circomGrammar] },
+        plugins: [heredocPlugin()],
       },
       favicon: "/favicon.ico",
       head: [

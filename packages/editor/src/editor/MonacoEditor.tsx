@@ -20,6 +20,7 @@ loader.config({ paths: { vs: "/vs" } });
 import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
+import { findHeredocRanges, heredocKindClass } from "../heredocRanges";
 import { toMonacoCompletionItem } from "./autocompletion";
 import { registerCircomLanguage } from "./circom-language";
 import { conf, contribution, createLanguage } from "./evml";
@@ -723,6 +724,56 @@ function Editor({
       decorationsRef.current.set([]);
     }
   }, [executingLine, monaco]);
+
+  // ── Heredoc bar + tint (mirrors the Shiki viewer's heredoc transformer) ──
+  // Refreshed on every edit (not debounced): the scan is a cheap line
+  // pass and the bar should follow the fence as it's typed.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editorInstance re-arms the listener on remount
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed || !monaco) return;
+    const collection = ed.createDecorationsCollection([]);
+    const refresh = () => {
+      const model = ed.getModel();
+      if (!model || model.isDisposed()) return;
+      const kindsByLine = findHeredocRanges(model.getValue());
+      collection.set(
+        kindsByLine.flatMap((r) => {
+          const kind = heredocKindClass(r.sentinel);
+          const fences = [
+            new monaco.Range(
+              r.startLine,
+              r.openCol,
+              r.startLine,
+              r.openCol + 3 + r.sentinel.length,
+            ),
+            new monaco.Range(r.endLine, 1, r.endLine, 1 + r.sentinel.length),
+          ].map((range) => ({
+            range,
+            options: { inlineClassName: `heredoc-fence ${kind}` },
+          }));
+          if (r.endLine - r.startLine < 2) return fences;
+          return [
+            {
+              range: new monaco.Range(r.startLine + 1, 1, r.endLine - 1, 1),
+              options: {
+                isWholeLine: true,
+                className: `heredoc-block ${kind}`,
+                linesDecorationsClassName: `heredoc-bar ${kind}`,
+              },
+            },
+            ...fences,
+          ];
+        }),
+      );
+    };
+    refresh();
+    const disposable = ed.onDidChangeModelContent(refresh);
+    return () => {
+      disposable.dispose();
+      collection.clear();
+    };
+  }, [editorInstance, monaco]);
 
   const onOpenDocsRef = useRef(onOpenDocs);
   onOpenDocsRef.current = onOpenDocs;
