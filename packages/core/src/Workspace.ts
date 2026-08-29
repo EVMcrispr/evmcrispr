@@ -187,6 +187,7 @@ export class EvmlWorkspace {
       },
       getAvailableModuleNames: () => this.registry.names(),
       parseEvml: (script) => parseScript(script),
+      getSource: () => undefined,
     };
   }
 
@@ -479,6 +480,7 @@ export class EvmlWorkspace {
         },
         getAvailableModuleNames: () => this.registry.names(),
         parseEvml: (script) => parseScript(script),
+        getSource: () => undefined,
       };
 
       const instance = new Ctor(ctx);

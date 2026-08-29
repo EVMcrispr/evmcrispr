@@ -9,7 +9,7 @@ import type {
   OptDef,
 } from "../utils/schema";
 import type { Abi } from ".";
-import type { Node } from "./ast";
+import type { CommandExpressionNode, Node } from "./ast";
 import type {
   CommandFunction,
   Commands,
@@ -100,6 +100,9 @@ interface DefValueBase {
   optDefs?: OptDef[];
   returnType?: ArgType;
   bodyNode: Node;
+  /** The original `def` command node, for slicing the def's source back
+   *  out of the script. Absent on synthetic defs (on-chain helper proxies). */
+  node?: CommandExpressionNode;
 }
 
 export interface DefCommandValue extends DefValueBase {

@@ -61,6 +61,7 @@ export class Interpreter {
   #nonces: Record<string, number>;
   #offchain: OffchainOverlay;
   #account: Address | undefined;
+  #source: string | undefined;
   #sender: Address | undefined;
   #chainId: number;
   #chain: Chain | undefined;
@@ -207,6 +208,7 @@ export class Interpreter {
       },
       getAvailableModuleNames: () => this.registry.names(),
       parseEvml: (script) => parseScript(script),
+      getSource: () => this.#source,
     };
   }
 
@@ -224,6 +226,7 @@ export class Interpreter {
     options: { signal?: AbortSignal } = {},
   ): Promise<Action[]> {
     this.#signal = options.signal;
+    this.#source = script;
     const { ast, errors } = parseScript(script);
 
     if (errors.length) {

@@ -1,4 +1,4 @@
-import { ErrorException } from "@evmcrispr/sdk";
+import { ErrorException } from "../errors";
 
 /** Verbatim interpolation escape hatch — see `evml.raw(...)`. */
 export class EvmlRaw {

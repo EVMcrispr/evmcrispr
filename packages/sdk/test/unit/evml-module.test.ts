@@ -44,6 +44,7 @@ function fakeContext(): ModuleContext {
     parseEvml: () => {
       throw new Error("no parser");
     },
+    getSource: () => undefined,
   };
 }
 

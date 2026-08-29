@@ -27,6 +27,7 @@ export type {
   EncryptedScriptEnvelope,
   ErrorOptions,
   EventCaptureNode,
+  EvmlValue,
   HelperFunction,
   HelperFunctionNode,
   HelperFunctions,
@@ -81,6 +82,8 @@ export {
   ErrorException,
   ErrorInvalid,
   ErrorNotFound,
+  EvmlRaw,
+  EvmlSerializationError,
   ExitSignal,
   ExpressionError,
   encryptScript,
@@ -105,6 +108,7 @@ export {
   SHARE_FALLBACK_SCRIPT,
   SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
+  serializeEvmlValue,
   transformExperimentalMd,
   unsupportedMinVersion,
   verifiedIpfsEntity,
@@ -134,12 +138,6 @@ export {
 export { ModuleRegistry } from "./evml/registry";
 export type { InterpretOptions as ScriptInterpretOptions } from "./evml/script";
 export { EvmlScript } from "./evml/script";
-export type { EvmlValue } from "./evml/serialize";
-export {
-  EvmlRaw,
-  EvmlSerializationError,
-  serializeEvmlValue,
-} from "./evml/serialize";
 export type { SimulateOptions, SimulationResult } from "./evml/simulate";
 export { simulateScript } from "./evml/simulate";
 export type { EvmlTag } from "./evml/tag";

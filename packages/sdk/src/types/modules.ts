@@ -83,6 +83,12 @@ export interface ModuleContext {
    *  `load --from` to parse external module files. */
   parseEvml(script: string): { ast: AST; errors: string[] };
 
+  /** The full source text of the script being interpreted, or undefined
+   *  when none is running. Node locations are absolute over it, so
+   *  `sliceNodeText` recovers any node's verbatim text (comments and
+   *  all) for commands that ship a block's source elsewhere. */
+  getSource(): string | undefined;
+
   /** The std module instance, when the host runtime provides one (the
    *  execution interpreter does; analysis surfaces need not). Lets the
    *  on-chain helper dispatch fall back to std the same way the

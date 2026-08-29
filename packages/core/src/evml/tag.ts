@@ -1,10 +1,13 @@
 import type { IModuleConstructor } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
-
+import {
+  ErrorException,
+  EvmlRaw,
+  type EvmlValue,
+  serializeTemplate,
+} from "@evmcrispr/sdk";
 import { EvmlWorkspace } from "../Workspace";
 import { ModuleRegistry } from "./registry";
 import { EvmlScript } from "./script";
-import { EvmlRaw, type EvmlValue, serializeTemplate } from "./serialize";
 import type { EvmlConfig, ModuleInput } from "./types";
 
 export interface EvmlTag {
