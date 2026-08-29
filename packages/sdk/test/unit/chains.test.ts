@@ -5,7 +5,9 @@ import {
   defaultTransport,
   registerChains,
   registeredChain,
+  registeredChains,
   resolveChain,
+  setChainUrlPolicy,
   toViemChain,
   transportUrl,
   viemChainById,
@@ -65,6 +67,53 @@ describe("chains registry", () => {
     });
     expect(chain.nativeCurrency.symbol).toBe("ETH");
     expect(chain.blockExplorers?.default.url).toBe("http://explorer.local");
+  });
+
+  it("defaults the explorer API to <explorerUrl>/api at registration", () => {
+    registerChains({ ...devnet, explorerUrl: "http://explorer.local/" });
+    expect(registeredChain(devnet.id)?.explorerApiUrl).toBe(
+      "http://explorer.local/api",
+    );
+    registerChains({
+      ...devnet,
+      explorerUrl: "http://explorer.local",
+      explorerApiUrl: "http://backend.local:4001/api",
+    });
+    expect(registeredChain(devnet.id)?.explorerApiUrl).toBe(
+      "http://backend.local:4001/api",
+    );
+  });
+
+  it("applies the host's URL policy to RPC and explorer API URLs", () => {
+    registerChains({
+      ...devnet,
+      explorerUrl: "http://explorer.local",
+      explorerApiUrl: "http://backend.local:4001/api",
+    });
+    setChainUrlPolicy((url) =>
+      url.startsWith("http://") ? `https://proxy.example/${url}` : url,
+    );
+    try {
+      const def = registeredChain(devnet.id);
+      expect(def?.rpcUrl).toBe(`https://proxy.example/${devnet.rpcUrl}`);
+      expect(def?.explorerApiUrl).toBe(
+        "https://proxy.example/http://backend.local:4001/api",
+      );
+      // Links are for people, not fetch — they stay as declared.
+      expect(def?.explorerUrl).toBe("http://explorer.local");
+      expect(registeredChains().find((c) => c.id === devnet.id)?.rpcUrl).toBe(
+        `https://proxy.example/${devnet.rpcUrl}`,
+      );
+      expect(transportUrl(defaultTransport(devnet.id))).toBe(
+        `https://proxy.example/${devnet.rpcUrl}`,
+      );
+      expect(resolveChain(devnet.id)?.rpcUrls.default.http).toEqual([
+        `https://proxy.example/${devnet.rpcUrl}`,
+      ]);
+    } finally {
+      setChainUrlPolicy(undefined);
+    }
+    expect(registeredChain(devnet.id)?.rpcUrl).toBe(devnet.rpcUrl);
   });
 
   it("reads no URL from non-http transports", () => {

@@ -38,12 +38,7 @@ function verifyEndpoint(
   chainId: number,
   apiKey: string | undefined,
 ): VerifyEndpoint {
-  const declared = registeredChain(chainId);
-  const explorerApi =
-    declared?.explorerApiUrl ??
-    (declared?.explorerUrl
-      ? `${declared.explorerUrl.replace(/\/$/, "")}/api`
-      : undefined);
+  const explorerApi = registeredChain(chainId)?.explorerApiUrl;
   if (explorerApi) {
     const base = (action: string) => {
       const url = new URL(explorerApi);

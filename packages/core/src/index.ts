@@ -115,6 +115,7 @@ export {
   SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
   serializeEvmlValue,
+  setChainUrlPolicy,
   toViemChain,
   transformExperimentalMd,
   unsupportedMinVersion,

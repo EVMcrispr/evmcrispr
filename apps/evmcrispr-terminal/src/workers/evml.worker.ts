@@ -5,4 +5,8 @@ import "virtual:evmcrispr-modules";
 import { evml } from "@evmcrispr/core";
 import { exposeEvmlWorker } from "@evmcrispr/core/worker";
 
+import { applyBrowserUrlPolicy } from "../config/browserSafeUrl";
+
+// Module fetches (verify's explorer API, declared RPCs) run in here too.
+applyBrowserUrlPolicy();
 exposeEvmlWorker(evml);

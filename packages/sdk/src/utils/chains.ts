@@ -10,6 +10,37 @@ import type { ChainDef } from "./schema";
  */
 const registry = new Map<number, ChainDef>();
 
+/**
+ * How the host reaches the URLs modules declare. A browser page served
+ * over https can't fetch a plain-http devnet RPC or explorer API (mixed
+ * content), so the terminal routes those through its CORS proxy; the
+ * policy is applied on every lookup so modules keep declaring the real
+ * URLs. `explorerUrl` is left alone: it's a link for people, not fetch.
+ */
+let urlPolicy: ((url: string) => string) | undefined;
+
+export function setChainUrlPolicy(
+  policy: ((url: string) => string) | undefined,
+): void {
+  urlPolicy = policy;
+}
+
+function withPolicy(def: ChainDef): ChainDef {
+  if (!urlPolicy) return def;
+  return {
+    ...def,
+    rpcUrl: urlPolicy(def.rpcUrl),
+    ...(def.explorerApiUrl
+      ? { explorerApiUrl: urlPolicy(def.explorerApiUrl) }
+      : {}),
+  };
+}
+
+function lookup(chainId: number): ChainDef | undefined {
+  const def = registry.get(chainId);
+  return def && withPolicy(def);
+}
+
 /** Build a viem `Chain` from a literal declaration. */
 export function toViemChain(def: ChainDef): Chain {
   return defineChain({
@@ -32,26 +63,36 @@ export function toViemChain(def: ChainDef): Chain {
   });
 }
 
-/** Register chain declarations. Later registrations of the same id win. */
+/** Register chain declarations. Later registrations of the same id win.
+ *  A declaration with an explorer but no explorer API gets Blockscout's
+ *  conventional `<explorerUrl>/api`. */
 export function registerChains(...defs: ChainDef[]): void {
-  for (const def of defs) registry.set(def.id, def);
+  for (const def of defs) {
+    const explorerApiUrl =
+      def.explorerApiUrl ??
+      (def.explorerUrl
+        ? `${def.explorerUrl.replace(/\/$/, "")}/api`
+        : undefined);
+    registry.set(def.id, explorerApiUrl ? { ...def, explorerApiUrl } : def);
+  }
 }
 
-/** Declaration registered for a chain id, if any. */
+/** Declaration registered for a chain id, if any, with the host's URL
+ *  policy applied. */
 export function registeredChain(chainId: number): ChainDef | undefined {
-  return registry.get(chainId);
+  return lookup(chainId);
 }
 
 /** Every registered declaration, in registration order. */
 export function registeredChains(): ChainDef[] {
-  return [...registry.values()];
+  return [...registry.keys()].map((id) => lookup(id) as ChainDef);
 }
 
 /** Look up the `Chain` object for a chain id: registered declarations
  *  first, then viem's own list. */
 export function viemChainById(chainId: number | undefined): Chain | undefined {
   if (!chainId) return undefined;
-  const registered = registry.get(chainId);
+  const registered = lookup(chainId);
   if (registered) return toViemChain(registered);
   return Object.values(viemChains).find(
     (c) => c && typeof c === "object" && (c as Chain).id === chainId,
@@ -90,7 +131,7 @@ export function resolveChain(
   chainId: number,
   transport?: Transport,
 ): Chain | undefined {
-  const registered = registry.get(chainId);
+  const registered = lookup(chainId);
   if (registered) {
     // The host's transport wins over the declared RPC (e.g. a browser
     // routing a plain-http devnet through an https proxy): wallets are
@@ -106,6 +147,6 @@ export function resolveChain(
 
 /** Transport for a registered chain's declared RPC, if the id is registered. */
 export function defaultTransport(chainId: number): Transport | undefined {
-  const def = registry.get(chainId);
+  const def = lookup(chainId);
   return def ? http(def.rpcUrl) : undefined;
 }
