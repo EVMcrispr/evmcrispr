@@ -48,7 +48,7 @@ production-grade.
 
 ## Examples
 
-```
+```evml
 load semaphore
 
 # One-time: derive your identity (the wallet signs a fixed message)

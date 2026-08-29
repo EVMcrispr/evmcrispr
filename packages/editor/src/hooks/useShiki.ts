@@ -4,7 +4,6 @@ import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import jsonGrammar from "shiki/langs/json.mjs";
 import solidityGrammar from "shiki/langs/solidity.mjs";
-import typescriptGrammar from "shiki/langs/typescript.mjs";
 import circomGrammar from "../grammars/circom.tmLanguage.json";
 import evmlGrammar from "../grammars/evml.tmLanguage.json";
 import { evmlTheme } from "../grammars/evml-theme";
@@ -22,7 +21,6 @@ function getHighlighter() {
       // grammar files).
       langs: [
         ...solidityGrammar,
-        ...typescriptGrammar,
         ...jsonGrammar,
         circomGrammar as LanguageRegistration,
         noirGrammar as LanguageRegistration,

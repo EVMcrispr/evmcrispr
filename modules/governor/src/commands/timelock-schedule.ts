@@ -54,6 +54,10 @@ export default defineCommand<Governor>({
       "timelock-schedule",
       actions,
       interpreters,
+      {
+        module,
+        sender: timelock,
+      },
     );
     const predecessor = opts.predecessor ?? ZERO_BYTES32;
     const salt = opts.salt ?? ZERO_BYTES32;

@@ -56,6 +56,8 @@ export class Interpreter {
   #nonces: Record<string, number>;
   #offchain: OffchainOverlay;
   #account: Address | undefined;
+  #source: string | undefined;
+  #sender: Address | undefined;
   #chainId: number;
   #chain: Chain | undefined;
 
@@ -93,6 +95,7 @@ export class Interpreter {
       transport: initialTransport ?? http(),
     }) as PublicClient;
     this.#account = config.account;
+    this.#sender = config.sender;
     this.#logListeners = config.onLog ? [config.onLog] : [];
     this.#lineListeners = config.onLine ? [config.onLine] : [];
     this.#actionObservers = [];
@@ -187,6 +190,8 @@ export class Interpreter {
       getTransport: (chainId) => this.#transportFor(chainId) ?? http(),
       setClient: (client) => this.setClient(client),
       setConnectedAccount: (account) => this.setConnectedAccount(account),
+      getSender: () => this.getSender(),
+      setSender: (sender) => this.setSender(sender),
       log: (message) => this.log(message),
       getStd: () => this.#std,
       loadModule: async (name) => {
@@ -201,6 +206,7 @@ export class Interpreter {
       },
       getAvailableModuleNames: () => this.registry.names(),
       parseEvml: (script) => parseScript(script),
+      getSource: () => this.#source,
     };
   }
 
@@ -218,6 +224,7 @@ export class Interpreter {
     options: { signal?: AbortSignal } = {},
   ): Promise<Action[]> {
     this.#signal = options.signal;
+    this.#source = script;
     const { ast, errors } = parseScript(script);
 
     if (errors.length) {
@@ -277,6 +284,16 @@ export class Interpreter {
 
   setConnectedAccount(account: Address | undefined) {
     this.#account = account;
+  }
+
+  setSender(sender: Address | undefined) {
+    this.#sender = sender;
+  }
+
+  /** The account the current calls are sent from: the one a block command
+   *  set, else the connected account. */
+  async getSender(): Promise<Address> {
+    return this.#sender ?? this.getConnectedAccount(true);
   }
 
   async getConnectedAccount(_retreiveInjected = false): Promise<Address> {

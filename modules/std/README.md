@@ -59,6 +59,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
 | [@orElse](src/helpers/orElse.md) | `any` | The value of the first read, or the second one when the first reverts. |
 | [@reverts](src/helpers/reverts.md) | `any` | Whether a live call reverts: true when the chain refuses the call, false when it resolves; `-!>` matches the reason and a lens selects an error argument. |
+| [@sender](src/helpers/sender.md) | `address` | The account the current calls are sent from: the connected wallet (@me), or, inside a block that executes as another account, that account — the Safe in safe:propose and safe:execute, the last forwarder in aragonos forward, the DAO in aragonosx propose and act, the governor's executor (its timelock, else itself) in governor proposals and the timelock in timelock-schedule. |
 | [@sigValid](src/helpers/sigValid.md) | `bool` | Verify a signature against an expected signer address. Auto-detects EIP-712 typed data (JSON) vs. plain message. |
 | [@str](src/helpers/str.md) | `string` | Convert a value to its string representation, or decode hex bytes as UTF-8. |
 | [@Ether](src/helpers/token.md) | `address` | Resolve a token symbol to its contract address on the current chain. |

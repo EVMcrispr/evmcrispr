@@ -25,6 +25,7 @@ import evmlGrammar from "@evmcrispr/editor/grammars/evml";
 import solidityGrammar from "@evmcrispr/editor/grammars/solidity";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
+import { heredocPlugin } from "./ec-heredoc.mjs";
 
 // Build reference sidebar by scanning the reference/ content directory.
 // Modules with symlinked docs appear automatically after running generate-docs.
@@ -357,6 +358,7 @@ export default defineConfig({
         // so `<<<SOL` would otherwise fall back to a plain string, and
         // circom is not bundled at all.
         shiki: { langs: [evmlGrammar, circomGrammar, ...solidityGrammar] },
+        plugins: [heredocPlugin()],
       },
       favicon: "/favicon.ico",
       head: [

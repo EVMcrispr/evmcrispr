@@ -336,6 +336,7 @@ export default defineCommand<Std>({
     const defValue = isHelper
       ? buildDef("helper", name, paramDefs, finalReturnType, body as Node)
       : buildDef("command", name, paramDefs, optDefs, body as Node);
+    defValue.node = node;
 
     if (isOnchain) {
       // No off-chain face. The interpreter refuses a `!` def before it gets

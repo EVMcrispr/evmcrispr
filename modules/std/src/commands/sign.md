@@ -27,7 +27,7 @@ sign <variable> [message]
 
 ## Examples
 
-```
+```evml
 # Sign a plain-text message
 sign $sig "hello world"
 

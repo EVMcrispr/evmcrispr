@@ -34,6 +34,8 @@ function fakeContext(): ModuleContext {
     },
     setClient: () => {},
     setConnectedAccount: () => {},
+    getSender: async () => "0x" as any,
+    setSender: () => {},
     log: () => {},
     loadModule: async () => {
       throw new Error("no registry");
@@ -42,6 +44,7 @@ function fakeContext(): ModuleContext {
     parseEvml: () => {
       throw new Error("no parser");
     },
+    getSource: () => undefined,
   };
 }
 

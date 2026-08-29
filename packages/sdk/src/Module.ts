@@ -247,4 +247,9 @@ export abstract class Module {
   async getConnectedAccount(retreiveInjected?: boolean): Promise<Address> {
     return this.context.getConnectedAccount(retreiveInjected);
   }
+
+  /** The account the current calls are sent from (see `@sender`). */
+  async getSender(): Promise<Address> {
+    return this.context.getSender();
+  }
 }

@@ -52,6 +52,57 @@
   border-left: 3px solid #0fff50;
 }
 
+/* Heredoc blocks (`<<<SOL … SOL`): fences take the embedded language's
+   color; the body lines get a colored bar in the gutter margin (left of
+   the text, never on the fence lines) plus a faint tint. Applied as
+   Monaco decorations (whole-line `className` for the tint,
+   `linesDecorationsClassName` for the bar, `inlineClassName` for the
+   fences) and as classes on the Shiki viewer's `.line` / token spans
+   (see heredocRanges.ts); all share `--heredoc-color`. */
+.evmcrispr-root .heredoc-sol,
+.evmcrispr-root .heredoc-circom,
+.evmcrispr-root .heredoc-noir,
+.evmcrispr-root .heredoc-json,
+.evmcrispr-root .heredoc-other {
+  --heredoc-tint: color-mix(in srgb, var(--heredoc-color) 7%, transparent);
+}
+.evmcrispr-root .heredoc-other {
+  --heredoc-color: #8b8b8b;
+}
+.evmcrispr-root .heredoc-sol {
+  --heredoc-color: #569cd6;
+}
+.evmcrispr-root .heredoc-circom {
+  --heredoc-color: #c586c0;
+}
+.evmcrispr-root .heredoc-noir {
+  --heredoc-color: #3dc9b0;
+}
+.evmcrispr-root .heredoc-json {
+  --heredoc-color: #dcdcaa;
+}
+/* Must beat Monaco's `.mtk*` token color and Shiki's inline
+   `style="color:…"`. */
+.evmcrispr-root .heredoc-fence {
+  /* biome-ignore lint/complexity/noImportantStyles: see comment above */
+  color: var(--heredoc-color) !important;
+}
+.evmcrispr-root .heredoc-block {
+  background: var(--heredoc-tint);
+}
+/* Monaco gutter-margin decoration: bar 10px left of the text, tint
+   continuing up to the text so it joins the `.heredoc-block` tint. */
+.evmcrispr-root .heredoc-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  border-left: 2px solid var(--heredoc-color);
+  background: var(--heredoc-tint);
+}
+
 /* ── Script viewer (Monaco-free read view) ─────────────────────── */
 /* Mirror the editor's typography: JetBrains Mono at 22px and a ~1.35
    line height are exactly what the Monaco instance uses (see
@@ -152,6 +203,22 @@
   background: rgba(15, 255, 80, 0.12);
   border-left: 3px solid #0fff50;
   padding-left: calc(3.25rem - 3px);
+}
+
+/* In the viewer the `.line` box also holds the line-number gutter
+   (`::before`), so draw the bar + tint in a pseudo-element starting
+   10px left of the code column — the same geometry as Monaco's
+   gutter-margin bar + content tint. */
+.evmcrispr-root .evml-viewer code .line.heredoc-block {
+  background: transparent;
+}
+.evmcrispr-root .evml-viewer code .line.heredoc-block::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 calc(3.25rem - 10px);
+  border-left: 2px solid var(--heredoc-color);
+  background: var(--heredoc-tint);
+  pointer-events: none;
 }
 
 /* Hover targets — addresses, @helpers, $variables. Subtle dotted

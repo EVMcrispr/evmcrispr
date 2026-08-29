@@ -1,5 +1,5 @@
 import type { Action, BlockExpressionNode } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException, withSender } from "@evmcrispr/sdk";
 import type AragonOSx from "..";
 import { resolveAdapter } from "../plugins/registry";
 import { VOTE_OPTIONS } from "../plugins/types";
@@ -63,17 +63,20 @@ export default defineCommand<AragonOSx>({
   ) {
     const { interpretNode } = interpreters;
 
-    const { plugin } = module.resolvePlugin(pluginIdentifier, "propose");
+    const { dao, plugin } = module.resolvePlugin(pluginIdentifier, "propose");
     const adapter = resolveAdapter(plugin);
 
-    const blockActions = (await interpretNode(block as BlockExpressionNode, {
-      // Inherit hasActions from any enclosing batch context: reads inside
-      // this block can't see the outer batch's actions either.
-      batchContext: {
-        name: "propose",
-        hasActions: interpreters.batchContext?.hasActions ?? false,
-      },
-    })) as Action[];
+    // A passed proposal executes from the DAO: `@sender` inside the block.
+    const blockActions = (await withSender(module, dao.address, () =>
+      interpretNode(block as BlockExpressionNode, {
+        // Inherit hasActions from any enclosing batch context: reads inside
+        // this block can't see the outer batch's actions either.
+        batchContext: {
+          name: "propose",
+          hasActions: interpreters.batchContext?.hasActions ?? false,
+        },
+      }),
+    )) as Action[];
 
     const osxActions = toOsxActions(blockActions, "propose");
 

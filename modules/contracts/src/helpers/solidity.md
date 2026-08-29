@@ -79,7 +79,7 @@ Compiler builds are verified too: each downloaded `soljson` release is checked a
 
 The four `@solidity` helpers share one compile cache, so a deploy + verify script compiles once. Repeat the same options in every call — different options are a different compile. `verify` needs a `VITE_ETHERSCAN_API_KEY`, so the full pipeline is not runnable as a doc example:
 
-```
+```evml
 load contracts
 set $url 'https://raw.githubusercontent.com/me/repo/main/Token.sol'
 contracts:deploy $token @contracts:solidity($url runs:1000)

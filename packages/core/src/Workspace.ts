@@ -172,6 +172,10 @@ export class EvmlWorkspace {
         this.#transports?.[chainId] ?? defaultTransport(chainId) ?? http(),
       setClient: () => {},
       setConnectedAccount: () => {},
+      getSender: () => {
+        throw new ErrorException("getSender not available in workspace");
+      },
+      setSender: () => {},
       log: () => {},
       loadModule: async (name) => {
         if (this.registry.isExperimental(name) && !isExperimentalEnabled()) {
@@ -185,6 +189,7 @@ export class EvmlWorkspace {
       },
       getAvailableModuleNames: () => this.registry.names(),
       parseEvml: (script) => parseScript(script),
+      getSource: () => undefined,
     };
   }
 
@@ -463,6 +468,12 @@ export class EvmlWorkspace {
         getTransport: (cId) => this.#transports?.[cId] ?? http(),
         setClient: () => {},
         setConnectedAccount: () => {},
+        getSender: () => {
+          throw new ErrorException(
+            "getSender not available during completions",
+          );
+        },
+        setSender: () => {},
         log: () => {},
         loadModule: async (name) => {
           const l = this.registry.get(name);
@@ -471,6 +482,7 @@ export class EvmlWorkspace {
         },
         getAvailableModuleNames: () => this.registry.names(),
         parseEvml: (script) => parseScript(script),
+        getSource: () => undefined,
       };
 
       const instance = new Ctor(ctx);

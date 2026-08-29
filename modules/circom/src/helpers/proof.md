@@ -26,7 +26,7 @@ Project the proof JSON bound by circom:prove into the argument tuple of its snar
 
 The result is the argument tuple of a snarkjs-exported `Groth16Verifier`, with `pi_b` already swapped into the pairing-precompile coordinate order. Destructure it and splat the parts into `verifyProof`:
 
-```
+```evml novalidate
 load circom
 load lang
 circom:prove $proof --wasm ipfs://<wasm-cid> --zkey ipfs://<zkey-cid> --inputs [a:3 b:11]

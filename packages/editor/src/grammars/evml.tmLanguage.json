@@ -23,9 +23,6 @@
       "include": "#heredoc-noir"
     },
     {
-      "include": "#heredoc-typescript"
-    },
-    {
       "include": "#heredoc"
     },
     {
@@ -261,26 +258,6 @@
       "patterns": [
         {
           "include": "source.noir"
-        }
-      ]
-    },
-    "heredoc-typescript": {
-      "begin": "<<<(TS)\\b[ \\t]*$",
-      "beginCaptures": {
-        "0": {
-          "name": "punctuation.definition.heredoc.begin.evml"
-        }
-      },
-      "end": "^(TS)\\b",
-      "endCaptures": {
-        "0": {
-          "name": "punctuation.definition.heredoc.end.evml"
-        }
-      },
-      "contentName": "meta.embedded.block.typescript",
-      "patterns": [
-        {
-          "include": "source.ts"
         }
       ]
     }

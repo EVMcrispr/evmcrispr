@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### `@sender`: who the calls come from
+
+- New std helper `@sender`: the account the current calls are sent from. It is `@me` (the connected wallet) at the top level and, inside a block that executes as another account, that account: the Safe in `safe:propose`/`safe:execute`, the last forwarder in aragonos `forward`, the DAO in aragonosx `propose`, the governor's timelock (or the governor) in `governor:propose`/`queue`/`execute`/`cancel` and the timelock in `governor:timelock-schedule`/`timelock-execute`. `batch` stamps it as the batch sender. `@me` never changes meaning.
+
 ### Named arguments and records
 
 - Helper calls accept named arguments: `@helper(val opt:3)` fills the `opt` argument by name, after any positional args and in any order. Optional args become skippable (`@http:fetch($url auth:$token)`), and helpers can declare named-only options (shown as `name:<value>` in their docs).

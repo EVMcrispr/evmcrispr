@@ -28,6 +28,7 @@ import {
   registeredChain,
   resolveChain,
   resolveCommand,
+  sliceNodeText,
 } from "@evmcrispr/sdk";
 import type { Chain, PublicClient, Transport } from "viem";
 import { createPublicClient, http } from "viem";
@@ -604,26 +605,6 @@ function createRecordingBindings(
       return value;
     },
   });
-}
-
-/** Slice a node's exact source text using its `loc` (line/col based). */
-function sliceNodeText(
-  scriptLines: string[],
-  node: CommandExpressionNode,
-): string | undefined {
-  const loc = node.loc;
-  if (!loc) return undefined;
-  const { start, end } = loc;
-  if (start.line === end.line) {
-    return scriptLines[start.line - 1]?.slice(start.col, end.col);
-  }
-  const parts: string[] = [];
-  parts.push(scriptLines[start.line - 1]?.slice(start.col) ?? "");
-  for (let l = start.line + 1; l < end.line; l++) {
-    parts.push(scriptLines[l - 1] ?? "");
-  }
-  parts.push(scriptLines[end.line - 1]?.slice(0, end.col) ?? "");
-  return parts.join("\n");
 }
 
 // ---------------------------------------------------------------------------

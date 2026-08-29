@@ -21,7 +21,7 @@ ens:renew <domains> <duration>
 
 ## Examples
 
-```
+```evml
 load ens
 
 # Renew a single domain for one year

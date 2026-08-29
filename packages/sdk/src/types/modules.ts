@@ -22,7 +22,7 @@ import type { CompletionOverrides } from "./completions";
  *  the effect it would have had here; readers of the same off-chain source
  *  consult the store before the network, so later commands and helpers in
  *  the simulation observe it. Keys follow `<module>:<resource>:<id>`
- *  (`giveth:boostings:<userId>`, `gelato:function-schema:<cid>`). The store
+ *  (`giveth:boostings:<userId>`). The store
  *  lives for one run and `sim:fork` clears it when its block ends, so a
  *  simulated effect never reaches a live command. */
 export interface OffchainOverlay {
@@ -51,6 +51,10 @@ export interface ModuleContext {
   getChain(): Promise<Chain | undefined>;
   switchChainId(chainId: number): PublicClient;
   getConnectedAccount(retreiveInjected?: boolean): Promise<Address>;
+  /** The account the current calls are sent from: the connected account,
+   *  or the one an enclosing block executes as (a Safe, a forwarder, a
+   *  DAO). What `@sender` resolves to. */
+  getSender(): Promise<Address>;
 
   /** Get a Transport for the given chain, using configured RPC endpoints. */
   getTransport(chainId: number): Transport;
@@ -58,6 +62,9 @@ export interface ModuleContext {
   // Mutation helpers used by fork / sim commands
   setClient(client: PublicClient): void;
   setConnectedAccount(account: Address | undefined): void;
+  /** Set (or clear, with undefined) the account the current calls are sent
+   *  from; block commands that execute as another account use it. */
+  setSender(sender: Address | undefined): void;
 
   // Logging
   log(message: string): void;
@@ -75,6 +82,12 @@ export interface ModuleContext {
   /** Parse EVML source into an AST. Provided by the runtime; used by
    *  `load --from` to parse external module files. */
   parseEvml(script: string): { ast: AST; errors: string[] };
+
+  /** The full source text of the script being interpreted, or undefined
+   *  when none is running. Node locations are absolute over it, so
+   *  `sliceNodeText` recovers any node's verbatim text (comments and
+   *  all) for commands that ship a block's source elsewhere. */
+  getSource(): string | undefined;
 
   /** The std module instance, when the host runtime provides one (the
    *  execution interpreter does; analysis surfaces need not). Lets the

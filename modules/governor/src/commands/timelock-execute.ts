@@ -33,9 +33,12 @@ export default defineCommand<Governor>({
       description: "Salt used when scheduling (default zero)",
     },
   ],
-  async run(_module, { timelock, actions }, { opts, interpreters }) {
+  async run(module, { timelock, actions }, { opts, interpreters }) {
     const { targets, values, calldatas, totalValue } =
-      await collectBlockActions("timelock-execute", actions, interpreters);
+      await collectBlockActions("timelock-execute", actions, interpreters, {
+        module,
+        sender: timelock,
+      });
 
     const action = encodeAction(
       timelock,

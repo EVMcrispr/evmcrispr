@@ -1,5 +1,10 @@
-import type { Action, NodesInterpreters } from "@evmcrispr/sdk";
-import { ErrorException, isTransactionAction, Num } from "@evmcrispr/sdk";
+import type { Action, Module, NodesInterpreters } from "@evmcrispr/sdk";
+import {
+  ErrorException,
+  isTransactionAction,
+  Num,
+  withSender,
+} from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import { encodeAbiParameters, keccak256, parseAbi, toHex } from "viem";
 
@@ -7,7 +12,26 @@ export const governorAbi = parseAbi([
   "function state(uint256 proposalId) view returns (uint8)",
   "function getProposalId(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) view returns (uint256)",
   "function hashProposal(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) view returns (uint256)",
+  "function timelock() view returns (address)",
 ]);
+
+/** The account a governor's proposals execute from: its timelock when it
+ *  has one (GovernorTimelockControl), else the governor itself. */
+export async function governorExecutor(
+  module: Module,
+  governor: Address,
+): Promise<Address> {
+  const client = await module.getClient();
+  try {
+    return await client.readContract({
+      address: governor,
+      abi: governorAbi,
+      functionName: "timelock",
+    });
+  } catch {
+    return governor;
+  }
+}
 
 export const timelockAbi = parseAbi([
   "function getTimestamp(bytes32 id) view returns (uint256)",
@@ -97,10 +121,16 @@ export async function collectBlockActions(
   commandName: string,
   block: any,
   interpreters: NodesInterpreters,
+  /** Who the block's calls execute from (`@sender` inside it). */
+  as?: { module: Module; sender: Address },
 ): Promise<BlockActions> {
-  const blockActions = (await interpreters.interpretNode(block, {
-    batchContext: { name: `governor:${commandName}`, hasActions: false },
-  })) as Action[];
+  const interpret = () =>
+    interpreters.interpretNode(block, {
+      batchContext: { name: `governor:${commandName}`, hasActions: false },
+    }) as Promise<Action[]>;
+  const blockActions = as
+    ? await withSender(as.module, as.sender, interpret)
+    : await interpret();
 
   if (blockActions.find((a) => !isTransactionAction(a))) {
     throw new ErrorException(

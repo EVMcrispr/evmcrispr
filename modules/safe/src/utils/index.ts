@@ -5,7 +5,7 @@ import type {
   NodesInterpreters,
   TransactionAction,
 } from "@evmcrispr/sdk";
-import { Num } from "@evmcrispr/sdk";
+import { Num, withSender } from "@evmcrispr/sdk";
 import type Safe from "..";
 import { assertAllTransactionActions } from "./safeTx";
 
@@ -37,21 +37,24 @@ export const interpretSafeBlock = async (
   let actions: Action[];
   let pushed = false;
   try {
-    actions = (await interpreters.interpretNode(block, {
-      // Safe commands work unprefixed inside the block (like aragonos
-      // connect); std commands (`exec`, `batch`, …) resolve via the usual
-      // std fallback since no safe command shadows them.
-      blockInitializer: async () => {
-        module.pushSafe(safe);
-        pushed = true;
-      },
-      // Inherit hasActions from any enclosing batch context: reads inside
-      // this block can't see the outer batch's actions either.
-      batchContext: {
-        name: commandName,
-        hasActions: interpreters.batchContext?.hasActions ?? false,
-      },
-    })) as Action[];
+    // The block's calls execute from the Safe: `@sender` is the Safe.
+    actions = (await withSender(module, safe, () =>
+      interpreters.interpretNode(block, {
+        // Safe commands work unprefixed inside the block (like aragonos
+        // connect); std commands (`exec`, `batch`, …) resolve via the usual
+        // std fallback since no safe command shadows them.
+        blockInitializer: async () => {
+          module.pushSafe(safe);
+          pushed = true;
+        },
+        // Inherit hasActions from any enclosing batch context: reads inside
+        // this block can't see the outer batch's actions either.
+        batchContext: {
+          name: commandName,
+          hasActions: interpreters.batchContext?.hasActions ?? false,
+        },
+      }),
+    )) as Action[];
   } finally {
     if (pushed) module.popSafe();
   }
