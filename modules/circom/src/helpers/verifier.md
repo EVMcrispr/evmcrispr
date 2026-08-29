@@ -51,7 +51,7 @@ match.
 
 ## Examples
 
-```
+```evml
 load circom
 load contracts
 

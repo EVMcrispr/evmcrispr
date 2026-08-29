@@ -24,7 +24,7 @@ semaphore:add-member <commitment> <to> <group>
 
 ## Examples
 
-```
+```evml novalidate
 load semaphore
 semaphore:add-member $commitment to $group
 

@@ -36,7 +36,7 @@ semaphore:create-group <variable>
 
 ## Examples
 
-```
+```evml novalidate
 load semaphore
 semaphore:create-group $group
 semaphore:add-member $membercommitment to $group

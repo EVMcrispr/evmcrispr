@@ -24,7 +24,7 @@ Project the proof JSON bound by noir:prove into the argument tuple of its Solidi
 
 ## Examples
 
-```
+```evml novalidate
 set $src <<<NOIR
 fn main(x: Field, y: pub Field) {
     assert(x != y);

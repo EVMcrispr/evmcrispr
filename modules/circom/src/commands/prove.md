@@ -32,7 +32,7 @@ circom:prove <variable>
 
 ## Examples
 
-```
+```evml novalidate
 load circom
 
 # From pre-built artifacts (production workflow — zkey from a real ceremony)

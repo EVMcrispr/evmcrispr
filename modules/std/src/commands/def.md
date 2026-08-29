@@ -59,7 +59,7 @@ maybe-print 5
 
 ## Syntax
 
-```
+```evml
 # Define a constant helper
 def @name "type" <value>
 

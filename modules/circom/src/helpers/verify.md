@@ -25,7 +25,7 @@ Verify a proof off-chain against a verification key (groth16, plonk or fflonk au
 
 ## Examples
 
-```
+```evml novalidate
 load circom
 circom:prove $proof --circom $src --ptau dev --system plonk --inputs [a:3 b:11]
 set $vkey @circom:vkey($src ptau:dev system:plonk)
