@@ -10,7 +10,7 @@ import {
 export default defineCommand<Eez>({
   name: "call",
   description:
-    "Call a contract on another EEZ rollup synchronously from the current chain, through its cross-chain proxy: the call executes on the other side atomically with this transaction. Creates the proxy first if it does not exist yet, and submits the call through the EEZ cross-chain ingress.",
+    "Call a contract on another EEZ rollup synchronously from the current chain, through its cross-chain proxy: the call executes on the other side atomically with this transaction. Creates the proxy first if it does not exist yet and estimates the gas the composed call needs.",
   args: [
     {
       name: "target",
@@ -65,7 +65,6 @@ export default defineCommand<Eez>({
     const call = encodeAction(proxy, signature, params);
     if (opts.value !== undefined) call.value = BigInt(opts.value);
     if (opts.from) call.from = opts.from;
-    if (config.front) call.rpcUrl = config.front;
     call.gas =
       opts.gas !== undefined
         ? BigInt(opts.gas)

@@ -15,12 +15,6 @@ export const configs: ConfigDef[] = [
       "EEZ rollup id of the current chain (0 for L1). Known for the EEZ devnet chains.",
   },
   {
-    name: "front",
-    type: "string",
-    description:
-      "Cross-chain ingress URL that cross-chain transactions from the current chain are submitted to. Known for the EEZ devnet chains.",
-  },
-  {
     name: "faucetKey",
     type: "bytes32",
     description:

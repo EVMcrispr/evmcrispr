@@ -25,7 +25,6 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { chains } from "../src/chains";
-import { EEZ_CHAINS } from "../src/constants";
 
 export const L1_ID = 7331;
 export const L2_ID = 6290;
@@ -36,7 +35,6 @@ const url = (id: number) =>
 
 export const L1_RPC = url(L1_ID);
 export const L2_RPC = url(L2_ID);
-export const L1_FRONT = process.env.EEZ_L1_FRONT ?? EEZ_CHAINS[L1_ID].front;
 
 export const l1Chain = toViemChain({ ...chains[0], rpcUrl: L1_RPC });
 export const l2Chain = toViemChain({ ...chains[1], rpcUrl: L2_RPC });

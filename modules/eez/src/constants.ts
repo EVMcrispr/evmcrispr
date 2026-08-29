@@ -13,8 +13,6 @@ export interface EezChainInfo {
   peerRollupId: bigint;
   /** Chain id of that other side, for messages. */
   peerChainId: number;
-  /** Cross-chain ingress for transactions leaving this chain. */
-  front: string;
   /** Private key of an account pre-funded on this (throwaway) devnet,
    *  used by `eez:faucet`. Never a secret: it is a public hardhat key. */
   faucetKey?: `0x${string}`;
@@ -31,7 +29,6 @@ export const EEZ_CHAINS: Record<number, EezChainInfo> = {
     rollupId: 0n,
     peerRollupId: 1n,
     peerChainId: 6290,
-    front: "http://65.109.26.16:18999",
     faucetKey: DEVNET_FAUCET_KEY,
   },
   6290: {
@@ -39,7 +36,6 @@ export const EEZ_CHAINS: Record<number, EezChainInfo> = {
     rollupId: 1n,
     peerRollupId: 0n,
     peerChainId: 7331,
-    front: "http://65.109.26.16:18998",
     faucetKey: DEVNET_FAUCET_KEY,
   },
 };

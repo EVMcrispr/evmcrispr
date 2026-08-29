@@ -7,7 +7,7 @@ import { EEZ_CHAINS } from "../../../src/constants";
 import { devnet, ensureFunded, L1_ID, l1, l1Wallet } from "../../devnet";
 
 const valueAbi = parseAbi(["function setValue(uint256 v)"]);
-const { registry, front } = EEZ_CHAINS[L1_ID];
+const { registry } = EEZ_CHAINS[L1_ID];
 const fresh: `0x${string}` = `0x${toHex(BigInt(Date.now()) + 1n, { size: 20 }).slice(2)}`;
 /** Stable target whose proxy the setup below makes sure exists. */
 const KNOWN = "0x000000000000000000000000000000000000bEEF";
@@ -35,7 +35,7 @@ describeCommand("call", {
         expect(isAddressEqual(create.to, registry)).to.be.true;
         expect(create.rpcUrl).to.be.undefined;
         expect(isAddressEqual(call.to, await proxyOf(fresh))).to.be.true;
-        expect(call.rpcUrl).to.equal(front);
+        expect(call.rpcUrl).to.be.undefined;
         // Estimated for the caller: nothing at `fresh` on the rollup, so
         // the remote simulation is a plain call and the floor applies.
         expect(call.gas).to.be.a("bigint");
@@ -67,7 +67,7 @@ describeCommand("call", {
         expect(isAddressEqual(call.to, await proxyOf(KNOWN))).to.be.true;
         expect(call.value).to.equal(1n);
         expect(call.gas).to.equal(700000n);
-        expect(call.rpcUrl).to.equal(front);
+        expect(call.rpcUrl).to.be.undefined;
       },
     },
   ],

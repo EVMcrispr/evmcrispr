@@ -25,7 +25,7 @@ Evaluate an expression as if the script were on another chain, and return its va
 
 ```evml
 # From L1, read the connected account's balance on the rollup
-print @eez:on(6290 @balance(ETH @me))
+print @eez:on(eezL2 @balance(ETH @me))
 ```
 
 <!-- HAND-WRITTEN -->

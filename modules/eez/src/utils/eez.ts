@@ -33,7 +33,6 @@ export interface EezConfig {
   rollupId: bigint;
   peerRollupId: bigint;
   peerChainId?: number;
-  front?: string;
 }
 
 function configAddress(value: unknown): Address | undefined {
@@ -62,11 +61,9 @@ export async function eezConfig(module: Eez): Promise<EezConfig> {
     configAddress(module.getConfigBinding("registry")) ?? builtin?.registry;
   const rollupId =
     configBigint(module.getConfigBinding("rollupId")) ?? builtin?.rollupId;
-  const frontValue = module.getConfigBinding("front");
-  const front = frontValue ? String(frontValue) : builtin?.front;
   if (!registry || rollupId === undefined) {
     throw new ErrorException(
-      `${chainLabel(chainId)} is not a known EEZ chain — set $eez:registry, $eez:rollupId and $eez:front to use it`,
+      `${chainLabel(chainId)} is not a known EEZ chain — set $eez:registry and $eez:rollupId to use it`,
     );
   }
   const peerRollupId =
@@ -79,7 +76,6 @@ export async function eezConfig(module: Eez): Promise<EezConfig> {
     rollupId,
     peerRollupId,
     peerChainId: builtin?.peerChainId,
-    front,
   };
 }
 
@@ -145,7 +141,7 @@ export function remoteLabel(config: EezConfig, rollupId: bigint): string {
 const CROSS_CHAIN_OVERHEAD = 250_000n;
 /** Floor / ceiling-fallback when the far side can't be simulated. */
 const CROSS_CHAIN_MIN_GAS = 300_000n;
-const CROSS_CHAIN_FALLBACK_GAS = 700_000n;
+export const CROSS_CHAIN_FALLBACK_GAS = 700_000n;
 
 /**
  * Gas limit for a cross-chain call. Neither the execution RPC nor the

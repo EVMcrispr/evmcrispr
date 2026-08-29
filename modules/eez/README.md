@@ -16,23 +16,22 @@ Config variables are set with `set` (fully qualified, including the module prefi
 |----------|------|---------|-------------|
 | `$eez:registry` | `address` | — | EEZ registry on the current chain: the L1 `EEZ` contract or the rollup's `EEZL2` predeploy. Known for the EEZ devnet chains; set it to use another deployment (e.g. a local enclave). |
 | `$eez:rollupId` | `number` | — | EEZ rollup id of the current chain (0 for L1). Known for the EEZ devnet chains. |
-| `$eez:front` | `string` | — | Cross-chain ingress URL that cross-chain transactions from the current chain are submitted to. Known for the EEZ devnet chains. |
 | `$eez:faucetKey` | `bytes32` | — | Private key of a funded account that `eez:faucet` sends from. Known for the EEZ devnet chains (a public hardhat key); set it for another devnet. |
 
 ## Chains
 
 Networks this module ships. They are available to `switch` as soon as the module is registered, with the RPC below unless the host overrides it.
 
-| Chain | Id | RPC | Explorer |
-|-------|----|-----|----------|
-| EEZ Devnet L1 (testnet) | `7331` | <http://91.134.73.215:8545> | <http://91.134.73.215:4000> |
-| EEZ Devnet L2 (testnet) | `6290` | <http://65.109.26.16:18688> | <http://65.109.26.16:8088> |
+| Chain | Key | Id | RPC | Explorer |
+|-------|-----|----|-----|----------|
+| EEZ L1 (testnet) | `eezL1` | `7331` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL1> | <http://91.134.73.215:4000> |
+| EEZ L2 (testnet) | `eezL2` | `6290` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL2> | <http://65.109.26.16:8088> |
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| [eez:call](src/commands/call.md) | Call a contract on another EEZ rollup synchronously from the current chain, through its cross-chain proxy: the call executes on the other side atomically with this transaction. Creates the proxy first if it does not exist yet, and submits the call through the EEZ cross-chain ingress. |
+| [eez:call](src/commands/call.md) | Call a contract on another EEZ rollup synchronously from the current chain, through its cross-chain proxy: the call executes on the other side atomically with this transaction. Creates the proxy first if it does not exist yet and estimates the gas the composed call needs. |
 | [eez:faucet](src/commands/faucet.md) | Send devnet ETH to an account from the EEZ devnet's pre-funded faucet key, so a fresh wallet can pay for gas. The faucet signs the transfer itself; nothing is asked of the connected wallet. |
 | [eez:proxy](src/commands/proxy.md) | Create the cross-chain proxy on the current chain for a contract on another EEZ rollup. Does nothing if it already exists. |
 

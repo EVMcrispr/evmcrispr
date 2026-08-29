@@ -17,7 +17,6 @@ const l1 = {
   rollupId: 0n,
   peerRollupId: 1n,
   peerChainId: 6290,
-  front: EEZ_CHAINS[7331].front,
 };
 
 describe("eez utils", () => {

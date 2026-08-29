@@ -18,7 +18,7 @@ describeHelper(
   {
     module: "eez",
     skip: !devnet,
-    preamble: `switch ${L1_ID}`,
+    preamble: "switch eezL1",
     cases: [
       {
         name: "reads a balance on the other chain",
@@ -60,8 +60,8 @@ describeHelper(
       {
         description:
           "From L1, read the connected account's balance on the rollup",
-        code: "print @eez:on(6290 @balance(ETH @me))",
-        preamble: "load eez\nswitch 7331",
+        code: "print @eez:on(eezL2 @balance(ETH @me))",
+        preamble: "load eez\nswitch eezL1",
       },
     ],
   },

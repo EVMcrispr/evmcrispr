@@ -22,7 +22,7 @@ describeHelper(
   {
     module: "eez",
     skip: !devnet,
-    preamble: `switch ${L1_ID}`,
+    preamble: "switch eezL1",
     cases: [
       {
         name: "defaults to the rollup when called from L1",
