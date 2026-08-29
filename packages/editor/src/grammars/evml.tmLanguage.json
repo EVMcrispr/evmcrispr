@@ -23,9 +23,6 @@
       "include": "#heredoc-noir"
     },
     {
-      "include": "#heredoc-evml"
-    },
-    {
       "include": "#heredoc"
     },
     {
@@ -261,26 +258,6 @@
       "patterns": [
         {
           "include": "source.noir"
-        }
-      ]
-    },
-    "heredoc-evml": {
-      "begin": "<<<(EVML)\\b[ \\t]*$",
-      "beginCaptures": {
-        "0": {
-          "name": "punctuation.definition.heredoc.begin.evml"
-        }
-      },
-      "end": "^(EVML)\\b",
-      "endCaptures": {
-        "0": {
-          "name": "punctuation.definition.heredoc.end.evml"
-        }
-      },
-      "contentName": "meta.embedded.block.evml",
-      "patterns": [
-        {
-          "include": "$self"
         }
       ]
     }

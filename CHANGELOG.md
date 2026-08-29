@@ -4,14 +4,7 @@
 
 ### `@sender`: who the calls come from
 
-- New std helper `@sender`: the account the current calls are sent from. It is `@me` (the connected wallet) at the top level and, inside a block that executes as another account, that account: the Safe in `safe:propose`/`safe:execute`, the last forwarder in aragonos `forward`, the DAO in aragonosx `propose`, the governor's timelock (or the governor) in `governor:propose`/`queue`/`execute`/`cancel`, the timelock in `governor:timelock-schedule`/`timelock-execute`, and the dedicated msg.sender in `gelato:automate` blocks and `gelato:schedule` scripts. `batch` stamps it as the batch sender. `@me` never changes meaning.
-
-### Gelato: EVML scripts as Web3 Functions
-
-- `gelato:schedule` runs an EVML script (a `<<<EVML` heredoc) off-chain on every trigger through the EVML runner — a generic Web3 Function published once per release and pinned in the module — and executes the calls it produces from your dedicated msg.sender. A script that exits or produces no calls skips that execution; `--rpc` reads the chain through your own endpoint, outside Gelato's provider quota. `--function <cid> --args …` runs a Web3 Function of your own (deployed with `npx w3f deploy`) instead.
-- `gelato:automate` takes a block instead of a `target signature(params)` call: the block is interpreted at creation time with `@me` as the dedicated msg.sender and its calls are frozen into the task; several calls execute atomically through the proxy's `batchExecuteCall`.
-- `gelato:simulate-task` interprets `gelato:schedule` tasks locally, as the runner would, and executes what they produce against the fork.
-- Removed `gelato:publish-function` and the in-terminal TypeScript bundling it needed (esbuild-wasm, the npm lock); `--function`/`--args` moved from `gelato:automate` to `gelato:schedule`.
+- New std helper `@sender`: the account the current calls are sent from. It is `@me` (the connected wallet) at the top level and, inside a block that executes as another account, that account: the Safe in `safe:propose`/`safe:execute`, the last forwarder in aragonos `forward`, the DAO in aragonosx `propose`, the governor's timelock (or the governor) in `governor:propose`/`queue`/`execute`/`cancel` and the timelock in `governor:timelock-schedule`/`timelock-execute`. `batch` stamps it as the batch sender. `@me` never changes meaning.
 
 ### Named arguments and records
 

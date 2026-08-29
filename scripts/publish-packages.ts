@@ -79,17 +79,6 @@ for (const pkg of order) {
     skipped++;
     continue;
   }
-  if (pkg.name === "@evmcrispr/module-gelato") {
-    // The EVML runner Web3 Function is published per release and its CID
-    // pinned in the package: a gelato release must carry a runner built
-    // from the same version (`bun run publish-runner` in modules/gelato).
-    const published = await import(join(pkg.dir, "src/runner/published.ts"));
-    if (published.RUNNER_VERSION !== pkg.version || !published.RUNNER_CID) {
-      throw new Error(
-        `${spec} pins an EVML runner from ${published.RUNNER_VERSION || "no release"}: run \`bun run publish-runner\` in modules/gelato and commit src/runner/published.ts first`,
-      );
-    }
-  }
   console.log(`publish: ${spec}`);
   const flags = ["--access", "public", ...(dryRun ? ["--dry-run"] : [])];
   let alreadyPublished = false;

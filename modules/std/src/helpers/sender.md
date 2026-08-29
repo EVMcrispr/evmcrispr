@@ -2,7 +2,7 @@
 title: "@sender"
 ---
 
-The account the current calls are sent from: the connected wallet (@me), or, inside a block that executes as another account, that account — the Safe in safe:propose and safe:execute, the last forwarder in aragonos forward, the DAO in aragonosx propose and act, the governor's executor (its timelock, else itself) in governor proposals and the timelock in timelock-schedule, the dedicated msg.sender in gelato:automate and gelato:schedule.
+The account the current calls are sent from: the connected wallet (@me), or, inside a block that executes as another account, that account — the Safe in safe:propose and safe:execute, the last forwarder in aragonos forward, the DAO in aragonosx propose and act, the governor's executor (its timelock, else itself) in governor proposals and the timelock in timelock-schedule.
 
 **Returns**: `address`
 
@@ -15,7 +15,7 @@ The account the current calls are sent from: the connected wallet (@me), or, ins
 ## Examples
 
 ```evml
-# Approve the account the calls come from: your wallet here, the Safe inside safe:propose, the dedicated msg.sender inside gelato:automate
+# Approve the account the calls come from: your wallet here, the Safe inside safe:propose
 exec @token(DAI) "approve(address,uint256)" @sender 100e18
 ```
 

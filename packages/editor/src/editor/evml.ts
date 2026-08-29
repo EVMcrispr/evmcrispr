@@ -140,18 +140,6 @@ export const createLanguage: (
       },
     ],
 
-    evmlHeredoc: [
-      {
-        regex: /^EVML\b/,
-        action: {
-          token: "string.heredoc.delimiter",
-          next: "@pop",
-          nextEmbedded: "@pop",
-        },
-      },
-    ],
-
-
     heredoc: [
       {
         regex: /^([A-Z][A-Z0-9]*)\b/,
@@ -203,17 +191,6 @@ export const createLanguage: (
           token: "string.heredoc.delimiter",
           next: "@noirHeredoc",
           nextEmbedded: "noir",
-        },
-      },
-      {
-        // <<<EVML carries the script a gelato:schedule task re-interprets
-        // on every trigger: EVML embedded in EVML, tokenized by this same
-        // language.
-        regex: /<<<EVML\b[ \t]*$/,
-        action: {
-          token: "string.heredoc.delimiter",
-          next: "@evmlHeredoc",
-          nextEmbedded: "evml",
         },
       },
       {

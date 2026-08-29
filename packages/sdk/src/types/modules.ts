@@ -22,7 +22,7 @@ import type { CompletionOverrides } from "./completions";
  *  the effect it would have had here; readers of the same off-chain source
  *  consult the store before the network, so later commands and helpers in
  *  the simulation observe it. Keys follow `<module>:<resource>:<id>`
- *  (`giveth:boostings:<userId>`, `gelato:function-schema:<cid>`). The store
+ *  (`giveth:boostings:<userId>`). The store
  *  lives for one run and `sim:fork` clears it when its block ends, so a
  *  simulated effect never reaches a live command. */
 export interface OffchainOverlay {
@@ -53,7 +53,7 @@ export interface ModuleContext {
   getConnectedAccount(retreiveInjected?: boolean): Promise<Address>;
   /** The account the current calls are sent from: the connected account,
    *  or the one an enclosing block executes as (a Safe, a forwarder, a
-   *  DAO, a Gelato dedicated msg.sender). What `@sender` resolves to. */
+   *  DAO). What `@sender` resolves to. */
   getSender(): Promise<Address>;
 
   /** Get a Transport for the given chain, using configured RPC endpoints. */

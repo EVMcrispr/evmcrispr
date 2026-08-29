@@ -16,7 +16,7 @@ describeHelper(
     docCases: [
       {
         description:
-          "Approve the account the calls come from: your wallet here, the Safe inside safe:propose, the dedicated msg.sender inside gelato:automate",
+          "Approve the account the calls come from: your wallet here, the Safe inside safe:propose",
         code: `exec @token(DAI) "approve(address,uint256)" @sender 100e18`,
       },
     ],

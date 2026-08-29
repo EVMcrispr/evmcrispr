@@ -65,12 +65,10 @@ export function heredocPlugin() {
       .heredoc-circom { --heredoc-color: #c586c0; }
       .heredoc-noir { --heredoc-color: #3dc9b0; }
       .heredoc-json { --heredoc-color: #dcdcaa; }
-      .heredoc-evml { --heredoc-color: #0fff50; }
       :root[data-theme='light'] & .heredoc-sol { --heredoc-color: #2f6fb5; }
       :root[data-theme='light'] & .heredoc-circom { --heredoc-color: #9b4f9a; }
       :root[data-theme='light'] & .heredoc-noir { --heredoc-color: #1f8f7d; }
       :root[data-theme='light'] & .heredoc-json { --heredoc-color: #8a7a1c; }
-      :root[data-theme='light'] & .heredoc-evml { --heredoc-color: #0a8f34; }
       .heredoc-fence { color: var(--heredoc-color) !important; }
       .heredoc-block {
         position: relative;

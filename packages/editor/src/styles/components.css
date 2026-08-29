@@ -63,7 +63,6 @@
 .evmcrispr-root .heredoc-circom,
 .evmcrispr-root .heredoc-noir,
 .evmcrispr-root .heredoc-json,
-.evmcrispr-root .heredoc-evml,
 .evmcrispr-root .heredoc-other {
   --heredoc-tint: color-mix(in srgb, var(--heredoc-color) 7%, transparent);
 }
@@ -81,9 +80,6 @@
 }
 .evmcrispr-root .heredoc-json {
   --heredoc-color: #dcdcaa;
-}
-.evmcrispr-root .heredoc-evml {
-  --heredoc-color: #0fff50;
 }
 /* Must beat Monaco's `.mtk*` token color and Shiki's inline
    `style="color:…"`. */

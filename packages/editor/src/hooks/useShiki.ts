@@ -18,7 +18,7 @@ function getHighlighter() {
       // solidity/json/circom/noir back the embedded `<<<SOL`/`<<<JSON`/
       // `<<<CIRCOM`/`<<<NOIR` heredoc blocks (their source.* scopes are
       // included from the evml grammar; circom and noir are our own
-      // grammar files). `<<<EVML` blocks include the evml grammar itself.
+      // grammar files).
       langs: [
         ...solidityGrammar,
         ...jsonGrammar,

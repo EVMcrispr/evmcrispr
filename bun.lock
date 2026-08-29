@@ -14,7 +14,6 @@
         "@evmcrispr/module-contracts": "workspace:*",
         "@evmcrispr/module-crypto": "workspace:*",
         "@evmcrispr/module-ens": "workspace:*",
-        "@evmcrispr/module-gelato": "workspace:*",
         "@evmcrispr/module-giveth": "workspace:*",
         "@evmcrispr/module-governor": "workspace:*",
         "@evmcrispr/module-http": "workspace:*",
@@ -32,7 +31,6 @@
         "@evmcrispr/module-swaps": "workspace:*",
         "@evmcrispr/module-token": "workspace:*",
         "@evmcrispr/module-vault": "workspace:*",
-        "@evmcrispr/modules": "workspace:*",
         "@evmcrispr/sdk": "workspace:*",
         "viem": "^2.46.3",
       },
@@ -253,20 +251,6 @@
       },
       "devDependencies": {
         "@evmcrispr/module-std": "workspace:*",
-        "@evmcrispr/test-utils": "workspace:*",
-      },
-      "peerDependencies": {
-        "viem": "^2.54.1",
-      },
-    },
-    "modules/gelato": {
-      "name": "@evmcrispr/module-gelato",
-      "version": "0.11.1",
-      "dependencies": {
-        "@evmcrispr/module-std": "workspace:^",
-        "@evmcrispr/sdk": "workspace:^",
-      },
-      "devDependencies": {
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -626,7 +610,6 @@
         "@evmcrispr/module-contracts": "workspace:^",
         "@evmcrispr/module-crypto": "workspace:^",
         "@evmcrispr/module-ens": "workspace:^",
-        "@evmcrispr/module-gelato": "workspace:^",
         "@evmcrispr/module-giveth": "workspace:^",
         "@evmcrispr/module-governor": "workspace:^",
         "@evmcrispr/module-http": "workspace:^",
@@ -991,8 +974,6 @@
     "@evmcrispr/module-crypto": ["@evmcrispr/module-crypto@workspace:modules/crypto"],
 
     "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
-
-    "@evmcrispr/module-gelato": ["@evmcrispr/module-gelato@workspace:modules/gelato"],
 
     "@evmcrispr/module-giveth": ["@evmcrispr/module-giveth@workspace:modules/giveth"],
 
