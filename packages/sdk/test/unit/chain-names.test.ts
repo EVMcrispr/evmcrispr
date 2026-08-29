@@ -26,8 +26,10 @@ describe("chain names", () => {
     expect(chainNameForId(7654321)).toBe("unitL1");
     expect(resolveChainId("unitL1")).toBe(7654321);
     expect(() => chainArgType.validate?.("chain", "unitL1")).not.toThrow();
-    expect(chainNames()[0]).toBe("unitL1");
-    expect(chainNames()).toContain("gnosis");
+    // Declared keys come before every viem name (other suites in this
+    // process may have declared chains too, so not necessarily first).
+    const names = chainNames();
+    expect(names.indexOf("unitL1")).toBeLessThan(names.indexOf("gnosis"));
   });
 
   it("still rejects unknown names", () => {
