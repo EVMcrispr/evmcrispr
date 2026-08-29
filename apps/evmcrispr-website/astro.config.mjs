@@ -22,6 +22,7 @@ import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import circomGrammar from "@evmcrispr/editor/grammars/circom";
 import evmlGrammar from "@evmcrispr/editor/grammars/evml";
+import solidityGrammar from "@evmcrispr/editor/grammars/solidity";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
@@ -351,9 +352,11 @@ export default defineConfig({
       },
       customCss: ["/src/styles/starlight-theme.css"],
       expressiveCode: {
-        // expressiveCode's bundled shiki knows source.solidity/json but not
-        // circom — the <<<CIRCOM heredoc grammar must be supplied explicitly.
-        shiki: { langs: [evmlGrammar, circomGrammar] },
+        // Grammars embedded by EVML heredocs must be registered explicitly:
+        // shiki only loads a bundled language when a code fence names it,
+        // so `<<<SOL` would otherwise fall back to a plain string, and
+        // circom is not bundled at all.
+        shiki: { langs: [evmlGrammar, circomGrammar, ...solidityGrammar] },
       },
       favicon: "/favicon.ico",
       head: [
@@ -408,6 +411,7 @@ export default defineConfig({
             docItem("Sharing Scripts", "guides/sharing-scripts"),
             docItem("Publishing Modules", "guides/publishing-modules"),
             docItem("MCP Server", "guides/mcp"),
+            docItem("EEZ Showcase", "guides/eez-showcase"),
           ].filter(Boolean),
         },
         {

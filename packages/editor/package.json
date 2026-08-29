@@ -33,6 +33,7 @@
     "./grammars/circom": "./src/grammars/circom.tmLanguage.json",
     "./grammars/evml": "./src/grammars/evml.tmLanguage.json",
     "./grammars/noir": "./src/grammars/noir.tmLanguage.json",
+    "./grammars/solidity": "./src/grammars/solidity.ts",
     "./package.json": "./package.json"
   },
   "dependencies": {
