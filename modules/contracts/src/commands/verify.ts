@@ -6,10 +6,13 @@ import {
   encodeConstructorParams,
   fetchVerifiedContractFull,
   readEtherscanApiKey,
+  registeredChain,
   resolveChainId,
 } from "@evmcrispr/sdk";
 import { getAddress, isAddressEqual } from "viem";
 import type Contracts from "..";
+import { buildCompileOptions } from "../utils/solc";
+import { compileCached } from "../utils/solcLoader";
 import {
   compileStandardJson,
   matchesDeployedBytecode,
@@ -18,6 +21,69 @@ import {
 } from "../utils/verification";
 
 const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
+
+/**
+ * Where a chain's verification requests go. Chains viem knows use
+ * Etherscan's multi-chain v2 API (key required); a chain some module
+ * declared (`ChainDef`) uses its own explorer's Etherscan-compatible API
+ * (Blockscout's `<backend>/api`), which needs no key.
+ */
+interface VerifyEndpoint {
+  label: string;
+  submitUrl: URL;
+  statusUrl(guid: string): URL;
+}
+
+function verifyEndpoint(
+  chainId: number,
+  apiKey: string | undefined,
+): VerifyEndpoint {
+  const declared = registeredChain(chainId);
+  const explorerApi =
+    declared?.explorerApiUrl ??
+    (declared?.explorerUrl
+      ? `${declared.explorerUrl.replace(/\/$/, "")}/api`
+      : undefined);
+  if (explorerApi) {
+    const base = (action: string) => {
+      const url = new URL(explorerApi);
+      url.searchParams.set("module", "contract");
+      url.searchParams.set("action", action);
+      return url;
+    };
+    return {
+      label: `${chainLabel(chainId)}'s explorer`,
+      submitUrl: base("verifysourcecode"),
+      statusUrl: (guid) => {
+        const url = base("checkverifystatus");
+        url.searchParams.set("guid", guid);
+        return url;
+      },
+    };
+  }
+  if (!apiKey) {
+    throw new ErrorException(
+      "verify: VITE_ETHERSCAN_API_KEY env var is required",
+    );
+  }
+  const base = (action: string) => {
+    const url = new URL(ETHERSCAN_V2_URL);
+    url.searchParams.set("apikey", apiKey);
+    url.searchParams.set("chainid", String(chainId));
+    url.searchParams.set("module", "contract");
+    url.searchParams.set("action", action);
+    return url;
+  };
+  return {
+    label: "Etherscan",
+    submitUrl: base("verifysourcecode"),
+    statusUrl: (guid) => {
+      const url = base("checkverifystatus");
+      url.searchParams.set("guid", guid);
+      return url;
+    },
+  };
+}
 
 /**
  * SPDX → numeric Etherscan license id mapping.
@@ -177,8 +243,7 @@ async function submitVerification(
 }
 
 async function pollVerification(
-  apiKey: string,
-  chainId: number,
+  endpoint: VerifyEndpoint,
   guid: string,
   timeoutSec: number,
   intervalSec: number,
@@ -187,12 +252,7 @@ async function pollVerification(
   const deadline = Date.now() + timeoutSec * 1000;
 
   while (Date.now() < deadline) {
-    const url = new URL(ETHERSCAN_V2_URL);
-    url.searchParams.set("chainid", String(chainId));
-    url.searchParams.set("module", "contract");
-    url.searchParams.set("action", "checkverifystatus");
-    url.searchParams.set("guid", guid);
-    url.searchParams.set("apikey", apiKey);
+    const url = endpoint.statusUrl(guid);
 
     let json: SubmitVerifyResponse;
     try {
@@ -237,7 +297,7 @@ async function pollVerification(
   }
 
   throw new ErrorException(
-    `verify: timed out after ${timeoutSec}s waiting for Etherscan to finish verification`,
+    `verify: timed out after ${timeoutSec}s waiting for ${endpoint.label} to finish verification`,
   );
 }
 
@@ -270,19 +330,19 @@ export default defineCommand<Contracts>({
       name: "source",
       type: "string",
       description:
-        "Solidity Standard JSON Input text including language, sources, and settings. Required for explicit (non-mirror) mode.",
+        "What was deployed: the Solidity source (inline text or URL, compiled exactly like @contracts:solidity so a preceding deploy's compile is reused) or a solc Standard JSON Input. Required for explicit (non-mirror) mode.",
     },
     {
       name: "contract-name",
       type: "string",
       description:
-        "Qualified contract name `path/File.sol:ContractName`. Required for explicit mode.",
+        "Contract to verify when the source defines several (with Standard JSON: the qualified `path/File.sol:ContractName`, required).",
     },
     {
       name: "compiler",
       type: "string",
       description:
-        "Solidity compiler version, e.g. `0.8.20+commit.a1b79de6`. Required for explicit mode.",
+        "Solidity compiler release, e.g. `0.8.26` (default: from the pragma; with Standard JSON: the long version `0.8.20+commit.a1b79de6`, required).",
     },
     {
       name: "license",
@@ -435,15 +495,43 @@ export default defineCommand<Contracts>({
       const explicitName = opts["contract-name"] as string | undefined;
       const explicitCompiler = opts.compiler as string | undefined;
 
-      if (!explicitSource || !explicitName || !explicitCompiler) {
+      if (!explicitSource) {
         throw new ErrorException(
-          "verify: explicit mode requires --source, --contract-name, and --compiler (or use --mirror-chain / --mirror-address to mirror an existing verification)",
+          "verify: explicit mode requires --source (Solidity text, a URL, or solc Standard JSON), or use --mirror-chain / --mirror-address to mirror an existing verification",
         );
       }
 
-      sourceCode = explicitSource;
-      contractName = explicitName;
-      compilerVersion = normalizeCompilerVersion(explicitCompiler);
+      if (explicitSource.trim().startsWith("{")) {
+        // Standard JSON as produced by @contracts:solidity.standardJson.
+        if (!explicitName || !explicitCompiler) {
+          throw new ErrorException(
+            "verify: a Standard JSON --source also needs --contract-name and --compiler",
+          );
+        }
+        sourceCode = explicitSource;
+        contractName = explicitName;
+        compilerVersion = normalizeCompilerVersion(explicitCompiler);
+      } else {
+        // Plain Solidity (inline or URL): compile it the way @contracts:solidity
+        // does — the cached compile from the deploy step is reused — and
+        // take the exact input, qualified name and compiler it used.
+        const compiled = await compileCached(
+          explicitSource,
+          buildCompileOptions({
+            ...(explicitCompiler ? { version: explicitCompiler } : {}),
+            ...(explicitName ? { contract: explicitName } : {}),
+          }),
+          {
+            log: (m) => module.context.log(m),
+            fetchIpfs: (cidPath) => module.ipfsResolver.text(cidPath),
+          },
+        );
+        sourceCode = compiled.standardJson;
+        contractName = compiled.qualifiedName;
+        compilerVersion = normalizeCompilerVersion(
+          compiled.compilerLongVersion,
+        );
+      }
       licenseId = spdxToLicenseId(opts.license as string | undefined);
     }
 
@@ -493,21 +581,13 @@ export default defineCommand<Contracts>({
       return [];
     }
 
-    if (!apiKey) {
-      throw new ErrorException(
-        "verify: VITE_ETHERSCAN_API_KEY env var is required",
-      );
-    }
-
     // Etherscan V2 requires `apikey`, `chainid`, `module`, and `action`
     // as URL query parameters even for POST. The actual contract payload
     // (sourceCode etc.) is sent as the form body — `sourceCode` would
-    // otherwise blow the URL length limit.
-    const url = new URL(ETHERSCAN_V2_URL);
-    url.searchParams.set("apikey", apiKey);
-    url.searchParams.set("chainid", String(targetChainId));
-    url.searchParams.set("module", "contract");
-    url.searchParams.set("action", "verifysourcecode");
+    // otherwise blow the URL length limit. Blockscout's compatible API
+    // takes the same shape without a key.
+    const endpoint = verifyEndpoint(targetChainId, apiKey);
+    const url = endpoint.submitUrl;
 
     const body = new URLSearchParams();
     body.set("contractaddress", targetAddress);
@@ -522,10 +602,30 @@ export default defineCommand<Contracts>({
     }
 
     module.context.log(
-      `verify: submitting ${targetAddress} on ${chainLabel(targetChainId)} to Etherscan…`,
+      `verify: submitting ${targetAddress} on ${chainLabel(targetChainId)} to ${endpoint.label}…`,
     );
 
-    const submit = await submitVerification(url, body);
+    const timeoutSec = Number(opts.timeout ?? 60);
+    const intervalSec = Number(opts["poll-interval"] ?? 3);
+
+    // A contract deployed moments ago may not be indexed yet: explorers
+    // then answer "not a smart contract" / "unable to locate". Keep
+    // resubmitting within the timeout before giving up.
+    const deadline = Date.now() + timeoutSec * 1000;
+    let submit: SubmitVerifyResponse;
+    for (;;) {
+      submit = await submitVerification(url, body);
+      const lower = (submit.result ?? "").toString().toLowerCase();
+      const notIndexed =
+        submit.status !== "1" &&
+        (lower.includes("not a smart contract") ||
+          lower.includes("unable to locate"));
+      if (!notIndexed || Date.now() >= deadline) break;
+      module.context.log(
+        `verify: ${endpoint.label} has not indexed ${targetAddress} yet — retrying`,
+      );
+      await new Promise((r) => setTimeout(r, intervalSec * 1000));
+    }
 
     // Etherscan replies with `status: "0"` and `result: "Contract source
     // code already verified"` when re-submitting an address that's already
@@ -539,23 +639,15 @@ export default defineCommand<Contracts>({
 
     if (submit.status !== "1" || !submit.result) {
       throw new ErrorException(
-        `verify: Etherscan rejected submission – ${submit.result || submit.message || "unknown error"}`,
+        `verify: ${endpoint.label} rejected submission – ${submit.result || submit.message || "unknown error"}`,
       );
     }
 
     const guid = submit.result;
     module.context.log(`verify: submitted (guid=${guid}); polling status…`);
 
-    const timeoutSec = Number(opts.timeout ?? 60);
-    const intervalSec = Number(opts["poll-interval"] ?? 3);
-
-    await pollVerification(
-      apiKey,
-      targetChainId,
-      guid,
-      timeoutSec,
-      intervalSec,
-      (msg) => module.context.log(`verify: ${msg}`),
+    await pollVerification(endpoint, guid, timeoutSec, intervalSec, (msg) =>
+      module.context.log(`verify: ${msg}`),
     );
 
     return [];

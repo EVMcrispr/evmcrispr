@@ -22,9 +22,9 @@ contracts:verify <address>
 |------|------|-------------|
 | `--mirror-chain` | `chain` | Chain (id or viem name like `optimism`) to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set. |
 | `--mirror-address` | `address` | Existing verified contract to mirror. Defaults to <address> when only --mirror-chain is set. |
-| `--source` | `string` | Solidity Standard JSON Input text including language, sources, and settings. Required for explicit (non-mirror) mode. |
-| `--contract-name` | `string` | Qualified contract name `path/File.sol:ContractName`. Required for explicit mode. |
-| `--compiler` | `string` | Solidity compiler version, e.g. `0.8.20+commit.a1b79de6`. Required for explicit mode. |
+| `--source` | `string` | What was deployed: the Solidity source (inline text or URL, compiled exactly like @contracts:solidity so a preceding deploy's compile is reused) or a solc Standard JSON Input. Required for explicit (non-mirror) mode. |
+| `--contract-name` | `string` | Contract to verify when the source defines several (with Standard JSON: the qualified `path/File.sol:ContractName`, required). |
+| `--compiler` | `string` | Solidity compiler release, e.g. `0.8.26` (default: from the pragma; with Standard JSON: the long version `0.8.20+commit.a1b79de6`, required). |
 | `--license` | `string` | SPDX license identifier (e.g. MIT, Apache-2.0). Defaults to `None` in explicit mode; mirrored in mirror mode. |
 | `--constructor` | `string` | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. |
 | `--constructor-args` | `array` | Constructor arguments as an array literal, e.g. [100e18 @me]. Requires --constructor. |
