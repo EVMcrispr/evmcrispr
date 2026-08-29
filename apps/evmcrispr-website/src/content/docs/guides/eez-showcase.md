@@ -3,9 +3,9 @@ title: EEZ showcase
 ---
 
 
-A walkthrough of what EVMcrispr can do on an EEZ rollup pair: prove
+A walkthrough of what EVMcrispr can do on an EEZ L2 pair: prove
 something in zero knowledge, admit yourself on L1, and let an L1 contract
-mint a badge on the rollup — in one atomic transaction — with every contract
+mint a badge on the L2 — in one atomic transaction — with every contract
 compiled, deployed and verified inline. It runs unchanged as
 `test/integration/demo.test.ts` against the EEZ devnet.
 
@@ -74,7 +74,7 @@ set [$a $b $c $signals] @circom:proof($proof)
 exec $gate "admit(uint256[2],uint256[2][2],uint256[2],uint256[1])" $a $b $c $signals
 assert $gate::{admitted(address)(bool) @me} == true "admission failed"
 
-# ── 2. Rollup: a badge only the L1 Gate may mint ────────────────
+# ── 2. L2: a badge only the L1 Gate may mint ────────────────
 switch eezL2
 eez:faucet @me
 
@@ -88,7 +88,7 @@ contract Badge {
   function mint(address to) external { require(msg.sender == gate, "only gate"); balanceOf[to] += 1; }
 }
 SOL
-# The Gate lives on eezL1; its face on this rollup is deterministic.
+# The Gate lives on eezL1; its face on this L2 is deterministic.
 contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
 contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
 eez:proxy $gate                               # create that face so the callback resolves
@@ -98,9 +98,9 @@ switch eezL1
 eez:proxy $badge                              # the Badge's face on L1
 exec $gate mintBadge(address) @eez:proxy(eezL2 $badge)
 
-# Read the rollup from L1
+# Read the L2 from L1
 set $badges @eez:on(eezL2 $badge::{balanceOf(address)(uint256) @me})
-print "badges on the rollup:" $badges
+print "badges on the rollup: " $badges
 ```
 
 What it exercises:
