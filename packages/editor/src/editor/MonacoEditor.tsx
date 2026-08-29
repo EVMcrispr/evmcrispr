@@ -15,7 +15,9 @@ import MonacoEditorBase, { loader, useMonaco } from "@monaco-editor/react";
 // typed over a backward (right-to-left) selection on the textarea path
 // (vscode#273146); 0.56.0 ships the fix. When bumping, re-test backward
 // select + type in a browser without the EditContext API (e.g. Firefox).
-loader.config({ paths: { vs: "/vs" } });
+/** Where the self-hosted monaco AMD build is served from. */
+const VS_BASE = "/vs";
+loader.config({ paths: { vs: VS_BASE } });
 
 import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -693,7 +695,7 @@ function Editor({
       }
       monaco.languages.register(contribution);
       monaco.languages.setLanguageConfiguration("evml", conf);
-      patchEmbeddedSolidity(monaco);
+      patchEmbeddedSolidity(monaco, VS_BASE);
       registerCircomLanguage(monaco);
       registerNoirLanguage(monaco);
     },
