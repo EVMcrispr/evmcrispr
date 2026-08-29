@@ -437,8 +437,47 @@ const ROUTED_TX_FALLBACK_GAS = 1_000_000n;
  * wallet sends through whatever RPC it is configured with — the user must
  * point it at `rpcUrl` themselves, so say so.
  */
+const ENDPOINT_CATCH_UP_MS = 30_000;
+
+/** Block the endpoint's view of the chain until it is at least as fresh as
+ *  the chain client's head (bounded; a lagging endpoint just proceeds). */
+async function waitForEndpointHead(
+  rpcUrl: string,
+  chainId: number,
+  ctx: ActionHandlerCtx,
+): Promise<void> {
+  let head: bigint;
+  try {
+    head = await ctx.getPublicClient(chainId).getBlockNumber();
+  } catch {
+    return;
+  }
+  const deadline = Date.now() + ENDPOINT_CATCH_UP_MS;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "eth_blockNumber",
+          params: [],
+        }),
+        signal: ctx.signal,
+      });
+      const json = (await res.json()) as { result?: string };
+      if (json.result && BigInt(json.result) >= head) return;
+    } catch {
+      return; // the endpoint doesn't answer reads — nothing to wait for
+    }
+    await sleep(1_000, ctx.signal);
+  }
+}
+
 async function sendThrough(
   rpcUrl: string,
+  chainId: number,
   request: Parameters<WalletClient["sendTransaction"]>[0],
   ctx: ActionHandlerCtx,
 ): Promise<Hash> {
@@ -449,6 +488,12 @@ async function sendThrough(
     );
     return ctx.walletClient.sendTransaction(request);
   }
+
+  // An ingress keeps its own view of the chain, which can trail the RPC
+  // the previous transaction was confirmed on by a block: a call that
+  // depends on that transaction (a proxy created moments ago) would be
+  // rejected. Let the endpoint catch up with the chain head first.
+  await waitForEndpointHead(rpcUrl, chainId, ctx);
 
   let prepared: any;
   try {
@@ -548,7 +593,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           nonce: action.nonce,
         };
         const tx = action.rpcUrl
-          ? await sendThrough(action.rpcUrl, request, ctx)
+          ? await sendThrough(action.rpcUrl, chainId, request, ctx)
           : await ctx.walletClient.sendTransaction(request);
         const receipt = await ctx
           .getPublicClient(chainId)
