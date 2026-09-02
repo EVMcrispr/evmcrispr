@@ -25,7 +25,7 @@ const DEVNET_FAUCET_KEY =
 /** Built-in deployments, keyed by chain id (see `chains.ts`). */
 export const EEZ_CHAINS: Record<number, EezChainInfo> = {
   7331: {
-    registry: "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9",
+    registry: "0x5fbdb2315678afecb367f032d93f642f64180aa3",
     rollupId: 0n,
     peerRollupId: 1n,
     peerChainId: 6290,
