@@ -179,24 +179,16 @@ Inside an `assert`, the on-chain helpers `@eez:on!`, `@eez:proxy!` and
 L2 state synchronously. The assertion becomes a transaction (only a
 transaction reaches the sequencer's composer), it crosses one chain boundary,
 and the proxy of the Assertions core on the other chain must exist first.
-Like any on-chain helper, they are welcome inside a Safe transaction (below):
-the read happens when it executes, not when it is built.
 
-```evml
-load eez
-
-switch eezL1
-assert @eez:on!(eezL2 @balance!(ETH @me)) >= 1e18 "not enough on L2"
-```
-
-## Batching through a Safe: a whale badge
-
-A browser wallet only batches on the chains it lists, and a devnet is not
-one of them, so `batch` is refused there. A Safe batches anywhere:
-`safe:execute` sends one ordinary transaction to the Safe, which runs the
-block atomically, cross-chain calls and assertions included. The devnet has
-no canonical Safe contracts; the `safe` module carries its own deployment
-of them, at the same addresses on both chains.
+On its own such an assertion proves little: it earns its keep guarding a
+write in the same transaction. A browser wallet only batches on the chains
+it lists, and a devnet is not one of them, so `batch` is refused there. A
+Safe batches anywhere: `safe:execute` sends one ordinary transaction to the
+Safe, which runs the block atomically, cross-chain calls and assertions
+included. Like any on-chain helper, `@eez:on!` is welcome there: the read
+happens when the Safe executes, not when the transaction is built. The
+devnet has no canonical Safe contracts; the `safe` module carries its own
+deployment of them, at the same addresses on both chains.
 
 That makes the Safe a fitting whale. Fund it on L2, then let it earn a
 badge from the [minter above](#calling-across-from-a-contract), on the
