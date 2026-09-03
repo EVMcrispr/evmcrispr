@@ -50,25 +50,42 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
   /** The L1 proxy of the Assertions core deployed on L2. */
   let coreProxy: `0x${string}`;
 
-  beforeAll(async () => {
-    await ensureFunded();
-    const { registry } = EEZ_CHAINS[L1_ID];
-    coreProxy = await l1.readContract({
+  /** Create the proxy of `target` (an address on rollup `rollupId`) on
+   *  `chainId`, unless it exists. Returns the proxy address. */
+  const ensureProxy = async (
+    chainId: number,
+    target: `0x${string}`,
+    rollupId: bigint,
+  ) => {
+    const { registry } = EEZ_CHAINS[chainId];
+    const [client, wallet] =
+      chainId === L1_ID ? [l1, l1Wallet] : [l2, l2Wallet];
+    const proxy = await client.readContract({
       address: registry,
       abi: eezBaseAbi,
       functionName: "computeCrossChainProxyAddress",
-      args: [CORE_ADDRESS, 1n],
+      args: [target, rollupId],
     });
-    const code = await l1.getCode({ address: coreProxy });
-    if (code && code !== "0x") return;
-    const hash = await l1Wallet.writeContract({
+    const code = await client.getCode({ address: proxy });
+    if (code && code !== "0x") return proxy;
+    const hash = await wallet.writeContract({
       address: registry,
       abi: eezBaseAbi,
       functionName: "createCrossChainProxy",
-      args: [CORE_ADDRESS, 1n],
+      args: [target, rollupId],
     });
-    await l1.waitForTransactionReceipt({ hash, timeout: 60_000 });
-  }, 120_000);
+    await client.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    return proxy;
+  };
+
+  beforeAll(async () => {
+    await ensureFunded();
+    // The read goes out through the L2 core's proxy on L1, and is resolved
+    // on L2 as a static call from the L1 core's proxy there. Static
+    // resolution cannot deploy a proxy, so both must exist up front.
+    coreProxy = await ensureProxy(L1_ID, CORE_ADDRESS, 1n);
+    await ensureProxy(L2_ID, CORE_ADDRESS, 0n);
+  }, 180_000);
 
   it("reads the other chain through the proxy of the Assertions core there", async () => {
     const { operand, ctx } = await compileExpression(

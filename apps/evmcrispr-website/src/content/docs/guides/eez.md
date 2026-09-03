@@ -130,8 +130,10 @@ eez:on eezL2 (
 print "my proxy on L2:" @eez:on(eezL2 @eez:proxy(eezL1 @me))
 ```
 
-Gas is estimated by simulating the remote leg; pass `--gas` (or `--value`)
-on the inner command when needed.
+Gas is estimated by simulating the remote leg as the rollup will see it,
+from your proxy there, and a leg that would revert stops the script before
+anything is sent, with its reason. Pass `--gas` (or `--value`) on the inner
+command when needed.
 
 Blocks nest. A block inside a block comes back to the chain it started
 from, still inside the same transaction, through a proxy of a proxy: L1
@@ -178,7 +180,9 @@ Inside an `assert`, the on-chain helpers `@eez:on!`, `@eez:proxy!` and
 `@eez:target!` do the same at execution time, so an assertion on L1 can check
 L2 state synchronously. The assertion becomes a transaction (only a
 transaction reaches the sequencer's composer), it crosses one chain boundary,
-and the proxy of the Assertions core on the other chain must exist first.
+and the Assertions core's proxies must exist first on both sides: the far
+core's proxy here, and this core's proxy over there (`eez:deploy-proxy` from
+each chain).
 
 On its own such an assertion proves little: it earns its keep guarding a
 write in the same transaction. A browser wallet only batches on the chains
@@ -227,6 +231,12 @@ a `--salt`.
 Proxy resolution and `@eez:on` reads work inside `sim:fork`, since they are
 reads. A cross-chain transaction does not: a fork has no composer, so the
 call to a proxy reverts there. Test the cross-chain leg on the devnet.
+
+On the devnet, a far leg that reverts at execution is not mined as a
+failed transaction: the composer evicts it, nothing is applied on either
+chain, and the script reports a receipt timeout. What `eez:on` can simulate
+it refuses up front instead; a revert one hop deeper, inside a nested
+block, only shows up as that timeout.
 
 ## Combining with circom
 

@@ -3,11 +3,20 @@ import {
   chainIdForName,
   chainLabel,
   clientFor,
+  describeRevertData,
   ErrorException,
+  extractRevertData,
+  isChainFailure,
   isTransactionAction,
 } from "@evmcrispr/sdk";
-import type { Address } from "viem";
-import { encodeFunctionData, getAddress, isAddress } from "viem";
+import type { Address, Hex } from "viem";
+import {
+  decodeErrorResult,
+  encodeFunctionData,
+  getAddress,
+  isAddress,
+  parseAbi,
+} from "viem";
 import type Eez from "..";
 import { eezBaseAbi } from "../abis";
 import { EEZ_CHAINS } from "../constants";
@@ -198,27 +207,72 @@ export const CROSS_CHAIN_OVERHEAD = 250_000n;
 const CROSS_CHAIN_MIN_GAS = 300_000n;
 export const CROSS_CHAIN_FALLBACK_GAS = 700_000n;
 
+/** What a proxy answers outside a composed block, i.e. the far leg itself
+ *  crosses chains and cannot be simulated: `ExecutionNotFound()` (no entry
+ *  for the call) and the block gate that fires before the lookup on either
+ *  side, L1's `ExecutionNotInCurrentBlock(uint64)` and L2's
+ *  `ExecutionNotInCurrentBlock()`. */
+const CROSS_CHAIN_REVERTS = new Set(["0xed6bc750", "0x9a499f3b", "0xf9d330ad"]);
+
+/** The Assertions core's failed-assertion error, for its message. */
+const CONSTRAINT_FAILED_ABI = parseAbi([
+  "error ConstraintFailed(string assertion, uint256 entryIndex, uint256 paramIndex, uint256 constraintIndex, uint8 constraintType, bytes32 actual, bytes referenceData)",
+]);
+
+/** Why a simulated far leg reverted, for humans: a failed assertion by its
+ *  message, otherwise the generic description of the revert data. */
+export function describeRemoteRevert(data: Hex): string {
+  try {
+    const { errorName, args } = decodeErrorResult({
+      abi: CONSTRAINT_FAILED_ABI,
+      data,
+    });
+    // viem decodes `Error(string)` / `Panic` with any ABI: leave those to
+    // the generic description below.
+    if (errorName === "ConstraintFailed") {
+      const assertion = String(args[0]);
+      return assertion
+        ? `assertion failed: ${assertion}`
+        : "an assertion failed";
+    }
+  } catch {
+    // not the core's error
+  }
+  return describeRevertData(data) ?? "reverted without a reason";
+}
+
 /**
  * Gas limit for a cross-chain call. Neither the execution RPC nor the
  * ingress can estimate it (the proxy only resolves inside a composed sync
  * block), so simulate the remote leg on the far chain when we know it and
  * add the protocol's own overhead; otherwise use a generous constant.
+ *
+ * `from` is who the far side sees as msg.sender: the caller's proxy there.
+ *
+ * With `failOnRevert`, a simulation that genuinely reverts is reported
+ * before anything is sent: the composer would only evict the transaction
+ * later, silently, and the caller would learn of it from a receipt
+ * timeout. A leg that reverts with a registry gate (`ExecutionNotFound()`,
+ * `ExecutionNotInCurrentBlock`) is one that crosses chains again and cannot
+ * be simulated, so it keeps the fallback,
+ * as does an unreachable RPC. A block collected for later execution (a
+ * timelock schedule, a Safe proposal) must not fail on revert: the state
+ * it needs may not exist yet.
  */
 export async function estimateCallGas(
   module: Eez,
   config: EezConfig,
   rollupId: bigint,
   target: Address,
-  data: `0x${string}`,
+  data: Hex,
   from: Address,
+  { failOnRevert = false }: { failOnRevert?: boolean } = {},
 ): Promise<bigint> {
   if (rollupId !== config.peerRollupId || config.peerChainId === undefined) {
     return CROSS_CHAIN_FALLBACK_GAS;
   }
   try {
     const remote = await clientFor(module, config.peerChainId);
-    // The far side sees the caller's proxy as msg.sender; the caller
-    // itself is close enough for a gas figure and never lacks funds.
     const remoteGas = await remote.estimateGas({
       account: from,
       to: target,
@@ -226,7 +280,16 @@ export async function estimateCallGas(
     });
     const estimate = (remoteGas * 3n) / 2n + CROSS_CHAIN_OVERHEAD;
     return estimate > CROSS_CHAIN_MIN_GAS ? estimate : CROSS_CHAIN_MIN_GAS;
-  } catch {
+  } catch (err) {
+    const revert = isChainFailure(err) ? extractRevertData(err) : undefined;
+    const crossesAgain =
+      revert === undefined ||
+      CROSS_CHAIN_REVERTS.has(revert.slice(0, 10).toLowerCase());
+    if (failOnRevert && !crossesAgain) {
+      throw new ErrorException(
+        `the call to ${target} would revert on ${chainLabel(config.peerChainId)}: ${describeRemoteRevert(revert)}`,
+      );
+    }
     return CROSS_CHAIN_FALLBACK_GAS;
   }
 }

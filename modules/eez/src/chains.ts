@@ -4,7 +4,7 @@ import type { ChainDef } from "@evmcrispr/sdk";
 // the module. Both chains are the EEZ Team's hosted devnet, reached through
 // EVMcrispr's `experimental-eez-rpc`: one ordinary JSON-RPC per chain that
 // forwards to the devnet's execution RPC and hands cross-chain transactions
-// (the ones that would revert with `ExecutionNotFound()` outside a composed
+// (the ones that would revert with a registry gate error outside a composed
 // sync block) to the EEZ cross-chain ingress instead, estimating their gas
 // too. Ephemeral networks; they may be reset.
 //

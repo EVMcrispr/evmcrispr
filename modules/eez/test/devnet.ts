@@ -109,14 +109,17 @@ export const l2Wallet: WalletClient<Transport, Chain, Account> =
     transport: http(L2_RPC),
   });
 
-/** Top the test account up on both chains when it runs low. */
-export async function ensureFunded(minimum = parseEther("1")): Promise<void> {
+/** Top an account (the test identity by default) up on both chains when it runs low. */
+export async function ensureFunded(
+  address: Address = testAccount.address,
+  minimum = parseEther("1"),
+): Promise<void> {
   const faucet = privateKeyToAccount(FAUCET_KEY);
   for (const [client, chain, rpc] of [
     [l1, l1Chain, L1_RPC],
     [l2, l2Chain, L2_RPC],
   ] as const) {
-    const balance = await client.getBalance({ address: testAccount.address });
+    const balance = await client.getBalance({ address });
     if (balance >= minimum) continue;
     const wallet = createWalletClient({
       account: faucet,
@@ -124,7 +127,7 @@ export async function ensureFunded(minimum = parseEther("1")): Promise<void> {
       transport: http(rpc),
     });
     const hash = await wallet.sendTransaction({
-      to: testAccount.address,
+      to: address,
       value: parseEther("50"),
     });
     await client.waitForTransactionReceipt({ hash, timeout: 60_000 });

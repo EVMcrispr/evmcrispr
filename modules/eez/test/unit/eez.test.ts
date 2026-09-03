@@ -1,13 +1,15 @@
 import { describe, expect, it } from "bun:test";
 import { type Action, registerChains } from "@evmcrispr/sdk";
-import { decodeFunctionData } from "viem";
+import { decodeFunctionData, encodeErrorResult, parseAbi } from "viem";
 import { eezBaseAbi } from "../../src/abis";
 import { chains } from "../../src/chains";
 import { EEZ_CHAINS } from "../../src/constants";
 import {
   assertCrossChainCalls,
   assertForeignRollup,
+  CROSS_CHAIN_FALLBACK_GAS,
   createProxyAction,
+  estimateCallGas,
   peerRollup,
   remoteLabel,
   resolveRollup,
@@ -140,6 +142,117 @@ describe("eez utils", () => {
       expect(() => assertCrossChainCalls([action], "eez:on")).toThrow(
         /non-transaction .*eez:on/,
       );
+    });
+  });
+
+  describe("estimateCallGas", () => {
+    const target = "0x0000000000000000000000000000000000000bEEF";
+    const proxy = "0x000000000000000000000000000000000000CAFE";
+    /** A module already on the far chain, whose client answers `estimateGas`. */
+    const moduleWith = (
+      estimateGas: (args: { account: string }) => Promise<bigint>,
+    ) =>
+      ({
+        getChainId: async () => l1.peerChainId,
+        getClient: () => ({ estimateGas }),
+      }) as never;
+    /** What viem raises when the far RPC executes the call and it reverts. */
+    const reverted = (data: `0x${string}`) =>
+      Object.assign(new Error("execution reverted"), {
+        name: "ExecutionRevertedError",
+        data,
+      });
+    const constraintFailed = encodeErrorResult({
+      abi: parseAbi([
+        "error ConstraintFailed(string assertion, uint256 entryIndex, uint256 paramIndex, uint256 constraintIndex, uint8 constraintType, bytes32 actual, bytes referenceData)",
+      ]),
+      errorName: "ConstraintFailed",
+      args: ["only Bob", 0n, 0n, 0n, 0, `0x${"00".repeat(32)}`, "0x"],
+    });
+
+    it("prices the simulated leg with headroom and the protocol overhead", async () => {
+      let from: string | undefined;
+      const module = moduleWith(async (args) => {
+        from = args.account;
+        return 100_000n;
+      });
+      const gas = await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+        failOnRevert: true,
+      });
+      expect(gas).toBe(400_000n);
+      // The far side sees the caller's proxy, so that is who simulates.
+      expect(from).toBe(proxy);
+    });
+
+    it("fails before sending when the far leg would revert, naming the assertion", async () => {
+      const module = moduleWith(async () => {
+        throw reverted(constraintFailed);
+      });
+      await expect(
+        estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+          failOnRevert: true,
+        }),
+      ).rejects.toThrow(/would revert on EEZ L2: assertion failed: only Bob/);
+    });
+
+    it("describes a plain revert reason", async () => {
+      const module = moduleWith(async () => {
+        throw reverted(
+          encodeErrorResult({
+            abi: parseAbi(["error Error(string)"]),
+            errorName: "Error",
+            args: ["not admitted"],
+          }),
+        );
+      });
+      await expect(
+        estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+          failOnRevert: true,
+        }),
+      ).rejects.toThrow(/would revert on EEZ L2: not admitted/);
+    });
+
+    it.each([
+      ["ExecutionNotFound()", "0xed6bc750"],
+      [
+        "L1 ExecutionNotInCurrentBlock(uint64)",
+        `0x9a499f3b${"00".repeat(31)}01`,
+      ],
+      ["L2 ExecutionNotInCurrentBlock()", "0xf9d330ad"],
+    ])(
+      "falls back when the far leg itself crosses chains (%s)",
+      async (_name, data) => {
+        const module = moduleWith(async () => {
+          throw reverted(data as `0x${string}`);
+        });
+        expect(
+          await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+            failOnRevert: true,
+          }),
+        ).toBe(CROSS_CHAIN_FALLBACK_GAS);
+      },
+    );
+
+    it("falls back when the far RPC cannot be reached", async () => {
+      const module = moduleWith(async () => {
+        throw new Error("fetch failed");
+      });
+      expect(
+        await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+          failOnRevert: true,
+        }),
+      ).toBe(CROSS_CHAIN_FALLBACK_GAS);
+    });
+
+    it("keeps a revert as a gas fallback when the block is collected for later", async () => {
+      const module = moduleWith(async () => {
+        throw reverted(constraintFailed);
+      });
+      expect(
+        await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+          failOnRevert: false,
+        }),
+      ).toBe(CROSS_CHAIN_FALLBACK_GAS);
     });
   });
 });

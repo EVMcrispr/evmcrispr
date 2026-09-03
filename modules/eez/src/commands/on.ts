@@ -61,10 +61,14 @@ export default defineCommand<Eez>({
       );
     }
     let calls: ReturnType<typeof assertCrossChainCalls>;
+    // Who the far side sees as msg.sender: the caller's proxy there, and
+    // the proxy of any `--from` an inner command names.
+    let remoteSender: Address;
+    const remoteFrom = new Map<Address, Address>();
     try {
       // On the other chain the caller shows up as its own cross-chain
       // proxy there: that is what `@sender` resolves to inside the block.
-      const remoteSender = await computeProxy(
+      remoteSender = await computeProxy(
         module,
         remote,
         sender,
@@ -76,6 +80,18 @@ export default defineCommand<Eez>({
         }),
       );
       calls = assertCrossChainCalls(actions ?? [], "eez:on");
+      for (const item of calls) {
+        const inner = isTransactionAction(item) ? [item] : item.actions;
+        for (const call of inner) {
+          const from = (call as CrossChainCall).from;
+          if (from && !remoteFrom.has(from)) {
+            remoteFrom.set(
+              from,
+              await computeProxy(module, remote, from, config.rollupId),
+            );
+          }
+        }
+      }
     } finally {
       // Restore the exact previous client (not a rebuilt one): inside a
       // simulation that keeps the fork the script was running against.
@@ -122,7 +138,10 @@ export default defineCommand<Eez>({
                 rollupId,
                 call.to,
                 call.data ?? "0x",
-                call.from ?? sender,
+                call.from ? remoteFrom.get(call.from)! : remoteSender,
+                // A block collected for later (a timelock schedule, a Safe
+                // proposal) runs against state that may not exist yet.
+                { failOnRevert: !interpreters.batchContext },
               );
         // A target that is itself a proxy over there (a nested `eez:on`,
         // or a hand-written call to one) goes one hop further; that leg
