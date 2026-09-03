@@ -131,15 +131,13 @@ print "my face on L2:" @eez:on(eezL2 @eez:proxy(eezL1 @me))
 
 Gas is estimated by simulating the remote leg; pass `--gas` (or `--value`)
 on the inner command when needed. A `batch` inside the block stays a batch,
-sent atomically by the wallet, and blocks nest: a block inside a block comes
-back to the chain it started from through a face of a face.
+sent atomically by the wallet:
 
 ```evml
 load eez
 
 set $counter 0x000000000000000000000000000000000000bEEF   # on L2
 set $other 0x000000000000000000000000000000000000cafe     # on L2
-set $pinger 0x000000000000000000000000000000000000dEaD    # on L1
 
 switch eezL1
 eez:on eezL2 (
@@ -148,12 +146,34 @@ eez:on eezL2 (
     exec $counter setValue(uint256) 2
     exec $other setValue(uint256) 3
   )
+)
+```
+
+Blocks nest. A block inside a block comes back to the chain it started
+from, still inside the same transaction, through a face of a face: L1 calls
+your L2 face, which calls the L1 face of the L1 contract. That is how you
+act on L1 *as an L2 account*, for a contract on L1 that only listens to L2
+faces, for instance. `@sender` in the inner block is the L1 face of your L2
+face.
+
+```evml
+load eez
+
+set $counter 0x000000000000000000000000000000000000bEEF   # on L2
+set $treasury 0x000000000000000000000000000000000000dEaD  # on L1, open to L2 faces only
+
+switch eezL1
+eez:on eezL2 (
+  exec $counter increment()
   eez:on eezL1 (
-    # L1 → L2 → L1, in the same transaction
-    exec $pinger ping()
+    # L1 → L2 → L1: back home, but as the L1 face of your L2 face
+    exec $treasury claim(address) @sender
   )
 )
 ```
+
+Every hop adds its own overhead to the gas estimate, and deeper nesting
+works the same way (`eezL1` → `eezL2` → `eezL1` → `eezL2`, and so on).
 
 `switch` and contract deployments are not allowed inside the block: a face
 only forwards calls.
