@@ -337,6 +337,8 @@ export default defineConfig({
     "/guides/language-basics": "/language/syntax",
     "/guides/batch-transactions": "/language/blocks-and-batching",
     "/guides/custom-modules": "/contribute/writing-a-module",
+    // The EEZ showcase became the circom and EEZ guides.
+    "/guides/eez-showcase": "/guides/eez",
     "/architecture": "/contribute/architecture",
     "/contributing": "/contribute/contributing",
   },
@@ -410,10 +412,11 @@ export default defineConfig({
           items: [
             docItem("Simulation", "guides/simulation"),
             docItem("Working with DAOs", "guides/working-with-daos"),
+            docItem("Zero-Knowledge Proofs", "guides/circom"),
+            docItem("Cross-Chain with EEZ", "guides/eez"),
             docItem("Sharing Scripts", "guides/sharing-scripts"),
             docItem("Publishing Modules", "guides/publishing-modules"),
             docItem("MCP Server", "guides/mcp"),
-            docItem("EEZ Showcase", "guides/eez-showcase"),
           ].filter(Boolean),
         },
         {

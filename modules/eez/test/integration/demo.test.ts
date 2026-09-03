@@ -25,8 +25,9 @@ import {
 /**
  * The showcase script: prove membership in zero knowledge, admit yourself
  * on L1, and let an L1 contract mint a badge on the rollup — atomically —
- * with every contract compiled, deployed and verified inline. See the
- * module README for the narrated version.
+ * with every contract compiled, deployed and verified inline. The narrated
+ * version is the "Combining with circom" section of the website's EEZ guide
+ * (apps/evmcrispr-website/src/content/docs/guides/eez.md).
  */
 const DEMO = `load eez
 load circom
@@ -92,8 +93,10 @@ pragma solidity 0.8.26;
 contract Badge {
   address public immutable gate;
   mapping(address => uint256) public balanceOf;
+  mapping(address => string) public note;
   constructor(address g) { gate = g; }
   function mint(address to) external { require(msg.sender == gate, "only gate"); balanceOf[to] += 1; }
+  function setNote(string calldata n) external { note[msg.sender] = n; }
 }
 SOL
 contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
@@ -106,6 +109,11 @@ exec $gate mintBadge(address) @eez:proxy(eezL2 $badge)
 
 set $badges @eez:on(eezL2 $badge::{balanceOf(address)(uint256) @me})
 print "badges on the rollup:" $badges
+
+eez:on eezL2 (
+  exec $badge setNote(string) "admitted on L1"
+)
+print "note on the rollup:" @eez:on(eezL2 $badge::{note(address)(string) @eez:proxy(eezL1 @me)})
 `;
 
 const badgeAbi = parseAbi([
@@ -170,8 +178,9 @@ describe.skipIf(!devnet)(
       const sent = result.executed.filter(
         (e) => isTransactionAction(e.action) && !e.action.readOnly,
       );
-      // verifier, gate, admit | badge, gate-proxy | badge-proxy, mintBadge
-      expect(sent.length).to.be.gte(7);
+      // verifier, gate, admit | badge, gate-proxy | badge-proxy, mintBadge,
+      // setNote through the badge's L1 face
+      expect(sent.length).to.be.gte(8);
       for (const { result: receipt } of sent) {
         expect((receipt as any).status).to.equal("success");
       }
@@ -180,6 +189,7 @@ describe.skipIf(!devnet)(
       const log = [...result.logs, ...logs].join("\n");
       expect(log).to.include("Pass - Verified");
       expect(log).to.match(/badges on the rollup:\s*1\b/);
+      expect(log).to.match(/note on the rollup:\s*admitted on L1/);
 
       // Belt and braces: read the badge straight from the rollup.
       const badge = /Badge.*?(0x[0-9a-fA-F]{40})/.exec(log)?.[1];
