@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { registerChains } from "@evmcrispr/sdk";
+import { type Action, registerChains } from "@evmcrispr/sdk";
 import { decodeFunctionData } from "viem";
 import { eezBaseAbi } from "../../src/abis";
 import { chains } from "../../src/chains";
 import { EEZ_CHAINS } from "../../src/constants";
 import {
+  assertCrossChainCalls,
   assertForeignRollup,
   createProxyAction,
   peerRollup,
@@ -80,5 +81,65 @@ describe("eez utils", () => {
         chain.id,
       );
     }
+  });
+
+  describe("assertCrossChainCalls", () => {
+    const call = {
+      to: "0x000000000000000000000000000000000000dEaD",
+      data: "0x",
+    } as const;
+
+    it("accepts plain contract calls", () => {
+      expect(() => assertCrossChainCalls([call, call], "eez:on")).not.toThrow();
+      expect(assertCrossChainCalls([call], "eez:on")).toEqual([call]);
+    });
+
+    it("rejects a switch inside the block", () => {
+      const action: Action = {
+        type: "wallet",
+        method: "wallet_switchEthereumChain",
+        params: [],
+      };
+      expect(() => assertCrossChainCalls([call, action], "eez:on")).toThrow(
+        /switch .*inside eez:on/,
+      );
+    });
+
+    it("keeps a batch of calls as a batch", () => {
+      const action: Action = {
+        type: "batched",
+        chainId: 1,
+        from: call.to,
+        actions: [call, call],
+      };
+      expect(assertCrossChainCalls([call, action, call], "eez:on")).toEqual([
+        call,
+        action,
+        call,
+      ]);
+    });
+
+    it("rejects a deployment inside a batch in the block", () => {
+      const action: Action = {
+        type: "batched",
+        chainId: 1,
+        from: call.to,
+        actions: [call, { data: "0x00" }],
+      };
+      expect(() => assertCrossChainCalls([action], "eez:on")).toThrow(/deploy/);
+    });
+
+    it("rejects a deployment inside the block", () => {
+      expect(() => assertCrossChainCalls([{ data: "0x00" }], "eez:on")).toThrow(
+        /deploy/,
+      );
+    });
+
+    it("rejects other non-transaction actions", () => {
+      const action: Action = { type: "rpc", method: "evm_mine", params: [] };
+      expect(() => assertCrossChainCalls([action], "eez:on")).toThrow(
+        /non-transaction .*eez:on/,
+      );
+    });
   });
 });

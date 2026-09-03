@@ -10,8 +10,8 @@ import { EEZ_CHAINS } from "../../../src/constants";
 import { devnet, L1_ID, L2_ID, l1, l2 } from "../../devnet";
 
 const DEAD = "0x000000000000000000000000000000000000dEaD";
-/** Hardhat #3: funded on both chains, so balances are non-zero and differ. */
-const FUNDED = "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
+/** Anvil #1: funded on both chains, so balances are non-zero and differ. */
+const FUNDED = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 
 describeHelper(
   "@eez:on",

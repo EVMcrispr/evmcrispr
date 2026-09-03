@@ -45,9 +45,10 @@ export const TEST_KEY = keccak256(
 );
 export const testAccount = privateKeyToAccount(TEST_KEY);
 
-/** Hardhat #3 — pre-funded on both devnet chains; only used to top up. */
+/** Anvil #1 — pre-funded on both devnet chains (#0 is the devnet operator's
+ *  busy key, whose nonce races); only used to top up. */
 const FAUCET_KEY: Hex =
-  "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
 /** `contract Value { uint256 public value; function setValue(uint256 v) external { value = v; } }` (solc 0.8.28). */
 export const VALUE_BYTECODE: Hex =

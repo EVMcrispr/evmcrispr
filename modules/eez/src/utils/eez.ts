@@ -1,9 +1,10 @@
-import type { TransactionAction } from "@evmcrispr/sdk";
+import type { Action, BatchedAction, TransactionAction } from "@evmcrispr/sdk";
 import {
   chainIdForName,
   chainLabel,
   clientFor,
   ErrorException,
+  isTransactionAction,
 } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { encodeFunctionData, getAddress, isAddress } from "viem";
@@ -150,6 +151,23 @@ export async function isDeployed(
   return !!code && code !== "0x";
 }
 
+/** Whether `address` is a cross-chain proxy registered on `chainId`. */
+export async function isProxyOn(
+  module: Eez,
+  chainId: number,
+  config: EezConfig,
+  address: Address,
+): Promise<boolean> {
+  const client = await clientFor(module, chainId);
+  const [exists] = await client.readContract({
+    address: config.registry,
+    abi: eezBaseAbi,
+    functionName: "authorizedProxies",
+    args: [address],
+  });
+  return exists;
+}
+
 export function createProxyAction(
   registry: Address,
   target: Address,
@@ -175,7 +193,7 @@ export function remoteLabel(config: EezConfig, rollupId: bigint): string {
 
 /** Gas the registry spends around the remote call on the sending chain:
  *  a bare `setValue` through a proxy used ~105k on L1 in total. */
-const CROSS_CHAIN_OVERHEAD = 250_000n;
+export const CROSS_CHAIN_OVERHEAD = 250_000n;
 /** Floor / ceiling-fallback when the far side can't be simulated. */
 const CROSS_CHAIN_MIN_GAS = 300_000n;
 export const CROSS_CHAIN_FALLBACK_GAS = 700_000n;
@@ -236,4 +254,48 @@ export async function ensureProxy(
     ? []
     : [createProxyAction(config.registry, target, rollupId)];
   return { proxy, rollupId, actions };
+}
+
+/** A contract call with a target: what a cross-chain proxy can forward. */
+export type CrossChainCall = TransactionAction & { to: Address };
+
+/**
+ * The actions a cross-chain block may produce: plain contract calls, each
+ * of which becomes one call through the target's proxy, and batches of
+ * them (kept as batches, so they stay atomic on the sending chain).
+ * Switching chain and deploying have no cross-chain meaning.
+ */
+export function assertCrossChainCalls(
+  actions: Action[],
+  commandName: string,
+): (CrossChainCall | BatchedAction)[] {
+  const assertCall = (action: TransactionAction) => {
+    if (!action.to) {
+      throw new ErrorException(
+        `cannot deploy a contract inside ${commandName}: a cross-chain proxy only forwards calls`,
+      );
+    }
+  };
+  for (const action of actions) {
+    if (isTransactionAction(action)) {
+      assertCall(action);
+      continue;
+    }
+    if (action.type === "batched") {
+      action.actions.forEach(assertCall);
+      continue;
+    }
+    if (
+      action.type === "wallet" &&
+      action.method === "wallet_switchEthereumChain"
+    ) {
+      throw new ErrorException(
+        `switch cannot be used inside ${commandName}: the block already runs on the target chain`,
+      );
+    }
+    throw new ErrorException(
+      `can't use non-transaction actions inside ${commandName}`,
+    );
+  }
+  return actions as (CrossChainCall | BatchedAction)[];
 }

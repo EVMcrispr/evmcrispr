@@ -1,6 +1,6 @@
 # eez module
 
-Ethereum Economic Zone: call a contract on the other side of an EEZ rollup synchronously, through its deterministic cross-chain proxy. Point the script at an EEZ chain, then eez:call any L1 contract from the rollup (or any rollup contract from L1) with plain calldata; the proxy is created on first use and the transaction is routed through the EEZ cross-chain ingress.
+Ethereum Economic Zone: call a contract on the other side of an EEZ rollup synchronously, through its deterministic cross-chain proxy. Point the script at an EEZ chain, then wrap ordinary commands in eez:on to run them on the rollup from L1 (or on L1 from the rollup); each call goes through the target's proxy, created on first use, and the transaction is routed through the EEZ cross-chain ingress.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -24,15 +24,15 @@ Networks this module ships. They are available to `switch` as soon as the module
 
 | Chain | Key | Id | RPC | Explorer |
 |-------|-----|----|-----|----------|
-| EEZ L1 (testnet) | `eezL1` | `7331` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL1> | <http://91.134.73.215:4000> |
-| EEZ L2 (testnet) | `eezL2` | `6290` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL2> | <http://65.109.26.16:8088> |
+| EEZ L1 (testnet) | `eezL1` | `7331` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL1> | — |
+| EEZ L2 (testnet) | `eezL2` | `6290` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL2> | — |
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| [eez:call](src/commands/call.md) | Call a contract on another EEZ rollup synchronously from the current chain, through its cross-chain proxy: the call executes on the other side atomically with this transaction. Creates the proxy first if it does not exist yet and estimates the gas the composed call needs. |
 | [eez:faucet](src/commands/faucet.md) | Send devnet ETH to an account from the EEZ devnet's pre-funded faucet key, so a fresh wallet can pay for gas. The faucet signs the transfer itself; nothing is asked of the connected wallet. |
+| [eez:on](src/commands/on.md) | Run a block of commands on another EEZ chain synchronously from the current one. Every call the block produces goes out through the target's cross-chain proxy and executes on the other side atomically with this transaction; helpers, conditions and loops inside evaluate on that chain. Creates each missing proxy first and estimates the gas the composed calls need. |
 | [eez:proxy](src/commands/proxy.md) | Create the cross-chain proxy on the current chain for a contract on another EEZ rollup. Does nothing if it already exists. |
 
 ## Helpers

@@ -26,7 +26,7 @@ The remote contract a cross-chain proxy stands in for: the reverse of @eez:proxy
 ```evml
 # Which rollup contract does this L1 proxy stand in for?
 switch eezL1
-print @eez:target(eezL1 0x5e8DEb196c29ca9D828A7120f527482AEA3750F3)
+print @eez:target(eezL1 0xCb9641A63964cD724A7408D29E3Cdab5BB6c242A)
 ```
 
 <!-- HAND-WRITTEN -->
