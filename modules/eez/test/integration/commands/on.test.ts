@@ -151,6 +151,7 @@ describeCommand("on", {
     },
     {
       name: "creates each missing proxy once, however many calls target it",
+      timeout: 120_000,
       script: [
         "eez:on eezL2 (",
         "  if true (",
@@ -202,6 +203,28 @@ describeCommand("on", {
         expect(setValueArg(batch.actions[1].data)).to.equal(3n);
         expect(isAddressEqual(last.to, known)).to.be.true;
         expect(setValueArg(last.data)).to.equal(4n);
+      },
+    },
+    {
+      name: "resolves helpers inside the block against the designated chain",
+      // No `switch` inside: the block itself puts the script on the target
+      // chain, so @eez:proxy computes with that chain's registry.
+      script: `eez:on eezL2 (\n  exec ${KNOWN} setOwner(address) @eez:proxy(eezL1 ${KNOWN})\n)`,
+      timeout: 120_000,
+      setup: ensureKnownProxy,
+      validate: async (actions) => {
+        const [call] = actions as any[];
+        const onL2 = await l2.readContract({
+          address: EEZ_CHAINS[L2_ID].registry,
+          abi: eezBaseAbi,
+          functionName: "computeCrossChainProxyAddress",
+          args: [KNOWN, 0n],
+        });
+        const [arg] = decodeFunctionData({
+          abi: ownerAbi,
+          data: call.data,
+        }).args;
+        expect(isAddressEqual(arg, onL2)).to.be.true;
       },
     },
     {

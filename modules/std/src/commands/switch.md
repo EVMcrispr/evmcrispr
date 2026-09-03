@@ -32,3 +32,5 @@ switch 137
 <!-- HAND-WRITTEN -->
 
 ## See Also
+
+- [eez:on](../../../eez/src/commands/on.md) — run a block on another EEZ chain from the current one, through cross-chain proxies, without moving the wallet
