@@ -1575,11 +1575,13 @@ class SemanticAnalyzer {
           );
         }
       }
-      // Non-batchable helper inside a batch context. A smart batch lifts
-      // the gate for helpers with an on-chain (`name!`) face: the smart
-      // compiler evaluates the read on-chain, in sequence, instead of at
-      // batch-build time.
-      if (batchStack.length > 0) {
+      // Non-batchable helper inside a batch context. An on-chain face
+      // (`name!`) is exempt: it compiles into the batch's transaction and
+      // reads state when that executes, never at batch-build time — even
+      // though its file declares `batchable: false` for the run face. A
+      // smart batch lifts the gate for the run face too: the smart
+      // compiler evaluates the read on-chain, in sequence.
+      if (batchStack.length > 0 && !localName.endsWith("!")) {
         const frame = batchStack[batchStack.length - 1];
         const batchable = await this.#schemas.getHelperBatchable(
           owningModule,

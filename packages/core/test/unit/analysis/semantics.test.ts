@@ -81,6 +81,14 @@ class StubModule extends Module {
           batchable: false,
           run: async () => "ok",
         }),
+        // hnob's on-chain face: same file, same declared flag, but a `!`
+        // node never evaluates at batch-build time.
+        "hnob!": defineHelper({
+          name: "hnob!",
+          args: [],
+          batchable: false,
+          run: async () => "ok",
+        }),
         hopt: defineHelper({
           name: "hopt",
           args: [
@@ -99,8 +107,14 @@ class StubModule extends Module {
           run: async () => "ok",
         }),
       },
-      { htwo: "string", hnob: "string", hopt: "string", hmeta: "string" },
-      { htwo: true, hnob: false, hopt: true, hmeta: false },
+      {
+        htwo: "string",
+        hnob: "string",
+        "hnob!": "string",
+        hopt: "string",
+        hmeta: "string",
+      },
+      { htwo: true, hnob: false, "hnob!": false, hopt: true, hmeta: false },
       {
         htwo: [
           { name: "a", type: "string" },
@@ -403,6 +417,22 @@ describe("Analysis > semantic diagnostics", () => {
       const d = ds.find((x) => x.code === "not-batchable");
       expect(d).to.exist;
       expect(d!.message).to.match(/@hnob/);
+    });
+
+    it("does not flag an on-chain face inside batch", async () => {
+      // `@stub:hnob!` compiles into the batch's transaction and reads state
+      // when it executes, so the build-time gate does not apply.
+      const ds = await semantic(
+        "load stub\nbatch (\n  assert @stub:hnob! > 0\n)",
+      );
+      expect(codes(ds)).to.not.include("not-batchable");
+    });
+
+    it("does not flag an imported on-chain face inside batch", async () => {
+      const ds = await semantic(
+        "load stub [@hnob!]\nbatch (\n  assert @hnob! > 0\n)",
+      );
+      expect(codes(ds)).to.not.include("not-batchable");
     });
 
     it("does not flag a batchable command inside batch", async () => {

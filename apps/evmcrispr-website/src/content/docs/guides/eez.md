@@ -196,6 +196,8 @@ Inside an `assert`, the on-chain helpers `@eez:on!`, `@eez:proxy!` and
 L2 state synchronously. The assertion becomes a transaction (only a
 transaction reaches the sequencer's composer), it crosses one chain boundary,
 and the proxy of the Assertions core on the other chain must exist first.
+Like any on-chain helper, they are welcome inside a `batch`: the read happens
+when the batch executes, not when it is built.
 
 ```evml
 load eez
