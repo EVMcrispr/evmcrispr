@@ -32,7 +32,8 @@
     "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
-    "@evmcrispr/test-utils": "workspace:*"
+    "@evmcrispr/test-utils": "workspace:*",
+    "@safe-global/safe-contracts": "1.4.1"
   },
   "peerDependencies": {
     "viem": "^2.54.1"

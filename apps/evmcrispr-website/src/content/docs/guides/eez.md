@@ -206,6 +206,30 @@ switch eezL1
 assert @eez:on!(eezL2 @balance!(ETH @me)) >= 1e18 "not enough on L2"
 ```
 
+## Batching through a Safe
+
+A browser wallet only batches on the chains it lists, and a devnet is not
+one of them, so `batch` is refused there. A Safe batches anywhere:
+`safe:execute` sends one ordinary transaction to the Safe, which runs the
+block atomically, cross-chain assertions included. The devnet has no
+canonical Safe contracts; the `safe` module carries its own deployment of
+them, at the same addresses on both chains.
+
+```evml
+load eez
+load safe
+
+switch eezL1
+safe:new @me -> ProxyCreation(address indexed, address) [$safe _]
+safe:execute $safe (
+  assert @eez:on!(eezL2 @balance!(ETH @me)) >= 1e18 "not enough on L2"
+)
+```
+
+`safe:new` is deterministic, so a second run with the same owners needs a
+`--salt`; every command in the `safe:execute` block joins the same
+transaction.
+
 ## Simulation
 
 Proxy resolution and `@eez:on` reads work inside `sim:fork`, since they are

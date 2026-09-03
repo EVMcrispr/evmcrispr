@@ -10,7 +10,7 @@ import {
   keccak256,
   zeroAddress,
 } from "viem";
-import { MULTISEND, MULTISEND_CALL_ONLY } from "../addresses";
+import { CANONICAL_DEPLOYMENT, type SafeDeployment } from "../addresses";
 import type { SafeTx } from "./safeTx";
 import { getSafeDomain, SAFE_DOMAIN_TYPE, SAFE_TX_TYPE } from "./safeTx";
 
@@ -122,11 +122,14 @@ export const getSafeMessageHashes = (
  * Red flags a signer should review before approving, ported from
  * pcaversaccio/safe-tx-hashes-util.
  */
-export const collectSafeTxWarnings = (tx: SafeTx): string[] => {
+export const collectSafeTxWarnings = (
+  tx: SafeTx,
+  deployment: SafeDeployment = CANONICAL_DEPLOYMENT,
+): string[] => {
   const warnings: string[] = [];
   const trustedDelegate =
-    isAddressEqual(tx.to, MULTISEND) ||
-    isAddressEqual(tx.to, MULTISEND_CALL_ONLY);
+    isAddressEqual(tx.to, deployment.multiSend) ||
+    isAddressEqual(tx.to, deployment.multiSendCallOnly);
   if (tx.operation === 1 && !trustedDelegate) {
     warnings.push(
       `this transaction DELEGATECALLs ${tx.to}, which is not a known MultiSend contract; a delegatecall can take over the Safe — do not sign unless you fully trust that contract`,

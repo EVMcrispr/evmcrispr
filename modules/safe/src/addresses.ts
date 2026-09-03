@@ -16,6 +16,45 @@ export const MULTISEND_CALL_ONLY: Address =
 
 export const SENTINEL: Address = "0x0000000000000000000000000000000000000001";
 
+/** The Safe v1.4.1 contracts the module relies on, on one chain. */
+export interface SafeDeployment {
+  proxyFactory: Address;
+  l2Singleton: Address;
+  fallbackHandler: Address;
+  multiSend: Address;
+  multiSendCallOnly: Address;
+}
+
+/** Safe's own deployment, through the Safe Singleton Factory. */
+export const CANONICAL_DEPLOYMENT: SafeDeployment = {
+  proxyFactory: SAFE_PROXY_FACTORY,
+  l2Singleton: SAFE_L2_SINGLETON,
+  fallbackHandler: COMPATIBILITY_FALLBACK_HANDLER,
+  multiSend: MULTISEND,
+  multiSendCallOnly: MULTISEND_CALL_ONLY,
+};
+
+/** The same v1.4.1 creation bytecode, deployed with a zero salt through the
+ *  Arachnid CREATE2 deployer (`scripts/deploy-create2.ts`) on chains the
+ *  Safe Singleton Factory never reached. Identical on every such chain. */
+export const CREATE2_DEPLOYMENT: SafeDeployment = {
+  proxyFactory: "0xd9d2Ba03a7754250FDD71333F444636471CACBC4",
+  l2Singleton: "0x76667330c237Fb40f28d74563cdAAae4b06C23Ec",
+  fallbackHandler: "0xcB4a8d3609A7CCa2D9c063a742f75c899BF2f7b5",
+  multiSend: "0x7B21BBDBdE8D01Df591fdc2dc0bE9956Dde1e16C",
+  multiSendCallOnly: "0x32228dDEA8b9A2bd7f2d71A958fF241D79ca5eEC",
+};
+
+/** Chains without the canonical deployment. */
+const DEPLOYMENTS: Record<number, SafeDeployment> = {
+  7331: CREATE2_DEPLOYMENT, // EEZ devnet L1
+  6290: CREATE2_DEPLOYMENT, // EEZ devnet L2
+};
+
+/** The Safe contracts to use on `chainId`: canonical unless listed above. */
+export const safeDeployment = (chainId: number): SafeDeployment =>
+  DEPLOYMENTS[chainId] ?? CANONICAL_DEPLOYMENT;
+
 // Zodiac (gnosisguild) canonical deployments.
 // See https://github.com/gnosisguild/zodiac/blob/master/src/contracts.ts
 export const MODULE_PROXY_FACTORY: Address =

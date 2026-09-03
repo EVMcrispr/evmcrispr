@@ -1,7 +1,7 @@
 import type { Address, TransactionAction } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
 import { encodeFunctionData, hashTypedData, parseAbi, zeroAddress } from "viem";
-import { MULTISEND, MULTISEND_CALL_ONLY } from "../addresses";
+import { CANONICAL_DEPLOYMENT, type SafeDeployment } from "../addresses";
 import { encodeMultiSendCall } from "./multisend";
 
 export interface SafeTx {
@@ -41,6 +41,7 @@ export const assertAllTransactionActions = (
  */
 export const buildSafeTxContent = (
   actions: TransactionAction[],
+  deployment: SafeDeployment = CANONICAL_DEPLOYMENT,
 ): Pick<SafeTx, "to" | "value" | "data" | "operation"> => {
   if (actions.length === 1) {
     const [action] = actions;
@@ -59,7 +60,7 @@ export const buildSafeTxContent = (
 
   const hasDelegateCall = actions.some((a) => a.operation === 1);
   return {
-    to: hasDelegateCall ? MULTISEND : MULTISEND_CALL_ONLY,
+    to: hasDelegateCall ? deployment.multiSend : deployment.multiSendCallOnly,
     value: 0n,
     data: encodeMultiSendCall(actions),
     operation: 1,
@@ -69,8 +70,9 @@ export const buildSafeTxContent = (
 export const buildSafeTx = (
   actions: TransactionAction[],
   nonce: bigint,
+  deployment: SafeDeployment = CANONICAL_DEPLOYMENT,
 ): SafeTx => ({
-  ...buildSafeTxContent(actions),
+  ...buildSafeTxContent(actions, deployment),
   safeTxGas: 0n,
   baseGas: 0n,
   gasPrice: 0n,

@@ -2,6 +2,7 @@ import type { Address, BlockExpressionNode } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import { isAddressEqual } from "viem";
 import type Safe from "..";
+import { safeDeployment } from "../addresses";
 import {
   buildSafeTx,
   collectSafeTxWarnings,
@@ -87,7 +88,7 @@ export default defineCommand<Safe>({
           chainId,
           tx,
           hashes,
-          collectSafeTxWarnings(tx),
+          collectSafeTxWarnings(tx, safeDeployment(chainId)),
         ),
       );
 
@@ -126,7 +127,7 @@ export default defineCommand<Safe>({
     }
 
     const nonce = await getSafeNonce(client, safe);
-    const tx = buildSafeTx(actions, nonce);
+    const tx = buildSafeTx(actions, nonce, safeDeployment(chainId));
 
     return [
       {

@@ -10,11 +10,7 @@ import {
   zeroAddress,
 } from "viem";
 import type Safe from "..";
-import {
-  COMPATIBILITY_FALLBACK_HANDLER,
-  SAFE_L2_SINGLETON,
-  SAFE_PROXY_FACTORY,
-} from "../addresses";
+import { safeDeployment } from "../addresses";
 import { toBigInt } from "../utils";
 
 const factoryAbi = parseAbi([
@@ -63,6 +59,9 @@ export default defineCommand<Safe>({
       );
     }
     const saltNonce = opts.salt !== undefined ? toBigInt(opts.salt) : 0n;
+    const { proxyFactory, l2Singleton, fallbackHandler } = safeDeployment(
+      await module.getChainId(),
+    );
 
     const initializer = encodeFunctionData({
       abi: setupAbi,
@@ -72,7 +71,7 @@ export default defineCommand<Safe>({
         threshold,
         zeroAddress,
         "0x",
-        COMPATIBILITY_FALLBACK_HANDLER,
+        fallbackHandler,
         zeroAddress,
         0n,
         zeroAddress,
@@ -84,19 +83,19 @@ export default defineCommand<Safe>({
     // constructor param, salted with keccak256(initializer) ++ saltNonce.
     const client = await module.getClient();
     const creationCode = await client.readContract({
-      address: SAFE_PROXY_FACTORY,
+      address: proxyFactory,
       abi: factoryAbi,
       functionName: "proxyCreationCode",
     });
     const predicted = getContractAddress({
       opcode: "CREATE2",
-      from: SAFE_PROXY_FACTORY,
+      from: proxyFactory,
       salt: keccak256(
         concatHex([keccak256(initializer), toHex(saltNonce, { size: 32 })]),
       ),
       bytecode: concatHex([
         creationCode,
-        toHex(BigInt(SAFE_L2_SINGLETON), { size: 32 }),
+        toHex(BigInt(l2Singleton), { size: 32 }),
       ]),
     });
 
@@ -104,11 +103,11 @@ export default defineCommand<Safe>({
 
     return [
       {
-        to: SAFE_PROXY_FACTORY,
+        to: proxyFactory,
         data: encodeFunctionData({
           abi: factoryAbi,
           functionName: "createProxyWithNonce",
-          args: [SAFE_L2_SINGLETON, initializer, saltNonce],
+          args: [l2Singleton, initializer, saltNonce],
         }),
       },
     ];

@@ -27,6 +27,7 @@
     "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
+    "@evmcrispr/module-safe": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },
   "peerDependencies": {

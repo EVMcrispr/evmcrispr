@@ -1,6 +1,7 @@
 import type { BlockExpressionNode } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Safe from "..";
+import { safeDeployment } from "../addresses";
 import {
   buildSafeTx,
   collectSafeTxWarnings,
@@ -73,7 +74,7 @@ export default defineCommand<Safe>({
         ? toBigInt(opts.nonce)
         : await getNextNonce(module, client, chainId, safe);
 
-    const tx = buildSafeTx(actions, nonce);
+    const tx = buildSafeTx(actions, nonce, safeDeployment(chainId));
     const hashes = getSafeTxHashes(chainId, safe, tx);
     const { safeTxHash } = hashes;
     const sender = await module.getConnectedAccount(true);
@@ -86,7 +87,7 @@ export default defineCommand<Safe>({
         chainId,
         tx,
         hashes,
-        collectSafeTxWarnings(tx),
+        collectSafeTxWarnings(tx, safeDeployment(chainId)),
       ),
     );
 

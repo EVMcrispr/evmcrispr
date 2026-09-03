@@ -7,6 +7,7 @@ import {
   zeroAddress,
 } from "viem";
 import type Safe from "..";
+import { safeDeployment } from "../addresses";
 import type { SafeTx, ServiceTransaction } from "../utils";
 import {
   assertSafeVersion,
@@ -108,7 +109,7 @@ export default defineCommand<Safe>({
           chainId,
           tx,
           hashes,
-          collectSafeTxWarnings(tx),
+          collectSafeTxWarnings(tx, safeDeployment(chainId)),
         ),
       );
 

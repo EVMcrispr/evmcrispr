@@ -7,10 +7,12 @@ registerAllModules();
 // resolves from test-utils, whose isolated node_modules doesn't link this
 // package.
 evml.use({ name: "eez", load: () => import("../src/index"), chains });
-// The end-to-end demo compiles a circuit and Solidity inline.
+// The end-to-end demo compiles a circuit and Solidity inline; the Safe
+// examples run a cross-chain assertion through a Safe.
 evml.use(
   { name: "contracts", load: () => import("@evmcrispr/module-contracts") },
   { name: "circom", load: () => import("@evmcrispr/module-circom") },
+  { name: "safe", load: () => import("@evmcrispr/module-safe") },
 );
 
 export const server = createTestServer();

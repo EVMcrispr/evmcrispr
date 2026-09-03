@@ -41,4 +41,10 @@ The address is deterministic (CREATE2 over the owners, threshold, and salt),
 so the same command deploys the Safe at the same address on any chain. Use
 `--salt` to deploy several Safes with the same configuration.
 
+On chains the canonical Safe contracts never reached (the EEZ devnet), the
+module uses its own deployment of the same v1.4.1 bytecode through the
+Arachnid CREATE2 deployer, at the same addresses on every such chain, so a
+Safe created there has a different address than on a canonical chain. Run
+`scripts/deploy-create2.ts` to bring the contracts to another such chain.
+
 ## See Also
