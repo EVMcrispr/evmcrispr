@@ -1,16 +1,22 @@
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { executeScript } from "@evmcrispr/core";
+import { executeScript, isTransactionAction } from "@evmcrispr/core";
 import { safeDeployment } from "@evmcrispr/module-safe/addresses";
 import { expect, getTransports } from "@evmcrispr/test-utils";
 import { evml } from "@evmcrispr/test-utils/evml";
-import { parseAbi } from "viem";
+import type { WalletClient } from "viem";
+import {
+  type ActionHandlerCtx,
+  makeDefaultHandlers,
+} from "../../../../packages/core/src/evml/execute";
 import {
   devnet,
   ensureFunded,
   L1_ID,
+  L2_ID,
   l1,
   l1Wallet,
+  l2Wallet,
   testAccount,
 } from "../devnet";
 
@@ -23,11 +29,6 @@ import {
 
 /** Anvil #1: funded on both chains. */
 const FUNDED = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
-const safeAbi = parseAbi([
-  "function getOwners() view returns (address[])",
-  "function getThreshold() view returns (uint256)",
-]);
-
 const run = (script: string) =>
   executeScript(
     script,
@@ -53,34 +54,92 @@ describe.skipIf(!devnet)("Safe on the EEZ devnet", () => {
     }
   }, 60_000);
 
-  it("creates a Safe and executes a cross-chain assertion through it", async () => {
+  it("earns the whale badge: L2 balance asserted and badge minted in one Safe transaction", async () => {
     const salt = BigInt(Date.now());
-    const result = await run(
+    const wallets: Record<number, WalletClient> = {
+      [L1_ID]: l1Wallet,
+      [L2_ID]: l2Wallet,
+    };
+    const defaults = makeDefaultHandlers({
+      account: testAccount.address,
+      maximizeGasLimit: false,
+    });
+    const routed = (ctx: ActionHandlerCtx, chainId?: number) => ({
+      ...ctx,
+      walletClient: wallets[chainId ?? L1_ID] ?? ctx.walletClient,
+    });
+    const result = await executeScript(
       `load eez
+load contracts
 load safe
 
+switch eezL1
+set $minterSrc <<<SOL
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
+interface IBadge { function mint(address to) external; }
+contract Minter {
+  function mintBadge(IBadge badge) external { badge.mint(msg.sender); }
+}
+SOL
+contracts:deploy $minter @contracts:solidity($minterSrc)
+
+switch eezL2
+set $badgeSrc <<<SOL
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
+contract Badge {
+  address public immutable minter;
+  mapping(address => uint256) public balanceOf;
+  constructor(address m) { minter = m; }
+  function mint(address to) external { require(msg.sender == minter, "only minter"); balanceOf[to] += 1; }
+}
+SOL
+contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $minter)]
+eez:deploy-proxy $minter
+
+switch eezL1
+eez:deploy-proxy $badge
 safe:new @me --salt ${salt} -> ProxyCreation(address indexed, address) [$safe _]
+
+switch eezL2
+eez:faucet $safe --amount 100e18
+
+switch eezL1
 safe:execute $safe (
-  assert @eez:on!(eezL2 @balance!(ETH ${FUNDED})) > 0 "no balance on L2"
+  assert @eez:on!(eezL2 @balance!(ETH $safe)) >= 100e18 "not a whale on L2"
+  exec $minter mintBadge(address) @eez:proxy(eezL2 $badge)
 )
-print $safe`,
+print "badges:" @eez:on(eezL2 $badge::{balanceOf(address)(uint256) $safe})`,
+      evml.registry,
+      {
+        chainId: L1_ID,
+        transports: getTransports(),
+        account: testAccount.address,
+      },
+      l1Wallet,
+      {
+        prepareChains: false,
+        handlers: {
+          wallet: async (action, ctx) =>
+            action.method === "wallet_switchEthereumChain"
+              ? undefined
+              : ctx.next(action),
+          transaction: (action, ctx) =>
+            defaults.transaction(action, routed(ctx, action.chainId)),
+        },
+      },
     );
-    const logs = result.logs ?? [];
-    const safe = logs
-      .map((l) => String(l))
-      .find((l) => /^0x[0-9a-fA-F]{40}$/.test(l.trim()));
-    expect(result.executed).to.have.lengthOf(2);
-    for (const e of result.executed) {
-      expect((e.result as { status?: string })?.status).to.equal("success");
+    const sent = result.executed.filter(
+      (e) => isTransactionAction(e.action) && !e.action.readOnly,
+    );
+    // minter | badge, minter-proxy | badge-proxy, safe:new | faucet | execTransaction
+    expect(sent.length).to.be.gte(6);
+    for (const { result: receipt } of sent) {
+      expect((receipt as { status?: string })?.status).to.equal("success");
     }
-    expect(safe, "printed safe address").to.exist;
-    const owners = await l1.readContract({
-      address: safe as `0x${string}`,
-      abi: safeAbi,
-      functionName: "getOwners",
-    });
-    expect(owners).to.eql([testAccount.address]);
-  }, 240_000);
+    expect(result.logs.join("\n")).to.match(/badges:\s*1\b/);
+  }, 600_000);
 
   it("reverts the Safe transaction when the cross-chain assertion fails", async () => {
     const salt = BigInt(Date.now()) + 1n;

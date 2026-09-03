@@ -92,7 +92,7 @@ must exist before the call. The transaction that touches a proxy is an
 ordinary L1 transaction; the EEZ RPC hands it to the cross-chain ingress,
 and a receipt on L1 means the L2 effect was applied.
 
-## Calling across from the wallet: `eez:on`
+## Calling across from the wallet
 
 Without a contract of your own, `eez:on` runs a block of commands on the
 other chain. Every call the block produces goes out through its target's
@@ -131,24 +131,7 @@ print "my proxy on L2:" @eez:on(eezL2 @eez:proxy(eezL1 @me))
 ```
 
 Gas is estimated by simulating the remote leg; pass `--gas` (or `--value`)
-on the inner command when needed. A `batch` inside the block stays a batch,
-sent atomically by the wallet:
-
-```evml
-load eez
-
-set $counter 0x000000000000000000000000000000000000bEEF   # on L2
-set $other 0x000000000000000000000000000000000000cafe     # on L2
-
-switch eezL1
-eez:on eezL2 (
-  exec $counter setValue(uint256) 1 --gas 700000
-  batch (
-    exec $counter setValue(uint256) 2
-    exec $other setValue(uint256) 3
-  )
-)
-```
+on the inner command when needed.
 
 Blocks nest. A block inside a block comes back to the chain it started
 from, still inside the same transaction, through a proxy of a proxy: L1
@@ -196,8 +179,8 @@ Inside an `assert`, the on-chain helpers `@eez:on!`, `@eez:proxy!` and
 L2 state synchronously. The assertion becomes a transaction (only a
 transaction reaches the sequencer's composer), it crosses one chain boundary,
 and the proxy of the Assertions core on the other chain must exist first.
-Like any on-chain helper, they are welcome inside a `batch`: the read happens
-when the batch executes, not when it is built.
+Like any on-chain helper, they are welcome inside a Safe transaction (below):
+the read happens when it executes, not when it is built.
 
 ```evml
 load eez
@@ -206,29 +189,46 @@ switch eezL1
 assert @eez:on!(eezL2 @balance!(ETH @me)) >= 1e18 "not enough on L2"
 ```
 
-## Batching through a Safe
+## Batching through a Safe: a whale badge
 
 A browser wallet only batches on the chains it lists, and a devnet is not
 one of them, so `batch` is refused there. A Safe batches anywhere:
 `safe:execute` sends one ordinary transaction to the Safe, which runs the
-block atomically, cross-chain assertions included. The devnet has no
-canonical Safe contracts; the `safe` module carries its own deployment of
-them, at the same addresses on both chains.
+block atomically, cross-chain calls and assertions included. The devnet has
+no canonical Safe contracts; the `safe` module carries its own deployment
+of them, at the same addresses on both chains.
+
+That makes the Safe a fitting whale. Fund it on L2, then let it earn a
+badge from the [minter above](#calling-across-from-a-contract), on the
+condition that it holds 100 ETH or more there. The assertion reads L2 and
+the mint writes L2, both from L1, inside the Safe's one transaction: no
+balance, no badge.
 
 ```evml
 load eez
 load safe
 
+set $minter 0x000000000000000000000000000000000000dEaD   # the Minter on L1
+set $badge 0x000000000000000000000000000000000000bEEF    # the Badge on L2
+
 switch eezL1
 safe:new @me -> ProxyCreation(address indexed, address) [$safe _]
+
+switch eezL2
+eez:faucet $safe --amount 100e18              # the Safe's stash on L2
+
+switch eezL1
 safe:execute $safe (
-  assert @eez:on!(eezL2 @balance!(ETH @me)) >= 1e18 "not enough on L2"
+  assert @eez:on!(eezL2 @balance!(ETH $safe)) >= 100e18 "not a whale on L2"
+  exec $minter mintBadge(address) @eez:proxy(eezL2 $badge)
 )
+print "badges:" @eez:on(eezL2 $badge::{balanceOf(address)(uint256) $safe})
 ```
 
-`safe:new` is deterministic, so a second run with the same owners needs a
-`--salt`; every command in the `safe:execute` block joins the same
-transaction.
+The minter mints to `msg.sender`, and that is the Safe, so the badge lands
+on the Safe's address on L2. Both proxies from the minter section must
+exist. `safe:new` is deterministic: a second run with the same owner needs
+a `--salt`.
 
 ## Simulation
 
