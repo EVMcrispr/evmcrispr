@@ -116,9 +116,15 @@ export default defineCommand<Std>({
       interpreters,
       core: CORE_ADDRESS,
       operators: OPERATORS_ADDRESS,
+      hints: {},
     };
+    // A face that can only resolve inside a transaction (see
+    // `CompileHints.transact`) turns the read-only call into one.
     const emit = (param: InputParam): Action[] => [
-      assertParamAction(param, msg),
+      {
+        ...assertParamAction(param, msg),
+        readOnly: !ctx.hints?.transact,
+      },
     ];
 
     const lhsNode = call as Node;

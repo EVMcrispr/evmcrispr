@@ -39,7 +39,7 @@ Networks this module ships. They are available to `switch` as soon as the module
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
-| [@eez:on](src/helpers/on.md) | `any` | Evaluate an expression as if the script were on another chain, and return its value. Reads only: helpers, `::` calls, variables and arithmetic all resolve against that chain, then the script continues on its own chain. |
+| [@eez:on](src/helpers/on.md) | `any` | Evaluate an expression as if the script were on another chain, and return its value: helpers, `::` calls, variables and arithmetic resolve against that chain (reads only). |
 | [@eez:proxy](src/helpers/proxy.md) | `address` | Address on the current chain of the cross-chain proxy standing in for a contract on another EEZ chain. Deterministic, so it resolves whether or not the proxy has been created yet. |
 | [@eez:target](src/helpers/target.md) | `address` | The remote contract a cross-chain proxy stands in for: the reverse of @eez:proxy. Fails if the address is not a registered proxy on that chain. |
 

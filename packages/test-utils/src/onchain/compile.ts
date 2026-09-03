@@ -80,6 +80,7 @@ export async function compileExpression(
     },
     core: env.core ?? CORE_ADDRESS,
     operators: env.operators ?? OPERATORS_ADDRESS,
+    hints: {},
   };
 
   const operand =

@@ -65,6 +65,16 @@ export type Operand =
     };
 
 /** Context threaded through on-chain expression compilation. */
+/** What a face learned while compiling that the command emitting the
+ *  assertion has to honour. One bag per compilation, shared by every
+ *  nested face (dispatch copies the ctx but keeps this object). */
+export interface CompileHints {
+  /** The expression only resolves inside a transaction (an EEZ cross-chain
+   *  static read is composed by the sequencer, never by `eth_call`), so
+   *  `assert` must emit a transaction rather than a read-only call. */
+  transact?: boolean;
+}
+
 export interface CompileCtx {
   /** The module hosting the compilation (dispatch swaps in the owning
    *  module before calling a helper's `compile`). */
@@ -74,6 +84,9 @@ export interface CompileCtx {
   core: Address;
   /** Resolved operators contract address (the plain word/bytes ops). */
   operators: Address;
+  /** Set by faces, read by the emitting command; absent in contexts that
+   *  never emit (hover, completions). */
+  hints?: CompileHints;
 }
 
 /** A helper's on-chain face: turns the helper's raw AST node into an

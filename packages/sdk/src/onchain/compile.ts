@@ -69,7 +69,7 @@ export type { ArithOpName, CmpOpName } from "./composition";
 export { isDynamicParam } from "./construct";
 /** Re-exported from the pure-types module and the composition table (the
  *  single source of truth for categories and operator acceptance). */
-export type { Category, CompileCtx, Operand } from "./types";
+export type { Category, CompileCtx, CompileHints, Operand } from "./types";
 
 export function categoryFromAbiType(abiType: string): Category {
   if (abiType.startsWith("uint")) return "Uint";
