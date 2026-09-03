@@ -1,7 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { type Action, registerChains } from "@evmcrispr/sdk";
-import { decodeFunctionData, encodeErrorResult, parseAbi } from "viem";
-import { eezBaseAbi } from "../../src/abis";
+import {
+  decodeAbiParameters,
+  decodeFunctionData,
+  encodeErrorResult,
+  getAddress,
+  parseAbi,
+  parseAbiParameters,
+} from "viem";
+import { crossChainProxyAbi, eezBaseAbi } from "../../src/abis";
 import { chains } from "../../src/chains";
 import { EEZ_CHAINS } from "../../src/constants";
 import {
@@ -9,11 +16,14 @@ import {
   assertForeignRollup,
   CROSS_CHAIN_FALLBACK_GAS,
   createProxyAction,
+  encodeExecuteBatch,
   estimateCallGas,
   peerRollup,
   remoteLabel,
   resolveRollup,
   rollupIdFor,
+  sumValues,
+  supportsExecuteBatch,
 } from "../../src/utils/eez";
 
 const l1 = {
@@ -107,28 +117,43 @@ describe("eez utils", () => {
       );
     });
 
-    it("keeps a batch of calls as a batch", () => {
+    it("rejects a batch inside the block, pointing at the outer form", () => {
       const action: Action = {
         type: "batched",
         chainId: 1,
         from: call.to,
         actions: [call, call],
       };
-      expect(assertCrossChainCalls([call, action, call], "eez:on")).toEqual([
-        call,
-        action,
-        call,
-      ]);
+      expect(() => assertCrossChainCalls([call, action], "eez:on")).toThrow(
+        /batch cannot be used inside eez:on.*batch \( eez:on/,
+      );
     });
 
-    it("rejects a deployment inside a batch in the block", () => {
+    it("flattens a batch inside the block when asked to", () => {
+      const other = { ...call, data: "0x01" } as const;
+      const action: Action = {
+        type: "batched",
+        chainId: 1,
+        from: call.to,
+        actions: [other, other],
+      };
+      expect(
+        assertCrossChainCalls([call, action, call], "eez:batch", {
+          flattenBatches: true,
+        }),
+      ).toEqual([call, other, other, call]);
+    });
+
+    it("rejects a deployment inside a flattened batch", () => {
       const action: Action = {
         type: "batched",
         chainId: 1,
         from: call.to,
         actions: [call, { data: "0x00" }],
       };
-      expect(() => assertCrossChainCalls([action], "eez:on")).toThrow(/deploy/);
+      expect(() =>
+        assertCrossChainCalls([action], "eez:batch", { flattenBatches: true }),
+      ).toThrow(/deploy/);
     });
 
     it("rejects a deployment inside the block", () => {
@@ -142,6 +167,45 @@ describe("eez utils", () => {
       expect(() => assertCrossChainCalls([action], "eez:on")).toThrow(
         /non-transaction .*eez:on/,
       );
+    });
+  });
+
+  describe("encodeExecuteBatch", () => {
+    const a = "0x000000000000000000000000000000000000aaaa" as const;
+    const b = "0x000000000000000000000000000000000000bbbb" as const;
+
+    it("encodes the calls as ERC-7579 executions inside executeBatch", () => {
+      const data = encodeExecuteBatch([
+        { to: a, data: "0x1234", value: 5n },
+        { to: b },
+      ]);
+      const { functionName, args } = decodeFunctionData({
+        abi: crossChainProxyAbi,
+        data,
+      });
+      expect(functionName).toBe("executeBatch");
+      const [executions] = decodeAbiParameters(
+        parseAbiParameters("(address target, uint256 value, bytes callData)[]"),
+        args[0] as `0x${string}`,
+      );
+      expect(executions).toEqual([
+        { target: a, value: 5n, callData: "0x1234" },
+        { target: getAddress(b), value: 0n, callData: "0x" },
+      ]);
+    });
+
+    it("tells a batch-capable proxy from an older one by its code", () => {
+      expect(supportsExecuteBatch("0x6080604052a137d282")).toBe(true);
+      expect(supportsExecuteBatch("0x6080604052A137D282")).toBe(true);
+      expect(supportsExecuteBatch("0x6080604052")).toBe(false);
+      expect(supportsExecuteBatch("0x")).toBe(false);
+    });
+
+    it("sums the ether the calls send", () => {
+      expect(
+        sumValues([{ to: a, value: 5n }, { to: b }, { to: a, value: 7n }]),
+      ).toBe(12n);
+      expect(sumValues([])).toBe(0n);
     });
   });
 

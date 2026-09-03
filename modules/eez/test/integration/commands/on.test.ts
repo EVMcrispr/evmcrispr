@@ -30,7 +30,6 @@ const freshAddress = (offset: bigint): `0x${string}` =>
 /** Targets nobody has proxied: fresh per run, so the create action is emitted. */
 const fresh = freshAddress(1n);
 const fresh2 = freshAddress(2n);
-const fresh3 = freshAddress(3n);
 const fresh4 = freshAddress(4n);
 /** Stable target whose proxy the setup below makes sure exists. */
 const KNOWN = "0x000000000000000000000000000000000000bEEF";
@@ -169,40 +168,6 @@ describeCommand("on", {
         expect(isAddressEqual(second.to, proxy)).to.be.true;
         expect(setValueArg(first.data)).to.equal(1n);
         expect(setValueArg(second.data)).to.equal(2n);
-      },
-    },
-    {
-      name: "keeps a batch inside the block as one sending-chain batch",
-      script: [
-        "eez:on eezL2 (",
-        `  exec ${KNOWN} setValue(uint256) 1`,
-        "  batch (",
-        `    exec ${KNOWN} setValue(uint256) 2`,
-        `    exec ${fresh3} setValue(uint256) 3`,
-        "  )",
-        `  exec ${KNOWN} setValue(uint256) 4`,
-        ")",
-      ].join("\n"),
-      timeout: 120_000,
-      setup: ensureKnownProxy,
-      validate: async (actions) => {
-        expect(actions).to.have.lengthOf(4);
-        const [create, first, batch, last] = actions as any[];
-        const known = await proxyOf(KNOWN);
-        const created = await proxyOf(fresh3);
-        expect(isAddressEqual(create.to, registry)).to.be.true;
-        expect(isAddressEqual(first.to, known)).to.be.true;
-        expect(setValueArg(first.data)).to.equal(1n);
-        expect(batch.type).to.equal("batched");
-        expect(batch.chainId).to.equal(L1_ID);
-        expect(isAddressEqual(batch.from, TEST_ACCOUNT_ADDRESS)).to.be.true;
-        expect(batch.actions).to.have.lengthOf(2);
-        expect(isAddressEqual(batch.actions[0].to, known)).to.be.true;
-        expect(setValueArg(batch.actions[0].data)).to.equal(2n);
-        expect(isAddressEqual(batch.actions[1].to, created)).to.be.true;
-        expect(setValueArg(batch.actions[1].data)).to.equal(3n);
-        expect(isAddressEqual(last.to, known)).to.be.true;
-        expect(setValueArg(last.data)).to.equal(4n);
       },
     },
     {
@@ -354,6 +319,18 @@ describeCommand("on", {
       name: "refuses a deployment inside the block",
       script: `load contracts\neez:on eezL2 (\n  contracts:deploy $value ${VALUE_BYTECODE}\n)`,
       error: "cannot deploy a contract inside eez:on",
+    },
+    {
+      name: "refuses a batch inside the block: the wallet batch goes outside",
+      script: [
+        "eez:on eezL2 (",
+        "  batch (",
+        `    exec ${KNOWN} setValue(uint256) 2`,
+        `    exec ${KNOWN} setValue(uint256) 3`,
+        "  )",
+        ")",
+      ].join("\n"),
+      error: "batch cannot be used inside eez:on",
     },
   ],
   docCases: [

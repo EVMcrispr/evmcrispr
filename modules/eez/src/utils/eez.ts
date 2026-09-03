@@ -1,4 +1,9 @@
-import type { Action, BatchedAction, TransactionAction } from "@evmcrispr/sdk";
+import type {
+  Action,
+  BlockExpressionNode,
+  NodesInterpreters,
+  TransactionAction,
+} from "@evmcrispr/sdk";
 import {
   chainIdForName,
   chainLabel,
@@ -8,17 +13,23 @@ import {
   extractRevertData,
   isChainFailure,
   isTransactionAction,
+  resolveChainId,
+  withSender,
 } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
 import {
   decodeErrorResult,
+  encodeAbiParameters,
   encodeFunctionData,
+  getAbiItem,
   getAddress,
   isAddress,
   parseAbi,
+  parseAbiParameters,
+  toFunctionSelector,
 } from "viem";
 import type Eez from "..";
-import { eezBaseAbi } from "../abis";
+import { crossChainProxyAbi, eezBaseAbi } from "../abis";
 import { EEZ_CHAINS } from "../constants";
 
 /** The rollup id "on the other side" of a chain: L1 (0) ↔ the rollup (1). */
@@ -324,28 +335,37 @@ export type CrossChainCall = TransactionAction & { to: Address };
 
 /**
  * The actions a cross-chain block may produce: plain contract calls, each
- * of which becomes one call through the target's proxy, and batches of
- * them (kept as batches, so they stay atomic on the sending chain).
- * Switching chain and deploying have no cross-chain meaning.
+ * of which becomes one call through a proxy. Switching chain and deploying
+ * have no cross-chain meaning. A `batch` inside the block is a wallet-level
+ * notion: `eez:on` refuses it (write `batch ( eez:on … )` instead), while
+ * `eez:batch` flattens it, since everything inside is one call already.
  */
 export function assertCrossChainCalls(
   actions: Action[],
   commandName: string,
-): (CrossChainCall | BatchedAction)[] {
-  const assertCall = (action: TransactionAction) => {
+  { flattenBatches = false }: { flattenBatches?: boolean } = {},
+): CrossChainCall[] {
+  const calls: CrossChainCall[] = [];
+  const pushCall = (action: TransactionAction) => {
     if (!action.to) {
       throw new ErrorException(
         `cannot deploy a contract inside ${commandName}: a cross-chain proxy only forwards calls`,
       );
     }
+    calls.push(action as CrossChainCall);
   };
   for (const action of actions) {
     if (isTransactionAction(action)) {
-      assertCall(action);
+      pushCall(action);
       continue;
     }
     if (action.type === "batched") {
-      action.actions.forEach(assertCall);
+      if (!flattenBatches) {
+        throw new ErrorException(
+          `batch cannot be used inside ${commandName}: wrap the whole thing instead, \`batch ( ${commandName} … )\`, or use eez:batch to run the calls atomically from your proxy`,
+        );
+      }
+      action.actions.forEach(pushCall);
       continue;
     }
     if (
@@ -360,5 +380,133 @@ export function assertCrossChainCalls(
       `can't use non-transaction actions inside ${commandName}`,
     );
   }
-  return actions as (CrossChainCall | BatchedAction)[];
+  return calls;
+}
+
+/**
+ * Ether the calls send in total: what the one transaction carrying them
+ * all must be funded with.
+ */
+export function sumValues(calls: TransactionAction[]): bigint {
+  return calls.reduce((total, call) => total + (call.value ?? 0n), 0n);
+}
+
+/**
+ * Calldata for `executeBatch` on the caller's far-side proxy: the calls as
+ * an ERC-7579 `Execution[]` (`(address target, uint256 value, bytes callData)`),
+ * the batch encoding EIP-7702 delegations and smart accounts share. The
+ * proxy runs them one by one as itself.
+ */
+export function encodeExecuteBatch(calls: CrossChainCall[]): Hex {
+  const executions = calls.map((call) => ({
+    target: call.to,
+    value: call.value ?? 0n,
+    callData: call.data ?? "0x",
+  }));
+  return encodeFunctionData({
+    abi: crossChainProxyAbi,
+    functionName: "executeBatch",
+    args: [encodeAbiParameters(EXECUTION_ARRAY, [executions])],
+  });
+}
+
+/** `executeBatch(bytes)`, the selector a batch-capable proxy dispatches. */
+const EXECUTE_BATCH_SELECTOR = toFunctionSelector(
+  getAbiItem({ abi: crossChainProxyAbi, name: "executeBatch" }),
+).slice(2);
+
+/** Whether a deployed cross-chain proxy's code knows `executeBatch`: a
+ *  proxy built before the batch mode forwards that selector like any
+ *  calldata instead. */
+export function supportsExecuteBatch(code: Hex): boolean {
+  return code.toLowerCase().includes(EXECUTE_BATCH_SELECTOR);
+}
+
+const EXECUTION_ARRAY = parseAbiParameters(
+  "(address target, uint256 value, bytes callData)[]",
+);
+
+/** What a cross-chain block resolved to, seen from the sending chain. */
+export interface RemoteBlock {
+  /** EEZ on the sending chain. */
+  config: EezConfig;
+  /** EEZ on the chain the block ran on. */
+  remote: EezConfig;
+  targetChainId: number;
+  /** The far side's rollup id, as the sending chain's registry names it. */
+  rollupId: bigint;
+  /** The account sending the transaction. */
+  sender: Address;
+  /** Its proxy on the far side: what contracts there see as msg.sender. */
+  remoteSender: Address;
+  calls: CrossChainCall[];
+  /** Far-side proxy of every `--from` an inner command named. */
+  remoteFrom: Map<Address, Address>;
+}
+
+/**
+ * Interpret a block as if the script had switched to `chain`, and collect
+ * the calls it produced. `@sender` inside resolves to the caller's proxy on
+ * that chain. The previous client is restored afterwards, whatever happens:
+ * inside a simulation that keeps the fork the script was running against.
+ */
+export async function interpretRemoteBlock(
+  module: Eez,
+  chain: unknown,
+  block: BlockExpressionNode,
+  interpreters: NodesInterpreters,
+  commandName: string,
+  { flattenBatches = false }: { flattenBatches?: boolean } = {},
+): Promise<RemoteBlock> {
+  const config = await eezConfig(module);
+  const targetChainId = resolveChainId(chain);
+  const rollupId = resolveRollup(config, targetChainId);
+  const remote = await eezConfigFor(module, targetChainId);
+  const sender = await module.getSender();
+
+  const previous = await module.getClient();
+  try {
+    module.switchChainId(targetChainId);
+  } catch {
+    throw new ErrorException(
+      `${chainLabel(targetChainId)} is not configured — no RPC is known for it in this environment`,
+    );
+  }
+  const remoteFrom = new Map<Address, Address>();
+  try {
+    const remoteSender = await computeProxy(
+      module,
+      remote,
+      sender,
+      config.rollupId,
+    );
+    const actions = await withSender(module, remoteSender, () =>
+      interpreters.interpretNode(block, {
+        batchContext: interpreters.batchContext,
+      }),
+    );
+    const calls = assertCrossChainCalls(actions ?? [], commandName, {
+      flattenBatches,
+    });
+    for (const call of calls) {
+      if (call.from && !remoteFrom.has(call.from)) {
+        remoteFrom.set(
+          call.from,
+          await computeProxy(module, remote, call.from, config.rollupId),
+        );
+      }
+    }
+    return {
+      config,
+      remote,
+      targetChainId,
+      rollupId,
+      sender,
+      remoteSender,
+      calls,
+      remoteFrom,
+    };
+  } finally {
+    module.context.setClient(previous);
+  }
 }

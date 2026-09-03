@@ -164,6 +164,40 @@ works the same way (`eezL1` → `eezL2` → `eezL1` → `eezL2`, and so on).
 `switch` and contract deployments are not allowed inside the block: a proxy
 only forwards calls.
 
+## Several calls, one entry
+
+Each command inside `eez:on` is its own transaction on the sending chain.
+When two writes on the other chain must land together, `eez:batch` runs the
+block as *one* cross-chain call, addressed to yourself: it goes to the proxy
+of your own proxy on the other chain, and that proxy runs the calls, in
+order, all or nothing. `msg.sender` is your proxy for every one of them,
+exactly as with `eez:on`, so `@sender` means the same thing inside.
+
+```evml
+load eez
+
+set $vault 0x000000000000000000000000000000000000bEEF   # on L2
+
+switch eezL1
+eez:batch eezL2 (
+  exec $vault setValue(uint256) 42
+  exec $vault setOwner(address) @sender
+)
+```
+
+The batch is estimated by simulating it whole on the other chain, and a
+revert anywhere stops the script before anything is sent. `--gas` on
+`eez:batch` overrides the estimate; the commands inside take no `--gas` or
+`--from` of their own. A `batch ( … )` inside is flattened, since everything
+is atomic already. The far side must run cross-chain proxies that support
+`executeBatch`, which the devnet does not yet: until it does, the command
+refuses to send.
+
+For several *separate* cross-chain calls sent atomically, put a wallet batch
+around the command instead, `batch ( eez:on eezL2 ( … ) )`, with an
+EIP-7702 account or a Safe (see below). A `batch` inside the block is
+refused: it would only describe the sending wallet.
+
 ## Reading the other chain
 
 `@eez:on` evaluates an expression as if the script were on the other chain
