@@ -3,7 +3,7 @@ import type Eez from "..";
 import { eezConfig, ensureProxy, remoteLabel } from "../utils/eez";
 
 export default defineCommand<Eez>({
-  name: "proxy",
+  name: "deploy-proxy",
   description:
     "Create the cross-chain proxy on the current chain for a contract on another EEZ rollup. Does nothing if it already exists.",
   args: [

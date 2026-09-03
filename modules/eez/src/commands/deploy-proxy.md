@@ -1,5 +1,5 @@
 ---
-title: "eez:proxy"
+title: "eez:deploy-proxy"
 ---
 
 Create the cross-chain proxy on the current chain for a contract on another EEZ rollup. Does nothing if it already exists.
@@ -9,7 +9,7 @@ Create the cross-chain proxy on the current chain for a contract on another EEZ 
 ## Syntax
 
 ```evml
-eez:proxy <target>
+eez:deploy-proxy <target>
 ```
 
 ## Arguments
@@ -23,7 +23,7 @@ eez:proxy <target>
 ```evml
 # Create the L1 proxy for a rollup contract, so L1 code can call it
 switch eezL1
-eez:proxy 0x000000000000000000000000000000000000dEaD
+eez:deploy-proxy 0x000000000000000000000000000000000000dEaD
 ```
 
 <!-- HAND-WRITTEN -->

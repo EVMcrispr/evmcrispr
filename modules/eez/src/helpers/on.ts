@@ -91,7 +91,7 @@ export default defineHelper<Eez>({
     const proxy = await computeProxy(module, config, CORE_ADDRESS, rollupId);
     if (!(await isDeployed(module, proxy))) {
       throw new ErrorException(
-        `the proxy on ${chainLabel(current)} of the Assertions core on ${chainLabel(target)} has not been created yet — run \`eez:proxy ${CORE_ADDRESS} --chain ${target}\` first`,
+        `the proxy on ${chainLabel(current)} of the Assertions core on ${chainLabel(target)} has not been created yet — run \`eez:deploy-proxy ${CORE_ADDRESS} --chain ${target}\` first`,
       );
     }
 

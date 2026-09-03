@@ -51,7 +51,7 @@ assert @eez:on!(eezL2 @balance!(ETH @me)) >= 1e18 "not enough on the rollup"
 ```
 
 - The assertion becomes a transaction. Only a transaction reaches the composer; an `eth_call` through a proxy always fails with `ExecutionNotFound()`. Inside a `batch` it already is one. It cannot be simulated in `sim:fork`, since a fork has no composer.
-- The proxy of the remote core must exist on this chain first (`eez:proxy 0xA55E472841ca3D318205036724A94F5abDbf7b18 --chain eezL2`); the face refuses otherwise.
+- The proxy of the remote core must exist on this chain first (`eez:deploy-proxy 0xA55E472841ca3D318205036724A94F5abDbf7b18 --chain eezL2`); `@eez:on!` reverts otherwise.
 - `@me` compiles to the literal wallet address, so `@balance!(ETH @me)` on the rollup is the wallet's balance there. Anything on the far side that looks at `msg.sender` sees the proxy of the caller instead.
 - One hop only: the devnet composes a static read across one chain boundary, not `@eez:on!` inside `@eez:on!`.
 - A constant inner expression is folded at composition time and never crosses; `@eez:on!(eezL1 …)` from L1 is just the inner expression.

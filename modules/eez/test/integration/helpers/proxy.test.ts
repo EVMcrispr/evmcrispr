@@ -25,7 +25,7 @@ describeHelper(
     preamble: "switch eezL1",
     cases: [
       {
-        name: "resolves the face of a rollup contract on L1",
+        name: "resolves the proxy of a rollup contract on L1",
         input: `@eez:proxy(eezL2 ${DEAD})`,
         validate: async (result) => {
           expect(isAddressEqual(result, await onChain(1n))).to.be.true;

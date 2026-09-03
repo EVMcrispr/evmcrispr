@@ -232,6 +232,6 @@ See the [circom reference](/reference/circom/) for every helper and option.
 ## Combining with EEZ
 
 A gate like the one above admits on L1. On an EEZ L2 a contract can trust
-that gate's face there, so proving on L1 mints on L2 in the same
+that gate's proxy there, so proving on L1 mints on L2 in the same
 transaction. The [EEZ guide](/guides/eez/#combining-with-circom)
 shows that composition.

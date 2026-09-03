@@ -10,7 +10,7 @@ const DEAD = "0x000000000000000000000000000000000000dEaD";
 /** A target nobody has proxied: fresh per run, so the create action is emitted. */
 const fresh = `0x${toHex(BigInt(Date.now()), { size: 20 }).slice(2)}`;
 
-describeCommand("proxy", {
+describeCommand("deploy-proxy", {
   module: "eez",
   preamble: "load eez",
   chainId: L1_ID,
@@ -18,7 +18,7 @@ describeCommand("proxy", {
   cases: [
     {
       name: "creates the proxy for a target nobody proxied yet",
-      script: `eez:proxy ${fresh}`,
+      script: `eez:deploy-proxy ${fresh}`,
       validate: (actions) => {
         expect(actions).to.have.lengthOf(1);
         const [action] = actions as any[];
@@ -34,7 +34,7 @@ describeCommand("proxy", {
     },
     {
       name: "honours an explicit rollup id",
-      script: `eez:proxy ${fresh} --chain 7`,
+      script: `eez:deploy-proxy ${fresh} --chain 7`,
       validate: (actions) => {
         const decoded = decodeFunctionData({
           abi: eezBaseAbi,
@@ -47,7 +47,7 @@ describeCommand("proxy", {
   errorCases: [
     {
       name: "refuses a proxy for the current chain itself",
-      script: `eez:proxy ${DEAD} --chain 0`,
+      script: `eez:deploy-proxy ${DEAD} --chain 0`,
       error: "itself",
     },
   ],
@@ -55,19 +55,19 @@ describeCommand("proxy", {
     {
       description:
         "Create the L1 proxy for a rollup contract, so L1 code can call it",
-      code: "switch eezL1\neez:proxy 0x000000000000000000000000000000000000dEaD",
+      code: "switch eezL1\neez:deploy-proxy 0x000000000000000000000000000000000000dEaD",
     },
   ],
 });
 
-describeCommand("proxy", {
+describeCommand("deploy-proxy", {
   module: "eez",
   preamble: "load eez",
   describeName: "Eez > commands > proxy (non-EEZ chain)",
   errorCases: [
     {
       name: "explains which config vars make another chain usable",
-      script: `eez:proxy ${DEAD}`,
+      script: `eez:deploy-proxy ${DEAD}`,
       error: "is not a known EEZ chain",
     },
   ],

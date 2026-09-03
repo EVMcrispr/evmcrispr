@@ -49,6 +49,6 @@ An EEZ rollup and its L1 share one sequencer, so a call can cross between them i
 
 ## See Also
 
-- [eez:proxy](proxy.md) — create the proxy explicitly
+- [eez:deploy-proxy](deploy-proxy.md) — create the proxy explicitly
 - [@eez:proxy](../helpers/proxy.md) — resolve the proxy address without calling
 - [@eez:on](../helpers/on.md) — read the other chain from the script

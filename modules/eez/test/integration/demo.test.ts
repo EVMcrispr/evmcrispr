@@ -101,10 +101,10 @@ contract Badge {
 SOL
 contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
 contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
-eez:proxy $gate
+eez:deploy-proxy $gate
 
 switch eezL1
-eez:proxy $badge
+eez:deploy-proxy $badge
 exec $gate mintBadge(address) @eez:proxy(eezL2 $badge)
 
 set $badges @eez:on(eezL2 $badge::{balanceOf(address)(uint256) @me})
@@ -179,7 +179,7 @@ describe.skipIf(!devnet)(
         (e) => isTransactionAction(e.action) && !e.action.readOnly,
       );
       // verifier, gate, admit | badge, gate-proxy | badge-proxy, mintBadge,
-      // setNote through the badge's L1 face
+      // setNote through the badge's L1 proxy
       expect(sent.length).to.be.gte(8);
       for (const { result: receipt } of sent) {
         expect((receipt as any).status).to.equal("success");
