@@ -15,7 +15,7 @@ export const CORE_ADDRESS: Address =
 
 /** Canonical address of the Operators v1.0 (vanity CREATE2 salt). */
 export const OPERATORS_ADDRESS: Address =
-  "0x7B4F82C8A21dCaf7D96D4113D6d23578d1F0A91D";
+  "0xE5c2D60293510f69456d006b8B177AAE0889911f";
 
 /** Generic ABI-valued collection periphery (requires Cancun). */
 export const COLLECTION_OPERATORS_ADDRESS: Address =
