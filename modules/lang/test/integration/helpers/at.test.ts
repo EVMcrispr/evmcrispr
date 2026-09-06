@@ -44,6 +44,16 @@ describeHelper(
     ],
     errorCases: [
       {
+        name: "rejects fractional indexes",
+        input: `@at([1 2] 0.5)`,
+        error: "Checked arithmetic",
+      },
+      {
+        name: "rejects indexes outside int256",
+        input: `@at([1 2] ${1n << 255n})`,
+        error: "int256",
+      },
+      {
         name: "should fail on out-of-bounds index",
         input: `@at([1 2] 5)`,
         error: "out of bounds",

@@ -8,6 +8,10 @@ import {
   toFunctionSelector,
   toHex,
 } from "viem";
+import {
+  EXPRESSION_RESOLVER_ABI,
+  EXPRESSION_RESOLVER_ADDRESS,
+} from "../../src/onchain";
 import { CORE_ABI } from "../../src/onchain/core";
 import { FETCHER_TYPE, type InputParam } from "../../src/onchain/erc8211";
 import { spliceLayout } from "../../src/onchain/layout";
@@ -68,6 +72,15 @@ function resolve(p: InputParam, values: Map<string, Hex>): Hex {
     p.paramData,
   ) as [string, Hex];
 
+  if (target.toLowerCase() === EXPRESSION_RESOLVER_ADDRESS.toLowerCase()) {
+    const call = decodeFunctionData({ abi: EXPRESSION_RESOLVER_ABI, data });
+    if (call.functionName === "resolveValues")
+      return encodeAbiParameters(
+        [{ type: "bytes[]" }],
+        [call.args[1].map((p) => resolve(p as InputParam, values))],
+      );
+    throw new Error(`unexpected resolver ${call.functionName}`);
+  }
   if (target.toLowerCase() !== CORE.toLowerCase()) {
     const v = values.get(target.toLowerCase());
     if (!v) throw new Error(`no value for leaf ${target}`);
@@ -76,6 +89,14 @@ function resolve(p: InputParam, values: Map<string, Hex>): Hex {
 
   const call = decodeFunctionData({ abi: CORE_ABI, data });
 
+  if (call.functionName === "nav") {
+    const [inner] = call.args;
+    const [payload] = decodeAbiParameters(
+      [{ type: "bytes" }],
+      resolve(inner as InputParam, values),
+    );
+    return payload;
+  }
   if (call.functionName === "pick") {
     const [inner, wordIndex] = call.args as [InputParam, bigint];
     const bytes = resolve(inner, values).slice(2);
@@ -110,20 +131,24 @@ function decodeConcatParts(param: InputParam, values: Map<string, Hex>): Hex[] {
     [{ type: "address" }, { type: "bytes" }],
     param.paramData,
   ) as [string, Hex];
-  expect(target.toLowerCase()).toBe(CORE.toLowerCase());
-
-  const call = decodeFunctionData({ abi: CORE_ABI, data });
-  expect(call.functionName).toBe("read");
-  const [, selector, args] = call.args as [InputParam, Hex, InputParam[]];
+  expect(target.toLowerCase()).toBe(EXPRESSION_RESOLVER_ADDRESS.toLowerCase());
+  const call = decodeFunctionData({ abi: EXPRESSION_RESOLVER_ABI, data });
+  expect(call.functionName).toBe("resolveCall");
+  if (call.functionName !== "resolveCall")
+    throw new Error("expected resolveCall");
+  const [, , selector, descriptor, args] = call.args;
   expect(selector).toBe(selectorOf("concat(bytes[],bytes)"));
-
-  // The core concatenates each resolved segment's bytes, in order.
-  const body = args.map((a) => resolve(a, values).slice(2)).join("");
-  const [parts, delimiter] = decodeAbiParameters(
-    [{ type: "bytes[]" }, { type: "bytes" }],
-    `0x${body}`,
+  expect(descriptor).toBe("(bytes[],bytes)");
+  const [parts] = decodeAbiParameters(
+    [{ type: "bytes[]" }],
+    resolve(args[0] as InputParam, values),
   );
-  expect(delimiter).toBe("0x");
+  expect(
+    decodeAbiParameters(
+      [{ type: "bytes" }],
+      resolve(args[1] as InputParam, values),
+    )[0],
+  ).toBe("0x");
   return parts as Hex[];
 }
 
@@ -147,7 +172,7 @@ function roundTrip(parts: (Hex | { live: Hex })[]): Hex[] {
 const hex = (len: number): Hex =>
   `0x${Array.from({ length: len }, (_, i) => ((i % 16) + 1).toString(16).padStart(2, "0")).join("")}`;
 
-describe("spliceLayout round-trip", () => {
+describe("resolver calldata round-trip", () => {
   it("decodes a single live part back to its value", () => {
     expect(roundTrip([{ live: hex(5) }])).toEqual([hex(5)]);
   });
@@ -190,8 +215,8 @@ describe("spliceLayout round-trip", () => {
     ).toEqual([hex(33), "0xdeadbeef", hex(1), hex(64)]);
   });
 
-  it("rejects more live parts than the cap allows", () => {
-    expect(() =>
+  it("accepts more than four live parts", () => {
+    expect(
       roundTrip([
         { live: hex(1) },
         { live: hex(1) },
@@ -199,7 +224,7 @@ describe("spliceLayout round-trip", () => {
         { live: hex(1) },
         { live: hex(1) },
       ]),
-    ).toThrow(/at most 4 live values/);
+    ).toEqual(Array(5).fill(hex(1)));
   });
 });
 

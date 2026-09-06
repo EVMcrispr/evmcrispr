@@ -1,22 +1,36 @@
-import { defineHelper, ErrorException, valueEq } from "@evmcrispr/sdk";
 import {
+  defineHelper,
+  ErrorException,
+  encodeParams,
+  valueEq,
+} from "@evmcrispr/sdk";
+import {
+  abiEqualityCallback,
+  arrayValuesParam,
+  canonicalArgSpec,
+  canonicalBytesParam,
+  collectionReadParam,
+  compileArgSpecs,
   compileOperand,
   constBigInt,
   FOLD_EXIT,
   foldParam,
+  formatParamType,
   includesWordParam,
   opSelector,
+  rawParam,
   toWord,
+  wordOpParam,
 } from "@evmcrispr/sdk/onchain";
 import type { Hex } from "viem";
 import type Lang from "..";
-import { wordsArg } from "../utils/onchain";
+import { arrayArg } from "../utils/genericCollections";
 
 export default defineHelper<Lang>({
   name: "includes",
   description: "Check whether an array contains an element.",
   compileDescription:
-    "The element may be a build-time constant or a live value; a live string or bytes element has to be hashed first.",
+    "The element may be constant or live. Generic arrays compare canonical ABI values, preserving dynamic tuple and array boundaries.",
   returnType: "bool",
   args: [
     {
@@ -39,7 +53,57 @@ export default defineHelper<Lang>({
         "@includes! expects (call item), e.g. @includes!($safe::getOwners() @me)",
       );
     }
-    const { payload } = await wordsArg(ctx, node.args[0], "includes!");
+    const array = await arrayArg(ctx, node.args[0], "includes!");
+    if (!array.words) {
+      const fn = {
+        type: "function" as const,
+        name: "needle",
+        stateMutability: "pure" as const,
+        inputs: [array.element],
+        outputs: [],
+      };
+      const spec = (
+        await compileArgSpecs(ctx, [node.args[1]], fn, "includes needle")
+      )[0];
+      const needle =
+        spec.kind === "value"
+          ? {
+              kind: "value" as const,
+              value: encodeParams(
+                [array.element],
+                [spec.value] as never,
+                "includes needle",
+              ),
+            }
+          : canonicalArgSpec(
+              ctx,
+              { type: "bytes" },
+              canonicalBytesParam(ctx, spec.param),
+            );
+      const index = collectionReadParam(ctx, "indexOfValues", [
+        { kind: "value", value: formatParamType(array.element) },
+        canonicalArgSpec(
+          ctx,
+          { type: "bytes[]" },
+          arrayValuesParam(ctx, array),
+        ),
+        needle,
+        abiEqualityCallback(ctx, array.element),
+      ]);
+      return {
+        kind: "call",
+        cat: "Bool",
+        param: wordOpParam(
+          ctx,
+          "ne",
+          false,
+          index,
+          rawParam(toWord((1n << 256n) - 1n)),
+        ),
+      };
+    }
+    const payload = array.words;
+
     const item = await compileOperand(ctx, node.args[1]);
 
     if (item.kind === "call") {

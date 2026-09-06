@@ -12,22 +12,25 @@ import {
   categoryFromAbiType,
   collectionReadParam,
   compileArgSpecs,
+  compileCallValue,
   compileCollectionCallback,
-  compileLambdaTemplate,
+  compileOperand,
   constIntArg,
   FOLD_EXIT,
   foldParam,
   formatParamType,
+  isBangHelperNode,
   lookupOnchainDef,
   opSelector,
   toWord,
-  typedArrayArg,
   unwrapBytesParam,
 } from "@evmcrispr/sdk/onchain";
-import type { AbiFunction, Hex } from "viem";
+import type { AbiFunction, AbiParameter, Hex } from "viem";
 import { parseAbiItem } from "viem";
 import type Lang from "..";
+import { arrayArg, constantType } from "../utils/genericCollections";
 import { wordsArg } from "../utils/onchain";
+import { wordCallbackTemplate } from "../utils/wordCallback";
 
 /**
  * Binary Operations lambdas a fold accumulator composes with.
@@ -115,7 +118,7 @@ export default defineHelper<Lang>({
   name: "reduce",
   description: "Reduce an array to a single value by applying a helper.",
   compileDescription:
-    "Accumulator comes first. Generic values use direct ABI definitions; word folds also accept composed definitions and associative operator names.",
+    "Accumulator comes first. Generic values and repeated accumulators accept composed ABI-typed definitions; word folds also accept associative operator names.",
   returnType: "any",
   args: [
     {
@@ -143,31 +146,79 @@ export default defineHelper<Lang>({
         "@reduce! expects (call fn initial), e.g. @reduce!($vault::caps() add 0)",
       );
     }
-    const array = await typedArrayArg(ctx, node.args[0], "reduce!");
+    const array = await arrayArg(ctx, node.args[0], "reduce!");
     const named =
       node.args[1]?.type === NodeType.HelperFunctionExpression
         ? lookupOnchainDef(ctx, node.args[1].name)
         : undefined;
-    if (!array.words || named?.bodyNode.type === NodeType.CallExpression) {
+    if (!array.words || named) {
+      let accumulator: AbiParameter | undefined =
+        named?.argDefs[0]?.abiType ?? named?.returnAbiType;
       const body = named?.bodyNode as CallExpressionNode | undefined;
       if (
-        !body ||
-        body.type !== NodeType.CallExpression ||
-        !body.inputTypes ||
-        !body.outputTypes
-      )
-        throw new ErrorException(
-          "Generic reduction requires a direct inline ABI callback definition",
-        );
-      const fn = parseAbiItem(
-        `function ${body.method}${body.inputTypes} view returns ${body.outputTypes}`,
-      ) as AbiFunction;
-      const accumulator = fn.outputs[0];
+        !accumulator &&
+        body?.type === NodeType.CallExpression &&
+        body.inputTypes &&
+        body.outputTypes
+      ) {
+        const direct = parseAbiItem(
+          `function ${body.method}${body.inputTypes} view returns ${body.outputTypes}`,
+        ) as AbiFunction;
+        if (direct.outputs.length === 1) accumulator = direct.outputs[0];
+      }
+      if (!accumulator) {
+        const initialNode = node.args[2];
+        if (initialNode.type === NodeType.CallExpression) {
+          accumulator = (
+            await compileCallValue(ctx, initialNode as CallExpressionNode)
+          ).terminal;
+        } else if (isBangHelperNode(initialNode)) {
+          const initial = await compileOperand(ctx, initialNode);
+          accumulator = initial.kind === "call" ? initial.abiType : undefined;
+          accumulator ??= {
+            type:
+              initial.cat === "Int"
+                ? "int256"
+                : initial.cat === "Uint"
+                  ? "uint256"
+                  : initial.cat === "Bool"
+                    ? "bool"
+                    : initial.cat === "Address"
+                      ? "address"
+                      : initial.cat === "String"
+                        ? "string"
+                        : "bytes",
+          };
+        } else {
+          accumulator = constantType(
+            await ctx.interpreters.interpretNode(initialNode),
+          );
+          // A generic numeric accumulator initialized by a positive literal
+          // inherits signed array arithmetic, just as the word fold does.
+          if (
+            accumulator.type === "uint256" &&
+            /^int\d*$/.test(array.element.type) &&
+            named?.argDefs[0]?.type === "number"
+          )
+            accumulator = { type: "int256" };
+        }
+      }
+      const fn: AbiFunction = {
+        type: "function",
+        name: "initial",
+        stateMutability: "pure",
+        inputs: [accumulator],
+        outputs: [accumulator],
+      };
       const { callbackSpec, output } = await compileCollectionCallback(
         ctx,
         node.args[1],
         [accumulator, array.element],
       );
+      if (formatParamType(output) !== formatParamType(accumulator))
+        throw new ErrorException(
+          "@reduce! callback must preserve the accumulator ABI type",
+        );
       const specs = await compileArgSpecs(
         ctx,
         [node.args[2]],
@@ -175,6 +226,38 @@ export default defineHelper<Lang>({
         "reduce initial",
       );
       const initial = specs[0];
+      const tpl =
+        array.words && initial.kind === "value"
+          ? await wordCallbackTemplate(
+              ctx,
+              node.args[1],
+              [accumulator, array.element],
+              output,
+            )
+          : undefined;
+      if (tpl && initial.kind === "value") {
+        const encoded = encodeParams(
+          [accumulator],
+          [initial.value] as never,
+          "reduce initial",
+        );
+        return {
+          kind: "call",
+          param: foldParam(
+            ctx,
+            "foldWords",
+            array.words!,
+            tpl.target,
+            tpl.template,
+            tpl.accOffset ?? tpl.elemOffsets[0],
+            tpl.elemOffsets,
+            BigInt(encoded),
+            FOLD_EXIT.Full,
+          ),
+          cat: categoryFromAbiType(output.type),
+          abiType: output,
+        };
+      }
       const initialSpec =
         initial.kind === "value"
           ? {
@@ -224,40 +307,6 @@ export default defineHelper<Lang>({
 
     const fnNode = node.args[1];
 
-    // A named definition is the general form: it says which side the
-    // accumulator is on, so it is free to be order-sensitive in a way the
-    // bare names below deliberately are not.
-    if (
-      fnNode?.type === NodeType.HelperFunctionExpression &&
-      lookupOnchainDef(ctx, (fnNode as HelperFunctionNode).name)
-    ) {
-      const init = await constIntArg(ctx, "reduce!", "initial", node.args[2]);
-      const tpl = await compileLambdaTemplate(
-        ctx,
-        fnNode,
-        "@reduce!",
-        elemCat,
-        2,
-      );
-      return {
-        kind: "call",
-        param: foldParam(
-          ctx,
-          "foldWords",
-          payload,
-          tpl.target,
-          tpl.template,
-          // A body that never names the accumulator parks it on the first
-          // element window: the engine writes the accumulator first, so
-          // the element overwrites it and it is never read.
-          tpl.accOffset ?? tpl.elemOffsets[0],
-          tpl.elemOffsets,
-          init,
-          FOLD_EXIT.Full,
-        ),
-        cat: tpl.operand.kind === "call" ? tpl.operand.cat : elemCat,
-      };
-    }
     let name: string | undefined;
     if (fnNode.type === NodeType.HelperFunctionExpression) {
       name = (fnNode as HelperFunctionNode).name.replace(/!$/, "");

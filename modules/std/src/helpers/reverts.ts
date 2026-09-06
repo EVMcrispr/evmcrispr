@@ -26,7 +26,9 @@ import {
   lensSelectData,
   lensSlots,
   notCombine,
+  probeCallParam,
   staticCallParam,
+  unwrapBytesParam,
   walkNavPath,
 } from "@evmcrispr/sdk/onchain";
 import { decodeErrorResult } from "viem";
@@ -163,7 +165,7 @@ export default defineHelper<Std>({
   description:
     "Whether a live call reverts: true when the chain refuses the call, false when it resolves; `-!>` matches the reason and a lens selects an error argument.",
   compileDescription:
-    "Bare probes negate the core's `isValid`; error expectations compile to `revertData`, which re-runs the call in-frame — so they need a direct single-hop call.",
+    "Bare probes test call failure. Error expectations resolve live targets and arguments before matching the final call's revert data.",
   // "any" because the lens form returns the selected error argument, whose
   // type is the error's business; the bare and arrow forms return a bool.
   returnType: "any",
@@ -283,23 +285,13 @@ export default defineHelper<Std>({
     const abi = errorAbiFromSignature(clause.errorName, clause.errorParams);
     const selector = errorSelector(abi);
 
-    // `revertData` performs the operand's staticcall in-frame, so the
-    // reason it observes belongs to whatever the operand calls DIRECTLY.
-    // Anything routed through the core (a multi-hop chain, live arguments,
-    // a `::!` computed head) reverts with the core's own CallFailed and
-    // the target's reason is lost — reject those instead of matching the
-    // wrong error.
+    // Live targets and arguments are resolved before probing the final call, preserving its reason.
     const chain = await compileChain(ctx, call, { voidTail: true });
-    if (!(chain.calls.length === 1 && chain.startAddress)) {
-      throw new ErrorException(
-        "-!> can only match the reason of a DIRECT call: one hop, literal target, build-time arguments. A chained or live-argument read routes through the core, where the target's revert becomes the core's own CallFailed and the reason is lost",
-      );
-    }
     const probed = chainParam(ctx, chain);
-    const revertDataParam = staticCallParam(
-      ctx.core,
-      encodeRevertData(probed, selector),
-    );
+    const revertDataParam =
+      chain.calls.length === 1 && chain.startAddress
+        ? staticCallParam(ctx.core, encodeRevertData(probed, selector))
+        : unwrapBytesParam(ctx, probeCallParam(ctx, probed, selector));
 
     if (!clause.lens) {
       // "Reverted with this reason" as a composable word. `validOf` lets a

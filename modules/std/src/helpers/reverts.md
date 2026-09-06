@@ -4,7 +4,7 @@ title: "@reverts"
 
 Whether a live call reverts: true when the chain refuses the call, false when it resolves; `-!>` matches the reason and a lens selects an error argument.
 
-**On-chain (`@reverts!`)**: Bare probes negate the core's `isValid`; error expectations compile to `revertData`, which re-runs the call in-frame — so they need a direct single-hop call.
+**On-chain (`@reverts!`)**: Bare probes test call failure. Error expectations resolve live targets and arguments before matching the final call's revert data.
 
 **Returns**: `any`
 
@@ -92,15 +92,12 @@ assertion time, 0 when it resolves. `assert` folds the negation into an
 `Eq 0` constraint on the raw `isValid` operand, so the direct form costs no
 extra call; only composing it inside `@bool!` materializes the comparison.
 
-The arrow forms compile to the core's `revertData(param, selector)` — the
-reason-carrying probe. It re-performs the call IN ITS OWN FRAME, so the
-target's revert data survives (the routes `isValid` and `@orElse!` take
-convert a revert into the core's own `CallFailed`, and the reason is
-lost). That is also why the arrow demands a DIRECT call: one hop, a
-literal target, build-time arguments. A multi-hop chain, a live-argument
-read or a `::!` computed head routes through the core, where the reason it
-would match has already drowned — the compiler rejects those instead of
-matching the wrong error.
+The arrow forms probe the final target in the same call frame that captures
+its revert data. A direct call uses the core's `revertData`; a call with
+live arguments or a computed target uses the resolver's probe node. Earlier
+chain hops and arguments resolve first, then the final call's own error is
+matched. Errors from an earlier hop are not mistaken for the final target's
+reason.
 
 On a match the selector is stripped, so the revert payload is a clean ABI
 tuple of the error's arguments: a lens navigates them exactly as it

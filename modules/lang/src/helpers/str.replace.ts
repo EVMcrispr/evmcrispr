@@ -29,7 +29,12 @@ export default defineHelper<Lang>({
     { name: "replacement", type: "string", description: "Replacement text" },
   ],
   async run(_, { s, old, replacement }) {
-    return String(s).replaceAll(String(old), String(replacement));
+    if (String(old).length === 0) {
+      throw new ErrorException(
+        "@str.replace needle must be a non-empty string",
+      );
+    }
+    return String(s).replaceAll(String(old), () => String(replacement));
   },
   compile: async (ctx, node) => {
     if (node.args.length !== 3) {

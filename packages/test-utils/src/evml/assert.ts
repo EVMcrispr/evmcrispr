@@ -12,6 +12,8 @@ import {
   CONSTRAINT_TYPE,
   CORE_ABI,
   CORE_ADDRESS,
+  EXPRESSION_RESOLVER_ABI,
+  EXPRESSION_RESOLVER_ADDRESS,
   FETCHER_TYPE,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
@@ -175,6 +177,23 @@ export function createAssertDecoders(
   };
 
   const readOf = (param: DecodedParam) => {
+    const resolved = staticCallOf(param);
+    if (
+      resolved.target.toLowerCase() ===
+      EXPRESSION_RESOLVER_ADDRESS.toLowerCase()
+    ) {
+      const call = decodeFunctionData({
+        abi: EXPRESSION_RESOLVER_ABI,
+        data: resolved.data,
+      });
+      if (call.functionName !== "resolveCall")
+        throw new Error("Expected resolver call");
+      return {
+        target: call.args[1] as unknown as DecodedParam,
+        selector: call.args[2] as Hex,
+        segments: call.args[4] as unknown as readonly DecodedParam[],
+      };
+    }
     const call = core(param);
     expect(call.functionName).to.equal("read");
     return {

@@ -3,17 +3,16 @@ import {
   buildCallSegments,
   canonicalArgSpec,
   chainArgWithLens,
-  constIntArg,
   encodeRead,
   lensedDataOperand,
   rawParam,
   requireBytesLike,
-  splitParam,
   staticCallParam,
   toWord,
 } from "@evmcrispr/sdk/onchain";
 import { type AbiFunction, parseAbiItem } from "viem";
 import type Lang from "..";
+import { indexedNav, indexParam } from "../utils/genericCollections";
 import { stringArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
@@ -75,7 +74,7 @@ export default defineHelper<Lang>({
         "@str.split! delimiter must be a non-empty string",
       );
     }
-    if (!node.args[2]) {
+    {
       const fn = parseAbiItem(
         "function split(bytes,bytes) pure returns (bytes[])",
       ) as AbiFunction;
@@ -91,25 +90,32 @@ export default defineHelper<Lang>({
         canonicalArgSpec(ctx, { type: "bytes" }, lensedDataOperand(ctx, arg)),
         delim,
       ]);
+      const param = staticCallParam(
+        ctx.core,
+        encodeRead(
+          rawParam(toWord(BigInt(ctx.operators))),
+          call.selector,
+          call.segments,
+        ),
+      );
+      if (node.args[2])
+        return {
+          kind: "call",
+          cat: "String",
+          param: indexedNav(
+            ctx,
+            param,
+            "(string[])",
+            [0n],
+            await indexParam(ctx, node.args[2]),
+          ),
+        };
       return {
         kind: "call",
         cat: "Bytes",
-        param: staticCallParam(
-          ctx.core,
-          encodeRead(
-            rawParam(toWord(BigInt(ctx.operators))),
-            call.selector,
-            call.segments,
-          ),
-        ),
+        param,
         collection: { element: { type: "string" }, transport: "abi" },
       };
     }
-    const index = await constIntArg(ctx, "str.split!", "index", node.args[2]);
-    return {
-      kind: "call",
-      param: splitParam(ctx, lensedDataOperand(ctx, arg), delimiter, index),
-      cat: "String",
-    };
   },
 });

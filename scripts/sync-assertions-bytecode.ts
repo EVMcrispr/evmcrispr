@@ -39,6 +39,12 @@ const OUTPUT = join(
 
 const CONTRACTS = [
   {
+    name: "ExpressionResolver",
+    path: "contracts/ExpressionResolver.sol/ExpressionResolver.json",
+    prefix: "EXPRESSION_RESOLVER",
+    label: "Expression resolver",
+  },
+  {
     name: "Collections",
     path: "contracts/Collections.sol/Collections.json",
     prefix: "COLLECTIONS",

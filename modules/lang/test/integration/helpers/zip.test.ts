@@ -21,18 +21,23 @@ describeHelper(
         },
       },
       {
-        name: "should truncate to the shorter array",
-        input: `@zip([1 2] ["a" "b" "c"])`,
-        validate(result) {
-          expect(result).to.be.an("array").with.lengthOf(2);
-        },
-      },
-      {
-        name: "should return empty array when either input is empty",
-        input: `@zip([] [1 2])`,
+        name: "should zip two empty arrays",
+        input: `@zip([] [])`,
         validate(result) {
           expect(result).to.be.an("array").with.lengthOf(0);
         },
+      },
+    ],
+    errorCases: [
+      {
+        name: "should reject unequal lengths",
+        input: `@zip([1 2] ["a" "b" "c"])`,
+        error: "same length",
+      },
+      {
+        name: "should reject an empty lane paired with a nonempty lane",
+        input: `@zip([] [1 2])`,
+        error: "same length",
       },
     ],
     docCases: [

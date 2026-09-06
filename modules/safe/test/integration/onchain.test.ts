@@ -1,7 +1,9 @@
 import "../setup";
 import {
+  CORE_ABI,
   CORE_ADDRESS,
-  LEN_STEP,
+  EXPRESSION_RESOLVER_ABI,
+  EXPRESSION_RESOLVER_ADDRESS,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
@@ -12,7 +14,12 @@ import {
   selectorOf,
   word,
 } from "@evmcrispr/test-utils/evml";
-import { getAddress, keccak256 } from "viem";
+import {
+  decodeAbiParameters,
+  decodeFunctionData,
+  getAddress,
+  keccak256,
+} from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
 const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
@@ -100,21 +107,25 @@ const SENTINEL_START = 1n;
  *  the re-framed envelope, count via a LEN-path nav) and return the
  *  spliced source envelope param. */
 function expectWordsPayload(param: DecodedParam): DecodedParam {
-  const segs = d.opReadOf(param, "slice(bytes,uint256,uint256)");
-  expect(segs).to.have.lengthOf(4);
-  expect(segs[0].paramData).to.equal(
-    `0x${word(96n).slice(2)}${word(64n).slice(2)}`,
+  const call = d.staticCallOf(param);
+  expect(call.target).to.equal(getAddress(EXPRESSION_RESOLVER_ADDRESS));
+  const decoded = decodeFunctionData({
+    abi: EXPRESSION_RESOLVER_ABI,
+    data: call.data,
+  });
+  expect(decoded.functionName).to.equal("evaluate");
+  if (decoded.functionName !== "evaluate") throw new Error("expected graph");
+  const [program] = decoded.args;
+  const sources = program.nodes.filter((n) => n.kind === 2);
+  expect(sources).to.have.lengthOf(1);
+  expect(sources[0].valueType).to.equal("address[]");
+  expect(program.nodes[Number(program.result)].selector).to.equal(
+    selectorOf("sliceRange(bytes,int256,int256)"),
   );
-  const mulArgs = d.opReadOf(segs[1], "mul(uint256,uint256)");
-  const lenNav = d.core(mulArgs[0]);
-  expect(lenNav.functionName).to.equal("nav");
-  const lenPath = lenNav.args[2] as bigint[];
-  expect(lenPath[lenPath.length - 1]).to.equal(LEN_STEP);
-  d.expectRawWord(mulArgs[1], 32n);
-  const addArgs = d.opReadOf(segs[2], "add(uint256,uint256)");
-  d.opReadOf(addArgs[0], "mul(uint256,uint256)");
-  d.expectRawWord(addArgs[1], 64n);
-  return segs[3];
+  return decodeAbiParameters(
+    CORE_ABI.find((f) => f.name === "resolve")!.inputs,
+    sources[0].data,
+  )[0] as DecodedParam;
 }
 
 describeCommand("assert (safe array faces)", {
@@ -163,16 +174,16 @@ describeCommand("assert (safe array faces)", {
       },
     },
     {
-      name: "composes @owners! with @at! as a pick into the payload",
-      script: `assert @at!(@safe:owners!(${SAFE}) 0) != 0`,
+      name: "composes @owners! with @at! as typed array navigation",
+      script: `assert @at!(@safe:owners!(${SAFE}) 0) != 0x0000000000000000000000000000000000000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "ne(uint256,uint256)");
         d.expectRawWord(b, 0n);
-        const pick = d.core(a);
-        expect(pick.functionName).to.equal("pick");
-        expect(pick.args[1]).to.equal(2n);
-        expectWordsPayload(pick.args[0] as unknown as DecodedParam);
+        const nav = d.core(a);
+        expect(nav.functionName).to.equal("nav");
+        expect(nav.args[1]).to.equal("(address[])");
+        expect(nav.args[2]).to.deep.equal([0n, 0n]);
       },
     },
     {
@@ -220,4 +231,42 @@ describeCommand("assert (safe array faces)", {
       error: "pageSize must be positive",
     },
   ],
+});
+
+// The metadata is consumed by nested helpers at runtime, not only by the compiler.
+import { test } from "bun:test";
+import { encodeResolve } from "@evmcrispr/sdk/onchain";
+import { getPublicClient } from "@evmcrispr/test-utils";
+import {
+  compileExpression,
+  installAssertionsCore,
+  installConstantMock,
+} from "@evmcrispr/test-utils/onchain";
+import { encodeAbiParameters, type Hex } from "viem";
+
+test("Safe owners remain typed through nested collection consumers", async () => {
+  const client = getPublicClient();
+  const source = "0x00000000000000000000000000000000000d0300";
+  await installAssertionsCore(client);
+  await installConstantMock(
+    client,
+    source,
+    encodeAbiParameters([{ type: "address[]" }], [[OWNER]]),
+  );
+  for (const [expression, type, want] of [
+    [`@includes!(@safe:owners!(${source}) ${OWNER})`, "bool", true],
+    [`@at!(@safe:owners!(${source}) 0)`, "address", OWNER],
+    [`@len!(@safe:owners!(${source}))`, "uint256", 1n],
+  ] as const) {
+    const { operand, ctx } = await compileExpression(expression, {
+      module: "lang",
+      preamble: "load safe",
+    });
+    if (operand.kind !== "call") throw new Error("expected call");
+    const { data } = await client.call({
+      to: ctx.core,
+      data: encodeResolve(operand.param),
+    });
+    expect(decodeAbiParameters([{ type }], data as Hex)[0]).to.equal(want);
+  }
 });

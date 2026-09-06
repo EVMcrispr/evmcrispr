@@ -15,7 +15,7 @@ export default defineHelper<Lang>({
   name: "bytes.concat",
   description: "Concatenate bytes values together.",
   compileDescription:
-    "Up to 4 parts may be live calls, the rest hex constants; each live part past the first is re-resolved by every later offset.",
+    "Live parts remain unresolved until execution; each input is resolved once when the calldata is assembled.",
   returnType: "bytes",
   args: [
     {

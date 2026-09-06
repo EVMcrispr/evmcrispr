@@ -303,11 +303,10 @@ describeParity("@std", {
       // direct call preserves — a live-argument read routes through the
       // core and the reason drowns in CallFailed. The off-chain face has
       // the real error object and can afford to be permissive.
-      name: "arrow refuses a core-routed probe",
+      name: "arrow preserves revert data with a live argument",
       helper: "reverts",
       run: `@reverts(${MOCK}::{checkValue(uint256)() ${MOCK_VALUE}} -!> Error(string))`,
       compile: `@reverts!(${MOCK}::{checkValue(uint256)() ${MOCK_VALUE}} -!> Error(string))`,
-      refuses: "DIRECT call",
     },
 
     // ---- @ifElse: the lazy ternary over the core's cond ---------------------
@@ -519,11 +518,10 @@ describeParity("@std", {
       refuses: /elementary and string\/bytes values/,
     },
     {
-      name: "encodePacked refuses five live values",
+      name: "encodePacked supports five live values",
       helper: "abi.encodePacked",
-      run: `@abi.encodePacked("uint256" 1)`,
+      run: `@abi.encodePacked("uint256,uint256,uint256,uint256,uint256" ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE})`,
       compile: `@abi.encodePacked!("uint256,uint256,uint256,uint256,uint256" ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE} ${MOCK_VALUE})`,
-      refuses: /at most 4 live values/,
     },
 
     // ---- @abi.encode!: static head words -----------------------------------

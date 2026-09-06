@@ -1,20 +1,21 @@
 import type { Address, Hex } from "viem";
+import { encodeAbiParameters } from "viem";
+import { COLLECTIONS_ADDRESS } from "./addresses";
+import { unwrapBytesParam } from "./collections";
 import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
 import { encodePick, encodeRead } from "./core";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import {
-  bytesPayloadParam,
   bytesTail,
   envelopeLenParam,
   mergeSegments,
   type Piece,
-  type Slot,
-  spliceLayout,
   wordPiece,
-  wordsPayloadParam,
 } from "./layout";
 import { OP_SELECTORS } from "./operators";
+import { ProgramBuilder, programParam } from "./program";
+import { resolveCallParam, resolveValuesParam } from "./resolver";
 import type { Category, CompileCtx, Operand } from "./types";
 
 export {
@@ -22,7 +23,6 @@ export {
   bytesTail,
   envelopeLenParam,
   type LiveSlot,
-  MAX_LIVE_SLOTS,
   mergeSegments,
   type Piece,
   type Slot,
@@ -65,16 +65,12 @@ export function indexOfParam(
   needle: BytesPart,
   occurrence: bigint,
 ): InputParam {
-  const { offsets, tail } = spliceLayout(ctx, toSlots(ctx, [s, needle]), 96);
-  return opReadParam(
+  return resolveCallParam(
     ctx,
+    rawParam(toWord(BigInt(ctx.operators))),
     OP_SELECTORS.indexOf,
-    mergeSegments([
-      wordPiece(offsets[0]), // offset_s
-      wordPiece(offsets[1]), // offset_needle
-      wordSpan(occurrence),
-      ...tail,
-    ]),
+    "(bytes,bytes,int256)",
+    [bytesPartParam(s), bytesPartParam(needle), rawParam(toWord(occurrence))],
   );
 }
 
@@ -100,19 +96,18 @@ export function sliceParam(
   );
 }
 
-/** `includes(s, needle)` := lt(indexOf(s, needle, 0), byteLen(s)) — the
- *  not-found sentinel is byteLen(s), so any match position is smaller. */
+/** Literal substring membership, including the empty needle. */
 export function includesParam(
   ctx: CompileCtx,
   s: InputParam,
   needle: BytesPart,
 ): InputParam {
-  return wordOpParam(
+  return resolveCallParam(
     ctx,
-    "lt",
-    false,
-    indexOfParam(ctx, s, needle, 0n),
-    byteLenParamOf(ctx, s),
+    rawParam(toWord(BigInt(ctx.operators))),
+    OP_SELECTORS.contains,
+    "(bytes,bytes)",
+    [bytesPartParam(s), bytesPartParam(needle)],
   );
 }
 
@@ -382,31 +377,21 @@ export function enumerateParam(
  * length word an ELEMENT count) into the word-array operators (foldWords,
  * mapWords, sortWords, …) whose `bytes` payloads measure length in BYTES.
  *
- * Compiles to `slice(data, 64, 32 * count)` where `data` is the raw array
- * envelope re-framed as bytes: heads are [offset_data = 96][start = 64]
- * [len = mul(count, 32)], and at 96 a LIVE synthesized length word
- * `add(mul(count, 32), 64)` is spliced immediately before the raw
- * envelope — so the decoder sees a bytes value whose payload is the whole
- * envelope, and the slice skips its two head words.
+ * Validates one canonical array and shares that resolved envelope through the graph.
  */
 export function arrayWordsParam(
   ctx: CompileCtx,
   envelope: InputParam,
-  count: InputParam,
+  elementType: string,
 ): InputParam {
-  const len32 = wordOpParam(ctx, "mul", false, count, rawParam(toWord(32n)));
-  const total = wordOpParam(ctx, "add", false, len32, rawParam(toWord(64n)));
-  return opReadParam(
-    ctx,
-    OP_SELECTORS.slice,
-    mergeSegments([
-      wordSpan(96n), // offset_data: the re-framed envelope at 96
-      wordSpan(64n), // start: skip the [0x20][count] head words
-      len32, // len = 32 * count (live word)
-      total, // synthesized bytes length word (live)
-      envelope, // the raw array envelope [0x20][count][words…]
-    ]),
-  );
+  const graph = new ProgramBuilder(ctx);
+  const array = graph.resolve(envelope, `${elementType}[]`);
+  const result = graph.operation("sliceRange", [
+    graph.wrap(array),
+    graph.literal({ type: "int256" }, 64n),
+    graph.literal({ type: "int256" }, (1n << 255n) - 1n),
+  ]);
+  return programParam(ctx, graph, result);
 }
 
 /**
@@ -415,27 +400,25 @@ export function arrayWordsParam(
  * every word realigns. The layout is {@link arrayWordsParam}'s re-framing
  * with a byte-granular start: the synthesized length word covers the whole
  * envelope and `start = 68` skips its two head words plus the selector.
- * The calldata operand is spliced twice (the length read and the slice
- * tail) — the tree-not-DAG tax, paid knowingly.
+ * The graph shares one canonical bytes source between length and slice.
  */
 export function calldataArgsParam(
   ctx: CompileCtx,
   envelope: InputParam,
 ): InputParam {
-  const len = byteLenParamOf(ctx, envelope);
-  const argsLen = wordOpParam(ctx, "sub", false, len, rawParam(toWord(4n)));
-  const total = wordOpParam(ctx, "add", false, len, rawParam(toWord(64n)));
-  return opReadParam(
-    ctx,
-    OP_SELECTORS.slice,
-    mergeSegments([
-      wordSpan(96n), // offset_data: the re-framed envelope at 96
-      wordSpan(68n), // start: the [0x20][len] head words + the selector
-      argsLen, // len = byteLen(data) - 4 (live word)
-      total, // synthesized bytes length word (live)
-      envelope, // the raw calldata envelope [0x20][len][payload…]
-    ]),
-  );
+  const graph = new ProgramBuilder(ctx);
+  const bytes = graph.resolve(envelope, "bytes");
+  const len = graph.operation("byteLen", [bytes]);
+  const argsLen = graph.operation("sub", [
+    len,
+    graph.literal({ type: "uint256" }, 4n),
+  ]);
+  const result = graph.operation("slice", [
+    bytes,
+    graph.literal({ type: "uint256" }, 4n),
+    argsLen,
+  ]);
+  return programParam(ctx, graph, result);
 }
 
 /**
@@ -450,20 +433,12 @@ export function replaceParam(
   needle: BytesPart,
   repl: BytesPart,
 ): InputParam {
-  const { offsets, tail } = spliceLayout(
+  return resolveCallParam(
     ctx,
-    toSlots(ctx, [s, needle, repl]),
-    96,
-  );
-  return opReadParam(
-    ctx,
+    rawParam(toWord(BigInt(ctx.operators))),
     OP_SELECTORS.replace,
-    mergeSegments([
-      wordPiece(offsets[0]), // offset_s
-      wordPiece(offsets[1]), // offset_needle
-      wordPiece(offsets[2]), // offset_repl
-      ...tail,
-    ]),
+    "(bytes,bytes,bytes)",
+    [bytesPartParam(s), bytesPartParam(needle), bytesPartParam(repl)],
   );
 }
 
@@ -600,56 +575,31 @@ export type BytesPart =
   | { param: InputParam; aligned: true }
   | { param: InputParam; size: number };
 
-const _isLivePart = (p: BytesPart): p is Exclude<BytesPart, Hex> =>
-  typeof p !== "string";
-
 /** The live operand behind a non-literal part, whatever its sizing. */
 export const livePartParam = (p: Exclude<BytesPart, Hex>): InputParam =>
   "param" in p ? p.param : p;
 
-/** A parts list as layout slots. A bare live param is sized as a
- *  bytes/string envelope; `aligned` opts into the cheaper word-payload
- *  sizing and must only be used where the payload really is a whole
- *  number of words, since an over-claim shifts every later offset; a
- *  `size` part's padded payload is a build-time literal, so it does not
- *  count toward the offsets' live-add chains at all. */
-function toSlots(ctx: CompileCtx, parts: readonly BytesPart[]): Slot[] {
-  return parts.map((p) => {
-    if (typeof p === "string") return { tail: bytesTail(p) };
-    if ("size" in p) {
-      return { param: p.param, payload: BigInt(Math.ceil(p.size / 32) * 32) };
-    }
-    if ("aligned" in p) {
-      return { param: p.param, payload: wordsPayloadParam(ctx, p.param) };
-    }
-    return { param: p, payload: bytesPayloadParam(ctx, p) };
-  });
-}
-
-/** Concatenate byte parts with an empty delimiter. The delimiter tail is
- * placed before the array so live element offsets stay array-relative. */
+/** Concatenate byte parts with an empty delimiter, resolving each part once. */
 export function concatParam(
   ctx: CompileCtx,
   parts: readonly BytesPart[],
 ): InputParam {
-  const base = 128;
-  const { offsets, tail } = spliceLayout(
+  return resolveCallParam(
     ctx,
-    toSlots(ctx, parts),
-    base + 32 * parts.length,
-    base,
-  );
-  return opReadParam(
-    ctx,
+    rawParam(toWord(BigInt(ctx.operators))),
     OP_SELECTORS.concat,
-    mergeSegments([
-      wordSpan(96n), // offset_parts
-      wordSpan(64n), // offset_delimiter
-      wordSpan(0n), // empty delimiter
-      wordSpan(BigInt(parts.length)),
-      ...offsets.map(wordPiece),
-      ...tail,
-    ]),
+    "(bytes[],bytes)",
+    [
+      resolveValuesParam(
+        ctx,
+        parts.map((p) =>
+          typeof p === "string"
+            ? rawParam(p)
+            : unwrapBytesParam(ctx, livePartParam(p)),
+        ),
+      ),
+      bytesPartParam("0x"),
+    ],
   );
 }
 
@@ -664,13 +614,12 @@ export function zipParam(
   a: BytesPart,
   b: BytesPart,
 ): InputParam {
-  // Two plain `bytes` args, so offsets are ABSOLUTE and the tail area
-  // starts past the two head words.
-  const { offsets, tail } = spliceLayout(ctx, toSlots(ctx, [a, b]), 64);
-  return opReadParam(
+  return resolveCallParam(
     ctx,
+    rawParam(toWord(BigInt(ctx.collections ?? COLLECTIONS_ADDRESS))),
     OP_SELECTORS.zipWords,
-    mergeSegments([wordPiece(offsets[0]), wordPiece(offsets[1]), ...tail]),
+    "(bytes,bytes)",
+    [bytesPartParam(a), bytesPartParam(b)],
   );
 }
 
@@ -722,4 +671,10 @@ export function splitParam(
   const start = add(indexOfParam(ctx, s, delimiter, startOcc), dlen);
   const end = indexOfParam(ctx, s, delimiter, endOcc);
   return sliceParam(ctx, s, start, sub(end, start));
+}
+
+function bytesPartParam(part: BytesPart): InputParam {
+  return typeof part === "string"
+    ? rawParam(encodeAbiParameters([{ type: "bytes" }], [part]))
+    : livePartParam(part);
 }

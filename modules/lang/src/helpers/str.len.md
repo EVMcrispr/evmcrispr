@@ -2,7 +2,7 @@
 title: "@lang:str.len"
 ---
 
-Length of a string.
+Length of a string in UTF-8 bytes.
 
 **On-chain (`@lang:str.len!`)**: Counts bytes, so a multi-byte UTF-8 character counts more than once.
 

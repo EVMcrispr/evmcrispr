@@ -90,6 +90,13 @@ export const OPERATIONS_ABI = parseAbi([
   "function hash(bytes data) pure returns (bytes32)",
   // search
   "function indexOf(bytes s, bytes needle, int256 occurrence) pure returns (uint256)",
+  "function contains(bytes s, bytes needle) pure returns (bool)",
+  "function byteAt(bytes s, int256 index) pure returns (bytes)",
+  "function sliceRange(bytes s, int256 start, int256 end) pure returns (bytes)",
+  "function stringAt(bytes s, int256 index) pure returns (bytes)",
+  "function stringSlice(bytes s, int256 start, int256 end) pure returns (bytes)",
+  "function expWad(int256 x) pure returns (int256)",
+  "function lnWad(int256 x) pure returns (int256)",
   // string extras (ASCII-only case mapping; other bytes pass verbatim)
   "function replace(bytes s, bytes needle, bytes repl) pure returns (bytes)",
   "function toLower(bytes s) pure returns (bytes)",
@@ -152,6 +159,9 @@ export const OP_SELECTORS = {
   hash: sel("hash(bytes)"),
   byteLen: sel("byteLen(bytes)"),
   indexOf: sel("indexOf(bytes,bytes,int256)"),
+  contains: sel("contains(bytes,bytes)"),
+  expWad: sel("expWad(int256)"),
+  lnWad: sel("lnWad(int256)"),
   slice: sel("slice(bytes,uint256,uint256)"),
   bitSet: sel("bitSet(uint256,uint256)"),
   foldBytes: sel(

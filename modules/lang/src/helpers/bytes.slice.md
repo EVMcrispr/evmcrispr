@@ -29,32 +29,4 @@ Extract a byte range from a bytes value.
 
 ## On-chain face (@bytes.slice!)
 
-A byte range of the bytes/string return of a call: the @str.slice!
-recipe with the Bytes category. The off-chain (start, end) pair
-converts to the on-chain (start, len) at composition time; negative
-bounds compile to `sub(byteLen(s), k)` and resolve against the live
-byte length at assertion time.
-
-### Examples
-
-```evml
-load lang
-
-set $oracle 0x44fA8E6f47987339850636F88629646662444217
-
-# Bytes [1, 3) of the blob
-assert @bytes.slice!($oracle::{blob()(bytes)} 1 3) == 0xabcd
-
-# The last four bytes, resolved against the live length
-assert @bytes.slice!($oracle::{blob()(bytes)} -4) == 0xdeadbeef
-```
-
-### Notes
-
-- An empty or inverted range reverts at assertion time — on-chain
-  slicing has no silent clamp (constant inverted ranges are rejected at
-  build time).
-
-### See Also
-
-- `assert`, `@bytes.at!`, `@str.slice!`, `@slice!`
+Both modes use an inclusive start and exclusive end, measured in bytes. Negative indexes count from the end. Bounds clamp to the byte length; reversed ranges return empty bytes. Runtime source and indexes are resolved at execution time. Arbitrary byte ranges are preserved without UTF-8 decoding.

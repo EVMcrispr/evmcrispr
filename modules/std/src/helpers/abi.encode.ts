@@ -14,7 +14,7 @@ export default defineHelper<Std>({
   description:
     "ABI-encode values given a comma-separated type list, like Solidity abi.encode.",
   compileDescription:
-    "Encode up to four live ABI values, including tuples and arrays, using a constant type descriptor.",
+    "Encode live ABI values, including tuples and arrays, using a constant type descriptor.",
   returnType: "bytes",
   args: [
     {

@@ -4,7 +4,7 @@ title: "@lang:str.includes"
 
 Check whether a string contains a substring (exact byte sequence, case-sensitive).
 
-**On-chain (`@lang:str.includes!`)**: The substring may be a live call; a constant one must be non-empty, since every string contains the empty string.
+**On-chain (`@lang:str.includes!`)**: The substring may be a live call. Every string contains the empty string.
 
 **Returns**: `bool`
 

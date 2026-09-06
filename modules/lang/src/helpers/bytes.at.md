@@ -28,30 +28,4 @@ Access a single byte by index in a bytes value.
 
 ## On-chain face (@bytes.at!)
 
-A one-byte slice of the bytes/string return of a call: the @str.at!
-recipe with the Bytes category. A negative index compiles to
-`sub(byteLen(s), k)` so it resolves against the live byte length at
-assertion time.
-
-### Examples
-
-```evml
-load lang
-
-set $oracle 0x44fA8E6f47987339850636F88629646662444217
-
-# The version byte leads the blob
-assert @bytes.at!($oracle::{blob()(bytes)} 0) == 0x01
-
-# The checksum byte trails it, resolved against the live length
-assert @bytes.at!($oracle::{blob()(bytes)} -1) == 0xff
-```
-
-### Notes
-
-- An out-of-range index reverts at assertion time (SliceOutOfBounds) —
-  on-chain slicing has no silent clamp.
-
-### See Also
-
-- `assert`, `@bytes.slice!`, `@str.at!`
+Select one byte using a signed index; negative indexes count from the end. Out-of-bounds or fractional indexes are rejected. Runtime source and index remain live until execution.

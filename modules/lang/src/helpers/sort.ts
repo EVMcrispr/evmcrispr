@@ -82,7 +82,7 @@ export default defineHelper<Lang>({
   description:
     "Sort an array: ascending by default, `desc` for descending, or by a comparator helper.",
   compileDescription:
-    "Supports natural word ordering or a direct ABI comparator definition; equal elements retain their order.",
+    "Supports natural word ordering or an ABI-typed comparator definition, including composed expressions; equal elements retain their order.",
   returnType: "array",
   args: [
     { name: "arr", type: "array", description: "Source array" },

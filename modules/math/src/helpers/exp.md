@@ -4,7 +4,7 @@ title: "@math:exp"
 
 e raised to a wad-scaled power, in wad (1e18) fixed point. Continuous growth over a period: a rate r compounded continuously multiplies a balance by exp(r).
 
-**On-chain (`@math:exp!`)**: Accepts only values known before execution and carries the result’s wad scale for surrounding arithmetic.
+**On-chain (`@math:exp!`)**: Accepts live values and carries the result’s wad scale for surrounding arithmetic.
 
 **Returns**: `number`
 

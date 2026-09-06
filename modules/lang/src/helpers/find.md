@@ -4,7 +4,7 @@ title: "@lang:find"
 
 First element that satisfies the predicate; no match is an error.
 
-**On-chain (`@lang:find!`)**: The predicate is a named `def @name!` of one parameter returning bool, applied by name.
+**On-chain (`@lang:find!`)**: Returns the first matching typed value and stops evaluating predicates immediately; no match reverts.
 
 **Returns**: `any`
 
@@ -30,31 +30,4 @@ First element that satisfies the predicate; no match is an error.
 
 ## On-chain face (@find!)
 
-The first matching element of the array return of a call: a
-`filterWords` with the predicate (the same lambda machinery @filter!
-uses) and a core `pick` of the kept payload's first word.
-
-### Examples
-
-```evml
-load lang
-
-set $vault 0x44fA8E6f47987339850636F88629646662444217
-
-# The first cap at or above the floor is exactly the floor
-def @ge100! "$x: number -> bool" @bool!($x >= 100)
-assert @find!($vault::{caps()(uint256[])} @ge100!) == 100
-```
-
-### Notes
-
-- NO MATCH REVERTS the assertion at judge time: the pick lands past an
-  empty kept payload. The off-chain @find raises its "no element
-  matched" error at run time instead — there is no undefined result on
-  either face.
-- The element carries the array's element category (an address array
-  yields an address-comparable word).
-
-### See Also
-
-- `assert`, `@filter!`, `@includes!`, `@any!`
+Return the first element satisfying a named boolean callback and stop immediately. No match raises an error in both modes. The returned value preserves the element type, including strings, tuples, and nested arrays.

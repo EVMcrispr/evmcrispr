@@ -72,24 +72,6 @@ export function mergeSegments(pieces: Piece[]): InputParam[] {
 export const wordPiece = (v: bigint | InputParam): Piece =>
   typeof v === "bigint" ? wordSpan(v) : v;
 
-/**
- * How many live envelopes one call may splice.
- *
- * The binding cost is not the extra reads, it is that an operand
- * expression is a tree with no way to name a subterm: every offset after
- * the first live part references the LENGTH of each earlier one, so live
- * source `j` is resolved once as its envelope plus once more inside each
- * later offset. That is L(L-1)/2 redundant resolutions, source calls
- * included, and the encoded operand blob grows with the square too.
- *
- * The cap is a hard build-time error rather than a warning because the
- * failure it prevents is silent: an assertion is judged inside an
- * `eth_call`, so an over-budget expression runs out of gas and reverts,
- * and a reverted judge is indistinguishable from an assertion that
- * legitimately failed.
- */
-export const MAX_LIVE_SLOTS = 4;
-
 /** A dynamic argument of a calldata layout: a pre-encoded constant tail
  *  span (no 0x), or a live envelope. `payload` is the PADDED payload size
  *  of the resolved value — everything after its [0x20][len] head words.
@@ -157,11 +139,6 @@ export function spliceLayout(
   base = 0,
 ): { offsets: (bigint | InputParam)[]; tail: Piece[] } {
   const lives = slots.flatMap((s, i) => (isLiveSlot(s) ? [{ s, i }] : []));
-  if (lives.length > MAX_LIVE_SLOTS) {
-    throw new ErrorException(
-      `at most ${MAX_LIVE_SLOTS} live values can be spliced into one call, got ${lives.length} — each one past the first is re-resolved by every later offset, so the cost grows with the square. Fold the constant parts together, or split the expression`,
-    );
-  }
   for (const { s } of lives.slice(0, -1)) {
     if (s.payload === undefined) {
       throw new ErrorException(

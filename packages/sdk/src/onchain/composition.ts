@@ -153,9 +153,8 @@ export function checkArith(op: ArithOpName, l: Category, r: Category): Check {
 }
 
 /** Comparison check. Booleans and strings compare with == / != against
- *  their own kind only; address/bytes32 words are eq-only too; dynamic
- *  bytes can't be compared inside an expression (top-level == / != on a
- *  bytes return is judged by the core instead). */
+ *  their own kind only; address/bytes32 words are eq-only too. Dynamic
+ *  bytes support equality through full-payload hashing. */
 export function checkCmp(op: CmpOpName, l: Category, r: Category): Check {
   const eqOnly = op === "Eq" || op === "Ne";
   if (l === "Bool" || r === "Bool") {
@@ -177,9 +176,10 @@ export function checkCmp(op: CmpOpName, l: Category, r: Category): Check {
     return ok("Bool");
   }
   if (l === "Bytes" || r === "Bytes") {
-    return no(
-      "dynamic bytes values only compare at the top level of an assertion (== / !=)",
-    );
+    if (!eqOnly) return no("dynamic bytes only support == and != comparisons");
+    if (!["Bytes", "Bytes32"].includes(l) || !["Bytes", "Bytes32"].includes(r))
+      return no("cannot compare bytes with a non-bytes value");
+    return ok("Bool");
   }
   if (
     (l === "Address" ||

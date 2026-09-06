@@ -34,17 +34,17 @@ load lang
 | [@lang:reverse](src/helpers/reverse.md) | `array` | Reverse the order of an array's elements. |
 | [@lang:slice](src/helpers/slice.md) | `array` | Extract a section of an array. |
 | [@lang:sort](src/helpers/sort.md) | `array` | Sort an array: ascending by default, `desc` for descending, or by a comparator helper. |
-| [@lang:str.at](src/helpers/str.at.md) | `string` | Access a character by index in a string. |
+| [@lang:str.at](src/helpers/str.at.md) | `string` | Access one UTF-8 byte as a string; reject bytes belonging to multibyte characters. |
 | [@lang:str.charset](src/helpers/str.charset.md) | `bool` | Check whether every byte of a string is in a character class (ranges like `a-z0-9-`; a leading or trailing dash is the literal `-`). |
 | [@lang:str.concat](src/helpers/str.concat.md) | `string` | Concatenate strings together. |
 | [@lang:str.includes](src/helpers/str.includes.md) | `bool` | Check whether a string contains a substring (exact byte sequence, case-sensitive). |
 | [@lang:str.join](src/helpers/str.join.md) | `string` | Join array elements into a string with a delimiter. |
-| [@lang:str.len](src/helpers/str.len.md) | `number` | Length of a string. |
-| [@lang:str.lower](src/helpers/str.lower.md) | `string` | Convert a string to lowercase. |
+| [@lang:str.len](src/helpers/str.len.md) | `number` | Length of a string in UTF-8 bytes. |
+| [@lang:str.lower](src/helpers/str.lower.md) | `string` | Convert ASCII letters in a string to lowercase; preserve other characters. |
 | [@lang:str.replace](src/helpers/str.replace.md) | `string` | Replace all occurrences of a substring (every non-overlapping left-to-right match). |
-| [@lang:str.slice](src/helpers/str.slice.md) | `string` | Extract a section of a string. |
+| [@lang:str.slice](src/helpers/str.slice.md) | `string` | Extract a UTF-8 byte range, with clamped indexes and complete characters. |
 | [@lang:str.split](src/helpers/str.split.md) | `array \| string` | Split a string by a delimiter into an array of strings, or select one segment when an index is given. |
-| [@lang:str.upper](src/helpers/str.upper.md) | `string` | Convert a string to uppercase. |
+| [@lang:str.upper](src/helpers/str.upper.md) | `string` | Convert ASCII letters in a string to uppercase; preserve other characters. |
 | [@lang:sum](src/helpers/sum.md) | `number` | Sum the elements of an array. |
 | [@lang:unique](src/helpers/unique.md) | `array` | Remove duplicates from an array, preserving first-occurrence order. |
 | [@lang:unzip](src/helpers/unzip.md) | `array` | Transpose an array of pairs into two separate arrays. |

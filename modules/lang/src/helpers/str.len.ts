@@ -9,7 +9,7 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.len",
-  description: "Length of a string.",
+  description: "Length of a string in UTF-8 bytes.",
   compileDescription:
     "Counts bytes, so a multi-byte UTF-8 character counts more than once.",
   returnType: "number",
@@ -21,7 +21,7 @@ export default defineHelper<Lang>({
     },
   ],
   async run(_, { value }) {
-    return Num(BigInt(String(value).length));
+    return Num(BigInt(new TextEncoder().encode(String(value)).length));
   },
   // Same splice as @bytes.len!: the measured quantity on-chain is the
   // payload byte length.

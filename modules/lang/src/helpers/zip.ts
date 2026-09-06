@@ -2,11 +2,17 @@ import type { Node } from "@evmcrispr/sdk";
 import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import type { BytesPart } from "@evmcrispr/sdk/onchain";
 import {
+  arrayValuesParam,
+  canonicalArgSpec,
+  collectionReadParam,
   constOperand,
+  formatParamType,
   isBangHelperNode,
+  packedArrayOperand,
   zipParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
+import { arrayArg } from "../utils/genericCollections";
 import { constWordsPayload, wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
@@ -24,7 +30,10 @@ export default defineHelper<Lang>({
     { name: "b", type: "array", description: "Second array to zip" },
   ],
   async run(_, { a, b }) {
-    const len = Math.min(a.length, b.length);
+    if (a.length !== b.length) {
+      throw new ErrorException("@zip arrays must have the same length");
+    }
+    const len = a.length;
     const result = [];
     for (let i = 0; i < len; i++) {
       result.push([a[i], b[i]]);
@@ -36,6 +45,24 @@ export default defineHelper<Lang>({
       throw new ErrorException(
         "@zip! expects (a b), e.g. @zip!($safe::getOwners() [1 2 3])",
       );
+    }
+    const left = await arrayArg(ctx, node.args[0], "zip!");
+    const right = await arrayArg(ctx, node.args[1], "zip!");
+    if (!left.words || !right.words) {
+      const values = collectionReadParam(ctx, "zipValues", [
+        { kind: "value", value: formatParamType(left.element) },
+        { kind: "value", value: formatParamType(right.element) },
+        canonicalArgSpec(ctx, { type: "bytes[]" }, arrayValuesParam(ctx, left)),
+        canonicalArgSpec(
+          ctx,
+          { type: "bytes[]" },
+          arrayValuesParam(ctx, right),
+        ),
+      ]);
+      return packedArrayOperand(ctx, values, {
+        type: "tuple",
+        components: [left.element, right.element],
+      });
     }
     const laneTypes: string[] = [];
     const side = async (argNode: Node, label: string): Promise<BytesPart> => {

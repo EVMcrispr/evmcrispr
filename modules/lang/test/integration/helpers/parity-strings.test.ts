@@ -43,6 +43,16 @@ describeParity("@lang strings", {
   },
   cases: [
     {
+      name: "str.includes accepts the empty needle",
+      run: `@str.includes(${S} "")`,
+      compile: `@str.includes!(${S} "")`,
+    },
+    {
+      name: "str.replace inserts replacement metacharacters literally",
+      run: `@str.replace(${S} "a" "$$$&")`,
+      compile: `@str.replace!(${S} "a" "$$$&")`,
+    },
+    {
       name: "str.len counts a live string",
       run: `@str.len(${S})`,
       compile: `@str.len!(${S})`,

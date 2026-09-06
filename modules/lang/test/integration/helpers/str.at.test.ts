@@ -37,6 +37,16 @@ describeHelper(
     ],
     errorCases: [
       {
+        name: "rejects a partial UTF-8 character",
+        input: `@str.at("é" 0)`,
+        error: "UTF-8",
+      },
+      {
+        name: "rejects fractional byte indexes",
+        input: `@str.at("abc" 0.5)`,
+        error: "fractional",
+      },
+      {
         name: "should fail on out-of-bounds index",
         input: `@str.at("ab" 5)`,
         error: "out of bounds",

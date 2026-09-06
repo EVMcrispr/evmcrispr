@@ -23,6 +23,13 @@ describeHelper(
         expected: "llo",
       },
     ],
+    errorCases: [
+      {
+        name: "rejects a split UTF-8 character",
+        input: `@str.slice("é" 0 1)`,
+        error: "UTF-8",
+      },
+    ],
     docCases: [
       {
         description: "Slice a prefix",

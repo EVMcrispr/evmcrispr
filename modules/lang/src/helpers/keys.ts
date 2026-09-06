@@ -1,6 +1,7 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import { unzipParam } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
+import { genericLane } from "../utils/genericCollections";
 import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
@@ -26,6 +27,8 @@ export default defineHelper<Lang>({
         "@keys! expects a single record argument, e.g. @keys!(@enumerate!($safe::getOwners()))",
       );
     }
+    const generic = await genericLane(ctx, node.args[0], 0, "keys!");
+    if (generic) return generic;
     const { payload, elemType, lanes } = await wordsArg(
       ctx,
       node.args[0],

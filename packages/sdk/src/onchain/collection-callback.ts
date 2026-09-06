@@ -1,29 +1,24 @@
-import type { AbiFunction, AbiParameter, Hex } from "viem";
-import { getAddress, parseAbiItem, toFunctionSelector } from "viem";
+import { type AbiParameter, encodeAbiParameters, type Hex } from "viem";
 import { ErrorException } from "../errors";
-import type { CallExpressionNode, HelperFunctionNode, Node } from "../types";
-import { NodeType } from "../types";
+import { type HelperFunctionNode, type Node, NodeType } from "../types";
 import { encodeParams } from "../utils/encoders";
+import { guardAbiInteger } from "./abi-guards";
+import type { CollectionCallback } from "./collections";
 import {
-  type CollectionCallback,
-  canonicalArgSpec,
-  canonicalBytesParam,
-  concatenateResolved,
-  encodeValuesParam,
-} from "./collections";
-import {
-  compileArgSpecs,
-  formatParamType,
-  formatReturnTuple,
-  loadFunctionAbi,
+  categoryFromAbiType,
+  compileCallValue,
+  compileOperand,
+  PRECOMPILED_OPERAND,
 } from "./compile";
-import { type ArgSpec, buildCallSegments } from "./construct";
-import { lookupOnchainDef } from "./defs";
-import { rawParam, toWord } from "./erc8211";
-import type { BytesPart } from "./recipes";
-import type { CompileCtx } from "./types";
+import type { ArgSpec } from "./construct";
+import { compileDefCall, lookupOnchainDef } from "./defs";
+import { compileDirectCollectionCallback } from "./direct-callback";
+import { rawParam } from "./erc8211";
+import { ProgramBuilder } from "./program";
+import { abiDescriptor, encodeProgram, resolverAddress } from "./resolver";
+import type { CompileCtx, Operand } from "./types";
 
-/** Generic callbacks substitute complete ABI argument slots, never byte windows. */
+/** Parameters bind canonical whole values. Repeated references share one graph node. */
 export async function compileCollectionCallback(
   ctx: CompileCtx,
   node: Node,
@@ -37,137 +32,182 @@ export async function compileCollectionCallback(
     throw new ErrorException(
       "Generic collection callback must be a named definition",
     );
-  const def = lookupOnchainDef(ctx, (node as HelperFunctionNode).name);
-  if (
-    !def ||
-    def.bodyNode.type !== NodeType.CallExpression ||
-    def.argDefs.length !== inputs.length
-  )
+  const call = node as HelperFunctionNode,
+    def = lookupOnchainDef(ctx, call.name);
+  if (!def || def.argDefs.length !== inputs.length)
     throw new ErrorException(
-      "Generic collection callback needs a named definition containing one direct ABI call with matching parameter count",
+      "Generic collection callback needs a named definition with matching parameter count",
     );
-  const body = def.bodyNode as CallExpressionNode;
-  if (body.bang || body.returnDestructure)
+  if (call.args.length)
     throw new ErrorException(
-      "Generic collection callback requires a direct inline ABI call without a lens",
+      "Collection callbacks do not accept arguments at the reference site",
     );
-  const target = getAddress(
-    String(await ctx.interpreters.interpretNode(body.target)),
-  );
-  const fn =
-    body.inputTypes && body.outputTypes
-      ? (parseAbiItem(
-          `function ${body.method}${body.inputTypes} view returns ${body.outputTypes}`,
-        ) as AbiFunction)
-      : await loadFunctionAbi(ctx.module, target, body.method);
-  if (fn.outputs.length !== 1)
-    throw new ErrorException(
-      "Generic collection callback must return one ABI value (use a single tuple return for structs)",
-    );
-  for (let i = 0; i < inputs.length; i++) {
-    const annotation = def.argDefs[i].abiType;
-    if (
-      annotation &&
-      formatParamType(annotation) !== formatParamType(inputs[i])
-    )
-      throw new ErrorException(
-        `Callback annotation for $${def.argDefs[i].name} does not match ${formatParamType(inputs[i])}`,
-      );
-  }
-  if (
-    def.returnAbiType &&
-    formatParamType(def.returnAbiType) !== formatParamType(fn.outputs[0])
-  )
-    throw new ErrorException(
-      "Callback return ABI annotation does not match its direct call return",
-    );
-  const slots: number[] = [];
-  const constants: Hex[] = [];
-  const captures: BytesPart[] = [];
-  let live = false;
-  for (let i = 0; i < fn.inputs.length; i++) {
-    const arg = body.args[i];
-    const variable =
-      arg?.type === NodeType.VariableIdentifier
-        ? (arg as { value: string }).value
-        : undefined;
-    const index = variable
-      ? def.argDefs.findIndex((p) => `$${p.name}` === variable)
-      : -1;
-    if (index >= 0) {
-      if (slots[index] !== undefined)
-        throw new ErrorException(
-          "Generic callbacks may use each parameter in one complete argument slot only",
-        );
-      if (formatParamType(fn.inputs[i]) !== formatParamType(inputs[index]))
-        throw new ErrorException(
-          `Callback parameter ${variable} must have ABI type ${formatParamType(inputs[index])}`,
-        );
-      slots[index] = i;
-      constants.push("0x");
-      captures.push("0x");
-    } else {
-      const spec = (
-        await compileArgSpecs(
-          ctx,
-          [arg],
-          { ...fn, inputs: [fn.inputs[i]] },
-          "collection callback capture",
-        )
-      )[0];
-      if (spec.kind === "value") {
-        const encoded = encodeParams(
-          [fn.inputs[i]],
-          [spec.value] as never,
-          "collection callback capture",
-        );
-        constants.push(encoded);
-        captures.push(encoded);
-      } else {
-        live = true;
-        constants.push("0x");
-        captures.push(canonicalBytesParam(ctx, spec.param));
-      }
+  // Retain the compact direct-call path when no expression graph is required.
+  if (def.bodyNode.type === NodeType.CallExpression) {
+    const body = def.bodyNode as import("../types").CallExpressionNode;
+    const names = def.argDefs.map((p) => `$${p.name}`);
+    const seen = new Set<string>();
+    const simple =
+      !body.bang &&
+      !body.returnDestructure &&
+      names.every(
+        (name) => !JSON.stringify(body.target).includes(JSON.stringify(name)),
+      ) &&
+      body.target.type !== NodeType.CallExpression &&
+      body.target.type !== NodeType.HelperFunctionExpression &&
+      body.args.every((arg) => {
+        if (
+          arg.type === NodeType.VariableIdentifier &&
+          names.includes((arg as { value: string }).value)
+        ) {
+          const key = (arg as { value: string }).value;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }
+        const text = JSON.stringify(arg);
+        return names.every((name) => !text.includes(JSON.stringify(name)));
+      });
+    if (simple && seen.size === names.length) {
+      const direct = await compileDirectCollectionCallback(ctx, node, inputs);
+      // Narrow integer results need an explicit range guard in the graph.
+      const integer = /^u?int(\d+)$/.exec(direct.output.type);
+      if (!integer || Number(integer[1]) === 256) return direct;
     }
   }
-  if (inputs.some((_, i) => slots[i] === undefined))
+  const markers = new Map<string, { index: number; type: AbiParameter }>();
+  const args = inputs.map((type, index) => {
+    const annotation = def.argDefs[index].abiType;
+    if (annotation && abiDescriptor(annotation) !== abiDescriptor(type))
+      throw new ErrorException(
+        `Callback annotation for $${def.argDefs[index].name} does not match ${abiDescriptor(type)}`,
+      );
+    const marker = encodeAbiParameters(
+      [{ type: "uint256" }],
+      [
+        BigInt(
+          `0xfacefeed${"0".repeat(54)}${index.toString(16).padStart(2, "0")}`,
+        ),
+      ],
+    );
+    markers.set(marker, { index, type });
+    const operand: Operand = {
+      kind: "call",
+      param: rawParam(marker),
+      cat:
+        type.type.startsWith("tuple") || type.type.includes("[")
+          ? "Bytes"
+          : categoryFromAbiType(type.type),
+      abiType: type,
+    };
+    if (type.type.endsWith("[]"))
+      operand.collection = {
+        element: { ...type, type: type.type.slice(0, -2) } as AbiParameter,
+        transport: "abi",
+      };
+    return {
+      type: NodeType.HelperFunctionExpression,
+      name: "__programParameter!",
+      args: [],
+      [PRECOMPILED_OPERAND]: operand,
+    } as unknown as Node;
+  });
+  const operand = (await compileDefCall(
+    ctx,
+    def,
+    { ...call, args: args as HelperFunctionNode["args"] },
+    async (innerCtx, body) => {
+      if (body.type === NodeType.CallExpression) {
+        const value = await compileCallValue(
+          innerCtx,
+          body as import("../types").CallExpressionNode,
+        );
+        return {
+          kind: "call",
+          param: value.param,
+          abiType: value.terminal,
+          cat:
+            value.terminal.type.startsWith("tuple") ||
+            value.terminal.type.includes("[")
+              ? "Bytes"
+              : categoryFromAbiType(value.terminal.type),
+        } as Operand;
+      }
+      return compileOperand(innerCtx, body);
+    },
+  )) as Operand;
+  const output = def.returnAbiType ??
+    (operand.kind === "call" ? operand.abiType : undefined) ?? {
+      type:
+        operand.cat === "Bool"
+          ? "bool"
+          : operand.cat === "String"
+            ? "string"
+            : operand.cat === "Bytes"
+              ? "bytes"
+              : operand.cat === "Address"
+                ? "address"
+                : operand.cat === "Int"
+                  ? "int256"
+                  : "uint256",
+    };
+  if (
+    operand.kind === "call" &&
+    operand.abiType &&
+    abiDescriptor(output) !== abiDescriptor(operand.abiType)
+  )
     throw new ErrorException(
-      "Generic callback must use each parameter in one whole argument slot",
+      "Callback return ABI annotation does not match the compiled result",
     );
+  const graph = new ProgramBuilder(ctx, markers);
+  const result = graph.asType(
+    graph.fragment(
+      operand.kind === "call"
+        ? guardAbiInteger(ctx, operand.param, operand.cat, output.type)
+        : rawParam(
+            encodeParams(
+              [output],
+              [operand.value] as never,
+              "collection callback result",
+            ),
+          ),
+    ),
+    output,
+  );
   const callback: CollectionCallback = {
-    target,
-    selector: toFunctionSelector(fn),
-    arguments: formatReturnTuple(fn.inputs),
-    constants,
-    first: BigInt(slots[0]),
-    second: BigInt(slots[1] ?? 0),
+    target: resolverAddress(ctx),
+    selector: "0x00000000",
+    arguments: `(${inputs.map(abiDescriptor).join(",")})`,
+    constants: inputs.map(() => "0x" as Hex),
+    first: 0n,
+    second: inputs.length > 1 ? 1n : 0n,
+    program: encodeProgram(graph.finish(result)),
   };
-  let callbackSpec: ArgSpec = { kind: "value", value: callback as never };
-  if (live) {
-    const tupleFn = parseAbiItem(
-      "function callback(address target,bytes4 selector,string arguments,bytes[] constants,uint256 first,uint256 second)",
-    ) as AbiFunction;
-    const encoded = buildCallSegments(ctx, tupleFn, [
-      { kind: "value", value: target },
-      { kind: "value", value: callback.selector },
-      { kind: "value", value: callback.arguments },
-      canonicalArgSpec(
-        ctx,
-        { type: "bytes[]" },
-        encodeValuesParam(ctx, captures),
-      ),
-      { kind: "value", value: callback.first as never },
-      { kind: "value", value: callback.second as never },
-    ]);
-    const param = concatenateResolved(ctx, [
-      rawParam(toWord(32n)),
-      ...encoded.segments,
-    ]);
-    callbackSpec = canonicalArgSpec(
-      ctx,
-      { type: "tuple", components: tupleFn.inputs },
-      param,
-    );
-  }
-  return { callback, callbackSpec, output: fn.outputs[0] };
+  return {
+    callback,
+    callbackSpec: { kind: "value", value: callback as never },
+    output,
+  };
+}
+
+/** Equality of canonical ABI values, including dynamic tuples and arrays. */
+export function abiEqualityCallback(
+  ctx: CompileCtx,
+  type: AbiParameter,
+): ArgSpec {
+  const graph = new ProgramBuilder(ctx);
+  const hashes = [0, 1].map((i) =>
+    graph.operation("hash", [graph.wrap(graph.parameter(type, i))], "uint256"),
+  );
+  const result = graph.operation("eq", hashes, "bool");
+  const callback: CollectionCallback = {
+    target: resolverAddress(ctx),
+    selector: "0x00000000",
+    arguments: `(${abiDescriptor(type)},${abiDescriptor(type)})`,
+    constants: ["0x", "0x"],
+    first: 0n,
+    second: 1n,
+    program: encodeProgram(graph.finish(result)),
+  };
+  return { kind: "value", value: callback as never };
 }

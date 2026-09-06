@@ -142,6 +142,9 @@ export async function compileOnchainHelper(
   ctx: CompileCtx,
   node: HelperFunctionNode,
 ): Promise<Operand> {
+  const cached = (node as unknown as Record<string, unknown>)
+    .__evmcrisprOperand;
+  if (cached) return cached as Operand;
   const resolved = resolveOwner(ctx, node);
   if (resolved.kind === "def") {
     // A def has no compile face of its own: it is INLINED. Its body is

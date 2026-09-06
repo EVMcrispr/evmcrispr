@@ -3,7 +3,7 @@ import { toFunctionSelector } from "viem";
 import { ErrorException } from "../errors";
 import type { Param } from "../utils/encoders";
 import { encodeParams } from "../utils/encoders";
-import type { InputParam } from "./erc8211";
+import { type InputParam, rawParam } from "./erc8211";
 import {
   mergeSegments,
   type Piece,
@@ -11,6 +11,7 @@ import {
   spliceLayout,
   wordPiece,
 } from "./layout";
+import { argumentDescriptor, resolveArgumentsParam } from "./resolver";
 import type { CompileCtx } from "./types";
 
 /**
@@ -111,6 +112,23 @@ export function buildCallSegments(
     throw new ErrorException(
       `${fnAbi.name} expects ${inputs.length} argument(s), got ${specs.length}`,
     );
+  }
+  if (specs.some((spec) => spec.kind === "dyn")) {
+    const args = specs.map((spec, i) =>
+      spec.kind === "value"
+        ? rawParam(
+            encodeParams(
+              [inputs[i]],
+              [spec.value],
+              `${fnAbi.name} argument ${i}`,
+            ),
+          )
+        : spec.param,
+    );
+    return {
+      selector: toFunctionSelector(fnAbi),
+      segments: [resolveArgumentsParam(ctx, argumentDescriptor(inputs), args)],
+    };
   }
   const headTotal = inputs.reduce((sum, p) => sum + headWords(p) * 32, 0);
 

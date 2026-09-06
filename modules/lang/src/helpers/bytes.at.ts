@@ -1,17 +1,11 @@
-import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
-import type { InputParam } from "@evmcrispr/sdk/onchain";
+import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import {
-  byteLenParamOf,
   chainArgWithLens,
-  constIntArg,
   lensedDataOperand,
-  rawParam,
   requireBytesLike,
-  sliceParam,
-  toWord,
-  wordOpParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
+import { byteIndex, byteRangeParam } from "../utils/byteIndex";
 
 export default defineHelper<Lang>({
   name: "bytes.at",
@@ -32,7 +26,7 @@ export default defineHelper<Lang>({
   async run(_, { value, index }) {
     const hex = String(value);
     const byteLen = (hex.length - 2) / 2;
-    const i = Num(index).toNumber();
+    const i = byteIndex(index);
     const resolved = i < 0 ? byteLen + i : i;
 
     if (resolved < 0 || resolved >= byteLen) {
@@ -51,24 +45,17 @@ export default defineHelper<Lang>({
     }
     const arg = await chainArgWithLens(ctx, "bytes.at!", node.args[0]);
     requireBytesLike(arg, "bytes.at!");
-    const s = lensedDataOperand(ctx, arg);
-    const index = await constIntArg(ctx, "bytes.at!", "index", node.args[1]);
-    // The @str.at! recipe with the Bytes category: a one-byte slice, a
-    // negative index becoming sub(byteLen(s), k) so it resolves against
-    // the live byte length at assertion time.
-    const start: bigint | InputParam =
-      index >= 0n
-        ? index
-        : wordOpParam(
-            ctx,
-            "sub",
-            false,
-            byteLenParamOf(ctx, s),
-            rawParam(toWord(-index)),
-          );
+    const source = lensedDataOperand(ctx, arg);
     return {
       kind: "call",
-      param: sliceParam(ctx, s, start, 1n),
+      param: await byteRangeParam(
+        ctx,
+        source,
+        node.args[1],
+        undefined,
+        false,
+        true,
+      ),
       cat: "Bytes",
     };
   },

@@ -4,7 +4,7 @@ title: "@lang:any"
 
 Whether at least one element satisfies the predicate.
 
-**On-chain (`@lang:any!`)**: The predicate is a named `def @name!` of one parameter returning bool, applied by name.
+**On-chain (`@lang:any!`)**: Predicates return bool and stop at the first decisive result. Supports typed dynamic arrays and word-specialized predicates.
 
 **Returns**: `bool`
 
@@ -30,34 +30,4 @@ Whether at least one element satisfies the predicate.
 
 ## On-chain face (@any!)
 
-Check whether at least one element of the array return of a call passes a
-predicate, on-chain: a `foldWords` with the Any exit (init 0), stopping at
-the first pass.
-
-The predicate is a `def @name!` of one parameter returning bool, applied
-by name: `def @isZero! "$x: number -> bool" @bool!($x == 0)` tests
-`element == 0`. A body reducing to ONE
-Operations call becomes a single-staticcall template; a composed one —
-a nested live call, a multi-call expression — routes through the core
-and costs several staticcalls per element instead of one.
-
-### Examples
-
-```evml
-load lang
-
-set $vault 0x44fA8E6f47987339850636F88629646662444217
-
-# Some cap is unset
-def @isZero! "$x: number -> bool" @bool!($x == 0)
-assert @any!($vault::{caps()(uint256[])} @isZero!) == false
-```
-
-### Notes
-
-- Arrays of single-word elements only.
-- An empty array is false (the fold returns its init).
-
-### See Also
-
-- `assert`, `@all!`, `@includes!`
+Return true if a named boolean callback matches any element, stopping at the first match. Empty arrays return false. Callbacks support composed helpers and ABI calls over typed single-word or multiword elements.

@@ -1,7 +1,15 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
-import { OP_SELECTORS, opReadParam } from "@evmcrispr/sdk/onchain";
+import {
+  arrayValuesParam,
+  canonicalArgSpec,
+  collectionReadParam,
+  formatParamType,
+  OP_SELECTORS,
+  opReadParam,
+  packedArrayOperand,
+} from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
-import { wordsArg } from "../utils/onchain";
+import { arrayArg } from "../utils/genericCollections";
 
 export default defineHelper<Lang>({
   name: "reverse",
@@ -17,7 +25,22 @@ export default defineHelper<Lang>({
         "@reverse! expects a single array argument, e.g. @reverse!($safe::getOwners())",
       );
     }
-    const { payload, elemType } = await wordsArg(ctx, node.args[0], "reverse!");
+    const array = await arrayArg(ctx, node.args[0], "reverse!");
+    if (!array.words)
+      return packedArrayOperand(
+        ctx,
+        collectionReadParam(ctx, "reverseValues", [
+          { kind: "value", value: formatParamType(array.element) },
+          canonicalArgSpec(
+            ctx,
+            { type: "bytes[]" },
+            arrayValuesParam(ctx, array),
+          ),
+        ]),
+        array.element,
+      );
+    const payload = array.words!;
+    const elemType = array.element.type;
     return {
       kind: "call",
       param: opReadParam(ctx, OP_SELECTORS.reverseWords, [payload]),

@@ -15,7 +15,7 @@ export default defineHelper<Lang>({
   name: "str.concat",
   description: "Concatenate strings together.",
   compileDescription:
-    "Up to 4 parts may be live calls, the rest string constants; each live part past the first is re-resolved by every later offset.",
+    "Live parts remain unresolved until execution; each input is resolved once when the calldata is assembled.",
   returnType: "string",
   args: [
     {

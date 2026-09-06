@@ -11,6 +11,7 @@ import {
   CORE_ADDRESS,
   compileOperand,
   compileTopCall,
+  EXPRESSION_RESOLVER_ADDRESS,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import type { Address, Transport } from "viem";
@@ -29,6 +30,7 @@ export interface CompileEnv {
   core?: Address;
   operators?: Address;
   collections?: Address;
+  resolver?: Address;
 }
 
 function preambleOf(env: CompileEnv): string {
@@ -83,6 +85,7 @@ export async function compileExpression(
     core: env.core ?? CORE_ADDRESS,
     operators: env.operators ?? OPERATIONS_ADDRESS,
     collections: env.collections ?? COLLECTIONS_ADDRESS,
+    resolver: env.resolver ?? EXPRESSION_RESOLVER_ADDRESS,
     hints: {},
   };
 

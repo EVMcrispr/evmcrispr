@@ -1,21 +1,36 @@
-import { defineHelper, ErrorException, NodeType, Num } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import {
   arrayValuesParam,
+  canonicalArgSpec,
+  canonicalBytesParam,
   categoryFromAbiType,
   chainArgWithLens,
-  constIntArg,
-  encodeNav,
+  collectionReadParam,
+  compileCheckedExpr,
+  compileOnchainHelper,
+  constBigInt,
+  encodeValuesParam,
   formatParamType,
   formatReturnTuple,
-  staticCallParam,
-  typedArrayArg,
+  isBangHelperNode,
+  rawParam,
+  toWord,
   unwrapBytesParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
+import {
+  arrayArg,
+  indexedNav,
+  indexParam,
+  indexValue,
+  typedValueOperand,
+} from "../utils/genericCollections";
 
 export default defineHelper<Lang>({
   name: "at",
   description: "Access an element by index in an array.",
+  compileDescription:
+    "Accepts a constant or live signed index; negative indices count from the end and out-of-range indices revert.",
   returnType: "any",
   args: [
     {
@@ -30,7 +45,7 @@ export default defineHelper<Lang>({
     },
   ],
   async run(_, { value, index }) {
-    const i = Num(index).toNumber();
+    const i = Number(indexValue(index));
     const resolved = i < 0 ? value.length + i : i;
 
     if (resolved < 0 || resolved >= value.length) {
@@ -47,6 +62,47 @@ export default defineHelper<Lang>({
         "@at! expects (call index), e.g. @at!($safe::getOwners() 0)",
       );
     }
+    if (isBangHelperNode(node.args[0])) {
+      const operand = await compileOnchainHelper(ctx, node.args[0]);
+      if (
+        operand.kind === "call" &&
+        !operand.collection &&
+        operand.abiType?.type === "tuple" &&
+        "components" in operand.abiType
+      ) {
+        const components = operand.abiType.components;
+        if (components.length !== 2)
+          throw new ErrorException(
+            "@at! tuple projection currently requires a pair",
+          );
+        const index = await compileCheckedExpr(ctx, [node.args[1]]);
+        if (index.kind !== "const")
+          throw new ErrorException(
+            "@at! a heterogeneous tuple requires a constant index to determine its result type",
+          );
+        const n = constBigInt(index);
+        const lane = n < 0n ? n + 2n : n;
+        if (lane < 0n || lane > 1n)
+          throw new ErrorException("@at! tuple index out of bounds");
+        const values = collectionReadParam(ctx, "unzipValues", [
+          { kind: "value", value: formatParamType(components[0]) },
+          { kind: "value", value: formatParamType(components[1]) },
+          canonicalArgSpec(
+            ctx,
+            { type: "bytes[]" },
+            encodeValuesParam(ctx, [canonicalBytesParam(ctx, operand.param)]),
+          ),
+          { kind: "word", param: rawParam(toWord(lane)) },
+        ]);
+        return typedValueOperand(
+          unwrapBytesParam(
+            ctx,
+            indexedNav(ctx, values, "(bytes[])", [0n], rawParam(toWord(0n))),
+          ),
+          components[Number(lane)],
+        );
+      }
+    }
     if (node.args[0].type === NodeType.CallExpression) {
       const arg = await chainArgWithLens(ctx, "at!", node.args[0]);
       const type = arg.terminal ?? arg.outputs[0];
@@ -54,39 +110,42 @@ export default defineHelper<Lang>({
         throw new ErrorException("@at! needs an array value");
       const element = { ...type, type: type.type.replace(/\[\d*\]$/, "") };
       if (!element.type.startsWith("tuple") && !element.type.includes("[")) {
-        const index = await constIntArg(ctx, "at!", "index", node.args[1]);
+        const index = await indexParam(ctx, node.args[1]);
         return {
           kind: "call",
           cat: categoryFromAbiType(element.type),
           abiType: element,
-          param: staticCallParam(
-            ctx.core,
-            encodeNav(arg.param, formatReturnTuple(arg.outputs), [
-              ...(arg.path ?? [0]).map(BigInt),
-              index,
-            ]),
+          param: indexedNav(
+            ctx,
+            arg.param,
+            formatReturnTuple(arg.outputs),
+            (arg.path ?? [0]).map(BigInt),
+            index,
           ),
         };
       }
     }
-    const array = await typedArrayArg(ctx, node.args[0], "at!");
-    const index = await constIntArg(ctx, "at!", "index", node.args[1]);
+    const array = await arrayArg(ctx, node.args[0], "at!");
+    const index = await indexParam(ctx, node.args[1]);
     const element = array.element;
     const scalar =
       !element.type.startsWith("tuple") && !element.type.includes("[");
     const param = scalar
-      ? staticCallParam(
-          ctx.core,
-          encodeNav(array.param, `(${formatParamType(element)}[])`, [
-            0n,
-            index,
-          ]),
+      ? indexedNav(
+          ctx,
+          array.param,
+          `(${formatParamType(element)}[])`,
+          [0n],
+          index,
         )
       : unwrapBytesParam(
           ctx,
-          staticCallParam(
-            ctx.core,
-            encodeNav(arrayValuesParam(ctx, array), "(bytes[])", [0n, index]),
+          indexedNav(
+            ctx,
+            arrayValuesParam(ctx, array),
+            "(bytes[])",
+            [0n],
+            index,
           ),
         );
     return {

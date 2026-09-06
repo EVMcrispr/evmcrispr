@@ -2,9 +2,9 @@
 title: "@lang:str.at"
 ---
 
-Access a character by index in a string.
+Access one UTF-8 byte as a string; reject bytes belonging to multibyte characters.
 
-**On-chain (`@lang:str.at!`)**: Selects one byte, so a multi-byte UTF-8 character is not returned whole.
+**On-chain (`@lang:str.at!`)**: Selects one UTF-8 byte; a byte belonging to a multibyte character is rejected.
 
 **Returns**: `string`
 
@@ -19,7 +19,7 @@ Access a character by index in a string.
 | Name | Type | Description |
 |------|------|-------------|
 | `value` | `string` | Source string |
-| `index` | `number` | Zero-based character index (negative counts from the end) |
+| `index` | `number` | Zero-based byte index (negative counts from the end) |
 
 <!-- HAND-WRITTEN -->
 
@@ -30,27 +30,4 @@ Access a character by index in a string.
 
 ## On-chain face (@str.at!)
 
-Select a single byte of the string return of a call as a one-byte slice,
-on-chain. A negative index resolves against the live byte length
-(`-1` is the last byte).
-
-### Examples
-
-```evml
-load lang
-
-set $pool 0x44fA8E6f47987339850636F88629646662444217
-
-assert @str.at!($pool::{symbol()(string)} 0) == "W"
-assert @str.at!($pool::{symbol()(string)} -1) == "H"
-```
-
-### Notes
-
-- Byte semantics: for ASCII strings this is the character at the index;
-  a multi-byte UTF-8 character yields one of its bytes.
-- An out-of-range index reverts with SliceOutOfBounds at assertion time.
-
-### See Also
-
-- `assert`, `@str.slice!`
+Both modes select a single UTF-8 byte using a signed byte index. Negative indexes count from the end. Out-of-bounds indexes and bytes belonging to multibyte characters are rejected, since a partial character cannot form a valid string. Use `@str.slice` to select a complete multibyte character, or `@bytes.at` for raw bytes.

@@ -2,7 +2,7 @@
 title: "@lang:str.lower"
 ---
 
-Convert a string to lowercase.
+Convert ASCII letters in a string to lowercase; preserve other characters.
 
 **On-chain (`@lang:str.lower!`)**: Maps ASCII letters only; every other byte passes through unchanged.
 

@@ -2,7 +2,7 @@
 title: "@lang:str.upper"
 ---
 
-Convert a string to uppercase.
+Convert ASCII letters in a string to uppercase; preserve other characters.
 
 **On-chain (`@lang:str.upper!`)**: Maps ASCII letters only; every other byte passes through unchanged.
 

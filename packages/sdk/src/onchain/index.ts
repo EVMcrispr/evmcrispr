@@ -22,6 +22,9 @@ export * from "./erc8211";
 export * from "./judge";
 export * from "./lambda";
 export * from "./operators";
+export { ProgramBuilder, probeCallParam, programParam } from "./program";
 export * from "./reads";
 export * from "./recipes";
+
+export * from "./resolver";
 export * from "./types";

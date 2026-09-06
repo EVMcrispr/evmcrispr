@@ -26,7 +26,7 @@ export default defineHelper<Lang>({
   name: "concat",
   description: "Concatenate arrays together.",
   compileDescription:
-    "Up to 4 parts may be live calls; each live part past the first is re-resolved by every later part's offset.",
+    "Live parts remain unresolved until execution; each input is resolved once when the calldata is assembled.",
   returnType: "array",
   args: [
     {
@@ -93,6 +93,7 @@ export default defineHelper<Lang>({
       return packedArrayOperand(
         ctx,
         collectionReadParam(ctx, "flattenValues", [
+          { kind: "value", value: formatParamType(typed.element) },
           canonicalArgSpec(ctx, { type: "bytes[][]" }, nested),
         ]),
         typed.element,

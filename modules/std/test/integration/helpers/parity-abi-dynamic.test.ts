@@ -104,9 +104,15 @@ it("rejects noncanonical nested returndata during live ABI encoding", async () =
   const client = getPublicClient();
   await installAssertionsCore(client);
   const source = "0x0000000000000000000000000000000000007a06";
-  const canonical = encodeAbiParameters(parseAbiParameters("string[]"), [["abc"]]);
+  const canonical = encodeAbiParameters(parseAbiParameters("string[]"), [
+    ["abc"],
+  ]);
   // Dirty padding survives the raw fetch; strict on-chain assembly must reject it.
-  await installConstantMock(client, source, `${canonical.slice(0, -2)}01`);
+  await installConstantMock(
+    client,
+    source,
+    `${canonical.slice(0, -2)}01` as `0x${string}`,
+  );
   const expression = await compileExpression(
     `@abi.encode!("string[]" ${source}::{value()(string[])})`,
   );

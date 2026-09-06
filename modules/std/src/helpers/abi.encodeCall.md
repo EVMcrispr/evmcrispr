@@ -4,7 +4,7 @@ title: "@abi.encodeCall"
 
 ABI-encode a function call from its signature and arguments.
 
-**On-chain (`@abi.encodeCall!`)**: The signature must be constant; up to four live arguments may include arrays and tuples.
+**On-chain (`@abi.encodeCall!`)**: The signature must be constant; live arguments may include arrays and tuples.
 
 **Returns**: `bytes`
 

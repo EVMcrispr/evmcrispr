@@ -8,6 +8,11 @@ describeHelper(
     module: "lang [@str.replace]",
     cases: [
       {
+        name: "inserts replacement text literally",
+        input: `@str.replace("aab" "a" "$$$&")`,
+        expected: "$$$&$$$&b",
+      },
+      {
         name: "should replace a substring",
         input: `@str.replace("hello world" "world" "there")`,
         expected: "hello there",
@@ -21,6 +26,13 @@ describeHelper(
         name: "should handle no match",
         input: `@str.replace("hello" "xyz" "abc")`,
         expected: "hello",
+      },
+    ],
+    errorCases: [
+      {
+        name: "rejects an empty needle",
+        input: `@str.replace("abc" "" "x")`,
+        error: "non-empty",
       },
     ],
     docCases: [

@@ -4,6 +4,8 @@ title: "@lang:at"
 
 Access an element by index in an array.
 
+**On-chain (`@lang:at!`)**: Accepts a constant or live signed index; negative indices count from the end and out-of-range indices revert.
+
 **Returns**: `any`
 
 ## Syntax

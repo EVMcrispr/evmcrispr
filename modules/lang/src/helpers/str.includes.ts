@@ -13,7 +13,7 @@ export default defineHelper<Lang>({
   description:
     "Check whether a string contains a substring (exact byte sequence, case-sensitive).",
   compileDescription:
-    "The substring may be a live call; a constant one must be non-empty, since every string contains the empty string.",
+    "The substring may be a live call. Every string contains the empty string.",
   returnType: "bool",
   args: [
     {
@@ -38,17 +38,12 @@ export default defineHelper<Lang>({
     }
     const arg = await chainArgWithLens(ctx, "str.includes!", node.args[0]);
     requireBytesLike(arg, "str.includes!");
-    const { part, text } = await stringArg(
+    const { part } = await stringArg(
       ctx,
       node.args[1],
       "str.includes!",
       "part",
     );
-    if (text !== undefined && text.length === 0) {
-      throw new ErrorException(
-        "@str.includes! part must be a non-empty string (every string contains the empty string)",
-      );
-    }
     return {
       kind: "call",
       param: includesParam(ctx, lensedDataOperand(ctx, arg), part),

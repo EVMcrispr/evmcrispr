@@ -1,6 +1,8 @@
 import "../../setup";
 import {
   CORE_ADDRESS,
+  EXPRESSION_RESOLVER_ABI,
+  EXPRESSION_RESOLVER_ADDRESS,
   OPERATIONS_ADDRESS,
   PAYLOAD_STEP,
 } from "@evmcrispr/sdk/onchain";
@@ -11,7 +13,7 @@ import {
   describeCommand,
   word,
 } from "@evmcrispr/test-utils/evml";
-import { getAddress, toFunctionSelector } from "viem";
+import { decodeFunctionData, getAddress, toFunctionSelector } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
 const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
@@ -65,16 +67,27 @@ describeCommand("assert (@abi.decodeCall! calldata shape)", {
         expect(strip.functionName).to.equal("nav");
         expect(strip.args[1]).to.equal("(bytes)");
         expect(strip.args[2]).to.deep.equal([0n, PAYLOAD_STEP]);
-        const sliceSegs = d.opReadOf(
+        const sliceCall = d.staticCallOf(
           strip.args[0] as unknown as DecodedParam,
-          "slice(bytes,uint256,uint256)",
         );
-        // heads: [offset_data = 96][start = 68], then the live length,
-        // the synthesized total, and the calldata envelope
-        expect(sliceSegs[0].paramData).to.equal(
-          `0x${word(96n).slice(2)}${word(68n).slice(2)}`,
+        expect(sliceCall.target).to.equal(
+          getAddress(EXPRESSION_RESOLVER_ADDRESS),
         );
-        expect(sliceSegs).to.have.lengthOf(4);
+        const graph = decodeFunctionData({
+          abi: EXPRESSION_RESOLVER_ABI,
+          data: sliceCall.data,
+        });
+        expect(graph.functionName).to.equal("evaluate");
+        if (graph.functionName !== "evaluate")
+          throw new Error("expected graph");
+        const [program] = graph.args;
+        expect(program.nodes.filter((n) => n.kind === 2)).to.have.lengthOf(1);
+        expect(program.nodes.find((n) => n.kind === 2)!.valueType).to.equal(
+          "bytes",
+        );
+        expect(program.nodes[Number(program.result)].selector).to.equal(
+          toFunctionSelector("slice(bytes,uint256,uint256)"),
+        );
 
         d.expectConstraint(param, "Eq", 42n);
       },

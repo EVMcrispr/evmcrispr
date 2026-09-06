@@ -30,22 +30,4 @@ Combine two arrays element-wise into an array of pairs.
 
 ## On-chain face (@zip!)
 
-Interleave two word payloads on-chain through `zipWords`. Either side,
-or both, may be live (a call or nested face) or a constant array
-literal. When both are live the second offset is computed on-chain from
-the first payload's length. A word-count mismatch reverts with
-WordCountMismatch.
-
-### Examples
-
-```evml
-load lang
-
-set $amm 0x44fA8E6f47987339850636F88629646662444217
-
-assert @zip!($amm::{caps()(uint256[])} [7 8]) == 0x1122
-```
-
-### See Also
-
-- `assert`, `@unzip!`
+Pair two equally sized arrays in order. Unequal lengths fail in both modes. Each lane retains its own type, including multiword types.

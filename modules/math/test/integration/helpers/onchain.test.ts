@@ -64,16 +64,6 @@ describeCommand("assert (math fixed-point faces)", {
   ],
   errorCases: [
     {
-      name: "rejects a live exponential operand",
-      script: `assert @math:exp!(${TOKEN}::{drift()(int256)}) > 0`,
-      error: "requires a value known before execution",
-    },
-    {
-      name: "rejects a live logarithm operand",
-      script: `assert @math:ln!(${RATE}) > 0`,
-      error: "requires a value known before execution",
-    },
-    {
       name: "requires raw integer units before using a scaled pow result in calc",
       script: `assert @calc!(@math:pow!(15e17 2) + ${RATE}) > 0`,
       error: "requires unscaled integer operands",

@@ -10,7 +10,8 @@ import type Lang from "..";
 
 export default defineHelper<Lang>({
   name: "str.lower",
-  description: "Convert a string to lowercase.",
+  description:
+    "Convert ASCII letters in a string to lowercase; preserve other characters.",
   compileDescription:
     "Maps ASCII letters only; every other byte passes through unchanged.",
   returnType: "string",
@@ -22,7 +23,7 @@ export default defineHelper<Lang>({
     },
   ],
   async run(_, { s }) {
-    return String(s).toLowerCase();
+    return String(s).replace(/[A-Z]/g, (letter) => letter.toLowerCase());
   },
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {

@@ -55,7 +55,7 @@ describeCommand("switch", {
     {
       name: "should fail when receiving an unknown chain name",
       script: "switch fakechainname",
-      error: "must be a chain id or a camelCase viem chain name",
+      error: "must be a chain id or a camelCase chain name",
     },
   ],
 });

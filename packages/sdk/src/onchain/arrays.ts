@@ -13,7 +13,6 @@ import {
   chainArgWithLens,
   constBigInt,
   constOperand,
-  lenParam,
   lensedDataOperand,
 } from "./compile";
 import { compileOnchainHelper, isBangHelperNode } from "./dispatch";
@@ -67,12 +66,12 @@ export function wordArrayPath(
 export function wordsPayload(
   ctx: CompileCtx,
   arg: CallArrayArg,
-  path: readonly number[],
+  _path: readonly number[],
 ): InputParam {
   return arrayWordsParam(
     ctx,
     lensedDataOperand(ctx, arg),
-    lenParam(ctx, arg.param, arg.outputs, path),
+    (arg.terminal ?? arg.outputs[0]).type.slice(0, -2),
   );
 }
 
@@ -116,11 +115,7 @@ export async function wordsArg(
       );
     if (o.collection.transport === "words")
       return { payload: o.param, elemType, lanes: o.collection.lanes };
-    const count = staticCallParam(
-      ctx.core,
-      encodeNav(o.param, `(${elemType}[])`, [0n, -(1n << 255n)]),
-    );
-    return { payload: arrayWordsParam(ctx, o.param, count), elemType };
+    return { payload: arrayWordsParam(ctx, o.param, elemType), elemType };
   }
   if (!node || node.type !== NodeType.CallExpression) {
     throw new ErrorException(

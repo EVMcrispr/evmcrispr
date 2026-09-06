@@ -51,6 +51,18 @@ describeHelper(
         preamble: "",
       },
     ],
+    errorCases: [
+      {
+        name: "rejects fractional slice bounds",
+        input: `@slice([1 2] 0 1.5)`,
+        error: "Checked arithmetic",
+      },
+      {
+        name: "rejects slice bounds outside int256",
+        input: `@slice([1 2] ${1n << 255n})`,
+        error: "int256",
+      },
+    ],
     sampleArgs: [`[1]`, `0`, `1`],
   },
   helpers.slice.argDefs,

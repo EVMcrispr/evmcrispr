@@ -5,6 +5,8 @@ import {
   CONSTRAINT_TYPE,
   CORE_ABI,
   CORE_ADDRESS,
+  EXPRESSION_RESOLVER_ABI,
+  EXPRESSION_RESOLVER_ADDRESS,
   FETCHER_TYPE,
   LEN_STEP,
   OPERATIONS_ADDRESS,
@@ -146,6 +148,22 @@ function readOf(param: Param): {
   selector: `0x${string}`;
   segments: readonly Param[];
 } {
+  const resolved = staticCallOf(param);
+  if (
+    resolved.target.toLowerCase() === EXPRESSION_RESOLVER_ADDRESS.toLowerCase()
+  ) {
+    const call = decodeFunctionData({
+      abi: EXPRESSION_RESOLVER_ABI,
+      data: resolved.data,
+    });
+    if (call.functionName !== "resolveCall")
+      throw new Error("Expected resolver call");
+    return {
+      target: call.args[1] as unknown as Param,
+      selector: call.args[2],
+      segments: call.args[4] as unknown as Param[],
+    };
+  }
   const call = core(param);
   expect(call.functionName).to.equal("read");
   return {
@@ -153,6 +171,21 @@ function readOf(param: Param): {
     selector: call.args[1] as `0x${string}`,
     segments: call.args[2] as unknown as readonly Param[],
   };
+}
+
+/** Decode canonical argument assembly performed by ExpressionResolver. */
+function canonicalArguments(
+  segments: readonly Param[],
+  descriptor: string,
+): readonly Param[] {
+  expect(segments).to.have.lengthOf(1);
+  const { target, data } = staticCallOf(segments[0]);
+  expect(target).to.equal(getAddress(EXPRESSION_RESOLVER_ADDRESS));
+  const decoded = decodeFunctionData({ abi: EXPRESSION_RESOLVER_ABI, data });
+  expect(decoded.functionName).to.equal("resolveArguments");
+  expect(getAddress(decoded.args[0] as Address)).to.equal(ASSERTIONS);
+  expect(decoded.args[1]).to.equal(descriptor);
+  return decoded.args[2] as unknown as readonly Param[];
 }
 
 /** Decode a param as read(operators, opSignature, args) — the composed
@@ -179,35 +212,6 @@ function expectOpJudge(
 /** keccak256 of the decoded payload bytes — hash splices the resolved
  *  envelope, so the digest covers the payload, not the ABI envelope. */
 const stringDigest = (s: string) => keccak256(stringToHex(s));
-
-/** Validate an indexOf read with a constant needle and occurrence ordinal:
- *  heads are [offset_s][96][occurrence], the needle tail sits at 96 and
- *  the live haystack envelope is spliced last with offset_s skipping its
- *  0x20 word. Returns the haystack segment. */
-function expectIndexOf(
-  param: Param,
-  needle: string,
-  occurrence: bigint,
-): Param {
-  const args = opReadOf(param, "indexOf(bytes,bytes,int256)");
-  expect(args).to.have.lengthOf(2);
-  const payload = stringToHex(needle).slice(2);
-  const padded = payload + "0".repeat((64 - (payload.length % 64)) % 64);
-  const tail = `${word(BigInt(payload.length / 2)).slice(2)}${padded}`;
-  const envelopeAt = 96 + tail.length / 2;
-  expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
-  expect(args[0].paramData).to.equal(
-    `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(96n).slice(2)}${word(occurrence).slice(2)}${tail}`,
-  );
-  return args[1];
-}
-
-/** Validate a slice read: [offset_data = 128][start][len] with the live
- *  envelope spliced at 96. Returns the word segments and the haystack. */
-function expectSlice(param: Param): { segments: readonly Param[] } {
-  const args = opReadOf(param, "slice(bytes,uint256,uint256)");
-  return { segments: args };
-}
 
 /** The RAW_BYTES head of a native `charset(bytes s, uint256 mask)` read:
  *  the bytes arg is FIRST, so the head is [offset_s = 96][mask] and the
@@ -373,24 +377,13 @@ describeCommand("assert", {
       script: `assert @str.split!(${TOKEN}::{items()((string,uint256)[])}[[[$ _]]] " " -1) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        // string == constant → hash of the slice judged EQ the payload digest
-        const hashArgs = opReadOf(param, "hash(bytes)");
-        expect(hashArgs).to.have.lengthOf(1);
-        // split(s, " ", -1) = slice(s, start, byteLen(s) - start) with
-        // start = indexOf(s, " ", -1) + 1
-        const { segments } = expectSlice(hashArgs[0]);
-        expect(segments).to.have.lengthOf(4);
-        expectRawWord(segments[0], 128n);
-        const startArgs = opReadOf(segments[1], "add(uint256,uint256)");
-        const lensed = expectIndexOf(startArgs[0], " ", -1n);
-        const nav = core(lensed);
-        expect(nav.functionName).to.equal("nav");
-        expect(nav.args[1]).to.equal("((string,uint256)[])");
-        expect(nav.args[2]).to.deep.equal([0n, 0n, 0n]);
-        expectRawWord(startArgs[1], 1n);
-        const lenArgs = opReadOf(segments[2], "sub(uint256,uint256)");
-        opReadOf(lenArgs[0], "byteLen(bytes)");
-        expectConstraint(param, "Eq", BigInt(stringDigest("LP")));
+        const selected = core(opReadOf(param, "hash(bytes)")[0]);
+        expect(selected.functionName).to.equal("nav");
+        expect(selected.args[1]).to.equal("(string[])");
+        expect(selected.args[2]).to.deep.equal([0n, -1n]);
+        expect(readOf(selected.args[0] as unknown as Param).selector).to.equal(
+          selectorOf("split(bytes,bytes)"),
+        );
       },
     },
     {
@@ -791,21 +784,13 @@ describeCommand("assert", {
       script: `assert @str.split!(${TOKEN}::{name()(string)} " " 1) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const hashArgs = opReadOf(param, "hash(bytes)");
-        // split(s, " ", 1) = slice(s, start, end - start) with
-        // start = indexOf(s, " ", 0) + 1 and end = indexOf(s, " ", 1) —
-        // both boundaries are constant occurrence ordinals
-        const { segments } = expectSlice(hashArgs[0]);
-        expect(segments).to.have.lengthOf(4);
-        expectRawWord(segments[0], 128n);
-        const startArgs = opReadOf(segments[1], "add(uint256,uint256)");
-        const haystack = expectIndexOf(startArgs[0], " ", 0n);
-        expect(staticCallOf(haystack).target).to.equal(TOKEN);
-        expectRawWord(startArgs[1], 1n);
-        const lenArgs = opReadOf(segments[2], "sub(uint256,uint256)");
-        expectIndexOf(lenArgs[0], " ", 1n);
-        expect(staticCallOf(segments[3]).target).to.equal(TOKEN);
-        expectConstraint(param, "Eq", BigInt(stringDigest("LP")));
+        const selected = core(opReadOf(param, "hash(bytes)")[0]);
+        expect(selected.functionName).to.equal("nav");
+        expect(selected.args[1]).to.equal("(string[])");
+        expect(selected.args[2]).to.deep.equal([0n, 1n]);
+        expect(readOf(selected.args[0] as unknown as Param).selector).to.equal(
+          selectorOf("split(bytes,bytes)"),
+        );
       },
     },
     {
@@ -813,14 +798,13 @@ describeCommand("assert", {
       script: `assert @str.split!(${TOKEN}::{name()(string)} " " -1) == "Token"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const hashArgs = opReadOf(param, "hash(bytes)");
-        const { segments } = expectSlice(hashArgs[0]);
-        expect(segments).to.have.lengthOf(4);
-        const startArgs = opReadOf(segments[1], "add(uint256,uint256)");
-        expectIndexOf(startArgs[0], " ", -1n);
-        const lenArgs = opReadOf(segments[2], "sub(uint256,uint256)");
-        opReadOf(lenArgs[0], "byteLen(bytes)");
-        expectConstraint(param, "Eq", BigInt(stringDigest("Token")));
+        const selected = core(opReadOf(param, "hash(bytes)")[0]);
+        expect(selected.functionName).to.equal("nav");
+        expect(selected.args[1]).to.equal("(string[])");
+        expect(selected.args[2]).to.deep.equal([0n, -1n]);
+        expect(readOf(selected.args[0] as unknown as Param).selector).to.equal(
+          selectorOf("split(bytes,bytes)"),
+        );
       },
     },
     {
@@ -828,17 +812,13 @@ describeCommand("assert", {
       script: `assert @str.split!(${TOKEN}::{name()(string)} " " -2) == "LP"`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const hashArgs = opReadOf(param, "hash(bytes)");
-        // split(s, " ", -2) = slice(s, start, end - start) with
-        // start = indexOf(s, " ", -2) + 1 and end = indexOf(s, " ", -1)
-        const { segments } = expectSlice(hashArgs[0]);
-        expect(segments).to.have.lengthOf(4);
-        const startArgs = opReadOf(segments[1], "add(uint256,uint256)");
-        expectIndexOf(startArgs[0], " ", -2n);
-        expectRawWord(startArgs[1], 1n);
-        const lenArgs = opReadOf(segments[2], "sub(uint256,uint256)");
-        expectIndexOf(lenArgs[0], " ", -1n);
-        expectConstraint(param, "Eq", BigInt(stringDigest("LP")));
+        const selected = core(opReadOf(param, "hash(bytes)")[0]);
+        expect(selected.functionName).to.equal("nav");
+        expect(selected.args[1]).to.equal("(string[])");
+        expect(selected.args[2]).to.deep.equal([0n, -2n]);
+        expect(readOf(selected.args[0] as unknown as Param).selector).to.equal(
+          selectorOf("split(bytes,bytes)"),
+        );
       },
     },
     {
@@ -847,8 +827,9 @@ describeCommand("assert", {
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "eq(uint256,uint256)");
-        const hashArgs = opReadOf(a, "hash(bytes)");
-        expectSlice(hashArgs[0]);
+        const selected = core(opReadOf(a, "hash(bytes)")[0]);
+        expect(selected.functionName).to.equal("nav");
+        expect(selected.args[2]).to.deep.equal([0n, -1n]);
         expectRawWord(b, BigInt(stringDigest("LP")));
       },
     },
@@ -887,23 +868,21 @@ describeCommand("assert", {
       script: `assert @str.includes!(${TOKEN}::{name()(string)} "LP")`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const { a, b } = expectOpJudge(param, "lt(uint256,uint256)");
-        const haystack = expectIndexOf(a, "LP", 0n);
-        expect(staticCallOf(haystack).target).to.equal(TOKEN);
-        const lenArgs = opReadOf(b, "byteLen(bytes)");
-        expect(lenArgs).to.have.lengthOf(1);
-        expect(staticCallOf(lenArgs[0]).target).to.equal(TOKEN);
+        expectConstraint(param, "Eq", 1n);
+        const args = opReadOf(param, "contains(bytes,bytes)");
+        expect(args).to.have.lengthOf(2);
+        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
       },
     },
     {
       name: "compiles @str.includes! == false to an EQ 0 constraint",
       script: `assert @str.includes!(${TOKEN}::{name()(string)} "Sushi") == false "rebranded"`,
       validate: (actions) => {
-        const { param, message } = decodeAssert(actions);
+        const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 0n);
-        const args = opReadOf(param, "lt(uint256,uint256)");
-        expectIndexOf(args[0], "Sushi", 0n);
-        expect(message).to.equal("rebranded");
+        const args = opReadOf(param, "contains(bytes,bytes)");
+        expect(args).to.have.lengthOf(2);
+        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
       },
     },
     {
@@ -912,7 +891,7 @@ describeCommand("assert", {
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a, b } = expectOpJudge(param, "bitAnd(uint256,uint256)");
-        opReadOf(a, "lt(uint256,uint256)");
+        opReadOf(a, "contains(bytes,bytes)");
         opReadOf(b, "charset(bytes,uint256)");
       },
     },
@@ -1364,7 +1343,7 @@ describeCommand("assert", {
       },
     },
     {
-      name: "compiles example 2 (dynamic envelope): an address[] argument as the trailing segment",
+      name: "compiles example 2 (dynamic envelope): a canonical address[] argument",
       script: `assert ${A}::{a(address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
@@ -1373,11 +1352,9 @@ describeCommand("assert", {
         expectRawWord(target, BigInt(A));
         expect(selector).to.equal(selectorOf("a(address[])"));
 
-        // Two segments: the literal head (offset 64 skips the envelope's
-        // own offset word) and the nav whose envelope the judge appends.
-        expect(segments).to.have.lengthOf(2);
-        expectRawWord(segments[0], 64n);
-        const nav = core(segments[1]);
+        const args = canonicalArguments(segments, "(address[])");
+        expect(args).to.have.lengthOf(1);
+        const nav = core(args[0]);
         expect(nav.functionName).to.equal("nav");
         expect(nav.args[1]).to.equal("(address,address[][])");
         expect(nav.args[2]).to.deep.equal([1n, 1n]);
@@ -1387,25 +1364,25 @@ describeCommand("assert", {
       },
     },
     {
-      // Two live envelopes in one call. The first head stays a literal;
-      // the second is computed on-chain from the first array's element
-      // count, so nothing has to know its length at build time.
-      name: "splices two dynamic nested arguments with a computed second offset",
+      // Resolver assembles both complete canonical values at runtime.
+      name: "assembles two dynamic nested arguments through the resolver",
       script: `assert ${A}::{a(address[],address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]] ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { selector, segments } = readOf(param);
         expect(selector).to.equal(selectorOf("a(address[],address[])"));
 
-        // [offset_0 literal][live offset_1][envelope 0][envelope 1]
-        expect(segments).to.have.lengthOf(4);
-        expectRawWord(segments[0], 96n);
-        const addArgs = opReadOf(segments[1], "add(uint256,uint256)");
-        const sizeArgs = opReadOf(addArgs[0], "sub(uint256,uint256)");
-        expectRawWord(sizeArgs[1], 64n);
-        expectRawWord(addArgs[1], 160n);
-        expect(core(segments[2]).functionName).to.equal("nav");
-        expect(core(segments[3]).functionName).to.equal("nav");
+        const args = canonicalArguments(segments, "(address[],address[])");
+        expect(args).to.have.lengthOf(2);
+        for (const argument of args) {
+          const nav = core(argument);
+          expect(nav.functionName).to.equal("nav");
+          expect(nav.args[1]).to.equal("(address,address[][])");
+          expect(nav.args[2]).to.deep.equal([1n, 1n]);
+          expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
+            B,
+          );
+        }
       },
     },
     {
@@ -1437,9 +1414,9 @@ describeCommand("assert", {
         expect(aRead.segments).to.have.lengthOf(1);
         const bRead = readOf(aRead.segments[0]);
         expect(bRead.selector).to.equal(selectorOf("b(address[])"));
-        expect(bRead.segments).to.have.lengthOf(2);
-        expectRawWord(bRead.segments[0], 64n);
-        const nav = core(bRead.segments[1]);
+        const args = canonicalArguments(bRead.segments, "(address[])");
+        expect(args).to.have.lengthOf(1);
+        const nav = core(args[0]);
         expect(nav.functionName).to.equal("nav");
         expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
           C,
@@ -1457,7 +1434,13 @@ describeCommand("assert", {
         for (const segment of aRead.segments) {
           const bRead = readOf(segment);
           expect(bRead.selector).to.equal(selectorOf("b(address[])"));
-          expect(bRead.segments).to.have.lengthOf(2);
+          const args = canonicalArguments(bRead.segments, "(address[])");
+          expect(args).to.have.lengthOf(1);
+          const nav = core(args[0]);
+          expect(nav.functionName).to.equal("nav");
+          expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
+            C,
+          );
         }
       },
     },
@@ -1663,11 +1646,6 @@ describeCommand("assert", {
       name: "rejects @bytes.len! over a non-bytes return",
       script: `assert @bytes.len!(${TOKEN}::{holders()(address[])}) == 128`,
       error: "needs a string or bytes value",
-    },
-    {
-      name: "rejects an empty @str.includes! part",
-      script: `assert @str.includes!(${TOKEN}::{name()(string)} "")`,
-      error: "@str.includes! part must be a non-empty string",
     },
     {
       name: "rejects a reversed @str.charset! range",

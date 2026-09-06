@@ -25,7 +25,7 @@ export default defineHelper<Lang>({
   name: "str.join",
   description: "Join array elements into a string with a delimiter.",
   compileDescription:
-    "Array elements must be strings or bytes; literal arrays support up to four live parts. The delimiter may be constant or live.",
+    "Array elements must be strings or bytes; literal arrays support live parts. The delimiter may be constant or live.",
   returnType: "string",
   args: [
     {

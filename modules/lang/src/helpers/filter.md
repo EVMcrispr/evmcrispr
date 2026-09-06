@@ -4,7 +4,7 @@ title: "@lang:filter"
 
 Keep elements of an array for which a helper returns truthy.
 
-**On-chain (`@lang:filter!`)**: The predicate is a named definition returning bool. Word predicates may compose helpers; generic values require one direct ABI call.
+**On-chain (`@lang:filter!`)**: Uses a named boolean predicate. Callbacks may compose helpers and ABI calls over typed word or multiword values.
 
 **Returns**: `array`
 
@@ -32,41 +32,4 @@ Keep elements of an array for which a helper returns truthy.
 
 ## On-chain face (@filter!)
 
-Keep the matching elements of the array return of a call on-chain
-through `filterWords`. The predicate is a `def @name!` of one parameter
-returning bool
-(a def whose body is `@bool!($x >= 100)` keeps each element with
-`element >= 100`) — the same
-lambda machinery @map! and @all! use. A predicate reducing to one
-Operations call runs as a single staticcall per element; a composed one
-(a nested live call, a multi-call expression) routes through the core
-and costs several.
-
-The result is the kept words payload (a bytes value) in source order,
-composable with the other array faces: `@len!(@filter!(…))`,
-`@reduce!(@filter!(…) add 0)`, `@sort!(@filter!(…))`.
-
-### Examples
-
-```evml
-load lang
-
-set $vault 0x44fA8E6f47987339850636F88629646662444217
-
-# Exactly two caps at or above the floor
-def @ge100! "$x: number -> bool" @bool!($x >= 100)
-assert @len!(@filter!($vault::{caps()(uint256[])} @ge100!)) == 2
-```
-
-### Notes
-
-- Arrays of single-word elements only; the output length is the kept
-  count, so the payload nests into @len!, @at!, the folds and the other
-  word ops.
-- One staticcall per element: gas bounds the practical array size.
-- Naming the parameter more than once substitutes at each place it
-  appears, so `@calc!($x * $x)` squares: two windows, one call.
-
-### See Also
-
-- `assert`, `@map!`, `@find!`, `@all!`
+Keep values for which a named boolean callback returns true. Typed multiword values are supported, and the callback may compose helpers and ABI calls. The result retains the input element type and order.

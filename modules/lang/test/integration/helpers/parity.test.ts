@@ -105,12 +105,7 @@ describeParity("@lang", {
 
     // ---- the taxonomy -----------------------------------------------------
     {
-      // A live read as the index is NOT rejected: constIntArg interprets the
-      // node, which executes the call at composition time and freezes the
-      // value into the operand. So `decimals()` here means "18 as it was when
-      // the script was built", not a live index. Pinned because it is easy to
-      // read as live and is not.
-      name: "an index read from a call is frozen at composition time",
+      name: "a live index read agrees with the current offchain value",
       run: `@at(${LONG_CALL} ${WXDAI}::{decimals()(uint8)})`,
       compile: `@at!(${LONG_CALL} ${WXDAI}::{decimals()(uint8)})`,
     },

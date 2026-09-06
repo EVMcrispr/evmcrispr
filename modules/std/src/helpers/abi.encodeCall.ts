@@ -9,7 +9,7 @@ export default defineHelper<Std>({
   name: "abi.encodeCall",
   description: "ABI-encode a function call from its signature and arguments.",
   compileDescription:
-    "The signature must be constant; up to four live arguments may include arrays and tuples.",
+    "The signature must be constant; live arguments may include arrays and tuples.",
   returnType: "bytes",
   args: [
     {

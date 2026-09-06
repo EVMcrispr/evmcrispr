@@ -4,7 +4,7 @@ title: "@lang:map"
 
 Transform each element of an array by applying a helper.
 
-**On-chain (`@lang:map!`)**: Word transforms may compose on-chain helpers. Generic values require a named definition containing one direct ABI call with matching argument and result types.
+**On-chain (`@lang:map!`)**: Uses named callbacks that compose helpers and ABI calls, preserving argument and result types, including multiword values.
 
 **Returns**: `array`
 
@@ -31,39 +31,4 @@ Transform each element of an array by applying a helper.
 
 ## On-chain face (@map!)
 
-Transform every element of the array return of a call on-chain through
-`mapWords`. The transform is a `def @name!` of one parameter,
-applied by name with its parameter substituted at each occurrence (`def @dbl! "$x: number ->
-number" @calc!($x * 2)` maps each
-element to `element * 2`). A lambda reducing to one Operations call runs
-as a single staticcall per element; a composed one (a nested live call,
-a multi-call body like `@calc!($x * 2 + 1)`) routes through the core
-and costs several.
-
-The result is the mapped words payload (a bytes value), composable with
-the other array faces: `@reduce!(@map!(…) add 0)`, `@sort!(@map!(…))`.
-
-### Examples
-
-```evml
-load lang
-
-set $vault 0x44fA8E6f47987339850636F88629646662444217
-
-# Sum of the doubled caps
-def @dbl! "$x: number -> number" @calc!($x * 2)
-assert @reduce!(@map!($vault::{caps()(uint256[])} @dbl!) add 0) >= 100
-```
-
-### Notes
-
-- Arrays of single-word elements only; the lambda output is one word
-  per element.
-- The signed sort recipe rides on @map!: flip the sign bit, sort,
-  flip back.
-- Naming the parameter more than once substitutes at each place it
-  appears, so `@calc!($x * $x)` squares: two windows, one call.
-
-### See Also
-
-- `assert`, `@reduce!`, `@all!`
+Apply a named callback to each element of a typed array. Callbacks may compose on-chain helpers and ABI calls, reuse parameters, and accept multiword values such as strings, tuples, and nested arrays. The result retains the callback output type. Shared nodes are evaluated once per callback invocation.

@@ -1,12 +1,12 @@
 /** Typed ABI-valued collection composition. Values use canonical single-value ABI encoding. */
 import type { AbiFunction, AbiParameter, Address, Hex } from "viem";
-import { encodeFunctionData } from "viem";
+import { encodeAbiParameters, encodeFunctionData } from "viem";
 import { COLLECTIONS_ADDRESS } from "./addresses";
 import { type ArgSpec, buildCallSegments, isDynamicParam } from "./construct";
 import { encodeNav, encodeRead, encodeResolve, PAYLOAD_STEP } from "./core";
 import { type InputParam, rawParam, staticCallParam, toWord } from "./erc8211";
-import { envelopeLenParam } from "./layout";
-import { OPERATIONS_ABI, opSelector } from "./operators";
+import { OP_SELECTORS, OPERATIONS_ABI } from "./operators";
+import { resolveCallParam, resolveValuesParam } from "./resolver";
 import type { CompileCtx } from "./types";
 
 export { COLLECTION_SELECTORS, COLLECTIONS_ABI } from "./collection-abi";
@@ -19,6 +19,7 @@ export interface CollectionCallback {
   constants: readonly Hex[];
   first: bigint;
   second: bigint;
+  program: Hex;
 }
 
 /** Wrap arbitrary resolved returndata in a bytes ABI envelope, without interpreting its shape. */
@@ -48,22 +49,13 @@ export function unwrapBytesParam(
 
 /** A live canonical ABI value suitable for general calldata construction. */
 export function canonicalArgSpec(
-  ctx: CompileCtx,
+  _ctx: CompileCtx,
   type: AbiParameter,
   param: InputParam,
 ): ArgSpec {
-  if (!isDynamicParam(type)) return { kind: "encoded", param };
-  // spliceLayout sizes everything after [offset][first tail word]. This also
-  // handles tuples and nested arrays, where that first tail word is not a length.
-  const total = envelopeLenParam(ctx, canonicalBytesParam(ctx, param));
-  const payload = staticCallParam(
-    ctx.core,
-    encodeRead(rawParam(toWord(BigInt(ctx.operators))), opSelector("sub"), [
-      total,
-      rawParam(toWord(64n)),
-    ]),
-  );
-  return { kind: "dyn", param, payload };
+  return isDynamicParam(type)
+    ? { kind: "dyn", param }
+    : { kind: "encoded", param };
 }
 export function collectionReadParam(
   ctx: CompileCtx,
@@ -90,38 +82,17 @@ export function encodeValuesParam(
   ctx: CompileCtx,
   values: readonly BytesPart[],
 ): InputParam {
-  const slots: Slot[] = values.map((v) =>
-    typeof v === "string"
-      ? { tail: bytesTail(v) }
-      : {
-          param: livePartParam(v),
-          payload: bytesPayloadParam(ctx, livePartParam(v)),
-        },
-  );
-  const { offsets, tail } = spliceLayout(
+  return resolveValuesParam(
     ctx,
-    slots,
-    64 + 32 * values.length,
-    64,
+    values.map((v) =>
+      typeof v === "string"
+        ? rawParam(v)
+        : unwrapBytesParam(ctx, livePartParam(v)),
+    ),
   );
-  const segments = mergeSegments([
-    toWord(32n).slice(2),
-    toWord(BigInt(values.length)).slice(2),
-    ...offsets.map(wordPiece),
-    ...tail,
-  ]);
-  return concatenateResolved(ctx, segments);
 }
 
-import {
-  bytesPayloadParam,
-  bytesTail,
-  mergeSegments,
-  type Slot,
-  spliceLayout,
-  wordPiece,
-} from "./layout";
-import { type BytesPart, concatParam, livePartParam } from "./recipes";
+import { type BytesPart, livePartParam } from "./recipes";
 
 /** Concatenate raw resolved spans into a canonical raw ABI value. */
 export function concatenateResolved(
@@ -129,17 +100,17 @@ export function concatenateResolved(
   parts: readonly InputParam[],
 ): InputParam {
   if (parts.length === 1) return parts[0];
-  if (parts.length > 4) {
-    const groups: InputParam[] = [];
-    for (let i = 0; i < parts.length; i += 4)
-      groups.push(concatenateResolved(ctx, parts.slice(i, i + 4)));
-    return concatenateResolved(ctx, groups);
-  }
   return unwrapBytesParam(
     ctx,
-    concatParam(
+    resolveCallParam(
       ctx,
-      parts.map((p) => canonicalBytesParam(ctx, p)),
+      rawParam(toWord(BigInt(ctx.operators))),
+      OP_SELECTORS.concat,
+      "(bytes[],bytes)",
+      [
+        resolveValuesParam(ctx, parts),
+        rawParam(encodeAbiParameters([{ type: "bytes" }], ["0x"])),
+      ],
     ),
   );
 }

@@ -1,7 +1,6 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import {
   arrayWordsParam,
-  lenParam,
   lensedDataOperand,
   staticCallParam,
 } from "@evmcrispr/sdk/onchain";
@@ -69,9 +68,10 @@ export default defineHelper<Safe>({
       param: arrayWordsParam(
         ctx,
         lensedDataOperand(ctx, { param, outputs, path: [0] }),
-        lenParam(ctx, param, outputs, [0]),
+        "address",
       ),
       cat: "Bytes",
+      collection: { element: { type: "address" }, transport: "words" },
     };
   },
 });

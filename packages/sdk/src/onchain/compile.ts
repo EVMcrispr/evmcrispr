@@ -484,7 +484,7 @@ export async function compileChain(
   let startAddress: Address | undefined;
   let start: InputParam;
 
-  if (hops[0]?.bang) {
+  if (hops[0]?.bang || PRECOMPILED_OPERAND in rootTarget) {
     // A leading `::!` hop reads from a computed head: the target may be
     // any operand (a bang helper, a variable, a literal), not just an
     // address chain. A live head is spliced as the read target word — the
@@ -1554,6 +1554,34 @@ export function cmpCombine(
   l: Operand,
   r: Operand,
 ): Operand {
+  const liveBytes = [l, r].some((o) => o.kind === "call" && o.cat === "Bytes");
+  if (liveBytes) {
+    if (op !== "Eq" && op !== "Ne")
+      throw new ErrorException(
+        "dynamic bytes only support == and != comparisons",
+      );
+    for (const o of [l, r]) {
+      if (
+        o.kind === "call"
+          ? o.cat !== "Bytes" ||
+            !!o.collection ||
+            (o.abiType !== undefined && o.abiType.type !== "bytes")
+          : o.cat !== "Bytes" && o.cat !== "Bytes32"
+      )
+        throw new ErrorException(
+          "dynamic bytes equality requires bytes operands",
+        );
+    }
+    const digest = (o: Operand): InputParam =>
+      o.kind === "call"
+        ? hashParamOf(ctx, o.param)
+        : rawParam(keccak256(o.value as Hex));
+    return {
+      kind: "call",
+      cat: "Bool",
+      param: wordOpParam(ctx, CMP_FN[op], false, digest(l), digest(r)),
+    };
+  }
   const cmpCat = (o: Operand): Category =>
     o.kind === "const" && o.cat === "Bytes" ? "Uint" : o.cat;
   const check = checkCmp(op, cmpCat(l), cmpCat(r));
