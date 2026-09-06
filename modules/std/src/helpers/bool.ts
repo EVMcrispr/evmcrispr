@@ -34,6 +34,6 @@ export default defineHelper<Std>({
   },
   // On-chain face: syntax entry point into the expression engine, which
   // stays central — the shunting-yard over raw nodes is shared with
-  // @num! and the assert command.
+  // @calc! and the assert command.
   compile: (ctx, node) => compileExpr(ctx, node.args, "bool"),
 });

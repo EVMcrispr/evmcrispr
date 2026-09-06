@@ -36,7 +36,7 @@ describeHelper(
         preamble: "",
       },
     ],
-    sampleArgs: [`"1"`, "6"],
+    sampleArgs: [`"1"`, "6", "trunc", "signed"],
   },
   helpers["num.parse"].argDefs,
 );

@@ -2,9 +2,7 @@
 title: "@num"
 ---
 
-Evaluate an arithmetic expression or convert a value to a number.
-
-**On-chain (`@num!`)**: Composes live calls and constants with on-chain arithmetic: `+ - * / % ^` and `xor`.
+Evaluate exact rational arithmetic, truncate the final result toward zero, and check its 256-bit integer range.
 
 **Returns**: `number`
 
@@ -46,8 +44,9 @@ set $n @num("42")
 - [@num.parse](../../../lang/src/helpers/num.parse.md) — parse a decimal string (like `parseUnits`)
 - [@bool](bool.md) — boolean expressions
 
-## On-chain face (@num!)
+## Exact evaluation and final conversion
 
-Compose live calls and constants with on-chain arithmetic (+ - * / % ^, xor), evaluated at assertion time via the operators contract.
-
-#
+`num` computes exact rational intermediates, then truncates the final result toward zero.
+The final nonnegative integer must fit uint256; negative integers must fit int256.
+Use `floor` or `ceil` to choose another final rounding direction.
+Use `calc` and `calc!` for checked integer arithmetic, with `//` for division.

@@ -138,7 +138,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "compiles @pendingRedeem! and @claimableDeposit! reads",
-      script: `assert @num!(@pendingRedeem!(${VAULT} ${OWNER}) + @claimableDeposit!(${VAULT} ${OWNER})) == 0`,
+      script: `assert @calc!(@pendingRedeem!(${VAULT} ${OWNER}) + @claimableDeposit!(${VAULT} ${OWNER})) == 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, "add(uint256,uint256)");

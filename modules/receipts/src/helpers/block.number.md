@@ -41,7 +41,7 @@ load receipts
 
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
-assert @num!($gov::{voteEnd()(uint256)} - @block.number!) > 100
+assert @calc!($gov::{voteEnd()(uint256)} - @block.number!) > 100
 ```
 
 ## See Also

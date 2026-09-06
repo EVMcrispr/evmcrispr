@@ -49,21 +49,6 @@ describeCommand("assert (math fixed-point faces)", {
       },
     },
     {
-      name: "folds a build-time @pow! entirely",
-      script: `assert @num!(@math:pow!(15e17 2) + ${RATE}) > 0`,
-      validate: (actions) => {
-        const { param } = d.decodeAssert(actions);
-        // 1.5^2 = 2.25e18 resolved at composition time, so only the live
-        // read survives into the expression.
-        const args = d.opReadOf(param, "add(uint256,uint256)");
-        expect(args).to.have.lengthOf(2);
-        d.expectRawWord(args[0], 2250000000000000000n);
-        // The other operand stays a live read (staticCallOf throws if it
-        // is not one); which frame it arrives through is not the point.
-        d.staticCallOf(args[1]);
-      },
-    },
-    {
       name: "compiles @exp! to a signed wad exponential",
       script: `assert @math:exp!(${TOKEN}::{drift()(int256)}) > 1e18`,
       validate: (actions) => {
@@ -111,6 +96,11 @@ describeCommand("assert (math fixed-point faces)", {
     },
   ],
   errorCases: [
+    {
+      name: "requires raw integer units before using a scaled pow result in calc",
+      script: `assert @calc!(@math:pow!(15e17 2) + ${RATE}) > 0`,
+      error: "requires unscaled integer operands",
+    },
     {
       name: "rejects a live @pow! base",
       script: `assert @math:pow!(${RATE} 2 ${RATE}) > 0`,

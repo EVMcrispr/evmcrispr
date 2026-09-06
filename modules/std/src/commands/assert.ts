@@ -4,6 +4,7 @@ import type { Category, CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
 import {
   assertParamAction,
   boundWord,
+  COLLECTION_OPERATORS_ADDRESS,
   CORE_ADDRESS,
   cmpCombine,
   compileOnchainHelper,
@@ -48,7 +49,7 @@ const MIRRORED: Record<string, string> = {
 };
 
 const WRAP_HINT =
-  'assert takes `<value> <op> <value> ["message"]` — wrap arithmetic in @num!(…) and boolean logic in @bool!(…)';
+  'assert takes `<value> <op> <value> ["message"]` — wrap arithmetic in @calc!(…) and boolean logic in @bool!(…)';
 
 function requireNum(o: Operand & { kind: "const" }, what: string): Num {
   const v = o.value;
@@ -65,7 +66,7 @@ export default defineCommand<Std>({
       name: "call",
       type: "expression",
       description:
-        "A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@num!(@balance!(ETH @me) + 1e18)`",
+        "A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@calc!(@balance!(ETH @me) + 1e18)`",
     },
     {
       name: "operator",
@@ -92,7 +93,7 @@ export default defineCommand<Std>({
       rest: true,
       optional: true,
       description:
-        "(invalid) trailing tokens — infix expressions must be wrapped in @num!/@bool!",
+        "(invalid) trailing tokens — infix expressions must be wrapped in @calc!/@bool!",
     },
   ],
   opts: [
@@ -116,6 +117,7 @@ export default defineCommand<Std>({
       interpreters,
       core: CORE_ADDRESS,
       operators: OPERATORS_ADDRESS,
+      collections: COLLECTION_OPERATORS_ADDRESS,
       hints: {},
     };
     // A face that can only resolve inside a transaction (see
@@ -182,7 +184,7 @@ export default defineCommand<Std>({
     if (lhs.kind === "call" && rhs.kind === "call") {
       if (op === "~=") {
         throw new ErrorException(
-          "~= needs a constant side — compare two live values with `@num!(@absDiff!(a b)) <= <delta>` instead",
+          "~= needs a constant side — compare two live values with `@calc!(@absDiff!(a b)) <= <delta>` instead",
         );
       }
       const fragment = operatorFragment(op, [

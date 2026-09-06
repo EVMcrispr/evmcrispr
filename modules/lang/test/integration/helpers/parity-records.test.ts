@@ -51,11 +51,10 @@ describeParity("@lang records", {
       // Off-chain a zip is an array of PAIRS, so @len counts 3; on-chain it is
       // a flat word-pair payload, so @len! counts 6. Anyone composing the two
       // gets double, which is why zip's compileDescription now says so.
-      name: "diverges: len over a zip counts pairs off-chain and words on-chain",
+      name: "len over a zip counts pairs on both faces",
       run: `@len(@zip(${AC} ${BC}))`,
       compile: `@len!(@zip!(${AC} ${BC}))`,
       helper: "zip",
-      diverges: { reason: "an on-chain record is a flat word-pair payload" },
     },
     {
       name: "keys of a zip recovers the first lane",

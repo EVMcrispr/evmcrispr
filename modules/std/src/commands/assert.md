@@ -14,11 +14,11 @@ assert <call> [operator] [expected] [message] [...extra]
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `expression` | A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@num!(@balance!(ETH @me) + 1e18)` |
+| `call` | `expression` | A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@calc!(@balance!(ETH @me) + 1e18)` |
 | `[operator]` | `string` | Comparison operator: ==, !=, >, <, >=, <=, ~= |
 | `[expected]` | `expression` | Expected value — a constant, or another live call/on-chain helper |
 | `[message]` | `string` | Revert message when the assertion fails |
-| `[...extra]` | `any` | (invalid) trailing tokens — infix expressions must be wrapped in @num!/@bool! |
+| `[...extra]` | `any` | (invalid) trailing tokens — infix expressions must be wrapped in @calc!/@bool! |
 
 ## Options
 
@@ -70,7 +70,7 @@ assert $pool::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} =
 
 # On-chain composition: ! helpers evaluate at assertion time via the
 # core read primitive splicing operands into Operators calls
-assert @num!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))
+assert @calc!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))
 assert @bool!(($gov::{quorum()(uint256)} > 0) or ($gov::{paused()(bool)} == false))
 assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
 assert @str.split!($pool::{name()(string)} " " 1) == "LP"
@@ -100,7 +100,7 @@ assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
   `assertParam`. Comparisons the constraints can't express directly (`!=`,
   signed and two-live-side comparisons) route through the core's `read`
   splicing the operands into an Operators comparison, judged `EQ 1`.
-- Composition happens inside `@num!(…)` (arithmetic: `+ - * / % ^`, `xor`)
+- Composition happens inside `@calc!(…)` (arithmetic: `+ - * // % ^`, `xor`)
   and `@bool!(…)` (comparisons plus `and`, `or`, `xor`, prefix `not` — the
   same word operators as std's `@bool`). Wrappers nest freely; constant
   subtrees fold at build time. Top-level infix without a wrapper is an error.
@@ -143,5 +143,5 @@ assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
 
 ## See Also
 
-- `@num!`, `@bool!`
+- `@calc!`, `@bool!`
 - `@balance!`, `@len!`, `@str.split!`

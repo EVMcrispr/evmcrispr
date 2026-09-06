@@ -41,7 +41,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "folds native @decimals! to the chain constant",
-      script: `assert @totalSupply!(DAI) > @num!(10 ^ @decimals!(XDAI))`,
+      script: `assert @totalSupply!(DAI) > @calc!(10 ^ @decimals!(XDAI))`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // exp folds at build time: 10^18 becomes the GTE bound.

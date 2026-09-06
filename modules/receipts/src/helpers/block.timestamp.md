@@ -42,7 +42,7 @@ load receipts
 set $vesting 0x0102030405060708090a0b0c0d0e0f1011121314
 
 # Seconds until unlock, computed at assertion time
-assert @num!($vesting::{unlockTime()(uint256)} - @block.timestamp!) > 86400
+assert @calc!($vesting::{unlockTime()(uint256)} - @block.timestamp!) > 86400
 ```
 
 ## See Also

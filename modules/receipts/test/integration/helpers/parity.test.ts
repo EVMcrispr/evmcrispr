@@ -169,8 +169,11 @@ it("@tx.from agrees with the origin of the transaction it is asked about", async
   const sender = wallet.account!.address;
 
   // A transaction that does nothing, so the only thing under test is who sent
-  // it. Sent to self with no value.
-  const hash = await wallet.sendTransaction({ to: sender, value: 0n } as never);
+  // it. Use a code-free recipient: fork accounts may have delegated code.
+  const hash = await wallet.sendTransaction({
+    to: "0x0000000000000000000000000000000000000000",
+    value: 0n,
+  } as never);
   await pub.waitForTransactionReceipt({ hash });
 
   const env = { module: "receipts [@tx.from]", core, operators };

@@ -36,10 +36,10 @@ const PREAMBLE = [
   'def @zero "$x: number -> bool" @bool($x == 0)',
   'def @addTo "$acc: number $x: number -> number" @num($acc + $x)',
   // On-chain lambdas, written independently of the ones above.
-  'def @dbl! "$x: number -> number" @num!($x * 2)',
+  'def @dbl! "$x: number -> number" @calc!($x * 2)',
   'def @big! "$x: number -> bool" @bool!($x > 3)',
   'def @zero! "$x: number -> bool" @bool!($x == 0)',
-  'def @addTo! "$acc: number $x: number -> number" @num!($acc + $x)',
+  'def @addTo! "$acc: number $x: number -> number" @calc!($acc + $x)',
 ].join("\n");
 
 describeParity("@lang lambdas", {

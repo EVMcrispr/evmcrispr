@@ -278,17 +278,18 @@ describeCommand("assert", {
       },
     },
     {
-      name: "fuses a fractional factor into one mulDiv",
-      script: `assert @num!(${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} * 0.5) >= 1`,
+      name: "explicitly rounds a half using mulDiv",
+      script: `assert @calcFloor!(${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}} / 2) >= 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // Scaling by 1/2 has no integer factor, but it is exactly
         // mulDiv(x, 1, 2) through the 512-bit intermediate.
-        const args = opReadOf(param, "mulDiv(uint256,uint256,uint256)");
-        expect(args).to.have.lengthOf(3);
+        const args = opReadOf(param, "mulDiv(uint256,uint256,uint256,uint8)");
+        expect(args).to.have.lengthOf(4);
         expect(staticCallOf(args[0]).target).to.equal(TOKEN);
         expectRawWord(args[1], 1n);
         expectRawWord(args[2], 2n);
+        expectRawWord(args[3], 1n);
         expectConstraint(param, "Gte", 1n);
       },
     },
@@ -510,6 +511,17 @@ describeCommand("assert", {
       },
     },
     {
+      name: "preserves signed conditional branches in subsequent arithmetic",
+      script: `assert @calc!(@ifElse!(${TOKEN}::{paused()(bool)} ? ${TOKEN}::{supply()(int256)} : -1) + 1) >= 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const { a } = expectOpJudge(param, "ge(int256,int256)");
+        const args = opReadOf(a, "add(int256,int256)");
+        expect(args).to.have.lengthOf(2);
+        expectRawWord(args[1], 1n);
+      },
+    },
+    {
       // The ternary compiles to the core's lazy cond: condition operand
       // first, then/else as raw words — only the winner resolves at
       // judge time.
@@ -660,7 +672,7 @@ describeCommand("assert", {
     },
     {
       name: "folds constant subexpressions at build time",
-      script: `assert ${TOKEN}::{supply()(uint256)} >= @num!(2 * 3e18)`,
+      script: `assert ${TOKEN}::{supply()(uint256)} >= @calc!(2 * 3e18)`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expect(staticCallOf(param).target).to.equal(TOKEN);
@@ -761,7 +773,7 @@ describeCommand("assert", {
     },
     {
       name: "compiles a nested @len! inside an expression",
-      script: `assert @num!(@len!(${TOKEN}::{holders()(address[])}) * 2) > 4`,
+      script: `assert @calc!(@len!(${TOKEN}::{holders()(address[])}) * 2) > 4`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 5n);
@@ -978,10 +990,10 @@ describeCommand("assert", {
         expectConstraint(param, "Gte", 10n ** 18n);
       },
     },
-    // ---- @num! / @bool! composition ---------------------------------------
+    // ---- @calc! / @bool! composition ---------------------------------------
     {
       name: "compiles live addition through add",
-      script: `assert @num!(@balance!(XDAI ${HOLDER}) + ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}}) > 0`,
+      script: `assert @calc!(@balance!(XDAI ${HOLDER}) + ${TOKEN}::{balanceOf(address)(uint256) ${HOLDER}}) > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 1n);
@@ -993,7 +1005,7 @@ describeCommand("assert", {
     },
     {
       name: "promotes mixed int operands to the int256 overloads",
-      script: `assert @num!(${TOKEN}::{drift()(int256)} + 5) < 0`,
+      script: `assert @calc!(${TOKEN}::{drift()(int256)} + 5) < 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const { a } = expectOpJudge(param, "lt(int256,int256)");
@@ -1074,7 +1086,7 @@ describeCommand("assert", {
     },
     {
       name: "casts a live bool to its raw 0/1 word with single-arg @bytes!",
-      script: `assert @num!(@bytes!(${TOKEN}::{paused()(bool)}) + 1) > 0`,
+      script: `assert @calc!(@bytes!(${TOKEN}::{paused()(bool)}) + 1) > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "add(uint256,uint256)");
@@ -1095,7 +1107,7 @@ describeCommand("assert", {
     },
     {
       name: "composes @chainId! inside arithmetic",
-      script: `assert @num!(@chainId! + 1) > 100`,
+      script: `assert @calc!(@chainId! + 1) > 100`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Gte", 101n);
@@ -1177,20 +1189,21 @@ describeCommand("assert", {
     },
     {
       name: "fuses a * b / c into one 512-bit mulDiv read",
-      script: `assert @num!(${TOKEN}::{supply()(uint256)} * 2 / 3) >= 1`,
+      script: `assert @calcFloor!(${TOKEN}::{supply()(uint256)} * 2 / 3) >= 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const args = opReadOf(param, "mulDiv(uint256,uint256,uint256)");
-        expect(args).to.have.lengthOf(3);
+        const args = opReadOf(param, "mulDiv(uint256,uint256,uint256,uint8)");
+        expect(args).to.have.lengthOf(4);
         expect(staticCallOf(args[0]).target).to.equal(TOKEN);
         expectRawWord(args[1], 2n);
         expectRawWord(args[2], 3n);
+        expectRawWord(args[3], 1n);
         expectConstraint(param, "Gte", 1n);
       },
     },
     {
-      name: "keeps signed mul-then-div nested (no signed mulDiv)",
-      script: `assert @num!(${TOKEN}::{supply()(int256)} * 2 / 3) >= 1`,
+      name: "keeps ordinary checked signed multiplication and division separate",
+      script: `assert @calc!(${TOKEN}::{supply()(int256)} * 2 // 3) >= 1`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // signed >= judges through ge(int256,int256) instead of a GTE
@@ -1214,19 +1227,6 @@ describeCommand("assert", {
         const mulArgs = opReadOf(args[0], "mul(uint256,uint256)");
         expect(staticCallOf(mulArgs[0]).target).to.equal(TOKEN);
         expectConstraint(param, "Gte", 4n);
-      },
-    },
-    {
-      name: "coerces a live string operand in arithmetic through parseUint",
-      script: `assert @num!(@str.split!(${TOKEN}::{name()(string)} " " 0) + 1) >= 2`,
-      validate: (actions) => {
-        const { param } = decodeAssert(actions);
-        const addArgs = opReadOf(param, "add(uint256,uint256)");
-        const parseArgs = opReadOf(addArgs[0], "parseUint(bytes)");
-        expect(parseArgs).to.have.lengthOf(1);
-        expectSlice(parseArgs[0]);
-        expectRawWord(addArgs[1], 1n);
-        expectConstraint(param, "Gte", 2n);
       },
     },
     {
@@ -1401,9 +1401,8 @@ describeCommand("assert", {
         expect(segments).to.have.lengthOf(4);
         expectRawWord(segments[0], 96n);
         const addArgs = opReadOf(segments[1], "add(uint256,uint256)");
-        const mulArgs = opReadOf(addArgs[0], "mul(uint256,uint256)");
-        expect(core(mulArgs[0]).functionName).to.equal("pick");
-        expectRawWord(mulArgs[1], 32n);
+        const sizeArgs = opReadOf(addArgs[0], "sub(uint256,uint256)");
+        expectRawWord(sizeArgs[1], 64n);
         expectRawWord(addArgs[1], 160n);
         expect(core(segments[2]).functionName).to.equal("nav");
         expect(core(segments[3]).functionName).to.equal("nav");
@@ -1504,8 +1503,8 @@ describeCommand("assert", {
       },
     },
     {
-      name: "composes a ::! read inside @num! arithmetic",
-      script: `assert @num!(${A}::!{convertToAssets(uint256)(uint256) 1e18} * 2) > 0`,
+      name: "composes a ::! read inside @calc! arithmetic",
+      script: `assert @calc!(${A}::!{convertToAssets(uint256)(uint256) 1e18} * 2) > 0`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         // Unsigned `> 0` folds to a GTE 1 constraint on the expression.
@@ -1572,6 +1571,32 @@ describeCommand("assert", {
     },
   ],
   errorCases: [
+    {
+      name: "rejects signed else branch with unsigned then branch",
+      script: `assert @ifElse!(${TOKEN}::{paused()(bool)} ? ${TOKEN}::{supply()(uint256)} : -1) > 0`,
+      error: "cannot mix signed and unsigned numeric branches",
+    },
+    {
+      name: "rejects signed fallback for an unsigned primary",
+      script: `assert @orElse!(${TOKEN}::{supply()(uint256)} -1) > 0`,
+      error: "cannot mix signed and unsigned numeric branches",
+    },
+    {
+      name: "explains the removed num bang helper",
+      script: `assert @num!(${TOKEN}::{supply()(uint256)} / 2) > 0`,
+      error: "@num! was removed: use @calc!",
+    },
+    {
+      name: "rejects bool operands in checked arithmetic",
+      script: `assert @calc!(${TOKEN}::{paused()(bool)} + 1) > 0`,
+      error: "requires unscaled integer operands",
+    },
+    {
+      name: "rejects implicit live string coercion in checked arithmetic",
+      script: `assert @calc!(@str.split!(${TOKEN}::{name()(string)} " " 0) + 1) >= 2`,
+      error: "requires unscaled integer operands",
+    },
+
     {
       name: "rejects an unknown on-chain helper",
       script: `assert @frobnicate!(${TOKEN}::{value()(uint256)}) == 1`,
@@ -1667,7 +1692,7 @@ describeCommand("assert", {
     {
       name: "rejects unwrapped top-level infix with a wrap hint",
       script: `assert ${TOKEN}::{supply()(uint256)} + 1 > 0`,
-      error: "wrap arithmetic in @num!",
+      error: "wrap arithmetic in @calc!",
     },
     {
       name: "rejects ~= between two live values",
@@ -1691,7 +1716,7 @@ describeCommand("assert", {
     },
     {
       name: "detects missing spaces around operators",
-      script: `assert @num!(supply+1) > 0`,
+      script: `assert @calc!(supply+1) > 0`,
       error: "Missing spaces around operator",
     },
     {
@@ -1735,9 +1760,9 @@ describeCommand("assert", {
       error: "expected a boolean operand",
     },
     {
-      name: "rejects @str.split! without its index",
+      name: "rejects comparing a split array to a scalar string",
       script: `assert @str.split!(${TOKEN}::{name()(string)} " ") == "LP"`,
-      error: "@str.split! expects (call delimiter index)",
+      error: "a bytes return must be compared against a hex value",
     },
     {
       // Nested string/bytes faces ARE accepted by the chain helpers now
@@ -1755,7 +1780,7 @@ describeCommand("assert", {
     {
       name: "rejects arithmetic operators inside @bool!",
       script: `assert @bool!(${TOKEN}::{supply()(uint256)} + 1)`,
-      error: "Use @num!",
+      error: "Use @calc!",
     },
     {
       name: "rejects a mid-chain lens that selects a non-address",
