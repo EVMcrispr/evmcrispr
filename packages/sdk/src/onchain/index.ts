@@ -1,3 +1,4 @@
+export * from "./abi-guards";
 /**
  * `@evmcrispr/sdk/onchain` — the shared on-chain expression layer.
  *
@@ -9,6 +10,8 @@
 export * from "./addresses";
 export * from "./arrays";
 export * from "./assert";
+export * from "./collection-callback";
+export * from "./collections";
 export * from "./compile";
 export * from "./composition";
 export * from "./construct";

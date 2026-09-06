@@ -7,6 +7,7 @@ import {
 } from "@evmcrispr/sdk";
 import type { CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
 import {
+  COLLECTION_OPERATORS_ADDRESS,
   CORE_ADDRESS,
   compileOperand,
   compileTopCall,
@@ -27,6 +28,7 @@ export interface CompileEnv {
   transports?: Record<number, Transport>;
   core?: Address;
   operators?: Address;
+  collections?: Address;
 }
 
 function preambleOf(env: CompileEnv): string {
@@ -80,6 +82,7 @@ export async function compileExpression(
     },
     core: env.core ?? CORE_ADDRESS,
     operators: env.operators ?? OPERATORS_ADDRESS,
+    collections: env.collections ?? COLLECTION_OPERATORS_ADDRESS,
     hints: {},
   };
 

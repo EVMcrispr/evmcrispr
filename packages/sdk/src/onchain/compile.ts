@@ -8,6 +8,7 @@ import {
   keccak256,
   parseAbiItem,
   stringToHex,
+  toFunctionSelector,
 } from "viem";
 import { ErrorException } from "../errors";
 import type { Module } from "../Module";
@@ -22,9 +23,26 @@ import type {
 import { BindingsSpace, NodeType } from "../types";
 import { abiBindingKey, fetchAbi } from "../utils/abis";
 import { isNum } from "../utils/args";
+import {
+  type ArithmeticToken,
+  type ArithmeticTree,
+  type CheckedRounding,
+  checkedBinary,
+  checkedInteger,
+  checkedMulDiv,
+  checkedNum,
+  checkedRange,
+  INT256_MAX,
+  isSignedInteger,
+  parseCheckedExpression,
+  roundedExpressionParts,
+} from "../utils/checkedArithmetic";
 import { encodeCalldata } from "../utils/encoders";
 import { rpow } from "../utils/fixed";
 import { Num } from "../utils/Num";
+import { guardAbiInteger } from "./abi-guards";
+import { typedArrayArg } from "./arrays";
+import { canonicalArgSpec } from "./collections";
 import type { ArithOpName, CmpOpName, LogicOpName } from "./composition";
 import {
   ARITH_FN,
@@ -42,6 +60,7 @@ import type { ArgSpec, ReadCall } from "./construct";
 import { buildCallSegments, headWords, isDynamicParam } from "./construct";
 import {
   encodeChain,
+  encodeCond,
   encodeNav,
   encodeOpRead,
   encodePick,
@@ -181,7 +200,8 @@ export function constOperand(value: unknown): Operand {
     return { kind: "const", cat: "Bool", value: value === "true" };
   if (value instanceof Num || isNum(value)) {
     const num = value instanceof Num ? value : Num(value as any);
-    const cat: Category = num.lt(Num(0n)) ? "Int" : "Uint";
+    const cat: Category =
+      num.lt(Num(0n)) || isSignedInteger(num) ? "Int" : "Uint";
     return { kind: "const", cat, value: num };
   }
   if (typeof value === "string") {
@@ -925,14 +945,22 @@ async function compileLiveCallArg(
         `the nested call ${node.method} resolves a ${terminal.type} value, but parameter ${input.name ?? ""} of ${method} is ${input.type}`,
       );
     }
-    return { kind: "word", param };
+    return {
+      kind: "word",
+      param: guardAbiInteger(
+        ctx,
+        param,
+        categoryFromAbiType(terminal.type),
+        input.type,
+      ),
+    };
   }
   if (formatParamType(terminal) !== formatParamType(input)) {
     throw new ErrorException(
       `the nested call ${node.method} resolves a ${formatParamType(terminal)} value, but parameter ${input.name ?? ""} of ${method} is ${formatParamType(input)} — adjust the lens to select a matching value`,
     );
   }
-  return { kind: "dyn", param, payload: dynPayloadSize(ctx, param, terminal) };
+  return canonicalArgSpec(ctx, terminal, param);
 }
 
 /**
@@ -945,7 +973,7 @@ async function compileLiveCallArg(
  * Anything whose size depends on its own contents (a dynamic tuple, an
  * array of dynamic elements) has no derivation, so it stays last.
  */
-function dynPayloadSize(
+function _dynPayloadSize(
   ctx: CompileCtx,
   param: InputParam,
   terminal: AbiParameter,
@@ -980,18 +1008,54 @@ async function compileLiveHelperArg(
   ctx: CompileCtx,
   node: HelperFunctionNode,
   input: AbiParameter,
-  method: string,
+  _method: string,
 ): Promise<ArgSpec> {
   const o = await compileOnchainHelper(ctx, node);
   if (o.kind === "const") {
     return { kind: "value", value: o.value as never };
   }
-  if (!SINGLE_WORD_ABI.test(input.type)) {
-    throw new ErrorException(
-      `@${node.name} resolves a single word; parameter ${input.name ?? ""} of ${method} is ${input.type}`,
-    );
+  if (o.collection) {
+    const array = await typedArrayArg(ctx, node, node.name);
+    const actual = {
+      ...array.element,
+      type: `${array.element.type}[]`,
+    } as AbiParameter;
+    if (formatParamType(actual) !== formatParamType(input))
+      throw new ErrorException(
+        `@${node.name} returns ${formatParamType(actual)}, expected ${formatParamType(input)}`,
+      );
+    return canonicalArgSpec(ctx, input, array.param);
   }
-  return { kind: "word", param: o.param };
+  if (o.abiType) {
+    if (formatParamType(o.abiType) !== formatParamType(input))
+      throw new ErrorException(
+        `@${node.name} returns ${formatParamType(o.abiType)}, expected ${formatParamType(input)}`,
+      );
+    return canonicalArgSpec(ctx, input, o.param);
+  }
+  if (!SINGLE_WORD_ABI.test(input.type)) {
+    if (
+      (input.type === "string" && o.cat === "String") ||
+      (input.type === "bytes" && o.cat === "Bytes")
+    )
+      return canonicalArgSpec(ctx, input, o.param);
+    throw new ErrorException(`@${node.name} cannot fill ${input.type}`);
+  }
+  if (o.scale)
+    throw new ErrorException(
+      `@${node.name} must be converted to raw integer units before ABI encoding`,
+    );
+  if (
+    categoryFromAbiType(input.type) !== o.cat &&
+    !(/^(u?int)/.test(input.type) && isNumericCat(o.cat))
+  )
+    throw new ErrorException(
+      `@${node.name} returns ${o.cat}, expected ${input.type}`,
+    );
+  return {
+    kind: "word",
+    param: guardAbiInteger(ctx, o.param, o.cat, input.type),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1325,7 +1389,12 @@ export function arithCombine(
   if (op === "Div" && !signed && l.kind === "call" && l.mulOf) {
     return scaled({
       kind: "call",
-      param: opReadParam(ctx, OP_SELECTORS.mulDiv, [l.mulOf.a, l.mulOf.b, rp]),
+      param: opReadParam(ctx, OP_SELECTORS.mulDiv, [
+        l.mulOf.a,
+        l.mulOf.b,
+        rp,
+        rawParam(toWord(0n)),
+      ]),
       cat: check.result,
     });
   }
@@ -1437,6 +1506,7 @@ function fuseRationalFactor(
       live.param,
       rawParam(toWord(a)),
       rawParam(toWord(b)),
+      rawParam(toWord(0n)),
     ]),
     cat,
   };
@@ -1626,7 +1696,7 @@ function logicCombine(
 }
 
 // ---------------------------------------------------------------------------
-//  Shunting-yard over raw nodes (@num! / @bool!)
+//  Legacy scale-aware expression recipes and boolean expressions
 // ---------------------------------------------------------------------------
 
 interface OpInfo {
@@ -1845,13 +1915,13 @@ function evaluateTokens(
   return output[0];
 }
 
-/** Compile the raw argument nodes of `@num!(…)` / `@bool!(…)`. */
+/** Compile internal scale-aware recipes or boolean expressions. Public calc uses compileCheckedExpr. */
 export async function compileExpr(
   ctx: CompileCtx,
   nodes: Node[],
   mode: "num" | "bool",
 ): Promise<Operand> {
-  const label = mode === "num" ? "@num!" : "@bool!";
+  const label = mode === "num" ? "@calc!" : "@bool!";
   if (nodes.length === 0) {
     throw new ErrorException(`${label} requires at least one argument`);
   }
@@ -1867,7 +1937,7 @@ export async function compileExpr(
           BOOL_OPS,
           BOOL_OP_SET,
           new Set([...NUM_OP_SET].filter((o) => !BOOL_OP_SET.has(o))),
-          "Use @num!(...) for arithmetic.",
+          "Use @calc!(...) for arithmetic.",
         ] as const);
 
   const tokens = await tokenize(ctx, nodes, opSet, label, rejected, hint);
@@ -1996,3 +2066,159 @@ export async function loadFunctionAbi(
 // dispatcher is where that is noticed — but it cannot import this module
 // without closing a cycle. Hand it the entry point instead.
 setOperandCompiler(compileOperand);
+
+/** Checked integer expression compiler. Kept separate from fixed-point recipes. */
+export async function compileCheckedExpr(
+  ctx: CompileCtx,
+  nodes: Node[],
+  mode: CheckedRounding = "trunc",
+): Promise<Operand> {
+  const operators = new Set([
+    "+",
+    "-",
+    "*",
+    "/",
+    "//",
+    "%",
+    "^",
+    "xor",
+    "(",
+    ")",
+  ]);
+  const tokens: ArithmeticToken<Operand>[] = [];
+  for (const node of nodes) {
+    if (node.type === NodeType.Bareword)
+      detectMissingSpaces(String((node as any).value), operators);
+    if (
+      node.type === NodeType.Bareword &&
+      operators.has(String((node as any).value))
+    ) {
+      tokens.push({ op: String((node as any).value) });
+    } else {
+      const precompiled = (node as unknown as Record<string, unknown>)[
+        PRECOMPILED_OPERAND
+      ];
+      const operand =
+        precompiled ||
+        node.type === NodeType.CallExpression ||
+        isBangHelperNode(node)
+          ? await compileOperand(ctx, node)
+          : constOperand(
+              checkedNum(
+                checkedInteger(await ctx.interpreters.interpretNode(node)),
+              ),
+            );
+      if (!isNumericCat(operand.cat) || scaleOf(operand)) {
+        throw new ErrorException(
+          "Checked arithmetic requires unscaled integer operands; convert explicitly to raw integer units",
+        );
+      }
+      if (operand.kind === "const")
+        checkedRange(constBigInt(operand), operand.cat === "Int");
+      tokens.push({ value: operand });
+    }
+  }
+  const tree = parseCheckedExpression(tokens);
+  const parts = roundedExpressionParts(tree, mode);
+  const constant = (o: Operand) => ({
+    value: constBigInt(o as Operand & { kind: "const" }),
+    signed: o.cat === "Int",
+  });
+  const folded = (value: ReturnType<typeof checkedInteger>): Operand => ({
+    kind: "const",
+    cat: value.signed ? "Int" : "Uint",
+    value: checkedNum(value),
+  });
+  // Fail before reinterpreting a uint256 word as signed. The failing branch
+  // uses checked addition to preserve the arithmetic Panic(0x11) category.
+  const promote = (o: Operand, signed: boolean): InputParam => {
+    const p = materializeWord(ctx, o);
+    if (!signed || o.cat === "Int") return p;
+    if (o.kind === "const") {
+      checkedRange(constBigInt(o), true);
+      return p;
+    }
+    const valid = wordOpParam(
+      ctx,
+      "le",
+      false,
+      p,
+      rawParam(toWord(INT256_MAX)),
+    );
+    const overflow = wordOpParam(
+      ctx,
+      "add",
+      true,
+      rawParam(toWord(INT256_MAX)),
+      rawParam(toWord(1n)),
+    );
+    return staticCallParam(ctx.core, encodeCond(valid, p, overflow));
+  };
+  const binary = (op: string, a: Operand, b: Operand): Operand => {
+    if (a.kind === "const" && b.kind === "const")
+      return folded(checkedBinary(op, constant(a), constant(b)));
+    const signed =
+      op === "^" ? a.cat === "Int" : a.cat === "Int" || b.cat === "Int";
+    let bp = promote(b, op === "^" ? false : signed);
+    if (op === "^" && b.cat === "Int") {
+      if (b.kind === "const") checkedRange(constBigInt(b), false);
+      else {
+        const valid = wordOpParam(ctx, "ge", true, bp, rawParam(toWord(0n)));
+        const overflow = wordOpParam(
+          ctx,
+          "add",
+          true,
+          rawParam(toWord(INT256_MAX)),
+          rawParam(toWord(1n)),
+        );
+        bp = staticCallParam(ctx.core, encodeCond(valid, bp, overflow));
+      }
+    }
+    const ap = promote(a, signed);
+    const fn = op === "xor" ? "bitXor" : ARITH_FN[ARITH_SYMBOL[op]];
+    const selector =
+      op === "^"
+        ? toFunctionSelector(`exp(${signed ? "int256" : "uint256"},uint256)`)
+        : opSelector(fn, op === "xor" ? false : signed);
+    return {
+      kind: "call",
+      cat: signed ? "Int" : "Uint",
+      param: opReadParam(ctx, selector, [ap, bp]),
+    };
+  };
+  const run = (t: ArithmeticTree<Operand>): Operand => {
+    if ("value" in t) return t.value;
+    if (t.op === "neg")
+      return binary(
+        "-",
+        { kind: "const", cat: "Int", value: Num(0n) },
+        run(t.left),
+      );
+    return binary(t.op, run(t.left), run(t.right!));
+  };
+  if (!parts) return run(tree);
+  const values = parts.map(run);
+  const a = values[0];
+  const b: Operand =
+    parts.length === 3
+      ? values[1]
+      : { kind: "const", cat: "Uint", value: Num(1n) };
+  const d = values[values.length - 1];
+  if (a.kind === "const" && b.kind === "const" && d.kind === "const")
+    return folded(checkedMulDiv(constant(a), constant(b), constant(d), mode));
+  const signed = [a, b, d].some((o) => o.cat === "Int");
+  return {
+    kind: "call",
+    cat: signed ? "Int" : "Uint",
+    param: opReadParam(
+      ctx,
+      signed ? OP_SELECTORS.mulDivInt : OP_SELECTORS.mulDiv,
+      [
+        promote(a, signed),
+        promote(b, signed),
+        promote(d, signed),
+        rawParam(toWord(mode === "floor" ? 1n : 2n)),
+      ],
+    ),
+  };
+}

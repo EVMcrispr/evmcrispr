@@ -115,11 +115,15 @@ function decodeConcatParts(param: InputParam, values: Map<string, Hex>): Hex[] {
   const call = decodeFunctionData({ abi: CORE_ABI, data });
   expect(call.functionName).toBe("read");
   const [, selector, args] = call.args as [InputParam, Hex, InputParam[]];
-  expect(selector).toBe(selectorOf("concat(bytes[])"));
+  expect(selector).toBe(selectorOf("concat(bytes[],bytes)"));
 
   // The core concatenates each resolved segment's bytes, in order.
   const body = args.map((a) => resolve(a, values).slice(2)).join("");
-  const [parts] = decodeAbiParameters([{ type: "bytes[]" }], `0x${body}`);
+  const [parts, delimiter] = decodeAbiParameters(
+    [{ type: "bytes[]" }, { type: "bytes" }],
+    `0x${body}`,
+  );
+  expect(delimiter).toBe("0x");
   return parts as Hex[];
 }
 

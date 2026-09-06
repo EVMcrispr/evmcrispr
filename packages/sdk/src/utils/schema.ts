@@ -55,6 +55,8 @@ export function isBuiltinType(type: ArgType): boolean {
 }
 
 export interface ArgDef {
+  /** Optional concrete ABI type for typed callback definitions. */
+  abiType?: import("viem").AbiParameter;
   name: string;
   type: ArgType;
   optional?: boolean;

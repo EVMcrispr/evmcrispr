@@ -333,6 +333,7 @@ export function makeAaveStyleAdapter(
         materializeWord(ctx, available),
         rawParam(toWord(10n ** BigInt(decimals))),
         materializeWord(ctx, price),
+        rawParam(toWord(0n)),
       ]);
       const guarded = staticCallParam(
         ctx.core,

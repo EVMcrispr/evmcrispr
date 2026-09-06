@@ -3,6 +3,7 @@
  * type positions, so the base SDK (defineHelper, module metadata) can
  * reference compile faces without pulling the compiler in at runtime.
  */
+import type { AbiParameter } from "viem";
 import type { Module } from "../Module";
 import type { Address, HelperFunctionNode, NodesInterpreters } from "../types";
 import type { Num } from "../utils/Num";
@@ -50,6 +51,12 @@ export type Operand =
       /** When this param is `eq(inner, 0)`, the inner param — lets the top
        *  level judge `inner EQ 0` instead of `eq(inner, 0) EQ 1`. */
       notOf?: InputParam;
+      abiType?: AbiParameter;
+      collection?: {
+        element: AbiParameter;
+        transport: "words" | "abi";
+        lanes?: readonly AbiParameter[];
+      };
       /** When this param is `isValid(inner)`, the inner param — asserting
        *  the bool true is exactly `inner` resolving, so the top level can
        *  judge a ZERO-constraint entry on `inner` instead of
@@ -84,6 +91,7 @@ export interface CompileCtx {
   core: Address;
   /** Resolved operators contract address (the plain word/bytes ops). */
   operators: Address;
+  collections?: Address;
   /** Set by faces, read by the emitting command; absent in contexts that
    *  never emit (hover, completions). */
   hints?: CompileHints;

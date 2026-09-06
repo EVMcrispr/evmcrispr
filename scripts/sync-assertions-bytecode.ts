@@ -2,13 +2,13 @@
  * Vendors the RUNTIME bytecode of the Assertions core and the Operators
  * vocabulary into a committed test fixture.
  *
- * Integration tests need the two contracts on the anvil fork to execute a
+ * Integration tests need the core and periphery contracts on the anvil fork to execute a
  * compiled operand (`Assertions.resolve`). The contracts live in a separate
  * repo whose build artifacts are gitignored and not reachable at test time,
  * so the runtime code is copied in here instead.
  *
  * Runtime, not creation, bytecode: `anvil_setCode` installs runtime code, and
- * because both contracts have no constructor, no storage, no immutables and no
+ * because these contracts have no constructor, no storage, no immutables and no
  * linked libraries, setting the runtime code IS a complete and faithful
  * deployment — at any address. (`website/scripts/export-deploy-artifact.mjs`
  * in the contracts repo exports the CREATION bytecode for the deploy path;
@@ -38,6 +38,12 @@ const OUTPUT = join(
 );
 
 const CONTRACTS = [
+  {
+    name: "CollectionOperators",
+    path: "contracts/CollectionOperators.sol/CollectionOperators.json",
+    prefix: "COLLECTION_OPERATORS",
+    label: "Generic collection vocabulary",
+  },
   {
     name: "Assertions",
     path: "contracts/Assertions.sol/Assertions.json",

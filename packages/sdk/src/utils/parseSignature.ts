@@ -1,3 +1,4 @@
+import { type AbiParameter, parseAbiParameters } from "viem";
 import { ErrorException } from "../errors";
 import type { ArgDef, OptDef } from "./schema";
 
@@ -5,6 +6,7 @@ export interface ParsedSignature {
   params: ArgDef[];
   opts: OptDef[];
   returnType?: string;
+  returnAbiType?: AbiParameter;
 }
 
 const REQUIRED_RE = /^\$(\w[\w-]*):\s*(\S+)$/;
@@ -17,6 +19,31 @@ const RETURN_RE = /\s*->\s*(\S+)\s*$/;
 const TOKEN_RE =
   /\[--\w[\w-]*:\s*\S+\]|\[\$\w[\w-]*:\s*\S+\]|\.\.\.\$\w[\w-]*:\s*\S+|\$\w[\w-]*:\s*\S+|\$\w[\w-]*|@\w[\w-]*/g;
 
+function abiAnnotation(type: string): { type: string; abiType?: AbiParameter } {
+  if (type === "()") return { type };
+  if (
+    !/^(u?int(\d+)?|bytes([1-9]|[12][0-9]|3[01]))$/.test(type) &&
+    !type.includes("[") &&
+    !type.startsWith("(")
+  )
+    return { type };
+  try {
+    const [abiType] = parseAbiParameters(type);
+    const generic =
+      abiType.type === "tuple"
+        ? "any"
+        : abiType.type.includes("[")
+          ? "array"
+          : /^u?int/.test(abiType.type)
+            ? "number"
+            : /^bytes\d+$/.test(abiType.type) && abiType.type !== "bytes32"
+              ? "bytes"
+              : abiType.type;
+    return { type: generic, abiType };
+  } catch {
+    throw new ErrorException(`Invalid ABI type annotation ${type}`);
+  }
+}
 export function parseSignature(sig: string): ParsedSignature {
   const trimmed = sig.trim();
 
@@ -29,7 +56,13 @@ export function parseSignature(sig: string): ParsedSignature {
     !trimmed.includes("--") &&
     !trimmed.includes("@")
   ) {
-    return { params: [], opts: [], returnType: trimmed };
+    const annotated = abiAnnotation(trimmed);
+    return {
+      params: [],
+      opts: [],
+      returnType: annotated.type,
+      ...(annotated.abiType ? { returnAbiType: annotated.abiType } : {}),
+    };
   }
 
   let body = trimmed;
@@ -51,7 +84,7 @@ export function parseSignature(sig: string): ParsedSignature {
     let m: RegExpMatchArray | null;
 
     if ((m = token.match(OPTION_RE))) {
-      opts.push({ name: m[1], type: m[2] });
+      opts.push({ name: m[1], ...abiAnnotation(m[2]) });
       continue;
     }
 
@@ -59,13 +92,13 @@ export function parseSignature(sig: string): ParsedSignature {
       if (params.length > 0 && params.at(-1)?.rest) {
         throw new ErrorException("only one rest parameter is allowed");
       }
-      params.push({ name: m[1], type: m[2], rest: true });
+      params.push({ name: m[1], ...abiAnnotation(m[2]), rest: true });
       continue;
     }
 
     if ((m = token.match(OPTIONAL_RE))) {
       seenOptional = true;
-      params.push({ name: m[1], type: m[2], optional: true });
+      params.push({ name: m[1], ...abiAnnotation(m[2]), optional: true });
       continue;
     }
 
@@ -85,7 +118,7 @@ export function parseSignature(sig: string): ParsedSignature {
           "required parameters must come before optional ones",
         );
       }
-      params.push({ name: m[1], type: m[2] });
+      params.push({ name: m[1], ...abiAnnotation(m[2]) });
       continue;
     }
 
@@ -104,5 +137,11 @@ export function parseSignature(sig: string): ParsedSignature {
     throw new ErrorException("rest parameter must be the last parameter");
   }
 
-  return { params, opts, returnType };
+  const annotated = returnType ? abiAnnotation(returnType) : undefined;
+  return {
+    params,
+    opts,
+    returnType: annotated?.type,
+    ...(annotated?.abiType ? { returnAbiType: annotated.abiType } : {}),
+  };
 }

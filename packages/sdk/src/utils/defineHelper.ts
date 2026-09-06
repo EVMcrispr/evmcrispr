@@ -213,6 +213,10 @@ export function defineHelper<M extends Module>(
 
       if (acceptsHelper) {
         const cbNode = nodeFor(def);
+        if (!cbNode && def.optional) {
+          parsedArgs[def.name] = undefined;
+          continue;
+        }
         if (
           helperOptional &&
           (!cbNode || cbNode.type !== NodeType.HelperFunctionExpression)

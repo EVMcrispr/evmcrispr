@@ -110,7 +110,7 @@ export function isWordCat(cat: Category): boolean {
   return cat !== "String" && cat !== "Bytes";
 }
 
-/** EVML infix symbol → arithmetic opcode (`@num!` surface). */
+/** EVML infix symbol → arithmetic opcode (`@calc!` surface). */
 export const ARITH_SYMBOL: Record<string, ArithOpName> = {
   "+": "Add",
   "-": "Sub",
@@ -148,11 +148,6 @@ export function checkArith(op: ArithOpName, l: Category, r: Category): Check {
     if (reason) return no(reason);
   }
   const signed = l === "Int" || r === "Int";
-  if (signed && op === "Exp") {
-    return no(
-      "exponentiation is not supported for int256 operands (exp has no int256 overload)",
-    );
-  }
   // AbsDiff is the |l-r| magnitude — always an unsigned total result.
   return ok(op === "AbsDiff" ? "Uint" : signed ? "Int" : "Uint");
 }

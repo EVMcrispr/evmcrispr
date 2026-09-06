@@ -1,6 +1,7 @@
 import type { Operand } from "@evmcrispr/sdk/onchain";
 import { encodeResolve } from "@evmcrispr/sdk/onchain";
 import type { Address, Hex, PublicClient } from "viem";
+import { decodeAbiParameters } from "viem";
 
 import { decodeResolved, type Norm, normalizeRun } from "./decode";
 
@@ -43,6 +44,22 @@ export async function resolveValue(
     ...(opts.from === undefined ? {} : { account: opts.from }),
   });
 
+  if (operand.collection?.transport === "abi")
+    return normalizeRun(
+      decodeAbiParameters(
+        [
+          {
+            ...operand.collection.element,
+            type: `${operand.collection.element.type}[]`,
+          } as never,
+        ],
+        data ?? "0x",
+      )[0],
+    );
+  if (operand.abiType)
+    return normalizeRun(
+      decodeAbiParameters([operand.abiType], data ?? "0x")[0],
+    );
   return decodeResolved(
     (data ?? "0x") as Hex,
     operand.cat,

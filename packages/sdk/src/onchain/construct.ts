@@ -35,6 +35,7 @@ import type { CompileCtx } from "./types";
 export type ArgSpec =
   | { kind: "value"; value: Param }
   | { kind: "word"; param: InputParam }
+  | { kind: "encoded"; param: InputParam }
   | { kind: "dyn"; param: InputParam; payload?: bigint | InputParam };
 
 /** A constructed call ready for `encodeRead`: the 4-byte selector and the
@@ -122,6 +123,14 @@ export function buildCallSegments(
   for (let i = 0; i < specs.length; i++) {
     const spec = specs[i];
     const input = inputs[i];
+    if (spec.kind === "encoded") {
+      if (isDynamicParam(input))
+        throw new ErrorException(
+          "encoded static argument cannot have a dynamic ABI type",
+        );
+      heads.push(spec.param);
+      continue;
+    }
     if (spec.kind === "word") {
       if (!SINGLE_WORD_ABI.test(input.type)) {
         throw new ErrorException(

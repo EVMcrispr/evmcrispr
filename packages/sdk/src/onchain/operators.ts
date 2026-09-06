@@ -23,14 +23,15 @@ export const OPERATORS_ABI = parseAbi([
   "function mod(uint256 a, uint256 b) pure returns (uint256)",
   "function mod(int256 a, int256 b) pure returns (int256)",
   "function exp(uint256 a, uint256 b) pure returns (uint256)",
+  "function exp(int256 a, uint256 b) pure returns (int256)",
   "function min(uint256 a, uint256 b) pure returns (uint256)",
   "function min(int256 a, int256 b) pure returns (int256)",
   "function max(uint256 a, uint256 b) pure returns (uint256)",
   "function max(int256 a, int256 b) pure returns (int256)",
   "function absDiff(uint256 a, uint256 b) pure returns (uint256)",
   "function absDiff(int256 a, int256 b) pure returns (uint256)",
-  "function mulDiv(uint256 a, uint256 b, uint256 denominator) pure returns (uint256)",
-  "function mulDivUp(uint256 a, uint256 b, uint256 denominator) pure returns (uint256)",
+  "function mulDiv(uint256 a, uint256 b, uint256 denominator, uint8 rounding) pure returns (uint256)",
+  "function mulDiv(int256 a, int256 b, int256 denominator, uint8 rounding) pure returns (int256)",
   "function addMod(uint256 a, uint256 b, uint256 m) pure returns (uint256)",
   "function mulMod(uint256 a, uint256 b, uint256 m) pure returns (uint256)",
   "function sqrt(uint256 x) pure returns (uint256)",
@@ -79,7 +80,7 @@ export const OPERATORS_ABI = parseAbi([
   // hashing
   "function hashPairSorted(bytes32 a, bytes32 b) pure returns (bytes32)",
   // bytes
-  "function concat(bytes[] parts) pure returns (bytes)",
+  "function concat(bytes[] parts, bytes delimiter) pure returns (bytes)",
   "function slice(bytes data, uint256 start, uint256 len) pure returns (bytes)",
   "function byteLen(bytes data) pure returns (uint256)",
   "function hash(bytes data) pure returns (bytes32)",
@@ -93,6 +94,14 @@ export const OPERATORS_ABI = parseAbi([
   "function charset(bytes s, uint256 mask) pure returns (bool)",
   // parse
   "function parseUint(bytes s) pure returns (uint256)",
+  "function parseInt(bytes s) pure returns (int256)",
+  "function parseUnits(bytes s, uint256 decimals, uint8 rounding) pure returns (int256)",
+  "function parseUnitsUnsigned(bytes s, uint256 decimals, uint8 rounding) pure returns (uint256)",
+  "function formatUnits(int256 v, uint256 decimals) pure returns (string)",
+  "function formatUnits(uint256 v, uint256 decimals) pure returns (string)",
+  "function toString(int256 v) pure returns (string)",
+  "function split(bytes s, bytes delimiter) pure returns (bytes[])",
+  "function encodeBytes(string types, bytes[] values) pure returns (bytes)",
   "function toString(uint256 v) pure returns (string)",
   // runtime encoder (encode raw-returns with no bytes envelope)
   "function encode(string types, bytes[] values) pure",
@@ -110,6 +119,7 @@ export const OPERATORS_ABI = parseAbi([
   "function unzipWords(bytes s, uint256 which) pure returns (bytes)",
   "function sortWords(bytes s) pure returns (bytes)",
   "function uniqueWords(bytes s) pure returns (bytes)",
+  "function distinctWords(bytes s) pure returns (bytes)",
   "function sumWords(bytes s) pure returns (uint256)",
 ]);
 
@@ -165,7 +175,16 @@ export const OP_SELECTORS = {
   foldRange: sel(
     "foldRange(uint256,address,bytes,uint256,uint256[],bytes32,uint8)",
   ),
-  mulDiv: sel("mulDiv(uint256,uint256,uint256)"),
+  mulDiv: sel("mulDiv(uint256,uint256,uint256,uint8)"),
+  mulDivInt: sel("mulDiv(int256,int256,int256,uint8)"),
+  expInt: sel("exp(int256,uint256)"),
+  split: sel("split(bytes,bytes)"),
+  encodeBytes: sel("encodeBytes(string,bytes[])"),
+  parseInt: sel("parseInt(bytes)"),
+  parseUnits: sel("parseUnits(bytes,uint256,uint8)"),
+  parseUnitsUnsigned: sel("parseUnitsUnsigned(bytes,uint256,uint8)"),
+  formatUnits: sel("formatUnits(uint256,uint256)"),
+  formatUnitsInt: sel("formatUnits(int256,uint256)"),
   sqrt: sel("sqrt(uint256)"),
   log2: sel("log2(uint256)"),
   rpow: sel("rpow(uint256,uint256,uint256)"),
@@ -176,7 +195,7 @@ export const OP_SELECTORS = {
   blockHash: sel("blockHash(uint256)"),
   gasPrice: sel("gasPrice()"),
   blobHash: sel("blobHash(uint256)"),
-  concat: sel("concat(bytes[])"),
+  concat: sel("concat(bytes[],bytes)"),
   // the signed shift overload takes (int256, uint256), outside the
   // opSelector (int256, int256) convention — so it lives here
   shrInt: sel("shr(int256,uint256)"),
@@ -193,6 +212,7 @@ export const OP_SELECTORS = {
   unzipWords: sel("unzipWords(bytes,uint256)"),
   sortWords: sel("sortWords(bytes)"),
   uniqueWords: sel("uniqueWords(bytes)"),
+  distinctWords: sel("distinctWords(bytes)"),
   sumWords: sel("sumWords(bytes)"),
   replace: sel("replace(bytes,bytes,bytes)"),
   toLower: sel("toLower(bytes)"),
@@ -229,3 +249,6 @@ export function encodeOperator(
     args,
   } as Parameters<typeof encodeFunctionData>[0]);
 }
+
+/** Integer quotient rounding modes, shared with Operators. */
+export const ROUNDING = { Trunc: 0, Floor: 1, Ceil: 2 } as const;

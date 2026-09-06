@@ -613,20 +613,13 @@ function toSlots(ctx: CompileCtx, parts: readonly BytesPart[]): Slot[] {
   });
 }
 
-/**
- * `concat(bytes[] parts)` with at most one LIVE part: heads are
- * [0x20][N] followed by N element offsets (relative to the elements head
- * area at 64), the constant tails in order, and the live envelope spliced
- * last — its element offset points into the splice with the +32 trick,
- * so the live part may sit at ANY logical index.
- */
+/** Concatenate byte parts with an empty delimiter. The delimiter tail is
+ * placed before the array so live element offsets stay array-relative. */
 export function concatParam(
   ctx: CompileCtx,
   parts: readonly BytesPart[],
 ): InputParam {
-  // A `bytes[]`: element offsets are RELATIVE to the elements head area
-  // at 64, and the tail area starts past the N offset words.
-  const base = 64;
+  const base = 128;
   const { offsets, tail } = spliceLayout(
     ctx,
     toSlots(ctx, parts),
@@ -637,7 +630,9 @@ export function concatParam(
     ctx,
     OP_SELECTORS.concat,
     mergeSegments([
-      wordSpan(32n), // offset_parts
+      wordSpan(96n), // offset_parts
+      wordSpan(64n), // offset_delimiter
+      wordSpan(0n), // empty delimiter
       wordSpan(BigInt(parts.length)),
       ...offsets.map(wordPiece),
       ...tail,

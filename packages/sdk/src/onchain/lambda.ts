@@ -40,7 +40,7 @@ import type { Category, CompileCtx, Operand } from "./types";
 /** Shown when a face is handed something that is not a definition. */
 const DEF_EXAMPLE: Record<number, string> = {
   1: 'def @big! "$x: number -> bool" @bool!($x >= 100)',
-  2: 'def @sum! "$acc: number $x: number -> number" @num!($acc + $x)',
+  2: 'def @sum! "$acc: number $x: number -> number" @calc!($acc + $x)',
 };
 
 /** The marker word standing in for the fold element while the predicate
@@ -76,7 +76,7 @@ export function accumulatorOperand(cat: Category = "Uint"): Operand {
  *  call; otherwise it is the compiled staticcall's own target verbatim —
  *  the core for a composed `read` or a `pick`, another contract for a
  *  direct single call. N>1 means the definition names its parameter more
- *  than once, e.g. `@num!($x * $x)`. */
+ *  than once, e.g. `@calc!($x * $x)`. */
 export interface LambdaTemplate {
   target: Address;
   /** Where the accumulator is stamped, when the body names it. Absent for
@@ -126,7 +126,7 @@ function findWindows(
  * The element may be named any number of times: `_fold` and `_applyWords`
  * stamp every entry of the `elemOffsets` array. The ACCUMULATOR may be
  * named at most once, because the engine takes a single `accOffset` — so
- * `@num!($acc + $acc)` has nowhere to put the second one.
+ * `@calc!($acc + $acc)` has nowhere to put the second one.
  *
  * A body that never names the accumulator is fine, and is what every
  * predicate does. Its `accOffset` parks on the first element window: the
@@ -308,7 +308,7 @@ export function extractLambdaTemplate(
  * `@all!(caps @big!)`. The face supplies what the definition declares, as
  * precompiled marker operands, so each parameter substitutes wherever the
  * body names it — including more than once, which is how a body like
- * `@num!($x * $x)` yields two windows.
+ * `@calc!($x * $x)` yields two windows.
  *
  * Returns the compiled operand alongside the template so callers can
  * enforce their own result category.

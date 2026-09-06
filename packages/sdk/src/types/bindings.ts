@@ -96,6 +96,7 @@ export interface CacheBinding extends IBinding<Param> {
 }
 
 interface DefValueBase {
+  returnAbiType?: import("viem").AbiParameter;
   argDefs: ArgDef[];
   optDefs?: OptDef[];
   returnType?: ArgType;

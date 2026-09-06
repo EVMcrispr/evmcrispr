@@ -71,6 +71,11 @@ function resolveOwner(ctx: CompileCtx, node: HelperFunctionNode): Resolved {
     if (!m) {
       throw new ErrorException(`module ${node.module} not loaded`);
     }
+    if (!m.helpers[name] && node.module === "std" && name === "num!") {
+      throw new ErrorException(
+        "@std:num! was removed: use @calc! with // or @calcFloor!/@calcCeil!",
+      );
+    }
     if (!m.helpers[name]) {
       throw new ErrorException(
         `unknown on-chain helper @${node.module}:${name}`,
@@ -118,6 +123,11 @@ function resolveOwner(ctx: CompileCtx, node: HelperFunctionNode): Resolved {
   }
   if (std?.helpers[name]) {
     return { kind: "module", owner: std, localName: name };
+  }
+  if (name === "num!") {
+    throw new ErrorException(
+      "@num! was removed: use @calc! with // for checked integer division, or @calcFloor!/@calcCeil! for rounded quotients",
+    );
   }
   throw new ErrorException(`unknown on-chain helper @${name}`);
 }
