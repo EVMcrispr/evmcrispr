@@ -61,3 +61,30 @@ for (const [helper, cases] of [
     })),
   });
 }
+
+for (const helper of [
+  "calc",
+  "num",
+  "calcFloor",
+  "calcCeil",
+  "floor",
+  "ceil",
+]) {
+  describeHelper(`@${helper}`, {
+    skipArgLengthCheck: true,
+    cases: [
+      ["3 ^ -1 % 11", 4n],
+      ["(3 ^ -2) % 11", 5n],
+      ["-3 ^ -1 % -11", -4n],
+      ["3 ^ -1 % 10", 7n],
+      ["0 ^ -1 % 1", 0n],
+      ["2 ^ 1000000 % 7", 2n],
+    ].map(([expression, expected]) => ({
+      name: `modular power ${expression}`,
+      input: `@${helper}(${expression})`,
+      validate(result: Num) {
+        expect(result.toBigInt()).to.equal(expected);
+      },
+    })),
+  });
+}

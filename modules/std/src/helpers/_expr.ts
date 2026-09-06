@@ -1,4 +1,12 @@
-import { ErrorException, isHexString, isNum, Num } from "@evmcrispr/sdk";
+import {
+  type ArithmeticTree,
+  ErrorException,
+  isHexString,
+  isNum,
+  modularPower,
+  Num,
+  parseCheckedExpression,
+} from "@evmcrispr/sdk";
 
 // ---------------------------------------------------------------------------
 //  Operator definitions
@@ -330,8 +338,33 @@ export function evaluateArithmeticExpr(tokens: unknown[]): Num {
     }
   }
 
-  const result = evaluate(tokens, ARITH_OPS, ALL_ARITH, "@num");
-  return toNum(result);
+  // Preserve the expression tree until a following % can recognize a power.
+  // Evaluating ^ eagerly would build enormous integers or lose inverse intent.
+  const tree = parseCheckedExpression(
+    tokens.map((value) => {
+      if (typeof value === "string") {
+        detectMissingSpaces(value, ALL_ARITH);
+        if (ALL_ARITH.has(value) || value === "(" || value === ")")
+          return { op: value };
+      }
+      return { value };
+    }),
+  );
+  const run = (t: ArithmeticTree<unknown>): Num => {
+    if ("value" in t) return toNum(t.value);
+    if (t.op === "neg") return run(t.left).mul(Num(-1n));
+    if (t.op === "%" && "op" in t.left && t.left.op === "^") {
+      const a = run(t.left.left);
+      const e = run(t.left.right!);
+      const m = run(t.right!);
+      if (a.isInteger() && e.isInteger() && m.isInteger())
+        return Num(modularPower(a.num, e.num, m.num));
+      // Ordinary exact rational arithmetic still applies to fractional inputs.
+      return applyArith("%", a.pow(e), m);
+    }
+    return applyArith(t.op, run(t.left), run(t.right!));
+  };
+  return run(tree);
 }
 
 export function evaluateBoolExpr(tokens: unknown[]): boolean {

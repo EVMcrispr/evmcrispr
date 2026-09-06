@@ -1,4 +1,5 @@
 import { ErrorException } from "../errors";
+import { modularPower } from "./modular";
 import { Num } from "./Num";
 
 export const UINT256_MAX = (1n << 256n) - 1n;
@@ -100,6 +101,26 @@ export function checkedBinary(
   }
   return { value: checkedRange(value, signed), signed };
 }
+/** Full-width add/multiply/power followed immediately by remainder. */
+export function checkedMod(
+  op: string,
+  a: CheckedInteger,
+  b: CheckedInteger,
+  m: CheckedInteger,
+): CheckedInteger {
+  const signed = a.signed || m.signed || (op !== "^" && b.signed);
+  checkedRange(a.value, signed);
+  checkedRange(m.value, signed);
+  checkedRange(b.value, op === "^" ? b.signed : signed);
+  if (op === "^")
+    return { value: modularPower(a.value, b.value, m.value), signed };
+  if (!m.value) throw new ErrorException("Division by zero");
+  return {
+    value: (op === "+" ? a.value + b.value : a.value * b.value) % m.value,
+    signed,
+  };
+}
+
 export function checkedMulDiv(
   a: CheckedInteger,
   b: CheckedInteger,
@@ -223,6 +244,17 @@ export function evaluateCheckedExpression(
     if ("value" in t) return checkedInteger(t.value);
     if (t.op === "neg")
       return checkedBinary("-", { value: 0n, signed: true }, run(t.left));
+    if (
+      t.op === "%" &&
+      "op" in t.left &&
+      (t.left.op === "+" || t.left.op === "*" || t.left.op === "^")
+    )
+      return checkedMod(
+        t.left.op,
+        run(t.left.left),
+        run(t.left.right!),
+        run(t.right!),
+      );
     return checkedBinary(t.op, run(t.left), run(t.right!));
   };
   if (parts) {

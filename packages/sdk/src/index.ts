@@ -129,6 +129,7 @@ export {
   hasCommandsBlock,
 } from "./utils/ast";
 export * from "./utils/checkedArithmetic";
+export * from "./utils/modular";
 export type { NpmFileSpec } from "./utils/npmRegistry";
 export {
   fetchNpmLatestVersion,

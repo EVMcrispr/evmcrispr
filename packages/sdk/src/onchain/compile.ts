@@ -29,6 +29,7 @@ import {
   type CheckedRounding,
   checkedBinary,
   checkedInteger,
+  checkedMod,
   checkedMulDiv,
   checkedNum,
   checkedRange,
@@ -2202,6 +2203,55 @@ export async function compileCheckedExpr(
         { kind: "const", cat: "Int", value: Num(0n) },
         run(t.left),
       );
+    if (
+      t.op === "%" &&
+      "op" in t.left &&
+      (t.left.op === "+" || t.left.op === "*" || t.left.op === "^")
+    ) {
+      const a = run(t.left.left);
+      const b = run(t.left.right!);
+      const m = run(t.right!);
+      if (a.kind === "const" && b.kind === "const" && m.kind === "const")
+        return folded(
+          checkedMod(t.left.op, constant(a), constant(b), constant(m)),
+        );
+      if (t.left.op === "^") {
+        // Exponent signedness is independent of the base/modulus domain:
+        // a negative exponent must not narrow a full-width uint256 base.
+        const signed = a.cat === "Int" || m.cat === "Int";
+        const valueType = signed ? "int256" : "uint256";
+        const exponentType = b.cat === "Int" ? "int256" : "uint256";
+        return {
+          kind: "call",
+          cat: signed ? "Int" : "Uint",
+          param: opReadParam(
+            ctx,
+            toFunctionSelector(
+              `powMod(${valueType},${exponentType},${valueType})`,
+            ),
+            [promote(a, signed), materializeWord(ctx, b), promote(m, signed)],
+          ),
+        };
+      }
+      const signed = [a, b, m].some((o) => o.cat === "Int");
+      const selector =
+        t.left.op === "+"
+          ? signed
+            ? OP_SELECTORS.addModInt
+            : OP_SELECTORS.addMod
+          : signed
+            ? OP_SELECTORS.mulModInt
+            : OP_SELECTORS.mulMod;
+      return {
+        kind: "call",
+        cat: signed ? "Int" : "Uint",
+        param: opReadParam(
+          ctx,
+          selector,
+          [a, b, m].map((o) => promote(o, signed)),
+        ),
+      };
+    }
     return binary(t.op, run(t.left), run(t.right!));
   };
   if (!parts) return run(tree);

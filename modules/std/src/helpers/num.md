@@ -50,3 +50,25 @@ set $n @num("42")
 The final nonnegative integer must fit uint256; negative integers must fit int256.
 Use `floor` or `ceil` to choose another final rounding direction.
 Use `calc` and `calc!` for checked integer arithmetic, with `//` for division.
+
+## Modular powers and inverses
+
+`a ^ e % m` (or `(a ^ e) % m`) computes an integer modular power without
+materializing the intermediate power. A negative exponent uses the modular
+inverse: `3 ^ -1 % 11` is `4`, and `3 ^ -2 % 11` is `5`.
+The inverse exists only when the base and modulus are coprime; otherwise the
+expression fails. Composite moduli are supported. Modulus zero fails, modulus
+`1` or `-1` returns zero, and exponent zero returns `1 % m`, including `0 ^ 0`.
+
+For a negative base, odd exponents (including negative odd exponents) return a
+negative remainder: `-3 ^ -1 % 11` is `-4`. The modulus's sign is ignored.
+This uses signed remainders, not a normalized nonnegative residue convention.
+
+Only a power immediately followed by `%` receives modular semantics; an
+intervening operation or nested helper establishes a separate evaluation boundary.
+
+These rules apply when the base, exponent, and modulus evaluate to integers.
+`num` still permits arbitrary-precision operands and checks only the final
+integer's range. Without a following modulus, `3 ^ -1` remains the exact
+rational `1/3` before final truncation; for example, `@num(3 ^ -1 * 3)` is `1`.
+`floor` and `ceil` share these expression rules.

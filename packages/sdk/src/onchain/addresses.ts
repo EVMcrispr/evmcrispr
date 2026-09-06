@@ -13,9 +13,9 @@ import type { Address } from "../types";
 export const CORE_ADDRESS: Address =
   "0x8794b0d097C07e7520B421d02201E34c9eE3E156";
 
-/** Canonical address of the Operations v1.0 (vanity CREATE2 salt). */
+/** Canonical address of the Operations v1.0 (retained CREATE2 salt). */
 export const OPERATIONS_ADDRESS: Address =
-  "0x09E4A7E3072F075C2786BE9FA0B7c4BA6591AE9e";
+  "0x69Db28Fef09ca3f814c6701589EE96C20593ae66";
 
 /** Generic ABI-valued collection periphery (requires Cancun). */
 export const COLLECTIONS_ADDRESS: Address =

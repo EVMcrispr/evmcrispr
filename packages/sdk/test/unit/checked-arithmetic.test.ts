@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
+  decodeAbiParameters,
+  decodeFunctionData,
+  toFunctionSelector,
+} from "viem";
+import {
   checkedBinary,
   checkedMulDiv,
   evaluateCheckedExpression,
@@ -18,6 +23,7 @@ import {
   rawParam,
   toWord,
 } from "../../src/onchain";
+import { CORE_ABI } from "../../src/onchain/core";
 import { type Node, NodeType } from "../../src/types";
 
 const n = (value: bigint) => Num(value);
@@ -143,4 +149,134 @@ describe("checked compilation", () => {
       compileCheckedExpr(ctx, [node(1n), op("/"), node(2n)]),
     ).rejects.toThrow("only accepts //");
   });
+});
+
+describe("modular fusion", () => {
+  for (const operation of ["+", "*"]) {
+    const tokens = [n(UINT256_MAX), operation, n(2n)];
+    it(`folds and compiles full-width ${operation} followed by remainder`, async () => {
+      const expression = ["(", ...tokens, ")", "%", n(7n)];
+      const expected =
+        (operation === "+" ? UINT256_MAX + 2n : UINT256_MAX * 2n) % 7n;
+      expect(calc(expression)).toBe(expected);
+      const nodes = [
+        op("("),
+        node(UINT256_MAX),
+        op(operation),
+        node(2n),
+        op(")"),
+        op("%"),
+        node(7n),
+      ];
+      const folded = await compileCheckedExpr(ctx, nodes);
+      expect(folded.kind === "const" && (folded.value as Num).toBigInt()).toBe(
+        expected,
+      );
+      nodes[1] = operandNode({
+        kind: "call",
+        cat: "Uint",
+        param: rawParam(toWord(UINT256_MAX)),
+      });
+      const out = await compileCheckedExpr(ctx, nodes);
+      if (out.kind !== "call") throw new Error("Expected call");
+      const [target, data] = decodeAbiParameters(
+        [{ type: "address" }, { type: "bytes" }],
+        out.param.paramData,
+      );
+      expect(target).toBe(ctx.core);
+      const decoded = decodeFunctionData({ abi: CORE_ABI, data });
+      expect(decoded.functionName).toBe("read");
+      if (decoded.functionName !== "read") throw new Error("Expected read");
+      expect(decoded.args[1]).toBe(
+        toFunctionSelector(
+          `${operation === "+" ? "addMod" : "mulMod"}(uint256,uint256,uint256)`,
+        ),
+      );
+      expect(decoded.args[2].map((p) => p.paramData)).toEqual([
+        toWord(UINT256_MAX),
+        toWord(2n),
+        toWord(7n),
+      ]);
+    });
+    it(`does not rescue mixed promotion or earlier ${operation} overflow`, () => {
+      expect(() =>
+        calc(["(", ...tokens, ")", "%", markSignedInteger(n(7n))]),
+      ).toThrow("overflow");
+      expect(() =>
+        calc(["(", ...tokens, operation, n(1n), ")", "%", n(7n)]),
+      ).toThrow("overflow");
+      expect(() => calc(["(", ...tokens, ")", "%", n(0n)])).toThrow("zero");
+    });
+  }
+  it("preserves sum precedence", () => {
+    expect(calc([n(8n), "+", n(5n), "%", n(3n)])).toBe(10n);
+  });
+});
+
+describe("signed modular fusion", () => {
+  for (const operation of ["+", "*"]) {
+    it(`folds and emits the signed ${operation} selector`, async () => {
+      const expected =
+        (operation === "+"
+          ? INT256_MIN + INT256_MIN
+          : INT256_MIN * INT256_MIN) % -7n;
+      expect(
+        calc(["(", n(INT256_MIN), operation, n(INT256_MIN), ")", "%", n(-7n)]),
+      ).toBe(expected);
+      const nodes = [
+        op("("),
+        node(INT256_MIN),
+        op(operation),
+        node(INT256_MIN),
+        op(")"),
+        op("%"),
+        node(-7n),
+      ];
+      const folded = await compileCheckedExpr(ctx, nodes);
+      expect(folded.cat).toBe("Int");
+      expect(folded.kind === "const" && (folded.value as Num).toBigInt()).toBe(
+        expected,
+      );
+      nodes[1] = operandNode({
+        kind: "call",
+        cat: "Int",
+        param: rawParam(toWord(INT256_MIN)),
+      });
+      const out = await compileCheckedExpr(ctx, nodes);
+      expect(out.cat).toBe("Int");
+      if (out.kind !== "call") throw new Error("Expected call");
+      const [, data] = decodeAbiParameters(
+        [{ type: "address" }, { type: "bytes" }],
+        out.param.paramData,
+      );
+      const decoded = decodeFunctionData({ abi: CORE_ABI, data });
+      if (decoded.functionName !== "read") throw new Error("Expected read");
+      expect(decoded.args[1]).toBe(
+        toFunctionSelector(
+          `${operation === "+" ? "addMod" : "mulMod"}(int256,int256,int256)`,
+        ),
+      );
+      expect(decoded.args[2].map((p) => p.paramData)).toEqual([
+        toWord(INT256_MIN),
+        toWord(INT256_MIN),
+        toWord(-7n),
+      ]);
+      expect(() =>
+        calc(["(", n(INT256_MIN), operation, n(2n), ")", "%", n(0n)]),
+      ).toThrow("zero");
+      expect(() =>
+        calc([
+          "(",
+          n(INT256_MIN),
+          "*",
+          n(2n),
+          operation,
+          n(1n),
+          ")",
+          "%",
+          n(7n),
+        ]),
+      ).toThrow("overflow");
+    });
+  }
 });
