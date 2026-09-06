@@ -4,7 +4,7 @@ title: "@lang:flat"
 
 Flatten one level of nesting in an array.
 
-**On-chain (`@lang:flat!`)**: Up to 4 elements may be live calls, the rest constant arrays; each live element past the first is re-resolved by every later offset.
+**On-chain (`@lang:flat!`)**: Flattens runtime nested arrays or a literal list of word-array parts, preserving element types.
 
 **Returns**: `array`
 

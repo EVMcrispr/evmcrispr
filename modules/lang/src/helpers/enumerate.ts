@@ -38,7 +38,7 @@ export default defineHelper<Lang>({
     if (argNode && isBangHelperNode(argNode)) {
       // Nested array face: the payload is already a words value, so the
       // live count is its byte length over 32.
-      const { payload } = await wordsArg(ctx, argNode, "enumerate!");
+      const { payload, elemType } = await wordsArg(ctx, argNode, "enumerate!");
       const n = wordOpParam(
         ctx,
         "div",
@@ -50,10 +50,15 @@ export default defineHelper<Lang>({
         kind: "call",
         param: enumerateParam(ctx, payload, n),
         cat: "Bytes",
+        collection: {
+          element: { type: "uint256" },
+          transport: "words",
+          lanes: [{ type: "uint256" }, { type: elemType }],
+        },
       };
     }
     const arg = await chainArgWithLens(ctx, "enumerate!", argNode);
-    const { path } = wordArrayPath(arg, "enumerate!");
+    const { path, elemType } = wordArrayPath(arg, "enumerate!");
     const payload = wordsPayload(ctx, arg, path);
     // The live element count through the existing LEN-sentinel plumbing.
     const n = lenParam(ctx, arg.param, arg.outputs, path);
@@ -61,6 +66,11 @@ export default defineHelper<Lang>({
       kind: "call",
       param: enumerateParam(ctx, payload, n),
       cat: "Bytes",
+      collection: {
+        element: { type: "uint256" },
+        transport: "words",
+        lanes: [{ type: "uint256" }, { type: elemType }],
+      },
     };
   },
 });

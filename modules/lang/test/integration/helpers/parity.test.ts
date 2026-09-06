@@ -122,7 +122,7 @@ describeParity("@lang", {
       reverts: /revert/i,
     },
     {
-      name: "diverges: @unique dedups globally off-chain, adjacently on-chain",
+      name: "@unique preserves first occurrence on both faces",
       // Doubling the list puts every duplicate far from its twin, so the two
       // behaviours cannot coincide: off-chain collapses back to one copy,
       // on-chain leaves both because no duplicate is adjacent.
@@ -130,9 +130,6 @@ describeParity("@lang", {
       compile: `@unique!(@concat!(${RESERVES} ${RESERVES}))`,
       decodeAs: "address[]",
       helper: "unique",
-      diverges: {
-        reason: "uniqueWords removes adjacent duplicates only",
-      },
     },
 
     // ---- a live uint256[], where the numeric shapes have to agree ---------
@@ -154,7 +151,7 @@ describeParity("@lang", {
     {
       name: "includes finds a negative element given as a number",
       run: `@includes(${SIGNED_CALL} @num(0 - 5))`,
-      compile: `@includes!(${SIGNED_CALL} @num!(0 - 5))`,
+      compile: `@includes!(${SIGNED_CALL} @calc!(-5))`,
     },
     {
       name: "sort of a live uint256[] agrees with the on-chain sort",
@@ -168,7 +165,7 @@ describeParity("@lang", {
       // the same shape, which is why the old failure was a silent false.
       name: "includes finds a live uint256 element given as a number",
       run: `@includes(${WORDS} @num(@at(${WORDS} 0)))`,
-      compile: `@includes!(${WORDS} @num!(@at!(${WORDS} 0)))`,
+      compile: `@includes!(${WORDS} @calc!(@at!(${WORDS} 0)))`,
     },
     {
       name: "sum of a live uint256[] agrees with the on-chain sum",

@@ -26,7 +26,19 @@ export default defineHelper<Lang>({
         "@keys! expects a single record argument, e.g. @keys!(@enumerate!($safe::getOwners()))",
       );
     }
-    const { payload } = await wordsArg(ctx, node.args[0], "keys!");
-    return { kind: "call", param: unzipParam(ctx, payload, 0n), cat: "Bytes" };
+    const { payload, elemType, lanes } = await wordsArg(
+      ctx,
+      node.args[0],
+      "keys!",
+    );
+    return {
+      kind: "call",
+      param: unzipParam(ctx, payload, 0n),
+      cat: "Bytes",
+      collection: {
+        element: lanes?.[0] ?? { type: elemType },
+        transport: "words",
+      },
+    };
   },
 });

@@ -4,7 +4,7 @@ title: "@lang:filter"
 
 Keep elements of an array for which a helper returns truthy.
 
-**On-chain (`@lang:filter!`)**: The predicate is a named `def @name!` of one parameter returning bool, applied by name.
+**On-chain (`@lang:filter!`)**: The predicate is a named definition returning bool. Word predicates may compose helpers; generic values require one direct ABI call.
 
 **Returns**: `array`
 
@@ -65,7 +65,7 @@ assert @len!(@filter!($vault::{caps()(uint256[])} @ge100!)) == 2
   word ops.
 - One staticcall per element: gas bounds the practical array size.
 - Naming the parameter more than once substitutes at each place it
-  appears, so `@num!($x * $x)` squares: two windows, one call.
+  appears, so `@calc!($x * $x)` squares: two windows, one call.
 
 ### See Also
 

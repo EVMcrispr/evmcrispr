@@ -4,7 +4,7 @@ title: "@lang:reduce"
 
 Reduce an array to a single value by applying a helper.
 
-**On-chain (`@lang:reduce!`)**: The reducer is a two-parameter `def @name!` (accumulator first), or one of the bare names `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr`, `bitXor`.
+**On-chain (`@lang:reduce!`)**: Accumulator comes first. Generic values use direct ABI definitions; word folds also accept composed definitions and associative operator names.
 
 **Returns**: `any`
 
@@ -43,7 +43,7 @@ A definition takes the accumulator first and the element second, and may
 be anything — order-sensitive, composed, several calls deep:
 
 ```evml
-def @subFrom! "$acc: number $e: number -> number" @num!($acc - $e)
+def @subFrom! "$acc: number $e: number -> number" @calc!($acc - $e)
 ```
 
 The bare names, by contrast, are restricted to the commutative and
@@ -55,7 +55,7 @@ revert. A definition says which side the accumulator is on, so it has
 nothing to hide and no gate to pass.
 
 The accumulator may be named at most ONCE in the body: the engine carries
-a single accumulator window, so `@num!($acc + $acc)` has nowhere to put the
+a single accumulator window, so `@calc!($acc + $acc)` has nowhere to put the
 second. The element has no such limit. A body that never names the
 accumulator is accepted too, and behaves like a predicate.
 
@@ -84,7 +84,7 @@ assert @reduce!($vault::{deltas()(int256[])} min 0) <= 0
 
 # A named reducer may be order-sensitive: the signature says which side
 # the accumulator is on
-def @subFrom! "$acc: number $e: number -> number" @num!($acc - $e)
+def @subFrom! "$acc: number $e: number -> number" @calc!($acc - $e)
 assert @reduce!($vault::{caps()(uint256[])} @subFrom! 1000) > 0
 ```
 
@@ -93,7 +93,7 @@ assert @reduce!($vault::{caps()(uint256[])} @subFrom! 1000) > 0
 - Arrays of single-word elements only; the result is judged as a uint
   word, or a signed word when the elements are signed and the reducer has
   a signed overload.
-- An average is `@num!(@reduce!(... add 0) / @len!(...))`.
+- An average is `@calc!(@reduce!(... add 0) // @len!(...))`.
 - An empty array returns the initial accumulator.
 - `add` and `mul` are checked, so an overflowing fold reverts rather than
   wrapping. That is the right failure for an assertion: a wrapped sum is

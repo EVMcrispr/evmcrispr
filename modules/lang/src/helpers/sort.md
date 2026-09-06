@@ -4,7 +4,7 @@ title: "@lang:sort"
 
 Sort an array: ascending by default, `desc` for descending, or by a comparator helper.
 
-**On-chain (`@lang:sort!`)**: Takes a direction rather than a comparator, and signed elements sort by value: the sign bit is flipped on the way in and back on the way out.
+**On-chain (`@lang:sort!`)**: Supports natural word ordering or a direct ABI comparator definition; equal elements retain their order.
 
 **Returns**: `array`
 

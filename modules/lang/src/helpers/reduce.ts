@@ -1,16 +1,31 @@
-import type { HelperFunctionNode } from "@evmcrispr/sdk";
-import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
+import type { CallExpressionNode, HelperFunctionNode } from "@evmcrispr/sdk";
 import {
+  defineHelper,
+  ErrorException,
+  encodeParams,
+  NodeType,
+} from "@evmcrispr/sdk";
+import {
+  arrayValuesParam,
+  canonicalArgSpec,
+  canonicalBytesParam,
   categoryFromAbiType,
+  collectionReadParam,
+  compileArgSpecs,
+  compileCollectionCallback,
   compileLambdaTemplate,
   constIntArg,
   FOLD_EXIT,
   foldParam,
+  formatParamType,
   lookupOnchainDef,
   opSelector,
   toWord,
+  typedArrayArg,
+  unwrapBytesParam,
 } from "@evmcrispr/sdk/onchain";
-import type { Hex } from "viem";
+import type { AbiFunction, Hex } from "viem";
+import { parseAbiItem } from "viem";
 import type Lang from "..";
 import { wordsArg } from "../utils/onchain";
 
@@ -100,7 +115,7 @@ export default defineHelper<Lang>({
   name: "reduce",
   description: "Reduce an array to a single value by applying a helper.",
   compileDescription:
-    "The reducer is a two-parameter `def @name!` (accumulator first), or one of the bare names `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr`, `bitXor`.",
+    "Accumulator comes first. Generic values use direct ABI definitions; word folds also accept composed definitions and associative operator names.",
   returnType: "any",
   args: [
     {
@@ -127,6 +142,82 @@ export default defineHelper<Lang>({
       throw new ErrorException(
         "@reduce! expects (call fn initial), e.g. @reduce!($vault::caps() add 0)",
       );
+    }
+    const array = await typedArrayArg(ctx, node.args[0], "reduce!");
+    const named =
+      node.args[1]?.type === NodeType.HelperFunctionExpression
+        ? lookupOnchainDef(ctx, node.args[1].name)
+        : undefined;
+    if (!array.words || named?.bodyNode.type === NodeType.CallExpression) {
+      const body = named?.bodyNode as CallExpressionNode | undefined;
+      if (
+        !body ||
+        body.type !== NodeType.CallExpression ||
+        !body.inputTypes ||
+        !body.outputTypes
+      )
+        throw new ErrorException(
+          "Generic reduction requires a direct inline ABI callback definition",
+        );
+      const fn = parseAbiItem(
+        `function ${body.method}${body.inputTypes} view returns ${body.outputTypes}`,
+      ) as AbiFunction;
+      const accumulator = fn.outputs[0];
+      const { callbackSpec, output } = await compileCollectionCallback(
+        ctx,
+        node.args[1],
+        [accumulator, array.element],
+      );
+      const specs = await compileArgSpecs(
+        ctx,
+        [node.args[2]],
+        { ...fn, inputs: [accumulator] },
+        "reduce initial",
+      );
+      const initial = specs[0];
+      const initialSpec =
+        initial.kind === "value"
+          ? {
+              kind: "value" as const,
+              value: encodeParams(
+                [accumulator],
+                [initial.value] as never,
+                "reduce initial",
+              ),
+            }
+          : canonicalArgSpec(
+              ctx,
+              { type: "bytes" },
+              canonicalBytesParam(ctx, initial.param),
+            );
+      const result = collectionReadParam(ctx, "foldValues", [
+        { kind: "value", value: formatParamType(array.element) },
+        { kind: "value", value: formatParamType(accumulator) },
+        canonicalArgSpec(
+          ctx,
+          { type: "bytes[]" },
+          arrayValuesParam(ctx, array),
+        ),
+        initialSpec,
+        callbackSpec,
+      ]);
+      return {
+        kind: "call",
+        param: unwrapBytesParam(ctx, result),
+        cat:
+          output.type.startsWith("tuple") || output.type.includes("[")
+            ? "Bytes"
+            : categoryFromAbiType(output.type),
+        abiType: output,
+        ...(output.type.endsWith("[]")
+          ? {
+              collection: {
+                element: { ...output, type: output.type.slice(0, -2) },
+                transport: "abi" as const,
+              },
+            }
+          : {}),
+      };
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "reduce!");
     const elemCat = categoryFromAbiType(elemType);
@@ -181,7 +272,7 @@ export default defineHelper<Lang>({
     }
     if (!name || !(REDUCERS as readonly string[]).includes(name)) {
       throw new ErrorException(
-        `@reduce! reduces with a binary Operators lambda — one of ${REDUCERS.join(", ")} — got ${name ?? "an unsupported reducer"}. Order-sensitive operations are excluded as BARE names because the accumulator is always the LEFT argument and a wrong guess about the side would change the value silently. Name it instead and the order is written down: def @subFrom! \`$acc: number $e: number -> number\` @num!($acc - $e)`,
+        `@reduce! reduces with a binary Operators lambda — one of ${REDUCERS.join(", ")} — got ${name ?? "an unsupported reducer"}. Order-sensitive operations are excluded as BARE names because the accumulator is always the LEFT argument and a wrong guess about the side would change the value silently. Name it instead and the order is written down: def @subFrom! \`$acc: number $e: number -> number\` @calc!($acc - $e)`,
       );
     }
     const init = await constIntArg(ctx, "reduce!", "initial", node.args[2]);

@@ -17,11 +17,12 @@ export default defineHelper<Lang>({
         "@reverse! expects a single array argument, e.g. @reverse!($safe::getOwners())",
       );
     }
-    const { payload } = await wordsArg(ctx, node.args[0], "reverse!");
+    const { payload, elemType } = await wordsArg(ctx, node.args[0], "reverse!");
     return {
       kind: "call",
       param: opReadParam(ctx, OP_SELECTORS.reverseWords, [payload]),
       cat: "Bytes",
+      collection: { element: { type: elemType }, transport: "words" },
     };
   },
 });

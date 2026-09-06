@@ -6,12 +6,19 @@ import {
   naturalCompare,
 } from "@evmcrispr/sdk";
 import {
+  arrayValuesParam,
+  canonicalArgSpec,
   categoryFromAbiType,
+  collectionReadParam,
+  compileCollectionCallback,
+  formatParamType,
   mapWordsParam,
   OP_SELECTORS,
   opReadParam,
   opSelector,
+  packedArrayOperand,
   toWord,
+  typedArrayArg,
 } from "@evmcrispr/sdk/onchain";
 import type { Hex } from "viem";
 import type Lang from "..";
@@ -75,7 +82,7 @@ export default defineHelper<Lang>({
   description:
     "Sort an array: ascending by default, `desc` for descending, or by a comparator helper.",
   compileDescription:
-    "Takes a direction rather than a comparator, and signed elements sort by value: the sign bit is flipped on the way in and back on the way out.",
+    "Supports natural word ordering or a direct ABI comparator definition; equal elements retain their order.",
   returnType: "array",
   args: [
     { name: "arr", type: "array", description: "Source array" },
@@ -110,22 +117,38 @@ export default defineHelper<Lang>({
         "@sort! expects (call order?), e.g. @sort!($safe::getOwners() desc)",
       );
     }
+    if (node.args[1]?.type === NodeType.HelperFunctionExpression) {
+      const array = await typedArrayArg(ctx, node.args[0], "sort!");
+      const { callbackSpec, output } = await compileCollectionCallback(
+        ctx,
+        node.args[1],
+        [array.element, array.element],
+      );
+      if (output.type !== "int256")
+        throw new ErrorException("@sort! comparator must return int256");
+      return packedArrayOperand(
+        ctx,
+        collectionReadParam(ctx, "sortValues", [
+          { kind: "value", value: formatParamType(array.element) },
+          canonicalArgSpec(
+            ctx,
+            { type: "bytes[]" },
+            arrayValuesParam(ctx, array),
+          ),
+          callbackSpec,
+        ]),
+        array.element,
+      );
+    }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "sort!");
 
     let order: "asc" | "desc" = "asc";
     if (node.args[1]) {
-      // Check the SHAPE before interpreting: a bare `@cmp` reference would
-      // otherwise be called with no arguments, and the user would see the
-      // comparator's own arity error instead of the real problem.
-      const value =
-        node.args[1].type === NodeType.HelperFunctionExpression
-          ? undefined
-          : await ctx.interpreters.interpretNode(node.args[1]);
-      if (!isDirection(value)) {
+      const value = await ctx.interpreters.interpretNode(node.args[1]);
+      if (!isDirection(value))
         throw new ErrorException(
-          `@sort! orders by direction, not by a comparator — pass \`asc\` or \`desc\`, got ${node.args[1].type === NodeType.HelperFunctionExpression ? `@${(node.args[1] as { name: string }).name}` : String(value)}. A word sort has no comparator hook on-chain`,
+          "@sort! order must be asc, desc, or a comparator definition",
         );
-      }
       order = value;
     }
 
@@ -147,6 +170,11 @@ export default defineHelper<Lang>({
     if (order === "desc") {
       out = opReadParam(ctx, OP_SELECTORS.reverseWords, [out]);
     }
-    return { kind: "call", param: out, cat: "Bytes" };
+    return {
+      kind: "call",
+      param: out,
+      cat: "Bytes",
+      collection: { element: { type: elemType }, transport: "words" },
+    };
   },
 });

@@ -1,8 +1,16 @@
-import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import {
+  arrayValuesParam,
+  canonicalArgSpec,
   categoryFromAbiType,
+  collectionReadParam,
+  compileCollectionCallback,
   compilePredicateTemplate,
   filterWordsParam,
+  formatParamType,
+  lookupOnchainDef,
+  packedArrayOperand,
+  typedArrayArg,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
 import { wordsArg } from "../utils/onchain";
@@ -11,7 +19,7 @@ export default defineHelper<Lang>({
   name: "filter",
   description: "Keep elements of an array for which a helper returns truthy.",
   compileDescription:
-    "The predicate is a named `def @name!` of one parameter returning bool, applied by name.",
+    "The predicate is a named definition returning bool. Word predicates may compose helpers; generic values require one direct ABI call.",
   returnType: "array",
   args: [
     {
@@ -41,6 +49,27 @@ export default defineHelper<Lang>({
         '@filter! expects (call predicate), e.g. @filter!($vault::caps() @ge100!) with def @ge100! "$x: number -> bool" @bool!($x >= 100)',
       );
     }
+    const array = await typedArrayArg(ctx, node.args[0], "filter!");
+    const def =
+      node.args[1]?.type === NodeType.HelperFunctionExpression
+        ? lookupOnchainDef(ctx, node.args[1].name)
+        : undefined;
+    if (!array.words || def?.bodyNode.type === NodeType.CallExpression) {
+      const { callbackSpec, output } = await compileCollectionCallback(
+        ctx,
+        node.args[1],
+        [array.element],
+      );
+      if (output.type !== "bool")
+        throw new ErrorException("@filter! callback must return bool");
+      const values = arrayValuesParam(ctx, array);
+      const result = collectionReadParam(ctx, "filterValues", [
+        { kind: "value", value: formatParamType(array.element) },
+        canonicalArgSpec(ctx, { type: "bytes[]" }, values),
+        callbackSpec,
+      ]);
+      return packedArrayOperand(ctx, result, array.element);
+    }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "filter!");
     const tpl = await compilePredicateTemplate(
       ctx,
@@ -58,6 +87,7 @@ export default defineHelper<Lang>({
         tpl.elemOffsets,
       ),
       cat: "Bytes",
+      collection: { element: array.element, transport: "words" },
     };
   },
 });

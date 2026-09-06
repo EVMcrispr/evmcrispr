@@ -42,7 +42,7 @@ assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
 assert @len!($gov::{voters()(address[])}) != 0
 
 # Nested: the same LEN-sentinel nav, composable as a number
-assert @num!(@len!($gov::{voters()(address[])}) * 2) > 4
+assert @calc!(@len!($gov::{voters()(address[])}) * 2) > 4
 ```
 
 ### Notes

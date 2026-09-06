@@ -2,21 +2,30 @@ import type { ArrayExpressionNode, Node } from "@evmcrispr/sdk";
 import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import type { BytesPart } from "@evmcrispr/sdk/onchain";
 import {
+  buildCallSegments,
+  canonicalArgSpec,
   chainArgWithLens,
   compileOnchainHelper,
   concatParam,
+  encodeRead,
+  encodeValuesParam,
   isBangHelperNode,
   lensedDataOperand,
+  rawParam,
   requireBytesLike,
+  staticCallParam,
+  toWord,
+  typedArrayArg,
 } from "@evmcrispr/sdk/onchain";
-import { stringToHex } from "viem";
+import { type AbiFunction, parseAbiItem, stringToHex } from "viem";
 import type Lang from "..";
+import { stringArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "str.join",
   description: "Join array elements into a string with a delimiter.",
   compileDescription:
-    "Up to 4 elements may be live calls, the rest string constants; each live element past the first is re-resolved by every later offset.",
+    "Array elements must be strings or bytes; literal arrays support up to four live parts. The delimiter may be constant or live.",
   returnType: "string",
   args: [
     {
@@ -30,20 +39,71 @@ export default defineHelper<Lang>({
     return arr.map((el: unknown) => String(el)).join(String(delim));
   },
   compile: async (ctx, node) => {
+    if (node.args.length !== 2) {
+      throw new ErrorException("@str.join! expects (array delimiter)");
+    }
+    const delimiter = await stringArg(
+      ctx,
+      node.args[1],
+      "str.join!",
+      "delimiter",
+    );
     if (
-      node.args.length !== 2 ||
-      node.args[0].type !== NodeType.ArrayExpression
+      node.args[0].type !== NodeType.ArrayExpression ||
+      delimiter.text === undefined
     ) {
-      throw new ErrorException(
-        '@str.join! expects ([parts…] delim), e.g. @str.join!(["v" $reg::version()] ".")',
-      );
+      let arrayParam;
+      if (node.args[0].type === NodeType.ArrayExpression) {
+        const parts: BytesPart[] = [];
+        for (const element of (node.args[0] as ArrayExpressionNode)
+          .elements as unknown as Node[]) {
+          const { part } = await stringArg(
+            ctx,
+            element,
+            "str.join!",
+            "element",
+          );
+          parts.push(part);
+        }
+        arrayParam = encodeValuesParam(ctx, parts);
+      } else {
+        const array = await typedArrayArg(ctx, node.args[0], "str.join!");
+        if (array.element.type !== "string" && array.element.type !== "bytes") {
+          throw new ErrorException(
+            "@str.join! runtime arrays must contain strings or bytes",
+          );
+        }
+        arrayParam = array.param;
+      }
+      const fn = parseAbiItem(
+        "function concat(bytes[],bytes) pure returns (bytes)",
+      ) as AbiFunction;
+      const call = buildCallSegments(ctx, fn, [
+        canonicalArgSpec(ctx, { type: "bytes[]" }, arrayParam),
+        typeof delimiter.part === "string"
+          ? { kind: "value", value: delimiter.part }
+          : canonicalArgSpec(
+              ctx,
+              { type: "bytes" },
+              "param" in delimiter.part ? delimiter.part.param : delimiter.part,
+            ),
+      ]);
+      return {
+        kind: "call",
+        cat: "String",
+        param: staticCallParam(
+          ctx.core,
+          encodeRead(
+            rawParam(toWord(BigInt(ctx.operators))),
+            call.selector,
+            call.segments,
+          ),
+        ),
+      };
     }
     const elements = (node.args[0] as ArrayExpressionNode)
       .elements as unknown as Node[];
-    const delim = await ctx.interpreters.interpretNode(node.args[1]);
-    if (typeof delim !== "string") {
-      throw new ErrorException("@str.join! delimiter must be a string");
-    }
+    const delim = delimiter.text;
     // The delimiter interleaves between the parts at composition time:
     // constant runs (part + delimiter + part …) merge into ONE constant
     // concat part, so the whole join is a single Operators.concat call

@@ -8,6 +8,7 @@ describeHelper(
   "@unique",
   {
     module: "lang [@unique]",
+    skipArgLengthCheck: true,
     cases: [
       {
         name: "should remove duplicate numbers",

@@ -4,14 +4,14 @@ title: "@lang:unique"
 
 Remove duplicates from an array, preserving first-occurrence order.
 
-**On-chain (`@lang:unique!`)**: Removes adjacent duplicates only; nest `@sort!` for set-uniqueness.
+**On-chain (`@lang:unique!`)**: Removes all duplicates while preserving first-occurrence order.
 
 **Returns**: `array`
 
 ## Syntax
 
 ```evml
-@lang:unique(arr)
+@lang:unique(arr equal?)
 ```
 
 ## Arguments
@@ -19,6 +19,7 @@ Remove duplicates from an array, preserving first-occurrence order.
 | Name | Type | Description |
 |------|------|-------------|
 | `arr` | `array` | Source array |
+| `[equal]` | `helper` | Equality predicate for generic values |
 
 <!-- HAND-WRITTEN -->
 

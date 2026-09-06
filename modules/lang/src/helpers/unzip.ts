@@ -40,7 +40,11 @@ export default defineHelper<Lang>({
         "@unzip! expects (call lane?) with lane 0 or 1, e.g. @unzip!($amm::reservePairs() 0)",
       );
     }
-    const { payload } = await wordsArg(ctx, node.args[0], "unzip!");
+    const { payload, elemType, lanes } = await wordsArg(
+      ctx,
+      node.args[0],
+      "unzip!",
+    );
     /** An omitted lane keeps lane 0, the same half `@keys!` selects. */
     const which =
       node.args.length === 2
@@ -53,6 +57,10 @@ export default defineHelper<Lang>({
       kind: "call",
       param: unzipParam(ctx, payload, which),
       cat: "Bytes",
+      collection: {
+        element: lanes?.[Number(which)] ?? { type: elemType },
+        transport: "words",
+      },
     };
   },
 });

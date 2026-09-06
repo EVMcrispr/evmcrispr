@@ -4,7 +4,7 @@ title: "@lang:str.split"
 
 Split a string by a delimiter into an array of strings, or select one segment when an index is given.
 
-**On-chain (`@lang:str.split!`)**: The segment index is required; the delimiter may be a live call, which costs three reads of it per segment.
+**On-chain (`@lang:str.split!`)**: Returns the complete array when no index is supplied; indexed selection supports negative indexes.
 
 **Returns**: `array | string`
 

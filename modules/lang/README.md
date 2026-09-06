@@ -28,8 +28,8 @@ load lang
 | [@lang:len](src/helpers/len.md) | `number` | Length of a value: element count for an array, byte length for a string or bytes. |
 | [@lang:lookup](src/helpers/lookup.md) | `any` | Look up an entry by name in a record (`[a:1 b:2]` or `[name value]` pairs). |
 | [@lang:map](src/helpers/map.md) | `array` | Transform each element of an array by applying a helper. |
-| [@lang:num.format](src/helpers/num.format.md) | `string` | Format a number with decimal places (like formatUnits). |
-| [@lang:num.parse](src/helpers/num.parse.md) | `number` | Parse a decimal string with a given number of decimals (like parseUnits). |
+| [@lang:num.format](src/helpers/num.format.md) | `string` | Format an integer in base units as ordinary decimal notation, trimming trailing fractional zeros. |
+| [@lang:num.parse](src/helpers/num.parse.md) | `number` | Parse ordinary decimal notation into base units with explicit rounding and signedness. |
 | [@lang:reduce](src/helpers/reduce.md) | `any` | Reduce an array to a single value by applying a helper. |
 | [@lang:reverse](src/helpers/reverse.md) | `array` | Reverse the order of an array's elements. |
 | [@lang:slice](src/helpers/slice.md) | `array` | Extract a section of an array. |

@@ -45,7 +45,7 @@ export default defineHelper<Lang>({
         "@slice! expects (call start end?), e.g. @slice!($safe::getOwners() 0 3)",
       );
     }
-    const { payload } = await wordsArg(ctx, node.args[0], "slice!");
+    const { payload, elemType } = await wordsArg(ctx, node.args[0], "slice!");
     const start = await constIntArg(ctx, "slice!", "start", node.args[1]);
     const end =
       node.args[2] !== undefined
@@ -104,6 +104,7 @@ export default defineHelper<Lang>({
       kind: "call",
       param: sliceParam(ctx, payload, startPiece, len),
       cat: "Bytes",
+      collection: { element: { type: elemType }, transport: "words" },
     };
   },
 });

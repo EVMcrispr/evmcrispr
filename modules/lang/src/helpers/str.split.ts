@@ -1,11 +1,18 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import {
+  buildCallSegments,
+  canonicalArgSpec,
   chainArgWithLens,
   constIntArg,
+  encodeRead,
   lensedDataOperand,
+  rawParam,
   requireBytesLike,
   splitParam,
+  staticCallParam,
+  toWord,
 } from "@evmcrispr/sdk/onchain";
+import { type AbiFunction, parseAbiItem } from "viem";
 import type Lang from "..";
 import { stringArg } from "../utils/onchain";
 
@@ -14,7 +21,7 @@ export default defineHelper<Lang>({
   description:
     "Split a string by a delimiter into an array of strings, or select one segment when an index is given.",
   compileDescription:
-    "The segment index is required; the delimiter may be a live call, which costs three reads of it per segment.",
+    "Returns the complete array when no index is supplied; indexed selection supports negative indexes.",
   returnType: ["array", "string"],
   args: [
     {
@@ -36,6 +43,8 @@ export default defineHelper<Lang>({
     },
   ],
   async run(_, { s, delim, index }) {
+    if (String(delim).length === 0)
+      throw new ErrorException("@str.split delimiter must be non-empty");
     const parts = String(s).split(String(delim));
     if (index === undefined) return parts;
     const i = Number(index);
@@ -48,7 +57,7 @@ export default defineHelper<Lang>({
     return parts[at];
   },
   compile: async (ctx, node) => {
-    if (node.args.length !== 3) {
+    if (node.args.length < 2 || node.args.length > 3) {
       throw new ErrorException(
         "@str.split! expects (call delimiter index), e.g. @str.split!($pool::name() ` ` 1) — segment indexes count from the start (0, 1, …) or from the end (-1, -2, …)",
       );
@@ -65,6 +74,36 @@ export default defineHelper<Lang>({
       throw new ErrorException(
         "@str.split! delimiter must be a non-empty string",
       );
+    }
+    if (!node.args[2]) {
+      const fn = parseAbiItem(
+        "function split(bytes,bytes) pure returns (bytes[])",
+      ) as AbiFunction;
+      const delim =
+        typeof delimiter === "string"
+          ? { kind: "value" as const, value: delimiter }
+          : canonicalArgSpec(
+              ctx,
+              { type: "bytes" },
+              "param" in delimiter ? delimiter.param : delimiter,
+            );
+      const call = buildCallSegments(ctx, fn, [
+        canonicalArgSpec(ctx, { type: "bytes" }, lensedDataOperand(ctx, arg)),
+        delim,
+      ]);
+      return {
+        kind: "call",
+        cat: "Bytes",
+        param: staticCallParam(
+          ctx.core,
+          encodeRead(
+            rawParam(toWord(BigInt(ctx.operators))),
+            call.selector,
+            call.segments,
+          ),
+        ),
+        collection: { element: { type: "string" }, transport: "abi" },
+      };
     }
     const index = await constIntArg(ctx, "str.split!", "index", node.args[2]);
     return {
