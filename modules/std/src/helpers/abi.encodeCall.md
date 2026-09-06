@@ -4,7 +4,7 @@ title: "@abi.encodeCall"
 
 ABI-encode a function call from its signature and arguments.
 
-**On-chain (`@abi.encodeCall!`)**: The signature must be a constant; live arguments must be elementary static types, each contributing its 32-byte word (at most 4 per call).
+**On-chain (`@abi.encodeCall!`)**: The signature must be constant; up to four live arguments may include arrays and tuples.
 
 **Returns**: `bytes`
 
@@ -32,19 +32,6 @@ set $data @abi.encodeCall("transfer(address,uint256)" 0x44fA8E6f47987339850636F8
 
 ## On-chain face (@abi.encodeCall!)
 
-The signature is a constant, so the selector seeds the first constant run
-and each argument appends its 32-byte head word — one `concat` for the
-whole calldata value. Live arguments must be elementary static types, at
-most 4 per call; all-constant calls fold at composition.
-
-This is not the `::!` chain operator wearing a new name: `::!` PERFORMS a
-constructed read, while this face produces the calldata as a bytes VALUE —
-for comparing against stored payloads (a timelock's queued call, a
-multisig's proposed transaction) rather than executing anything.
-
-## See Also
-
-- [@abi.decodeCall](abi.decodeCall.md) — the inverse: decode calldata into `[contract sig [args]]`
-- [send](../commands/send.md) — send pre-encoded calldata
-- [exec](../commands/exec.md) — call by signature (auto-encodes)
-- [@hash](hash.md) — compute a function selector
+The function signature stays constant. Live values, including arrays and tuples,
+are canonically ABI-encoded before the function selector is prepended. Integer
+ABI arguments require exact integral values in the destination type's range.

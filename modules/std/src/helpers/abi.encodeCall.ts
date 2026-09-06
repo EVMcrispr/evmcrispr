@@ -3,13 +3,13 @@ import { concatParam } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
 import { parseAbiItem, toFunctionSelector } from "viem";
 import type Std from "..";
-import { buildAbiParts, isLiveNode } from "../utils/abiParts";
+import { buildStandardEncoding, isLiveNode } from "../utils/abiParts";
 
 export default defineHelper<Std>({
   name: "abi.encodeCall",
   description: "ABI-encode a function call from its signature and arguments.",
   compileDescription:
-    "The signature must be a constant; live arguments must be elementary static types, each contributing its 32-byte word (at most 4 per call).",
+    "The signature must be constant; up to four live arguments may include arrays and tuples.",
   returnType: "bytes",
   args: [
     {
@@ -31,10 +31,7 @@ export default defineHelper<Std>({
     const fnABI = parseAbiItem(`function ${bare}`) as AbiFunction;
     return encodeCalldata(fnABI, params);
   },
-  // Unlike the `::!` chain operator, which PERFORMS a constructed read,
-  // this face produces the calldata as a bytes VALUE — the constant
-  // selector seeds the first concat run and each argument appends its
-  // head word, so the whole call is one concat.
+  // Canonical argument encoding plus the constant function selector.
   compile: async (ctx, node) => {
     const [sigNode, ...paramNodes] = node.args;
     if (!sigNode || isLiveNode(sigNode)) {
@@ -73,14 +70,11 @@ export default defineHelper<Std>({
         throw new ErrorException(`@abi.encodeCall! ${(err as Error).message}`);
       }
     }
-    const parts = await buildAbiParts(
-      ctx,
-      fnABI.inputs.map((p) => p.type),
-      paramNodes,
-      "head",
-      "abi.encodeCall!",
-      toFunctionSelector(fnABI).slice(2),
-    );
-    return { kind: "call", param: concatParam(ctx, parts), cat: "Bytes" };
+    const encoded = await buildStandardEncoding(ctx, fnABI.inputs, paramNodes);
+    return {
+      kind: "call",
+      param: concatParam(ctx, [toFunctionSelector(fnABI), encoded]),
+      cat: "Bytes",
+    };
   },
 });

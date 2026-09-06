@@ -291,6 +291,7 @@ export default defineCommand<Std>({
       params: paramDefs,
       opts: optDefs,
       returnType,
+      returnAbiType,
     } = parseSignature(params);
     const isHelper = node.args[0].type === NodeType.HelperFunctionExpression;
     /** A `def @name!` defines an ON-CHAIN helper: its body is made of `!`
@@ -300,21 +301,22 @@ export default defineCommand<Std>({
     let finalReturnType = returnType;
 
     const needsInference =
-      isHelper && (paramDefs.some((p) => p.type === "any") || !returnType);
+      isHelper &&
+      (paramDefs.some((p) => p.type === "any" && !p.abiType) || !returnType);
 
     // Type inference walks the body expecting helpers it can reason about
     // off-chain, and an on-chain body is made of compile-only ones. Rather
     // than infer something unreliable, ask for the signature.
     if (isOnchain && needsInference) {
       const missing = paramDefs
-        .filter((p) => p.type === "any")
+        .filter((p) => p.type === "any" && !p.abiType)
         .map((p) => `$${p.name}`);
       throw new ErrorException(
         `def @${name} needs a fully typed signature${
           missing.length
             ? ` — ${missing.join(", ")} ${missing.length > 1 ? "have" : "has"} no type`
             : ""
-        }${!returnType ? `${missing.length ? ", and" : " —"} the return type is missing` : ""}. An on-chain body compiles rather than runs, so its types cannot be inferred from it: write them out, e.g. def @${name} "$x: number -> number" @num!($x * 2)`,
+        }${!returnType ? `${missing.length ? ", and" : " —"} the return type is missing` : ""}. An on-chain body compiles rather than runs, so its types cannot be inferred from it: write them out, e.g. def @${name} "$x: number -> number" @calc!($x * 2)`,
       );
     }
 
@@ -323,7 +325,7 @@ export default defineCommand<Std>({
       const inferred = inferTypes(body as Node, paramDefs, allModules);
 
       for (const p of paramDefs) {
-        if (p.type === "any") {
+        if (p.type === "any" && !p.abiType) {
           const resolved = inferred.paramTypes.get(p.name);
           if (resolved) p.type = resolved;
         }
@@ -337,6 +339,7 @@ export default defineCommand<Std>({
       ? buildDef("helper", name, paramDefs, finalReturnType, body as Node)
       : buildDef("command", name, paramDefs, optDefs, body as Node);
     defValue.node = node;
+    defValue.returnAbiType = returnAbiType;
 
     if (isOnchain) {
       // No off-chain face. The interpreter refuses a `!` def before it gets

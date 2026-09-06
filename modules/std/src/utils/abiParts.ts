@@ -1,12 +1,31 @@
 import type { Node } from "@evmcrispr/sdk";
-import { ErrorException, NodeType, Num } from "@evmcrispr/sdk";
+import {
+  coerceAbiValue,
+  ErrorException,
+  encodeParams,
+  NodeType,
+} from "@evmcrispr/sdk";
 import type { BytesPart, CompileCtx } from "@evmcrispr/sdk/onchain";
 import {
+  buildCallSegments,
+  canonicalArgSpec,
+  canonicalBytesParam,
+  compileArgSpecs,
   compileOperand,
+  encodeValuesParam,
+  formatReturnTuple,
+  guardAbiInteger,
   isBangHelperNode,
+  opReadParam,
   wordPartParam,
 } from "@evmcrispr/sdk/onchain";
-import { encodeAbiParameters, encodePacked } from "viem";
+import {
+  type AbiFunction,
+  type AbiParameter,
+  encodeAbiParameters,
+  encodePacked,
+  parseAbiItem,
+} from "viem";
 
 /**
  * Shared part builder for the on-chain abi encoder faces: each value
@@ -45,11 +64,7 @@ export const isLiveNode = (n: Node): boolean =>
 
 /** Coerce an interpreted constant for viem's encoders. */
 export function toPackedValue(type: string, v: unknown): unknown {
-  if (v instanceof Num) return v.toBigInt();
-  if (type.startsWith("uint") || type.startsWith("int"))
-    return BigInt(String(v));
-  if (type === "bool") return v === "true" || v === true;
-  return v;
+  return coerceAbiValue({ type } as AbiParameter, v);
 }
 
 /**
@@ -138,7 +153,12 @@ export async function buildAbiParts(
       const { start, len } =
         mode === "packed" ? width : { start: 0n, len: 32n };
       parts.push({
-        param: wordPartParam(ctx, o.param, start, len),
+        param: wordPartParam(
+          ctx,
+          guardAbiInteger(ctx, o.param, o.cat, t),
+          start,
+          len,
+        ),
         size: Number(len),
       });
       continue;
@@ -157,4 +177,34 @@ export async function buildAbiParts(
 
   flushConstRun();
   return parts;
+}
+
+/** Canonical standard ABI encoding of live values, including dynamic composites. */
+export async function buildStandardEncoding(
+  ctx: CompileCtx,
+  params: readonly AbiParameter[],
+  nodes: readonly Node[],
+) {
+  const fn: AbiFunction = {
+    type: "function",
+    name: "encodeValues",
+    stateMutability: "pure",
+    inputs: params,
+    outputs: [],
+  };
+  const specs = await compileArgSpecs(ctx, nodes, fn, "ABI encoding");
+  const values = specs.map((spec, i) =>
+    spec.kind === "value"
+      ? encodeParams([params[i]], [spec.value], "ABI value")
+      : canonicalBytesParam(ctx, spec.param),
+  );
+  const encodedValues = encodeValuesParam(ctx, values);
+  const encoder = parseAbiItem(
+    "function encodeBytes(string,bytes[]) pure returns (bytes)",
+  ) as AbiFunction;
+  const call = buildCallSegments(ctx, encoder, [
+    { kind: "value", value: formatReturnTuple(params) },
+    canonicalArgSpec(ctx, { type: "bytes[]" }, encodedValues),
+  ]);
+  return opReadParam(ctx, call.selector, call.segments);
 }

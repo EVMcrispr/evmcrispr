@@ -64,8 +64,8 @@ nonzero selecting the then-branch; and ONLY the winner is resolved, so the
 loser's calls never happen at judge time.
 
 - Branches must resolve to the same kind of value — the judge compares
-  whichever one wins. Signed and unsigned words are the one compatible
-  pair.
+  whichever one wins. Mixed signed/unsigned live branches are rejected to avoid silently reinterpreting
+  the selected value. Use matching numeric categories.
 - Constant branches ride as raw words, so string/bytes CONSTANTS are
   rejected; live string/bytes reads are fine (the winner's canonical
   envelope passes through byte-identically).
@@ -85,3 +85,5 @@ assert 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{balanceOf(address)(uint256) 
 # The losing branch never resolves — guard a read behind a live switch
 assert @ifElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} > 6 ? 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{totalSupply()(uint256)} : 0) >= 0
 ```
+
+Arithmetic branch expressions use checked integer rules on both faces (`//` for division). Use a nested exact helper for rational calculations.

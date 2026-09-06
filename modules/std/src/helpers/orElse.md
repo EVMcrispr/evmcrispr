@@ -81,3 +81,5 @@ assert @orElse!(0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5::{previewRedeem(uint2
 # stands in for the missing read, so the comparison always has a value
 assert @bool!(@orElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} 18) <= 18)
 ```
+
+Mixed signed/unsigned live numeric branches are rejected; use matching integer categories so a fallback cannot silently change the value interpretation.

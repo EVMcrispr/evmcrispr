@@ -80,6 +80,14 @@ export default defineHelper<Std>({
       );
     }
     const second = await compileOperand(ctx, node.args[1]);
+    if (
+      (first.cat === "Int" && second.cat === "Uint") ||
+      (first.cat === "Uint" && second.cat === "Int")
+    ) {
+      throw new ErrorException(
+        "@orElse! cannot mix signed and unsigned numeric branches; explicitly convert both branches to the same integer type",
+      );
+    }
     if (!branchCompatible(first.cat, second.cat)) {
       throw new ErrorException(
         `@orElse! branches must resolve to the same kind of value, got ${first.cat} and ${second.cat} — the judge compares whichever one resolved`,

@@ -1,8 +1,14 @@
 import type { Node, Param } from "@evmcrispr/sdk";
-import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
+import {
+  defineHelper,
+  ErrorException,
+  evaluateCheckedExpression,
+  NodeType,
+} from "@evmcrispr/sdk";
 import type { CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
 import {
   branchCompatible,
+  compileCheckedExpr,
   compileExpr,
   compileOperand,
   coreCall,
@@ -11,12 +17,7 @@ import {
   scaleOf,
 } from "@evmcrispr/sdk/onchain";
 import type Std from "..";
-import {
-  evaluateArithmeticExpr,
-  evaluateBoolExpr,
-  isTruthy,
-  validateNoEmbeddedOps,
-} from "./_expr";
+import { evaluateBoolExpr, isTruthy, validateNoEmbeddedOps } from "./_expr";
 
 const SHAPE_HINT =
   "e.g. @ifElse($vault::{paused()(bool)} ? $safe : $vault) — the `?` and `:` need spaces around them";
@@ -27,7 +28,7 @@ const bareword = (n: Node): string | undefined =>
     : undefined;
 
 /** Operators that make a multi-token branch a BOOLEAN expression; anything
- *  else multi-token is arithmetic. Mirrors the @bool!/@num! split. */
+ *  else multi-token is arithmetic. Mirrors the @bool!/@calc! split. */
 const BOOL_OPS = new Set([
   "and",
   "or",
@@ -43,7 +44,7 @@ const BOOL_OPS = new Set([
 
 /** A parsed ternary tree: nested ternaries must be parenthesized, so each
  *  level has exactly one depth-0 `?`/`:` pair; a leaf is a token run — a
- *  single value node or an expression for the @bool!/@num! engines. */
+ *  single value node or an expression for the @bool!/@calc! engines. */
 type Ternary =
   | { kind: "ternary"; condition: Node[]; then_: Ternary; else_: Ternary }
   | { kind: "tokens"; nodes: Node[] };
@@ -181,7 +182,7 @@ export default defineHelper<Std>({
           ? evaluateBoolExpr(values)
             ? "true"
             : "false"
-          : evaluateArithmeticExpr(values);
+          : evaluateCheckedExpression(values);
       }
       // Only the winning branch is evaluated — the loser may be a read
       // that reverts, which is often the point of branching.
@@ -198,7 +199,9 @@ async function compilePart(ctx: CompileCtx, part: Ternary): Promise<Operand> {
   if (part.kind === "tokens") {
     return part.nodes.length === 1
       ? compileOperand(ctx, part.nodes[0])
-      : compileExpr(ctx, part.nodes, exprMode(part.nodes));
+      : exprMode(part.nodes) === "bool"
+        ? compileExpr(ctx, part.nodes, "bool")
+        : compileCheckedExpr(ctx, part.nodes);
   }
 
   const cond =
@@ -230,6 +233,14 @@ async function compilePart(ctx: CompileCtx, part: Ternary): Promise<Operand> {
   };
   const thenOp = await branch(part.then_, "then");
   const elseOp = await branch(part.else_, "else");
+  if (
+    (thenOp.cat === "Int" && elseOp.cat === "Uint") ||
+    (thenOp.cat === "Uint" && elseOp.cat === "Int")
+  ) {
+    throw new ErrorException(
+      "@ifElse! cannot mix signed and unsigned numeric branches; explicitly convert both branches to the same integer type",
+    );
+  }
   if (!branchCompatible(thenOp.cat, elseOp.cat)) {
     throw new ErrorException(
       `@ifElse! branches must resolve to the same kind of value, got ${thenOp.cat} and ${elseOp.cat} — the judge compares whichever one wins`,

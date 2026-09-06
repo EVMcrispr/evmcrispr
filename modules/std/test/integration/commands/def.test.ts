@@ -406,7 +406,7 @@ set $result @mapTwice($items @double @inc)`,
       name: "should bind a bang def separately from its non-bang twin",
       script: `
 def @double "$x: number -> number" @num($x * 2)
-def @double! "$x: number -> number" @num!($x * 2)
+def @double! "$x: number -> number" @calc!($x * 2)
 set $r @double(3)`,
       validate: (_actions, interpreter) => {
         expect(
@@ -424,7 +424,7 @@ set $r @double(3)`,
       // without this check the call would silently interpret.
       name: "should refuse to run a bang def off-chain",
       script: `
-def @double! "$x: number -> number" @num!($x * 2)
+def @double! "$x: number -> number" @calc!($x * 2)
 set $r @double!(3)`,
       error: "only valid inside an on-chain expression",
     },
@@ -432,12 +432,12 @@ set $r @double!(3)`,
       // An on-chain body compiles rather than runs, so inferTypes cannot
       // learn anything from it. Ask for the signature instead of guessing.
       name: "should require a typed signature on a bang def",
-      script: `def @double! "$x" @num!($x * 2)`,
+      script: `def @double! "$x" @calc!($x * 2)`,
       error: "needs a fully typed signature",
     },
     {
       name: "should require a return type on a bang def",
-      script: `def @double! "$x: number" @num!($x * 2)`,
+      script: `def @double! "$x: number" @calc!($x * 2)`,
       error: "return type is missing",
     },
     {

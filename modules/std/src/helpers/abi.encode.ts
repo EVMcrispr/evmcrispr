@@ -4,18 +4,17 @@ import {
   encodeParams,
   HelperFunctionError,
 } from "@evmcrispr/sdk";
-import { concatParam } from "@evmcrispr/sdk/onchain";
 import type { AbiParameter } from "viem";
 import { parseAbiParameters } from "viem";
 import type Std from "..";
-import { buildAbiParts, isLiveNode } from "../utils/abiParts";
+import { buildStandardEncoding, isLiveNode } from "../utils/abiParts";
 
 export default defineHelper<Std>({
   name: "abi.encode",
   description:
     "ABI-encode values given a comma-separated type list, like Solidity abi.encode.",
   compileDescription:
-    "Live values must be elementary static types, at most 4 per call; dynamic, array and tuple types only encode when every value is constant.",
+    "Encode up to four live ABI values, including tuples and arrays, using a constant type descriptor.",
   returnType: "bytes",
   args: [
     {
@@ -44,14 +43,6 @@ export default defineHelper<Std>({
       throw new HelperFunctionError(node, (err as Error).message);
     }
   },
-  // Standard encoding of static types is their head words concatenated,
-  // so the face is one concat over full-width word parts. Dynamic types
-  // would need their tails re-encoded through offsets — that recursive
-  // re-encoder deliberately does not exist, so they stay constant.
-  //
-  // Operators has an `encode(string,bytes[])` entry, but it raw-returns
-  // with no bytes envelope, so its result cannot ride as a bytes operand
-  // in a composition — concat over words is strictly simpler here.
   compile: async (ctx, node) => {
     const [typesNode, ...valueNodes] = node.args;
     if (!typesNode || isLiveNode(typesNode)) {
@@ -85,13 +76,10 @@ export default defineHelper<Std>({
         throw new ErrorException(`@abi.encode! ${(err as Error).message}`);
       }
     }
-    const parts = await buildAbiParts(
-      ctx,
-      params.map((p) => p.type),
-      valueNodes,
-      "head",
-      "abi.encode!",
-    );
-    return { kind: "call", param: concatParam(ctx, parts), cat: "Bytes" };
+    return {
+      kind: "call",
+      param: await buildStandardEncoding(ctx, params, valueNodes),
+      cat: "Bytes",
+    };
   },
 });

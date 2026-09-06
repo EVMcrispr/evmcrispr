@@ -17,7 +17,7 @@ import { helpers } from "../../../src/_generated";
 /**
  * @std's both-faced helpers.
  *
- * `@num!`, `@bool!` and `@bytes!` are the expression engine's entry points
+ * `@calc!`, `@bool!` and `@bytes!` are the expression engine's entry points
  * rather than single reads: each composes live calls and constants into on-chain
  * arithmetic, logic or word ops. Their parity matters more than most, because
  * everything else that takes an expression argument goes through them.
@@ -117,42 +117,31 @@ describeParity("@std", {
     );
   },
   cases: [
-    // ---- @num!: arithmetic over live reads ---------------------------------
+    // Checked off-chain and on-chain faces use identical integer arithmetic.
     {
-      name: "num adds a constant to a live read",
-      run: `@num(${DEC} + 4)`,
-      compile: `@num!(${DEC} + 4)`,
+      name: "calc adds",
+      run: `@calc(${DEC} + 4)`,
+      compile: `@calc!(${DEC} + 4)`,
     },
     {
-      // A division that divides evenly: the only kind on which the two
-      // faces agree.
-      name: "num divides evenly",
-      run: `@num(${DEC} / 2)`,
-      compile: `@num!(${DEC} / 2)`,
+      name: "calc divides evenly",
+      run: `@calc(${DEC} // 2)`,
+      compile: `@calc!(${DEC} // 2)`,
     },
     {
-      // And one that does not. Off-chain `/` is EXACT RATIONAL arithmetic, so
-      // 18/4 is 9/2; on-chain a word is an integer and the division floors to
-      // 4. Nothing warns, and the same source text means two different things
-      // — which is why the case is written to divide unevenly on purpose
-      // rather than left to whatever a live read happens to be.
-      name: "diverges: an uneven division is exact off-chain and floored on-chain",
-      run: `@num(${DEC} / 4)`,
-      compile: `@num!(${DEC} / 4)`,
-      helper: "num",
-      diverges: {
-        reason: "off-chain / is exact rational, on-chain it floors",
-      },
+      name: "calc truncates uneven division identically",
+      run: `@calc(${DEC} // 4)`,
+      compile: `@calc!(${DEC} // 4)`,
     },
     {
-      name: "num applies precedence across several live terms",
-      run: `@num(${DEC} * 2 + 1)`,
-      compile: `@num!(${DEC} * 2 + 1)`,
+      name: "calc precedence",
+      run: `@calc(${DEC} * 2 + 1)`,
+      compile: `@calc!(${DEC} * 2 + 1)`,
     },
     {
-      name: "num takes a modulus",
-      run: `@num(${SUPPLY} % 1000)`,
-      compile: `@num!(${SUPPLY} % 1000)`,
+      name: "calc modulus",
+      run: `@calc(${SUPPLY} % 1000)`,
+      compile: `@calc!(${SUPPLY} % 1000)`,
     },
 
     // ---- @bool!: comparison and logic --------------------------------------
@@ -549,11 +538,10 @@ describeParity("@std", {
       compile: `@abi.encode!("uint256,uint256,address" 1 ${MOCK_VALUE} ${HOLDER})`,
     },
     {
-      name: "encode refuses a dynamic type when a value is live",
+      name: "encode supports dynamic constants alongside live values",
       helper: "abi.encode",
-      run: `@abi.encode("uint256" 1)`,
+      run: `@abi.encode("string,uint256" note ${MOCK_VALUE})`,
       compile: `@abi.encode!("string,uint256" note ${MOCK_VALUE})`,
-      refuses: /elementary static types/,
     },
 
     // ---- @abi.encodeCall!: selector plus argument words --------------------
@@ -568,11 +556,10 @@ describeParity("@std", {
       compile: `@abi.encodeCall!("transfer(address,uint256)" ${HOLDER} ${MOCK_VALUE})`,
     },
     {
-      name: "encodeCall refuses a dynamic parameter with a live argument",
+      name: "encodeCall supports dynamic parameters with live arguments",
       helper: "abi.encodeCall",
-      run: `@abi.encodeCall("transfer(address,uint256)" ${HOLDER} 1)`,
+      run: `@abi.encodeCall("post(string,uint256)" note ${MOCK_VALUE})`,
       compile: `@abi.encodeCall!("post(string,uint256)" note ${MOCK_VALUE})`,
-      refuses: /elementary static types/,
     },
 
     // ---- @sigValid!: recovery and ERC-1271 at judgement --------------------

@@ -45,8 +45,13 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@bool](src/helpers/bool.md) | `bool` | Evaluate a boolean expression or convert a value to a boolean string. |
 | [@bytes](src/helpers/bytes.md) | `bytes` | Convert a value to hex bytes, force UTF-8 encoding, or perform a bitwise operation. |
 | [@bytes32](src/helpers/bytes32.md) | `bytes32` | Pad a value to a 32-byte hex string. Integers and arithmetic expressions are left-padded like Solidity's `bytes32(uint256(...))` cast; hex strings pad left by default or right with a trailing `right`. |
+| [@calc](src/helpers/calc.md) | `number` | Evaluate checked 256-bit integer arithmetic; use // for truncating division. |
+| [@calcCeil](src/helpers/calcCeil.md) | `number` | Evaluate checked 256-bit integer arithmetic; root division rounds ceil. |
+| [@calcFloor](src/helpers/calcFloor.md) | `number` | Evaluate checked 256-bit integer arithmetic; root division rounds floor. |
+| [@ceil](src/helpers/ceil.md) | `number` | Evaluate exact rational arithmetic, round the final result toward positive infinity, and check its 256-bit integer range. |
 | [@date](src/helpers/date.md) | `number` | Parse a date string into a Unix timestamp, with an optional offset. |
 | [@ens](src/helpers/ens.md) | `address` | Resolve an ENS name to its address. |
+| [@floor](src/helpers/floor.md) | `number` | Evaluate exact rational arithmetic, round the final result toward negative infinity, and check its 256-bit integer range. |
 | [@gas.estimate](src/helpers/gas.estimate.md) | `number` | Estimate the gas required for a contract call. |
 | [@gas.price](src/helpers/gas.price.md) | `number` | Current gas price in wei. |
 | [@get](src/helpers/get.md) | `any` | Call a read-only contract function and return its result. |
@@ -56,7 +61,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@ipfs.get](src/helpers/ipfs.get.md) | `string` | Fetch content from IPFS, verified against its CID, and return it as text. |
 | [@me](src/helpers/me.md) | `address` | Connected wallet address. |
 | [@nonce](src/helpers/nonce.md) | `number` | Number of transactions sent from an address (its account nonce), read over plain RPC. For contracts it counts the CREATEs they performed. There is no on-chain form: the EVM has no nonce opcode. |
-| [@num](src/helpers/num.md) | `number` | Evaluate an arithmetic expression or convert a value to a number. |
+| [@num](src/helpers/num.md) | `number` | Evaluate exact rational arithmetic, truncate the final result toward zero, and check its 256-bit integer range. |
 | [@orElse](src/helpers/orElse.md) | `any` | The value of the first read, or the second one when the first reverts. |
 | [@reverts](src/helpers/reverts.md) | `any` | Whether a live call reverts: true when the chain refuses the call, false when it resolves; `-!>` matches the reason and a lens selects an error argument. |
 | [@sender](src/helpers/sender.md) | `address` | The account the current calls are sent from: the connected wallet (@me), or, inside a block that executes as another account, that account — the Safe in safe:propose and safe:execute, the last forwarder in aragonos forward, the DAO in aragonosx propose and act, the governor's executor (its timelock, else itself) in governor proposals and the timelock in timelock-schedule. |

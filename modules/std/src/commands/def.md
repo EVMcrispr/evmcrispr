@@ -125,7 +125,7 @@ Four things follow from a body that compiles rather than runs:
   naming a parameter more than once is meaningful:
 
 ```evml
-def @sq! "$x: number -> number" @num!($x * $x)
+def @sq! "$x: number -> number" @calc!($x * $x)
 ```
 
   `$x` appears twice, so the element is stamped at two places in one
@@ -181,3 +181,10 @@ and loaded remotely — see [load](load.md#external-evml-modules---from).
 - [set](set.md) — assign values to variables
 - [loop](loop.md) — `loop break` / `loop continue`
 - [exit](exit.md) — stop the whole script
+
+## Concrete ABI annotations
+
+Definition signatures can use ABI types such as `uint256`, `int256[]`, or
+`(uint256,string)` in addition to the existing generic types. Generic collection
+callbacks validate those annotations against their direct ABI call. They must
+return one ABI value; use a single tuple return for a dynamic struct.
