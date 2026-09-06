@@ -128,6 +128,7 @@ export {
   getDeepestNodeWithArgs,
   hasCommandsBlock,
 } from "./utils/ast";
+export * from "./utils/checkedArithmetic";
 export type { NpmFileSpec } from "./utils/npmRegistry";
 export {
   fetchNpmLatestVersion,

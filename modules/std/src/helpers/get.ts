@@ -1,9 +1,10 @@
 import {
   defineHelper,
   ErrorException,
+  preserveAbiReturnNumbers,
   splitReadAbiSignature,
 } from "@evmcrispr/sdk";
-import { parseAbiItem } from "viem";
+import { type AbiFunction, parseAbiItem } from "viem";
 import type Std from "..";
 
 export default defineHelper<Std>({
@@ -40,13 +41,16 @@ export default defineHelper<Std>({
     const { body, returns } = parts;
 
     const client = await module.getClient();
+    const fn = parseAbiItem(
+      `function ${body} external view returns ${returns}`,
+    ) as AbiFunction;
     const result = await client.readContract({
       address,
-      abi: [parseAbiItem(`function ${body} external view returns ${returns}`)],
+      abi: [fn],
       functionName: body.split("(")[0],
       args: params,
     });
 
-    return result;
+    return preserveAbiReturnNumbers(fn.outputs, result) as never;
   },
 });

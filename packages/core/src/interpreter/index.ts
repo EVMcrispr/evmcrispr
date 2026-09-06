@@ -44,6 +44,7 @@ import {
   NodeType,
   Num,
   parseConfigVarName,
+  preserveAbiReturnNumbers,
   readConfigValue,
   resolveErrorCaptures,
   resolveEventCaptures,
@@ -52,8 +53,8 @@ import {
   timeUnits,
 } from "@evmcrispr/sdk";
 import { applyValueLens } from "@evmcrispr/sdk/onchain";
-import type { Abi, Address, PublicClient } from "viem";
-import { isAddress, parseAbiItem } from "viem";
+import type { Abi, AbiFunction, Address, PublicClient } from "viem";
+import { getAbiItem, isAddress, parseAbiItem } from "viem";
 
 const { ABI, USER, CACHE } = BindingsSpace;
 
@@ -823,9 +824,11 @@ export function makeExecutionResolveCallExpression(
         address: targetAddress,
       });
 
+      const fn = getAbiItem({ abi, name: n.method, args }) as AbiFunction;
+      const typed = preserveAbiReturnNumbers(fn.outputs, res);
       const result = n.returnDestructure
-        ? applyReturnLens(res, n.returnDestructure, n)
-        : res;
+        ? applyReturnLens(typed, n.returnDestructure, n)
+        : typed;
 
       // Only a TOP-LEVEL bigint becomes a Num, so a uint256[] return stays
       // bigint[] and a tuple keeps its raw viem members. Helpers that compare

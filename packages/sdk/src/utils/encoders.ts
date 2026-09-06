@@ -13,10 +13,59 @@ import { Num } from "./Num";
 
 export type Param = string | boolean | Num | Param[];
 
-function toViemParam(p: Param): unknown {
-  if (p instanceof Num) return p.toBigInt();
-  if (Array.isArray(p)) return p.map(toViemParam);
-  return p;
+/** Convert recursively without silently truncating rational ABI integers. */
+export function coerceAbiValue(type: AbiParameter, value: unknown): unknown {
+  const array = type.type.match(/\[(\d*)\]$/);
+  if (array) {
+    if (!Array.isArray(value)) throw new ErrorInvalid("Expected an array");
+    if (array[1] && value.length !== Number(array[1]))
+      throw new ErrorInvalid(`Expected ${array[1]} array elements`);
+    const element = {
+      ...type,
+      type: type.type.slice(0, -array[0].length),
+    } as AbiParameter;
+    return value.map((entry) => coerceAbiValue(element, entry));
+  }
+  if (type.type === "tuple") {
+    const fields = (type as { components: readonly AbiParameter[] }).components;
+    if (!Array.isArray(value) && (typeof value !== "object" || value === null))
+      throw new ErrorInvalid("Expected a tuple");
+    return fields.map((field, i) =>
+      coerceAbiValue(
+        field,
+        Array.isArray(value)
+          ? value[i]
+          : (value as Record<string, unknown>)[field.name ?? String(i)],
+      ),
+    );
+  }
+  const integer = /^(u?int)(\d*)$/.exec(type.type);
+  if (integer) {
+    if (typeof value === "boolean" || value === undefined || value === null)
+      throw new ErrorInvalid("Invalid integer value");
+    const number = Num(value);
+    if (!number.isInteger())
+      throw new ErrorInvalid(
+        "Integer ABI arguments require an exact integer; round explicitly",
+      );
+    const result = number.toBigInt();
+    const bits = BigInt(integer[2] || "256");
+    const signed = integer[1] === "int";
+    const min = signed ? -(1n << (bits - 1n)) : 0n;
+    const max = signed ? (1n << (bits - 1n)) - 1n : (1n << bits) - 1n;
+    if (result < min || result > max)
+      throw new ErrorInvalid(`Integer does not fit ${type.type}`);
+    return result;
+  }
+  if (
+    /^bytes\d*$/.test(type.type) &&
+    typeof value === "string" &&
+    !value.startsWith("0x")
+  ) {
+    const size = type.type.slice(5);
+    return toHex(value, { size: size ? Number(size) : undefined });
+  }
+  return value;
 }
 
 /**
@@ -35,38 +84,7 @@ function coerceAndValidateParams(
   inputs.forEach((paramType, i) => {
     const { name, type } = paramType;
     try {
-      let paramValue: Param = params[i];
-
-      // TODO: Include support for tuple types, e.g. (uint256, uint256)
-      if (
-        (type.startsWith("uint") || type.startsWith("int")) &&
-        !type.endsWith("[]") &&
-        (typeof paramValue === "boolean" || typeof paramValue === "undefined")
-      ) {
-        throw new ErrorInvalid(`Invalid BigInt value`);
-      }
-
-      if (
-        (type.startsWith("uint") || type.startsWith("int")) &&
-        type.endsWith("[]") &&
-        Array.isArray(paramValue) &&
-        paramValue
-          .flat()
-          .some((val) => typeof val === "boolean" || typeof val === "undefined")
-      ) {
-        throw new ErrorInvalid(`Invalid BigInt array value`);
-      }
-
-      if (
-        type.includes("byte") &&
-        typeof paramValue === "string" &&
-        !paramValue.startsWith("0x")
-      ) {
-        const _size = type.match(/^bytes(\d*)$/)?.[1];
-        const size = _size ? Number(_size) : undefined;
-        paramValue = toHex(paramValue, { size });
-      }
-      const resolved = toViemParam(paramValue);
+      const resolved = coerceAbiValue(paramType, params[i]);
       encodeAbiParameters([paramType], [resolved]);
       encodedParams.push(resolved);
     } catch (err) {

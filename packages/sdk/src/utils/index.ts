@@ -1,3 +1,4 @@
+export * from "./abiNumbers";
 export * from "./abis";
 export * from "./address-info";
 export * from "./address-transactions";
