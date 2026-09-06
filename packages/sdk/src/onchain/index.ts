@@ -2,7 +2,7 @@ export * from "./abi-guards";
 /**
  * `@evmcrispr/sdk/onchain` — the shared on-chain expression layer.
  *
- * ERC-8211 wire encoding, the assertions core + Operators calldata
+ * ERC-8211 wire encoding, the assertions core + Operations calldata
  * builders, the composition table, the expression compiler and the
  * cross-module `!` helper dispatch. Any module can import this subpath to
  * give its helpers an on-chain (`compile`) face.

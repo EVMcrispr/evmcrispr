@@ -13,10 +13,10 @@ import type { Address } from "../types";
 export const CORE_ADDRESS: Address =
   "0x8794b0d097C07e7520B421d02201E34c9eE3E156";
 
-/** Canonical address of the Operators v1.0 (vanity CREATE2 salt). */
-export const OPERATORS_ADDRESS: Address =
-  "0xE5c2D60293510f69456d006b8B177AAE0889911f";
+/** Canonical address of the Operations v1.0 (vanity CREATE2 salt). */
+export const OPERATIONS_ADDRESS: Address =
+  "0x09E4A7E3072F075C2786BE9FA0B7c4BA6591AE9e";
 
 /** Generic ABI-valued collection periphery (requires Cancun). */
-export const COLLECTION_OPERATORS_ADDRESS: Address =
-  "0x87841575F679dA8E877db0A95b1bCF2C0d0D55dc";
+export const COLLECTIONS_ADDRESS: Address =
+  "0xc011Ec7Cc443dA1218Da699EFd09639f35dd8379";

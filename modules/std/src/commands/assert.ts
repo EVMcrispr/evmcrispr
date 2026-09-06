@@ -4,7 +4,7 @@ import type { Category, CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
 import {
   assertParamAction,
   boundWord,
-  COLLECTION_OPERATORS_ADDRESS,
+  COLLECTIONS_ADDRESS,
   CORE_ADDRESS,
   cmpCombine,
   compileOnchainHelper,
@@ -15,7 +15,7 @@ import {
   type InputParam,
   isBangHelperNode,
   judged,
-  OPERATORS_ADDRESS,
+  OPERATIONS_ADDRESS,
   operatorFragment,
   opJudge,
   scaleOf,
@@ -26,8 +26,8 @@ import {
 import { isHex, keccak256 } from "viem";
 import type Std from "..";
 
-/** Operators each category supports at the top level of an assertion. */
-const PLAIN_OPERATORS: Record<Category, string[]> = {
+/** Operations each category supports at the top level of an assertion. */
+const PLAIN_OPERATIONS: Record<Category, string[]> = {
   Uint: ["Eq", "Ne", "Gt", "Lt", "Ge", "Le", "ApproxEq"],
   Int: ["Eq", "Ne", "Gt", "Lt", "Ge", "Le", "ApproxEq"],
   Address: ["Eq", "Ne"],
@@ -116,8 +116,8 @@ export default defineCommand<Std>({
       module,
       interpreters,
       core: CORE_ADDRESS,
-      operators: OPERATORS_ADDRESS,
-      collections: COLLECTION_OPERATORS_ADDRESS,
+      operators: OPERATIONS_ADDRESS,
+      collections: COLLECTIONS_ADDRESS,
       hints: {},
     };
     // A face that can only resolve inside a transaction (see
@@ -209,7 +209,7 @@ export default defineCommand<Std>({
     const cnst = rhs as Operand & { kind: "const" };
     const category = live.cat;
 
-    const fragment = operatorFragment(op, PLAIN_OPERATORS[category]);
+    const fragment = operatorFragment(op, PLAIN_OPERATIONS[category]);
 
     // A scaled live value (a ray rate, a wad price) is compared in ITS
     // units, so both the bound and the tolerance move up to meet it:

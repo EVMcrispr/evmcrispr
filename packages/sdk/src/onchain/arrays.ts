@@ -2,7 +2,7 @@
  * Word-array argument plumbing shared by the on-chain array faces
  * (@includes!, @all!, @map!, @merkle.verify!, …): validating that a call
  * argument resolves an array of single-word elements, and bridging its
- * envelope into the word-payload bytes the Operators word-array
+ * envelope into the word-payload bytes the Operations word-array
  * vocabulary consumes.
  */
 import type { AbiParameter, Hex } from "viem";

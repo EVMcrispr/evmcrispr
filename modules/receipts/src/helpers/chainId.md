@@ -31,7 +31,7 @@ assert @chainId! == 100 "wrong chain"
 ## On-chain face (@chainId!)
 
 The chain the assertion is being judged on, read from the `CHAINID` opcode
-through Operators. Takes no arguments.
+through Operations. Takes no arguments.
 
 Worth contrasting with the plain face: `@chainId` is the chain the SCRIPT was
 composed against, which is a build-time fact. The two differ exactly when a

@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -10,7 +10,7 @@ import {
 import { getAddress, labelhash, namehash } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const REGISTRY = getAddress("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e");
 const NAME_WRAPPER = getAddress("0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401");
 const BASE_REGISTRAR = getAddress("0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85");
@@ -21,7 +21,7 @@ const preamble = `load ens`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 const NODE = namehash(NAME);

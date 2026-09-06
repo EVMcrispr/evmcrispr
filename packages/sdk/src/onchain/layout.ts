@@ -17,7 +17,7 @@ import type { CompileCtx } from "./types";
  * second, which is what lets one call carry more than one live value.
  */
 
-/** An Operators word op over two resolved operands, as a core read. */
+/** An Operations word op over two resolved operands, as a core read. */
 function wordOp(
   ctx: CompileCtx,
   fn: string,
@@ -105,7 +105,7 @@ const isLiveSlot = (s: Slot): s is LiveSlot => "param" in s;
 
 /** The `len` word of a resolved envelope [0x20][len][payload], as a core
  *  `pick` of word 1. One core read, where `byteLen` would cost a core
- *  read plus an Operators hop. Byte length for bytes/string; ELEMENT
+ *  read plus an Operations hop. Byte length for bytes/string; ELEMENT
  *  COUNT for a `T[]`, which is why sizing has to be type-directed. */
 export function envelopeLenParam(ctx: CompileCtx, env: InputParam): InputParam {
   return staticCallParam(ctx.core, encodePick(env, 1n));

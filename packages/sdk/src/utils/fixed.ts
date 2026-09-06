@@ -1,7 +1,7 @@
 import { ErrorException } from "@evmcrispr/sdk";
 
 /**
- * Off-chain mirrors of the Operators fixed-point functions.
+ * Off-chain mirrors of the Operations fixed-point functions.
  *
  * These are ports, not reimplementations: the on-chain versions are pure
  * integer algorithms, so the same steps in bigint produce the same words,

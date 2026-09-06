@@ -104,9 +104,9 @@ export function encodeRead(
   return encodeCore("read", [target, selector, [...args]]);
 }
 
-/** Encode `read(operators, selector, args)` — an Operators call composed
+/** Encode `read(operators, selector, args)` — an Operations call composed
  *  from unresolved operands: the core resolves each operand and splices
- *  the values after the selector, then staticcalls the Operators contract
+ *  the values after the selector, then staticcalls the Operations contract
  *  and raw-returns the result. */
 export function encodeOpRead(
   operators: Address,

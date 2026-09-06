@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -8,14 +8,14 @@ import {
 import { getAddress } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const TOKEN = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 
 const preamble = `load math`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 /** A live uint read to put on the left of a fixed-point call. */
@@ -49,28 +49,6 @@ describeCommand("assert (math fixed-point faces)", {
       },
     },
     {
-      name: "compiles @exp! to a signed wad exponential",
-      script: `assert @math:exp!(${TOKEN}::{drift()(int256)}) > 1e18`,
-      validate: (actions) => {
-        const { param } = d.decodeAssert(actions);
-        // The result is wad-scaled and signed, so the comparison takes the
-        // int256 overload and the bound is scaled to meet it.
-        const { a } = d.expectOpJudge(param, "gt(int256,int256)");
-        const args = d.opReadOf(a, "expWad(int256)");
-        expect(args).to.have.lengthOf(1);
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
-      },
-    },
-    {
-      name: "compiles @ln! as the inverse read",
-      script: `assert @math:ln!(${RATE}) > 0`,
-      validate: (actions) => {
-        const { param } = d.decodeAssert(actions);
-        const { a } = d.expectOpJudge(param, "gt(int256,int256)");
-        d.opReadOf(a, "lnWad(int256)");
-      },
-    },
-    {
       name: "compiles @log2! to the bit-scan read",
       script: `assert @math:log2!(${RATE}) >= 8`,
       validate: (actions) => {
@@ -83,19 +61,18 @@ describeCommand("assert (math fixed-point faces)", {
         d.expectConstraint(param, "Gte", 8n);
       },
     },
-    {
-      name: "scales a fractional bound to a wad result",
-      script: `assert @math:exp!(${TOKEN}::{drift()(int256)}) >= 1.05`,
-      validate: (actions) => {
-        const { param } = d.decodeAssert(actions);
-        // exp! is wad-scaled, so 1.05 travels as the whole number 1.05e18
-        // rather than rounding to 1.
-        const { b } = d.expectOpJudge(param, "ge(int256,int256)");
-        d.expectRawWord(b, 1050000000000000000n);
-      },
-    },
   ],
   errorCases: [
+    {
+      name: "rejects a live exponential operand",
+      script: `assert @math:exp!(${TOKEN}::{drift()(int256)}) > 0`,
+      error: "requires a value known before execution",
+    },
+    {
+      name: "rejects a live logarithm operand",
+      script: `assert @math:ln!(${RATE}) > 0`,
+      error: "requires a value known before execution",
+    },
     {
       name: "requires raw integer units before using a scaled pow result in calc",
       script: `assert @calc!(@math:pow!(15e17 2) + ${RATE}) > 0`,

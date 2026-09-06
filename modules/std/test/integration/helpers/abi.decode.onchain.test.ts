@@ -1,7 +1,7 @@
 import "../../setup";
 import {
   CORE_ADDRESS,
-  OPERATORS_ADDRESS,
+  OPERATIONS_ADDRESS,
   PAYLOAD_STEP,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
@@ -13,12 +13,12 @@ import {
 import { getAddress } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const ORACLE = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 describeCommand("assert (@abi.decode! calldata shape)", {

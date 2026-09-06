@@ -16,14 +16,14 @@ import { opSelector } from "./operators";
  * an ERC-8211 judged param. EQ/GTE/LTE/IN express unsigned predicates
  * directly as inline constraints; everything else (!=, signed comparisons,
  * signed ~=) routes through the core's `read` splicing the operands into
- * an Operators call — `read(operators, op-selector, [live, literal])` —
+ * an Operations call — `read(operators, op-selector, [live, literal])` —
  * judged `EQ 1` (comparisons return 0/1 bool words).
  */
 
 const MAX_UINT = (1n << 256n) - 1n;
 
 /** The two contract addresses a judged operator expression needs: the
- *  frozen core (whose `read` composes and judges) and the Operators
+ *  frozen core (whose `read` composes and judges) and the Operations
  *  periphery (whose functions compute). */
 export interface OpsAddresses {
   core: Address;

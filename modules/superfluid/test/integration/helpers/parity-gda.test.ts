@@ -74,7 +74,7 @@ const MEMBER = memberWallet.account!.address;
 
 let POOL: `0x${string}`;
 let CORE: `0x${string}`;
-let OPERATORS: `0x${string}`;
+let OPERATIONS: `0x${string}`;
 
 async function send(
   step: string,
@@ -139,7 +139,7 @@ async function bothFaces(run: string, compile: string): Promise<[Norm, Norm]> {
   const { operand } = await compileExpression(compile, {
     module: "superfluid",
     core: CORE,
-    operators: OPERATORS,
+    operators: OPERATIONS,
   });
   const onchain = await resolveValue(pub, operand, { core: CORE });
   const offchain = normalizeRun(
@@ -157,7 +157,7 @@ function expectParity(offchain: Norm, onchain: Norm, label: string) {
 
 describe("@superfluid GDA > parity", () => {
   beforeAll(async () => {
-    ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(pub));
+    ({ core: CORE, operators: OPERATIONS } = await installAssertionsCore(pub));
     await buildPool();
     // Advance chain time ONCE, so the distribution has actually accrued and
     // @claimable is a real number rather than zero. Everything below then

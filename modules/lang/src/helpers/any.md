@@ -37,7 +37,7 @@ the first pass.
 The predicate is a `def @name!` of one parameter returning bool, applied
 by name: `def @isZero! "$x: number -> bool" @bool!($x == 0)` tests
 `element == 0`. A body reducing to ONE
-Operators call becomes a single-staticcall template; a composed one —
+Operations call becomes a single-staticcall template; a composed one —
 a nested live call, a multi-call expression — routes through the core
 and costs several staticcalls per element instead of one.
 

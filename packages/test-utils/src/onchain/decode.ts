@@ -71,7 +71,7 @@ export function decodeResolved(
 ): Norm {
   if (decodeAs?.endsWith("[]")) {
     // A words payload: the resolved bytes are the ABI-encoded `bytes` return
-    // of the Operators call, and INSIDE that envelope the words are packed
+    // of the Operations call, and INSIDE that envelope the words are packed
     // bare — no length head, no offsets.
     const [payload] = decodeAbiParameters([{ type: "bytes" }], data) as [Hex];
     const elem = decodeAs.slice(0, -2);

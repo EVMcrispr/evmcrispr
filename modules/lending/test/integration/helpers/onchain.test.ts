@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -10,13 +10,13 @@ import { getAddress } from "viem";
 import { AAVE_POOL, SOME_ADDRESS, WXDAI } from "../../fixtures";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 
 const preamble = `load lending`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 const SECONDS_PER_YEAR = 31536000n;

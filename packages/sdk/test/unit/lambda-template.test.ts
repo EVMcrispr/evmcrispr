@@ -32,11 +32,11 @@ import type { CompileCtx, Operand } from "../../src/onchain/types";
  */
 
 const CORE = "0x00000000000000000000000000000000000a55e7" as const;
-const OPERATORS = "0x000000000000000000000000000000000097e7a7" as const;
+const OPERATIONS = "0x000000000000000000000000000000000097e7a7" as const;
 const TOKEN = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" as const;
 
 // The extractor reads only these two fields off the context.
-const ctx = { core: CORE, operators: OPERATORS } as unknown as CompileCtx;
+const ctx = { core: CORE, operators: OPERATIONS } as unknown as CompileCtx;
 
 const selectorOf = (sig: string): Hex => toFunctionSelector(`function ${sig}`);
 const GE = selectorOf("ge(uint256,uint256)");
@@ -50,10 +50,10 @@ const call = (param: InputParam): Operand => ({
   cat: "Bool",
 });
 
-/** A compiled Operators expression: `read(operators, selector, args)`
+/** A compiled Operations expression: `read(operators, selector, args)`
  *  calldata at the core — what the expression compiler emits. */
 const opRead = (selector: Hex, args: InputParam[]): InputParam =>
-  staticCallParam(CORE, encodeOpRead(OPERATORS, selector, args));
+  staticCallParam(CORE, encodeOpRead(OPERATIONS, selector, args));
 
 /** What the fold engine does per element: overwrite every 32-byte window
  *  in `elemOffsets` with the element word. */
@@ -92,13 +92,13 @@ const decodeStaticCall = (param: InputParam): [string, Hex] =>
   ) as [string, Hex];
 
 describe("extractLambdaTemplate", () => {
-  it("flattens a single direct Operators call to an Operators-target template", () => {
+  it("flattens a single direct Operations call to an Operations-target template", () => {
     const o = call(
       opRead(GE, [rawParam(ELEMENT_MARKER), rawParam(toWord(100n))]),
     );
     const tpl = extractLambdaTemplate(ctx, o, "@test");
-    expect(getAddress(tpl.target)).toBe(getAddress(OPERATORS));
-    // Direct Operators calldata: selector + zeroed window + the constant.
+    expect(getAddress(tpl.target)).toBe(getAddress(OPERATIONS));
+    // Direct Operations calldata: selector + zeroed window + the constant.
     expect(tpl.template).toBe(
       `0x${GE.slice(2)}${toWord(0n).slice(2)}${toWord(100n).slice(2)}`,
     );
@@ -131,7 +131,7 @@ describe("extractLambdaTemplate", () => {
       Hex,
       InputParam[],
     ];
-    expect(BigInt(readTarget.paramData)).toBe(BigInt(OPERATORS));
+    expect(BigInt(readTarget.paramData)).toBe(BigInt(OPERATIONS));
     expect(selector).toBe(GT);
     expect(segments[0].fetcherType).toBe(FETCHER_TYPE.RawBytes);
     expect(segments[0].paramData).toBe(SENTINEL);
@@ -187,7 +187,7 @@ describe("extractLambdaTemplate", () => {
       opRead(MUL, [rawParam(ELEMENT_MARKER), rawParam(ELEMENT_MARKER)]),
     );
     const tpl = extractLambdaTemplate(ctx, o, "@test");
-    expect(getAddress(tpl.target)).toBe(getAddress(OPERATORS));
+    expect(getAddress(tpl.target)).toBe(getAddress(OPERATIONS));
     expect(tpl.elemOffsets).toEqual([4n, 36n]);
     expect(tpl.template.includes(ELEMENT_MARKER.slice(2))).toBe(false);
 

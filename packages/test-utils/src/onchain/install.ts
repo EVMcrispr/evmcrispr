@@ -1,15 +1,15 @@
 import {
-  COLLECTION_OPERATORS_ADDRESS,
+  COLLECTIONS_ADDRESS,
   CORE_ADDRESS,
-  OPERATORS_ADDRESS,
+  OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import type { Address, Hex, PublicClient } from "viem";
 
 import {
   ASSERTIONS_RUNTIME_BYTECODE,
-  COLLECTION_OPERATORS_RUNTIME_BYTECODE,
+  COLLECTIONS_RUNTIME_BYTECODE,
   MOCK_TARGET_RUNTIME_BYTECODE,
-  OPERATORS_RUNTIME_BYTECODE,
+  OPERATIONS_RUNTIME_BYTECODE,
 } from "./assertions-bytecode";
 
 export interface InstalledCore {
@@ -19,7 +19,7 @@ export interface InstalledCore {
 }
 
 /**
- * Install the Assertions core and the Operators vocabulary on the anvil fork.
+ * Install the Assertions core and the Operations vocabulary on the anvil fork.
  *
  * The three expression contracts are stateless — no constructor, no storage, no immutables —
  * so writing the runtime code IS the deployment. That is what makes executing
@@ -35,13 +35,13 @@ export async function installAssertionsCore(
   at: Partial<InstalledCore> = {},
 ): Promise<InstalledCore> {
   const core = at.core ?? CORE_ADDRESS;
-  const operators = at.operators ?? OPERATORS_ADDRESS;
+  const operators = at.operators ?? OPERATIONS_ADDRESS;
 
-  const collections = at.collections ?? COLLECTION_OPERATORS_ADDRESS;
+  const collections = at.collections ?? COLLECTIONS_ADDRESS;
   await Promise.all([
-    putCode(client, collections, COLLECTION_OPERATORS_RUNTIME_BYTECODE),
+    putCode(client, collections, COLLECTIONS_RUNTIME_BYTECODE),
     putCode(client, core, ASSERTIONS_RUNTIME_BYTECODE),
-    putCode(client, operators, OPERATORS_RUNTIME_BYTECODE),
+    putCode(client, operators, OPERATIONS_RUNTIME_BYTECODE),
   ]);
 
   return { core, operators, collections };

@@ -32,11 +32,11 @@ Reduce an array to a single value by applying a helper.
 ## On-chain face (@reduce!)
 
 Fold the array return of a call into one word, on-chain: a `foldWords`
-with a binary Operators lambda at the canonical accumulator/element
+with a binary Operations lambda at the canonical accumulator/element
 offsets (4/36) and a build-time initial accumulator.
 
 The reducer is either a NAMED definition of two parameters, or one of the
-bare Operators names `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr`,
+bare Operations names `add`, `mul`, `min`, `max`, `bitAnd`, `bitOr`,
 `bitXor`.
 
 A definition takes the accumulator first and the element second, and may

@@ -35,7 +35,7 @@ Transform every element of the array return of a call on-chain through
 `mapWords`. The transform is a `def @name!` of one parameter,
 applied by name with its parameter substituted at each occurrence (`def @dbl! "$x: number ->
 number" @calc!($x * 2)` maps each
-element to `element * 2`). A lambda reducing to one Operators call runs
+element to `element * 2`). A lambda reducing to one Operations call runs
 as a single staticcall per element; a composed one (a nested live call,
 a multi-call body like `@calc!($x * 2 + 1)`) routes through the core
 and costs several.

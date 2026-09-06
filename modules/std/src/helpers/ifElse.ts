@@ -27,7 +27,7 @@ const bareword = (n: Node): string | undefined =>
     ? (n as unknown as { value: string }).value
     : undefined;
 
-/** Operators that make a multi-token branch a BOOLEAN expression; anything
+/** Operations that make a multi-token branch a BOOLEAN expression; anything
  *  else multi-token is arithmetic. Mirrors the @bool!/@calc! split. */
 const BOOL_OPS = new Set([
   "and",

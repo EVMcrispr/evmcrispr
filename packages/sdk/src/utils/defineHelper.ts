@@ -67,7 +67,7 @@ export interface HelperConfigShared<M extends Module> {
    * only. Reserved for a user-visible difference in the on-chain face:
    * what it accepts, what it can no longer do, or how it fails (truncates
    * a page, reverts on no match, dedups adjacent elements only). Never the
-   * compilation strategy, and never an Operators function name.
+   * compilation strategy, and never an Operations function name.
    */
   compileDescription?: string;
   returnType?: ArgType;

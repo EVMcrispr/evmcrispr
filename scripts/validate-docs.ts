@@ -199,7 +199,7 @@ for (const file of files) {
 // ── Lint helper/command descriptions ─────────────────────────────────
 // A `description` says what the item means, in one sentence, for both of a
 // helper's faces. It is not the place to re-teach the `!` convention (the
-// EVML guide does that once), to name Operators internals, or to spell out
+// EVML guide does that once), to name Operations internals, or to spell out
 // how a face compiles — that belongs to the `## On-chain face` section of
 // the item's `.md`. A user-visible `!`-only difference goes in
 // `compileDescription`, which reaches the `@name!` spelling alone.
@@ -212,7 +212,7 @@ interface DescRule {
 }
 
 const OPERATOR_INTERNALS =
-  /\b(foldWords|foldBytes|foldRange|filterWords|mapWords|zipWords|unzipWords|sortWords|uniqueWords|iotaWords|wordIndexOf|sumWords|hashPairSorted|byteLen|bitSet|rawCall|arrayWordsParam|Operators\.\w+)\b/;
+  /\b(foldWords|foldBytes|foldRange|filterWords|mapWords|zipWords|unzipWords|sortWords|uniqueWords|iotaWords|wordIndexOf|sumWords|hashPairSorted|byteLen|bitSet|rawCall|arrayWordsParam|Operations\.\w+)\b/;
 
 const DESC_RULES: DescRule[] = [
   {
@@ -231,7 +231,7 @@ const DESC_RULES: DescRule[] = [
     test: OPERATOR_INTERNALS,
     fields: ["description", "compileDescription", "arg", "module"],
     message:
-      "name the behaviour, not the Operators function that implements it (that belongs in the doc's `## On-chain face` section)",
+      "name the behaviour, not the Operations function that implements it (that belongs in the doc's `## On-chain face` section)",
   },
   {
     test: /\b(words payload|lambda template|core pick|typed nav)\b/i,

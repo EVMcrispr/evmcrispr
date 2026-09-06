@@ -29,9 +29,9 @@ Remove duplicates from an array, preserving first-occurrence order.
 
 ## On-chain face (@unique!)
 
-Deduplicate ADJACENT equal words of the array return of a call on-chain
-through `uniqueWords` (O(n)). For set-uniqueness over unsorted input,
-nest `@sort!`: `@unique!(@sort!(…))`.
+Keep the first occurrence of each value, preserving input order. Word arrays use
+`uniqueWords` with `ordered = false`; generic ABI values use `uniqueValues` with an equality
+callback and `ordered = false`. Neither path requires sorted input.
 
 ### Examples
 

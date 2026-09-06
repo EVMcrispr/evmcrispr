@@ -66,7 +66,7 @@ async function compileExpression(expression: string): Promise<Operand> {
       interpretNodes: preambleOnly.evm.interpretNodes,
     },
     core: CORE,
-    operators: OPERATORS,
+    operators: OPERATIONS,
   };
 
   return node.type === NodeType.CallExpression
@@ -100,11 +100,11 @@ async function resolveRaw(operand: Operand): Promise<Hex> {
 }
 
 let CORE: `0x${string}`;
-let OPERATORS: `0x${string}`;
+let OPERATIONS: `0x${string}`;
 
 describe("std > resolve (execution spike)", () => {
   beforeAll(async () => {
-    ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(
+    ({ core: CORE, operators: OPERATIONS } = await installAssertionsCore(
       getPublicClient(),
     ));
   });

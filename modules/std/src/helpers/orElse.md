@@ -64,7 +64,7 @@ on-chain.
 
 This is the only way to guard a comparison on a read that may revert.
 Writing the guard as `@bool!(not @reverts!(x) and x <= 18)` does not work:
-`and` is an Operators call, so the core resolves BOTH operands before
+`and` is an Operations call, so the core resolves BOTH operands before
 combining them, and `x` reverting takes the assertion down before the
 probe's answer is ever read. It also names `x` twice, and an `InputParam`
 is a tree, not a DAG — the repeated operand is duplicated in the calldata

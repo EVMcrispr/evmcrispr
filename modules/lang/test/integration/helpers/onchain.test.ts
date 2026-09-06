@@ -4,7 +4,7 @@ import {
   CORE_ADDRESS,
   FETCHER_TYPE,
   LEN_STEP,
-  OPERATORS_ADDRESS,
+  OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
@@ -24,7 +24,7 @@ import {
 } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const TOKEN = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const HOLDER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 
@@ -32,7 +32,7 @@ const preamble = `load lang`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 /** The single RAW_BYTES literal of a foldWords/foldBytes read: 7 head
@@ -53,7 +53,7 @@ function foldLiteral(
   const offsetsTail = `${word(1n).slice(2)}${word(elemOffset).slice(2)}`;
   const offsetsAt = 224 + tail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
-  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATORS)).slice(2)}${word(224n).slice(2)}${word(accOffset).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(init).slice(2)}${word(exit).slice(2)}${tail}${offsetsTail}`;
+  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(224n).slice(2)}${word(accOffset).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(init).slice(2)}${word(exit).slice(2)}${tail}${offsetsTail}`;
 }
 
 /** A binary lambda template: selector plus two words. */
@@ -483,7 +483,7 @@ assert @all!(${TOKEN}::{caps()(uint256[])} @inc!)`,
       // picture.
       name: "rejects an order-sensitive @reduce! lambda",
       script: `assert @reduce!(${TOKEN}::{caps()(uint256[])} sub 0) > 0`,
-      error: "binary Operators lambda",
+      error: "binary Operations lambda",
     },
     {
       name: "points a folded comparison at @all!/@any!",
@@ -514,7 +514,7 @@ assert @all!(${TOKEN}::{caps()(uint256[])} @inc!)`,
 });
 
 // ---------------------------------------------------------------------------
-//  Wave 2: the new Operators vocabulary (string extras + array-shape ops)
+//  Wave 2: the new Operations vocabulary (string extras + array-shape ops)
 // ---------------------------------------------------------------------------
 
 /** A [len][payload padded to 32] bytes tail, as a hex span. */
@@ -535,7 +535,7 @@ function mapLiteral(template: Hex, elemOffset: bigint): Hex {
   const offsetsTail = `${word(1n).slice(2)}${word(elemOffset).slice(2)}`;
   const offsetsAt = 128 + tail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
-  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATORS)).slice(2)}${word(128n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${tail}${offsetsTail}`;
+  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(128n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${tail}${offsetsTail}`;
 }
 
 describeCommand("assert (lang on-chain faces, wave 2)", {
@@ -650,9 +650,14 @@ assert @map!(${TOKEN}::{caps()(uint256[])} @dbl!) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
-        const uniqueSegs = d.opReadOf(hashArgs[0], "distinctWords(bytes)");
-        expect(uniqueSegs).to.have.lengthOf(1);
-        const sortSegs = d.opReadOf(uniqueSegs[0], "sortWords(bytes)");
+        const uniqueSegs = d.opReadOf(hashArgs[0], "uniqueWords(bytes,bool)");
+        expect(uniqueSegs).to.have.lengthOf(2);
+        const [, ordered] = decodeAbiParameters(
+          [{ type: "uint256" }, { type: "bool" }],
+          uniqueSegs[0].paramData,
+        );
+        expect(ordered).to.equal(false);
+        const sortSegs = d.opReadOf(uniqueSegs[1], "sortWords(bytes)");
         expect(sortSegs).to.have.lengthOf(1);
         expectWordsPayload(sortSegs[0]);
       },
@@ -1051,7 +1056,7 @@ assert @reduce!(${TOKEN}::{caps()(uint256[])} @weighted! 0) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, FOLD_SIG);
-        // A two-call body cannot flatten to one direct Operators call, so
+        // A two-call body cannot flatten to one direct Operations call, so
         // the lambda target is the CORE and the template is the whole read.
         const lambda = lambdaOf(args[0].paramData, 4);
         expect(lambda.target).to.equal(ASSERTIONS);
@@ -1085,7 +1090,7 @@ assert @reduce!(${TOKEN}::{caps()(uint256[])} @weighted! 0) > 0`,
           "mapWords(bytes,address,bytes,uint256[])",
         );
         const lambda = lambdaOf(outer[0].paramData, 3);
-        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.elemOffsets).to.deep.equal([4n]);
         expect(lambda.template).to.equal(
           template2("bitXor(uint256,uint256)", 0n, 1n << 255n),
@@ -1418,7 +1423,7 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
 
 // ---------------------------------------------------------------------------
 //  Wave 5: core-target lambdas — a predicate that does not reduce to one
-//  Operators call keeps the whole read(...) calldata as its template and
+//  Operations call keeps the whole read(...) calldata as its template and
 //  targets the core, which resolves the composed expression per element
 //  and raw-returns the inner returndata (first return word = value).
 // ---------------------------------------------------------------------------
@@ -1491,7 +1496,7 @@ function decodeCoreTemplate(lambda: DecodedLambda): {
     readonly DecodedParam[],
   ];
   expect(readTarget.fetcherType).to.equal(FETCHER_TYPE.RawBytes);
-  expect(BigInt(readTarget.paramData)).to.equal(BigInt(OPERATORS));
+  expect(BigInt(readTarget.paramData)).to.equal(BigInt(OPERATIONS));
   return { selector, segments };
 }
 
@@ -1538,7 +1543,7 @@ assert @any!(${TOKEN}::{caps()(uint256[])} @overCap!)`,
       },
     },
     {
-      // Previously "must compile to a single Operators call". The
+      // Previously "must compile to a single Operations call". The
       // composed add(mul(<element>, 2), 1) keeps its expression tree:
       // the element window sits inside the INNER read's encoded
       // calldata, two decodes deep.
@@ -1577,16 +1582,16 @@ assert @map!(${TOKEN}::{caps()(uint256[])} @dblInc!) == 0x1122`,
     },
     {
       // The fast path must survive the generalization: a one-call
-      // predicate still targets the Operators contract directly, one
+      // predicate still targets the Operations contract directly, one
       // staticcall per element.
-      name: "keeps the direct Operators target for a one-call predicate",
+      name: "keeps the direct Operations target for a one-call predicate",
       script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
 assert @all!(${TOKEN}::{caps()(uint256[])} @ge100!)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, FOLD_SIG);
         const lambda = lambdaOf(args[0].paramData, 4);
-        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.template).to.equal(
           template2("ge(uint256,uint256)", 0n, 100n),
         );
@@ -1594,7 +1599,7 @@ assert @all!(${TOKEN}::{caps()(uint256[])} @ge100!)`,
       },
     },
     {
-      name: "keeps the direct Operators target for a one-call @map! lambda",
+      name: "keeps the direct Operations target for a one-call @map! lambda",
       script: `def @dbl! "$x: number -> number" @calc!($x * 2)
 assert @map!(${TOKEN}::{caps()(uint256[])} @dbl!) == 0x1122`,
       validate: (actions) => {
@@ -1605,7 +1610,7 @@ assert @map!(${TOKEN}::{caps()(uint256[])} @dbl!) == 0x1122`,
           "mapWords(bytes,address,bytes,uint256[])",
         );
         const lambda = lambdaOf(segs[0].paramData, 3);
-        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.template).to.equal(
           template2("mul(uint256,uint256)", 0n, 2n),
         );
@@ -1629,7 +1634,7 @@ assert @map!(${TOKEN}::{caps()(uint256[])} @sq!) == 0x1122`,
           "mapWords(bytes,address,bytes,uint256[])",
         );
         const lambda = lambdaOf(segs[0].paramData, 3);
-        expect(lambda.target).to.equal(OPERATORS);
+        expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.elemOffsets).to.deep.equal([4n, 36n]);
         expect(lambda.template).to.equal(
           template2("mul(uint256,uint256)", 0n, 0n),

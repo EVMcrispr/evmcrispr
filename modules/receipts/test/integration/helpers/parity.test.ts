@@ -75,7 +75,7 @@ describeParity("@receipts", {
     {
       // Two genuinely different routes to the same number: the plain face
       // asks the node (eth_blobBaseFee), the ! face reads the BLOBBASEFEE
-      // opcode through Operators.
+      // opcode through Operations.
       //
       // Worth knowing what this does and does not pin: it is 1 on both sides,
       // and NOT because the chain is quiet. Anvil does not model blob fees on

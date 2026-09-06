@@ -2,7 +2,7 @@ import type { Hex } from "viem";
 import { encodeFunctionData, parseAbi, toFunctionSelector } from "viem";
 
 /**
- * ABI of the Operators contract (v1.0) — the versionable plain-Solidity
+ * ABI of the Operations contract (v1.0) — the versionable plain-Solidity
  * periphery. ZERO ERC-8211: every function takes and returns plain ABI
  * types, so decoded calldata reads on explorers. Composition happens in
  * the core: its `read` primitive resolves operand expressions and splices
@@ -10,7 +10,7 @@ import { encodeFunctionData, parseAbi, toFunctionSelector } from "viem";
  * the int256 overloads; comparisons return bool; folds take the FoldExit
  * enum as uint8 (Full = 0, Any = 1, All = 2).
  */
-export const OPERATORS_ABI = parseAbi([
+export const OPERATIONS_ABI = parseAbi([
   // arithmetic (checked; exp is unsigned-only)
   "function add(uint256 a, uint256 b) pure returns (uint256)",
   "function add(int256 a, int256 b) pure returns (int256)",
@@ -38,8 +38,6 @@ export const OPERATORS_ABI = parseAbi([
   "function log2(uint256 x) pure returns (uint256)",
   // fixed point (base is one unit: 1e27 ray, 1e18 wad)
   "function rpow(uint256 x, uint256 n, uint256 base) pure returns (uint256)",
-  "function expWad(int256 x) pure returns (int256)",
-  "function lnWad(int256 x) pure returns (int256)",
   // comparisons (bool results; eq/ne are bit-level and cover all words)
   "function eq(uint256 a, uint256 b) pure returns (bool)",
   "function ne(uint256 a, uint256 b) pure returns (bool)",
@@ -105,25 +103,9 @@ export const OPERATORS_ABI = parseAbi([
   "function toString(uint256 v) pure returns (string)",
   // runtime encoder (encode raw-returns with no bytes envelope)
   "function encode(string types, bytes[] values) pure",
-  // bounded folds (FoldExit as uint8: Full = 0, Any = 1, All = 2)
-  "function foldRange(uint256 n, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
-  "function foldBytes(bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
-  "function foldWords(bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
-  // array-shape ops over aligned-word bytes payloads
-  "function mapWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
-  "function filterWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
-  "function iotaWords(uint256 n) pure returns (bytes)",
-  "function wordIndexOf(bytes s, bytes32 w) pure returns (uint256)",
-  "function reverseWords(bytes s) pure returns (bytes)",
-  "function zipWords(bytes a, bytes b) pure returns (bytes)",
-  "function unzipWords(bytes s, uint256 which) pure returns (bytes)",
-  "function sortWords(bytes s) pure returns (bytes)",
-  "function uniqueWords(bytes s) pure returns (bytes)",
-  "function distinctWords(bytes s) pure returns (bytes)",
-  "function sumWords(bytes s) pure returns (uint256)",
 ]);
 
-/** Fold early-exit modes (Operators.FoldExit, ABI-encoded as uint8). */
+/** Fold early-exit modes (Collections.FoldExit, ABI-encoded as uint8). */
 export const FOLD_EXIT = { Full: 0, Any: 1, All: 2 } as const;
 
 /** Binary word operators with an int256 overload — signedness is selected
@@ -156,7 +138,7 @@ export function opSelector(name: string, signed = false): Hex {
 const sel = (signature: string): Hex =>
   toFunctionSelector(`function ${signature}`);
 
-/** Selectors of the non-word-pair Operators functions the compiler
+/** Selectors of the non-word-pair Operations functions the compiler
  *  splices operands into through the core's `read`. */
 export const OP_SELECTORS = {
   balance: sel("balance(address)"),
@@ -188,8 +170,6 @@ export const OP_SELECTORS = {
   sqrt: sel("sqrt(uint256)"),
   log2: sel("log2(uint256)"),
   rpow: sel("rpow(uint256,uint256,uint256)"),
-  expWad: sel("expWad(int256)"),
-  lnWad: sel("lnWad(int256)"),
   parseUint: sel("parseUint(bytes)"),
   toString: sel("toString(uint256)"),
   blockHash: sel("blockHash(uint256)"),
@@ -211,8 +191,7 @@ export const OP_SELECTORS = {
   zipWords: sel("zipWords(bytes,bytes)"),
   unzipWords: sel("unzipWords(bytes,uint256)"),
   sortWords: sel("sortWords(bytes)"),
-  uniqueWords: sel("uniqueWords(bytes)"),
-  distinctWords: sel("distinctWords(bytes)"),
+  uniqueWords: sel("uniqueWords(bytes,bool)"),
   sumWords: sel("sumWords(bytes)"),
   replace: sel("replace(bytes,bytes,bytes)"),
   toLower: sel("toLower(bytes)"),
@@ -236,19 +215,19 @@ type OperatorFn =
   | "gasPrice"
   | "blobHash";
 
-/** Encode plain calldata for a non-overloaded Operators function whose
+/** Encode plain calldata for a non-overloaded Operations function whose
  *  arguments are all known at composition time — a STATIC_CALL fetcher
- *  points straight at the Operators address, no read wrapper needed. */
+ *  points straight at the Operations address, no read wrapper needed. */
 export function encodeOperator(
   functionName: OperatorFn,
   args: readonly unknown[] = [],
 ): Hex {
   return encodeFunctionData({
-    abi: OPERATORS_ABI,
+    abi: OPERATIONS_ABI,
     functionName,
     args,
   } as Parameters<typeof encodeFunctionData>[0]);
 }
 
-/** Integer quotient rounding modes, shared with Operators. */
+/** Integer quotient rounding modes, shared with Operations. */
 export const ROUNDING = { Trunc: 0, Floor: 1, Ceil: 2 } as const;

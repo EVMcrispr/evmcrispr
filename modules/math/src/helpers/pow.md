@@ -36,7 +36,7 @@ print $growth
 
 ## On-chain face (@math:pow!)
 
-Compiles to the Operators contract's `rpow(x, n, base)`, the fixed-point
+Compiles to the Operations contract's `rpow(x, n, base)`, the fixed-point
 exponentiation by squaring the rest of the fixed-point family uses.
 
 Two things it refuses rather than answering:

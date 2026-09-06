@@ -30,7 +30,7 @@ Flatten one level of nesting in an array.
 ## On-chain face (@flat!)
 
 Concatenate the word payloads of an array literal's parts on-chain
-through `Operators.concat`. Parts are constant arrays or `::` call
+through `Operations.concat`. Parts are constant arrays or `::` call
 parts.
 
 Up to four parts may be live. The envelopes splice into the calldata in

@@ -69,7 +69,7 @@ assert $pool::{token()(address)}::{symbol()(string)} == "WETH"
 assert $pool::{poolInfo()(uint112,uint112,address)}[_ _ $]::{symbol()(string)} == "WETH"
 
 # On-chain composition: ! helpers evaluate at assertion time via the
-# core read primitive splicing operands into Operators calls
+# core read primitive splicing operands into Operations calls
 assert @calc!(@balance!(ETH @me) + @token(WETH)::balanceOf(@me)) > @token(WETH)::balanceOf(@ens(evmcrispr.eth))
 assert @bool!(($gov::{quorum()(uint256)} > 0) or ($gov::{paused()(bool)} == false))
 assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
@@ -99,12 +99,12 @@ assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
   expression) validated by inline constraints (`EQ`/`GTE`/`LTE`/`IN`) via
   `assertParam`. Comparisons the constraints can't express directly (`!=`,
   signed and two-live-side comparisons) route through the core's `read`
-  splicing the operands into an Operators comparison, judged `EQ 1`.
+  splicing the operands into an Operations comparison, judged `EQ 1`.
 - Composition happens inside `@calc!(…)` (arithmetic: `+ - * // % ^`, `xor`)
   and `@bool!(…)` (comparisons plus `and`, `or`, `xor`, prefix `not` — the
   same word operators as std's `@bool`). Wrappers nest freely; constant
   subtrees fold at build time. Top-level infix without a wrapper is an error.
-- Operators map by return type: `uint`/`int` support `== != > < >= <= ~=`;
+- Operations map by return type: `uint`/`int` support `== != > < >= <= ~=`;
   `address`/`bool`/`bytes32`/`string`/`bytes` support `== !=`. Bool `!=`
   folds into the `EQ 0`/`EQ 1` constraint bound.
 - `~=` needs `--delta` and a constant side; for two live values use
@@ -136,7 +136,7 @@ assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
 - Inside a `batch`, a failed assertion reverts the whole transaction. Run
   standalone, the assertion is evaluated as a read-only `eth_call`.
 - The two contracts an assertion is built against — the ERC-8211 core that
-  judges and the Operators periphery that computes — sit at deterministic
+  judges and the Operations periphery that computes — sit at deterministic
   CREATE2 addresses, identical on every chain, so there is nothing to
   configure. A fork that wants different code there installs it at those
   addresses, which keeps the compiled calldata unchanged.

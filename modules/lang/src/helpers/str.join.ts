@@ -106,7 +106,7 @@ export default defineHelper<Lang>({
     const delim = delimiter.text;
     // The delimiter interleaves between the parts at composition time:
     // constant runs (part + delimiter + part …) merge into ONE constant
-    // concat part, so the whole join is a single Operators.concat call
+    // concat part, so the whole join is a single Operations.concat call
     // with no join function on-chain.
     const parts: BytesPart[] = [];
     let constRun: string | null = null;

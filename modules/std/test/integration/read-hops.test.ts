@@ -34,12 +34,12 @@ const AWXDAI = "0xd0Dd6cEF72143E22cCED4867eb0d5F2328715533";
 const PAIR = "0x4505b262DC053998C10685DC5F9098af8AE5C8ad";
 
 let CORE: Address;
-let OPERATORS: Address;
+let OPERATIONS: Address;
 
 async function read(expression: string): Promise<Norm> {
   const { operand } = await compileExpression(expression, {
     core: CORE,
-    operators: OPERATORS,
+    operators: OPERATIONS,
   });
   return resolveValue(getPublicClient(), operand, { core: CORE });
 }
@@ -55,7 +55,7 @@ async function num(expression: string): Promise<bigint> {
 
 describe("std > ::! read hops (resolved)", () => {
   beforeAll(async () => {
-    ({ core: CORE, operators: OPERATORS } = await installAssertionsCore(
+    ({ core: CORE, operators: OPERATIONS } = await installAssertionsCore(
       getPublicClient(),
     ));
   });

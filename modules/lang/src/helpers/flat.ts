@@ -3,7 +3,7 @@ import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import type { BytesPart } from "@evmcrispr/sdk/onchain";
 import {
   arrayValuesParam,
-  COLLECTION_OPERATORS_ADDRESS,
+  COLLECTIONS_ADDRESS,
   canonicalArgSpec,
   canonicalBytesParam,
   collectionReadParam,
@@ -74,7 +74,7 @@ export default defineHelper<Lang>({
         {
           kind: "value",
           value: {
-            target: ctx.collections ?? COLLECTION_OPERATORS_ADDRESS,
+            target: ctx.collections ?? COLLECTIONS_ADDRESS,
             selector: toFunctionSelector("unpackArray(string,bytes)"),
             arguments: "(string,bytes)",
             constants: [
@@ -97,6 +97,7 @@ export default defineHelper<Lang>({
         ]),
       );
       const flattened = collectionReadParam(ctx, "flattenValues", [
+        { kind: "value", value: formatParamType(element) },
         canonicalArgSpec(ctx, { type: "bytes[][]" }, nested),
       ]);
       return packedArrayOperand(ctx, flattened, element);

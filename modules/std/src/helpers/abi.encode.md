@@ -34,6 +34,6 @@ print $data
 ## On-chain face (@abi.encode!)
 
 The type descriptor is constant. Values can be live scalars, strings, arrays, or
-single tuple returns. Operators.encodeBytes reconstructs canonical ABI offsets and rejects malformed nested offsets, lengths, byte padding, and trailing data in live encodings.
+single tuple returns. Operations.encodeBytes reconstructs canonical ABI offsets and rejects malformed nested offsets, lengths, byte padding, and trailing data in live encodings.
 Live integer narrowing is checked before encoding; constants are validated recursively.
 Convert fractional values explicitly before using integer ABI parameters.

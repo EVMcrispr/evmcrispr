@@ -30,7 +30,7 @@ Deployed bytecode at an address.
 ## On-chain face (@codeAt!)
 
 The runtime code at an address, as one `code` read (`EXTCODECOPY` through
-Operators), returned as `Bytes`.
+Operations), returned as `Bytes`.
 
 The address may itself be live — a factory's predicted address, or a proxy's
 implementation — so it materializes as a word rather than being resolved at

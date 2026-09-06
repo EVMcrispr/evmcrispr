@@ -8,11 +8,11 @@
  * expression compiler cannot fold away — and the compiled result must be
  * a single staticcall, producing a single WORD, whose calldata is
  * constant except for the marker word(s). A predicate reducing to ONE
- * Operators call flattens to direct Operators calldata (one staticcall
+ * Operations call flattens to direct Operations calldata (one staticcall
  * per element); any other staticcall — a composed `read`, a `pick`, a
  * direct call on another contract — keeps its own (target, calldata)
  * verbatim. The composed core form costs several staticcalls per element
- * where a direct form costs one, which is why the Operators flattening is
+ * where a direct form costs one, which is why the Operations flattening is
  * tried first. A build-time constant or a bytes/string result is
  * rejected: the engine reads one return word. Every marker occurrence
  * becomes one `elemOffsets` entry (ascending), so a definition that names
@@ -72,7 +72,7 @@ export function accumulatorOperand(cat: Category = "Uint"): Operand {
 
 /** A single-staticcall lambda template: fixed calldata for `target` with
  *  the element windows at `elemOffsets` (ascending byte offsets). `target`
- *  is the Operators contract when the predicate flattened to one direct
+ *  is the Operations contract when the predicate flattened to one direct
  *  call; otherwise it is the compiled staticcall's own target verbatim —
  *  the core for a composed `read` or a `pick`, another contract for a
  *  direct single call. N>1 means the definition names its parameter more
@@ -89,7 +89,7 @@ export interface LambdaTemplate {
 /**
  * Locate every aligned occurrence of the element marker in `bytes`
  * (hex without `0x`), returning ascending byte offsets into the template
- * after applying `base` (4 for a flattened Operators selector prefix).
+ * after applying `base` (4 for a flattened Operations selector prefix).
  */
 function findWindows(
   bytes: string,
@@ -198,7 +198,7 @@ function astCapturesOuterElement(node: Node): boolean {
  * element marker appearing at least once in its calldata.
  *
  * A core `read(operators, selector, segments)` with every segment a
- * RAW_BYTES literal flattens to direct Operators calldata (the selector
+ * RAW_BYTES literal flattens to direct Operations calldata (the selector
  * plus the concatenated segments) — the single-staticcall fast path. Any
  * other staticcall keeps its `(target, calldata)` pair verbatim, which is
  * exactly the call its fetcher would have made: a composed core `read`
@@ -237,8 +237,8 @@ export function extractLambdaTemplate(
     o.param.paramData,
   ) as [Hex, Hex];
 
-  // Fast path: one direct Operators call, all segments literal. The
-  // template flattens to the Operators calldata itself — one staticcall
+  // Fast path: one direct Operations call, all segments literal. The
+  // template flattens to the Operations calldata itself — one staticcall
   // per element. Marker troubles (absent, misaligned) fall through: the
   // general search over the whole calldata reports them.
   if (getAddress(target) === getAddress(ctx.core)) {

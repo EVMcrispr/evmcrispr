@@ -1,12 +1,6 @@
-import { defineHelper, expWad, Num } from "@evmcrispr/sdk";
+import { defineHelper, ErrorException, expWad, Num } from "@evmcrispr/sdk";
 import type { Operand } from "@evmcrispr/sdk/onchain";
-import {
-  compileOperand,
-  constBigInt,
-  materializeWord,
-  OP_SELECTORS,
-  opReadParam,
-} from "@evmcrispr/sdk/onchain";
+import { compileOperand, constBigInt } from "@evmcrispr/sdk/onchain";
 import type MathModule from "..";
 
 export default defineHelper<MathModule>({
@@ -14,7 +8,7 @@ export default defineHelper<MathModule>({
   description:
     "e raised to a wad-scaled power, in wad (1e18) fixed point. Continuous growth over a period: a rate r compounded continuously multiplies a balance by exp(r).",
   compileDescription:
-    "The result carries its wad scale, so surrounding arithmetic aligns to it; the plain face hands back the raw wad integer.",
+    "Accepts only values known before execution and carries the result’s wad scale for surrounding arithmetic.",
   returnType: "number",
   args: [
     {
@@ -37,11 +31,8 @@ export default defineHelper<MathModule>({
         scale: 18,
       };
     }
-    return {
-      kind: "call",
-      param: opReadParam(ctx, OP_SELECTORS.expWad, [materializeWord(ctx, o)]),
-      cat: "Int",
-      scale: 18,
-    };
+    throw new ErrorException(
+      "@exp! requires a value known before execution; live operands are unsupported",
+    );
   },
 });

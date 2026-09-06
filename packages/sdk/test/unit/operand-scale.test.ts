@@ -11,13 +11,13 @@ import {
 } from "../../src/onchain";
 
 const CORE = "0x00000000000000000000000000000000000a55e7" as const;
-const OPERATORS = "0x000000000000000000000000000000000097e7a7" as const;
+const OPERATIONS = "0x000000000000000000000000000000000097e7a7" as const;
 
 // The scale rules are pure operand algebra: they never consult the module
 // or the interpreters, so a ctx with just the two addresses is enough.
 const ctx = {
   core: CORE,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 } as unknown as CompileCtx;
 
 /** A live read carrying `scale` decimal places — what an Aave ray rate

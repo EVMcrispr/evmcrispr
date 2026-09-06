@@ -1,26 +1,17 @@
 /** Typed ABI-valued collection composition. Values use canonical single-value ABI encoding. */
 import type { AbiFunction, AbiParameter, Address, Hex } from "viem";
-import { encodeFunctionData, parseAbi } from "viem";
-import { COLLECTION_OPERATORS_ADDRESS } from "./addresses";
+import { encodeFunctionData } from "viem";
+import { COLLECTIONS_ADDRESS } from "./addresses";
 import { type ArgSpec, buildCallSegments, isDynamicParam } from "./construct";
 import { encodeNav, encodeRead, encodeResolve, PAYLOAD_STEP } from "./core";
 import { type InputParam, rawParam, staticCallParam, toWord } from "./erc8211";
 import { envelopeLenParam } from "./layout";
-import { OPERATORS_ABI, opSelector } from "./operators";
+import { OPERATIONS_ABI, opSelector } from "./operators";
 import type { CompileCtx } from "./types";
 
-export const COLLECTION_OPERATORS_ABI = parseAbi([
-  "struct Callback { address target; bytes4 selector; string arguments; bytes[] constants; uint256 first; uint256 second; }",
-  "function packArray(string elementType, bytes[] values) pure returns (bytes)",
-  "function unpackArray(string elementType, bytes encoded) pure returns (bytes[])",
-  "function validateValue(string valueType, bytes value) pure",
-  "function mapValues(string inputType, string outputType, bytes[] values, Callback cb) view returns (bytes[])",
-  "function filterValues(string inputType, bytes[] values, Callback cb) view returns (bytes[])",
-  "function foldValues(string inputType, string accumulatorType, bytes[] values, bytes initial, Callback cb) view returns (bytes)",
-  "function sortValues(string inputType, bytes[] values, Callback cb) view returns (bytes[])",
-  "function distinctValues(string inputType, bytes[] values, Callback cb) view returns (bytes[])",
-  "function flattenValues(bytes[][] values) pure returns (bytes[])",
-]);
+export { COLLECTION_SELECTORS, COLLECTIONS_ABI } from "./collection-abi";
+
+import { COLLECTIONS_ABI } from "./collection-abi";
 export interface CollectionCallback {
   target: Address;
   selector: Hex;
@@ -38,7 +29,7 @@ export function canonicalBytesParam(
   return staticCallParam(
     ctx.operators,
     encodeFunctionData({
-      abi: OPERATORS_ABI,
+      abi: OPERATIONS_ABI,
       functionName: "rawCall",
       args: [ctx.core, encodeResolve(param)],
     }),
@@ -79,7 +70,7 @@ export function collectionReadParam(
   name: string,
   specs: ArgSpec[],
 ): InputParam {
-  const fn = COLLECTION_OPERATORS_ABI.find(
+  const fn = COLLECTIONS_ABI.find(
     (x) => x.type === "function" && x.name === name,
   ) as AbiFunction | undefined;
   if (!fn) throw new Error(`Unknown collection operation ${name}`);
@@ -87,7 +78,7 @@ export function collectionReadParam(
   return staticCallParam(
     ctx.core,
     encodeRead(
-      rawParam(toWord(BigInt(ctx.collections ?? COLLECTION_OPERATORS_ADDRESS))),
+      rawParam(toWord(BigInt(ctx.collections ?? COLLECTIONS_ADDRESS))),
       call.selector,
       call.segments,
     ),

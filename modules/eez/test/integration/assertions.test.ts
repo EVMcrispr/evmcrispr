@@ -11,7 +11,7 @@ import { devnet, L1_ID, L2_ID, l1, l2 } from "../devnet";
 const DEAD = "0x000000000000000000000000000000000000dEaD";
 
 /**
- * The on-chain helper runtime (Assertions core + Operators) is deployed at
+ * The on-chain helper runtime (Assertions core + Operations) is deployed at
  * its canonical addresses on both EEZ chains; a real `assert` compiled by
  * std runs through it there.
  */

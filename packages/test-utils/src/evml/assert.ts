@@ -7,11 +7,13 @@
 import { isTransactionAction } from "@evmcrispr/sdk";
 import {
   ASSERTIONS_ABI,
+  COLLECTION_SELECTORS,
+  COLLECTIONS_ADDRESS,
   CONSTRAINT_TYPE,
   CORE_ABI,
   CORE_ADDRESS,
   FETCHER_TYPE,
-  OPERATORS_ADDRESS,
+  OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "chai";
 import type { Address, Hex } from "viem";
@@ -65,7 +67,7 @@ export interface AssertDecoders {
     param: DecodedParam,
     at?: Address,
   ): ReturnType<typeof decodeFunctionData>;
-  /** A param pointed straight at the Operators contract — its calldata. */
+  /** A param pointed straight at the Operations contract — its calldata. */
   opsDirect(param: DecodedParam, at?: Address): Hex;
   expectConstraint(
     param: DecodedParam,
@@ -95,11 +97,11 @@ export interface AssertDecoders {
 export function createAssertDecoders(
   addresses: { assertions: Address; operators: Address } = {
     assertions: CORE_ADDRESS,
-    operators: OPERATORS_ADDRESS,
+    operators: OPERATIONS_ADDRESS,
   },
 ): AssertDecoders {
   const ASSERTIONS = getAddress(addresses.assertions);
-  const OPERATORS = getAddress(addresses.operators);
+  const OPERATIONS = getAddress(addresses.operators);
 
   const theAction = (actions: any[], to: Address = ASSERTIONS) => {
     expect(actions).to.have.lengthOf(1);
@@ -141,7 +143,7 @@ export function createAssertDecoders(
     return decodeFunctionData({ abi: CORE_ABI, data });
   };
 
-  const opsDirect = (param: DecodedParam, at: Address = OPERATORS): Hex => {
+  const opsDirect = (param: DecodedParam, at: Address = OPERATIONS): Hex => {
     const { target, data } = staticCallOf(param);
     expect(target).to.equal(at);
     return data;
@@ -184,7 +186,12 @@ export function createAssertDecoders(
 
   const opReadOf = (param: DecodedParam, signature: string) => {
     const { target, selector, segments } = readOf(param);
-    expectRawWord(target, BigInt(OPERATORS));
+    expectRawWord(
+      target,
+      BigInt(
+        COLLECTION_SELECTORS.has(selector) ? COLLECTIONS_ADDRESS : OPERATIONS,
+      ),
+    );
     expect(selector).to.equal(selectorOf(signature));
     return segments;
   };

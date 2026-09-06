@@ -81,7 +81,7 @@ export function wholeDelta(value: Num, display: Num = value): bigint {
 }
 
 /** Map a DSL comparison operator to its assertions-core name fragment. */
-const OPERATORS: Record<string, string> = {
+const OPERATIONS: Record<string, string> = {
   "==": "Eq",
   "!=": "Ne",
   ">": "Gt",
@@ -96,11 +96,11 @@ const OPERATORS: Record<string, string> = {
  * `Ge`), validating it is one of `allowed`.
  */
 export function operatorFragment(op: string, allowed: string[]): string {
-  const fragment = OPERATORS[op];
+  const fragment = OPERATIONS[op];
   if (!fragment) {
     throw new ErrorException(
       `unknown comparison operator "${op}". Use one of ${Object.keys(
-        OPERATORS,
+        OPERATIONS,
       ).join(", ")}`,
     );
   }
@@ -115,6 +115,6 @@ export function operatorFragment(op: string, allowed: string[]): string {
 }
 
 function operatorToken(fragment: string): string {
-  const entry = Object.entries(OPERATORS).find(([, f]) => f === fragment);
+  const entry = Object.entries(OPERATIONS).find(([, f]) => f === fragment);
   return entry ? entry[0] : fragment;
 }

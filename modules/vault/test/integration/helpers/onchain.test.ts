@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -11,7 +11,7 @@ import {
 import { getAddress } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const VAULT = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const OWNER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 const OPERATOR = getAddress("0xa111111111111111111111111111111111111111");
@@ -20,7 +20,7 @@ const preamble = `load vault`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 describeCommand("assert (vault on-chain faces)", {

@@ -37,7 +37,7 @@ failure.
 The predicate is a `def @name!` of one parameter returning bool, applied
 by name. Its parameter substitutes wherever the body names it. `def @ge100! "$x:
 number -> bool" @bool!($x >= 100)` tests `element >= 100`; a body of `@bool!(not $x)` tests
-`element == 0`. A predicate reducing to ONE Operators call becomes a
+`element == 0`. A predicate reducing to ONE Operations call becomes a
 single-staticcall template; a composed one — a nested live call, a
 multi-call body like `@bool!($x > $vault::floor())` — routes through
 the core, which resolves the expression per element at several

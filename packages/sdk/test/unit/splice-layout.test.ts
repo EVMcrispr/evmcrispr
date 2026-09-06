@@ -28,10 +28,10 @@ import type { CompileCtx } from "../../src/onchain/types";
  */
 
 const CORE = "0x00000000000000000000000000000000000a55e7" as const;
-const OPERATORS = "0x000000000000000000000000000000000097e7a7" as const;
+const OPERATIONS = "0x000000000000000000000000000000000097e7a7" as const;
 
 // The layout code reads only these two fields off the context.
-const ctx = { core: CORE, operators: OPERATORS } as unknown as CompileCtx;
+const ctx = { core: CORE, operators: OPERATIONS } as unknown as CompileCtx;
 
 /** Derived by name rather than hardcoded, so a signature change here
  *  fails loudly instead of silently matching nothing. */
@@ -89,7 +89,7 @@ function resolve(p: InputParam, values: Map<string, Hex>): Hex {
       Hex,
       InputParam[],
     ];
-    // The layout only ever emits Operators word ops here.
+    // The layout only ever emits Operations word ops here.
     void readTarget;
     const [a, b] = args.map((x) => BigInt(resolve(x, values)));
     if (selector === selectorOf("add(uint256,uint256)")) {

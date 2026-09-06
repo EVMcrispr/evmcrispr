@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import type { DecodedParam } from "@evmcrispr/test-utils/evml";
 import {
@@ -20,7 +20,7 @@ import {
 } from "../../fixtures";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 
 /** A GDA pool is a composition-time staticcall TARGET, never called while
  *  the expression is built, so any address exercises the encoding. */
@@ -30,7 +30,7 @@ const preamble = `load superfluid`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 const args = (...values: bigint[]) =>
@@ -39,7 +39,7 @@ const args = (...values: bigint[]) =>
 /**
  * Every flow rate and real-time balance is signed, and ERC-8211's inline
  * constraints compare unsigned words, so an ordering comparison over one
- * lowers to the int256 overload on the Operators contract, judged EQ 1.
+ * lowers to the int256 overload on the Operations contract, judged EQ 1.
  * Returns the left operand — the read itself.
  */
 function signedCmp(param: DecodedParam, fn: string, rhs: bigint) {

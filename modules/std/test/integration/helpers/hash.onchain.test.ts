@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -10,14 +10,14 @@ import {
 import { getAddress } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const TOKEN = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const DIGEST =
   "0x0102030405060708091011121314151617181920212223242526272829303132";
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 describeCommand("assert (@hash! algorithms)", {
@@ -46,7 +46,7 @@ describeCommand("assert (@hash! algorithms)", {
       },
     },
     {
-      name: "keeps the keccak256 branch on the Operators hash",
+      name: "keeps the keccak256 branch on the Operations hash",
       script: `assert @hash!(${TOKEN}::{name()(string)} "keccak256") == ${DIGEST}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);

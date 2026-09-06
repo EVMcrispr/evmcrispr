@@ -31,7 +31,7 @@ describeParity("@math", {
     {
       // Constant operands fold at composition time, so the two cases above
       // never reach the chain. These two do: both operands are live reads,
-      // so arithCombine's Max/Min really run through Operators.
+      // so arithCombine's Max/Min really run through Operations.
       name: "max of two live reads",
       run: `@max(${WXDAI}::{totalSupply()(uint256)} ${WXDAI}::{decimals()(uint8)})`,
       compile: `@max!(${WXDAI}::{totalSupply()(uint256)} ${WXDAI}::{decimals()(uint8)})`,
@@ -75,22 +75,16 @@ describeParity("@math", {
       compile: `@log2!(${SUPPLY})`,
     },
     {
-      // The on-chain operand carries scale 18, so it resolves to the REAL
-      // value; the plain face returns the raw wad integer. Same number, and
-      // only the on-chain side knows it is scaled — the same gap that makes
-      // @pow's default base undecidable off-chain.
-      name: "diverges: ln carries its wad scale on-chain only",
-      run: `@ln(${SUPPLY})`,
-      compile: `@ln!(${SUPPLY})`,
+      name: "ln of a constant",
+      run: `@ln(2e18)`,
+      compile: `@ln!(2e18)`,
       helper: "ln",
-      diverges: { reason: "the on-chain operand carries scale 18" },
     },
     {
-      name: "diverges: exp carries its wad scale on-chain only",
-      run: `@exp(${DEC})`,
-      compile: `@exp!(${DEC})`,
+      name: "exp of a constant",
+      run: `@exp(1e18)`,
+      compile: `@exp!(1e18)`,
       helper: "exp",
-      diverges: { reason: "the on-chain operand carries scale 18" },
     },
     {
       // A ray-scaled operand with no unit is refused rather than compounded at

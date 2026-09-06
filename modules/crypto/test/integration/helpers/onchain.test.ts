@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -10,7 +10,7 @@ import {
 import { getAddress, type Hex } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const DIST = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const ME = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 const ROOT =
@@ -22,7 +22,7 @@ const preamble = `load crypto\nload lang`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 /** The RAW_BYTES literal of the merkle foldWords read: 7 head words, the
@@ -35,7 +35,7 @@ function merkleFoldLiteral(leaf: Hex): Hex {
   const offsetsTail = `${word(1n).slice(2)}${word(36n).slice(2)}`;
   const offsetsAt = 224 + tail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
-  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATORS)).slice(2)}${word(224n).slice(2)}${word(4n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(BigInt(leaf)).slice(2)}${word(0n).slice(2)}${tail}${offsetsTail}`;
+  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(224n).slice(2)}${word(4n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(BigInt(leaf)).slice(2)}${word(0n).slice(2)}${tail}${offsetsTail}`;
 }
 
 const FOLD_SIG =

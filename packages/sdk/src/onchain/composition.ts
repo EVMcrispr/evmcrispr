@@ -5,7 +5,7 @@
  * accept or reject an expression, and UIs import it (the website's builder
  * menus are built from it) to offer only the combinations that compile.
  *
- * The Operators contract itself is word-blind beyond its declared types:
+ * The Operations contract itself is word-blind beyond its declared types:
  * `bitAnd(totalSupply, totalSupply)` would execute as a bitwise AND. These
  * rules are a compiler-level discipline that keeps expressions meaningful,
  * not a contract constraint.
@@ -39,12 +39,12 @@ export type CmpOpName = "Eq" | "Ne" | "Gt" | "Lt" | "Ge" | "Le";
 /** Word-logic connectives (`@bool!`); `xor` doubles as bitwise on numbers. */
 export type LogicOpName = "and" | "or" | "xor";
 
-/** Operator families, matching how the ops lower to Operators functions
+/** Operator families, matching how the ops lower to Operations functions
  *  through the core's `read`: arithmetic (incl. min/max/absDiff),
  *  comparison, boolean logic, and bitwise word ops (`@bytes!`). */
 export type OpFamily = "arith" | "cmp" | "logic" | "bytes";
 
-/** Arithmetic opcode → Operators function name. Every entry except `exp`
+/** Arithmetic opcode → Operations function name. Every entry except `exp`
  *  has an int256 overload for signed operands. */
 export const ARITH_FN: Record<ArithOpName, string> = {
   Add: "add",
@@ -58,7 +58,7 @@ export const ARITH_FN: Record<ArithOpName, string> = {
   AbsDiff: "absDiff",
 };
 
-/** Comparison opcode → Operators function name (bool results, judged
+/** Comparison opcode → Operations function name (bool results, judged
  *  EQ 1). `eq`/`ne` are bit-level and unsigned-only; the ordering
  *  comparisons pick their int256 overload for signed operands. */
 export const CMP_FN: Record<CmpOpName, string> = {
@@ -70,7 +70,7 @@ export const CMP_FN: Record<CmpOpName, string> = {
   Le: "le",
 };
 
-/** Logic connective → Operators function name (0/1 bool words make the
+/** Logic connective → Operations function name (0/1 bool words make the
  *  bitwise ops coincide with the logical ones). */
 export const LOGIC_FN: Record<LogicOpName, string> = {
   and: "bitAnd",
@@ -78,7 +78,7 @@ export const LOGIC_FN: Record<LogicOpName, string> = {
   xor: "bitXor",
 };
 
-/** `@bytes!` operator symbol → Operators function name. */
+/** `@bytes!` operator symbol → Operations function name. */
 export const BITWISE_FN: Record<string, string> = {
   "&": "bitAnd",
   "|": "bitOr",

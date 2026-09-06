@@ -4,7 +4,7 @@ import {
   compileOperand,
   encodeOrElse,
   encodePick,
-  OPERATORS_ABI,
+  OPERATIONS_ABI,
   oneLiveBytesCallParam,
   rawParam,
   staticCallParam,
@@ -227,7 +227,7 @@ export default defineHelper<Std>({
     const recover = staticCallParam(
       ctx.operators,
       encodeFunctionData({
-        abi: OPERATORS_ABI,
+        abi: OPERATIONS_ABI,
         functionName: "rawCall",
         args: [
           getAddress(`0x${ECRECOVER.toString(16).padStart(40, "0")}`),

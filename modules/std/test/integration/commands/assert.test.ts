@@ -7,7 +7,7 @@ import {
   CORE_ADDRESS,
   FETCHER_TYPE,
   LEN_STEP,
-  OPERATORS_ADDRESS,
+  OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
@@ -28,7 +28,7 @@ import {
 // overridable, so the compiled calldata a test decodes is byte-for-byte
 // what production emits.
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const TOKEN = getAddress("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2");
 const HOLDER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 // DAI on gnosis in the mocked token list.
@@ -106,9 +106,9 @@ function core(param: Param, at: Address = ASSERTIONS) {
   return decodeFunctionData({ abi: CORE_ABI, data });
 }
 
-/** A param pointed straight at the Operators contract (an argument-free
+/** A param pointed straight at the Operations contract (an argument-free
  *  or literal-argument read, no core wrapper) — returns its calldata. */
-function opsDirect(param: Param, at: Address = OPERATORS): `0x${string}` {
+function opsDirect(param: Param, at: Address = OPERATIONS): `0x${string}` {
   const { target, data } = staticCallOf(param);
   expect(target).to.equal(at);
   return data;
@@ -156,10 +156,10 @@ function readOf(param: Param): {
 }
 
 /** Decode a param as read(operators, opSignature, args) — the composed
- *  Operators expression shape — and return the spliced operands. */
+ *  Operations expression shape — and return the spliced operands. */
 function opReadOf(param: Param, signature: string): readonly Param[] {
   const { target, selector, segments } = readOf(param);
-  expectRawWord(target, BigInt(OPERATORS));
+  expectRawWord(target, BigInt(OPERATIONS));
   expect(selector).to.equal(selectorOf(signature));
   return segments;
 }

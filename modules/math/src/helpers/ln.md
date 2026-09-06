@@ -4,7 +4,7 @@ title: "@math:ln"
 
 The natural logarithm of a wad-scaled value, in wad (1e18) fixed point. The inverse of exp: it turns a growth factor back into the rate that produced it.
 
-**On-chain (`@math:ln!`)**: The result carries its wad scale, so surrounding arithmetic aligns to it; the plain face hands back the raw wad integer.
+**On-chain (`@math:ln!`)**: Accepts only values known before execution and carries the result’s wad scale for surrounding arithmetic.
 
 **Returns**: `number`
 
@@ -32,13 +32,5 @@ The natural logarithm of a wad-scaled value, in wad (1e18) fixed point. The inve
 
 ## On-chain face (@math:ln!)
 
-Natural log in wad fixed point, as one `lnWad` read. Signed (`Int`), scale 18,
-so it is the inverse of `@exp!` at the same unit.
-
-A constant at or below zero is rejected at composition time, where the message
-can name the helper. A LIVE value that turns out to be zero cannot be caught
-there and reverts when the assertion is judged.
-
-### Notes
-
-- The domain check only fires for constants; a live zero reverts on-chain.
+Only values known before execution are supported. The result is calculated
+ahead of time and carries a signed wad scale of 18. Live operands are rejected.

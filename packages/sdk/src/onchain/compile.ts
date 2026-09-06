@@ -41,7 +41,9 @@ import { encodeCalldata } from "../utils/encoders";
 import { rpow } from "../utils/fixed";
 import { Num } from "../utils/Num";
 import { guardAbiInteger } from "./abi-guards";
+import { COLLECTIONS_ADDRESS } from "./addresses";
 import { typedArrayArg } from "./arrays";
+import { COLLECTION_SELECTORS } from "./collection-abi";
 import { canonicalArgSpec } from "./collections";
 import type { ArithOpName, CmpOpName, LogicOpName } from "./composition";
 import {
@@ -137,10 +139,10 @@ export function chainParam(ctx: CompileCtx, chain: Chain): InputParam {
 //  Operator composition primitives (core read splicing)
 // ---------------------------------------------------------------------------
 
-/** An Operators call composed from unresolved operands, as an InputParam:
+/** An Operations call composed from unresolved operands, as an InputParam:
  *  `read(operators, selector, args)` calldata at the CORE address — the
  *  core resolves each operand, splices the values after the selector and
- *  staticcalls the Operators contract. */
+ *  staticcalls the Operations contract. */
 export function opReadParam(
   ctx: CompileCtx,
   selector: Hex,
@@ -149,7 +151,13 @@ export function opReadParam(
 ): InputParam {
   return staticCallParam(
     ctx.core,
-    encodeOpRead(ctx.operators, selector, args),
+    encodeOpRead(
+      COLLECTION_SELECTORS.has(selector)
+        ? (ctx.collections ?? COLLECTIONS_ADDRESS)
+        : ctx.operators,
+      selector,
+      args,
+    ),
     constraints,
   );
 }
@@ -1288,7 +1296,7 @@ function constLenientCat(o: Operand): Category {
   return o.cat;
 }
 
-/** Combine two numeric operands with an Operators arithmetic function,
+/** Combine two numeric operands with an Operations arithmetic function,
  *  folding when both are build-time constants. Bool operands pass as their
  *  raw 0/1 words — no conversion call. Acceptance and result categories
  *  come from the composition table. */
@@ -1536,7 +1544,7 @@ export function stringDigest(value: string): Hex {
   return keccak256(stringToHex(value));
 }
 
-/** Combine two operands with an Operators comparison (nested use).
+/** Combine two operands with an Operations comparison (nested use).
  *  Acceptance comes from the composition table; a `Bytes`-categorized
  *  constant (a short hex literal) keeps its historical numeric coercion. */
 export function cmpCombine(
@@ -1966,8 +1974,8 @@ export function coreCall(ctx: CompileCtx, data: Hex, cat: Category): Operand {
   };
 }
 
-/** Wrap plain Operators calldata (all arguments fixed at composition time)
- *  as a call operand pointed straight at the Operators contract. */
+/** Wrap plain Operations calldata (all arguments fixed at composition time)
+ *  as a call operand pointed straight at the Operations contract. */
 export function opsCall(ctx: CompileCtx, data: Hex, cat: Category): Operand {
   return {
     kind: "call",

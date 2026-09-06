@@ -30,7 +30,7 @@ Concatenate arrays together.
 ## On-chain face (@concat!)
 
 Concatenate the parts' word payloads on-chain through
-`Operators.concat`. Each argument is a `::` call (or nested array face)
+`Operations.concat`. Each argument is a `::` call (or nested array face)
 or a constant array literal.
 
 Up to four parts may be live. The envelopes splice into the calldata in

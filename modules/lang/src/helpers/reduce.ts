@@ -30,7 +30,7 @@ import type Lang from "..";
 import { wordsArg } from "../utils/onchain";
 
 /**
- * Binary Operators lambdas a fold accumulator composes with.
+ * Binary Operations lambdas a fold accumulator composes with.
  *
  * The template is a left fold, `f(<accumulator at 4>, <element at 36>)`,
  * so a reducer earns a place here only if it is COMMUTATIVE and
@@ -65,7 +65,7 @@ const REDUCERS = [
  *  signed reading, so they stay unsigned over an `int256[]` too. */
 const SIGNED_REDUCERS = new Set(["add", "mul", "min", "max"]);
 
-/** Comparisons are binary `(uint256,uint256)` Operators functions too, so
+/** Comparisons are binary `(uint256,uint256)` Operations functions too, so
  *  they would encode — but folding a comparison IS `@all!`/`@any!`, which
  *  already exist with the right exit modes. Named so the error can say so
  *  instead of listing the whole vocabulary. */
@@ -272,7 +272,7 @@ export default defineHelper<Lang>({
     }
     if (!name || !(REDUCERS as readonly string[]).includes(name)) {
       throw new ErrorException(
-        `@reduce! reduces with a binary Operators lambda — one of ${REDUCERS.join(", ")} — got ${name ?? "an unsupported reducer"}. Order-sensitive operations are excluded as BARE names because the accumulator is always the LEFT argument and a wrong guess about the side would change the value silently. Name it instead and the order is written down: def @subFrom! \`$acc: number $e: number -> number\` @calc!($acc - $e)`,
+        `@reduce! reduces with a binary Operations lambda — one of ${REDUCERS.join(", ")} — got ${name ?? "an unsupported reducer"}. Order-sensitive operations are excluded as BARE names because the accumulator is always the LEFT argument and a wrong guess about the side would change the value silently. Name it instead and the order is written down: def @subFrom! \`$acc: number $e: number -> number\` @calc!($acc - $e)`,
       );
     }
     const init = await constIntArg(ctx, "reduce!", "initial", node.args[2]);

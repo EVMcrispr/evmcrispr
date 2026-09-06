@@ -7,11 +7,11 @@ import {
 } from "@evmcrispr/sdk";
 import type { CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
 import {
-  COLLECTION_OPERATORS_ADDRESS,
+  COLLECTIONS_ADDRESS,
   CORE_ADDRESS,
   compileOperand,
   compileTopCall,
-  OPERATORS_ADDRESS,
+  OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import type { Address, Transport } from "viem";
 import { gnosis } from "viem/chains";
@@ -81,8 +81,8 @@ export async function compileExpression(
       interpretNodes: evm.interpretNodes,
     },
     core: env.core ?? CORE_ADDRESS,
-    operators: env.operators ?? OPERATORS_ADDRESS,
-    collections: env.collections ?? COLLECTION_OPERATORS_ADDRESS,
+    operators: env.operators ?? OPERATIONS_ADDRESS,
+    collections: env.collections ?? COLLECTIONS_ADDRESS,
     hints: {},
   };
 

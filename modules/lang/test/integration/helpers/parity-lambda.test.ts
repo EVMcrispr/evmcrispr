@@ -54,7 +54,7 @@ describeParity("@lang lambdas", {
     ),
   cases: [
     {
-      // One Operators call per element: the template is spliced at the single
+      // One Operations call per element: the template is spliced at the single
       // offset the parameter occupies.
       name: "map doubles every element",
       run: `@map(${ARR} @dbl)`,

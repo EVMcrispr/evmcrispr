@@ -6,10 +6,9 @@ import {
   collectionReadParam,
   compileCollectionCallback,
   formatParamType,
-  OP_SELECTORS,
-  opReadParam,
   packedArrayOperand,
   typedArrayArg,
+  uniqueWordsParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
 import { wordsArg } from "../utils/onchain";
@@ -74,7 +73,7 @@ export default defineHelper<Lang>({
         throw new ErrorException("@unique! equality callback must return bool");
       return packedArrayOperand(
         ctx,
-        collectionReadParam(ctx, "distinctValues", [
+        collectionReadParam(ctx, "uniqueValues", [
           { kind: "value", value: formatParamType(array.element) },
           canonicalArgSpec(
             ctx,
@@ -82,6 +81,7 @@ export default defineHelper<Lang>({
             arrayValuesParam(ctx, array),
           ),
           callbackSpec,
+          { kind: "value", value: false },
         ]),
         array.element,
       );
@@ -89,7 +89,7 @@ export default defineHelper<Lang>({
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "unique!");
     return {
       kind: "call",
-      param: opReadParam(ctx, OP_SELECTORS.distinctWords, [payload]),
+      param: uniqueWordsParam(ctx, payload, false),
       cat: "Bytes",
       collection: { element: { type: elemType }, transport: "words" },
     };

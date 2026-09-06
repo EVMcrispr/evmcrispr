@@ -3,7 +3,7 @@ import { Interpreter } from "@evmcrispr/core";
 import { evml, registerAllModules } from "@evmcrispr/test-utils/evml";
 import {
   ASSERTIONS_RUNTIME_BYTECODE,
-  OPERATORS_RUNTIME_BYTECODE,
+  OPERATIONS_RUNTIME_BYTECODE,
 } from "@evmcrispr/test-utils/onchain";
 import {
   createPublicClient,
@@ -62,7 +62,7 @@ beforeAll(async () => {
   });
   await client.request({
     method: "anvil_setCode" as any,
-    params: [ctx.operators, OPERATORS_RUNTIME_BYTECODE] as any,
+    params: [ctx.operators, OPERATIONS_RUNTIME_BYTECODE] as any,
   });
 });
 afterAll(() => process?.kill());

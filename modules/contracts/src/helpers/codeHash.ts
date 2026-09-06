@@ -75,7 +75,7 @@ export default defineHelper<Contracts>({
       );
     }
     // Composition-time account: plain codeHash(account) calldata pointed
-    // straight at the Operators contract.
+    // straight at the Operations contract.
     return opsCall(
       ctx,
       encodeOperator("codeHash", [getAddress(account)]),

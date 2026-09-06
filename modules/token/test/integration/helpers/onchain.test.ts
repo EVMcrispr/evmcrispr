@@ -1,5 +1,5 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATORS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
@@ -11,7 +11,7 @@ import {
 import { getAddress } from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
-const OPERATORS = getAddress(OPERATORS_ADDRESS);
+const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 // DAI on gnosis in the mocked token list.
 const DAI = getAddress("0x44fA8E6f47987339850636F88629646662444217");
 const OWNER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
@@ -21,7 +21,7 @@ const preamble = `load token`;
 
 const d = createAssertDecoders({
   assertions: ASSERTIONS,
-  operators: OPERATORS,
+  operators: OPERATIONS,
 });
 
 describeCommand("assert (token on-chain faces)", {

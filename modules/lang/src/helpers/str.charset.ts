@@ -12,7 +12,7 @@ import type Lang from "..";
  * value i allowed. `x-y` spans an inclusive byte range; a dash that is not
  * between two other bytes (leading or trailing) is the literal `-`. The
  * spec is processed as UTF-8 bytes, matching the byte-level fold the
- * Operators contract performs.
+ * Operations contract performs.
  */
 export function charsetMask(spec: string): bigint {
   const bytes = new TextEncoder().encode(spec);
@@ -64,7 +64,7 @@ export default defineHelper<Lang>({
   ],
   async run(_, args) {
     const mask = charsetMask(requireSpec(String(args.class)));
-    // The same byte-class check the Operators contract folds over: every
+    // The same byte-class check the Operations contract folds over: every
     // UTF-8 byte of the value must have its bit set in the mask.
     const bytes = new TextEncoder().encode(String(args.value));
     for (const b of bytes) {

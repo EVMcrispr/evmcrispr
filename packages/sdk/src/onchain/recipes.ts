@@ -43,7 +43,7 @@ function wordsArrayTail(words: readonly bigint[]): string {
 
 /**
  * Bytes-operation recipes: how the string helpers compile onto the plain
- * Operators vocabulary through the core's `read`. The encoder owns the
+ * Operations vocabulary through the core's `read`. The encoder owns the
  * calldata layout — ABI offsets are explicit, so a runtime-length operand
  * (a resolved string/bytes envelope) is spliced LAST at a known byte
  * position P, and its head offset points at P + 32, skipping the
@@ -162,7 +162,7 @@ export function includesWordParam(
  * [init][exit], the template tail sits at 224, the `elemOffsets` array
  * follows it, and the runtime envelope of `s` is spliced last with
  * offset_s skipping its leading 0x20 word. The lambda target is the
- * Operators contract for a template built from its own vocabulary, or the
+ * Operations contract for a template built from its own vocabulary, or the
  * core for a composed `read(...)` template. Pass a one-element
  * `elemOffsets` for the pre-C single-window shape.
  */
@@ -464,6 +464,19 @@ export function replaceParam(
       wordPiece(offsets[2]), // offset_repl
       ...tail,
     ]),
+  );
+}
+
+/** Deduplicate a live words payload. The offset skips its retained bytes-envelope head. */
+export function uniqueWordsParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  ordered: boolean,
+): InputParam {
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.uniqueWords,
+    mergeSegments([wordSpan(96n), wordSpan(ordered ? 1n : 0n), s]),
   );
 }
 

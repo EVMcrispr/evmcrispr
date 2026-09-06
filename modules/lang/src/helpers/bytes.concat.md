@@ -30,7 +30,7 @@ Concatenate bytes values together.
 
 ## On-chain face (@bytes.concat!)
 
-Concatenate bytes values on-chain through `Operators.concat`: constant
+Concatenate bytes values on-chain through `Operations.concat`: constant
 hex parts and live call parts.
 
 Up to four parts may be live. The envelopes splice into the calldata in

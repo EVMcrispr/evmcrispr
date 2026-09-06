@@ -14,7 +14,7 @@ const DEPOSITOR = "0x3D2147ba81A66CD91B92345674E36460D0647bC0";
  * `@apy` is the case worth having: both faces run the SAME binary
  * exponentiation with the unit divided back out at each step, deliberately, so
  * that they agree to the last unit rather than being close. Off-chain that is
- * `compoundToApy`; on-chain it is `rpow` through Operators. If either side
+ * `compoundToApy`; on-chain it is `rpow` through Operations. If either side
  * ever drifts to floating point or to a different unit, this is what says so.
  */
 

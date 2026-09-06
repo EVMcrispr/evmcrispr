@@ -38,7 +38,7 @@ returning bool
 (a def whose body is `@bool!($x >= 100)` keeps each element with
 `element >= 100`) — the same
 lambda machinery @map! and @all! use. A predicate reducing to one
-Operators call runs as a single staticcall per element; a composed one
+Operations call runs as a single staticcall per element; a composed one
 (a nested live call, a multi-call expression) routes through the core
 and costs several.
 

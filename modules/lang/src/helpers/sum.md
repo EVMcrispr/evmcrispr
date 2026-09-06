@@ -22,7 +22,7 @@ Sum the elements of an array.
 
 ## See Also
 
-- [@reduce](reduce.md) — fold an array with any binary Operators lambda
+- [@reduce](reduce.md) — fold an array with any binary Operations lambda
 - [@map](map.md) — transform each element
 
 ## On-chain face (@sum!)

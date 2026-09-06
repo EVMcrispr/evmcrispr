@@ -119,7 +119,7 @@ A contract that gets paused, self-destructed or upgraded between the two
 makes them disagree, and that gap is usually the thing worth asserting.
 
 Composing `@reverts!` with `and`/`or` inside `@bool!` does NOT make the
-other operand safe: the logic operators are Operators calls, so the core
+other operand safe: the logic operators are Operations calls, so the core
 resolves both operands before either is combined, and a revert in the second
 one takes the whole assertion down before the first one's answer can be
 read. `@reverts!` swallows the revert of its own operand and nothing else.
