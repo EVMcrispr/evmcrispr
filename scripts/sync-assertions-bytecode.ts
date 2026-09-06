@@ -110,8 +110,8 @@ for (const { name, path: artifactPath, prefix, label } of CONTRACTS) {
 
   parts.push(
     `/** keccak256 of the ${label}'s runtime bytecode. The contracts repo's\n` +
-      ` *  export script compares against this to detect that the fixture went\n` +
-      ` *  stale — nothing inside this repo can see the contracts to check. */\n` +
+      ` *  website check:integration compares this with the compiled artifact.\n` +
+      ` *  Tests in this repo install the exact runtime bytes below. */\n` +
       `export const ${prefix}_RUNTIME_HASH =\n  "${keccak256(runtime as `0x${string}`)}" as const;\n\n` +
       `/** Runtime bytecode of the ${label} (${bytes} bytes). */\n` +
       `export const ${prefix}_RUNTIME_BYTECODE =\n  "${runtime}" as const;`,

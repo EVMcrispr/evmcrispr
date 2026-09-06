@@ -9,10 +9,10 @@ import type { Address } from "../types";
  * what production emits.
  */
 
-/** Canonical address of the Assertions core v2.0 (vanity CREATE2 salt). */
+/** Canonical address of the Assertions core v2.0 (CREATE2 salt). */
 export const CORE_ADDRESS: Address =
-  "0xA55E472841ca3D318205036724A94F5abDbf7b18";
+  "0x67DBB438FdC614466984Dc8F68dAB812d785a2aE";
 
-/** Canonical address of the Operators v1.0 (vanity CREATE2 salt). */
+/** Canonical address of the Operators v1.0 (CREATE2 salt). */
 export const OPERATORS_ADDRESS: Address =
-  "0x09e4a7e55200600314165ddFB381639dace41bEA";
+  "0x7AD80f224A8473A4206ad486e5b6b4e4367D17AD";
