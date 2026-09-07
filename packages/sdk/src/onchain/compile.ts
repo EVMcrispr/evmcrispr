@@ -203,11 +203,19 @@ export function byteLenParamOf(ctx: CompileCtx, value: InputParam): InputParam {
 //  Const operands
 // ---------------------------------------------------------------------------
 
-export function constOperand(value: unknown): Operand {
+export function constOperand(
+  value: unknown,
+  { quoted = false }: { quoted?: boolean } = {},
+): Operand {
   if (typeof value === "boolean") return { kind: "const", cat: "Bool", value };
   if (value === "true" || value === "false")
     return { kind: "const", cat: "Bool", value: value === "true" };
-  if (value instanceof Num || isNum(value)) {
+  // A quoted literal that merely looks numeric ("1.5", the decimal string
+  // @num.format! produces) stays a string; only bare values coerce.
+  if (
+    value instanceof Num ||
+    (isNum(value) && !(quoted && typeof value === "string"))
+  ) {
     const num = value instanceof Num ? value : Num(value as any);
     const cat: Category =
       num.lt(Num(0n)) || isSignedInteger(num) ? "Int" : "Uint";
@@ -1131,7 +1139,7 @@ export async function compileOperand(
     return compileOnchainHelper(ctx, node);
   }
   const value = await ctx.interpreters.interpretNode(node);
-  return constOperand(value);
+  return constOperand(value, { quoted: node.type === NodeType.StringLiteral });
 }
 
 /** Compile the argument of a chain-call slot (@balance!, @codeHash!, …) — must
