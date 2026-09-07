@@ -35,7 +35,7 @@ describeCommand("switch", {
     {
       name: "rejects an unknown key",
       script: "switch eezL3",
-      error: "must be a chain id or a camelCase chain name",
+      error: "must be a chain id or a camelCase viem chain name",
     },
   ],
 });
