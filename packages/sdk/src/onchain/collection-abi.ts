@@ -4,7 +4,6 @@ export const COLLECTIONS_ABI = parseAbi([
   "struct Callback { address target; bytes4 selector; string arguments; bytes[] constants; uint256 first; uint256 second; bytes expression; }",
   "function packArray(string elementType, bytes[] values) pure returns (bytes)",
   "function unpackArray(string elementType, bytes encoded) pure returns (bytes[])",
-  "function validateValue(string valueType, bytes value) pure",
   "function mapValues(string inputType, string outputType, bytes[] values, Callback cb) view returns (bytes[])",
   "function filterValues(string inputType, bytes[] values, Callback cb) view returns (bytes[])",
   "function foldValues(string inputType, string accumulatorType, bytes[] values, bytes initial, Callback cb) view returns (bytes)",

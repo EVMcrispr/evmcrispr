@@ -1642,9 +1642,9 @@ describeCommand("assert", {
       error: "out of range",
     },
     {
-      name: "rejects a value lens landing on a struct",
+      name: "rejects judging a whole struct as a scalar",
       script: `assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]] == 1`,
-      error: "must select a single value",
+      error: 'unsupported return type "tuple"',
     },
     {
       name: "rejects @len! over a lens selecting a word",
