@@ -159,6 +159,24 @@ export class ExpressionError extends NodeError {
 }
 
 /**
+ * One side of an on-chain assertion failed to compile. Carries the span of
+ * the offending side (the subject or the expected expression) rather than
+ * the whole command, so an editor can mark the exact expression; the
+ * interpreter rethrows it untouched like every NodeError. Whole-assertion
+ * checks stay plain errors and get the command span from CommandError.
+ * @category Error
+ */
+export class CompileError extends NodeError {
+  constructor(
+    n: Node,
+    message = "the expression failed to compile",
+    { code = "CompileError", name = "CompileError" }: ErrorOptions = {},
+  ) {
+    super(name, n, message, { code, name });
+  }
+}
+
+/**
  * A blockchain transaction revert carrying the raw ABI-encoded revert data.
  * Used by error capture (`-!>` / `-?!>`) to decode revert reasons and custom errors.
  * @category Error

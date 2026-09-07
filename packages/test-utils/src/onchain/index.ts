@@ -14,7 +14,9 @@ export {
   runExpression,
 } from "./compile";
 export {
+  abiTypeOfCategory,
   decodeResolved,
+  decodeWord,
   type Norm,
   normalizeRun,
   sameValue,

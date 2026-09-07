@@ -9,17 +9,22 @@ import type { Address } from "../types";
  * what production emits.
  */
 
-/** Canonical address of the Assertions core v2.0 (vanity CREATE2 salt). */
+/** Canonical address of the Assertions core (CREATE2). */
 export const CORE_ADDRESS: Address =
-  "0x4D710b5AaBcd7f8753307c71779904A562422A15";
+  "0x94b07F5364b54471b065Ee74150864628Df722d7";
 
-/** Canonical address of the Operations v1.0 (retained CREATE2 salt). */
+/** Canonical address of Operations (CREATE2): scalar computation over
+ *  resolved values. */
 export const OPERATIONS_ADDRESS: Address =
-  "0xbe58Ca28d8FC1395F94E9871cB8A15f3D2Bd2f60";
+  "0x314e75BEFDb0f3e0621f68458f98Fce75246f7a7";
 
-/** Generic ABI-valued collection periphery (requires Cancun). */
+/** Canonical address of Collections (CREATE2): iteration and the
+ *  ABI-valued collection family (requires Cancun). */
 export const COLLECTIONS_ADDRESS: Address =
-  "0xd19bdD4a5462080F40B795c50d98827812B2C56b";
+  "0x830a490449eC148CE4404e398eC7FA9903Ce5Bc2";
 
+/** Canonical address of Expressions (CREATE2): the runtime composition
+ *  engine (`resolveCall`, `resolveValues`, `evaluate`); named
+ *  ExpressionResolver before the contracts repo renamed it. */
 export const EXPRESSION_RESOLVER_ADDRESS =
-  "0x255e580C85133DCECe94B67DaA21036Ed3C08997" as const;
+  "0x03B82019Ed1802172606922e8F8c8d43d0cd6d12" as const;

@@ -1,36 +1,21 @@
 import { asNum, Num } from "@evmcrispr/sdk";
-import type { Category } from "@evmcrispr/sdk/onchain";
-import type { Address, Hex } from "viem";
-import { decodeAbiParameters, getAddress, isAddress, isHex } from "viem";
+import type { ResolvedValue } from "@evmcrispr/sdk/onchain";
+import type { Hex } from "viem";
+import { getAddress, isAddress, isHex } from "viem";
+
+// The decoder itself lives in the SDK now (an editor previews values with
+// it); the harness keeps its normalization and comparison vocabulary.
+export {
+  abiTypeOfCategory,
+  decodeResolved,
+  decodeWord,
+} from "@evmcrispr/sdk/onchain";
 
 /**
- * A value reduced to a form both faces can be compared in.
- *
- * The two sides speak different type systems: off-chain a value is a JS
- * string / boolean / `Num` / array, on-chain it is 32-byte words plus a
- * category and an optional decimal scale. Neither is a superset, so both are
- * normalized into this instead of one being coerced towards the other.
+ * A value reduced to a form both faces can be compared in: the SDK's
+ * `ResolvedValue`, under the name the harness has always used.
  */
-export type Norm =
-  | { t: "num"; v: Num }
-  | { t: "bool"; v: boolean }
-  | { t: "addr"; v: Address }
-  | { t: "str"; v: string }
-  | { t: "hex"; v: Hex }
-  | { t: "list"; v: Norm[] };
-
-/** The inverse of `categoryFromAbiType`. Lives here rather than in the SDK
- *  because nothing in production decodes a resolved value — promote it if a
- *  real consumer ever appears. */
-const ABI_TYPE: Record<Category, string> = {
-  Uint: "uint256",
-  Int: "int256",
-  Address: "address",
-  Bool: "bool",
-  Bytes32: "bytes32",
-  String: "string",
-  Bytes: "bytes",
-};
+export type Norm = ResolvedValue;
 
 /** Normalize an off-chain (`run`) result. */
 export function normalizeRun(value: unknown): Norm {
@@ -54,73 +39,6 @@ export function normalizeRun(value: unknown): Norm {
   throw new Error(
     `cannot normalize a ${typeof value} run result: ${String(value)}`,
   );
-}
-
-/**
- * Decode what `Assertions.resolve` raw-returned.
- *
- * `decodeAs` is needed whenever the category cannot say what the bytes mean —
- * in practice any array, because an on-chain array is just a `Bytes` payload
- * of packed words and the operand carries no element type.
- */
-export function decodeResolved(
-  data: Hex,
-  cat: Category,
-  scale = 0,
-  decodeAs?: string,
-): Norm {
-  if (decodeAs?.endsWith("[]")) {
-    // A words payload: the resolved bytes are the ABI-encoded `bytes` return
-    // of the Operations call, and INSIDE that envelope the words are packed
-    // bare — no length head, no offsets.
-    const [payload] = decodeAbiParameters([{ type: "bytes" }], data) as [Hex];
-    const elem = decodeAs.slice(0, -2);
-    const words: Norm[] = [];
-    for (let i = 2; i + 64 <= payload.length; i += 64) {
-      words.push(
-        decodeWord(`0x${payload.slice(i, i + 64)}` as Hex, elem, scale),
-      );
-    }
-    return { t: "list", v: words };
-  }
-
-  if (cat === "String" || cat === "Bytes") {
-    const [v] = decodeAbiParameters(
-      [{ type: decodeAs ?? ABI_TYPE[cat] }],
-      data,
-    ) as [string];
-    return cat === "String"
-      ? { t: "str", v }
-      : { t: "hex", v: v.toLowerCase() as Hex };
-  }
-
-  // Word categories: take the FIRST word rather than round-tripping through
-  // decodeAbiParameters, which is strict about trailing data — a `::` call
-  // with several outputs resolves to more than one word.
-  if (data.length < 66) {
-    throw new Error(
-      `resolve returned ${(data.length - 2) / 2} bytes, expected at least a word`,
-    );
-  }
-  return decodeWord(data.slice(0, 66) as Hex, decodeAs ?? ABI_TYPE[cat], scale);
-}
-
-function decodeWord(word: Hex, abiType: string, scale: number): Norm {
-  const raw = BigInt(word);
-  if (abiType === "bool") return { t: "bool", v: raw !== 0n };
-  if (abiType === "address") {
-    return { t: "addr", v: getAddress(`0x${word.slice(26)}`) };
-  }
-  if (abiType.startsWith("bytes")) {
-    return { t: "hex", v: word.toLowerCase() as Hex };
-  }
-  // Two's complement: an int word above the sign bit is negative. Done here
-  // rather than by viem because this path never sees an ABI envelope.
-  const v =
-    abiType.startsWith("int") && raw >= 1n << 255n ? raw - (1n << 256n) : raw;
-  // The word IS the real value times 10^scale, so the scale divides back out
-  // exactly — Num is a rational, not a float.
-  return { t: "num", v: Num(v, 10n ** BigInt(scale)) };
 }
 
 /**

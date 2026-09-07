@@ -4,6 +4,7 @@ export type { ErrorOptions } from "./errors";
 export {
   BreakSignal,
   CommandError,
+  CompileError,
   ContinueSignal,
   ControlFlowSignal,
   ErrorException,
