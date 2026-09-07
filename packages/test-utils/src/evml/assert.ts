@@ -55,7 +55,7 @@ export const stringDigest = (s: string): Hex => keccak256(stringToHex(s));
 
 export interface AssertDecoders {
   theAction(actions: any[], to?: Address): any;
-  /** Decode the emitted action as checkParam(param[, message]). */
+  /** Decode the emitted action as assertParam(param[, message]). */
   decodeAssert(
     actions: any[],
     to?: Address,
@@ -124,7 +124,7 @@ export function createAssertDecoders(
       abi: ASSERTIONS_ABI,
       data: action.data,
     });
-    expect(functionName).to.equal("checkParam");
+    expect(functionName).to.equal("assertParam");
     return {
       param: args[0] as unknown as DecodedParam,
       message: (args.length > 1 ? args[1] : "") as string,

@@ -24,8 +24,8 @@ import {
   OPERATIONS_ADDRESS,
 } from "./addresses";
 import {
+  assertParamAction,
   boundWord,
-  checkParamAction,
   operatorFragment,
   wholeDelta,
 } from "./assert";
@@ -96,7 +96,7 @@ export interface AssertionCompilation {
   /** The constraint fragment the operator lowered to (Eq, Ne, Gt, Lt,
    *  Ge, Le, ApproxEq). */
   fragment?: string;
-  /** The judged param `checkParam` receives. */
+  /** The judged param `assertParam` receives. */
   param: InputParam;
   message: string;
   /** False when a face can only resolve inside a transaction (see
@@ -387,7 +387,7 @@ export async function compileAssertion(
   );
 }
 
-/** The action `assert` emits: an `checkParam` call against the core,
+/** The action `assert` emits: an `assertParam` call against the core,
  *  carrying its compilation beside the calldata. Downstream serialisers
  *  pick the transaction fields explicitly, so the extra property is
  *  inert on the wire. */
@@ -398,7 +398,7 @@ export interface AssertionAction extends TransactionAction {
 /** Wrap a compilation as the action `assert` returns. */
 export function assertionAction(c: AssertionCompilation): AssertionAction {
   return {
-    ...checkParamAction(c.param, c.message),
+    ...assertParamAction(c.param, c.message),
     readOnly: c.readOnly,
     compiled: c,
   };

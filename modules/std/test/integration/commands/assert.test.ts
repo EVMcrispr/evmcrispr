@@ -70,7 +70,7 @@ function theAction(actions: any[], to: Address) {
   return action;
 }
 
-/** Decode the emitted action as checkParam(param[, message]). */
+/** Decode the emitted action as assertParam(param[, message]). */
 function decodeAssert(
   actions: any[],
   to: Address = ASSERTIONS,
@@ -80,7 +80,7 @@ function decodeAssert(
     abi: ASSERTIONS_ABI,
     data: action.data,
   });
-  expect(functionName).to.equal("checkParam");
+  expect(functionName).to.equal("assertParam");
   return {
     param: args[0] as unknown as Param,
     message: (args.length > 1 ? args[1] : "") as string,

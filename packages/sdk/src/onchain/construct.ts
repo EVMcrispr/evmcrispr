@@ -34,7 +34,7 @@ import type { CompileCtx } from "./types";
  * Both keep the core as the destination's `msg.sender`, and both are
  * ordinary composable operands: they nest inside chains, operator
  * expressions and other reads, and the judged value always flows through a
- * plain `checkParam`.
+ * plain `assertParam`.
  */
 
 // ---------------------------------------------------------------------------

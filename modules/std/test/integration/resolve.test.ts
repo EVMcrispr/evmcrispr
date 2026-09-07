@@ -21,7 +21,7 @@ import { decodeAbiParameters, type Hex } from "viem";
  * The first execution of compiled calldata against the real contracts.
  *
  * Every other on-chain suite asserts calldata SHAPE: it interprets a script,
- * decodes the emitted `checkParam` bytes and compares them to a hand-written
+ * decodes the emitted `assertParam` bytes and compares them to a hand-written
  * expectation. That proves the compiler emits what we think it should, not
  * that the core resolves it to the right answer.
  *

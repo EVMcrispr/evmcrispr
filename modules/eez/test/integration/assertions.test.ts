@@ -50,7 +50,7 @@ for (const [label, chainId, client, proxy] of [
           const code = await client.getCode({ address: CORE_ADDRESS });
           expect(code && code !== "0x", "Assertions core not deployed").to.be
             .true;
-          // A passing checkParam returns without reverting.
+          // A passing assertParam returns without reverting.
           await client.call({ to: action.to, data: action.data });
         },
       },
