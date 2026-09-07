@@ -30,4 +30,4 @@ Concatenate bytes values together.
 
 ## On-chain face (@bytes.concat!)
 
-Concatenate constant or live byte parts in order. Each supplied part is resolved once. The resolver builds the complete ABI arguments without the former four-live-part limit.
+Concatenate constant or live byte parts in order. Each supplied part is resolved once: the core gathers the parts into one `bytes[]` (`gather`) and calls Operations' `concat` with it (`get`), so there is no four-live-part limit.

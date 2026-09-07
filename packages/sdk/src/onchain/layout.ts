@@ -11,10 +11,11 @@ import type { CompileCtx } from "./types";
  * built when some of its arguments only resolve at judge time.
  *
  * The encoder owns the layout — head offsets are explicit words — so a
- * runtime-sized operand (a resolved string/bytes/array envelope) needs
- * either to sit where nothing follows it, or to have every later offset
- * computed on-chain from its length. {@link spliceLayout} does the
- * second, which is what lets one call carry more than one live value.
+ * runtime-sized operand (a resolved string/bytes/array envelope) has to
+ * sit where nothing live follows it. A call with more than one such value
+ * is hosted by the core's `get`, which resolves whole arguments and
+ * encodes the tuple in-frame; {@link spliceLayout} only ever emits
+ * literal offsets.
  */
 
 /** An Operations word op over two resolved operands, as a core read. */
@@ -74,9 +75,10 @@ export const wordPiece = (v: bigint | InputParam): Piece =>
 
 /** A dynamic argument of a calldata layout: a pre-encoded constant tail
  *  span (no 0x), or a live envelope. `payload` is the PADDED payload size
- *  of the resolved value — everything after its [0x20][len] head words.
- *  It is required for every live slot except the last, since only the
- *  slots that follow one need to know how far it pushes them. */
+ *  of the resolved value — everything after its [0x20][len] head words —
+ *  as a build-time literal when the compiler knows it (a sliced word
+ *  part), or the operand computing it, which marks the slot runtime-sized
+ *  for `chooseHost`. Only the last live slot may be runtime-sized. */
 export interface LiveSlot {
   param: InputParam;
   payload?: bigint | InputParam;
@@ -112,16 +114,15 @@ export function bytesPayloadParam(
 export const wordsPayloadParam = envelopeLenParam;
 
 /**
- * Lay out N dynamic arguments, ANY number of them live.
+ * Lay out N dynamic arguments with every offset a build-time literal.
  *
  * Constant tails are hoisted ahead of every live envelope so their
- * offsets stay build-time literals; the live envelopes then follow in
- * slot order. The running position is split in two — `at` carries the
- * build-time part (each envelope's own [0x20][len] head words) and
- * `grown` the runtime part (their padded payloads) — which keeps every
- * offset to at most ONE live `add`:
- *
- *   offset_k = add(payload_1 ⊕ … ⊕ payload_{k-1}, <one literal>)
+ * offsets stay literals; the live envelopes then follow in slot order,
+ * each after the previous one's known payload. Only the LAST live slot
+ * may be runtime-sized: a runtime-sized live followed by another live
+ * would need its follower's offset computed on-chain, and that shape is
+ * hosted by the core's `get` (see `chooseHost` in construct.ts), not by a
+ * splice. Asked for it anyway, this throws.
  *
  * `headBytes` is where the tail area starts (past every head word of the
  * enclosing call); `base` is what offsets are measured from — 0 for a
@@ -133,21 +134,21 @@ export const wordsPayloadParam = envelopeLenParam;
  * whose offsets point at the wrong envelope.
  */
 export function spliceLayout(
-  ctx: CompileCtx,
+  _ctx: CompileCtx,
   slots: readonly Slot[],
   headBytes: number,
   base = 0,
-): { offsets: (bigint | InputParam)[]; tail: Piece[] } {
+): { offsets: bigint[]; tail: Piece[] } {
   const lives = slots.flatMap((s, i) => (isLiveSlot(s) ? [{ s, i }] : []));
   for (const { s } of lives.slice(0, -1)) {
-    if (s.payload === undefined) {
+    if (typeof s.payload !== "bigint") {
       throw new ErrorException(
-        "a live value whose runtime size the compiler cannot derive must be spliced last, since nothing after it would have a computable offset",
+        "internal: a runtime offset was requested (a runtime-sized live value followed by another live value); route the call through buildCall so the core's get hosts it",
       );
     }
   }
 
-  const offsets = new Array<bigint | InputParam>(slots.length);
+  const offsets = new Array<bigint>(slots.length);
   const constTails: string[] = [];
 
   let at = headBytes;
@@ -158,22 +159,12 @@ export function spliceLayout(
     at += s.tail.length / 2;
   });
 
-  let grown: InputParam | undefined;
   for (let j = 0; j < lives.length; j++) {
     // +32 skips this envelope's own 0x20 word, the trick that lets the
     // decoder read the length word directly.
-    const here = BigInt(at + 32 - base);
-    offsets[lives[j].i] = grown
-      ? wordOp(ctx, "add", grown, rawParam(toWord(here)))
-      : here;
+    offsets[lives[j].i] = BigInt(at + 32 - base);
     if (j === lives.length - 1) break;
-    at += 64; // this envelope's [0x20][len]
-    const p = lives[j].s.payload as bigint | InputParam;
-    if (typeof p === "bigint") {
-      at += Number(p);
-      continue;
-    }
-    grown = grown ? wordOp(ctx, "add", grown, p) : p;
+    at += 64 + Number(lives[j].s.payload as bigint); // [0x20][len][payload]
   }
 
   return { offsets, tail: [...constTails, ...lives.map((l) => l.s.param)] };

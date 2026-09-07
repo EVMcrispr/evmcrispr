@@ -2,8 +2,8 @@ import "../setup";
 import {
   CORE_ABI,
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ABI,
-  EXPRESSION_RESOLVER_ADDRESS,
+  EXPRESSIONS_ABI,
+  EXPRESSIONS_ADDRESS,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
@@ -108,18 +108,18 @@ const SENTINEL_START = 1n;
  *  spliced source envelope param. */
 function expectWordsPayload(param: DecodedParam): DecodedParam {
   const call = d.staticCallOf(param);
-  expect(call.target).to.equal(getAddress(EXPRESSION_RESOLVER_ADDRESS));
+  expect(call.target).to.equal(getAddress(EXPRESSIONS_ADDRESS));
   const decoded = decodeFunctionData({
-    abi: EXPRESSION_RESOLVER_ABI,
+    abi: EXPRESSIONS_ABI,
     data: call.data,
   });
   expect(decoded.functionName).to.equal("evaluate");
   if (decoded.functionName !== "evaluate") throw new Error("expected graph");
-  const [program] = decoded.args;
-  const sources = program.nodes.filter((n) => n.kind === 2);
+  const [expression] = decoded.args;
+  const sources = expression.nodes.filter((n) => n.kind === 2);
   expect(sources).to.have.lengthOf(1);
   expect(sources[0].valueType).to.equal("address[]");
-  expect(program.nodes[Number(program.result)].selector).to.equal(
+  expect(expression.nodes[Number(expression.result)].selector).to.equal(
     selectorOf("sliceRange(bytes,int256,int256)"),
   );
   return decodeAbiParameters(

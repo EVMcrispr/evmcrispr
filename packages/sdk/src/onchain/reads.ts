@@ -2,7 +2,7 @@
  * P1 read-face plumbing: compile a known-ABI single read against a
  * composition-time-resolved target into an operand. Literal arguments
  * compile to plain calldata (a direct staticcall); live arguments (`::`
- * calls or on-chain helpers) fold the call into a core `read` splice.
+ * calls or on-chain helpers) fold the call into a core `read` or `get`.
  * Arguments arrive as AST nodes or as pre-resolved `{ value }` defaults.
  */
 import type { AbiFunction, Address } from "viem";
@@ -16,8 +16,8 @@ import {
   PRECOMPILED_OPERAND,
 } from "./compile";
 import type { ArgSpec } from "./construct";
-import { buildCallSegments } from "./construct";
-import { encodePick, encodeRead } from "./core";
+import { buildCall, callParam } from "./construct";
+import { encodePick } from "./core";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import type { Category, CompileCtx, Operand } from "./types";
@@ -65,7 +65,7 @@ async function argSpec(
 
 /**
  * Compile `target.fn(args)` into an operand: plain calldata when every
- * argument is a build-time value, a core read splice when any is live.
+ * argument is a build-time value, a core `read`/`get` when any is live.
  * `pickWord` unwraps one word of a multi-value return through a core
  * `pick` (the same service `directReadOperand` provides for build-time
  * calldata), so the operand stays a single word wherever it
@@ -94,14 +94,10 @@ export async function callReadOperand(
     const values = specs.map((s) => (s as { value: unknown }).value);
     param = staticCallParam(target, encodeCalldata(fnAbi, values as never));
   } else {
-    const call = buildCallSegments(ctx, fnAbi, specs);
-    param = staticCallParam(
-      ctx.core,
-      encodeRead(
-        rawParam(toWord(BigInt(target))),
-        call.selector,
-        call.segments,
-      ),
+    param = callParam(
+      ctx,
+      rawParam(toWord(BigInt(target))),
+      buildCall(ctx, fnAbi, specs),
     );
   }
   if (pickWord !== undefined) {

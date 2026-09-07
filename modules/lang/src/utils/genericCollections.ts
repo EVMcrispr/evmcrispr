@@ -3,9 +3,10 @@ import { checkedInteger, checkedRange, ErrorException } from "@evmcrispr/sdk";
 import type { CompileCtx, InputParam, Operand } from "@evmcrispr/sdk/onchain";
 import {
   arrayWordsParam,
-  buildCallSegments,
+  buildCall,
   CONSTRAINT_TYPE,
   CORE_ABI,
+  callParam,
   canonicalArgSpec,
   canonicalBytesParam,
   categoryFromAbiType,
@@ -15,7 +16,6 @@ import {
   concatParam,
   constBigInt,
   encodeNav,
-  encodeRead,
   envelopeLenParam,
   isDynamicParam,
   materializeWord,
@@ -76,19 +76,12 @@ export function indexedNav(
   const fn = CORE_ABI.find(
     (f) => f.type === "function" && f.name === "nav",
   ) as AbiFunction;
-  const call = buildCallSegments(ctx, fn, [
+  const call = buildCall(ctx, fn, [
     { kind: "value", value: source as never },
     { kind: "value", value: descriptor },
     canonicalArgSpec(ctx, { type: "int256[]" }, path),
   ]);
-  return staticCallParam(
-    ctx.core,
-    encodeRead(
-      rawParam(toWord(BigInt(ctx.core))),
-      call.selector,
-      call.segments,
-    ),
-  );
+  return callParam(ctx, rawParam(toWord(BigInt(ctx.core))), call);
 }
 
 export function typedValueOperand(

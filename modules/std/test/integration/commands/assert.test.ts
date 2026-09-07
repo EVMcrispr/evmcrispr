@@ -5,8 +5,6 @@ import {
   CONSTRAINT_TYPE,
   CORE_ABI,
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ABI,
-  EXPRESSION_RESOLVER_ADDRESS,
   FETCHER_TYPE,
   LEN_STEP,
   OPERATIONS_ADDRESS,
@@ -72,7 +70,7 @@ function theAction(actions: any[], to: Address) {
   return action;
 }
 
-/** Decode the emitted action as assertParam(param[, message]). */
+/** Decode the emitted action as checkParam(param[, message]). */
 function decodeAssert(
   actions: any[],
   to: Address = ASSERTIONS,
@@ -82,7 +80,7 @@ function decodeAssert(
     abi: ASSERTIONS_ABI,
     data: action.data,
   });
-  expect(functionName).to.equal("assertParam");
+  expect(functionName).to.equal("checkParam");
   return {
     param: args[0] as unknown as Param,
     message: (args.length > 1 ? args[1] : "") as string,
@@ -141,51 +139,49 @@ function expectRawWord(param: Param, value: bigint) {
   expect(BigInt(param.paramData)).to.equal(value & WORD_MASK);
 }
 
-/** Decode a param as core.read: the runtime-resolved target, the 4-byte
- *  selector and the calldata segments the judge concatenates. */
+/** Decode a constructed call on either core host. A `read` yields the
+ *  runtime-resolved target, the 4-byte selector and the calldata segments
+ *  the judge concatenates; a `get` yields its whole-value arguments in
+ *  the same slot plus the argument tuple descriptor. */
 function readOf(param: Param): {
+  host: "read" | "get";
   target: Param;
   selector: `0x${string}`;
+  argumentTypes?: string;
   segments: readonly Param[];
 } {
-  const resolved = staticCallOf(param);
-  if (
-    resolved.target.toLowerCase() === EXPRESSION_RESOLVER_ADDRESS.toLowerCase()
-  ) {
-    const call = decodeFunctionData({
-      abi: EXPRESSION_RESOLVER_ABI,
-      data: resolved.data,
-    });
-    if (call.functionName !== "resolveCall")
-      throw new Error("Expected resolver call");
+  const call = core(param);
+  if (call.functionName === "get") {
     return {
-      target: call.args[1] as unknown as Param,
-      selector: call.args[2],
-      segments: call.args[4] as unknown as Param[],
+      host: "get",
+      target: call.args[0] as unknown as Param,
+      selector: call.args[1] as `0x${string}`,
+      argumentTypes: call.args[2] as string,
+      segments: call.args[3] as unknown as readonly Param[],
     };
   }
-  const call = core(param);
   expect(call.functionName).to.equal("read");
   return {
+    host: "read",
     target: call.args[0] as unknown as Param,
     selector: call.args[1] as `0x${string}`,
     segments: call.args[2] as unknown as readonly Param[],
   };
 }
 
-/** Decode canonical argument assembly performed by ExpressionResolver. */
+/** The live canonical arguments of a constructed call. Through `get`
+ *  (more than one runtime-sized live) they are the call's arguments under
+ *  `descriptor`; through `read` (one live envelope spliced last with a
+ *  literal offset) they are the non-literal segments. */
 function canonicalArguments(
-  segments: readonly Param[],
+  read: ReturnType<typeof readOf>,
   descriptor: string,
 ): readonly Param[] {
-  expect(segments).to.have.lengthOf(1);
-  const { target, data } = staticCallOf(segments[0]);
-  expect(target).to.equal(getAddress(EXPRESSION_RESOLVER_ADDRESS));
-  const decoded = decodeFunctionData({ abi: EXPRESSION_RESOLVER_ABI, data });
-  expect(decoded.functionName).to.equal("resolveArguments");
-  expect(getAddress(decoded.args[0] as Address)).to.equal(ASSERTIONS);
-  expect(decoded.args[1]).to.equal(descriptor);
-  return decoded.args[2] as unknown as readonly Param[];
+  if (read.host === "get") {
+    expect(read.argumentTypes).to.equal(descriptor);
+    return read.segments;
+  }
+  return read.segments.filter((s) => s.fetcherType !== FETCHER_TYPE.RawBytes);
 }
 
 /** Decode a param as read(operators, opSignature, args) — the composed
@@ -195,6 +191,15 @@ function opReadOf(param: Param, signature: string): readonly Param[] {
   expectRawWord(target, BigInt(OPERATIONS));
   expect(selector).to.equal(selectorOf(signature));
   return segments;
+}
+
+/** The LIVE operands of a composed Operations call, whichever host it
+ *  took: on `read` the constant spans merge into RAW_BYTES segments
+ *  around them, on `get` every argument is its own whole value. */
+function opLiveArgs(param: Param, signature: string): readonly Param[] {
+  return opReadOf(param, signature).filter(
+    (segment) => segment.fetcherType !== FETCHER_TYPE.RawBytes,
+  );
 }
 
 /** A binary operator read judged EQ 1 — the shape != and every non-plain
@@ -869,8 +874,11 @@ describeCommand("assert", {
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 1n);
-        const args = opReadOf(param, "contains(bytes,bytes)");
-        expect(args).to.have.lengthOf(2);
+        // A live haystack with a constant needle is one runtime-sized
+        // live spliced last, so it stays on `read` with literal offsets;
+        // the needle rides inside the constant span before it.
+        const args = opLiveArgs(param, "contains(bytes,bytes)");
+        expect(args).to.have.lengthOf(1);
         expect(staticCallOf(args[0]).target).to.equal(TOKEN);
       },
     },
@@ -880,8 +888,11 @@ describeCommand("assert", {
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 0n);
-        const args = opReadOf(param, "contains(bytes,bytes)");
-        expect(args).to.have.lengthOf(2);
+        // A live haystack with a constant needle is one runtime-sized
+        // live spliced last, so it stays on `read` with literal offsets;
+        // the needle rides inside the constant span before it.
+        const args = opLiveArgs(param, "contains(bytes,bytes)");
+        expect(args).to.have.lengthOf(1);
         expect(staticCallOf(args[0]).target).to.equal(TOKEN);
       },
     },
@@ -1348,11 +1359,12 @@ describeCommand("assert", {
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         expectConstraint(param, "Eq", 5n);
-        const { target, selector, segments } = readOf(param);
-        expectRawWord(target, BigInt(A));
-        expect(selector).to.equal(selectorOf("a(address[])"));
+        const read = readOf(param);
+        expectRawWord(read.target, BigInt(A));
+        expect(read.selector).to.equal(selectorOf("a(address[])"));
+        expect(read.host).to.equal("read");
 
-        const args = canonicalArguments(segments, "(address[])");
+        const args = canonicalArguments(read, "(address[])");
         expect(args).to.have.lengthOf(1);
         const nav = core(args[0]);
         expect(nav.functionName).to.equal("nav");
@@ -1364,15 +1376,17 @@ describeCommand("assert", {
       },
     },
     {
-      // Resolver assembles both complete canonical values at runtime.
-      name: "assembles two dynamic nested arguments through the resolver",
+      // Two runtime-sized lives: the core's get resolves both whole
+      // values once and encodes the tuple in-frame.
+      name: "assembles two dynamic nested arguments through the core's get",
       script: `assert ${A}::{a(address[],address[])(uint256) ${B}::{b()(address,address[][])}[_ [_ $]] ${B}::{b()(address,address[][])}[_ [_ $]]} == 5`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        const { selector, segments } = readOf(param);
-        expect(selector).to.equal(selectorOf("a(address[],address[])"));
+        const read = readOf(param);
+        expect(read.selector).to.equal(selectorOf("a(address[],address[])"));
+        expect(read.host).to.equal("get");
 
-        const args = canonicalArguments(segments, "(address[],address[])");
+        const args = canonicalArguments(read, "(address[],address[])");
         expect(args).to.have.lengthOf(2);
         for (const argument of args) {
           const nav = core(argument);
@@ -1414,7 +1428,7 @@ describeCommand("assert", {
         expect(aRead.segments).to.have.lengthOf(1);
         const bRead = readOf(aRead.segments[0]);
         expect(bRead.selector).to.equal(selectorOf("b(address[])"));
-        const args = canonicalArguments(bRead.segments, "(address[])");
+        const args = canonicalArguments(bRead, "(address[])");
         expect(args).to.have.lengthOf(1);
         const nav = core(args[0]);
         expect(nav.functionName).to.equal("nav");
@@ -1434,7 +1448,7 @@ describeCommand("assert", {
         for (const segment of aRead.segments) {
           const bRead = readOf(segment);
           expect(bRead.selector).to.equal(selectorOf("b(address[])"));
-          const args = canonicalArguments(bRead.segments, "(address[])");
+          const args = canonicalArguments(bRead, "(address[])");
           expect(args).to.have.lengthOf(1);
           const nav = core(args[0]);
           expect(nav.functionName).to.equal("nav");

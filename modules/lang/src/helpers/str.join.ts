@@ -2,18 +2,17 @@ import type { ArrayExpressionNode, Node } from "@evmcrispr/sdk";
 import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import type { BytesPart } from "@evmcrispr/sdk/onchain";
 import {
-  buildCallSegments,
+  buildCall,
+  callParam,
   canonicalArgSpec,
   chainArgWithLens,
   compileOnchainHelper,
   concatParam,
-  encodeRead,
   encodeValuesParam,
   isBangHelperNode,
   lensedDataOperand,
   rawParam,
   requireBytesLike,
-  staticCallParam,
   toWord,
   typedArrayArg,
 } from "@evmcrispr/sdk/onchain";
@@ -78,7 +77,7 @@ export default defineHelper<Lang>({
       const fn = parseAbiItem(
         "function concat(bytes[],bytes) pure returns (bytes)",
       ) as AbiFunction;
-      const call = buildCallSegments(ctx, fn, [
+      const call = buildCall(ctx, fn, [
         canonicalArgSpec(ctx, { type: "bytes[]" }, arrayParam),
         typeof delimiter.part === "string"
           ? { kind: "value", value: delimiter.part }
@@ -91,14 +90,7 @@ export default defineHelper<Lang>({
       return {
         kind: "call",
         cat: "String",
-        param: staticCallParam(
-          ctx.core,
-          encodeRead(
-            rawParam(toWord(BigInt(ctx.operators))),
-            call.selector,
-            call.segments,
-          ),
-        ),
+        param: callParam(ctx, rawParam(toWord(BigInt(ctx.operators))), call),
       };
     }
     const elements = (node.args[0] as ArrayExpressionNode)

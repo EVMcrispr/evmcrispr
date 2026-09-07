@@ -1,4 +1,9 @@
-/** Lower unresolved calldata to a lazy, memoized graph of canonical ABI values. */
+/**
+ * Lower unresolved calldata to a lazy, memoized graph of canonical ABI
+ * values: the builder behind every `Expressions.evaluate` operand and
+ * every collection callback compiled as a graph. Nodes are hash-consed,
+ * so a subterm named twice becomes one node evaluated once.
+ */
 import {
   type AbiFunction,
   type AbiParameter,
@@ -14,23 +19,24 @@ import { COLLECTIONS_ADDRESS } from "./addresses";
 import { COLLECTIONS_ABI } from "./collection-abi";
 import { CORE_ABI, encodeResolve } from "./core";
 import { FETCHER_TYPE, type InputParam, staticCallParam } from "./erc8211";
-import { OPERATIONS_ABI } from "./operators";
 import {
   abiDescriptor,
   argumentDescriptor,
-  EXPRESSION_RESOLVER_ABI,
-  type ExpressionProgram,
-  PROGRAM_TYPE,
-  type ProgramNode,
-  resolverAddress,
-} from "./resolver";
+  EXPRESSION_TYPE,
+  EXPRESSIONS_ABI,
+  type Expression,
+  type ExpressionNode,
+  encodeEvaluate,
+  expressionsAddress,
+} from "./expressions";
+import { OPERATIONS_ABI } from "./operators";
 import type { CompileCtx } from "./types";
 
 const INPUT_TYPE = (CORE_ABI.find((f) => f.name === "resolve") as AbiFunction)
   .inputs[0];
 const BYTES: AbiParameter = { type: "bytes" };
-export class ProgramBuilder {
-  nodes: ProgramNode[] = [];
+export class GraphBuilder {
+  nodes: ExpressionNode[] = [];
   private cache = new Map<string, number>();
   constructor(
     readonly ctx: CompileCtx,
@@ -249,9 +255,11 @@ export class ProgramBuilder {
     }
     return this.node(10, "bytes", [targetRef, dataRef], "0x", selector);
   }
-  import(program: ExpressionProgram): number {
+  /** Splice another graph in: its nodes re-interned here, parameter
+   *  markers rebound. */
+  import(expression: Expression): number {
     const refs: number[] = [];
-    for (const n of program.nodes) {
+    for (const n of expression.nodes) {
       if (n.kind === 0 && n.valueType === "bytes") {
         const [payload] = decodeAbiParameters([BYTES], n.data);
         const marker = this.markers.get((payload as Hex).toLowerCase());
@@ -276,7 +284,7 @@ export class ProgramBuilder {
           ),
         );
     }
-    return refs[Number(program.result)];
+    return refs[Number(expression.result)];
   }
   /** Preserve unresolved STATIC_CALL wire for core revert probes. */
   wire(param: InputParam): number {
@@ -319,8 +327,8 @@ export class ProgramBuilder {
     const abi =
       target.toLowerCase() === this.ctx.core.toLowerCase()
         ? CORE_ABI
-        : target.toLowerCase() === resolverAddress(this.ctx).toLowerCase()
-          ? EXPRESSION_RESOLVER_ABI
+        : target.toLowerCase() === expressionsAddress(this.ctx).toLowerCase()
+          ? EXPRESSIONS_ABI
           : OPERATIONS_ABI;
     const decoded = decodeFunctionData({ abi, data });
     const args = decoded.args as readonly unknown[];
@@ -431,6 +439,32 @@ export class ProgramBuilder {
             }),
             calldata,
           ]);
+        } else if (decoded.functionName === "get") {
+          // Whole canonical arguments: each becomes a typed node, the
+          // call a Call-shaped invoke retaining raw returndata.
+          const descriptor = args[2] as string;
+          const types =
+            descriptor === "()"
+              ? []
+              : parseAbiParameters(descriptor.slice(1, -1));
+          const refs = (args[3] as InputParam[]).map((p, i) =>
+            this.asType(this.fragment(p), types[i]),
+          );
+          result = this.invoke(
+            this.asType(this.fragment(args[0] as InputParam), {
+              type: "address",
+            }),
+            args[1] as Hex,
+            types,
+            refs,
+          );
+        } else if (decoded.functionName === "gather") {
+          result = this.wrap(
+            this.array(
+              "bytes",
+              (args[0] as InputParam[]).map((p) => this.fragment(p)),
+            ),
+          );
         } else {
           if (decoded.functionName === "orElse") {
             result = this.node(8, "bytes", [
@@ -477,61 +511,23 @@ export class ProgramBuilder {
             ),
           );
         }
-      } else if (address === resolverAddress(this.ctx).toLowerCase()) {
-        const decoded = decodeFunctionData({
-          abi: EXPRESSION_RESOLVER_ABI,
-          data,
-        });
+      } else if (address === expressionsAddress(this.ctx).toLowerCase()) {
+        // A nested graph merges into this one, node for node.
+        const decoded = decodeFunctionData({ abi: EXPRESSIONS_ABI, data });
         const args = decoded.args as unknown as unknown[];
         if (
           decoded.functionName === "evaluate" ||
           decoded.functionName === "evaluateEncoded"
         ) {
-          const program =
+          const expression =
             decoded.functionName === "evaluate"
-              ? (args[0] as ExpressionProgram)
+              ? (args[0] as Expression)
               : (decodeAbiParameters(
-                  [PROGRAM_TYPE],
+                  [EXPRESSION_TYPE],
                   args[0] as Hex,
-                )[0] as ExpressionProgram);
-          result = this.wrap(this.import(program));
-        } else if (decoded.functionName === "resolveValues")
-          result = this.wrap(
-            this.array(
-              "bytes",
-              (args[1] as InputParam[]).map((p) => this.fragment(p)),
-            ),
-          );
-        else if (
-          decoded.functionName === "resolveArguments" ||
-          decoded.functionName === "resolveCall"
-        ) {
-          const isCall = decoded.functionName === "resolveCall";
-          const descriptor = args[isCall ? 3 : 1] as string;
-          const types =
-            descriptor === "()"
-              ? []
-              : parseAbiParameters(descriptor.slice(1, -1));
-          const refs = (args[isCall ? 4 : 2] as InputParam[]).map((p, i) =>
-            this.asType(this.fragment(p), types[i]),
-          );
-          result = isCall
-            ? this.invoke(
-                this.asType(this.fragment(args[1] as InputParam), {
-                  type: "address",
-                }),
-                args[2] as Hex,
-                types,
-                refs,
-              )
-            : this.operation("encodeBytes", [
-                this.literal({ type: "string" }, descriptor),
-                this.array(
-                  "bytes",
-                  refs.map((r) => this.wrap(r)),
-                ),
-              ]);
-        } else throw new Error("Unsupported nested resolver");
+                )[0] as Expression);
+          result = this.wrap(this.import(expression));
+        } else throw new Error("Unsupported nested Expressions call");
       } else if (address === this.ctx.operators.toLowerCase()) {
         const decoded = decodeFunctionData({ abi: OPERATIONS_ABI, data });
         if (decoded.functionName !== "rawCall")
@@ -557,30 +553,33 @@ export class ProgramBuilder {
     ) as AbiFunction;
     return `${toFunctionSelector(fn)}${encodeAbiParameters(fn.inputs, [target, data]).slice(2)}` as Hex;
   }
-  finish(result: number): ExpressionProgram {
+  /** The graph as an `Expression` whose result is `result`. */
+  build(result: number): Expression {
     return { core: this.ctx.core, nodes: this.nodes, result: BigInt(result) };
   }
 }
 
-export function programParam(
+/** A graph as an operand: `Expressions.evaluate(expression, [])` at the
+ *  Expressions address, raw-returning the result node's value. */
+export function graphParam(
   ctx: CompileCtx,
-  graph: ProgramBuilder,
+  graph: GraphBuilder,
   result: number,
 ): InputParam {
   return staticCallParam(
-    resolverAddress(ctx),
-    encodeFunctionData({
-      abi: EXPRESSION_RESOLVER_ABI,
-      functionName: "evaluate",
-      args: [graph.finish(result), []],
-    }),
+    expressionsAddress(ctx),
+    encodeEvaluate(graph.build(result)),
   );
 }
+
+/** A revert probe as a one-node graph: `ProbeCall` keeps the final
+ *  target's own revert bytes where the core's `revertData` over a
+ *  composed chain would see the core's wrapping error instead. */
 export function probeCallParam(
   ctx: CompileCtx,
   param: InputParam,
   selector: Hex,
 ): InputParam {
-  const graph = new ProgramBuilder(ctx);
-  return programParam(ctx, graph, graph.probe(param, selector));
+  const graph = new GraphBuilder(ctx);
+  return graphParam(ctx, graph, graph.probe(param, selector));
 }

@@ -86,7 +86,7 @@ export default defineHelper<Lang>({
             ],
             first: 1n,
             second: 0n,
-            program: "0x",
+            expression: "0x",
           } as never,
         },
       ]);

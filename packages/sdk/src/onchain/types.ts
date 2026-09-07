@@ -92,7 +92,9 @@ export interface CompileCtx {
   /** Resolved operators contract address (the plain word/bytes ops). */
   operators: Address;
   collections?: Address;
-  resolver?: Address;
+  /** Resolved Expressions address (graphs and collection callbacks
+   *  evaluate here); the canonical one when absent. */
+  expressions?: Address;
   /** Set by faces, read by the emitting command; absent in contexts that
    *  never emit (hover, completions). */
   hints?: CompileHints;

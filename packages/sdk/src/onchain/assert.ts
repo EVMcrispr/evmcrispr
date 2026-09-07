@@ -2,20 +2,20 @@ import { ErrorException } from "../errors";
 import type { TransactionAction } from "../types";
 import type { Num } from "../utils/Num";
 import { CORE_ADDRESS } from "./addresses";
-import { encodeAssertParam, type InputParam } from "./erc8211";
+import { encodeCheckParam, type InputParam } from "./erc8211";
 
 /**
- * Encode an `assertParam(param[, message])` action against the assertions
+ * Encode an `checkParam(param[, message])` action against the assertions
  * core, flagged `readOnly` so it runs as an `eth_call` check when executed
  * standalone, but as a real atomic call when included in a batch.
  */
-export function assertParamAction(
+export function checkParamAction(
   param: InputParam,
   message = "",
 ): TransactionAction {
   return {
     to: CORE_ADDRESS,
-    data: encodeAssertParam(param, message),
+    data: encodeCheckParam(param, message),
     readOnly: true,
   };
 }

@@ -28,7 +28,7 @@ const NONEXISTENT = getAddress("0x00000000000000000000000000000000dead0001");
 
 const preamble = "load lang\nload contracts";
 
-/** Whether the assertion holds on-chain: assertParam reverts when it
+/** Whether the assertion holds on-chain: checkParam reverts when it
  *  fails, so a successful eth_call IS the assertion passing. */
 async function holds(expression: string): Promise<boolean> {
   const [action] = (await createInterpreter(

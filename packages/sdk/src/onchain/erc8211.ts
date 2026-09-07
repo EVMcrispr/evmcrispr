@@ -61,10 +61,10 @@ export const ASSERTIONS_ABI = parseAbi([
   "struct InputParam { uint8 paramType; uint8 fetcherType; bytes paramData; Constraint[] constraints; }",
   "struct OutputParam { uint8 fetcherType; bytes paramData; }",
   "struct ComposableExecution { bytes4 functionSig; InputParam[] inputParams; OutputParam[] outputParams; }",
-  "function assertParam(InputParam param) view",
-  "function assertParam(InputParam param, string message) view",
-  "function assertComposable(ComposableExecution[] executions) view",
-  "function assertComposable(ComposableExecution[] executions, string message) view",
+  "function checkParam(InputParam param) view",
+  "function checkParam(InputParam param, string message) view",
+  "function check(ComposableExecution[] executions) view",
+  "function check(ComposableExecution[] executions, string message) view",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -182,18 +182,18 @@ function abiItem(name: string, argCount: number) {
   return item;
 }
 
-/** Calldata for `assertParam(param[, message])` — the message overload is
+/** Calldata for `checkParam(param[, message])` — the message overload is
  *  used only when a message is provided. */
-export function encodeAssertParam(param: InputParam, message = ""): Hex {
+export function encodeCheckParam(param: InputParam, message = ""): Hex {
   return message === ""
     ? encodeFunctionData({
-        abi: [abiItem("assertParam", 1)],
-        functionName: "assertParam",
+        abi: [abiItem("checkParam", 1)],
+        functionName: "checkParam",
         args: [param],
       } as unknown as Parameters<typeof encodeFunctionData>[0])
     : encodeFunctionData({
-        abi: [abiItem("assertParam", 2)],
-        functionName: "assertParam",
+        abi: [abiItem("checkParam", 2)],
+        functionName: "checkParam",
         args: [param, message],
       } as unknown as Parameters<typeof encodeFunctionData>[0]);
 }

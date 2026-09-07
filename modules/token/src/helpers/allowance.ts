@@ -1,9 +1,9 @@
 import { resolveToken } from "@evmcrispr/module-std";
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import {
-  buildCallSegments,
+  buildCall,
+  callParam,
   compileArgSpecs,
-  encodeRead,
   rawParam,
   staticCallParam,
   toWord,
@@ -84,17 +84,10 @@ export default defineHelper<Token>({
         cat: "Uint",
       };
     }
-    const call = buildCallSegments(ctx, ALLOWANCE_ABI, specs);
+    const call = buildCall(ctx, ALLOWANCE_ABI, specs);
     return {
       kind: "call",
-      param: staticCallParam(
-        ctx.core,
-        encodeRead(
-          rawParam(toWord(BigInt(tokenAddr))),
-          call.selector,
-          call.segments,
-        ),
-      ),
+      param: callParam(ctx, rawParam(toWord(BigInt(tokenAddr))), call),
       cat: "Uint",
     };
   },

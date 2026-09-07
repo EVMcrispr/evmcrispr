@@ -29,4 +29,4 @@ Concatenate arrays together.
 
 ## On-chain face (@concat!)
 
-Concatenate typed arrays in order. Live arguments are resolved once for ABI construction, without the former four-live-part limit. Array element types must agree.
+Concatenate typed arrays in order. Live arguments are resolved once each by the core (`gather`) before the concatenation reads them, so any number of parts may be live. Array element types must agree.

@@ -29,4 +29,4 @@ Flatten one level of nesting in an array.
 
 ## On-chain face (@flat!)
 
-Flatten arrays by one level while preserving element order and type. Constant and live parts can be mixed; dynamic argument construction has no four-live-part limit.
+Flatten arrays by one level while preserving element order and type. Constant and live parts can be mixed, and any number may be live: the core gathers each one once into the values list.

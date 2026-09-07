@@ -12,8 +12,6 @@ import {
   CONSTRAINT_TYPE,
   CORE_ABI,
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ABI,
-  EXPRESSION_RESOLVER_ADDRESS,
   FETCHER_TYPE,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
@@ -57,7 +55,7 @@ export const stringDigest = (s: string): Hex => keccak256(stringToHex(s));
 
 export interface AssertDecoders {
   theAction(actions: any[], to?: Address): any;
-  /** Decode the emitted action as assertParam(param[, message]). */
+  /** Decode the emitted action as checkParam(param[, message]). */
   decodeAssert(
     actions: any[],
     to?: Address,
@@ -79,9 +77,14 @@ export interface AssertDecoders {
   expectIn(param: DecodedParam, lower: bigint, upper: bigint): void;
   expectRawWord(param: DecodedParam, value: bigint): void;
   /** Decode a param as core.read: target, selector, calldata segments. */
+  /** Decode a constructed call on either core host: `read` (calldata
+   *  segments) or `get` (whole canonical arguments, with the tuple
+   *  descriptor they are encoded under). */
   readOf(param: DecodedParam): {
+    host: "read" | "get";
     target: DecodedParam;
     selector: Hex;
+    argumentTypes?: string;
     segments: readonly DecodedParam[];
   };
   /** Decode a param as read(operators, opSignature, args). */
@@ -121,7 +124,7 @@ export function createAssertDecoders(
       abi: ASSERTIONS_ABI,
       data: action.data,
     });
-    expect(functionName).to.equal("assertParam");
+    expect(functionName).to.equal("checkParam");
     return {
       param: args[0] as unknown as DecodedParam,
       message: (args.length > 1 ? args[1] : "") as string,
@@ -176,29 +179,26 @@ export function createAssertDecoders(
     expect(BigInt(param.paramData)).to.equal(value & WORD_MASK);
   };
 
+  /** Decode a constructed call on either core host. A `read` yields its
+   *  calldata segments; a `get` yields its whole-value arguments in the
+   *  same slot, plus the argument tuple descriptor. */
   const readOf = (param: DecodedParam) => {
-    const resolved = staticCallOf(param);
-    if (
-      resolved.target.toLowerCase() ===
-      EXPRESSION_RESOLVER_ADDRESS.toLowerCase()
-    ) {
-      const call = decodeFunctionData({
-        abi: EXPRESSION_RESOLVER_ABI,
-        data: resolved.data,
-      });
-      if (call.functionName !== "resolveCall")
-        throw new Error("Expected resolver call");
+    const call = core(param);
+    if (call.functionName === "get") {
       return {
-        target: call.args[1] as unknown as DecodedParam,
-        selector: call.args[2] as Hex,
-        segments: call.args[4] as unknown as readonly DecodedParam[],
+        host: "get" as const,
+        target: call.args[0] as unknown as DecodedParam,
+        selector: call.args[1] as Hex,
+        argumentTypes: call.args[2] as string,
+        segments: call.args[3] as unknown as readonly DecodedParam[],
       };
     }
-    const call = core(param);
     expect(call.functionName).to.equal("read");
     return {
+      host: "read" as const,
       target: call.args[0] as unknown as DecodedParam,
       selector: call.args[1] as Hex,
+      argumentTypes: undefined,
       segments: call.args[2] as unknown as readonly DecodedParam[],
     };
   };

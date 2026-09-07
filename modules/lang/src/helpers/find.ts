@@ -6,8 +6,8 @@ import {
   CORE_ABI,
   compileCollectionCallback,
   formatParamType,
-  ProgramBuilder,
-  programParam,
+  GraphBuilder,
+  graphParam,
   toWord,
 } from "@evmcrispr/sdk/onchain";
 import { type AbiFunction, toFunctionSelector } from "viem";
@@ -53,7 +53,7 @@ export default defineHelper<Lang>({
     );
     if (output.type !== "bool")
       throw new ErrorException("@find! predicate must return bool");
-    const graph = new ProgramBuilder(ctx);
+    const graph = new GraphBuilder(ctx);
     const values = graph.resolve(arrayValuesParam(ctx, array), "bytes[]");
     const findFn = COLLECTIONS_ABI.find(
       (f) => f.type === "function" && f.name === "findValues",
@@ -91,7 +91,7 @@ export default defineHelper<Lang>({
       "bytes",
     );
     return typedValueOperand(
-      programParam(ctx, graph, graph.asType(selected, array.element)),
+      graphParam(ctx, graph, graph.asType(selected, array.element)),
       array.element,
     );
   },

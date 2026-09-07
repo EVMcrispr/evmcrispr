@@ -6,10 +6,10 @@ import {
 } from "@evmcrispr/sdk";
 import {
   type ArgSpec,
-  buildCallSegments,
+  buildCall,
   compileOperand,
   materializeWord,
-  opReadParam,
+  opCallParam,
 } from "@evmcrispr/sdk/onchain";
 import { type AbiFunction, parseAbiItem, stringToHex } from "viem";
 import type Lang from "..";
@@ -86,11 +86,11 @@ export default defineHelper<Lang>({
     const fn = parseAbiItem(
       `function ${signed ? "parseUnits" : "parseUnitsUnsigned"}(bytes,uint256,uint8) pure returns (${signed ? "int256" : "uint256"})`,
     ) as AbiFunction;
-    const call = buildCallSegments(ctx, fn, specs);
+    const call = buildCall(ctx, fn, specs);
     return {
       kind: "call",
       cat: signed ? "Int" : "Uint",
-      param: opReadParam(ctx, call.selector, call.segments),
+      param: opCallParam(ctx, call),
     };
   },
 });

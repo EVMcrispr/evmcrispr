@@ -14,8 +14,12 @@ import type { ArgSpec } from "./construct";
 import { compileDefCall, lookupOnchainDef } from "./defs";
 import { compileDirectCollectionCallback } from "./direct-callback";
 import { rawParam } from "./erc8211";
-import { ProgramBuilder } from "./program";
-import { abiDescriptor, encodeProgram, resolverAddress } from "./resolver";
+import {
+  abiDescriptor,
+  encodeExpression,
+  expressionsAddress,
+} from "./expressions";
+import { GraphBuilder } from "./graph";
 import type { CompileCtx, Operand } from "./types";
 
 /** Parameters bind canonical whole values. Repeated references share one graph node. */
@@ -107,7 +111,7 @@ export async function compileCollectionCallback(
       };
     return {
       type: NodeType.HelperFunctionExpression,
-      name: "__programParameter!",
+      name: "__graphParameter!",
       args: [],
       [PRECOMPILED_OPERAND]: operand,
     } as unknown as Node;
@@ -159,7 +163,7 @@ export async function compileCollectionCallback(
     throw new ErrorException(
       "Callback return ABI annotation does not match the compiled result",
     );
-  const graph = new ProgramBuilder(ctx, markers);
+  const graph = new GraphBuilder(ctx, markers);
   const result = graph.asType(
     graph.fragment(
       operand.kind === "call"
@@ -175,13 +179,13 @@ export async function compileCollectionCallback(
     output,
   );
   const callback: CollectionCallback = {
-    target: resolverAddress(ctx),
+    target: expressionsAddress(ctx),
     selector: "0x00000000",
     arguments: `(${inputs.map(abiDescriptor).join(",")})`,
     constants: inputs.map(() => "0x" as Hex),
     first: 0n,
     second: inputs.length > 1 ? 1n : 0n,
-    program: encodeProgram(graph.finish(result)),
+    expression: encodeExpression(graph.build(result)),
   };
   return {
     callback,
@@ -195,19 +199,19 @@ export function abiEqualityCallback(
   ctx: CompileCtx,
   type: AbiParameter,
 ): ArgSpec {
-  const graph = new ProgramBuilder(ctx);
+  const graph = new GraphBuilder(ctx);
   const hashes = [0, 1].map((i) =>
     graph.operation("hash", [graph.wrap(graph.parameter(type, i))], "uint256"),
   );
   const result = graph.operation("eq", hashes, "bool");
   const callback: CollectionCallback = {
-    target: resolverAddress(ctx),
+    target: expressionsAddress(ctx),
     selector: "0x00000000",
     arguments: `(${abiDescriptor(type)},${abiDescriptor(type)})`,
     constants: ["0x", "0x"],
     first: 0n,
     second: 1n,
-    program: encodeProgram(graph.finish(result)),
+    expression: encodeExpression(graph.build(result)),
   };
   return { kind: "value", value: callback as never };
 }

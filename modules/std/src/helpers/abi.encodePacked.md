@@ -4,7 +4,7 @@ title: "@abi.encodePacked"
 
 ABI non-standard packed encoding, matching Solidity's abi.encodePacked.
 
-**On-chain (`@abi.encodePacked!`)**: Live values are cut to their packed width and live string/bytes values pass through whole, at most 4 per call; the type list, arrays and tuples stay constant.
+**On-chain (`@abi.encodePacked!`)**: Live values are cut to their packed width and live string/bytes values pass through whole, any number per call; the type list, arrays and tuples stay constant.
 
 **Returns**: `bytes`
 
@@ -39,9 +39,9 @@ single hex runs, each live word value is cut to its packed width through
 one slice (an `address` to its 20 bytes, a `uint64` to 8, a full-width
 word passes whole), and a live `string`/`bytes` value contributes its
 decoded payload raw. The type list, array and tuple values must be
-constants, and at most 4 values may be live — each live part past the
-first is re-resolved by every later offset. All-constant calls fold to
-the plain face's exact bytes at composition.
+constants; any number of values may be live, since the core's `gather`
+resolves each part exactly once into the `bytes[]` `concat` consumes.
+All-constant calls fold to the plain face's exact bytes at composition.
 
 ## See Also
 

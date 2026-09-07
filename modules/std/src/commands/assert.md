@@ -97,7 +97,7 @@ assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
 - The command compiles to the ERC-8211 judge: the live expression becomes an
   `InputParam` (a staticcall, balance read, or nested core/operator
   expression) validated by inline constraints (`EQ`/`GTE`/`LTE`/`IN`) via
-  `assertParam`. Comparisons the constraints can't express directly (`!=`,
+  `checkParam`. Comparisons the constraints can't express directly (`!=`,
   signed and two-live-side comparisons) route through the core's `read`
   splicing the operands into an Operations comparison, judged `EQ 1`.
 - Composition happens inside `@calc!(…)` (arithmetic: `+ - * // % ^`, `xor`)
@@ -126,7 +126,7 @@ assert $a::{a(address[])(uint256) $b::{b()(address,address[][])}[_ [_ $]]} == 5
   primitive: the enclosing call becomes an on-chain-constructed operand
   whose calldata segments (literal spans + live values) the judge
   concatenates at assertion time, so the judged value always flows through
-  a plain `assertParam`. Word-typed arguments (uint, int, address, bool,
+  a plain `checkParam`. Word-typed arguments (uint, int, address, bool,
   bytes32) splice anywhere at any nesting depth. Dynamic-typed arguments
   (array/string/bytes selected by a lens) splice too, up to four per call:
   their envelopes go at the end and each offset after the first is

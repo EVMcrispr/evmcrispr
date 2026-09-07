@@ -1,7 +1,7 @@
 import { parseAbi, toFunctionSelector } from "viem";
 
 export const COLLECTIONS_ABI = parseAbi([
-  "struct Callback { address target; bytes4 selector; string arguments; bytes[] constants; uint256 first; uint256 second; bytes program; }",
+  "struct Callback { address target; bytes4 selector; string arguments; bytes[] constants; uint256 first; uint256 second; bytes expression; }",
   "function packArray(string elementType, bytes[] values) pure returns (bytes)",
   "function unpackArray(string elementType, bytes encoded) pure returns (bytes[])",
   "function validateValue(string valueType, bytes value) pure",
