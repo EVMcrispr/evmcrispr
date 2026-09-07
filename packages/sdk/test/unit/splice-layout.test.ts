@@ -8,10 +8,6 @@ import {
   toFunctionSelector,
   toHex,
 } from "viem";
-import {
-  EXPRESSION_RESOLVER_ABI,
-  EXPRESSION_RESOLVER_ADDRESS,
-} from "../../src/onchain";
 import { CORE_ABI } from "../../src/onchain/core";
 import { FETCHER_TYPE, type InputParam } from "../../src/onchain/erc8211";
 import { spliceLayout } from "../../src/onchain/layout";
@@ -72,15 +68,6 @@ function resolve(p: InputParam, values: Map<string, Hex>): Hex {
     p.paramData,
   ) as [string, Hex];
 
-  if (target.toLowerCase() === EXPRESSION_RESOLVER_ADDRESS.toLowerCase()) {
-    const call = decodeFunctionData({ abi: EXPRESSION_RESOLVER_ABI, data });
-    if (call.functionName === "resolveValues")
-      return encodeAbiParameters(
-        [{ type: "bytes[]" }],
-        [call.args[1].map((p) => resolve(p as InputParam, values))],
-      );
-    throw new Error(`unexpected resolver ${call.functionName}`);
-  }
   if (target.toLowerCase() !== CORE.toLowerCase()) {
     const v = values.get(target.toLowerCase());
     if (!v) throw new Error(`no value for leaf ${target}`);
@@ -89,6 +76,14 @@ function resolve(p: InputParam, values: Map<string, Hex>): Hex {
 
   const call = decodeFunctionData({ abi: CORE_ABI, data });
 
+  if (call.functionName === "gather") {
+    // Each operand resolved once, its raw bytes one element of a bytes[].
+    const [args] = call.args as [InputParam[]];
+    return encodeAbiParameters(
+      [{ type: "bytes[]" }],
+      [args.map((p) => resolve(p, values))],
+    );
+  }
   if (call.functionName === "nav") {
     const [inner] = call.args;
     const [payload] = decodeAbiParameters(
@@ -125,18 +120,33 @@ function resolve(p: InputParam, values: Map<string, Hex>): Hex {
   throw new Error(`unexpected core call ${call.functionName}`);
 }
 
-/** Assemble the calldata body of the outer `read` and ABI-decode it. */
+/** Decode the outer concat call: on `read` (the gathered `bytes[]` is
+ *  the only live argument, spliced last with a literal offset) assemble
+ *  the calldata body from the resolved segments and hand it to a real ABI
+ *  decoder; on `get` resolve the whole arguments. */
 function decodeConcatParts(param: InputParam, values: Map<string, Hex>): Hex[] {
   const [target, data] = decodeAbiParameters(
     [{ type: "address" }, { type: "bytes" }],
     param.paramData,
   ) as [string, Hex];
-  expect(target.toLowerCase()).toBe(EXPRESSION_RESOLVER_ADDRESS.toLowerCase());
-  const call = decodeFunctionData({ abi: EXPRESSION_RESOLVER_ABI, data });
-  expect(call.functionName).toBe("resolveCall");
-  if (call.functionName !== "resolveCall")
-    throw new Error("expected resolveCall");
-  const [, , selector, descriptor, args] = call.args;
+  expect(target.toLowerCase()).toBe(CORE.toLowerCase());
+  const call = decodeFunctionData({ abi: CORE_ABI, data });
+  if (call.functionName === "read") {
+    const [, selector, segments] = call.args;
+    expect(selector).toBe(selectorOf("concat(bytes[],bytes)"));
+    const body = `0x${(segments as InputParam[])
+      .map((s) => resolve(s, values).slice(2))
+      .join("")}` as Hex;
+    const [parts, delimiter] = decodeAbiParameters(
+      [{ type: "bytes[]" }, { type: "bytes" }],
+      body,
+    );
+    expect(delimiter).toBe("0x");
+    return parts as Hex[];
+  }
+  expect(call.functionName).toBe("get");
+  if (call.functionName !== "get") throw new Error("expected get");
+  const [, selector, descriptor, args] = call.args;
   expect(selector).toBe(selectorOf("concat(bytes[],bytes)"));
   expect(descriptor).toBe("(bytes[],bytes)");
   const [parts] = decodeAbiParameters(
@@ -172,7 +182,7 @@ function roundTrip(parts: (Hex | { live: Hex })[]): Hex[] {
 const hex = (len: number): Hex =>
   `0x${Array.from({ length: len }, (_, i) => ((i % 16) + 1).toString(16).padStart(2, "0")).join("")}`;
 
-describe("resolver calldata round-trip", () => {
+describe("gather calldata round-trip", () => {
   it("decodes a single live part back to its value", () => {
     expect(roundTrip([{ live: hex(5) }])).toEqual([hex(5)]);
   });
@@ -229,15 +239,20 @@ describe("resolver calldata round-trip", () => {
 });
 
 describe("spliceLayout ordering guard", () => {
-  // A live value whose runtime size the compiler cannot derive can only go
-  // last, since nothing after it would have a computable offset. Through
-  // EVML this is currently unreachable — the value lens rejects
-  // dynamic-element arrays before a spec is ever built — so the guard is
-  // exercised here, at the level where a caller can construct one.
-  it("refuses a size-less live slot that is not last", () => {
+  // A runtime-sized live value followed by another live one would need an
+  // offset computed on-chain; that shape is `get`'s (chooseHost), so the
+  // splice refuses it rather than emitting an add chain.
+  it("refuses a runtime-sized live slot that is not last", () => {
     expect(() =>
       spliceLayout(ctx, [{ param: leaf(0) }, { param: leaf(1) }], 64),
-    ).toThrow(/must be spliced last/);
+    ).toThrow(/route the call through buildCall/);
+    expect(() =>
+      spliceLayout(
+        ctx,
+        [{ param: leaf(0), payload: leaf(2) }, { param: leaf(1) }],
+        64,
+      ),
+    ).toThrow(/route the call through buildCall/);
   });
 
   it("allows a size-less live slot in the last position", () => {

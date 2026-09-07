@@ -1,13 +1,12 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import {
-  buildCallSegments,
+  buildCall,
+  callParam,
   canonicalArgSpec,
   chainArgWithLens,
-  encodeRead,
   lensedDataOperand,
   rawParam,
   requireBytesLike,
-  staticCallParam,
   toWord,
 } from "@evmcrispr/sdk/onchain";
 import { type AbiFunction, parseAbiItem } from "viem";
@@ -86,17 +85,14 @@ export default defineHelper<Lang>({
               { type: "bytes" },
               "param" in delimiter ? delimiter.param : delimiter,
             );
-      const call = buildCallSegments(ctx, fn, [
+      const call = buildCall(ctx, fn, [
         canonicalArgSpec(ctx, { type: "bytes" }, lensedDataOperand(ctx, arg)),
         delim,
       ]);
-      const param = staticCallParam(
-        ctx.core,
-        encodeRead(
-          rawParam(toWord(BigInt(ctx.operators))),
-          call.selector,
-          call.segments,
-        ),
+      const param = callParam(
+        ctx,
+        rawParam(toWord(BigInt(ctx.operators))),
+        call,
       );
       if (node.args[2])
         return {

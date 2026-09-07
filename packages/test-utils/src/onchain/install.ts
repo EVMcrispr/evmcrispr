@@ -1,7 +1,7 @@
 import {
   COLLECTIONS_ADDRESS,
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ADDRESS,
+  EXPRESSIONS_ADDRESS,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import type { Address, Hex, PublicClient } from "viem";
@@ -9,7 +9,7 @@ import type { Address, Hex, PublicClient } from "viem";
 import {
   ASSERTIONS_RUNTIME_BYTECODE,
   COLLECTIONS_RUNTIME_BYTECODE,
-  EXPRESSION_RESOLVER_RUNTIME_BYTECODE,
+  EXPRESSIONS_RUNTIME_BYTECODE,
   MOCK_TARGET_RUNTIME_BYTECODE,
   OPERATIONS_RUNTIME_BYTECODE,
 } from "./assertions-bytecode";
@@ -18,13 +18,14 @@ export interface InstalledCore {
   core: Address;
   operators: Address;
   collections: Address;
-  resolver: Address;
+  expressions: Address;
 }
 
 /**
- * Install the Assertions core and the Operations vocabulary on the anvil fork.
+ * Install the Assertions core and its periphery (Operations, Collections,
+ * Expressions) on the anvil fork.
  *
- * The three expression contracts are stateless — no constructor, no storage, no immutables —
+ * The four contracts are stateless — no constructor, no storage, no immutables —
  * so writing the runtime code IS the deployment. That is what makes executing
  * a compiled operand cheap enough to do from a test: no funded deployer, no
  * CREATE2 proxy, no dependence on whether the canonical addresses have
@@ -41,15 +42,15 @@ export async function installAssertionsCore(
   const operators = at.operators ?? OPERATIONS_ADDRESS;
 
   const collections = at.collections ?? COLLECTIONS_ADDRESS;
-  const resolver = at.resolver ?? EXPRESSION_RESOLVER_ADDRESS;
+  const expressions = at.expressions ?? EXPRESSIONS_ADDRESS;
   await Promise.all([
-    putCode(client, resolver, EXPRESSION_RESOLVER_RUNTIME_BYTECODE),
+    putCode(client, expressions, EXPRESSIONS_RUNTIME_BYTECODE),
     putCode(client, collections, COLLECTIONS_RUNTIME_BYTECODE),
     putCode(client, core, ASSERTIONS_RUNTIME_BYTECODE),
     putCode(client, operators, OPERATIONS_RUNTIME_BYTECODE),
   ]);
 
-  return { core, operators, collections, resolver };
+  return { core, operators, collections, expressions };
 }
 
 async function putCode(client: PublicClient, address: Address, code: Hex) {

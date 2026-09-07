@@ -38,7 +38,7 @@ export async function wordCallbackTemplate(
     };
     return {
       type: NodeType.HelperFunctionExpression,
-      name: "__programParameter!",
+      name: "__graphParameter!",
       args: [],
       [PRECOMPILED_OPERAND]: operand,
     } as unknown as Node;

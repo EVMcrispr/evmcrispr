@@ -7,7 +7,7 @@ import {
 } from "@evmcrispr/sdk";
 import type { BytesPart, CompileCtx } from "@evmcrispr/sdk/onchain";
 import {
-  buildCallSegments,
+  buildCall,
   canonicalArgSpec,
   canonicalBytesParam,
   compileArgSpecs,
@@ -16,7 +16,7 @@ import {
   formatReturnTuple,
   guardAbiInteger,
   isBangHelperNode,
-  opReadParam,
+  opCallParam,
   wordPartParam,
 } from "@evmcrispr/sdk/onchain";
 import {
@@ -202,9 +202,9 @@ export async function buildStandardEncoding(
   const encoder = parseAbiItem(
     "function encodeBytes(string,bytes[]) pure returns (bytes)",
   ) as AbiFunction;
-  const call = buildCallSegments(ctx, encoder, [
+  const call = buildCall(ctx, encoder, [
     { kind: "value", value: formatReturnTuple(params) },
     canonicalArgSpec(ctx, { type: "bytes[]" }, encodedValues),
   ]);
-  return opReadParam(ctx, call.selector, call.segments);
+  return opCallParam(ctx, call);
 }

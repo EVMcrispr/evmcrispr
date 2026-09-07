@@ -59,15 +59,20 @@ import {
   isNumericCat,
   LOGIC_FN,
 } from "./composition";
-import type { ArgSpec, ReadCall } from "./construct";
-import { buildCallSegments, headWords, isDynamicParam } from "./construct";
+import type { ArgSpec } from "./construct";
+import {
+  buildCall,
+  type CompiledCall,
+  callParam,
+  headWords,
+  isDynamicParam,
+} from "./construct";
 import {
   encodeChain,
   encodeCond,
   encodeNav,
   encodeOpRead,
   encodePick,
-  encodeRead,
   LEN_STEP,
   PAYLOAD_STEP,
 } from "./core";
@@ -161,6 +166,15 @@ export function opReadParam(
     ),
     constraints,
   );
+}
+
+/** A constructed call against Operations (or Collections, by selector)
+ *  on whichever core host {@link buildCall} chose. */
+export function opCallParam(ctx: CompileCtx, call: CompiledCall): InputParam {
+  const host = COLLECTION_SELECTORS.has(call.selector)
+    ? (ctx.collections ?? COLLECTIONS_ADDRESS)
+    : ctx.operators;
+  return callParam(ctx, rawParam(toWord(BigInt(host))), call);
 }
 
 /** A binary word-operator call over two operands, picking the int256
@@ -445,7 +459,7 @@ export async function compileArgSpecs(
  *  a read construction the chain folds into its `start`. */
 type CompiledHop =
   | { kind: "plain"; data: Hex }
-  | { kind: "read"; call: ReadCall };
+  | { kind: "read"; call: CompiledCall };
 
 /** Compile a hop's argument list. A `::!` hop always compiles as a read
  *  construction — its target is a spliced operand, never a fixed address,
@@ -463,17 +477,17 @@ async function compileHopArgs(
     return { kind: "plain", data: encodeCalldata(fnAbi, argVals) };
   }
   const specs = await compileArgSpecs(ctx, hop.args, fnAbi, hop.method);
-  return { kind: "read", call: buildCallSegments(ctx, fnAbi, specs) };
+  return { kind: "read", call: buildCall(ctx, fnAbi, specs) };
 }
 
 /** Fold a read hop into a chain: the accumulated prefix becomes the
  *  read's target param and the chain restarts from the read value. */
-function readParam(ctx: CompileCtx, chain: Chain, call: ReadCall): InputParam {
-  const target = chainParam(ctx, chain);
-  return staticCallParam(
-    ctx.core,
-    encodeRead(target, call.selector, call.segments),
-  );
+function readParam(
+  ctx: CompileCtx,
+  chain: Chain,
+  call: CompiledCall,
+): InputParam {
+  return callParam(ctx, chainParam(ctx, chain), call);
 }
 
 /** Compile a `::` call expression (possibly chained) into a Chain. */

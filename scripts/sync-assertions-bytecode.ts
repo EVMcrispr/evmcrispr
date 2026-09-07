@@ -41,8 +41,8 @@ const CONTRACTS = [
   {
     name: "Expressions",
     path: "contracts/Expressions.sol/Expressions.json",
-    prefix: "EXPRESSION_RESOLVER",
-    label: "Expressions runtime composition engine",
+    prefix: "EXPRESSIONS",
+    label: "Expressions periphery",
   },
   {
     name: "Collections",

@@ -30,4 +30,4 @@ Concatenate strings together.
 
 ## On-chain face (@str.concat!)
 
-Concatenate constant or live string parts in order. Each supplied part is resolved once, then the contract allocates and copies the result. There is no four-live-part limit; gas and calldata size still bound execution. Use `@str.join!` to insert a delimiter.
+Concatenate constant or live string parts in order. Each supplied part is resolved once by the core (`gather`), which then calls Operations' `concat` with the assembled `bytes[]` (`get`). There is no four-live-part limit; gas and calldata size still bound execution. Use `@str.join!` to insert a delimiter.

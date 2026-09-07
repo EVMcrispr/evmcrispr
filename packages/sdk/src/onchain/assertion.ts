@@ -20,7 +20,7 @@ import { Num } from "../utils/Num";
 import {
   COLLECTIONS_ADDRESS,
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ADDRESS,
+  EXPRESSIONS_ADDRESS,
   OPERATIONS_ADDRESS,
 } from "./addresses";
 import {
@@ -117,7 +117,7 @@ export function defaultCompileCtx(
     core: CORE_ADDRESS,
     operators: OPERATIONS_ADDRESS,
     collections: COLLECTIONS_ADDRESS,
-    resolver: EXPRESSION_RESOLVER_ADDRESS,
+    expressions: EXPRESSIONS_ADDRESS,
     hints: {},
   };
 }

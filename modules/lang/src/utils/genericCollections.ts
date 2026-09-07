@@ -2,16 +2,16 @@ import type { Node } from "@evmcrispr/sdk";
 import { checkedInteger, checkedRange, ErrorException } from "@evmcrispr/sdk";
 import type { CompileCtx, InputParam, Operand } from "@evmcrispr/sdk/onchain";
 import {
-  buildCallSegments,
+  buildCall,
   CONSTRAINT_TYPE,
   CORE_ABI,
+  callParam,
   canonicalArgSpec,
   categoryFromAbiType,
   compileCheckedExpr,
   concatenateResolved,
   constBigInt,
   encodeNav,
-  encodeRead,
   materializeWord,
   rawParam,
   staticCallParam,
@@ -67,19 +67,12 @@ export function indexedNav(
   const fn = CORE_ABI.find(
     (f) => f.type === "function" && f.name === "nav",
   ) as AbiFunction;
-  const call = buildCallSegments(ctx, fn, [
+  const call = buildCall(ctx, fn, [
     { kind: "value", value: source as never },
     { kind: "value", value: descriptor },
     canonicalArgSpec(ctx, { type: "int256[]" }, path),
   ]);
-  return staticCallParam(
-    ctx.core,
-    encodeRead(
-      rawParam(toWord(BigInt(ctx.core))),
-      call.selector,
-      call.segments,
-    ),
-  );
+  return callParam(ctx, rawParam(toWord(BigInt(ctx.core))), call);
 }
 
 export function typedValueOperand(

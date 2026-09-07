@@ -1,14 +1,14 @@
 import type { Address, Hex } from "viem";
 import { encodeFunctionData, parseAbi } from "viem";
 import type { InputParam } from "./erc8211";
-import { rawParam, toWord } from "./erc8211";
+import { rawParam, staticCallParam, toWord } from "./erc8211";
 
 /**
  * ABI of the ERC-8211-speaking primitives of the Assertions core (v2.0).
  * The frozen core owns everything that holds unresolved `InputParam`
  * operands: selection (`resolve`, `pick`, `nav`), call construction
- * (`chain`, `read`) and resolution control (`cond`, `orElse`, `isValid`,
- * `revertData`). Operands nest recursively through STATIC_CALL fetchers
+ * (`chain`, `read`, `get`, `gather`) and resolution control (`cond`,
+ * `orElse`, `isValid`, `revertData`). Operands nest recursively through STATIC_CALL fetchers
  * pointed back at the core address. Enums travel as uint8.
  */
 export const CORE_ABI = parseAbi([
@@ -19,6 +19,8 @@ export const CORE_ABI = parseAbi([
   "function nav(InputParam a, string retTypes, int256[] path) view",
   "function chain(InputParam start, bytes[] calls) view",
   "function read(InputParam target, bytes4 selector, InputParam[] args) view",
+  "function get(InputParam target, bytes4 selector, string argumentTypes, InputParam[] args) view",
+  "function gather(InputParam[] args) view returns (bytes[])",
   "function cond(InputParam c, InputParam then_, InputParam else_) view",
   "function orElse(InputParam a, InputParam b) view",
   "function isValid(InputParam a) view returns (uint256)",
@@ -43,6 +45,8 @@ type CoreFn =
   | "nav"
   | "chain"
   | "read"
+  | "get"
+  | "gather"
   | "cond"
   | "orElse"
   | "isValid"
@@ -114,6 +118,56 @@ export function encodeOpRead(
   args: readonly InputParam[],
 ): Hex {
   return encodeRead(rawParam(toWord(BigInt(operators))), selector, args);
+}
+
+/** Encode `get(target, selector, argumentTypes, args)` — a staticcall
+ *  constructed at judge time from WHOLE canonical values: the core
+ *  resolves the target and each argument once, in its own frame, and
+ *  encodes the argument tuple `argumentTypes` describes (AbiCodec's
+ *  descriptor grammar, e.g. `"(string,string)"`) after the selector. The
+ *  destination sees the core as `msg.sender`, as with `read`. In error
+ *  reporting the target is operand 0, args[i] operand i + 1; a value that
+ *  does not fit its declared type reverts with AbiCodec's component
+ *  errors naming the argument index. */
+export function encodeGet(
+  target: InputParam,
+  selector: Hex,
+  argumentTypes: string,
+  args: readonly InputParam[],
+): Hex {
+  return encodeCore("get", [target, selector, argumentTypes, [...args]]);
+}
+
+/** Encode `gather(args)` — each operand resolved once, in-frame, the raw
+ *  results returned as a canonical `bytes[]` value (one element per
+ *  operand, taken as-is). The way to assemble the values list of
+ *  Operations' `concat`/`encodeBytes` or a Collections values array from
+ *  operands only known at judge time. */
+export function encodeGather(args: readonly InputParam[]): Hex {
+  return encodeCore("gather", [[...args]]);
+}
+
+/** `get(...)` as a STATIC_CALL operand at the core. */
+export function getParam(
+  core: Address,
+  target: InputParam,
+  selector: Hex,
+  argumentTypes: string,
+  args: readonly InputParam[],
+): InputParam {
+  return staticCallParam(
+    core,
+    encodeGet(target, selector, argumentTypes, args),
+  );
+}
+
+/** `gather(args)` as a STATIC_CALL operand at the core: a canonical
+ *  `bytes[]` whose elements are the operands' resolved bytes. */
+export function gatherParam(
+  core: Address,
+  args: readonly InputParam[],
+): InputParam {
+  return staticCallParam(core, encodeGather(args));
 }
 
 /** Encode `cond(c, then, else)` — the lazy conditional: only the winning

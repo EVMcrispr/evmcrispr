@@ -63,8 +63,8 @@ export const ASSERTIONS_ABI = parseAbi([
   "struct ComposableExecution { bytes4 functionSig; InputParam[] inputParams; OutputParam[] outputParams; }",
   "function assertParam(InputParam param) view",
   "function assertParam(InputParam param, string message) view",
-  "function assertComposable(ComposableExecution[] executions) view",
-  "function assertComposable(ComposableExecution[] executions, string message) view",
+  "function assertBatch(ComposableExecution[] executions) view",
+  "function assertBatch(ComposableExecution[] executions, string message) view",
 ]);
 
 // ---------------------------------------------------------------------------

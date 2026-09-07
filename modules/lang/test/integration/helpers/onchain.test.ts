@@ -2,8 +2,8 @@ import "../../setup";
 import {
   CORE_ABI,
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ABI,
-  EXPRESSION_RESOLVER_ADDRESS,
+  EXPRESSIONS_ABI,
+  EXPRESSIONS_ADDRESS,
   FETCHER_TYPE,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
@@ -66,21 +66,21 @@ const template2 = (signature: string, a: bigint, b: bigint): Hex =>
  *  Returns the spliced array envelope param. */
 function expectWordsPayload(param: DecodedParam): DecodedParam {
   const call = d.staticCallOf(param);
-  expect(call.target).to.equal(getAddress(EXPRESSION_RESOLVER_ADDRESS));
+  expect(call.target).to.equal(getAddress(EXPRESSIONS_ADDRESS));
   const decoded = decodeFunctionData({
-    abi: EXPRESSION_RESOLVER_ABI,
+    abi: EXPRESSIONS_ABI,
     data: call.data,
   });
   expect(decoded.functionName).to.equal("evaluate");
   if (decoded.functionName !== "evaluate") throw new Error("expected evaluate");
-  const [program] = decoded.args;
-  expect(program.core).to.equal(ASSERTIONS);
-  const sources = program.nodes.filter((n) => n.kind === 2);
+  const [expression] = decoded.args;
+  expect(expression.core).to.equal(ASSERTIONS);
+  const sources = expression.nodes.filter((n) => n.kind === 2);
   expect(sources).to.have.lengthOf(1);
   expect(sources[0].valueType).to.match(
     /^(u?int\d*|address|bool|bytes32)\[\]$/,
   );
-  expect(program.nodes[Number(program.result)].selector).to.equal(
+  expect(expression.nodes[Number(expression.result)].selector).to.equal(
     selectorOf("sliceRange(bytes,int256,int256)"),
   );
   const fn = CORE_ABI.find((f) => f.name === "resolve")!;
@@ -101,13 +101,18 @@ describeCommand("assert (lang on-chain faces)", {
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
+        // One runtime-sized live among words: the `read` host, whose
+        // offsets are all literal — [offset_data = 128][start][end] and
+        // the envelope spliced last, its own 0x20 word skipped.
         const args = d.opReadOf(
           hashArgs[0],
           "stringSlice(bytes,int256,int256)",
         );
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(args).to.have.lengthOf(4);
+        d.expectRawWord(args[0], 128n);
         d.expectRawWord(args[1], 0n);
         d.expectRawWord(args[2], 5n);
+        expect(d.staticCallOf(args[3]).target).to.equal(TOKEN);
       },
     },
     {
@@ -120,12 +125,13 @@ describeCommand("assert (lang on-chain faces)", {
           hashArgs[0],
           "stringSlice(bytes,int256,int256)",
         );
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        d.expectRawWord(args[0], 128n);
         d.expectRawWord(args[1], -5n);
         d.expectRawWord(
           args[2],
           57896044618658097711785492504343953926634992332820282019728792003956564819967n,
         );
+        expect(d.staticCallOf(args[3]).target).to.equal(TOKEN);
       },
     },
     {
@@ -138,12 +144,13 @@ describeCommand("assert (lang on-chain faces)", {
           hashArgs[0],
           "stringSlice(bytes,int256,int256)",
         );
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        d.expectRawWord(args[0], 128n);
         d.expectRawWord(args[1], 6n);
         d.expectRawWord(
           args[2],
           57896044618658097711785492504343953926634992332820282019728792003956564819967n,
         );
+        expect(d.staticCallOf(args[3]).target).to.equal(TOKEN);
       },
     },
     // ---- @str.at! --------------------------------------------------------
@@ -154,8 +161,10 @@ describeCommand("assert (lang on-chain faces)", {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "stringAt(bytes,int256)");
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(args).to.have.lengthOf(3);
+        d.expectRawWord(args[0], 96n);
         d.expectRawWord(args[1], 0n);
+        expect(d.staticCallOf(args[2]).target).to.equal(TOKEN);
       },
     },
     {
@@ -165,8 +174,10 @@ describeCommand("assert (lang on-chain faces)", {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "stringAt(bytes,int256)");
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(args).to.have.lengthOf(3);
+        d.expectRawWord(args[0], 96n);
         d.expectRawWord(args[1], -1n);
+        expect(d.staticCallOf(args[2]).target).to.equal(TOKEN);
       },
     },
     // ---- @at! --------------------------------------------------------------
@@ -536,9 +547,13 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
+        // Constant needle and replacement are hoisted into the literal
+        // run ahead of the one live envelope, so every offset stays a
+        // build-time word and the call keeps the `read` host.
         const args = d.opReadOf(hashArgs[0], "replace(bytes,bytes,bytes)");
-        expect(args).to.have.lengthOf(3);
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(args).to.have.lengthOf(2);
+        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(d.staticCallOf(args[1]).target).to.equal(TOKEN);
       },
     },
     {
@@ -570,7 +585,10 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "concat(bytes[],bytes)");
         expect(args).to.have.lengthOf(2);
-        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.StaticCall);
+        // The core gathers every part once into the `bytes[]`, the only
+        // live argument, spliced last after the constant delimiter tail.
+        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(d.core(args[1]).functionName).to.equal("gather");
       },
     },
     {
@@ -581,7 +599,10 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "concat(bytes[],bytes)");
         expect(args).to.have.lengthOf(2);
-        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.StaticCall);
+        // The core gathers every part once into the `bytes[]`, the only
+        // live argument, spliced last after the constant delimiter tail.
+        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(d.core(args[1]).functionName).to.equal("gather");
       },
     },
     {
@@ -642,12 +663,14 @@ assert @reverse!(@map!(${TOKEN}::{caps()(uint256[])} @inc!)) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "zipWords(bytes,bytes)");
         expect(args).to.have.lengthOf(2);
+        // Normalization preserves both lanes as whole ABI values, which
+        // the core's get accepts in their original argument order.
+        expect(d.readOf(hashArgs[0]).host).to.equal("get");
         expectWordsPayload(args[0]);
-        const [lane] = decodeAbiParameters(
-          [{ type: "bytes" }],
-          args[1].paramData,
-        );
-        expect(lane).to.equal(`0x${word(7n).slice(2)}${word(8n).slice(2)}`);
+        expect(args[1].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(
+          decodeAbiParameters([{ type: "bytes" }], args[1].paramData)[0],
+        ).to.equal(`0x${word(7n).slice(2)}${word(8n).slice(2)}`);
       },
     },
     {
@@ -673,12 +696,12 @@ assert @reverse!(@map!(${TOKEN}::{caps()(uint256[])} @inc!)) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "concat(bytes[],bytes)");
         expect(args).to.have.lengthOf(2);
-        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.StaticCall);
-        const [separator] = decodeAbiParameters(
-          [{ type: "bytes" }],
-          args[1].paramData,
-        );
-        expect(separator).to.equal("0x");
+        // The core gathers every part once into the `bytes[]`, the only
+        // live argument, spliced last after the constant delimiter tail.
+        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        // The empty separator is the literal run's trailing length word.
+        expect(args[0].paramData.slice(-64)).to.equal("0".repeat(64));
+        expect(d.core(args[1]).functionName).to.equal("gather");
       },
     },
     {
@@ -689,7 +712,10 @@ assert @reverse!(@map!(${TOKEN}::{caps()(uint256[])} @inc!)) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "concat(bytes[],bytes)");
         expect(args).to.have.lengthOf(2);
-        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.StaticCall);
+        // The core gathers every part once into the `bytes[]`, the only
+        // live argument, spliced last after the constant delimiter tail.
+        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(d.core(args[1]).functionName).to.equal("gather");
       },
     },
     {
@@ -794,7 +820,8 @@ assert @filter!(${TOKEN}::{caps()(uint256[])} @ge100!) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const segs = d.opReadOf(hashArgs[0], "concat(bytes[],bytes)");
         expect(segs).to.have.lengthOf(2);
-        expect(segs[0].fetcherType).to.equal(FETCHER_TYPE.StaticCall);
+        expect(segs[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(d.core(segs[1]).functionName).to.equal("gather");
       },
     },
     {
@@ -810,7 +837,10 @@ assert @filter!(${TOKEN}::{caps()(uint256[])} @ge100!) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "concat(bytes[],bytes)");
         expect(args).to.have.lengthOf(2);
-        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.StaticCall);
+        // The core gathers every part once into the `bytes[]`, the only
+        // live argument, spliced last after the constant delimiter tail.
+        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(d.core(args[1]).functionName).to.equal("gather");
       },
     },
     {
@@ -1000,29 +1030,27 @@ assert @reduce!(${TOKEN}::{caps()(uint256[])} @weighted! 0) > 0`,
       },
     },
     {
-      name: "compiles @enumerate! to zipWords(iotaWords(n), payload) with a live offset_b",
+      name: "compiles @enumerate! to zipWords(iotaWords(n), payload) through the core's get",
       script: `assert @enumerate!(${TOKEN}::{caps()(uint256[])}) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
+        // BOTH sides are runtime-sized lives, so the call takes the
+        // core's `get`: each envelope is resolved once in the core's own
+        // frame and the pair encoded there, where the fixed-offset
+        // layout had to compute the second offset from the first
+        // payload's length — and re-resolve that payload to do so.
+        const call = d.readOf(hashArgs[0]);
+        expect(call.host).to.equal("get");
+        expect(call.argumentTypes).to.equal("(bytes,bytes)");
         const segs = d.opReadOf(hashArgs[0], "zipWords(bytes,bytes)");
-        expect(segs).to.have.lengthOf(4);
-        // offset_a = 96 (constant: the iota envelope at 64, 0x20 skipped)
-        d.expectRawWord(segs[0], 96n);
-        // offset_b = add(mul(n, 32), 160), with n derived from
-        // the normalized word payload's byte length.
-        const addArgs = d.opReadOf(segs[1], "add(uint256,uint256)");
-        const mulArgs = d.opReadOf(addArgs[0], "mul(uint256,uint256)");
-        const count = d.opReadOf(mulArgs[0], "div(uint256,uint256)");
-        d.expectRawWord(count[1], 32n);
-        d.expectRawWord(mulArgs[1], 32n);
-        d.expectRawWord(addArgs[1], 160n);
-        // iotaWords(n) with the same live count
-        const iotaSegs = d.opReadOf(segs[2], "iotaWords(uint256)");
+        expect(segs).to.have.lengthOf(2);
+        // iotaWords(n), n from the normalized payload's byte length.
+        const iotaSegs = d.opReadOf(segs[0], "iotaWords(uint256)");
         expect(iotaSegs).to.have.lengthOf(1);
         const iotaCount = d.opReadOf(iotaSegs[0], "div(uint256,uint256)");
         d.expectRawWord(iotaCount[1], 32n);
-        expectWordsPayload(segs[3]);
+        expectWordsPayload(segs[1]);
       },
     },
     // ---- @keys! / @values! ---------------------------------------------------
@@ -1162,8 +1190,10 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "byteAt(bytes,int256)");
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(args).to.have.lengthOf(3);
+        d.expectRawWord(args[0], 96n);
         d.expectRawWord(args[1], 0n);
+        expect(d.staticCallOf(args[2]).target).to.equal(TOKEN);
       },
     },
     {
@@ -1173,8 +1203,10 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "byteAt(bytes,int256)");
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(args).to.have.lengthOf(3);
+        d.expectRawWord(args[0], 96n);
         d.expectRawWord(args[1], -1n);
+        expect(d.staticCallOf(args[2]).target).to.equal(TOKEN);
       },
     },
     {
@@ -1184,9 +1216,11 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
         const { param } = d.decodeAssert(actions);
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "sliceRange(bytes,int256,int256)");
-        expect(d.staticCallOf(args[0]).target).to.equal(TOKEN);
+        expect(args).to.have.lengthOf(4);
+        d.expectRawWord(args[0], 128n);
         d.expectRawWord(args[1], 1n);
         d.expectRawWord(args[2], 3n);
+        expect(d.staticCallOf(args[3]).target).to.equal(TOKEN);
       },
     },
     // ---- @str.concat! -------------------------------------------------------
@@ -1198,7 +1232,10 @@ describeCommand("assert (lang on-chain faces, wave 4)", {
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const args = d.opReadOf(hashArgs[0], "concat(bytes[],bytes)");
         expect(args).to.have.lengthOf(2);
-        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.StaticCall);
+        // The core gathers every part once into the `bytes[]`, the only
+        // live argument, spliced last after the constant delimiter tail.
+        expect(args[0].fetcherType).to.equal(FETCHER_TYPE.RawBytes);
+        expect(d.core(args[1]).functionName).to.equal("gather");
       },
     },
     // ---- @slice! (array) ----------------------------------------------------

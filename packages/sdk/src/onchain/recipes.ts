@@ -1,11 +1,13 @@
-import type { Address, Hex } from "viem";
-import { encodeAbiParameters } from "viem";
+import type { AbiFunction, Address, Hex } from "viem";
+import { parseAbiItem } from "viem";
 import { COLLECTIONS_ADDRESS } from "./addresses";
 import { unwrapBytesParam } from "./collections";
 import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
-import { encodePick, encodeRead } from "./core";
+import { type ArgSpec, buildCall, callParam } from "./construct";
+import { encodePick, encodeRead, gatherParam } from "./core";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
+import { GraphBuilder, graphParam } from "./graph";
 import {
   bytesTail,
   envelopeLenParam,
@@ -14,8 +16,6 @@ import {
   wordPiece,
 } from "./layout";
 import { OP_SELECTORS } from "./operators";
-import { ProgramBuilder, programParam } from "./program";
-import { resolveCallParam, resolveValuesParam } from "./resolver";
 import type { Category, CompileCtx, Operand } from "./types";
 
 export {
@@ -65,13 +65,11 @@ export function indexOfParam(
   needle: BytesPart,
   occurrence: bigint,
 ): InputParam {
-  return resolveCallParam(
-    ctx,
-    rawParam(toWord(BigInt(ctx.operators))),
-    OP_SELECTORS.indexOf,
-    "(bytes,bytes,int256)",
-    [bytesPartParam(s), bytesPartParam(needle), rawParam(toWord(occurrence))],
-  );
+  return partsCallParam(ctx, ctx.operators, "indexOf(bytes,bytes,int256)", [
+    s,
+    needle,
+    occurrence,
+  ]);
 }
 
 /**
@@ -102,13 +100,10 @@ export function includesParam(
   s: InputParam,
   needle: BytesPart,
 ): InputParam {
-  return resolveCallParam(
-    ctx,
-    rawParam(toWord(BigInt(ctx.operators))),
-    OP_SELECTORS.contains,
-    "(bytes,bytes)",
-    [bytesPartParam(s), bytesPartParam(needle)],
-  );
+  return partsCallParam(ctx, ctx.operators, "contains(bytes,bytes)", [
+    s,
+    needle,
+  ]);
 }
 
 /** The element count of a live aligned payload: `div(byteLen(s), 32)`.
@@ -346,29 +341,18 @@ export function wordAtParam(
 /**
  * `zipWords(iotaWords(n), s)` — the enumeration recipe: pairs each element
  * with its index as an interleaved [index, element] word-pair payload (the
- * on-chain record representation). BOTH sides are live, which the
- * fixed-offset zip layout cannot host — so offset_b is itself a LIVE word:
- * the iota envelope (64 + 32n bytes) splices at 64 with offset_a = 96, and
- * offset_b = add(mul(n, 32), 160) points past it at the payload envelope
- * (spliced last, +32 trick included in the 160).
+ * on-chain record representation). BOTH sides are runtime-sized lives, so
+ * this is `get`'s shape: the core resolves each envelope once in its own
+ * frame and encodes the pair, where the fixed-offset layout would have had
+ * to compute the second offset from the first payload's length on-chain
+ * (and re-resolve it to do so).
  */
 export function enumerateParam(
   ctx: CompileCtx,
   s: InputParam,
   n: InputParam,
 ): InputParam {
-  const len32 = wordOpParam(ctx, "mul", false, n, rawParam(toWord(32n)));
-  const offsetB = wordOpParam(ctx, "add", false, len32, rawParam(toWord(160n)));
-  return opReadParam(
-    ctx,
-    OP_SELECTORS.zipWords,
-    mergeSegments([
-      wordSpan(96n), // offset_a: the iota envelope at 64, 0x20 word skipped
-      offsetB, // live offset_b = 160 + 32n
-      iotaWordsParam(ctx, n), // iota envelope [0x20][32n][0 1 …]
-      s, // payload envelope, spliced last
-    ]),
-  );
+  return zipParam(ctx, iotaWordsParam(ctx, n), s);
 }
 
 /**
@@ -384,14 +368,14 @@ export function arrayWordsParam(
   envelope: InputParam,
   elementType: string,
 ): InputParam {
-  const graph = new ProgramBuilder(ctx);
+  const graph = new GraphBuilder(ctx);
   const array = graph.resolve(envelope, `${elementType}[]`);
   const result = graph.operation("sliceRange", [
     graph.wrap(array),
     graph.literal({ type: "int256" }, 64n),
     graph.literal({ type: "int256" }, (1n << 255n) - 1n),
   ]);
-  return programParam(ctx, graph, result);
+  return graphParam(ctx, graph, result);
 }
 
 /**
@@ -406,7 +390,7 @@ export function calldataArgsParam(
   ctx: CompileCtx,
   envelope: InputParam,
 ): InputParam {
-  const graph = new ProgramBuilder(ctx);
+  const graph = new GraphBuilder(ctx);
   const bytes = graph.resolve(envelope, "bytes");
   const len = graph.operation("byteLen", [bytes]);
   const argsLen = graph.operation("sub", [
@@ -418,7 +402,7 @@ export function calldataArgsParam(
     graph.literal({ type: "uint256" }, 4n),
     argsLen,
   ]);
-  return programParam(ctx, graph, result);
+  return graphParam(ctx, graph, result);
 }
 
 /**
@@ -433,13 +417,11 @@ export function replaceParam(
   needle: BytesPart,
   repl: BytesPart,
 ): InputParam {
-  return resolveCallParam(
-    ctx,
-    rawParam(toWord(BigInt(ctx.operators))),
-    OP_SELECTORS.replace,
-    "(bytes,bytes,bytes)",
-    [bytesPartParam(s), bytesPartParam(needle), bytesPartParam(repl)],
-  );
+  return partsCallParam(ctx, ctx.operators, "replace(bytes,bytes,bytes)", [
+    s,
+    needle,
+    repl,
+  ]);
 }
 
 /** Deduplicate a live words payload. The offset skips its retained bytes-envelope head. */
@@ -579,47 +561,42 @@ export type BytesPart =
 export const livePartParam = (p: Exclude<BytesPart, Hex>): InputParam =>
   "param" in p ? p.param : p;
 
-/** Concatenate byte parts with an empty delimiter, resolving each part once. */
+/** Concatenate byte parts with an empty delimiter, resolving each part
+ *  once: the core's `gather` takes every part's raw payload as one
+ *  element of the `bytes[]`, the only live argument of `concat`, so any
+ *  number of live parts costs one resolution each. */
 export function concatParam(
   ctx: CompileCtx,
   parts: readonly BytesPart[],
 ): InputParam {
-  return resolveCallParam(
-    ctx,
-    rawParam(toWord(BigInt(ctx.operators))),
-    OP_SELECTORS.concat,
-    "(bytes[],bytes)",
-    [
-      resolveValuesParam(
-        ctx,
-        parts.map((p) =>
-          typeof p === "string"
-            ? rawParam(p)
-            : unwrapBytesParam(ctx, livePartParam(p)),
-        ),
+  return partsCallParam(ctx, ctx.operators, "concat(bytes[],bytes)", [
+    gatherParam(
+      ctx.core,
+      parts.map((p) =>
+        typeof p === "string"
+          ? rawParam(p)
+          : unwrapBytesParam(ctx, livePartParam(p)),
       ),
-      bytesPartParam("0x"),
-    ],
-  );
+    ),
+    "0x",
+  ]);
 }
 
 /**
- * `zipWords(a, b)` with at most one live payload: heads are
- * [offset_a][offset_b], the constant payload's tail at 64 and the live
- * envelope spliced last with the +32 trick (both constant packs both
- * tails in order).
+ * `zipWords(a, b)` over any mix of constant and live payloads: one live
+ * payload splices last on `read`; two runtime-sized lives go through
+ * `get`, each resolved once in the core's frame.
  */
 export function zipParam(
   ctx: CompileCtx,
   a: BytesPart,
   b: BytesPart,
 ): InputParam {
-  return resolveCallParam(
+  return partsCallParam(
     ctx,
-    rawParam(toWord(BigInt(ctx.collections ?? COLLECTIONS_ADDRESS))),
-    OP_SELECTORS.zipWords,
-    "(bytes,bytes)",
-    [bytesPartParam(a), bytesPartParam(b)],
+    ctx.collections ?? COLLECTIONS_ADDRESS,
+    "zipWords(bytes,bytes)",
+    [a, b],
   );
 }
 
@@ -673,8 +650,35 @@ export function splitParam(
   return sliceParam(ctx, s, start, sub(end, start));
 }
 
-function bytesPartParam(part: BytesPart): InputParam {
-  return typeof part === "string"
-    ? rawParam(encodeAbiParameters([{ type: "bytes" }], [part]))
-    : livePartParam(part);
+/** ceil32 of an exact payload byte length. */
+const padded = (size: number): bigint =>
+  BigInt(size + ((32 - (size % 32)) % 32));
+
+/**
+ * A call over byte parts and words on the host `chooseHost` picks: a
+ * constant part is a build-time value (its tail hoisted to a literal
+ * offset on `read`), a live part a dynamic live sized by its claim (an
+ * exact `size` keeps every later offset literal), a bigint a word value.
+ * One runtime-sized live spliced last stays on `read`; two go to `get`.
+ */
+function partsCallParam(
+  ctx: CompileCtx,
+  target: Address,
+  signature: string,
+  parts: readonly (BytesPart | bigint)[],
+): InputParam {
+  const fn = parseAbiItem(`function ${signature}`) as AbiFunction;
+  const specs: ArgSpec[] = parts.map((p) => {
+    if (typeof p === "bigint" || typeof p === "string") {
+      return { kind: "value", value: p as never };
+    }
+    const spec: ArgSpec = { kind: "dyn", param: livePartParam(p) };
+    if ("size" in p) spec.payload = padded(p.size);
+    return spec;
+  });
+  return callParam(
+    ctx,
+    rawParam(toWord(BigInt(target))),
+    buildCall(ctx, fn, specs),
+  );
 }

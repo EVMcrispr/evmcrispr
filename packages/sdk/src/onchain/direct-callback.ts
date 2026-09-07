@@ -9,6 +9,7 @@ import {
   canonicalArgSpec,
   canonicalBytesParam,
   concatenateResolved,
+  encodeArgumentsParam,
   encodeValuesParam,
 } from "./collections";
 import {
@@ -17,7 +18,7 @@ import {
   formatReturnTuple,
   loadFunctionAbi,
 } from "./compile";
-import { type ArgSpec, buildCallSegments } from "./construct";
+import { type ArgSpec, wholeArguments } from "./construct";
 import { lookupOnchainDef } from "./defs";
 import { rawParam, toWord } from "./erc8211";
 import type { BytesPart } from "./recipes";
@@ -136,7 +137,7 @@ export async function compileDirectCollectionCallback(
     );
   const callback: CollectionCallback = {
     target,
-    program: "0x",
+    expression: "0x",
     selector: toFunctionSelector(fn),
     arguments: formatReturnTuple(fn.inputs),
     constants,
@@ -146,25 +147,34 @@ export async function compileDirectCollectionCallback(
   let callbackSpec: ArgSpec = { kind: "value", value: callback as never };
   if (live) {
     const tupleFn = parseAbiItem(
-      "function callback(address target,bytes4 selector,string arguments,bytes[] constants,uint256 first,uint256 second,bytes program)",
+      "function callback(address target,bytes4 selector,string arguments,bytes[] constants,uint256 first,uint256 second,bytes expression)",
     ) as AbiFunction;
-    const encoded = buildCallSegments(ctx, tupleFn, [
-      { kind: "value", value: target },
-      { kind: "value", value: callback.selector },
-      { kind: "value", value: callback.arguments },
-      canonicalArgSpec(
-        ctx,
-        { type: "bytes[]" },
-        encodeValuesParam(ctx, captures),
+    // The struct is assembled canonically in-frame (a spliced layout
+    // would leave the live envelope's offset word inside the tuple body,
+    // which the callback validator rejects): its body from whole values,
+    // prefixed by the offset word a dynamic tuple carries as a value.
+    const body = encodeArgumentsParam(
+      ctx,
+      formatReturnTuple(tupleFn.inputs),
+      wholeArguments(
+        [
+          { kind: "value", value: target },
+          { kind: "value", value: callback.selector },
+          { kind: "value", value: callback.arguments },
+          canonicalArgSpec(
+            ctx,
+            { type: "bytes[]" },
+            encodeValuesParam(ctx, captures),
+          ),
+          { kind: "value", value: callback.first as never },
+          { kind: "value", value: callback.second as never },
+          { kind: "value", value: "0x" },
+        ],
+        tupleFn.inputs,
+        "collection callback",
       ),
-      { kind: "value", value: callback.first as never },
-      { kind: "value", value: callback.second as never },
-      { kind: "value", value: "0x" },
-    ]);
-    const param = concatenateResolved(ctx, [
-      rawParam(toWord(32n)),
-      ...encoded.segments,
-    ]);
+    );
+    const param = concatenateResolved(ctx, [rawParam(toWord(32n)), body]);
     callbackSpec = canonicalArgSpec(
       ctx,
       { type: "tuple", components: tupleFn.inputs },

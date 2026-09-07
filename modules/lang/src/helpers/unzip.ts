@@ -4,8 +4,8 @@ import {
   arrayValuesParam,
   constIntArg,
   formatParamType,
-  ProgramBuilder,
-  programParam,
+  GraphBuilder,
+  graphParam,
   unzipParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
@@ -69,7 +69,7 @@ export default defineHelper<Lang>({
         throw new ErrorException("@unzip! without a lane expects typed pairs");
       const components = array.element.components;
       const values = arrayValuesParam(ctx, array);
-      const graph = new ProgramBuilder(ctx);
+      const graph = new GraphBuilder(ctx);
       const source = graph.resolve(values, "bytes[]");
       const inputs = components.map((element) => ({
         ...element,
@@ -90,7 +90,7 @@ export default defineHelper<Lang>({
       });
       const resultType = { type: "tuple", components: inputs };
       return typedValueOperand(
-        programParam(ctx, graph, graph.tuple(resultType, lanes)),
+        graphParam(ctx, graph, graph.tuple(resultType, lanes)),
         resultType,
       );
     }

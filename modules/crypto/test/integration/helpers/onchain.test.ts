@@ -2,8 +2,8 @@ import "../../setup";
 import {
   CORE_ABI,
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ABI,
-  EXPRESSION_RESOLVER_ADDRESS,
+  EXPRESSIONS_ABI,
+  EXPRESSIONS_ADDRESS,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
@@ -70,11 +70,9 @@ describeCommand("assert (@merkle.verify!)", {
         // The normalized proof extracts its words through one resolver
         // program, retaining exactly one live source read.
         const payload = d.staticCallOf(foldArgs[1]);
-        expect(payload.target).to.equal(
-          getAddress(EXPRESSION_RESOLVER_ADDRESS),
-        );
+        expect(payload.target).to.equal(getAddress(EXPRESSIONS_ADDRESS));
         const decoded = decodeFunctionData({
-          abi: EXPRESSION_RESOLVER_ABI,
+          abi: EXPRESSIONS_ABI,
           data: payload.data,
         });
         if (decoded.functionName !== "evaluate")

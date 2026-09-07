@@ -53,6 +53,10 @@ assert @lookup!(@enumerate!($vault::{caps()(uint256[])}) 2) >= 100
 
 - Nested array faces work too: `@enumerate!(@sort!(…))` counts the
   nested payload's live words.
+- Both sides of the pairing are live, so the call takes the core's `get`:
+  the index run and the payload are each resolved once in the core's
+  frame, where a spliced layout would have had to re-read the payload to
+  place it.
 - Arrays of single-word elements only.
 
 ### See Also

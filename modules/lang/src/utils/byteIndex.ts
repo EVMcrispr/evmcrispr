@@ -4,9 +4,9 @@ import {
   ErrorException,
   type Node,
 } from "@evmcrispr/sdk";
-import type { CompileCtx, InputParam } from "@evmcrispr/sdk/onchain";
-import { rawParam, resolveCallParam, toWord } from "@evmcrispr/sdk/onchain";
-import { toFunctionSelector } from "viem";
+import type { ArgSpec, CompileCtx, InputParam } from "@evmcrispr/sdk/onchain";
+import { buildCall, callParam, rawParam, toWord } from "@evmcrispr/sdk/onchain";
+import { type AbiFunction, parseAbiItem } from "viem";
 import { indexParam } from "./genericCollections";
 
 export function byteIndex(value: unknown): number {
@@ -40,17 +40,25 @@ export async function byteRangeParam(
     : strings
       ? "stringSlice"
       : "sliceRange";
-  const args = [source, await indexParam(ctx, start)];
+  // One runtime-sized live (the source) among words: the `read` host
+  // with literal offsets, the source spliced last.
+  const specs: ArgSpec[] = [
+    { kind: "dyn", param: source },
+    { kind: "word", param: await indexParam(ctx, start) },
+  ];
   if (!single)
-    args.push(
-      end ? await indexParam(ctx, end) : rawParam(toWord((1n << 255n) - 1n)),
+    specs.push(
+      end
+        ? { kind: "word", param: await indexParam(ctx, end) }
+        : { kind: "value", value: ((1n << 255n) - 1n) as never },
     );
   const types = single ? "(bytes,int256)" : "(bytes,int256,int256)";
-  return resolveCallParam(
+  const fn = parseAbiItem(
+    `function ${name}${types} pure returns (bytes)`,
+  ) as AbiFunction;
+  return callParam(
     ctx,
     rawParam(toWord(BigInt(ctx.operators))),
-    toFunctionSelector(`${name}${types}`),
-    types,
-    args,
+    buildCall(ctx, fn, specs),
   );
 }

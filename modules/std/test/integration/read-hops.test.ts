@@ -4,6 +4,8 @@ import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import {
   compileExpression,
   installAssertionsCore,
+  installMockTarget,
+  MOCK_TARGET_ADDRESS,
   type Norm,
   resolveValue,
 } from "@evmcrispr/test-utils/onchain";
@@ -33,31 +35,63 @@ const AWXDAI = "0xd0Dd6cEF72143E22cCED4867eb0d5F2328715533";
 /** Honeyswap WXDAI/HNY, resolved through the factory rather than guessed. */
 const PAIR = "0x4505b262DC053998C10685DC5F9098af8AE5C8ad";
 
+/** The contracts repo's fixture: `join3`/`join6` take three and six
+ *  dynamic arguments, `callerGated` two behind a word and reverts unless
+ *  the caller is the address it is handed. */
+const MOCK = MOCK_TARGET_ADDRESS;
+/** MockTarget.strings(): a sub-word element and one crossing a word
+ *  boundary, so a wrong payload size shows up as garbage rather than as
+ *  padding that happens to work. */
+const SHORT = "ab";
+const LONG = "a value with more than thirty-two bytes";
+/** One live string argument: an element of that array, resolved at judge
+ *  time, optionally cut to `n` bytes. */
+const live = (index: 0 | 1, n?: number): string => {
+  const element = `@at!(${MOCK}::{strings()(string[])} ${index})`;
+  return n === undefined ? element : `@str.slice!(${element} 0 ${n})`;
+};
+
 let CORE: Address;
 let OPERATIONS: Address;
+let COLLECTIONS: Address;
 
-async function read(expression: string): Promise<Norm> {
+async function read(expression: string, module?: string): Promise<Norm> {
   const { operand } = await compileExpression(expression, {
     core: CORE,
     operators: OPERATIONS,
+    collections: COLLECTIONS,
+    module,
   });
   return resolveValue(getPublicClient(), operand, { core: CORE });
 }
 
 /** Every shape here resolves to a single word. */
-async function num(expression: string): Promise<bigint> {
-  const value = await read(expression);
+async function num(expression: string, module?: string): Promise<bigint> {
+  const value = await read(expression, module);
   if (value.t !== "num") {
     throw new Error(`expected a number from ${expression}, got ${value.t}`);
   }
   return BigInt(value.v.toString());
 }
 
+/** Every shape here that resolves to a string goes through the lang
+ *  helpers, so the module is loaded for it. */
+async function str(expression: string): Promise<string> {
+  const value = await read(expression, "lang");
+  if (value.t !== "str") {
+    throw new Error(`expected a string from ${expression}, got ${value.t}`);
+  }
+  return value.v;
+}
+
 describe("std > ::! read hops (resolved)", () => {
   beforeAll(async () => {
-    ({ core: CORE, operators: OPERATIONS } = await installAssertionsCore(
-      getPublicClient(),
-    ));
+    ({
+      core: CORE,
+      operators: OPERATIONS,
+      collections: COLLECTIONS,
+    } = await installAssertionsCore(getPublicClient()));
+    await installMockTarget(getPublicClient());
   });
 
   it("reads from an address literal with a constant argument", async () => {
@@ -110,5 +144,51 @@ describe("std > ::! read hops (resolved)", () => {
       `${SDAI}::{convertToAssets(uint256)(uint256) ${WXDAI}::!{totalSupply()(uint256)}}`,
     );
     expect(nestedMarked).to.equal(outerMarked);
+  }, 30_000);
+
+  // Several dynamic arguments in one constructed call. The splice layout
+  // can only place one runtime-sized live (every later offset would have
+  // to be computed from its length, re-resolving it), so these compile to
+  // the core's `get`, which resolves each whole value once in its own
+  // frame. Executing them is what proves the tuple the core encodes is
+  // the one the destination decodes.
+  it("constructs a call with two live dynamic arguments", async () => {
+    expect(
+      await str(
+        `${MOCK}::!{join3(string,string,string)(string) ${live(0)} "-" ${live(1)}}`,
+      ),
+    ).to.equal(`${SHORT}-${LONG}`);
+  }, 30_000);
+
+  it("constructs a call with three live dynamic arguments", async () => {
+    expect(
+      await str(
+        `${MOCK}::!{join3(string,string,string)(string) ${live(0)} ${live(1)} ${live(1, 5)}}`,
+      ),
+    ).to.equal(SHORT + LONG + LONG.slice(0, 5));
+  }, 30_000);
+
+  it("constructs a call with six live dynamic arguments", async () => {
+    const sizes = [1, 2, 3, 5, 8, 13];
+    expect(
+      await str(
+        `${MOCK}::!{join6(string,string,string,string,string,string)(string) ${sizes
+          .map((n) => live(1, n))
+          .join(" ")}}`,
+      ),
+    ).to.equal(sizes.map((n) => LONG.slice(0, n)).join(""));
+  }, 30_000);
+
+  it("keeps the core as msg.sender at the destination", async () => {
+    // callerGated reverts Unauthorized unless msg.sender is the address it
+    // is handed, so resolving to the two payload lengths proves the core
+    // made the call — the property a resolve-once host on another
+    // contract would silently have broken.
+    expect(
+      await num(
+        `${MOCK}::!{callerGated(address,string,string)(uint256) ${CORE} ${live(0)} ${live(1)}}`,
+        "lang",
+      ),
+    ).to.equal(BigInt(SHORT.length + LONG.length));
   }, 30_000);
 });

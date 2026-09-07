@@ -94,7 +94,7 @@ extra call; only composing it inside `@bool!` materializes the comparison.
 
 The arrow forms probe the final target in the same call frame that captures
 its revert data. A direct call uses the core's `revertData`; a call with
-live arguments or a computed target uses the resolver's probe node. Earlier
+live arguments or a computed target uses an Expressions `ProbeCall` node. Earlier
 chain hops and arguments resolve first, then the final call's own error is
 matched. Errors from an earlier hop are not mistaken for the final target's
 reason.

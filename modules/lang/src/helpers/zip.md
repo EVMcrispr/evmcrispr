@@ -30,4 +30,4 @@ Combine two arrays element-wise into an array of pairs.
 
 ## On-chain face (@zip!)
 
-Pair two equally sized arrays in order. Unequal lengths fail in both modes. Each lane retains its own type, including multiword types.
+Pair two equally sized arrays in order. Unequal lengths fail in both modes. Each lane retains its own type, including multiword types. With one live side the call is spliced with build-time offsets; with two it goes through the core's `get`, which resolves each side once in its own frame rather than re-reading the first to place the second.

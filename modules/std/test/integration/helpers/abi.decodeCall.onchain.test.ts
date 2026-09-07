@@ -1,8 +1,8 @@
 import "../../setup";
 import {
   CORE_ADDRESS,
-  EXPRESSION_RESOLVER_ABI,
-  EXPRESSION_RESOLVER_ADDRESS,
+  EXPRESSIONS_ABI,
+  EXPRESSIONS_ADDRESS,
   OPERATIONS_ADDRESS,
   PAYLOAD_STEP,
 } from "@evmcrispr/sdk/onchain";
@@ -70,22 +70,22 @@ describeCommand("assert (@abi.decodeCall! calldata shape)", {
         const sliceCall = d.staticCallOf(
           strip.args[0] as unknown as DecodedParam,
         );
-        expect(sliceCall.target).to.equal(
-          getAddress(EXPRESSION_RESOLVER_ADDRESS),
-        );
+        expect(sliceCall.target).to.equal(getAddress(EXPRESSIONS_ADDRESS));
         const graph = decodeFunctionData({
-          abi: EXPRESSION_RESOLVER_ABI,
+          abi: EXPRESSIONS_ABI,
           data: sliceCall.data,
         });
         expect(graph.functionName).to.equal("evaluate");
         if (graph.functionName !== "evaluate")
           throw new Error("expected graph");
-        const [program] = graph.args;
-        expect(program.nodes.filter((n) => n.kind === 2)).to.have.lengthOf(1);
-        expect(program.nodes.find((n) => n.kind === 2)!.valueType).to.equal(
+        const [expression] = graph.args;
+        expect(expression.nodes.filter((n) => n.kind === 2)).to.have.lengthOf(
+          1,
+        );
+        expect(expression.nodes.find((n) => n.kind === 2)!.valueType).to.equal(
           "bytes",
         );
-        expect(program.nodes[Number(program.result)].selector).to.equal(
+        expect(expression.nodes[Number(expression.result)].selector).to.equal(
           toFunctionSelector("slice(bytes,uint256,uint256)"),
         );
 
