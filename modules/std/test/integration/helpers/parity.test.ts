@@ -424,7 +424,7 @@ describeParity("@std", {
       helper: "abi.decode",
       run: `@abi.decode("(address,uint256),uint256" ${REPORT_CALL}[_ $] [$ _])`,
       compile: `@abi.decode!("(address,uint256),uint256" ${REPORT_CALL}[_ $] [$ _])`,
-      refuses: "must select a single value",
+      refuses: 'unsupported return type "tuple"',
     },
     {
       name: "abi.decode refuses an array selection",

@@ -11,7 +11,7 @@ import type { Address } from "../types";
 
 /** Canonical address of the Assertions core (CREATE2). */
 export const CORE_ADDRESS: Address =
-  "0xf601f42D6752dB5423efE6e5c16044d275F06aC2";
+  "0xA55E47Df0739353DFd7a914d65d935624F88A45d";
 
 /** Canonical address of Operations (CREATE2): scalar computation over
  *  resolved values. */
@@ -21,7 +21,7 @@ export const OPERATIONS_ADDRESS: Address =
 /** Canonical address of Collections (CREATE2): iteration and the
  *  ABI-valued collection family (requires Cancun). */
 export const COLLECTIONS_ADDRESS: Address =
-  "0x9647762c87a5Ff7a378c4a4752D23b88E5302e3B";
+  "0xc011EC7840D287b6b7Ccbad6E8Ef7D7C8411Ca19";
 
 /** Canonical address of Expressions (CREATE2): the runtime composition
  *  engine (`resolveCall`, `resolveValues`, `evaluate`); named

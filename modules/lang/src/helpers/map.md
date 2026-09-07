@@ -32,3 +32,8 @@ Transform each element of an array by applying a helper.
 ## On-chain face (@map!)
 
 Apply a named callback to each element of a typed array. Callbacks may compose on-chain helpers and ABI calls, reuse parameters, and accept multiword values such as strings, tuples, and nested arrays. The result retains the callback output type. Shared nodes are evaluated once per callback invocation.
+
+Inputs may be homogeneous literals, live fixed-size or dynamic arrays, or nested
+on-chain collection helpers. Negative numeric literals select `int256`; otherwise
+numeric literals select `uint256`. An untyped empty literal defaults to `uint256[]`.
+Callback parameter types must remain compatible with the inferred element type.

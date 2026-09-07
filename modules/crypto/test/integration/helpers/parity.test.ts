@@ -17,9 +17,9 @@ import { LEAF_A, LEAF_B, LEAF_C } from "../../fixtures";
  * checked against a hash written down by hand, so an error in either face
  * shows up as the two disagreeing.
  *
- * `@merkle.verify!` folds through `foldWords`, and `wordsArg` accepts only a
- * `::` call or a nested `!` face — never a constant array — so the proof has
- * to arrive from a contract. Nothing on the Gnosis fork returns a `bytes32[]`
+ * `@merkle.verify!` folds through `foldWords`. Literal hex arrays infer
+ * `bytes[]`, so this proof uses a typed `bytes32[]` contract result.
+ * Nothing on the Gnosis fork returns a `bytes32[]`
  * proof for a tree whose root we know, so a constant-returning mock stands in.
  * It is only a data source: what is under test is the fold.
  */
@@ -72,11 +72,11 @@ describeParity("@crypto", {
       compile: ROOT,
     },
     {
-      name: "refuses: a constant proof array, which has no words payload",
+      name: "refuses: a literal proof inferred as bytes[]",
       run: `@crypto:merkle.verify(${ROOT} ${LEAF_A} [${LEAF_B} ${LEAF_C}])`,
       compile: `@crypto:merkle.verify!(${ROOT} ${LEAF_A} [${LEAF_B} ${LEAF_C}])`,
       helper: "merkle.verify",
-      refuses: /expects a `::` call expression or a nested on-chain array face/,
+      refuses: /needs single-word elements, got bytes/,
     },
     {
       name: "refuses: the positional (indexed) form",

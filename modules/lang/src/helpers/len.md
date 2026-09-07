@@ -28,7 +28,7 @@ Length of a value: element count for an array, byte length for a string or bytes
 
 ## On-chain face (@len!)
 
-The decoded length of the dynamic return value of a call, on-chain: element count for arrays, byte length for string/bytes.
+The element count of a literal, live fixed-size or dynamic array, or nested collection helper. For a call returning string/bytes, return its decoded byte length.
 
 ### Examples
 
@@ -50,11 +50,16 @@ assert @calc!(@len!($gov::{voters()(address[])}) * 2) > 4
 - For a string/bytes return the decoded length is the byte length (UTF-8
   characters may span multiple bytes). For raw returndata size use
   `@bytes.len!`.
-- Over a NESTED ARRAY FACE (`@len!(@filter!(…))`,
-  `@len!(@safe:owners!())`) the length is the live ELEMENT COUNT of
-  the words payload (its byte length over 32); byte lengths of
-  string/bytes faces stay with `@bytes.len!`/`@str.len!`.
+- Over a nested collection helper (`@len!(@filter!(…))`,
+  `@len!(@safe:owners!())`) the length is the live element count. Pairs
+  count as one element. Generic pipelines can return their count without
+  first packing the final array; byte lengths of string/bytes helpers stay
+  with `@bytes.len!`/`@str.len!`.
 
 ### See Also
 
 - `assert`, `@bytes.len!`
+
+Return-value lenses can select whole fixed arrays, including inside tuples and
+other arrays. The full selected value must be present; a truncated return reverts
+even when its declared fixed length is known at compile time.

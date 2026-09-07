@@ -60,7 +60,7 @@ export default defineHelper<Lang>({
         canonicalArgSpec(ctx, { type: "bytes[]" }, values),
         callbackSpec,
       ]);
-      return packedArrayOperand(ctx, result, output);
+      return packedArrayOperand(ctx, result, output, { validated: true });
     }
     return {
       kind: "call",

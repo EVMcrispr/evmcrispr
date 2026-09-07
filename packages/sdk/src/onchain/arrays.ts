@@ -1,16 +1,18 @@
 /**
- * Word-array argument plumbing shared by the on-chain array faces
- * (@includes!, @all!, @map!, @merkle.verify!, …): validating that a call
- * argument resolves an array of single-word elements, and bridging its
- * envelope into the word-payload bytes the Operations word-array
- * vocabulary consumes.
+ * Typed array normalization shared by on-chain helpers. Literals, live
+ * fixed/dynamic arrays, and nested helpers retain their ABI element types.
+ * Word arrays keep their packed payload; validated generic pipelines can
+ * pass canonical element encodings directly between collection operations.
  */
 import type { AbiParameter, Hex } from "viem";
+import { encodeAbiParameters, isAddress, isHex } from "viem";
 import { ErrorException } from "../errors";
-import type { Node } from "../types";
+import type { CallExpressionNode, Node } from "../types";
 import { NodeType } from "../types";
+import { encodeParams } from "../utils/encoders";
+import { Num } from "../utils/Num";
 import {
-  chainArgWithLens,
+  compileCallValue,
   constBigInt,
   constOperand,
   lensedDataOperand,
@@ -117,14 +119,12 @@ export async function wordsArg(
       return { payload: o.param, elemType, lanes: o.collection.lanes };
     return { payload: arrayWordsParam(ctx, o.param, elemType), elemType };
   }
-  if (!node || node.type !== NodeType.CallExpression) {
+  const array = await typedArrayArg(ctx, node, helper);
+  if (!array.words)
     throw new ErrorException(
-      `@${helper} expects a \`::\` call expression or a nested on-chain array face, e.g. @${helper}($safe::getOwners() …)`,
+      `@${helper} needs single-word elements, got ${formatParamType(array.element)}`,
     );
-  }
-  const arg = await chainArgWithLens(ctx, helper, node);
-  const { path, elemType } = wordArrayPath(arg, helper);
-  return { payload: wordsPayload(ctx, arg, path), elemType };
+  return { payload: array.words, elemType: array.element.type };
 }
 
 /** Interpret a build-time constant array literal into its packed word
@@ -159,68 +159,325 @@ export interface TypedArrayArg {
   element: AbiParameter;
   words?: InputParam;
 }
+
+// A shortcut is tied to the exact canonical array operand, not merely its
+// element metadata. Replacing or constraining that operand must keep the
+// normal pack/unpack path so the shortcut cannot bypass a guard. The encoded
+// call data is immutable; comparing its fields also catches in-place changes.
+const validatedValues = new WeakMap<
+  InputParam,
+  {
+    values: InputParam;
+    type: string;
+    paramType: InputParam["paramType"];
+    fetcherType: InputParam["fetcherType"];
+    paramData: Hex;
+  }
+>();
+
+function copyParam(param: InputParam): InputParam {
+  return { ...param, constraints: param.constraints.map((c) => ({ ...c })) };
+}
 export async function typedArrayArg(
   ctx: CompileCtx,
   node: Node | undefined,
   helper: string,
 ): Promise<TypedArrayArg> {
   if (node && isBangHelperNode(node)) {
-    const operand = await compileOnchainHelper(ctx, node);
-    if (operand.kind !== "call" || !operand.collection)
-      throw new ErrorException(`@${helper} needs a typed collection result`);
-    let { element } = operand.collection;
-    const { transport, lanes } = operand.collection;
-    if (lanes) element = { type: "tuple", components: lanes };
-    if (transport === "abi") return { param: operand.param, element };
-    // Word payload and ABI array differ only in their length word.
-    let count = wordCountParam(ctx, operand.param);
-    if (lanes)
-      count = wordOpParam(
-        ctx,
-        "div",
-        false,
-        count,
-        rawParam(toWord(BigInt(lanes.length))),
-      );
-    const raw = staticCallParam(
-      ctx.core,
-      encodeNav(operand.param, "(bytes)", [0n, PAYLOAD_STEP]),
-    );
-    const param = unwrapBytesParam(
+    return typedArrayFromOperand(
       ctx,
-      concatParam(ctx, [
-        toWord(32n),
-        canonicalBytesParam(ctx, count),
-        canonicalBytesParam(ctx, raw),
-      ]),
+      await compileOnchainHelper(ctx, node),
+      helper,
     );
-    return { param, element, ...(!lanes ? { words: operand.param } : {}) };
   }
-  if (!node || node.type !== NodeType.CallExpression)
-    throw new ErrorException(
-      `@${helper} expects a live array call or typed collection helper`,
+  if (!node) throw new ErrorException(`@${helper} expects an array`);
+  if (node.type !== NodeType.CallExpression) {
+    const value = await ctx.interpreters.interpretNode(node);
+    if (!Array.isArray(value))
+      throw new ErrorException(`@${helper} expects an array`);
+    return literalArrayArg(value, constantElement(value), helper);
+  }
+  const { param, terminal } = await compileCallValue(
+    ctx,
+    node as CallExpressionNode,
+  );
+  return typedArrayFromValue(ctx, param, terminal, helper);
+}
+
+/** Normalize an already compiled collection without compiling its source again. */
+export function typedArrayFromOperand(
+  ctx: CompileCtx,
+  operand: Operand,
+  helper: string,
+): TypedArrayArg {
+  if (operand.kind !== "call" || !operand.collection)
+    throw new ErrorException(`@${helper} needs a typed collection result`);
+  let { element } = operand.collection;
+  const { transport, lanes } = operand.collection;
+  if (lanes) element = { type: "tuple", components: lanes };
+  if (transport === "abi") return { param: operand.param, element };
+  // Word payload and ABI array differ only in their length word.
+  let count = wordCountParam(ctx, operand.param);
+  if (lanes)
+    count = wordOpParam(
+      ctx,
+      "div",
+      false,
+      count,
+      rawParam(toWord(BigInt(lanes.length))),
     );
-  const arg = await chainArgWithLens(ctx, helper, node);
-  if (!arg.path && arg.outputs.length !== 1)
+  const raw = staticCallParam(
+    ctx.core,
+    encodeNav(operand.param, "(bytes)", [0n, PAYLOAD_STEP]),
+  );
+  const param = unwrapBytesParam(
+    ctx,
+    concatParam(ctx, [
+      toWord(32n),
+      canonicalBytesParam(ctx, count),
+      canonicalBytesParam(ctx, raw),
+    ]),
+  );
+  return { param, element, ...(!lanes ? { words: operand.param } : {}) };
+}
+
+/** Normalize a canonical fixed/dynamic array returned by a compiled call. */
+export function typedArrayFromValue(
+  ctx: CompileCtx,
+  param: InputParam,
+  terminal: AbiParameter,
+  helper: string,
+): TypedArrayArg {
+  const suffix = terminal.type.match(/\[(\d*)\]$/);
+  if (!suffix) {
+    const hint =
+      terminal.type === "string" || terminal.type === "bytes"
+        ? " — string/bytes values have their own str./bytes. faces"
+        : "";
     throw new ErrorException(
-      `@${helper} needs a single array return; select one with a lens`,
+      `@${helper} needs an array, got ${terminal.type}${hint}`,
     );
-  const type = arg.terminal ?? arg.outputs[0];
-  if (!type?.type.endsWith("[]"))
-    throw new ErrorException(`@${helper} needs a dynamic array`);
-  const element = { ...type, type: type.type.slice(0, -2) } as AbiParameter;
+  }
+  const element = {
+    ...terminal,
+    type: terminal.type.slice(0, -suffix[0].length),
+  } as AbiParameter;
+  let normalized = param;
+  if (suffix[1]) {
+    const wrapped = canonicalBytesParam(ctx, param);
+    const tail = isDynamicParam(element)
+      ? sliceParam(
+          ctx,
+          wrapped,
+          32n,
+          wordOpParam(
+            ctx,
+            "sub",
+            false,
+            envelopeLenParam(ctx, wrapped),
+            rawParam(toWord(32n)),
+          ),
+        )
+      : wrapped;
+    normalized = unwrapBytesParam(
+      ctx,
+      concatParam(ctx, [toWord(32n), toWord(BigInt(suffix[1])), tail]),
+    );
+  }
   return {
-    param: lensedDataOperand(ctx, arg),
+    param: normalized,
     element,
     ...(WORD_ELEMENT.test(element.type)
-      ? { words: wordsPayload(ctx, arg, arg.path ?? [0]) }
+      ? { words: arrayWordsParam(ctx, normalized, element.type) }
       : {}),
   };
 }
+
+/** Infer a homogeneous literal's ABI type; empty arrays default to uint256[]. */
+export function constantAbiType(value: unknown): AbiParameter {
+  if (
+    value instanceof Num ||
+    typeof value === "bigint" ||
+    typeof value === "number"
+  )
+    return { type: Num(value as never).lt(Num(0)) ? "int256" : "uint256" };
+  if (typeof value === "boolean") return { type: "bool" };
+  if (typeof value === "string")
+    return {
+      type: isAddress(value) ? "address" : isHex(value) ? "bytes" : "string",
+    };
+  if (Array.isArray(value)) {
+    const element = constantElement(value);
+    return { ...element, type: `${element.type}[]` } as AbiParameter;
+  }
+  if (value && typeof value === "object")
+    return {
+      type: "tuple",
+      components: Object.entries(value).map(([name, v]) => ({
+        ...constantAbiType(v),
+        name,
+      })),
+    };
+  throw new ErrorException(
+    "Cannot infer a concrete ABI type for this array element",
+  );
+}
+
+function constantElement(values: unknown[]): AbiParameter {
+  if (values.length === 0) return { type: "uint256" };
+  // Infer nested arrays together so empty rows and mixed-sign rows use the
+  // same element type as their nonempty siblings.
+  if (values.every(Array.isArray)) {
+    const element = constantElement(values.flat());
+    return { ...element, type: `${element.type}[]` } as AbiParameter;
+  }
+  const types = values.map(constantAbiType);
+  if (types.every((t) => /^u?int256$/.test(t.type)))
+    return {
+      type: types.some((t) => t.type === "int256") ? "int256" : "uint256",
+    };
+  const first = types[0];
+  if (types.some((t) => formatParamType(t) !== formatParamType(first)))
+    throw new ErrorException(
+      "Array elements must have one ABI-compatible type",
+    );
+  return first;
+}
+function literalArrayArg(
+  value: unknown[],
+  element: AbiParameter,
+  helper: string,
+): TypedArrayArg {
+  return {
+    element,
+    param: rawParam(
+      encodeParams(
+        [{ ...element, type: `${element.type}[]` }],
+        [value] as never,
+        helper,
+      ),
+    ),
+    ...(WORD_ELEMENT.test(element.type)
+      ? {
+          words: rawParam(
+            encodeAbiParameters(
+              [{ type: "bytes" }],
+              [
+                `0x${value.map((v) => encodeParams([element], [v] as never, helper).slice(2)).join("")}`,
+              ],
+            ),
+          ),
+        }
+      : {}),
+  };
+}
+
+/** Resolve each part once; literal parts inherit a live part's element type. */
+export async function typedArrayParts(
+  ctx: CompileCtx,
+  nodes: readonly Node[],
+  helper: string,
+): Promise<TypedArrayArg[]> {
+  const parts = await Promise.all(
+    nodes.map(async (node) => {
+      if (node.type === NodeType.CallExpression || isBangHelperNode(node))
+        return { array: await typedArrayArg(ctx, node, helper) };
+      const value = await ctx.interpreters.interpretNode(node);
+      if (!Array.isArray(value))
+        throw new ErrorException(`@${helper} expects array parts`);
+      return { value };
+    }),
+  );
+  const element =
+    parts.find((p) => p.array)?.array?.element ??
+    constantElement(parts.flatMap((p) => p.value ?? []));
+  return parts.map(
+    (p) => p.array ?? literalArrayArg(p.value!, element, helper),
+  );
+}
+
+/** Concatenate homogeneous typed arrays, retaining the word path when possible. */
+export function concatArrayOperand(
+  ctx: CompileCtx,
+  arrays: readonly TypedArrayArg[],
+  helper: string,
+): Operand {
+  const element = arrays[0]?.element ?? { type: "uint256" };
+  const type = formatParamType(element);
+  if (arrays.some((a) => formatParamType(a.element) !== type))
+    throw new ErrorException(
+      `@${helper} requires matching array element types`,
+    );
+  if (arrays.every((a) => a.words))
+    return {
+      kind: "call",
+      param: concatParam(
+        ctx,
+        arrays.map((a) => ({ param: a.words!, aligned: true })),
+      ),
+      cat: "Bytes",
+      collection: { element, transport: "words" },
+    };
+  const nested = unwrapBytesParam(
+    ctx,
+    collectionReadParam(ctx, "packArray", [
+      { kind: "value", value: "bytes[]" },
+      canonicalArgSpec(
+        ctx,
+        { type: "bytes[]" },
+        encodeValuesParam(
+          ctx,
+          arrays.map((a) => canonicalBytesParam(ctx, arrayValuesParam(ctx, a))),
+        ),
+      ),
+    ]),
+  );
+  return packedArrayOperand(
+    ctx,
+    collectionReadParam(ctx, "flattenValues", [
+      { kind: "value", value: type },
+      canonicalArgSpec(ctx, { type: "bytes[][]" }, nested),
+    ]),
+    element,
+    { validated: true },
+  );
+}
+
+function validatedArrayValues(array: TypedArrayArg): InputParam | undefined {
+  const view = validatedValues.get(array.param);
+  if (
+    view &&
+    array.param.constraints.length === 0 &&
+    view.paramType === array.param.paramType &&
+    view.fetcherType === array.param.fetcherType &&
+    view.paramData === array.param.paramData &&
+    view.type === formatParamType(array.element)
+  )
+    return copyParam(view.values);
+}
+
+/** Count a collection without packing a validated values view just to read its length. */
+export function arrayLengthParam(
+  ctx: CompileCtx,
+  array: TypedArrayArg,
+): InputParam {
+  const values = validatedArrayValues(array);
+  return staticCallParam(
+    ctx.core,
+    encodeNav(
+      values ?? array.param,
+      values ? "(bytes[])" : `(${formatParamType(array.element)}[])`,
+      [0n, -(1n << 255n)],
+    ),
+  );
+}
+
 export function arrayValuesParam(
   ctx: CompileCtx,
   array: TypedArrayArg,
 ): InputParam {
+  const values = validatedArrayValues(array);
+  if (values) return values;
   return collectionReadParam(ctx, "unpackArray", [
     { kind: "value", value: formatParamType(array.element) },
     canonicalArgSpec(
@@ -230,18 +487,34 @@ export function arrayValuesParam(
     ),
   ]);
 }
+/** Materialize canonical ABI at the boundary. Set validated only if the values
+ * producer validates every returned element against the supplied ABI type;
+ * downstream collection consumers may then omit the intermediate pack/unpack. */
 export function packedArrayOperand(
   ctx: CompileCtx,
   values: InputParam,
   element: AbiParameter,
+  options: { validated?: boolean } = {},
 ): Operand {
   const packed = collectionReadParam(ctx, "packArray", [
     { kind: "value", value: formatParamType(element) },
     canonicalArgSpec(ctx, { type: "bytes[]" }, values),
   ]);
+  const param = unwrapBytesParam(ctx, packed);
+  // Opt in only when the producer validates EVERY returned element as this
+  // type (e.g. Collections mapValues/filterValues). Arbitrary bytes[] still
+  // need packArray's validation even if a downstream consumer exits early.
+  if (options.validated)
+    validatedValues.set(param, {
+      values: copyParam(values),
+      type: formatParamType(element),
+      paramType: param.paramType,
+      fetcherType: param.fetcherType,
+      paramData: param.paramData,
+    });
   return {
     kind: "call",
-    param: unwrapBytesParam(ctx, packed),
+    param,
     cat: "Bytes",
     collection: { element, transport: "abi" },
     abiType: { ...element, type: `${element.type}[]` } as AbiParameter,
@@ -252,9 +525,16 @@ import {
   canonicalArgSpec,
   canonicalBytesParam,
   collectionReadParam,
+  encodeValuesParam,
   unwrapBytesParam,
 } from "./collections";
 import { formatParamType, wordOpParam } from "./compile";
+import { isDynamicParam } from "./construct";
 import { encodeNav, PAYLOAD_STEP } from "./core";
 import { rawParam, staticCallParam } from "./erc8211";
-import { concatParam, wordCountParam } from "./recipes";
+import {
+  concatParam,
+  envelopeLenParam,
+  sliceParam,
+  wordCountParam,
+} from "./recipes";

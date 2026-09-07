@@ -64,6 +64,7 @@ export default defineHelper<Lang>({
         { kind: "word", param: end },
       ]),
       array.element,
+      { validated: true },
     );
   },
 });

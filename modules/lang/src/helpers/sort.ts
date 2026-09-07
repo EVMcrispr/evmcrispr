@@ -138,6 +138,7 @@ export default defineHelper<Lang>({
           callbackSpec,
         ]),
         array.element,
+        { validated: true },
       );
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "sort!");

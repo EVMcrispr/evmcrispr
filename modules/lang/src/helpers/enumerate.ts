@@ -1,16 +1,10 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import {
-  byteLenParamOf,
-  chainArgWithLens,
   enumerateParam,
-  isBangHelperNode,
-  lenParam,
-  rawParam,
-  toWord,
-  wordOpParam,
+  wordCountParam,
+  wordsArg,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
-import { wordArrayPath, wordsArg, wordsPayload } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "enumerate",
@@ -34,34 +28,12 @@ export default defineHelper<Lang>({
         "@enumerate! expects a single call argument, e.g. @enumerate!($safe::getOwners())",
       );
     }
-    const argNode = node.args[0];
-    if (argNode && isBangHelperNode(argNode)) {
-      // Nested array face: the payload is already a words value, so the
-      // live count is its byte length over 32.
-      const { payload, elemType } = await wordsArg(ctx, argNode, "enumerate!");
-      const n = wordOpParam(
-        ctx,
-        "div",
-        false,
-        byteLenParamOf(ctx, payload),
-        rawParam(toWord(32n)),
-      );
-      return {
-        kind: "call",
-        param: enumerateParam(ctx, payload, n),
-        cat: "Bytes",
-        collection: {
-          element: { type: "uint256" },
-          transport: "words",
-          lanes: [{ type: "uint256" }, { type: elemType }],
-        },
-      };
-    }
-    const arg = await chainArgWithLens(ctx, "enumerate!", argNode);
-    const { path, elemType } = wordArrayPath(arg, "enumerate!");
-    const payload = wordsPayload(ctx, arg, path);
-    // The live element count through the existing LEN-sentinel plumbing.
-    const n = lenParam(ctx, arg.param, arg.outputs, path);
+    const { payload, elemType } = await wordsArg(
+      ctx,
+      node.args[0],
+      "enumerate!",
+    );
+    const n = wordCountParam(ctx, payload);
     return {
       kind: "call",
       param: enumerateParam(ctx, payload, n),

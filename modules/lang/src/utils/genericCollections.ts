@@ -1,30 +1,21 @@
-import type { CallExpressionNode, Node } from "@evmcrispr/sdk";
+import type { Node } from "@evmcrispr/sdk";
 import { checkedInteger, checkedRange, ErrorException } from "@evmcrispr/sdk";
 import type { CompileCtx, InputParam, Operand } from "@evmcrispr/sdk/onchain";
 import {
-  arrayWordsParam,
   buildCallSegments,
   CONSTRAINT_TYPE,
   CORE_ABI,
   canonicalArgSpec,
-  canonicalBytesParam,
   categoryFromAbiType,
-  compileCallValue,
   compileCheckedExpr,
   concatenateResolved,
-  concatParam,
   constBigInt,
   encodeNav,
   encodeRead,
-  envelopeLenParam,
-  isDynamicParam,
   materializeWord,
   rawParam,
-  sliceParam,
   staticCallParam,
   toWord,
-  unwrapBytesParam,
-  wordOpParam,
 } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction, AbiParameter } from "viem";
 
@@ -114,130 +105,17 @@ export function typedValueOperand(
   };
 }
 
-import { encodeParams, NodeType, Num } from "@evmcrispr/sdk";
+import { Num } from "@evmcrispr/sdk";
 import {
+  typedArrayArg as arrayArg,
   formatParamType,
   isBangHelperNode,
-  type TypedArrayArg,
-  typedArrayArg,
 } from "@evmcrispr/sdk/onchain";
-import { encodeAbiParameters, isAddress, isHex } from "viem";
 
-export function constantType(value: unknown): AbiParameter {
-  if (
-    value instanceof Num ||
-    typeof value === "bigint" ||
-    typeof value === "number"
-  )
-    return { type: Num(value as never).lt(Num(0)) ? "int256" : "uint256" };
-  if (typeof value === "boolean") return { type: "bool" };
-  if (typeof value === "string")
-    return {
-      type: isAddress(value) ? "address" : isHex(value) ? "bytes" : "string",
-    };
-  if (Array.isArray(value)) {
-    const element = constantElement(value);
-    return { ...element, type: `${element.type}[]` } as AbiParameter;
-  }
-  if (value && typeof value === "object")
-    return {
-      type: "tuple",
-      components: Object.entries(value).map(([name, v]) => ({
-        ...constantType(v),
-        name,
-      })),
-    };
-  throw new ErrorException(
-    "Cannot infer a concrete ABI type for this array element",
-  );
-}
-function constantElement(values: unknown[]): AbiParameter {
-  if (values.length === 0) return { type: "uint256" };
-  const types = values.map(constantType);
-  if (types.every((t) => /^u?int256$/.test(t.type)))
-    return {
-      type: types.some((t) => t.type === "int256") ? "int256" : "uint256",
-    };
-  const first = types[0];
-  if (types.some((t) => formatParamType(t) !== formatParamType(first)))
-    throw new ErrorException(
-      "Array elements must have one ABI-compatible type",
-    );
-  return first;
-}
-export async function arrayArg(
-  ctx: CompileCtx,
-  node: Node,
-  helper: string,
-): Promise<TypedArrayArg> {
-  if (node.type === NodeType.CallExpression) {
-    const { param, terminal } = await compileCallValue(
-      ctx,
-      node as CallExpressionNode,
-    );
-    const fixed = terminal.type.match(/\[(\d+)\]$/);
-    if (fixed) {
-      const count = BigInt(fixed[1]);
-      const element = {
-        ...terminal,
-        type: terminal.type.slice(0, -fixed[0].length),
-      } as AbiParameter;
-      const wrapped = canonicalBytesParam(ctx, param);
-      const tail = isDynamicParam(element)
-        ? sliceParam(
-            ctx,
-            wrapped,
-            32n,
-            wordOpParam(
-              ctx,
-              "sub",
-              false,
-              envelopeLenParam(ctx, wrapped),
-              rawParam(toWord(32n)),
-            ),
-          )
-        : wrapped;
-      const normalized = unwrapBytesParam(
-        ctx,
-        concatParam(ctx, [toWord(32n), toWord(count), tail]),
-      );
-      return {
-        element,
-        param: normalized,
-        ...(/^(u?int\d*|address|bool|bytes32)$/.test(element.type)
-          ? { words: arrayWordsParam(ctx, normalized, element.type) }
-          : {}),
-      };
-    }
-    return typedArrayArg(ctx, node, helper);
-  }
-  if (isBangHelperNode(node)) return typedArrayArg(ctx, node, helper);
-  const value = await ctx.interpreters.interpretNode(node);
-  if (!Array.isArray(value))
-    throw new ErrorException(`@${helper} expects an array`);
-  const element = constantElement(value);
-  const words = /^(u?int\d*|address|bool|bytes32)$/.test(element.type)
-    ? rawParam(
-        encodeAbiParameters(
-          [{ type: "bytes" }],
-          [
-            `0x${value.map((v) => encodeParams([element], [v] as never, helper).slice(2)).join("")}`,
-          ],
-        ),
-      )
-    : undefined;
-  return {
-    element,
-    param: rawParam(
-      encodeParams(
-        [{ ...element, type: `${element.type}[]` }],
-        [value] as never,
-        helper,
-      ),
-    ),
-    words,
-  };
-}
+export {
+  constantAbiType as constantType,
+  typedArrayArg as arrayArg,
+} from "@evmcrispr/sdk/onchain";
 
 /** Signed integer input validation shared with live array indexing. */
 export function indexValue(value: unknown): bigint {
@@ -285,5 +163,6 @@ export async function genericLane(
       { kind: "value", value: Num(lane) },
     ]),
     lane === 0 ? left : right,
+    { validated: true },
   );
 }

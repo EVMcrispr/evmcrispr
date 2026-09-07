@@ -5,7 +5,6 @@ import {
   EXPRESSION_RESOLVER_ABI,
   EXPRESSION_RESOLVER_ADDRESS,
   FETCHER_TYPE,
-  LEN_STEP,
   OPERATIONS_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
@@ -466,7 +465,7 @@ assert @all!(${TOKEN}::{caps()(uint256[])} @inc!)`,
     {
       name: "rejects a non-array @includes! source",
       script: `assert @includes!(${TOKEN}::{name()(string)} "LP")`,
-      error: "needs a dynamic array",
+      error: "needs an array",
     },
     {
       // Elements are single words, so a live string has no word to match.
@@ -1010,19 +1009,19 @@ assert @reduce!(${TOKEN}::{caps()(uint256[])} @weighted! 0) > 0`,
         expect(segs).to.have.lengthOf(4);
         // offset_a = 96 (constant: the iota envelope at 64, 0x20 skipped)
         d.expectRawWord(segs[0], 96n);
-        // offset_b = add(mul(n, 32), 160) — a LIVE word, n from the
-        // LEN-sentinel nav
+        // offset_b = add(mul(n, 32), 160), with n derived from
+        // the normalized word payload's byte length.
         const addArgs = d.opReadOf(segs[1], "add(uint256,uint256)");
         const mulArgs = d.opReadOf(addArgs[0], "mul(uint256,uint256)");
-        const lenNav = d.core(mulArgs[0]);
-        expect(lenNav.functionName).to.equal("nav");
-        expect((lenNav.args[2] as bigint[])[1]).to.equal(LEN_STEP);
+        const count = d.opReadOf(mulArgs[0], "div(uint256,uint256)");
+        d.expectRawWord(count[1], 32n);
         d.expectRawWord(mulArgs[1], 32n);
         d.expectRawWord(addArgs[1], 160n);
         // iotaWords(n) with the same live count
         const iotaSegs = d.opReadOf(segs[2], "iotaWords(uint256)");
         expect(iotaSegs).to.have.lengthOf(1);
-        expect(d.core(iotaSegs[0]).functionName).to.equal("nav");
+        const iotaCount = d.opReadOf(iotaSegs[0], "div(uint256,uint256)");
+        d.expectRawWord(iotaCount[1], 32n);
         expectWordsPayload(segs[3]);
       },
     },

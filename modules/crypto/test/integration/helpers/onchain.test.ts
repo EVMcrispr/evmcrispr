@@ -1,13 +1,25 @@
 import "../../setup";
-import { CORE_ADDRESS, OPERATIONS_ADDRESS } from "@evmcrispr/sdk/onchain";
+import {
+  CORE_ABI,
+  CORE_ADDRESS,
+  EXPRESSION_RESOLVER_ABI,
+  EXPRESSION_RESOLVER_ADDRESS,
+  OPERATIONS_ADDRESS,
+} from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import {
   createAssertDecoders,
+  type DecodedParam,
   describeCommand,
   selectorOf,
   word,
 } from "@evmcrispr/test-utils/evml";
-import { getAddress, type Hex } from "viem";
+import {
+  decodeAbiParameters,
+  decodeFunctionData,
+  getAddress,
+  type Hex,
+} from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
 const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
@@ -55,10 +67,26 @@ describeCommand("assert (@merkle.verify!)", {
         const foldArgs = d.opReadOf(a, FOLD_SIG);
         expect(foldArgs).to.have.lengthOf(2);
         expect(foldArgs[0].paramData).to.equal(merkleFoldLiteral(LEAF));
-        // The proof payload: the bytes32[] envelope re-framed via slice.
-        const segs = d.opReadOf(foldArgs[1], "slice(bytes,uint256,uint256)");
-        expect(segs).to.have.lengthOf(4);
-        const call = d.staticCallOf(segs[3]);
+        // The normalized proof extracts its words through one resolver
+        // program, retaining exactly one live source read.
+        const payload = d.staticCallOf(foldArgs[1]);
+        expect(payload.target).to.equal(
+          getAddress(EXPRESSION_RESOLVER_ADDRESS),
+        );
+        const decoded = decodeFunctionData({
+          abi: EXPRESSION_RESOLVER_ABI,
+          data: payload.data,
+        });
+        if (decoded.functionName !== "evaluate")
+          throw new Error("expected evaluate");
+        const [program] = decoded.args;
+        const sources = program.nodes.filter((n) => n.kind === 2);
+        expect(sources).to.have.lengthOf(1);
+        expect(sources[0].valueType).to.equal("bytes32[]");
+        const fn = CORE_ABI.find((f) => f.name === "resolve")!;
+        const call = d.staticCallOf(
+          decodeAbiParameters(fn.inputs, sources[0].data)[0] as DecodedParam,
+        );
         expect(call.target).to.equal(DIST);
         expect(call.data).to.equal(
           `${selectorOf("proofOf(address)")}${word(BigInt(ME)).slice(2)}`,
@@ -115,7 +143,7 @@ describeCommand("assert (@merkle.verify!)", {
     {
       name: "rejects a constant proof array",
       script: `assert @merkle.verify!(${ROOT} ${LEAF} [${LEAF}])`,
-      error: "expects a `::` call expression",
+      error: "needs single-word elements, got bytes",
     },
     {
       name: "rejects a non-bytes32 live root",

@@ -94,8 +94,8 @@ export { isDynamicParam } from "./construct";
 export type { Category, CompileCtx, CompileHints, Operand } from "./types";
 
 export function categoryFromAbiType(abiType: string): Category {
-  if (abiType.startsWith("uint")) return "Uint";
-  if (abiType.startsWith("int")) return "Int";
+  if (/^uint\d*$/.test(abiType)) return "Uint";
+  if (/^int\d*$/.test(abiType)) return "Int";
   if (abiType === "address") return "Address";
   if (abiType === "bool") return "Bool";
   if (abiType === "bytes32") return "Bytes32";
@@ -846,9 +846,9 @@ export function walkNavPath(
   return { terminal: current, resolved };
 }
 
-/** Validate a dynamic lens terminal is something `nav` can return as a
- *  single envelope: string, bytes, or a dynamic array of single-word
- *  static elements. */
+/** Input guard for legacy dynamic helpers: string, bytes, or a dynamic
+ * array of static elements. Whole-value lenses in lensSelectData also
+ * support static composites and dynamically encoded element types. */
 function checkNavigableDynamic(
   terminal: AbiParameter,
   method: string,
@@ -878,8 +878,8 @@ function checkNavigableDynamic(
  *  that extracts it: raw `pick` when the target word position is static,
  *  typed `nav` otherwise. `outputs` describes the value's ABI shape — a
  *  call's return tuple, or an error's arguments once `revertData` has
- *  stripped the selector. Validates the terminal exactly as a call's
- *  return lens does. */
+ *  stripped the selector. Every ABI terminal is representable, including
+ *  static arrays and tuples; each consumer checks its own accepted types. */
 export function lensSelectData(
   base: InputParam,
   outputs: readonly AbiParameter[],
@@ -896,7 +896,6 @@ export function lensSelectData(
       terminal,
     };
   }
-  checkNavigableDynamic(terminal, context, "a value lens");
   return {
     data: encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
     terminal,
@@ -907,8 +906,8 @@ export function lensSelectData(
  * Compile a call expression into the InputParam that resolves its value,
  * folding a destructure lens into `pick` (raw word, when the target word
  * position is static) or `nav` (typed navigation) around the chain. The
- * terminal is what the resolved bytes decode as: a single-word value, or a
- * dynamic value delivered as its canonical envelope.
+ * terminal is what the resolved bytes decode as: the complete canonical ABI
+ * value, including static composites without a dynamic envelope.
  */
 export async function compileCallValue(
   ctx: CompileCtx,

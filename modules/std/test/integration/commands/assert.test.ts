@@ -367,8 +367,12 @@ describeCommand("assert", {
         const { param } = decodeAssert(actions);
         const nav = core(param);
         expect(nav.functionName).to.equal("nav");
-        expect(nav.args[1]).to.equal("(address[][])");
-        expect(nav.args[2]).to.deep.equal([0n, 1n, LEN_STEP]);
+        expect(nav.args[1]).to.equal("(address[])");
+        expect(nav.args[2]).to.deep.equal([0n, LEN_STEP]);
+        const selected = core(nav.args[0] as unknown as Param);
+        expect(selected.functionName).to.equal("nav");
+        expect(selected.args[1]).to.equal("(address[][])");
+        expect(selected.args[2]).to.deep.equal([0n, 1n]);
         expectConstraint(param, "Gte", 3n);
       },
     },
@@ -1628,14 +1632,14 @@ describeCommand("assert", {
       error: "out of range",
     },
     {
-      name: "rejects a value lens landing on a struct",
+      name: "rejects judging a whole struct as a scalar",
       script: `assert ${TOKEN}::{proposals()((address,uint256,bool)[])}[[_ $]] == 1`,
-      error: "must select a single value",
+      error: 'unsupported return type "tuple"',
     },
     {
       name: "rejects @len! over a lens selecting a word",
       script: `assert @len!(${TOKEN}::{signers()(address[],address)}[_ $]) > 0`,
-      error: "must select a single value",
+      error: "needs an array, string or bytes value",
     },
     {
       name: "rejects @hash! over a non-bytes return",

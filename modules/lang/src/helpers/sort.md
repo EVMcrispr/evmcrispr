@@ -30,3 +30,8 @@ Sort an array: ascending by default, `desc` for descending, or by a comparator h
 ## On-chain face (@sort!)
 
 Sort word values naturally, or provide a named comparator returning a signed integer: negative for before, zero for equal, positive for after. Typed multiword values require a comparator. Comparators may compose helpers and ABI calls. Equal elements retain their relative order.
+
+Inputs may be homogeneous literals, live fixed-size or dynamic arrays, or nested
+on-chain collection helpers. Negative numeric literals select `int256`; otherwise
+numeric literals select `uint256`. An untyped empty literal defaults to `uint256[]`.
+Callback parameter types must remain compatible with the inferred element type.

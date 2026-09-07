@@ -1,28 +1,31 @@
-import type { ArrayExpressionNode, Node, Param } from "@evmcrispr/sdk";
+import type {
+  ArrayExpressionNode,
+  DestructurePatternNode,
+  Node,
+  Param,
+} from "@evmcrispr/sdk";
 import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
-import type { BytesPart } from "@evmcrispr/sdk/onchain";
 import {
   arrayValuesParam,
   COLLECTIONS_ADDRESS,
   canonicalArgSpec,
   canonicalBytesParam,
   collectionReadParam,
-  concatParam,
+  concatArrayOperand,
   formatParamType,
-  isBangHelperNode,
   packedArrayOperand,
   typedArrayArg,
+  typedArrayParts,
   unwrapBytesParam,
 } from "@evmcrispr/sdk/onchain";
 import { encodeAbiParameters, toFunctionSelector } from "viem";
 import type Lang from "..";
-import { constWordsPayload, wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "flat",
   description: "Flatten one level of nesting in an array.",
   compileDescription:
-    "Flattens runtime nested arrays or a literal list of word-array parts, preserving element types.",
+    "Flattens runtime nested arrays or a literal list of compatible array parts, preserving element types.",
   returnType: "array",
   args: [
     {
@@ -43,9 +46,15 @@ export default defineHelper<Lang>({
     return result;
   },
   compile: async (ctx, node) => {
+    const input = node.args[0];
+    // The parser represents [] as an empty destructuring pattern.
+    const empty =
+      input?.type === NodeType.DestructurePattern &&
+      (input as DestructurePatternNode).slots.length === 0;
     if (
       node.args.length === 1 &&
-      node.args[0].type !== NodeType.ArrayExpression
+      input.type !== NodeType.ArrayExpression &&
+      !empty
     ) {
       const array = await typedArrayArg(ctx, node.args[0], "flat!");
       if (!array.element.type.endsWith("[]"))
@@ -101,44 +110,23 @@ export default defineHelper<Lang>({
         { kind: "value", value: formatParamType(element) },
         canonicalArgSpec(ctx, { type: "bytes[][]" }, nested),
       ]);
-      return packedArrayOperand(ctx, flattened, element);
+      return packedArrayOperand(ctx, flattened, element, { validated: true });
     }
     if (
       node.args.length !== 1 ||
-      node.args[0].type !== NodeType.ArrayExpression
+      (input.type !== NodeType.ArrayExpression && !empty)
     ) {
       throw new ErrorException(
         "@flat! expects an array literal of parts, e.g. @flat!([[1 2] $safe::getOwners()])",
       );
     }
-    const elements = (node.args[0] as ArrayExpressionNode)
-      .elements as unknown as Node[];
-    const parts: BytesPart[] = [];
-    let elemType: string | undefined;
-    for (const element of elements) {
-      if (
-        element.type === NodeType.CallExpression ||
-        isBangHelperNode(element)
-      ) {
-        const part = await wordsArg(ctx, element, "flat!");
-        if (elemType && elemType !== part.elemType)
-          throw new ErrorException(
-            "@flat! requires matching array element types",
-          );
-        elemType = part.elemType;
-        parts.push({ param: part.payload, aligned: true });
-      } else {
-        parts.push(await constWordsPayload(ctx, element, "flat!"));
-      }
-    }
-    return {
-      kind: "call",
-      param: concatParam(ctx, parts),
-      cat: "Bytes",
-      collection: {
-        element: { type: elemType ?? "uint256" },
-        transport: "words",
-      },
-    };
+    const elements = empty
+      ? []
+      : ((input as ArrayExpressionNode).elements as unknown as Node[]);
+    return concatArrayOperand(
+      ctx,
+      await typedArrayParts(ctx, elements, "flat!"),
+      "flat!",
+    );
   },
 });

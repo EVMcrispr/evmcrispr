@@ -1,13 +1,19 @@
-import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import {
-  chainArgWithLens,
+  type CallExpressionNode,
+  defineHelper,
+  ErrorException,
+  NodeType,
+  Num,
+} from "@evmcrispr/sdk";
+import {
+  arrayLengthParam,
+  compileCallValue,
   compileOnchainHelper,
-  encodeNav,
-  formatParamType,
   isBangHelperNode,
   lenParam,
-  staticCallParam,
   typedArrayArg,
+  typedArrayFromOperand,
+  typedArrayFromValue,
   wordCountParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
@@ -29,7 +35,12 @@ export default defineHelper<Lang>({
   },
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
-      throw new ErrorException("@len! expects a single call argument");
+      throw new ErrorException("@len! expects a single array or call argument");
+    }
+    const input = node.args[0];
+    if (input.type !== NodeType.CallExpression && !isBangHelperNode(input)) {
+      const array = await typedArrayArg(ctx, input, "len!");
+      return { kind: "call", cat: "Uint", param: arrayLengthParam(ctx, array) };
     }
     if (node.args[0] && isBangHelperNode(node.args[0])) {
       const operand = await compileOnchainHelper(ctx, node.args[0]);
@@ -43,42 +54,29 @@ export default defineHelper<Lang>({
           cat: "Uint",
           param: wordCountParam(ctx, operand.param),
         };
-      const array = await typedArrayArg(ctx, node.args[0], "len!");
+      const array = typedArrayFromOperand(ctx, operand, "len!");
       return {
         kind: "call",
-        param: staticCallParam(
-          ctx.core,
-          encodeNav(array.param, `(${formatParamType(array.element)}[])`, [
-            0n,
-            -(1n << 255n),
-          ]),
-        ),
+        param: arrayLengthParam(ctx, array),
         cat: "Uint",
       };
     }
-    const arg = await chainArgWithLens(ctx, "len!", node.args[0]);
-
-    // With a lens, chainArgWithLens has already resolved the path to a
-    // dynamic terminal; without one, the call must return a single dynamic
-    // value the LEN sentinel can measure.
-    let path = arg.path;
-    if (!path) {
-      if (arg.outputs.length !== 1) {
-        throw new ErrorException(
-          "@len! needs a single return value; select one with a lens",
-        );
-      }
-      const t = arg.outputs[0].type;
-      if (!/\[\]$/.test(t) && t !== "string" && t !== "bytes") {
-        throw new ErrorException(
-          `@len! needs a dynamic return value (array, string or bytes), got ${t}`,
-        );
-      }
-      path = [0];
+    const { param, terminal } = await compileCallValue(
+      ctx,
+      input as CallExpressionNode,
+    );
+    if (/\[\d*\]$/.test(terminal.type)) {
+      const array = typedArrayFromValue(ctx, param, terminal, "len!");
+      return { kind: "call", cat: "Uint", param: arrayLengthParam(ctx, array) };
+    }
+    if (terminal.type !== "string" && terminal.type !== "bytes") {
+      throw new ErrorException(
+        `@len! needs an array, string or bytes value, got ${terminal.type}`,
+      );
     }
     return {
       kind: "call",
-      param: lenParam(ctx, arg.param, arg.outputs, path),
+      param: lenParam(ctx, param, [terminal], [0]),
       cat: "Uint",
     };
   },

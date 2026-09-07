@@ -1,6 +1,7 @@
 import type { Param } from "@evmcrispr/sdk";
 import { defineHelper, ErrorException, valueKey } from "@evmcrispr/sdk";
 import {
+  abiEqualityCallback,
   arrayValuesParam,
   canonicalArgSpec,
   collectionReadParam,
@@ -11,14 +12,13 @@ import {
   uniqueWordsParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
-import { wordsArg } from "../utils/onchain";
 
 export default defineHelper<Lang>({
   name: "unique",
   description:
     "Remove duplicates from an array, preserving first-occurrence order.",
   compileDescription:
-    "Removes all duplicates while preserving first-occurrence order.",
+    "Uses canonical ABI equality by default, or a custom equality predicate, preserving first-occurrence order.",
   returnType: "array",
   args: [
     { name: "arr", type: "array", description: "Source array" },
@@ -59,18 +59,23 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length < 1 || node.args.length > 2) {
       throw new ErrorException(
-        "@unique! expects a single array argument, e.g. @unique!(@sort!($safe::getOwners()))",
+        "@unique! expects an array and an optional equality predicate",
       );
     }
-    if (node.args[1]) {
-      const array = await typedArrayArg(ctx, node.args[0], "unique!");
-      const { callbackSpec, output } = await compileCollectionCallback(
-        ctx,
-        node.args[1],
-        [array.element, array.element],
-      );
-      if (output.type !== "bool")
-        throw new ErrorException("@unique! equality callback must return bool");
+    const array = await typedArrayArg(ctx, node.args[0], "unique!");
+    if (node.args[1] || !array.words) {
+      let callbackSpec = abiEqualityCallback(ctx, array.element);
+      if (node.args[1]) {
+        const compiled = await compileCollectionCallback(ctx, node.args[1], [
+          array.element,
+          array.element,
+        ]);
+        if (compiled.output.type !== "bool")
+          throw new ErrorException(
+            "@unique! equality callback must return bool",
+          );
+        callbackSpec = compiled.callbackSpec;
+      }
       return packedArrayOperand(
         ctx,
         collectionReadParam(ctx, "uniqueValues", [
@@ -84,14 +89,14 @@ export default defineHelper<Lang>({
           { kind: "value", value: false },
         ]),
         array.element,
+        { validated: true },
       );
     }
-    const { payload, elemType } = await wordsArg(ctx, node.args[0], "unique!");
     return {
       kind: "call",
-      param: uniqueWordsParam(ctx, payload, false),
+      param: uniqueWordsParam(ctx, array.words!, false),
       cat: "Bytes",
-      collection: { element: { type: elemType }, transport: "words" },
+      collection: { element: array.element, transport: "words" },
     };
   },
 });

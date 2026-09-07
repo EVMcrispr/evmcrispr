@@ -38,6 +38,7 @@ export default defineHelper<Lang>({
           ),
         ]),
         array.element,
+        { validated: true },
       );
     const payload = array.words!;
     const elemType = array.element.type;

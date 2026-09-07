@@ -30,3 +30,8 @@ Concatenate arrays together.
 ## On-chain face (@concat!)
 
 Concatenate typed arrays in order. Live arguments are resolved once for ABI construction, without the former four-live-part limit. Array element types must agree.
+
+Literal parts also support strings, bytes, tuples, and nested arrays. When mixed
+with a live typed array, literals inherit its element type; otherwise all literal
+parts are inferred together. Empty parts inherit their siblings' type, with
+`uint256[]` as the fallback when every part is empty.
