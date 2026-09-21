@@ -31,7 +31,7 @@ const withdrawCalldata = encodeFunctionData({
 describeHelper(
   "@abi.decodeCall",
   {
-    describeName: "Std > helpers > @abi.decodeCall(contract, calldata)",
+    describeName: "Std > helpers > @abi.decodeCall(contract, calldata, abi?)",
     cases: [
       {
         name: "should decode a transfer via the contract's verified ABI",
@@ -97,7 +97,12 @@ describeHelper(
         error: "too short",
       },
     ],
-    sampleArgs: [wxdai, transferCalldata(burnAddr, 10n ** 18n)],
+    // All three args, so the arg-length check overflows past the optional abi.
+    sampleArgs: [
+      wxdai,
+      transferCalldata(burnAddr, 10n ** 18n),
+      JSON.stringify(JSON.stringify(transferAbi)),
+    ],
   },
   helpers["abi.decodeCall"].argDefs,
 );
