@@ -9,6 +9,7 @@ import type { SimulateOptions } from "../evml/simulate";
  * RPC URLs, callbacks become `log`/`line` protocol events.
  */
 export interface WorkerEvmlConfig {
+  stdin?: string;
   account?: Address;
   sender?: Address;
   chainId?: number;
@@ -55,6 +56,7 @@ export type MainToWorkerMessage =
 export type WorkerToMainMessage =
   | { kind: "ready" }
   | { kind: "log"; id: string; message: string }
+  | { kind: "output"; id: string; message: string }
   | { kind: "line"; id: string; line: number | null }
   | { kind: "action"; id: string; actionId: number; action: Action }
   | { kind: "result"; id: string; ok: true; value: unknown }

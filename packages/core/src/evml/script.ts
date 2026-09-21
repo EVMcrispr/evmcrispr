@@ -111,7 +111,7 @@ export class EvmlScript {
   /** Interpret and execute every action with `walletClient` via the
    *  built-in executor. */
   execute(
-    walletClient: WalletClient,
+    walletClient: WalletClient | undefined,
     options: ExecuteOptions = {},
   ): Promise<ExecutionResult> {
     return executeScript(

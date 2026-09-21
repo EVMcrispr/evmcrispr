@@ -4,6 +4,7 @@ import pkg from "../package.json";
 const USAGE = `Usage: evmcrispr <command> [options]
 
 Commands:
+  run <file>                            Execute EVML (piped input/output; optional external wallet)
   simulate <file>                        Simulate an EVML script
   validate <file>                        Validate an EVML script (offline, no RPC)
   create-link <title> <file> [base-url]  Pin script to IPFS and print a shareable link
@@ -41,6 +42,16 @@ switch (command) {
   case "-v":
     console.log(pkg.version);
     break;
+  case "run": {
+    const { runScript } = await import("./commands/run.js");
+    try {
+      await runScript(args);
+    } catch (error) {
+      console.error((error as Error).message);
+      process.exitCode = 1;
+    }
+    break;
+  }
   case "simulate": {
     const { runSimulate } = await import("./commands/simulate.js");
     await runSimulate(args);

@@ -4,6 +4,14 @@ import type { Address } from "viem";
  * An on-chain transaction action (e.g. contract call, token transfer, deployment).
  */
 export interface TransactionAction {
+  /** Receipt event outcome required by the command that built this action. */
+  receiptCheck?: {
+    address: Address;
+    successTopic: `0x${string}`;
+    failureTopic: `0x${string}`;
+    /** Match the first indexed argument, or first data word for unindexed events. */
+    eventIdentifier?: `0x${string}`;
+  };
   /**
    * The recipient address. Omit (`undefined`) for contract deployments via CREATE.
    */

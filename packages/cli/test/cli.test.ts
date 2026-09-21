@@ -9,6 +9,7 @@ function run(
   args: string[],
   options?: {
     input?: string;
+    cwd?: string;
     timeout?: number;
     env?: Record<string, string | undefined>;
   },
@@ -27,6 +28,7 @@ function run(
       stdout: "pipe",
       stderr: "pipe",
       env: env as Record<string, string>,
+      cwd: options?.cwd,
     });
 
     if (options?.input != null) {
@@ -69,6 +71,69 @@ describe("CLI", () => {
       const { stdout, exitCode } = await run(["nonsense"]);
       expect(exitCode).toBe(1);
       expect(stdout).toContain("Usage: evmcrispr");
+    });
+  });
+
+  describe("run", () => {
+    it("reads piped data separately from the script and prints clean UTF-8 output", async () => {
+      tmpDir ??= mkdtempSync(join(tmpdir(), "evmcrispr-run-"));
+      const script = join(tmpDir, "script with spaces.evml");
+      writeFileSync(script, "load http [@fetch]\nprint @fetch(stdin:)");
+      for (const payload of [
+        "",
+        '{"nonce":"9007199254740993","name":"café 🚀"}',
+        "line one\nline two\n",
+      ]) {
+        const result = await run(["run", script], { input: payload });
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toBe(`${payload}\n`);
+        expect(result.stderr).toBe("");
+      }
+    });
+    it("reserves stdin for source with run - and keeps errors off stdout", async () => {
+      const result = await run(["run", "-"], {
+        input: "load http [@fetch]\nprint @fetch(stdin:)",
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("stdin is used for the script itself");
+      const removed = await run(["run", "-", "--store-dir", "/tmp"], {
+        input: "print hello",
+      });
+      expect(removed.exitCode).toBe(1);
+    });
+    it("does not allow EVML to read paths or file URLs", async () => {
+      tmpDir ??= mkdtempSync(join(tmpdir(), "evmcrispr-run-"));
+      const privateFile = join(tmpDir, "private.txt");
+      writeFileSync(privateFile, "must not be read");
+      for (const path of [
+        "./private.txt",
+        privateFile,
+        `file://${privateFile}`,
+      ]) {
+        const result = await run(["run", "-"], {
+          input: `load http [@fetch]\nprint @fetch(${JSON.stringify(path)})`,
+        });
+        expect(result.exitCode).toBe(1);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain("expects an HTTP(S) URL");
+        expect(result.stderr).not.toContain("must not be read");
+      }
+    });
+    it("validates stdin scripts without receiving any input", async () => {
+      const result = await run(["validate", "-"], {
+        input: "load http [@fetch]\nprint @fetch(stdin:)",
+      });
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.stdout).valid).toBe(true);
+    });
+    it("requires both an external wallet endpoint and its account", async () => {
+      const result = await run(
+        ["run", "-", "--wallet-rpc", "http://127.0.0.1:1"],
+        { input: "print hello" },
+      );
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("must be supplied together");
     });
   });
 

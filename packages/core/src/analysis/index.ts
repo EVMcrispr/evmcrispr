@@ -532,6 +532,13 @@ class SemanticAnalyzer {
     cmd: ICommand,
     into: Set<string>,
   ): void {
+    for (const opt of c.opts) {
+      if (
+        cmd.optDefs.some((d) => d.name === opt.name && isVariableDef(d.type)) &&
+        opt.value.type === NodeType.VariableIdentifier
+      )
+        into.add(opt.value.value as string);
+    }
     for (let i = 0; i < cmd.argDefs.length; i++) {
       if (!isVariableDef(cmd.argDefs[i].type)) continue;
       const node = c.args[i];
@@ -1011,6 +1018,24 @@ class SemanticAnalyzer {
   }
 
   #checkOptions(c: CommandExpressionNode, cmd: ICommand): void {
+    for (const opt of c.opts) {
+      if (
+        !cmd.optDefs.some((d) => d.name === opt.name && isVariableDef(d.type))
+      )
+        continue;
+      if (opt.value.type !== NodeType.VariableIdentifier)
+        this.#diagnostics.push(
+          diag(opt, `--${opt.name} requires a $variable`, "variable-option"),
+        );
+      else if (String(opt.value.value).includes(":"))
+        this.#diagnostics.push(
+          diag(
+            opt,
+            "Config variables can only be assigned with set.",
+            "config-set-only",
+          ),
+        );
+    }
     const valid = new Set(cmd.optDefs.map((o) => o.name));
     const experimentalOff = !isExperimentalEnabled();
     const seen = new Set<string>();
@@ -1226,7 +1251,11 @@ class SemanticAnalyzer {
       if (node.type === NodeType.BlockExpression) continue;
       collectVariableUses(node, uses);
     }
-    for (const opt of c.opts) collectVariableUses(opt.value, uses);
+    for (const opt of c.opts) {
+      if (cmd.optDefs.some((d) => d.name === opt.name && isVariableDef(d.type)))
+        continue;
+      collectVariableUses(opt.value, uses);
+    }
     for (const name of uses) this.#checkVariableName(name, c);
   }
 

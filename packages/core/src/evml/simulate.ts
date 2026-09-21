@@ -82,6 +82,12 @@ export async function simulateScript(
   const interpreter = new Interpreter(registry, {
     ...config,
     account: options.from ?? config.account,
+    onOutput: config.onOutput
+      ? (message) => {
+          logs.push(message);
+          config.onOutput!(message);
+        }
+      : undefined,
   });
   interpreter.registerLogListener((message) => {
     logs.push(message);

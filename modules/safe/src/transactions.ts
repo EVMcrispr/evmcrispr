@@ -8,6 +8,8 @@ export {
   safeInitializer,
 } from "./utils/deployment";
 export { encodeMultiSendCall } from "./utils/multisend";
+export { stringifySafeTransaction } from "./utils/offline";
+export * from "./utils/packages";
 export {
   buildSafeTx,
   encodeExecTransaction,

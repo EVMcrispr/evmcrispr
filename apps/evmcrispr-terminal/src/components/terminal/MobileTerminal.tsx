@@ -1,5 +1,6 @@
 import type { HoverRef } from "@evmcrispr/core";
 import type { Action } from "@evmcrispr/sdk";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useKeyboardInsets } from "../../hooks/useKeyboardInsets";
 import type { TerminalEntryIntent } from "../../hooks/useTerminalScript";
@@ -28,6 +29,7 @@ type MobileTerminalProps = ScriptLoadStateProps & {
   script: string;
   executingLine: number | null;
   logs: string[];
+  ioControl?: ReactNode;
   errors: string[];
   executionPhase: ExecutionPhase;
   executed: { action: Action; result?: unknown }[];
@@ -110,7 +112,6 @@ export function MobileTerminal(props: MobileTerminalProps) {
   };
 
   const execute = async () => {
-    if (!props.review.canExecute) return;
     await props.onExecute();
   };
 
@@ -196,6 +197,7 @@ export function MobileTerminal(props: MobileTerminalProps) {
         executionPhase={props.executionPhase}
         canExecute={props.review.canExecute}
         logs={props.logs}
+        ioControl={props.ioControl}
         errors={props.errors}
         executed={props.executed}
         onCancel={props.onCancel}

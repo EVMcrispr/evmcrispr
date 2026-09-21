@@ -65,6 +65,8 @@ export class Interpreter {
   #lineListeners: ((line: number | null) => void)[];
   #actionObservers: ((action: Action) => void)[];
   #prevMessages: string[];
+  #onOutput?: (message: string) => void;
+  #stdin?: string;
   #signal?: AbortSignal;
 
   #client: PublicClient | undefined;
@@ -97,6 +99,8 @@ export class Interpreter {
     this.#account = config.account;
     this.#sender = config.sender;
     this.#logListeners = config.onLog ? [config.onLog] : [];
+    this.#onOutput = config.onOutput;
+    this.#stdin = config.stdin;
     this.#lineListeners = config.onLine ? [config.onLine] : [];
     this.#actionObservers = [];
     this.#prevMessages = [];
@@ -173,6 +177,7 @@ export class Interpreter {
   #createModuleContext(): ModuleContext {
     const self = this;
     return {
+      stdin: this.#stdin,
       get signal() {
         return self.#signal;
       },
@@ -193,6 +198,7 @@ export class Interpreter {
       getSender: () => this.getSender(),
       setSender: (sender) => this.setSender(sender),
       log: (message) => this.log(message),
+      output: (message) => this.output(message),
       getStd: () => this.#std,
       loadModule: async (name) => {
         if (this.registry.isExperimental(name) && !isExperimentalEnabled()) {
@@ -382,6 +388,11 @@ export class Interpreter {
 
   #notifyLine(line: number | null): void {
     this.#lineListeners.forEach((l) => l(line));
+  }
+
+  output(message: string): void {
+    if (this.#onOutput) this.#onOutput(message);
+    else this.log(message);
   }
 
   log(message: string): void {

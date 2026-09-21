@@ -41,6 +41,9 @@ export function useTerminalScript(): {
   const params = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const stdinParam = new URLSearchParams(location.search).get("stdin");
+  const stdinSuffix =
+    stdinParam === null ? "" : `?${new URLSearchParams({ stdin: stdinParam })}`;
   const initialized = useRef(false);
   const receivedLocalIdRef = useRef<string | null>(null);
   const [entryIntent, setEntryIntent] = useState<TerminalEntryIntent>(() =>
@@ -115,7 +118,7 @@ export function useTerminalScript(): {
     if (encodedTitle || encodedScript) {
       const id = createScript(encodedTitle ?? "", encodedScript ?? "");
       loadIntoStore(id, encodedTitle ?? "", encodedScript ?? "");
-      navigate(`/${id}`, { replace: true });
+      navigate(`/${id}${stdinSuffix}`, { replace: true });
       return;
     }
 
@@ -125,8 +128,8 @@ export function useTerminalScript(): {
     // pile up in the library.
     const id = getOrCreatePristineScript(SCRIPT_PLACEHOLDER);
     loadIntoStore(id, "", SCRIPT_PLACEHOLDER);
-    navigate(`/${id}`, { replace: true });
-  }, [params?.scriptId, navigate]);
+    navigate(`/${id}${stdinSuffix}`, { replace: true });
+  }, [params?.scriptId, navigate, stdinSuffix]);
 
   // Sync from URL-loaded script (UUID or IPFS)
   useEffect(() => {
@@ -144,7 +147,7 @@ export function useTerminalScript(): {
       setSharedEncrypted(foundEncrypted);
       terminalStoreActions("currentScriptId", id);
       setLastViewedScript(id);
-      navigate(`/${id}`, { replace: true });
+      navigate(`/${id}${stdinSuffix}`, { replace: true });
     }
 
     if (titleFromId !== undefined) {
@@ -161,6 +164,7 @@ export function useTerminalScript(): {
     idFromUrl,
     params?.scriptId,
     navigate,
+    stdinSuffix,
   ]);
 
   return {

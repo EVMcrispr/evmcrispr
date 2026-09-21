@@ -5,10 +5,15 @@ const METHODS_WITH_BODY = new Set(["POST", "PUT", "PATCH"]);
 
 export default defineHelper<Http>({
   name: "fetch",
-  description: "Fetch a URL and return the response body as a string.",
+  description:
+    "Fetch an HTTP(S) URL or return explicitly supplied stdin: text.",
   returnType: "string",
   args: [
-    { name: "url", type: "string", description: "Request URL" },
+    {
+      name: "url",
+      type: "string",
+      description: "HTTP(S) URL, or stdin: for host-supplied input",
+    },
     {
       name: "method",
       type: "string",
@@ -28,7 +33,31 @@ export default defineHelper<Http>({
       optional: true,
     },
   ],
-  async run(_, { url, method, body, auth }) {
+  async run(module, { url, method, body, auth }) {
+    if (url === "stdin:") {
+      if (method !== undefined || body !== undefined || auth !== undefined)
+        throw new ErrorException(
+          "@fetch(stdin:) does not accept method, body, or auth arguments",
+        );
+      const input = module.context.stdin;
+      if (input === undefined)
+        throw new ErrorException(
+          "No script input supplied: pipe text into evmcrispr run <script.evml>, or choose an input file in the terminal. With run -, stdin is used for the script itself.",
+        );
+      return input;
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(String(url));
+    } catch {
+      throw new ErrorException(
+        "@fetch expects an HTTP(S) URL; supply local data through stdin instead",
+      );
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      throw new ErrorException(
+        "@fetch expects an HTTP(S) URL; supply local data through stdin instead",
+      );
     const httpMethod = method ? String(method).toUpperCase() : "GET";
 
     const headers: Record<string, string> = {

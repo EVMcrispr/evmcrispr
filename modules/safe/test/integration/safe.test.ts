@@ -668,6 +668,72 @@ describe("Safe > integration", () => {
     expect(helper.getBinding("$hash", BindingsSpace.USER)).to.equal(onChain);
   });
 
+  it("collects portable owner signatures and executes a two-owner Safe without the service", async () => {
+    serviceState.reset();
+    const deployed = await run(
+      `load safe\nsafe:new ${ownerA} ${ownerB} --threshold 2 --salt ${deploySalt + 2n}`,
+    );
+    const localSafe = deployed.logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+    const jsonFrom = (result: { logs: string[] }) =>
+      result.logs.find((l) => l.startsWith('{"chainId"'))!;
+    const first = jsonFrom(
+      await run(
+        `load safe\nsafe:propose ${localSafe} (\n  safe:change-threshold 1\n) --no-api true`,
+        ownerA,
+      ),
+    );
+    const second = jsonFrom(
+      await run(
+        `load safe\nsafe:propose ${localSafe} ${JSON.stringify(first)} --no-api true`,
+        ownerB,
+      ),
+    );
+    const exported = JSON.parse(second);
+    const tx = exported.tx;
+    const onChainHash = await client.readContract({
+      address: localSafe,
+      abi: safeAbi,
+      functionName: "getTransactionHash",
+      args: [
+        tx.to,
+        BigInt(tx.value),
+        tx.data,
+        tx.operation,
+        BigInt(tx.safeTxGas),
+        BigInt(tx.baseGas),
+        BigInt(tx.gasPrice),
+        tx.gasToken,
+        tx.refundReceiver,
+        BigInt(tx.nonce),
+      ],
+    });
+    expect(exported.safeTxHash).to.equal(onChainHash);
+    const verified = await run(
+      `load safe\nsafe:verify ${localSafe} ${JSON.stringify(second)} --no-api true`,
+    );
+    expect(verified.logs.join("\n")).to.include(onChainHash);
+    await run(
+      `load safe\nsafe:execute ${localSafe} ${JSON.stringify(second)} --no-api true`,
+    );
+    expect(
+      await client.readContract({
+        address: localSafe,
+        abi: safeAbi,
+        functionName: "getThreshold",
+      }),
+    ).to.equal(1n);
+    expect(
+      await client.readContract({
+        address: localSafe,
+        abi: safeAbi,
+        functionName: "nonce",
+      }),
+    ).to.equal(1n);
+    expect(serviceState.proposals).to.have.lengthOf(0);
+  });
+
   it("rejects delegate-exec outside a propose/exec block", async () => {
     const error = await run(
       `load safe\nsafe:delegate-exec ${safe} something(uint256) 1`,

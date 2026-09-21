@@ -6,6 +6,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { Button, Drawer, IconButton } from "@repo/ui";
+import type { ReactNode } from "react";
 import { type Chain, formatEther } from "viem";
 import * as viemChains from "viem/chains";
 import type { ExecutionPhase } from "../../hooks/useTransactionExecutor";
@@ -22,6 +23,10 @@ const PHASE_COPY: Record<
   preparing: {
     title: "Preparing transactions",
     description: "Resolving the script before opening your wallet.",
+  },
+  running: {
+    title: "Running script",
+    description: "Processing script commands.",
   },
   "awaiting-wallet": {
     title: "Check your wallet",
@@ -269,6 +274,7 @@ export function TransactionReviewSheet({
   onExecute,
   onConnect,
   logs,
+  ioControl,
   errors,
   executed,
   onCancel,
@@ -285,6 +291,7 @@ export function TransactionReviewSheet({
   onExecute: () => void;
   onConnect: () => void;
   logs: string[];
+  ioControl?: ReactNode;
   errors: string[];
   executed: { action: Action; result?: unknown }[];
   onCancel: () => void;
@@ -293,6 +300,7 @@ export function TransactionReviewSheet({
     state.status === "validating" ||
     state.status === "simulating" ||
     executionPhase === "preparing" ||
+    executionPhase === "running" ||
     executionPhase === "awaiting-wallet";
   const actions = state.status === "ready" ? flattenActions(state.actions) : [];
   const chainIds = targetChainIds(actions);
@@ -333,6 +341,7 @@ export function TransactionReviewSheet({
           </Drawer.Close>
         </Drawer.Header>
 
+        {ioControl && <div className="px-4 pt-3">{ioControl}</div>}
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           {(state.status === "validating" || state.status === "simulating") && (
             <div
@@ -504,6 +513,15 @@ export function TransactionReviewSheet({
               </Button>
             </div>
           )}
+          {executionPhase !== "idle" && state.status !== "ready" && (
+            <ActivityPanel
+              phase={executionPhase}
+              logs={logs}
+              errors={errors}
+              executed={executed}
+              rawActions={executed.map(({ action }) => action)}
+            />
+          )}
         </div>
 
         <Drawer.Footer className="mobile-safe-bottom border-t border-foreground/10 bg-background/95 px-4 pb-3 pt-3">
@@ -530,6 +548,7 @@ export function TransactionReviewSheet({
                 </Button>
               )}
               {(executionPhase === "preparing" ||
+                executionPhase === "running" ||
                 executionPhase === "awaiting-wallet") && (
                 <Button
                   type="button"
@@ -551,6 +570,16 @@ export function TransactionReviewSheet({
               Run the simulation again
             </Button>
           ) : null}
+          {!busy && (state.status !== "ready" || !address) && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-12 font-sans shadow-none"
+              onClick={onExecute}
+            >
+              Run script without simulation
+            </Button>
+          )}
         </Drawer.Footer>
       </Drawer.Content>
     </Drawer>

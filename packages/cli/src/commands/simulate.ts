@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import { registerAllModules } from "../lib/modules.js";
+import { readScriptSource } from "../lib/read-source";
 import { simulateEvml } from "../tools/simulate-evml.js";
 
 const USAGE = `Usage: evmcrispr simulate <file>
@@ -18,15 +18,11 @@ export async function runSimulate(args: string[]): Promise<void> {
     process.exit(1);
   }
 
-  const script = file === "-" ? readStdin() : readFileSync(file, "utf-8");
+  const script = await readScriptSource(file);
 
   registerAllModules();
 
   const result = await simulateEvml({ script });
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.success ? 0 : 1);
-}
-
-function readStdin(): string {
-  return readFileSync(0, "utf-8");
 }

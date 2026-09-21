@@ -35,6 +35,8 @@ export interface OffchainOverlay {
 }
 
 export interface ModuleContext {
+  /** Text explicitly supplied by the host; never opens files or streams. */
+  readonly stdin?: string;
   readonly bindingsManager: BindingsManager;
   readonly nonces: Record<string, number>;
   readonly ipfsResolver: IPFSResolver;
@@ -68,6 +70,9 @@ export interface ModuleContext {
 
   // Logging
   log(message: string): void;
+  /** Printed script output, without the terminating newline. Hosts can
+   *  separate it from diagnostics; older contexts fall back to `log`. */
+  output?(message: string): void;
 
   /** Abort signal for the current run, when the caller provided one.
    *  Long-running commands should check it between steps. */

@@ -263,6 +263,22 @@ export function defineCommand<M extends Module>(
       // 7. Interpret and validate options
       const parsedOpts: Record<string, any> = {};
       for (const optDef of optDefs) {
+        if (optDef.type === "variable") {
+          const option = c.opts.find((o) => o.name === optDef.name);
+          if (!option) continue;
+          if (option.value.type !== NodeType.VariableIdentifier) {
+            throw new ErrorException(`--${optDef.name} requires a $variable`);
+          }
+          const extracted = extractSpecialArg(
+            { name: optDef.name, type: "variable" },
+            option.value,
+            undefined,
+          );
+          if (!extracted.ok)
+            throw new ErrorException(`--${optDef.name} requires a $variable`);
+          parsedOpts[optDef.name] = extracted.value;
+          continue;
+        }
         const value = await getOptValue(c, optDef.name, interpretNode);
         if (value !== undefined) {
           const coerced = coerceArgType(value, optDef.type);

@@ -54,11 +54,13 @@ export function exposeEvmlWorker(tag: EvmlTag): void {
       transports[Number(chainId)] = http(url);
     }
     return tag.with({
+      stdin: config.stdin,
       account: config.account,
       sender: config.sender,
       chainId: config.chainId,
       transports,
       onLog: (message) => post({ kind: "log", id, message }),
+      onOutput: (message) => post({ kind: "output", id, message }),
       onLine: (line) => post({ kind: "line", id, line }),
     });
   };

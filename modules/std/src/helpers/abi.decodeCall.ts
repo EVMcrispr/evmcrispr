@@ -1,5 +1,6 @@
 import type { Node } from "@evmcrispr/sdk";
 import {
+  decodeLocalCall,
   defineHelper,
   ErrorException,
   fetchAbi,
@@ -62,8 +63,24 @@ export default defineHelper<Std>({
       type: "bytes",
       description: "Full calldata including the 4-byte function selector",
     },
+    {
+      name: "abi",
+      type: "string",
+      optional: true,
+      description:
+        "Explicit ABI JSON; disables all network discovery and ENS lookups",
+    },
   ],
-  async run(module, { contract, calldata }, { node }) {
+  async run(module, { contract, calldata, abi }, { node }) {
+    if (abi !== undefined) {
+      const decoded = decodeLocalCall(JSON.parse(abi), calldata);
+      const args = await Promise.all(
+        decoded.inputs.map((param, i) =>
+          renderAbiValue(param, decoded.args[i], async (address) => address),
+        ),
+      );
+      return [getAddress(contract), decoded.signature, args];
+    }
     const target = getAddress(contract);
     if (calldata.length < 10) {
       throw new HelperFunctionError(

@@ -1,9 +1,11 @@
 import { ScrollRestoration } from "react-router";
+import { ScriptIO } from "../components/execution/ScriptIO";
 import { DesktopTerminal } from "../components/terminal/DesktopTerminal";
 import { MobileTerminal } from "../components/terminal/MobileTerminal";
 import { hasScriptLoadState } from "../components/terminal/ScriptLoadState";
 import SelectWalletModal from "../components/wallet/SelectWalletModal";
 import { useAutoSave } from "../hooks/useAutoSave";
+import { useScriptInput } from "../hooks/useScriptInput";
 import { useSmallScreen } from "../hooks/useSmallScreen";
 import { useTerminalScript } from "../hooks/useTerminalScript";
 import { useTransactionExecutor } from "../hooks/useTransactionExecutor";
@@ -18,6 +20,8 @@ export default function Terminal() {
   const isSmallScreen = useSmallScreen();
   const wallet = useWalletConnection();
   const currentScriptId = useTerminalStore((state) => state.currentScriptId);
+  const isLoading = useTerminalStore((state) => state.isLoading);
+  const { input, setInput } = useScriptInput(currentScriptId);
   const script = useTerminalStore((s) => s.script);
   const title = useTerminalStore((s) => s.title);
   const viewMode = useTerminalStore((s) => s.viewMode);
@@ -27,11 +31,21 @@ export default function Terminal() {
     wallet.address,
     script,
     wallet.safeConnectorInstance,
-    { openConsoleOnExecute: !isSmallScreen },
+    { openConsoleOnExecute: !isSmallScreen, stdin: input?.text },
+  );
+  const ioControl = (
+    <ScriptIO
+      key={currentScriptId ?? "unsaved"}
+      input={input}
+      disabled={isLoading}
+      onChange={setInput}
+      output={execution.output}
+    />
   );
   // Share-link recipients land on a read-only script view — validate for
   // them automatically so the review status is meaningful without a tap.
   const review = useTransactionReview(script, wallet.address, {
+    stdin: input?.text,
     autoValidate:
       isSmallScreen &&
       scriptState.entryIntent === "recipient" &&
@@ -51,6 +65,7 @@ export default function Terminal() {
           script={script}
           executingLine={executingLine}
           logs={execution.logs}
+          ioControl={ioControl}
           errors={execution.errors}
           executionPhase={execution.phase}
           executed={execution.executed}
@@ -72,6 +87,7 @@ export default function Terminal() {
           viewMode={viewMode}
           executingLine={executingLine}
           logs={execution.logs}
+          ioControl={ioControl}
           errors={execution.errors}
           onActivateEdit={() => setViewMode("edit")}
           onExecute={() => void execution.executeScript()}

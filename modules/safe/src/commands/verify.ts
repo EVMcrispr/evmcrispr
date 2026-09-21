@@ -1,4 +1,4 @@
-import type { Address } from "@evmcrispr/sdk";
+import type { Address, BlockExpressionNode } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import {
   encodeFunctionData,
@@ -11,15 +11,25 @@ import { safeDeployment } from "../addresses";
 import type { SafeTx, ServiceTransaction } from "../utils";
 import {
   assertSafeVersion,
+  buildSafeTx,
   collectSafeTxWarnings,
   formatSafeTxHashesLog,
   getSafeNonce,
   getSafeTxHashes,
   getServiceTransaction,
   getServiceTransactionsByNonce,
+  interpretSafeBlock,
   serviceTxToSafeTx,
   toBigInt,
 } from "../utils";
+import { safeUint } from "../utils/offline";
+import {
+  bindSafeOutput,
+  parseSafePackage,
+  reviewSafePackage,
+  type SafePackage,
+  transactionPackage,
+} from "../utils/packages";
 
 const approveHashAbi = parseAbi([
   "function approveHash(bytes32 hashToApprove)",
@@ -28,17 +38,47 @@ const approveHashAbi = parseAbi([
 export default defineCommand<Safe>({
   name: "verify",
   description:
-    "Recompute the EIP-712 domain, message and safeTxHash of a queued Safe transaction locally, check them against the Safe Transaction Service and flag dangerous fields, so signers can verify what their wallet displays.",
+    "Verify Safe transaction hashes and flag dangerous fields, using the service queue or a command block or exported transaction JSON with --no-api.",
   batchable: false,
+  createsBatchContext: true,
   args: [
     { name: "safe", type: "address", description: "Safe address" },
     {
       name: "proposal",
-      type: ["number", "bytes32"],
-      description: "Nonce or safeTxHash of the queued transaction",
+      type: ["number", "bytes32", "block", "string"],
+      description:
+        "Nonce or hash of a queued transaction, or a command block or exported transaction JSON with --no-api",
     },
   ],
   opts: [
+    {
+      name: "as",
+      type: "variable",
+      description: "Bind the JSON verification report (requires --no-api)",
+    },
+    {
+      name: "offline",
+      type: "bool",
+      description: "Inspect an exported package without any network access",
+    },
+    {
+      name: "abi",
+      type: "string",
+      description:
+        "JSON mapping target addresses to explicit ABIs for local decoding",
+    },
+    {
+      name: "no-api",
+      type: "bool",
+      description:
+        "Verify a command block or exported transaction JSON without contacting the Safe Transaction Service",
+    },
+    {
+      name: "nonce",
+      type: "number",
+      description:
+        "Nonce override for a command block (requires --no-api; defaults to the on-chain nonce)",
+    },
     {
       name: "nested-safe",
       type: "address",
@@ -51,10 +91,22 @@ export default defineCommand<Safe>({
       description: "Nonce override for the nested Safe approveHash transaction",
     },
   ],
-  async run(module, { safe, proposal }, { opts }) {
+  async run(module, { safe, proposal }, { opts, interpreters }) {
+    if (!opts["no-api"] && (opts.as || opts.abi))
+      throw new ErrorException("--as and --abi require --no-api");
+    if (!opts["no-api"] && opts.nonce !== undefined) {
+      throw new ErrorException("--nonce requires --no-api");
+    }
+    if (
+      opts.offline &&
+      (!opts["no-api"] || typeof proposal !== "string" || opts["nested-safe"])
+    )
+      throw new ErrorException(
+        "--offline requires --no-api and a package; nested approval previews require RPC",
+      );
     const chainId = await module.getChainId();
     const client = await module.getClient();
-    await assertSafeVersion(client, safe);
+    if (!opts.offline) await assertSafeVersion(client, safe);
 
     const nestedSafe = opts["nested-safe"] as Address | undefined;
     if (opts["nested-safe-nonce"] !== undefined && !nestedSafe) {
@@ -63,10 +115,56 @@ export default defineCommand<Safe>({
       );
     }
 
-    let serviceTxs: ServiceTransaction[];
-    if (typeof proposal === "string") {
+    let serviceTxs: ServiceTransaction[] = [];
+    const transactions: SafeTx[] = [];
+    let imported: SafePackage | undefined;
+    const reports: unknown[] = [];
+    if (opts["no-api"]) {
+      if (typeof proposal === "string") {
+        if (opts.nonce !== undefined)
+          throw new ErrorException(
+            "--nonce cannot override an imported transaction",
+          );
+        imported = parseSafePackage(proposal, chainId, safe);
+        if (imported.kind !== "transaction")
+          throw new ErrorException(
+            "use safe:verify-message for message packages",
+          );
+        transactions.push(imported.tx);
+      } else if (
+        proposal &&
+        typeof proposal === "object" &&
+        "type" in proposal
+      ) {
+        const actions = await interpretSafeBlock(
+          module,
+          safe,
+          proposal as BlockExpressionNode,
+          "safe:verify",
+          interpreters,
+        );
+        if (actions.length === 0) return [];
+        transactions.push(
+          buildSafeTx(
+            actions,
+            opts.nonce !== undefined
+              ? safeUint(opts.nonce, "nonce")
+              : await getSafeNonce(client, safe),
+            safeDeployment(chainId),
+          ),
+        );
+      } else {
+        throw new ErrorException(
+          "--no-api requires a command block or exported Safe transaction JSON; a nonce alone cannot recover transaction data without the service",
+        );
+      }
+    } else if (typeof proposal === "string") {
+      if (!/^0x[0-9a-fA-F]{64}$/.test(proposal))
+        throw new ErrorException("exported transaction JSON requires --no-api");
       serviceTxs = [await getServiceTransaction(module, chainId, proposal)];
     } else {
+      if (proposal && typeof proposal === "object" && "type" in proposal)
+        throw new ErrorException("verifying a command block requires --no-api");
       const nonce = toBigInt(proposal);
       serviceTxs = await getServiceTransactionsByNonce(
         module,
@@ -103,6 +201,26 @@ export default defineCommand<Safe>({
         );
       }
 
+      transactions.push(tx);
+    }
+
+    for (const tx of transactions) {
+      if (opts["no-api"]) {
+        const report = await reviewSafePackage(
+          imported ?? transactionPackage(chainId, safe, tx),
+          opts.offline ? undefined : client,
+          opts.abi ? JSON.parse(opts.abi) : {},
+        );
+        reports.push(report);
+        module.context.log(
+          `Authorization: ${report.readiness}${opts.offline ? " (offline: current owners, approvals and contract signatures unchecked)" : ""}`,
+        );
+        for (const check of report.signatures)
+          module.context.log(
+            `  ${check.owner} (${check.type}): ${check.status}`,
+          );
+      }
+      const hashes = getSafeTxHashes(chainId, safe, tx);
       module.context.log(
         formatSafeTxHashesLog(
           safe,
@@ -131,7 +249,7 @@ export default defineCommand<Safe>({
           refundReceiver: zeroAddress,
           nonce:
             opts["nested-safe-nonce"] !== undefined
-              ? toBigInt(opts["nested-safe-nonce"])
+              ? safeUint(opts["nested-safe-nonce"], "nested-safe-nonce")
               : await getSafeNonce(client, nestedSafe),
         };
         module.context.log(
@@ -146,6 +264,11 @@ export default defineCommand<Safe>({
       }
     }
 
+    bindSafeOutput(
+      module,
+      opts.as,
+      reports.length === 1 ? reports[0] : reports,
+    );
     return [];
   },
 });

@@ -25,6 +25,10 @@ sign <variable> [message]
 
 <!-- HAND-WRITTEN -->
 
+With `--typed`, the domain, message-struct, and final EIP-712 hashes are printed
+from the actual supplied payload before the wallet is asked to sign.
+
+
 ## Examples
 
 ```evml

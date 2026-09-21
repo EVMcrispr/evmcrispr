@@ -59,7 +59,7 @@ function renderRowsTable(value: any[]): string {
 export default defineCommand<Std>({
   name: "print",
   description:
-    "Log values to the console output. Arrays render as headerless tables: a flat array as one row, an array of arrays as one row per inner array.",
+    "Print values to script output (stdout in the CLI). Arrays render as headerless tables: a flat array as one row, an array of arrays as one row per inner array.",
   args: [
     {
       name: "values",
@@ -77,8 +77,12 @@ export default defineCommand<Std>({
     },
   ],
   async run(module, { values }, { opts }) {
+    const output = (text: string) =>
+      module.context.output
+        ? module.context.output(text)
+        : module.context.log(text);
     if (opts.headers !== undefined) {
-      module.context.log(renderColumnsTable(opts.headers, values as any[]));
+      output(renderColumnsTable(opts.headers, values as any[]));
       return;
     }
     const segments: string[] = [];
@@ -100,6 +104,6 @@ export default defineCommand<Std>({
     }
     flush();
     // Blank lines between segments: GFM tables don't interrupt paragraphs.
-    module.context.log(segments.join("\n\n"));
+    output(segments.join("\n\n"));
   },
 });

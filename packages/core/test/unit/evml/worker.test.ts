@@ -60,6 +60,40 @@ describe("evml > worker", () => {
   });
 
   describe("execute via worker", () => {
+    it("makes supplied input available in the worker without a wallet or host action", async () => {
+      const output: string[] = [];
+      const stdin = '{"nonce":"9007199254740993"}';
+      await workerEvml
+        .with({ stdin, onOutput: (text) => output.push(text) })
+        .script("load http [@fetch]\nprint @fetch(stdin:)")
+        .execute(undefined, {
+          prepareChains: false,
+          handlers: {
+            terminal: async () => {
+              throw new Error("Host actions forbidden");
+            },
+          },
+        });
+      expect(output).to.deep.equal([stdin]);
+    });
+
+    it("separates printed output across the worker bridge without a wallet", async () => {
+      const logs: string[] = [];
+      const output: string[] = [];
+      await workerEvml
+        .with({
+          onLog: (text) => logs.push(text),
+          onOutput: (text) => output.push(text),
+        })
+        .script('print "café 🚀"\nprint [1 2]\nprint ""')
+        .execute(undefined, { prepareChains: false });
+      expect(output).to.deep.equal([
+        "café 🚀",
+        "|  |  |\n| --- | --- |\n| 1 | 2 |",
+        "",
+      ]);
+      expect(logs).to.deep.equal([]);
+    });
     it("interprets in the worker and dispatches actions on this thread", async () => {
       const logs: string[] = [];
       const lines: (number | null)[] = [];

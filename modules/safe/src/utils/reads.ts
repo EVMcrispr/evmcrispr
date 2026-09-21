@@ -5,6 +5,7 @@ import { getAddress, isAddressEqual, parseAbi, sliceHex } from "viem";
 import { GUARD_STORAGE_SLOT, SENTINEL } from "../addresses";
 
 export const safeAbi = parseAbi([
+  "function approvedHashes(address,bytes32) view returns (uint256)",
   "function getOwners() view returns (address[])",
   "function getThreshold() view returns (uint256)",
   "function isOwner(address owner) view returns (bool)",

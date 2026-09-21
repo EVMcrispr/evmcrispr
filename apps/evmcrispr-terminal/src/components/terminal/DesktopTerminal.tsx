@@ -1,5 +1,6 @@
 import type { HoverRef } from "@evmcrispr/core";
 import { Viewer } from "@evmcrispr/editor";
+import type { ReactNode } from "react";
 import { lazy, Suspense } from "react";
 import type { ViewMode } from "../../stores/terminal-store";
 import { terminalStoreActions } from "../../stores/terminal-store";
@@ -25,6 +26,7 @@ type DesktopTerminalProps = ScriptLoadStateProps & {
   viewMode: ViewMode;
   executingLine: number | null;
   logs: string[];
+  ioControl?: ReactNode;
   errors: string[];
   onActivateEdit: () => void;
   onExecute: () => void;
@@ -103,7 +105,11 @@ export function DesktopTerminal(props: DesktopTerminalProps) {
         </section>
 
         <aside className="flex basis-[30%] flex-col overflow-hidden bg-evm-gray-900">
-          <SidePanel logs={props.logs} errors={props.errors} />
+          <SidePanel
+            logs={props.logs}
+            ioControl={props.ioControl}
+            errors={props.errors}
+          />
         </aside>
       </main>
 

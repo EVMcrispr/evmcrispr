@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { Action } from "@evmcrispr/sdk";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
-// mock.module is process-global in bun — no other test file imports
-// @evmcrispr/editor or workerEvml (verified); keep it that way.
+// Keep real editor exports available to other component tests in this process.
+const editor = await import("@evmcrispr/editor");
 type Deferred = {
   source: string;
   resolve: (result: { valid: boolean; diagnostics: unknown[] }) => void;
@@ -11,6 +11,7 @@ type Deferred = {
 let pendingValidations: Deferred[] = [];
 
 mock.module("@evmcrispr/editor", () => ({
+  ...editor,
   useEvmlTag: () => ({
     script: (source: string) => ({
       validate: () =>
@@ -21,6 +22,9 @@ mock.module("@evmcrispr/editor", () => ({
 
 mock.module("../../src/evml/workerEvml", () => ({
   workerEvml: {
+    with() {
+      return this;
+    },
     script: () => ({
       simulate: async () => ({ success: true, actions: [], logs: [] }),
     }),
@@ -57,6 +61,25 @@ describe("countReviewActions", () => {
 });
 
 describe("useTransactionReview autoValidate", () => {
+  test("invalidates review when supplied input changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ stdin }) =>
+        useTransactionReview(
+          "load http\nprint @http:fetch(stdin:)",
+          undefined,
+          { autoValidate: true, stdin },
+        ),
+      { initialProps: { stdin: "first" } },
+    );
+    await waitFor(() => expect(pendingValidations).toHaveLength(1));
+    await act(async () => {
+      pendingValidations[0].resolve({ valid: true, diagnostics: [] });
+    });
+    expect(result.current.state.status).toBe("valid");
+    rerender({ stdin: "second" });
+    await waitFor(() => expect(pendingValidations).toHaveLength(2));
+    expect(result.current.state.status).toBe("validating");
+  });
   test("validates on mount and keeps the result", async () => {
     const { result } = renderHook(() =>
       useTransactionReview("print 1", undefined, { autoValidate: true }),

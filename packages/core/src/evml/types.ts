@@ -8,6 +8,8 @@ import type { Address, Transport } from "viem";
  * arguments instead.
  */
 export interface EvmlConfig {
+  /** Explicit host input, exposed through @fetch(stdin:). No filesystem access. */
+  stdin?: string;
   /** Sender account used by commands that need a connected account. */
   account?: Address;
   /** The account calls are sent from when it is not the connected one
@@ -20,6 +22,9 @@ export interface EvmlConfig {
   transports?: Record<number, Transport>;
   /** Log listener, invoked for every `print`/module log message. */
   onLog?: (message: string, prevMessages: string[]) => void;
+  /** Printed text, without its terminating newline. When absent, `print`
+   *  uses the log stream for backwards compatibility. */
+  onOutput?: (message: string) => void;
   /** Line listener, invoked as the interpreter advances through the
    *  script (`null` when the run finishes). */
   onLine?: (line: number | null) => void;

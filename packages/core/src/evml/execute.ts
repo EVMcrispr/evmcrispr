@@ -49,6 +49,8 @@ export type InterpretRunner = (
     account?: Address;
     /** Feed script log output into the execution's log stream. */
     onLog(message: string): void;
+    /** Feed printed text to the configured output stream. */
+    onOutput(message: string): void;
     /** Feed line progress to the config's line listener. */
     onLine(line: number | null): void;
     signal?: AbortSignal;
@@ -110,6 +112,45 @@ export interface ExecutionResult {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+export function checkReceiptOutcome(
+  action: TransactionAction,
+  receipt: {
+    logs: readonly {
+      address: string;
+      topics: readonly string[];
+      data: string;
+    }[];
+  },
+) {
+  const check = action.receiptCheck;
+  if (!check) return;
+  const logs = receipt.logs.filter(
+    (log) =>
+      log.address.toLowerCase() === check.address.toLowerCase() &&
+      (!check.eventIdentifier ||
+        (log.topics[1] ?? log.data.slice(0, 66)).toLowerCase() ===
+          check.eventIdentifier.toLowerCase()),
+  );
+  if (
+    logs.some(
+      (log) =>
+        log.topics[0]?.toLowerCase() === check.failureTopic.toLowerCase(),
+    )
+  )
+    throw new Error(
+      `Inner transaction failed at ${check.address} (ExecutionFailure)`,
+    );
+  if (
+    !logs.some(
+      (log) =>
+        log.topics[0]?.toLowerCase() === check.successTopic.toLowerCase(),
+    )
+  )
+    throw new Error(
+      `Transaction receipt is missing the expected success event from ${check.address}`,
+    );
+}
 
 function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -607,6 +648,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
             }`,
           );
         }
+        checkReceiptOutcome(action, receipt);
         const explorer = chainFor(chainId, ctx)?.blockExplorers?.default.url;
         const link = explorer ? `${explorer.replace(/\/$/, "")}/tx/${tx}` : tx;
         ctx.onLog(
@@ -623,7 +665,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
       ctx.onLog(
         `:waiting:Waiting for ${truncateAddress(action.from!)} to execute transaction to ${truncateAddress(action.to)}`,
       );
-      return observeTransaction({
+      const observed = await observeTransaction({
         to: action.to,
         data: action.data,
         from: action.from!,
@@ -631,6 +673,12 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         onStatusUpdate: ctx.onLog,
         signal: ctx.signal,
       });
+      if (action.receiptCheck)
+        checkReceiptOutcome(
+          action,
+          await publicClient.getTransactionReceipt({ hash: observed.hash }),
+        );
+      return observed;
     },
 
     async batched(action, ctx) {
@@ -681,6 +729,8 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
       // Aggregate logs from all receipts for event capture support.
       if (result.receipts && result.receipts.length > 0) {
         const allLogs = result.receipts.flatMap((r) => r.logs);
+        for (const inner of actions)
+          checkReceiptOutcome(inner, { logs: allLogs });
         return { logs: allLogs };
       }
 
@@ -720,6 +770,8 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         await sleep(seconds * 1000, ctx.signal);
         return;
       }
+      if (action.command.startsWith("io."))
+        throw new Error("This execution host does not support local I/O");
       ctx.onLog(
         `Terminal action: ${action.command} ${JSON.stringify(action.args)}`,
       );
@@ -740,14 +792,14 @@ export async function executeScript(
   source: string,
   registry: ModuleRegistry,
   config: EvmlConfig,
-  walletClient: WalletClient,
+  walletClient: WalletClient | undefined,
   options: ExecuteOptions = {},
 ): Promise<ExecutionResult> {
   const logs: string[] = [];
   const executed: { action: Action; result?: unknown }[] = [];
 
   const account =
-    config.account ?? (walletClient.account?.address as Address | undefined);
+    config.account ?? (walletClient?.account?.address as Address | undefined);
 
   const interpreter = new Interpreter(registry, { ...config, account });
   interpreter.registerLogListener((message) => {
@@ -791,7 +843,13 @@ export async function executeScript(
   };
 
   const ctx: ActionHandlerCtx = {
-    walletClient,
+    get walletClient() {
+      if (!walletClient)
+        throw new Error(
+          "Wallet access is required to sign or send; connect a wallet or configure --wallet-rpc and --account",
+        );
+      return walletClient;
+    },
     getPublicClient,
     onLog,
     signal: options.signal,
@@ -803,6 +861,13 @@ export async function executeScript(
     if (options.signal?.aborted) {
       throw new Error("Execution cancelled");
     }
+    if (
+      !walletClient &&
+      !isTransactionAction(action) &&
+      action.type === "wallet" &&
+      action.method === "wallet_switchEthereumChain"
+    )
+      return;
     const handlers = options.handlers;
     let result: unknown;
     if (handlers && isTransactionAction(action) && handlers.transaction) {
@@ -820,7 +885,7 @@ export async function executeScript(
     return result;
   };
 
-  if (options.prepareChains ?? true) {
+  if (walletClient && (options.prepareChains ?? true)) {
     await prepareChainsForScript(walletClient, source, config.transports);
   }
 
@@ -834,6 +899,7 @@ export async function executeScript(
     await runInterpret(source, dispatch, {
       account,
       onLog: (message) => interpreter.log(message),
+      onOutput: (message) => interpreter.output(message),
       onLine: (line) => config.onLine?.(line),
       signal: options.signal,
     });

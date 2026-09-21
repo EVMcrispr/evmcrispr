@@ -28,6 +28,7 @@ export * from "./fixed";
 export * from "./format";
 export * from "./formatters";
 export * from "./imports";
+export * from "./localAbi";
 export * from "./moduleSource";
 export { Num } from "./Num";
 export * from "./namedArgs";

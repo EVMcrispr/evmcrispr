@@ -11,7 +11,7 @@ Decode calldata into `[contract signature [args]]` with human-readable EVML valu
 ## Syntax
 
 ```evml
-@abi.decodeCall(contract calldata)
+@abi.decodeCall(contract calldata abi?)
 ```
 
 ## Arguments
@@ -20,6 +20,7 @@ Decode calldata into `[contract signature [args]]` with human-readable EVML valu
 |------|------|-------------|
 | `contract` | `address` | Contract the calldata targets (its verified ABI is used) |
 | `calldata` | `bytes` | Full calldata including the 4-byte function selector |
+| `[abi]` | `string` | Explicit ABI JSON; disables all network discovery and ENS lookups |
 
 ## Examples
 
@@ -30,6 +31,12 @@ print $sig
 ```
 
 <!-- HAND-WRITTEN -->
+
+Pass an explicit ABI JSON string as the third argument to decode locally.
+This form never fetches verified ABIs, selector registries, or ENS names.
+Unknown and ambiguous selectors produce an error. The existing two-argument
+form retains network discovery; the on-chain face is unchanged.
+
 
 ## On-chain face
 

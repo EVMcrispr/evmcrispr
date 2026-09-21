@@ -53,7 +53,7 @@ export function useTransactionExecutor(
   address: `0x${string}` | undefined,
   script: string,
   safeConnector?: any,
-  options: { openConsoleOnExecute?: boolean } = {},
+  options: { openConsoleOnExecute?: boolean; stdin?: string } = {},
 ) {
   const { data: walletClient } = useWalletClient();
 
@@ -61,6 +61,14 @@ export function useTransactionExecutor(
   scriptRef.current = script;
 
   const { logs, logListener, clearLogs } = useExecutionLogs();
+  const [output, setOutput] = useState("");
+  const outputListener = useCallback(
+    (text: string) => {
+      logListener(text);
+      setOutput((previous) => `${previous}${text}\n`);
+    },
+    [logListener],
+  );
   const [errors, setErrors] = useState<string[]>([]);
   const [phase, setPhase] = useState<ExecutionPhase>("idle");
   const [executed, setExecuted] = useState<
@@ -82,6 +90,7 @@ export function useTransactionExecutor(
     setPhase("idle");
     setExecuted([]);
     clearLogs();
+    setOutput("");
   }, [currentScriptId, clearLogs]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -99,29 +108,26 @@ export function useTransactionExecutor(
       terminalStoreActions("activeTab", "console");
     }
     clearLogs();
+    setOutput("");
 
     abortControllerRef.current = new AbortController();
     const abortSignal = abortControllerRef.current.signal;
 
     try {
-      if (!walletClient) {
-        throw new Error(
-          "Wallet connection required to sign transactions. Connect a wallet and try again.",
-        );
-      }
-
-      // "awaiting-wallet" only once a line actually starts executing —
-      // before that the run is resolving actions, not prompting the wallet.
+      // Local commands can run without a wallet. Wallet actions update the
+      // phase separately when execution actually requests one.
       let sawExecution = false;
       const evmlScript = workerEvml
         .with({
           account: address,
+          stdin: options.stdin,
           onLog: logListener,
+          onOutput: outputListener,
           onLine: (line: number | null) => {
             terminalStoreActions("executingLine", line);
             if (line !== null && !sawExecution) {
               sawExecution = true;
-              setPhase("awaiting-wallet");
+              setPhase("running");
             }
           },
         })
@@ -131,15 +137,25 @@ export function useTransactionExecutor(
         signal: abortSignal,
         onLog: logListener,
         handlers: {
+          wallet: async (action, ctx) => {
+            setPhase("awaiting-wallet");
+            try {
+              return await ctx.next(action);
+            } finally {
+              setPhase("running");
+            }
+          },
           // Endpoints a module asks to submit through (`action.rpcUrl`)
           // are declared as the module sees them; the browser can only
           // use https, so route them like the chain RPCs.
-          transaction: (action, ctx) =>
-            ctx.next(
+          transaction: (action, ctx) => {
+            if (!action.readOnly) setPhase("awaiting-wallet");
+            return ctx.next(
               action.rpcUrl
                 ? { ...action, rpcUrl: browserSafeUrl(action.rpcUrl) }
                 : action,
-            ),
+            );
+          },
           ...(safeConnector
             ? { batched: makeSafeBatchedHandler(safeConnector) }
             : {}),
@@ -183,15 +199,18 @@ export function useTransactionExecutor(
     walletClient,
     safeConnector,
     logListener,
+    outputListener,
     clearLogs,
     clearErrors,
     options.openConsoleOnExecute,
+    options.stdin,
   ]);
 
   return {
     executeScript,
     cancelExecution,
     logs,
+    output,
     errors,
     clearErrors,
     phase,
@@ -202,6 +221,7 @@ export function useTransactionExecutor(
 export type ExecutionPhase =
   | "idle"
   | "preparing"
+  | "running"
   | "awaiting-wallet"
   | "success"
   | "cancelled"

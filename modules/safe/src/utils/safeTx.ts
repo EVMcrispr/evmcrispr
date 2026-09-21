@@ -1,6 +1,13 @@
 import type { Address, TransactionAction } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
-import { encodeFunctionData, hashTypedData, parseAbi, zeroAddress } from "viem";
+import {
+  encodeFunctionData,
+  hashTypedData,
+  keccak256,
+  parseAbi,
+  toHex,
+  zeroAddress,
+} from "viem";
 import { CANONICAL_DEPLOYMENT, type SafeDeployment } from "../addresses";
 import { encodeMultiSendCall } from "./multisend";
 
@@ -140,8 +147,15 @@ export const encodeExecTransaction = (
   safe: Address,
   tx: SafeTx,
   signatures: `0x${string}`,
+  expectedHash?: `0x${string}`,
 ): TransactionAction => ({
   to: safe,
+  receiptCheck: {
+    address: safe,
+    eventIdentifier: expectedHash,
+    successTopic: keccak256(toHex("ExecutionSuccess(bytes32,uint256)")),
+    failureTopic: keccak256(toHex("ExecutionFailure(bytes32,uint256)")),
+  },
   data: encodeFunctionData({
     abi: execTransactionAbi,
     functionName: "execTransaction",

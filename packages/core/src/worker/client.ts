@@ -30,6 +30,7 @@ export type {
 /** Worker config plus the main-thread callbacks the client bridges. */
 export interface WorkerEvmlClientConfig extends WorkerEvmlConfig {
   onLog?: (message: string) => void;
+  onOutput?: (message: string) => void;
   onLine?: (line: number | null) => void;
 }
 
@@ -39,7 +40,7 @@ export interface WorkerEvmlScript {
   /** Interpret in the worker, execute every action on this thread with
    *  `walletClient` (signing and custom handlers never leave it). */
   execute(
-    walletClient: WalletClient,
+    walletClient: WalletClient | undefined,
     options?: ExecuteOptions,
   ): Promise<ExecutionResult>;
 }
@@ -55,6 +56,7 @@ export interface WorkerEvml {
 
 interface RunCallbacks {
   onLog?(message: string): void;
+  onOutput?(message: string): void;
   onLine?(line: number | null): void;
   onAction?(actionId: number, action: Action): void;
   signal?: AbortSignal;
@@ -139,6 +141,9 @@ class WorkerManager {
     switch (msg.kind) {
       case "log":
         run.onLog?.(msg.message);
+        break;
+      case "output":
+        (run.onOutput ?? run.onLog)?.(msg.message);
         break;
       case "line":
         run.onLine?.(msg.line);
@@ -283,6 +288,7 @@ function makeWorkerEvml(
   const workerConfig = (
     account?: WorkerEvmlConfig["account"],
   ): WorkerEvmlConfig => ({
+    stdin: config.stdin,
     account: config.account ?? account,
     chainId: config.chainId,
     rpcUrls: config.rpcUrls,
@@ -293,22 +299,29 @@ function makeWorkerEvml(
       const { signal, ...rest } = options;
       const { result } = manager.run(
         { kind: "simulate", source, config: workerConfig(), options: rest },
-        { signal, onLog: config.onLog, onLine: config.onLine },
+        {
+          signal,
+          onLog: config.onLog,
+          onOutput: config.onOutput,
+          onLine: config.onLine,
+        },
       );
       return result as Promise<SimulationResult>;
     },
 
     execute(
-      walletClient: WalletClient,
+      walletClient: WalletClient | undefined,
       options: ExecuteOptions = {},
     ): Promise<ExecutionResult> {
       // Main-thread config for the handlers: same account/chain view as
       // the worker, with real viem transports for receipts and calls.
       const mainConfig: EvmlConfig = {
+        stdin: config.stdin,
         account: config.account,
         chainId: config.chainId,
         transports: toTransports(config.rpcUrls),
         onLog: config.onLog,
+        onOutput: config.onOutput,
         onLine: config.onLine,
       };
       return executeScript(
@@ -330,6 +343,7 @@ function makeWorkerEvml(
               {
                 signal: hooks.signal,
                 onLog: hooks.onLog,
+                onOutput: hooks.onOutput,
                 onLine: hooks.onLine,
                 onAction: (actionId, action) => {
                   dispatch(action).then(

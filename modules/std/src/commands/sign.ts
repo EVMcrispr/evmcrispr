@@ -5,6 +5,12 @@ import {
   ErrorException,
   NodeType,
 } from "@evmcrispr/sdk";
+import {
+  getTypesForEIP712Domain,
+  hashDomain,
+  hashStruct,
+  hashTypedData,
+} from "viem";
 import type Std from "..";
 
 const { VariableIdentifier } = NodeType;
@@ -52,10 +58,41 @@ export default defineCommand<Std>({
       );
     }
 
+    const { actionCallback } = interpreters;
+    if (!actionCallback) {
+      throw new ErrorException(
+        "sign requires an execution context with wallet access",
+      );
+    }
+
+    if (interpreters.simulation)
+      throw new ErrorException(
+        "sign cannot request wallet signatures during simulation",
+      );
     const varName = varNode.value;
     let action: WalletAction;
 
     if (typedDataJSON) {
+      const typed = JSON.parse(typedDataJSON);
+      const types = {
+        EIP712Domain: getTypesForEIP712Domain({ domain: typed.domain ?? {} }),
+        ...typed.types,
+      };
+      const domainHash = hashDomain({
+        domain: typed.domain ?? {},
+        types,
+      });
+      const messageHash =
+        typed.primaryType === "EIP712Domain"
+          ? domainHash
+          : hashStruct({
+              data: typed.message,
+              primaryType: typed.primaryType,
+              types,
+            });
+      module.context.log(
+        `EIP-712 signing payload\n  Domain hash: ${domainHash}\n  Message hash: ${messageHash}\n  Final hash: ${hashTypedData(typed)}`,
+      );
       const account = await module.getConnectedAccount();
       action = {
         type: "wallet",
@@ -69,13 +106,6 @@ export default defineCommand<Std>({
         method: "personal_sign",
         params: [message, account],
       };
-    }
-
-    const { actionCallback } = interpreters;
-    if (!actionCallback) {
-      throw new ErrorException(
-        "sign requires an execution context with wallet access",
-      );
     }
 
     const signature = (await actionCallback(action)) as string;

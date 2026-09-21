@@ -6,6 +6,7 @@ import {
   DocumentTextIcon,
 } from "@heroicons/react/24/solid";
 import { Tabs } from "@repo/ui";
+import type { ReactNode } from "react";
 import type { TerminalStoreState } from "../../stores/terminal-store";
 import {
   terminalStoreActions,
@@ -17,9 +18,11 @@ import { ReferenceTab } from "./ReferenceTab";
 
 export function SidePanel({
   logs,
+  ioControl,
   errors,
 }: {
   logs: string[];
+  ioControl?: ReactNode;
   errors: string[];
 }) {
   const activeTab = useTerminalStore().activeTab;
@@ -64,11 +67,18 @@ export function SidePanel({
       </Tabs.List>
       <Tabs.Content
         value="console"
-        className="flex-1 overflow-hidden"
+        className="flex-1 min-h-0 flex flex-col overflow-hidden"
         forceMount
         hidden={activeTab !== "console"}
       >
-        <Console logs={logs} errors={errors} />
+        {ioControl && (
+          <div className="shrink-0 border-b border-foreground/10 px-4 py-2">
+            {ioControl}
+          </div>
+        )}
+        <div className="min-h-0 flex-1">
+          <Console logs={logs} errors={errors} />
+        </div>
       </Tabs.Content>
       <Tabs.Content
         value="library"

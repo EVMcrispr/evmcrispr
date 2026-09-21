@@ -2,7 +2,7 @@
 title: "safe:verify"
 ---
 
-Recompute the EIP-712 domain, message and safeTxHash of a queued Safe transaction locally, check them against the Safe Transaction Service and flag dangerous fields, so signers can verify what their wallet displays.
+Verify Safe transaction hashes and flag dangerous fields, using the service queue or a command block or exported transaction JSON with --no-api.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -17,12 +17,17 @@ safe:verify <safe> <proposal>
 | Name | Type | Description |
 |------|------|-------------|
 | `safe` | `address` | Safe address |
-| `proposal` | `number \| bytes32` | Nonce or safeTxHash of the queued transaction |
+| `proposal` | `number \| bytes32 \| block \| string` | Nonce or hash of a queued transaction, or a command block or exported transaction JSON with --no-api |
 
 ## Options
 
 | Name | Type | Description |
 |------|------|-------------|
+| `--as` | `variable` | Bind the JSON verification report (requires --no-api) |
+| `--offline` | `bool` | Inspect an exported package without any network access |
+| `--abi` | `string` | JSON mapping target addresses to explicit ABIs for local decoding |
+| `--no-api` | `bool` | Verify a command block or exported transaction JSON without contacting the Safe Transaction Service |
+| `--nonce` | `number` | Nonce override for a command block (requires --no-api; defaults to the on-chain nonce) |
 | `--nested-safe` | `address` | Owner Safe that will approve the transaction via approveHash; also prints the hashes its owners must sign |
 | `--nested-safe-nonce` | `number` | Nonce override for the nested Safe approveHash transaction |
 
@@ -69,6 +74,58 @@ set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
 set $ownerSafe 0x1111111111111111111111111111111111111111
 safe:verify $mySafe 42 --nested-safe $ownerSafe
 ```
+
+## Without the Safe API
+
+Use `--no-api true` with the portable JSON produced by `safe:propose`. Store
+the complete JSON in a string variable `$tx`:
+
+```evml novalidate
+safe:verify $mySafe $tx --no-api true
+```
+
+The command validates the chain and Safe address and recomputes the hash from
+the exact transaction fields. It rejects a mismatched `safeTxHash` and prints
+the same hashes and warnings as service-backed verification. With RPC it also checks current owner signatures, contract signatures, on-chain
+approvals, threshold, and nonce. Execution repeats these checks before sending.
+
+You can also inspect a command block before signing it:
+
+```evml novalidate
+safe:verify $mySafe (
+  safe:change-threshold 2
+) --no-api true --nonce 42
+```
+
+Block verification defaults to the current on-chain nonce. `--nonce` only
+applies to blocks; an imported transaction keeps its original nonce. Both
+forms support `--nested-safe` and `--nested-safe-nonce`. RPC access is still
+required, but no Safe API request is made. A nonce or hash alone cannot
+identify the transaction fields without the service.
+
+## Structured reports and offline inspection
+
+```evml novalidate
+load http
+safe:verify $mySafe $tx --no-api true --as $review
+print @http:json($review hashes)
+print @http:json($review readiness)
+```
+
+The report contains `package`, `typedData`, `signingBytes`, `hashes`,
+`decodedCalls`, `signatures`, `packedSignatures`, `chain`, `ready`, `readiness`,
+and `warnings`. `ready` means the current nonce and signature requirements are
+satisfied; it does not guarantee execution, funding, or acceptance by a guard.
+A consumed nonce does not prove that this particular transaction executed.
+
+Add `--offline true` with an imported package for **zero network access**.
+Authorization and chain state then remain `unchecked`, and `ready` is false.
+Offline inspection does not accept blocks or nested approval previews.
+
+`--abi` accepts a JSON object mapping addresses to ABI arrays. Decoding uses
+only supplied ABIs and the known MultiSend layout; there are no explorer,
+selector-registry or ENS lookups. Unknown calldata is retained as `unverified`.
+Supplied ABIs describe encoding and do not prove a contract's behavior.
 
 ## See Also
 

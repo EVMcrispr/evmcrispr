@@ -4,6 +4,7 @@ import { isAddressEqual } from "viem";
 import type Safe from "..";
 import { safeDeployment } from "../addresses";
 import {
+  assertSafeVersion,
   buildSafeTx,
   collectSafeTxWarnings,
   encodeExecTransaction,
@@ -17,28 +18,128 @@ import {
   preValidatedSignature,
   serviceTxToSafeTx,
 } from "../utils";
+import { safeUint } from "../utils/offline";
+import {
+  mergeSafePackages,
+  parseSafePackage,
+  reviewSafePackage,
+  transactionPackage,
+} from "../utils/packages";
 
 export default defineCommand<Safe>({
   name: "execute",
   description:
-    "Execute a Safe transaction on-chain: either a block of commands (connected owner of a 1-threshold Safe) or a fully-confirmed queued transaction by its hash.",
+    "Execute a Safe transaction on-chain from a command block, a confirmed service transaction hash, or locally signed transaction JSON with --no-api.",
   batchable: false,
   createsBatchContext: true,
   args: [
     { name: "safe", type: "address", description: "Safe address" },
     {
       name: "proposal",
-      type: ["block", "bytes32"],
+      type: ["block", "bytes32", "string"],
       description:
-        "Commands composing the transaction, or the safeTxHash of a queued transaction",
+        "Commands, the safeTxHash of a queued transaction, or exported transaction JSON with --no-api",
     },
   ],
-  async run(module, { safe, proposal }, { interpreters }) {
+  opts: [
+    {
+      name: "no-api",
+      type: "bool",
+      description:
+        "Execute a block or exported transaction JSON without contacting the Safe Transaction Service",
+    },
+    {
+      name: "signatures",
+      type: "array",
+      description:
+        "EIP-712 owner signatures to add locally (requires --no-api; blocks also require --nonce)",
+    },
+    {
+      name: "nonce",
+      type: "number",
+      description: "Nonce signed for a command block (requires --no-api)",
+    },
+  ],
+  async run(module, { safe, proposal }, { opts, interpreters }) {
+    const noApi = opts["no-api"];
+    if (!noApi && (opts.signatures !== undefined || opts.nonce !== undefined)) {
+      throw new ErrorException("--signatures and --nonce require --no-api");
+    }
+    if (noApi && typeof proposal === "string" && opts.nonce !== undefined) {
+      throw new ErrorException(
+        "--nonce cannot override an imported transaction",
+      );
+    }
+    if (
+      noApi &&
+      typeof proposal !== "string" &&
+      opts.signatures !== undefined &&
+      opts.nonce === undefined
+    ) {
+      throw new ErrorException(
+        "--signatures with a command block requires --nonce so signatures use the intended nonce",
+      );
+    }
     const chainId = await module.getChainId();
     const client = await module.getClient();
 
+    if (
+      noApi &&
+      (typeof proposal === "string" || opts.signatures !== undefined)
+    ) {
+      await assertSafeVersion(client, safe);
+      const imported =
+        typeof proposal === "string"
+          ? parseSafePackage(proposal, chainId, safe)
+          : undefined;
+      const actions = imported
+        ? undefined
+        : await interpretSafeBlock(
+            module,
+            safe,
+            proposal as BlockExpressionNode,
+            "safe:execute",
+            interpreters,
+          );
+      if (actions?.length === 0) return [];
+      if (imported && imported.kind !== "transaction")
+        throw new ErrorException("expected transaction package");
+      const tx =
+        imported?.tx ??
+        buildSafeTx(
+          actions!,
+          safeUint(opts.nonce, "nonce"),
+          safeDeployment(chainId),
+        );
+      const pkg = await mergeSafePackages(
+        imported ?? transactionPackage(chainId, safe, tx),
+        opts.signatures ?? [],
+      );
+      const report = await reviewSafePackage(pkg, client);
+      if (!report.ready)
+        throw new ErrorException(
+          `Safe transaction is not ready: ${report.readiness} (current on-chain nonce ${report.chain.nonce}; ${report.signatures.filter((s) => s.status === "valid").length} of ${report.chain.threshold} required owner signatures)`,
+        );
+      const hashes = getSafeTxHashes(chainId, safe, tx);
+      const signatures = report.packedSignatures;
+      module.context.log(
+        formatSafeTxHashesLog(
+          safe,
+          chainId,
+          tx,
+          hashes,
+          collectSafeTxWarnings(tx, safeDeployment(chainId)),
+        ),
+      );
+      return [encodeExecTransaction(safe, tx, signatures, hashes.safeTxHash)];
+    }
+
     // Hash form: execute a queued transaction confirmed on the service.
     if (typeof proposal === "string") {
+      if (!/^0x[0-9a-fA-F]{64}$/.test(proposal)) {
+        throw new ErrorException("exported transaction JSON requires --no-api");
+      }
+      await assertSafeVersion(client, safe);
       const serviceTx = await getServiceTransaction(module, chainId, proposal);
 
       if (!isAddressEqual(serviceTx.safe, safe)) {
@@ -92,7 +193,7 @@ export default defineCommand<Safe>({
         ),
       );
 
-      return [encodeExecTransaction(safe, tx, signatures)];
+      return [encodeExecTransaction(safe, tx, signatures, hashes.safeTxHash)];
     }
 
     // Block form: build and execute directly with the sender's
@@ -127,11 +228,21 @@ export default defineCommand<Safe>({
     }
 
     const nonce = await getSafeNonce(client, safe);
+    if (opts.nonce !== undefined && safeUint(opts.nonce, "nonce") !== nonce) {
+      throw new ErrorException(
+        `Safe transaction nonce does not match the current on-chain nonce ${nonce}`,
+      );
+    }
     const tx = buildSafeTx(actions, nonce, safeDeployment(chainId));
 
     return [
       {
-        ...encodeExecTransaction(safe, tx, preValidatedSignature(sender)),
+        ...encodeExecTransaction(
+          safe,
+          tx,
+          preValidatedSignature(sender),
+          getSafeTxHashes(chainId, safe, tx).safeTxHash,
+        ),
         from: sender,
       },
     ];

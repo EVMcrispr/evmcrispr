@@ -67,19 +67,26 @@ export function countReviewActions(actions: Action[]) {
 export function useTransactionReview(
   script: string,
   address: `0x${string}` | undefined,
-  options: { autoValidate?: boolean } = {},
+  options: { autoValidate?: boolean; stdin?: string } = {},
 ) {
   const tag = useEvmlTag();
   const requestIdRef = useRef(0);
   const [state, setState] = useState<TransactionReviewState>(EMPTY_STATE);
   const autoValidate = options.autoValidate ?? false;
+  const stdin = options.stdin;
 
   const fingerprint = useMemo(
     () =>
       keccak256(
-        toBytes(`${address?.toLowerCase() ?? "no-account"}\0${script}`),
+        toBytes(
+          JSON.stringify([
+            address?.toLowerCase() ?? null,
+            script,
+            stdin ?? null,
+          ]),
+        ),
       ),
-    [address, script],
+    [address, script, stdin],
   );
 
   const validate = useCallback(async () => {
@@ -133,6 +140,7 @@ export function useTransactionReview(
 
     try {
       const result = await workerEvml
+        .with({ stdin })
         .script(script)
         .simulate({ from: address });
       if (validated.requestId !== requestIdRef.current) return;
@@ -166,7 +174,7 @@ export function useTransactionReview(
         logs: [],
       });
     }
-  }, [address, fingerprint, script, validate]);
+  }, [address, fingerprint, script, stdin, validate]);
 
   const reset = useCallback(() => {
     requestIdRef.current++;
