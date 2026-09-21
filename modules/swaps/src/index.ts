@@ -9,4 +9,8 @@ export default class Swaps extends defineModule(
   types,
   undefined,
   configs,
-) {}
+) {
+  /** Separate reservations for live clients and each simulation fork. Module
+   * instances are recreated by the interpreter for every run. */
+  readonly twapReservations = new WeakMap<object, Set<string>>();
+}

@@ -480,6 +480,7 @@
       "name": "@evmcrispr/module-swaps",
       "version": "0.11.1",
       "dependencies": {
+        "@evmcrispr/module-safe": "workspace:^",
         "@evmcrispr/sdk": "workspace:^",
       },
       "devDependencies": {

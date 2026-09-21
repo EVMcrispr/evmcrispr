@@ -1,26 +1,14 @@
 import type { Address } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
-import {
-  concatHex,
-  encodeFunctionData,
-  getContractAddress,
-  keccak256,
-  parseAbi,
-  toHex,
-  zeroAddress,
-} from "viem";
 import type Safe from "..";
 import { safeDeployment } from "../addresses";
 import { toBigInt } from "../utils";
-
-const factoryAbi = parseAbi([
-  "function createProxyWithNonce(address _singleton, bytes initializer, uint256 saltNonce) returns (address proxy)",
-  "function proxyCreationCode() pure returns (bytes)",
-]);
-
-const setupAbi = parseAbi([
-  "function setup(address[] _owners, uint256 _threshold, address to, bytes data, address fallbackHandler, address paymentToken, uint256 payment, address paymentReceiver)",
-]);
+import {
+  encodeSafeDeployment,
+  predictSafeAddress,
+  safeFactoryAbi,
+  safeInitializer,
+} from "../utils/deployment";
 
 export default defineCommand<Safe>({
   name: "new",
@@ -59,57 +47,27 @@ export default defineCommand<Safe>({
       );
     }
     const saltNonce = opts.salt !== undefined ? toBigInt(opts.salt) : 0n;
-    const { proxyFactory, l2Singleton, fallbackHandler } = safeDeployment(
-      await module.getChainId(),
+    const deployment = safeDeployment(await module.getChainId());
+    const initializer = safeInitializer(
+      owners as Address[],
+      threshold,
+      deployment.fallbackHandler,
     );
-
-    const initializer = encodeFunctionData({
-      abi: setupAbi,
-      functionName: "setup",
-      args: [
-        owners as Address[],
-        threshold,
-        zeroAddress,
-        "0x",
-        fallbackHandler,
-        zeroAddress,
-        0n,
-        zeroAddress,
-      ],
-    });
-
-    // Predict the CREATE2 address the factory will deploy to: init code is
-    // the proxy creation code with the singleton appended as its only
-    // constructor param, salted with keccak256(initializer) ++ saltNonce.
     const client = await module.getClient();
     const creationCode = await client.readContract({
-      address: proxyFactory,
-      abi: factoryAbi,
+      address: deployment.proxyFactory,
+      abi: safeFactoryAbi,
       functionName: "proxyCreationCode",
     });
-    const predicted = getContractAddress({
-      opcode: "CREATE2",
-      from: proxyFactory,
-      salt: keccak256(
-        concatHex([keccak256(initializer), toHex(saltNonce, { size: 32 })]),
-      ),
-      bytecode: concatHex([
-        creationCode,
-        toHex(BigInt(l2Singleton), { size: 32 }),
-      ]),
-    });
+    const predicted = predictSafeAddress(
+      deployment,
+      creationCode,
+      initializer,
+      saltNonce,
+    );
 
     module.context.log(`Deploying new Safe at ${predicted}`);
 
-    return [
-      {
-        to: proxyFactory,
-        data: encodeFunctionData({
-          abi: factoryAbi,
-          functionName: "createProxyWithNonce",
-          args: [l2Singleton, initializer, saltNonce],
-        }),
-      },
-    ];
+    return [encodeSafeDeployment(deployment, initializer, saltNonce)];
   },
 });

@@ -1,7 +1,7 @@
 {
   "name": "@evmcrispr/module-swaps",
   "version": "0.11.1",
-  "description": "Token swaps across DEXes: exact-in and exact-out swaps with automatic approvals, wrap/unwrap, quotes and prices, and venue selection via --using.",
+  "description": "Token swaps across DEXes, plus CoW TWAP orders from wallets and DAOs through reusable Safe accounts, with quotes, approvals, wrap/unwrap, and provider selection.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
@@ -24,7 +24,8 @@
     }
   },
   "dependencies": {
-    "@evmcrispr/sdk": "workspace:^"
+    "@evmcrispr/sdk": "workspace:^",
+    "@evmcrispr/module-safe": "workspace:^"
   },
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*"

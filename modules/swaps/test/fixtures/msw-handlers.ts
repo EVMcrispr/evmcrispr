@@ -99,17 +99,40 @@ export const swapServiceHandlers = [
         partiallyFillable: false,
         sellTokenBalance: "erc20",
         buyTokenBalance: "erc20",
-        signingScheme: "eip712",
+        signingScheme: body.signingScheme ?? "eip712",
       },
       from: body.from,
       id: 1,
       verified: true,
+      expiration: new Date(Date.now() + 60000).toISOString(),
     });
   }),
   http.post("https://api.cow.fi/xdai/api/v1/orders", async ({ request }) => {
     cowState.orders.push(await request.json());
     return HttpResponse.json(COW_MOCK_UID, { status: 201 });
   }),
+
+  http.get(
+    "https://api.cow.fi/:network/api/v1/token/:token/native_price",
+    ({ params }) =>
+      HttpResponse.json({
+        price:
+          String(params.token).toLowerCase() === WXDAI.toLowerCase()
+            ? "1"
+            : "1000000000000",
+      }),
+  ),
+  http.post("https://programmatic-orders.cow.fi/graphql", () =>
+    HttpResponse.json({
+      data: { programmaticOrders: { items: [], totalCount: 0 } },
+    }),
+  ),
+  http.get("https://api.cow.fi/:network/api/v2/trades", () =>
+    HttpResponse.json([]),
+  ),
+  http.post("https://api.cow.fi/:network/api/v1/orders/by_uids", () =>
+    HttpResponse.json([]),
+  ),
 
   // Balancer SOR (GraphQL, arguments inlined in the query string).
   http.post("https://api-v3.balancer.fi/", async ({ request }) => {

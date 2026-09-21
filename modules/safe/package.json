@@ -26,6 +26,11 @@
       "bun": "./src/addresses.ts",
       "types": "./src/addresses.ts",
       "import": "./src/addresses.ts"
+    },
+    "./transactions": {
+      "bun": "./src/transactions.ts",
+      "types": "./dist/transactions.d.ts",
+      "import": "./dist/transactions.js"
     }
   },
   "dependencies": {
@@ -45,7 +50,7 @@
   "scripts": {
     "lint": "biome check src",
     "type-check": "tsgo -p tsconfig.json",
-    "build": "evmcrispr-build --bundle",
+    "build": "evmcrispr-build --bundle ./src/index.ts ./src/transactions.ts",
     "test:unit": "bun test ./test/unit",
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",

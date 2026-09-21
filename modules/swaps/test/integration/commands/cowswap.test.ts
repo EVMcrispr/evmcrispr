@@ -100,6 +100,9 @@ swaps:swap 100e18 ${WXDAI} to ${GNO} --using CoWSwap --min 5e17`,
     expect(approve.to).to.eq(WXDAI);
     const approval = decodeFunctionData({ abi: erc20Abi, data: approve.data });
     expect(approval.args).to.eql([VAULT_RELAYER, AMOUNT]);
+    expect(cowState.quoteRequests[0].signingScheme).to.eq("eip712");
+    expect(cowState.quoteRequests[0]).not.to.have.property("priceQuality");
+    expect(cowState.quoteRequests[0]).not.to.have.property("onchainOrder");
 
     const typedData = getTypedData();
     expect(typedData.domain).to.eql({
