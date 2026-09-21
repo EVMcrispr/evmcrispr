@@ -31,7 +31,7 @@
     "@evmcrispr/module-contracts": "workspace:*",
     "@evmcrispr/module-sim": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*",
-    "@zk-kit/lean-imt": "^2.2.3"
+    "@zk-kit/lean-imt": "^2.2.5"
   },
   "peerDependencies": {
     "viem": "^2.54.1"
@@ -42,7 +42,7 @@
   ],
   "scripts": {
     "lint": "biome check src",
-    "type-check": "tsgo -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json",
     "build": "evmcrispr-build --bundle",
     "test:unit": "bun test ./test/unit",
     "test:integration": "bun test ./test/integration",

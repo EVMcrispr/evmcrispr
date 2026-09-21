@@ -115,7 +115,7 @@ if (typesOnly || full) {
     `${JSON.stringify(tempTsconfig, null, 2)}\n`,
   );
   try {
-    await $`tsgo -p ${tempTsconfigPath}`;
+    await $`tsc -p ${tempTsconfigPath}`;
   } finally {
     await unlink(tempTsconfigPath).catch(() => {});
   }

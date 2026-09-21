@@ -24,10 +24,10 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.14",
+    "@ai-sdk/openai-compatible": "^3.0.53",
     "@evmcrispr/sdk": "workspace:^",
-    "ai": "^7.0.33",
-    "zod": "^4.4.3"
+    "ai": "^7.0.108",
+    "zod": "^4.6.5"
   },
   "peerDependencies": {
     "@evmcrispr/core": "workspace:^",
@@ -36,10 +36,9 @@
   },
   "devDependencies": {
     "@evmcrispr/core": "workspace:*",
-    "@types/bun": "^1.3.14",
-    "@types/react": "^19.2.17",
-    "typescript": "^6.0.3",
-    "vite": "^8.1.3"
+    "@types/bun": "^1.4.2",
+    "@types/react": "^19.3.0",
+    "vite": "^8.3.0"
   },
   "files": [
     "dist",
@@ -48,7 +47,7 @@
   "scripts": {
     "lint": "biome check src test",
     "test:unit": "bun test",
-    "type-check": "tsgo --noEmit",
+    "type-check": "tsc --noEmit",
     "build": "evmcrispr-build --bundle",
     "types": "evmcrispr-build --types"
   }

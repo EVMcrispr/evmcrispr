@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       # Stable, not nightly: a nightly shipped an anvil built without the
       # optimism network family, so `anvil_reset` onto a Base fork failed with
       # "network family `optimism` is not enabled in this build" and took the

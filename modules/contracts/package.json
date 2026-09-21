@@ -37,7 +37,7 @@
   ],
   "scripts": {
     "lint": "biome check src",
-    "type-check": "tsgo -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json",
     "build": "evmcrispr-build --bundle",
     "test:unit": "bun test ./test/unit",
     "test:integration": "bun test ./test/integration",

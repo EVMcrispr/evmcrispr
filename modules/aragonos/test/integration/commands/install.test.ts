@@ -147,7 +147,7 @@ describeCommand("install", {
         const paramsErrors = [
           '-param _token of type address: Address "0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a" is invalid.\n\n- Address must be a hex value of 20 bytes. Got 0x6e00addd18f25f07032818ef4df05b0a6f849af647791821e36448719719ba6a',
           '-param _transferable of type bool: Invalid boolean value: "1000000000000000000". Got 1000000000000000000',
-          "-param _maxAccountTokens of type uint256: Invalid BigInt value. Got false",
+          "-param _maxAccountTokens of type uint256: Invalid integer value. Got false",
         ];
         const c = findAragonOSCommandNode(interpreter.ast, "install")!;
         return new CommandError(

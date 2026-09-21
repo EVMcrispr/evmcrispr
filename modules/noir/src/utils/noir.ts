@@ -22,9 +22,9 @@ import { keccak256, toHex } from "viem";
 export type { FetchContext };
 
 /** Keep in sync with the @noir-lang/* dependencies in package.json (unit-tested). */
-export const NOIR_VERSION = "1.0.0-beta.26";
+export const NOIR_VERSION = "1.0.0-rc.3";
 /** Keep in sync with the @aztec/bb.js dependency in package.json (unit-tested). */
-export const BB_VERSION = "5.1.0";
+export const BB_VERSION = "5.2.0";
 
 /**
  * Compiled Noir program artifact — the nargo `target/*.json` shape with
