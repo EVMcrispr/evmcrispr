@@ -4,6 +4,8 @@ import {
   defineCommand,
   ErrorException,
   fieldItem,
+  tokenAmountFormatter,
+  tokenLabel,
 } from "@evmcrispr/sdk";
 import { encodeFunctionData, erc20Abi, toHex } from "viem";
 import type Swaps from "..";
@@ -41,9 +43,9 @@ export default defineCommand<Swaps>({
     },
     {
       name: "amount",
-      type: "number",
+      type: ["command", "number"],
       description:
-        "Total sell amount in base units, exactly divisible by --parts",
+        "Total sell amount in base units, or the keyword `max` for the funder's whole balance; rounded down to a multiple of --parts, the remainder stays with the funder",
     },
     { name: "tokenIn", type: "address", description: "ERC-20 token to sell" },
     { name: "to", type: "command", description: "Keyword `to`" },
@@ -106,7 +108,10 @@ export default defineCommand<Swaps>({
       description: "Order salt (default: fresh random bytes32)",
     },
   ],
-  completions: { to: () => [fieldItem("to")] },
+  completions: {
+    amount: () => [fieldItem("max")],
+    to: () => [fieldItem("to")],
+  },
   async run(module, { variable, amount, tokenIn, to, tokenOut }, { opts }) {
     if (to !== "to")
       throw new ErrorException(`expected keyword "to", got "${to}"`);
@@ -130,16 +135,45 @@ export default defineCommand<Swaps>({
         ? undefined
         : protectionBps(opts["price-protection"]);
     const provider = await resolveTwap(module, opts.using, true);
-    const total = integer(amount, "<amount>");
+    const controller = await module.getSender();
+    const client = await module.getClient();
+    // `max` sells whatever the funder holds when the script builds. Inside
+    // a Safe block that is the balance before the block executes, so two
+    // `max` orders for one token would double count and revert on-chain.
+    const requested =
+      amount === "max"
+        ? await client.readContract({
+            address: tokenIn,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [controller],
+          })
+        : integer(amount, "<amount>");
     const parts = integer(opts.parts, "--parts");
     const min = opts.min === undefined ? undefined : integer(opts.min, "--min");
     if (parts < 2n) throw new ErrorException("--parts must be at least 2");
-    if (total === 0n || min === 0n)
+    if (amount === "max" && requested === 0n)
+      throw new ErrorException(
+        `${await tokenLabel(module, tokenIn)}: ${controller} holds no balance to sell`,
+      );
+    if (requested === 0n || min === 0n)
       throw new ErrorException("<amount> and --min must be greater than zero");
-    if (total % parts !== 0n)
-      throw new ErrorException("<amount> must be exactly divisible by --parts");
-    const controller = await module.getSender();
-    const client = await module.getClient();
+    if (requested < parts)
+      throw new ErrorException(
+        "<amount> must be at least --parts base units so every part sells something",
+      );
+    // Every TWAP part sells the same amount, so the total must split into
+    // equal integer parts. Round down instead of rejecting: a wallet balance
+    // almost never divides evenly, and the remainder never leaves the funder.
+    const dust = requested % parts;
+    const total = requested - dust;
+    if (dust > 0n) {
+      const fmt = await tokenAmountFormatter(module, tokenIn);
+      const symbol = await tokenLabel(module, tokenIn);
+      module.context.log(
+        `TWAP sells ${fmt(total)}: ${dust} base unit${dust === 1n ? "" : "s"} of ${symbol} (${fmt(dust)}) stays with the funder because ${parts} equal parts cannot include it.`,
+      );
+    }
     const block = await client.getBlock();
     const schedule: TwapSchedule = {
       sellToken: tokenIn,

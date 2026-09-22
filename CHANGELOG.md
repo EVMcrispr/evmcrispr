@@ -13,6 +13,20 @@
 - New `@lang` helpers over records: `@keys`, `@values`, `@lookup`.
 - The editor understands the syntax end to end: highlighting, `name:` completions for optional args, signature help, hover cards, and diagnostics for unknown/duplicate/misplaced names.
 - A `name:value` bareword inside helper parens or array literals now means a named argument, not a literal string — quote it (`'name:value'`) for the literal; URLs (`ipfs://…`, `https://…`) are unaffected. The experimental compile helpers use this natively: `@contracts:solidity($src runs:1000 via-ir:true optimizer:false)` replaces the quoted option strings, and the zk setup/tree helpers take `ptau:` / `system:` / `lean:` / `depth:` / `pad:` the same way.
+
+### Error captures on failed commands
+
+- `-!>` / `-?!>` now also catch a command that fails before sending a transaction — a failed preflight, an amount below a protocol minimum, a missing argument — not only a revert. The generic forms match it (`-?!> $skipped` reads `"true"`, `-?!> [$reason]` receives the message); a named error never does. Inside a collecting block (`batch`, `safe:execute`, proposals) an optional capture covers only that pre-send failure and lets prepared actions through, where it previously refused to run without a send context.
+
+### Token
+
+- New experimental helper `@token:holdings(address chain?)`: the ERC-20 tokens an account holds with a nonzero balance, as indexed by the chain's Blockscout instance (keyless), returned as addresses in the explorer's order. Read live amounts with `@balance` before spending them. Together with the TWAP rounding and the pre-send error captures below, "swap everything an account holds to USDC" is a four-line loop.
+
+### Swaps
+
+- `swaps:twap` rounds the sell amount down to a multiple of `--parts` instead of rejecting amounts that do not divide evenly, so a full balance is a valid amount. The leftover base units never leave the funder and are reported in the log. Amounts below `--parts` base units are still rejected.
+- `swaps:twap` accepts `max` as the amount: the funder's whole balance of the sell token, read when the script builds. This is what lets a loop over `@token:holdings` run inside `safe:execute`, where a `@balance` read after the first collected order is not allowed.
+
 ## 0.11.1
 
 A patch release: fixes for problems found right after 0.11.0 shipped, plus a few small editor and CLI improvements. No breaking changes.

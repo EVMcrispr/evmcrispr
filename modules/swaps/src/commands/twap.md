@@ -17,7 +17,7 @@ swaps:twap <variable> <amount> <tokenIn> <to> <tokenOut>
 | Name | Type | Description |
 |------|------|-------------|
 | `variable` | `variable` | Variable to bind the order reference to |
-| `amount` | `number` | Total sell amount in base units, exactly divisible by --parts |
+| `amount` | `command \| number` | Total sell amount in base units, or the keyword `max` for the funder's whole balance; rounded down to a multiple of --parts, the remainder stays with the funder |
 | `tokenIn` | `address` | ERC-20 token to sell |
 | `to` | `command` | Keyword `to` |
 | `tokenOut` | `address` | ERC-20 token to buy |
@@ -51,8 +51,34 @@ print @swaps:twapStatus($order)
 ```
 
 `--min` is the total minimum **if all parts fill**. It is divided by the number
-of parts and rounded upward. The sell amount must divide exactly into equal
-integer base-unit amounts. Parts are sell orders and cannot be partially filled.
+of parts and rounded upward. Every part sells the same amount, so the sell
+amount is rounded **down** to a multiple of the part count; the few base units
+left over never leave the funder, and the log reports them. The keyword `max`
+sells the funder's whole balance, read when the script builds — inside a Safe
+block that is the balance before the block executes, so keep one `max` order
+per token. An order the command cannot create — a part below the network
+minimum, no quote for the token, the buy token itself — fails before any
+action exists; `-?!> $skipped` catches that failure so a loop over several
+tokens continues with the next one. Together with [@token:holdings](../../../token/src/helpers/holdings.md)
+this sells everything a Safe holds in one transaction:
+
+```evml
+load safe
+load swaps
+load token
+
+set $safe 0x1111111111111111111111111111111111111111
+set $usdc @token(USDC)
+set $tokens @token:holdings($safe)
+
+safe:execute $safe (
+  loop $token of $tokens (
+    swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?!> $skipped
+  )
+)
+```
+
+Parts are sell orders and cannot be partially filled.
 A part that misses its price limit or trading window expires rather than
 accumulating into the next part. The conditional total is not a promise that
 every part executes.

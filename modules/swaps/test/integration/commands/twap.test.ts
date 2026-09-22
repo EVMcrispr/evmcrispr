@@ -20,12 +20,14 @@ import {
 import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
 import type { Address, Hex } from "viem";
 import {
+  decodeFunctionData,
   encodeFunctionData,
   erc20Abi,
   hashTypedData,
   keccak256,
   parseAbi,
   stringToHex,
+  toFunctionSelector,
   toHex,
   zeroHash,
 } from "viem";
@@ -47,7 +49,7 @@ import {
   buildOrderTypedData,
   COW_VAULT_RELAYER,
 } from "../../../src/venues/lib/cowApi";
-import { GNO, WXDAI } from "../../fixtures";
+import { GNO, SOME_ADDRESS, WXDAI } from "../../fixtures";
 
 const tradeAbi = parseAbi([
   "struct Params { address handler; bytes32 salt; bytes staticInput; }",
@@ -82,10 +84,11 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     return receipt;
   }
 
-  async function run(source: string, execute = true) {
+  async function run(source: string, execute = true, logs?: string[]) {
     const interpreter = new Interpreter(evml.registry, {
       account: controller,
       transports: getTransports(),
+      onLog: logs ? (message: string) => logs.push(message) : undefined,
     });
     interpreter.switchChainId(100);
     const actions = await interpreter.interpret(
@@ -449,6 +452,94 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     expect(await balance(outer)).toBe(total);
   }, 120000);
 
+  it("registers a loop of `max` orders as one Safe transaction, skipping what it cannot sell", async () => {
+    const deployment = safeDeployment(100);
+    const initializer = safeInitializer(
+      [controller],
+      1n,
+      deployment.fallbackHandler,
+    );
+    const bytecode = await client.readContract({
+      address: deployment.proxyFactory,
+      abi: safeFactoryAbi,
+      functionName: "proxyCreationCode",
+    });
+    const salt = BigInt(Date.now()) + 1n;
+    const outer = predictSafeAddress(deployment, bytecode, initializer, salt);
+    await send(encodeSafeDeployment(deployment, initializer, salt));
+    // Two tokens the Safe can sell, one address that is not a token at all.
+    await send({
+      to: WXDAI,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [outer, total],
+      }),
+    });
+    await run(
+      `swaps:swap 1e18 ${WXDAI} to ${GNO} --min 1 --using Honeyswap --to ${outer}`,
+    );
+    const gnoHeld = await client.readContract({
+      address: GNO,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [outer],
+    });
+    expect(gnoHeld).toBeGreaterThan(3n);
+    const sdai = "0xaf204776c7245bF4147c2612BF6e5972Ee483701";
+    const source = [
+      "load safe",
+      `set $tokens [${WXDAI} ${GNO} ${SOME_ADDRESS}]`,
+      `safe:execute ${outer} (`,
+      "  loop $token of $tokens (",
+      `    swaps:twap $order max $token to ${sdai} --parts 3 --every 3600 --min 4 --offline true -?!> $skipped`,
+      "  )",
+      ")",
+    ].join("\n");
+
+    const dry = await run(source, false);
+    expect(dry.actions.length).toBe(1);
+    const only = dry.actions[0] as TransactionAction;
+    expect(only.to?.toLowerCase()).toBe(outer.toLowerCase());
+    const { args } = decodeFunctionData({
+      abi: parseAbi([
+        "function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures) payable returns (bool)",
+      ]),
+      data: only.data!,
+    });
+    expect((args[0] as string).toLowerCase()).toBe(
+      deployment.multiSendCallOnly.toLowerCase(),
+    );
+    expect(args[3]).toBe(1);
+    // A mining-time start registers through createWithContext; each
+    // registration sits inside its execution Safe's call, nested in the
+    // outer MultiSend.
+    const registerSelector = toFunctionSelector(
+      "function createWithContext((address,bytes32,bytes),address,bytes,bool)",
+    ).slice(2);
+    const registrations = (args[2] as string)
+      .toLowerCase()
+      .split(registerSelector).length;
+    expect(registrations - 1).toBe(2);
+    expect(
+      dry.interpreter.bindingsManager.getBindingValue(
+        "$skipped",
+        BindingsSpace.USER,
+      ),
+    ).toBe("true");
+
+    await run(source);
+    expect(await balance(outer)).toBe(0n);
+    expect(
+      await client.readContract({
+        address: GNO,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [outer],
+      }),
+    ).toBeLessThan(3n);
+  }, 180000);
+
   it("refuses reuse when RPC history is incomplete", async () => {
     const nonce = await client.readContract({
       address: first.account,
@@ -511,6 +602,80 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     await run(`swaps:twap-recover ${quoteRef(ref)}`);
   }, 120000);
 
+  it("floors an indivisible amount to a multiple of --parts and logs the dust", async () => {
+    const logs: string[] = [];
+    const odd = total + 1n;
+    const { interpreter, actions } = await run(
+      script().replace(total.toString(), odd.toString()),
+      false,
+      logs,
+    );
+    const schedule = decodeSchedule(reference(interpreter).params);
+    expect(schedule.partSellAmount).toBe(total / 3n);
+    expect(schedule.n).toBe(3n);
+    const funded = actions
+      .filter(isTransactionAction)
+      .map((a) => a.data ?? "0x")
+      .join("");
+    expect(funded).toContain(total.toString(16));
+    expect(funded).not.toContain(odd.toString(16));
+    expect(logs).toContainEqual(
+      expect.stringContaining(
+        "1 base unit of WXDAI (0.000000000000000001 WXDAI) stays with the funder",
+      ),
+    );
+  });
+
+  it("sells the funder's whole balance with `max`, floored to --parts", async () => {
+    const held = await balance(controller);
+    expect(held).toBeGreaterThan(0n);
+    const { interpreter } = await run(
+      script().replace(total.toString(), "max"),
+      false,
+    );
+    const schedule = decodeSchedule(reference(interpreter).params);
+    expect(schedule.partSellAmount).toBe(held / 3n);
+    expect(schedule.n).toBe(3n);
+    // A funder without the token has nothing to sell.
+    const empty = getWalletClients()[8].account!.address;
+    const bare = new Interpreter(evml.registry, {
+      account: empty,
+      transports: getTransports(),
+    });
+    bare.switchChainId(100);
+    await expect(
+      bare.interpret(
+        `load swaps\n${script().replace(total.toString(), "max")}`,
+      ),
+    ).rejects.toThrow("holds no");
+  });
+
+  it("lets -?!> skip an order the command refuses and pass a prepared one through", async () => {
+    // Below --parts base units: the command fails before any action exists.
+    const refused = await run(
+      `${script().replace(total.toString(), "2")} -?!> $skipped`,
+      false,
+    );
+    expect(refused.actions).toEqual([]);
+    expect(
+      refused.interpreter.bindingsManager.getBindingValue(
+        "$skipped",
+        BindingsSpace.USER,
+      ),
+    ).toBe("true");
+    // A valid order inside a collecting block (no send context) is handed
+    // through untouched and the flag reads false.
+    const prepared = await run(`${script("$order", "-?!> $skipped")}`, false);
+    expect(prepared.actions.length).toBeGreaterThan(0);
+    expect(
+      prepared.interpreter.bindingsManager.getBindingValue(
+        "$skipped",
+        BindingsSpace.USER,
+      ),
+    ).toBe("false");
+    expect(reference(prepared.interpreter).params).toBeDefined();
+  });
+
   it("rejects missing bounds, fractions and indivisible input in the DSL", async () => {
     for (const [source, message] of [
       [`swaps:twap $order 12 ${WXDAI} to ${GNO}`, "--parts is required"],
@@ -518,7 +683,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
         `swaps:twap $order 12 ${WXDAI} to ${GNO} --parts 3 --every 60`,
         "Exactly one of --min or --price-protection",
       ],
-      [script().replace(total.toString(), "13"), "exactly divisible"],
+      [script().replace(total.toString(), "2"), "at least --parts"],
       [script().replace("--parts 3", "--parts 2.5"), "integer"],
       [script().replace("--every 3600", "--every 0.5"), "integer"],
       [script().replace(total.toString(), "12.5"), "integer"],
