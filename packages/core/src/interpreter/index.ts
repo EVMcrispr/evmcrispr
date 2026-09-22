@@ -65,6 +65,7 @@ import { getAbiItem, isAddress, parseAbiItem } from "viem";
 import {
   captureStructureIssues,
   runsBlockInline,
+  SMART_BATCH_REQUIRED_REVERT_CAPTURE,
 } from "../errors/captureStructure";
 import {
   capturableDeclaredCause,
@@ -631,15 +632,6 @@ export function makeExecutionResolveHelper(
   };
 }
 
-/**
- * A smart batch compiles its lines into one on-chain plan: a revert aborts
- * the whole batch, so no inner line can observe it. Requiring a revert is
- * an assertion instead — kept in step with the analyzer's
- * `smart-batch-required-capture` diagnostic.
- */
-const SMART_BATCH_REQUIRED_CAPTURE =
-  "required error captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())";
-
 function hasAnyCaptures(c: CommandExpressionNode): boolean {
   return (
     (c.eventCaptures?.length ?? 0) > 0 ||
@@ -690,7 +682,7 @@ export function makeExecutionResolveCommand(
         }
       : undefined;
     if (smart && errorCaptures.some((cap) => !cap.optional)) {
-      panic(c, SMART_BATCH_REQUIRED_CAPTURE);
+      panic(c, SMART_BATCH_REQUIRED_REVERT_CAPTURE);
     }
     if (
       smart &&
@@ -721,6 +713,10 @@ export function makeExecutionResolveCommand(
         blockCommand:
           target.kind === "def" ||
           runsBlockInline(target.module.name, target.localName, c),
+        context: smart ? "smart" : batchContext ? "collecting" : "execution",
+        // Whether the line sends anything is only known once it has run,
+        // so the interpreter judges that case itself.
+        sendsNothing: false,
       });
       if (issue) panic(c, issue.message);
     }

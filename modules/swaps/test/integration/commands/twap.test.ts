@@ -501,7 +501,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
       `set $tokens [${WXDAI} ${GNO} ${usdc} ${sdai}]`,
       `safe:execute ${outer} (`,
       "  loop $token of $tokens (",
-      `    swaps:twap $order max $token to ${sdai} --parts 3 --every 3600 --min 4 --offline true -?!> SameToken $same -?!> BelowMinimum $small -?!> NoBalance $empty`,
+      `    swaps:twap $order max $token to ${sdai} --parts 3 --every 3600 --min 4 --offline true -?/> SameToken $same -?/> BelowMinimum $small -?/> NoBalance $empty`,
       "  )",
       ")",
     ].join("\n");

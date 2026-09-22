@@ -34,6 +34,7 @@ import type { ParseDiagnostic } from "../diagnostics";
 import {
   captureStructureIssues,
   runsBlockInline,
+  SMART_BATCH_REQUIRED_REVERT_CAPTURE,
 } from "../errors/captureStructure";
 import type { DeclarationLookup } from "../errors/declarations";
 import { collectLineDeclaredErrors } from "../errors/declarations";
@@ -840,7 +841,7 @@ class SemanticAnalyzer {
       : this.#meta.importedCommands.get(c.name);
     const owningModule = c.module ?? imported?.module ?? "std";
 
-    this.#checkCaptures(c, owningModule);
+    this.#checkCaptures(c, owningModule, batchStack);
 
     // 0. `load <module>`: target must be registered; import list must be
     //    well-formed and name real exports. With `--from`, the first arg is
@@ -1077,7 +1078,7 @@ class SemanticAnalyzer {
         this.#diagnostics.push(
           diag(
             capture,
-            "required error captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())",
+            SMART_BATCH_REQUIRED_REVERT_CAPTURE,
             "smart-batch-required-capture",
           ),
         );
@@ -2014,7 +2015,11 @@ class SemanticAnalyzer {
   // --- Shared helpers ------------------------------------------------------
 
   /** Structural validation shared by all capture kinds (`->`, `-!>`, `$>`, `$*>`). */
-  #checkCaptures(c: CommandExpressionNode, owningModule: string): void {
+  #checkCaptures(
+    c: CommandExpressionNode,
+    owningModule: string,
+    batchStack: BatchFrame[],
+  ): void {
     // `if`/`loop` (and def commands) execute their inner transactions
     // while interpreting the block. Event and tx captures still work —
     // the interpreter reuses the recorded receipts — but error captures
@@ -2023,7 +2028,19 @@ class SemanticAnalyzer {
     const blockCommand =
       runsBlockInline(owningModule, c.name, c) ||
       (!c.module && this.#meta.defCommands.has(c.name));
-    for (const issue of captureStructureIssues(c, { blockCommand })) {
+    for (const issue of captureStructureIssues(c, {
+      blockCommand,
+      context: batchStack.some((frame) => frame.smart)
+        ? "smart"
+        : batchStack.length > 0
+          ? "collecting"
+          : "execution",
+      // The std commands that are known never to send a transaction: a
+      // revert capture on one of them could never match.
+      sendsNothing:
+        owningModule === "std" &&
+        ["set", "print", "load", "switch"].includes(c.name),
+    })) {
       this.#diagnostics.push(diag(issue.node, issue.message, issue.code));
     }
   }

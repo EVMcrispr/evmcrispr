@@ -193,7 +193,7 @@ loop ${control} extra
     const [action] = await evm.interpret(`batch! (
 loop $i of [1] (
 if @bool!(${target}::!{f()(uint256)} > 0) (
-discard -?!> $failed
+discard -?/> $failed
 )
 exec ${target} "g(uint256)" 7
 )
@@ -308,7 +308,7 @@ exec ${target} "g(uint256)" $v
 
   it("does not leave partial steps after optional compilation error capture", async () => {
     const action = await compile(
-      `exec ${target} "f() returns (uint256,bool)" -> [$x [$bad]] -?!> $failed\nexec ${target} "g(uint256)" 7`,
+      `exec ${target} "f() returns (uint256,bool)" -> [$x [$bad]] -?/> $failed\nexec ${target} "g(uint256)" 7`,
     );
     expect(action.plan.steps).toHaveLength(1);
     expect(action.plan.captures).toHaveLength(0);
@@ -319,7 +319,7 @@ exec ${target} "g(uint256)" $v
 
   it("points required error captures at assert @reverts!", async () => {
     await expect(compile(`exec ${target} "f()" -!> Failure()`)).rejects.toThrow(
-      "required error captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())",
+      "revert captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())",
     );
     await expect(
       compile(`exec ${target} "f()" -> [$x] $*> $txs`),

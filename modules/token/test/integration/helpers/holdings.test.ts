@@ -272,7 +272,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
       [
         `set $tokens [${WXDAI}]`,
         "batch (",
-        `  set $tokens @token:holdings(${HOLDER} bsc) -?!> NoExplorer $missing`,
+        `  set $tokens @token:holdings(${HOLDER} bsc) -?/> NoExplorer $missing`,
         ")",
       ].join("\n"),
     );
@@ -283,7 +283,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
     await required.exec(
       [
         "batch (",
-        `  set $tokens @token:holdings(${HOLDER} bsc) -!> NoExplorer [$chain]`,
+        `  set $tokens @token:holdings(${HOLDER} bsc) -/> NoExplorer [$chain]`,
         ")",
       ].join("\n"),
     );
@@ -297,7 +297,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
       exec(
         [
           "batch (",
-          `  set $tokens @token:holdings(${HOLDER}) -!> NoExplorer`,
+          `  set $tokens @token:holdings(${HOLDER}) -/> NoExplorer`,
           ")",
         ].join("\n"),
       ),

@@ -1032,24 +1032,24 @@ print @x:whatever(5)`,
     });
 
     it("sees a helper's declarations under either arrow", async () => {
-      expect(await semantic("load stub\nset $x @stub:hfail -?!> NoExplorer")).to
+      expect(await semantic("load stub\nset $x @stub:hfail -?/> NoExplorer")).to
         .be.empty;
       expect(
-        await semantic("load stub\nset $x @stub:hfail -!> NoExplorer [$chain]"),
+        await semantic("load stub\nset $x @stub:hfail -/> NoExplorer [$chain]"),
       ).to.be.empty;
       // Binding a field straight into the assignment target.
-      expect(await semantic("load stub\nset $x @stub:hfail -!> Failure [_ $x]"))
+      expect(await semantic("load stub\nset $x @stub:hfail -/> Failure [_ $x]"))
         .to.be.empty;
 
       const ds = await semantic(
-        "load stub\nset $x @stub:hfail -!> NoExplorer [$chain $extra]",
+        "load stub\nset $x @stub:hfail -/> NoExplorer [$chain $extra]",
       );
       expect(declarationCodes(ds)).to.deep.equal(["error-capture-destructure"]);
     });
 
     it("finds a helper nested in an array and in an option value", async () => {
       expect(
-        await semantic("load stub\nset $x [1 @stub:hfail] -?!> NoExplorer"),
+        await semantic("load stub\nset $x [1 @stub:hfail] -?/> NoExplorer"),
       ).to.be.empty;
       const ds = await semantic(
         "load stub\nstub:optone --foo @stub:hfail -?!> NoExplorre",
