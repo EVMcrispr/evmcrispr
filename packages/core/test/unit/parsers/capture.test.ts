@@ -294,6 +294,7 @@ describe("Parsers - error capture", () => {
       );
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "InsufficientBalance",
         errorParams: ["uint256", "uint256"],
         optional: false,
@@ -308,6 +309,7 @@ describe("Parsers - error capture", () => {
       );
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "InsufficientBalance",
         errorParams: ["uint256"],
         optional: true,
@@ -322,6 +324,7 @@ describe("Parsers - error capture", () => {
       );
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Error",
         errorParams: ["string"],
         optional: false,
@@ -336,6 +339,7 @@ describe("Parsers - error capture", () => {
       );
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Panic",
         errorParams: ["uint256"],
         optional: false,
@@ -347,6 +351,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-!> [$reason]");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         optional: false,
         captures: ["reason"],
       });
@@ -358,6 +363,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-?!> [$reason]");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         optional: true,
         captures: ["reason"],
       });
@@ -368,6 +374,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-!> Unauthorized []");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Unauthorized",
         optional: false,
         captures: [],
@@ -382,6 +389,7 @@ describe("Parsers - error capture", () => {
       );
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "MyError",
         errorParams: ["address", "uint256", "bool"],
         optional: false,
@@ -396,6 +404,7 @@ describe("Parsers - error capture", () => {
       );
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "TupleError",
         errorParams: ["uint256", "(address,uint256)"],
         captures: ["x", [null, "y"]],
@@ -406,6 +415,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-!> Unauthorized()");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Unauthorized",
         errorParams: [],
         optional: false,
@@ -418,6 +428,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-!> Unauthorized");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Unauthorized",
         optional: false,
         captures: [],
@@ -430,6 +441,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-!> Unauthorized() $e");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Unauthorized",
         errorParams: [],
         optional: false,
@@ -442,6 +454,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-?!> Unauthorized() $e");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Unauthorized",
         errorParams: [],
         optional: true,
@@ -457,6 +470,7 @@ describe("Parsers - error capture", () => {
       );
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "InsufficientBalance",
         errorParams: ["uint256", "uint256"],
         optional: true,
@@ -469,6 +483,7 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-!> $e");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         optional: false,
         captures: [],
         boolVar: "e",
@@ -480,11 +495,67 @@ describe("Parsers - error capture", () => {
       const result = runParser(errorCaptureParser, "-?!> $caught");
       expect(result).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         optional: true,
         captures: [],
         boolVar: "caught",
       });
       expect(result.errorName).to.be.undefined;
+    });
+
+    it("should parse a required refusal capture with named error", () => {
+      const result = runParser(errorCaptureParser, "-/> SameToken");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        timing: "refusal",
+        optional: false,
+        errorName: "SameToken",
+      });
+    });
+
+    it("should parse an optional refusal capture with named error and destructure", () => {
+      const result = runParser(errorCaptureParser, "-?/> NoExplorer [$chain]");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        timing: "refusal",
+        optional: true,
+        captures: ["chain"],
+      });
+    });
+
+    it("should parse an optional generic refusal capture with bool var", () => {
+      const result = runParser(errorCaptureParser, "-?/> $refused");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        timing: "refusal",
+        optional: true,
+        captures: [],
+        boolVar: "refused",
+      });
+      expect(result.errorName).to.be.undefined;
+    });
+
+    it("should parse a required generic refusal capture with destructure", () => {
+      const result = runParser(errorCaptureParser, "-/> [$reason]");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        timing: "refusal",
+        optional: false,
+        captures: ["reason"],
+      });
+      expect(result.errorName).to.be.undefined;
+    });
+
+    it("should parse a required revert capture with named error and destructure", () => {
+      const result = runParser(errorCaptureParser, "-!> Error(string) [$r]");
+      expect(result).to.deep.include({
+        type: "ErrorCapture",
+        timing: "revert",
+        optional: false,
+        errorName: "Error",
+        errorParams: ["string"],
+        captures: ["r"],
+      });
     });
   });
 
@@ -499,6 +570,7 @@ describe("Parsers - error capture", () => {
       expect(result.errorCaptures).to.have.lengthOf(1);
       expect(result.errorCaptures[0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "InsufficientBalance",
         errorParams: ["uint256", "uint256"],
         optional: false,
@@ -515,6 +587,7 @@ describe("Parsers - error capture", () => {
       expect(result.errorCaptures).to.have.lengthOf(1);
       expect(result.errorCaptures[0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Error",
         errorParams: ["string"],
         optional: true,
@@ -530,6 +603,7 @@ describe("Parsers - error capture", () => {
       expect(result.errorCaptures).to.have.lengthOf(1);
       expect(result.errorCaptures[0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         optional: false,
         captures: ["reason"],
       });
@@ -553,6 +627,7 @@ describe("Parsers - error capture", () => {
       expect(result.errorCaptures).to.have.lengthOf(1);
       expect(result.errorCaptures[0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Error",
         errorParams: ["string"],
         captures: ["reason"],
@@ -575,6 +650,7 @@ describe("Parsers - error capture", () => {
       expect(batchNode.errorCaptures).to.have.lengthOf(1);
       expect(batchNode.errorCaptures![0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Error",
         errorParams: ["string"],
         optional: false,
@@ -590,6 +666,7 @@ describe("Parsers - error capture", () => {
       expect(result.errorCaptures).to.have.lengthOf(1);
       expect(result.errorCaptures[0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Unauthorized",
         errorParams: [],
         optional: false,
@@ -606,6 +683,7 @@ describe("Parsers - error capture", () => {
       expect(result.errorCaptures).to.have.lengthOf(1);
       expect(result.errorCaptures[0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         errorName: "Unauthorized",
         errorParams: [],
         optional: true,
@@ -622,11 +700,50 @@ describe("Parsers - error capture", () => {
       expect(result.errorCaptures).to.have.lengthOf(1);
       expect(result.errorCaptures[0]).to.deep.include({
         type: "ErrorCapture",
+        timing: "revert",
         optional: true,
         captures: [],
         boolVar: "reverted",
       });
       expect(result.errorCaptures[0].errorName).to.be.undefined;
+    });
+
+    it("should parse mixed refusal and revert captures in source order", () => {
+      const result = runParser(
+        commandExpressionParser,
+        'exec $c "f()" -?/> A -?!> B()',
+      );
+      expect(result.errorCaptures).to.have.lengthOf(2);
+      expect(result.errorCaptures[0]).to.deep.include({
+        type: "ErrorCapture",
+        timing: "refusal",
+        optional: true,
+        errorName: "A",
+      });
+      expect(result.errorCaptures[1]).to.deep.include({
+        type: "ErrorCapture",
+        timing: "revert",
+        optional: true,
+        errorName: "B",
+        errorParams: [],
+      });
+    });
+
+    it("should not lex a -/> glued to a preceding token as an arrow", () => {
+      const result = runParser(
+        commandExpressionParser,
+        "exec $c foo-/> SameToken",
+      );
+      expect(result.errorCaptures).to.be.undefined;
+      expect(result.args).to.have.lengthOf(3);
+      expect(result.args[1]).to.deep.include({
+        type: "Bareword",
+        value: "foo-/>",
+      });
+      expect(result.args[2]).to.deep.include({
+        type: "Bareword",
+        value: "SameToken",
+      });
     });
   });
 });

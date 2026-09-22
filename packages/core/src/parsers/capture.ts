@@ -270,26 +270,42 @@ export const eventCaptureParser: NodeParser<EventCaptureNode> = recursiveParser(
 // ── Error capture parsers ────────────────────────────────────────────
 
 /**
- * Matches `-?!>` (optional) or `-!>` (required) error capture arrow.
- * Returns `true` for optional (`-?!>`), `false` for required (`-!>`).
+ * The four error-capture arrow tokens, longest first so the parser choice
+ * doesn't stop on a shorter prefix of a longer token.
+ *
+ *   `-?/>` optional refusal   `-/>` required refusal
+ *   `-?!>` optional revert    `-!>` required revert
+ */
+export const ERROR_CAPTURE_ARROWS = ["-?/>", "-/>", "-?!>", "-!>"] as const;
+
+/**
+ * Matches one of the four error-capture arrows and maps it to its timing
+ * ("refusal" = build-time failure of the line, "revert" = on-chain
+ * failure of its transaction) and whether it's optional.
  */
 const errorCaptureArrowParser = choice([
-  str("-?!>").map(() => true),
-  str("-!>").map(() => false),
+  str("-?/>").map(() => ({ timing: "refusal", optional: true }) as const),
+  str("-/>").map(() => ({ timing: "refusal", optional: false }) as const),
+  str("-?!>").map(() => ({ timing: "revert", optional: true }) as const),
+  str("-!>").map(() => ({ timing: "revert", optional: false }) as const),
 ]);
 
 /**
- * Look-ahead that checks for `-!>` or `-?!>` without consuming.
+ * Look-ahead that checks for any of the four error-capture arrows without
+ * consuming.
  */
 export const errorCaptureArrowLookahead = lookAhead(
-  sequenceOf([choice([str("-?!>"), str("-!>")]), whitespace]),
+  sequenceOf([
+    choice(ERROR_CAPTURE_ARROWS.map((arrow) => str(arrow))),
+    whitespace,
+  ]),
 );
 
 /**
  * Matches a complete error capture clause:
- *   `(-!> | -?!>) ErrorName(params)? ([captures] | $boolVar)?`
- *   `(-!> | -?!>) [captures]`           (generic catch-all + destructure)
- *   `(-!> | -?!>) $boolVar`             (generic catch-all + bool var)
+ *   `(-/> | -?/> | -!> | -?!>) ErrorName(params)? ([captures] | $boolVar)?`
+ *   `(-/> | -?/> | -!> | -?!>) [captures]`  (generic catch-all + destructure)
+ *   `(-/> | -?/> | -!> | -?!>) $boolVar`    (generic catch-all + bool var)
  *
  * Examples:
  *   `-!> InsufficientBalance(uint256,uint256) [$balance $required]`
@@ -300,12 +316,17 @@ export const errorCaptureArrowLookahead = lookAhead(
  *   `-!> $e`
  *   `-?!> Unauthorized() $e`
  *   `-?!> CustomError(address) [$addr]`
+ *   `-/> SameToken`
+ *   `-?/> NoExplorer [$chain]`
  */
 export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
   () =>
     locate<ErrorCaptureNode>(
       coroutine((run) => {
-        const optional: boolean = run(errorCaptureArrowParser);
+        const { timing, optional } = run(errorCaptureArrowParser) as {
+          timing: "refusal" | "revert";
+          optional: boolean;
+        };
         run(whitespace);
 
         const nextChar = run(
@@ -350,12 +371,12 @@ export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
           }
         }
 
-        return [optional, errorName, errorParams, captures, boolVar];
+        return [timing, optional, errorName, errorParams, captures, boolVar];
       }).errorMap((err) =>
         buildParserError(
           err,
           CAPTURE_PARSER_ERROR,
-          "Invalid error capture. Syntax: -!> ErrorName(types)? ([$var …] | $boolVar)?",
+          "Invalid error capture. Syntax: (-/> | -?/> | -!> | -?!>) ErrorName(types)? ([$var …] | $boolVar)?",
         ),
       ),
       ({
@@ -363,11 +384,12 @@ export const errorCaptureParser: NodeParser<ErrorCaptureNode> = recursiveParser(
         index,
         result: [
           initialContext,
-          [optional, errorName, errorParams, captures, boolVar],
+          [timing, optional, errorName, errorParams, captures, boolVar],
         ],
       }) => {
         const node: ErrorCaptureNode = {
           type: NodeType.ErrorCapture,
+          timing: timing as "refusal" | "revert",
           optional: optional as boolean,
           captures: captures as DestructureSlot[],
           loc: createNodeLocation(initialContext, {

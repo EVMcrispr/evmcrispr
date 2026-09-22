@@ -156,11 +156,18 @@ export interface EventCaptureNode extends Node {
 
 export interface ErrorCaptureNode extends Node {
   type: NodeType.ErrorCapture;
+  /**
+   * When the failure this clause catches happens: "refusal" is a
+   * build-time failure of the line itself (`-/>` / `-?/>`, never reaches
+   * the chain); "revert" is an on-chain failure of its transaction
+   * (`-!>` / `-?!>`).
+   */
+  timing: "refusal" | "revert";
   /** Error name (e.g. "InsufficientBalance"). Undefined = generic catch-all. */
   errorName?: string;
   /** Inline error param types from ErrorName(uint,address) syntax. */
   errorParams?: string[];
-  /** If true, this is -?!> (optional -- no error is not a failure). */
+  /** If true, this is the optional arrow variant (no failure is not an error). */
   optional: boolean;
   /** Positional capture slots (variable names without $, null = skip, array = nested). */
   captures: DestructureSlot[];

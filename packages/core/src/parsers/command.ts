@@ -25,6 +25,7 @@ import {
 } from "arcsecond";
 import {
   captureSlotsParser,
+  ERROR_CAPTURE_ARROWS,
   errorCaptureParser,
   eventCaptureParser,
   txCaptureParser,
@@ -109,7 +110,11 @@ const returnCaptureArrowLookahead = lookAhead(
 );
 
 const errorCaptureArrowLookahead = lookAhead(
-  sequenceOf([whitespace, choice([str("-?!>"), str("-!>")]), whitespace]),
+  sequenceOf([
+    whitespace,
+    choice(ERROR_CAPTURE_ARROWS.map((arrow) => str(arrow))),
+    whitespace,
+  ]),
 );
 
 const txCaptureArrowLookahead = lookAhead(
@@ -237,7 +242,10 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
               run(
                 possibly(
                   lookAhead(
-                    sequenceOf([whitespace, choice([str("-?!>"), str("-!>")])]),
+                    sequenceOf([
+                      whitespace,
+                      choice(ERROR_CAPTURE_ARROWS.map((arrow) => str(arrow))),
+                    ]),
                   ),
                 ),
               )
