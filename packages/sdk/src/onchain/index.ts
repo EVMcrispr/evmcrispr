@@ -30,3 +30,4 @@ export * from "./reads";
 export * from "./recipes";
 
 export * from "./types";
+export * from "./word-constraints";

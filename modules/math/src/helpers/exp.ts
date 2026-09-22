@@ -8,13 +8,13 @@ import {
 } from "@evmcrispr/sdk";
 import type { Operand } from "@evmcrispr/sdk/onchain";
 import {
-  CONSTRAINT_TYPE,
   compileOperand,
   constBigInt,
+  constraint,
+  constrainWord,
   materializeWord,
   OP_SELECTORS,
   opReadParam,
-  toWord,
 } from "@evmcrispr/sdk/onchain";
 import type MathModule from "..";
 
@@ -54,16 +54,7 @@ export default defineHelper<MathModule>({
     const param = materializeWord(ctx, o);
     const signedParam =
       o.cat === "Uint"
-        ? {
-            ...param,
-            constraints: [
-              ...param.constraints,
-              {
-                constraintType: CONSTRAINT_TYPE.Lte,
-                referenceData: toWord(INT256_MAX),
-              },
-            ],
-          }
+        ? constrainWord(ctx, param, constraint("Lte", INT256_MAX))
         : param;
     return {
       kind: "call",

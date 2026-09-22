@@ -3,7 +3,6 @@ import { checkedInteger, checkedRange, ErrorException } from "@evmcrispr/sdk";
 import type { CompileCtx, InputParam, Operand } from "@evmcrispr/sdk/onchain";
 import {
   buildCall,
-  CONSTRAINT_TYPE,
   CORE_ABI,
   callParam,
   canonicalArgSpec,
@@ -11,6 +10,8 @@ import {
   compileCheckedExpr,
   concatenateResolved,
   constBigInt,
+  constraint,
+  constrainWord,
   encodeNav,
   materializeWord,
   rawParam,
@@ -33,13 +34,7 @@ export async function indexParam(
     return param;
   }
   return value.cat === "Uint"
-    ? {
-        ...param,
-        constraints: [
-          ...param.constraints,
-          { constraintType: CONSTRAINT_TYPE.Lte, referenceData: toWord(max) },
-        ],
-      }
+    ? constrainWord(ctx, param, constraint("Lte", max))
     : param;
 }
 
