@@ -24,6 +24,7 @@ import { type Alias, defineConfig, type Plugin } from "vite";
 const MODULE_PREFIX = "@evmcrispr/module-";
 const VIRTUAL_ID = "virtual:evmcrispr-modules";
 const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
+const APP_DIR = import.meta.dirname;
 
 function evmcrisprModules(modulesDir: string): Plugin {
   const aliases: Alias[] = [];
@@ -167,60 +168,61 @@ function monacoAssets(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  envDir: path.resolve(__dirname, "../.."),
+  envDir: path.resolve(APP_DIR, "../.."),
   // PUBLIC_ vars are shared with the Astro website (same names, e.g.
   // PUBLIC_SITE_URL) so one deploy config serves both apps.
   envPrefix: ["VITE_", "PUBLIC_"],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(APP_DIR, "./src"),
+      // arcsecond has a dead CommonJS `require("util")` fallback for
+      // browsers without TextEncoder. Alias it before Vite resolves Node
+      // builtins so it does not externalize the import or warn.
+      util: path.resolve(APP_DIR, "../../packages/core/src/browser-util.ts"),
       "@evmcrispr/core/package.json": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/core/package.json",
       ),
       "@evmcrispr/editor/styles/components.css": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/editor/src/styles/components.css",
       ),
       "@evmcrispr/editor/monaco": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/editor/src/editor/MonacoEditor.tsx",
       ),
       "@evmcrispr/editor": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/editor/src/index.ts",
       ),
-      "@evmcrispr/ai": path.resolve(
-        __dirname,
-        "../../packages/ai/src/index.ts",
-      ),
+      "@evmcrispr/ai": path.resolve(APP_DIR, "../../packages/ai/src/index.ts"),
       // Sub-path exports before the base alias so they match first
       "@evmcrispr/core/worker-client": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/core/src/worker/client.ts",
       ),
       "@evmcrispr/core/worker": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/core/src/worker/expose.ts",
       ),
       "@evmcrispr/core": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/core/src/index.ts",
       ),
       "@evmcrispr/modules/order": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/modules/src/order.ts",
       ),
       "@evmcrispr/modules/chains": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/modules/src/chains.ts",
       ),
       "@evmcrispr/sdk/onchain": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/sdk/src/onchain/index.ts",
       ),
       "@evmcrispr/sdk": path.resolve(
-        __dirname,
+        APP_DIR,
         "../../packages/sdk/src/index.ts",
       ),
     },
@@ -235,7 +237,7 @@ export default defineConfig({
     exclude: ["@noir-lang/noir_wasm"],
   },
   plugins: [
-    evmcrisprModules(path.resolve(__dirname, "../../modules")),
+    evmcrisprModules(path.resolve(APP_DIR, "../../modules")),
     fixNoirWasmInfinityTdz(),
     monacoAssets(),
     // Stub out @metamask/sdk – wagmi dynamically imports it inside a
@@ -248,24 +250,6 @@ export default defineConfig({
       },
       load(id) {
         if (id === "\0metamask-sdk-stub") return "export default {};";
-      },
-    },
-    // arcsecond's entry has a dead `require('util')` fallback for environments
-    // without a global TextEncoder. Browsers always have one, but Vite still
-    // warns about externalizing the node builtin. Resolve `util` to a stub
-    // when imported from arcsecond.
-    {
-      name: "stub-util-in-arcsecond",
-      enforce: "pre",
-      resolveId(id, importer) {
-        if (id === "util" && importer?.includes("/arcsecond/")) {
-          return "\0arcsecond-util-stub";
-        }
-      },
-      load(id) {
-        if (id === "\0arcsecond-util-stub") {
-          return "export const TextEncoder = globalThis.TextEncoder; export const TextDecoder = globalThis.TextDecoder;";
-        }
       },
     },
     // Serve the static OAuth callback page at its extensionless registered
@@ -290,13 +274,17 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
+    // Noir's compiler and Monaco's language workers are separate, lazy-loaded
+    // runtime artifacts. They are intentionally larger than Vite's generic
+    // application-chunk heuristic and do not delay the terminal's initial UI.
+    chunkSizeWarningLimit: 20_000,
     rollupOptions: {
       // Second HTML entry: the Nexus auth broker page other sites embed in
       // an iframe to run "Login with Dappnode Nexus" on this (allow-listed)
       // origin. See @evmcrispr/ai's nexus-broker module.
       input: {
-        main: path.resolve(__dirname, "index.html"),
-        "nexus-broker": path.resolve(__dirname, "auth/nexus/broker/index.html"),
+        main: path.resolve(APP_DIR, "index.html"),
+        "nexus-broker": path.resolve(APP_DIR, "auth/nexus/broker/index.html"),
       },
       // Externalize @metamask/sdk's uninstalled transitive browser deps.
       // cross-fetch does NOT belong here: WalletConnect's HTTP JSON-RPC
@@ -337,7 +325,7 @@ export default defineConfig({
     // `virtual:evmcrispr-modules` module must resolve there too (aliases
     // are shared via the root `resolve` config).
     plugins: () => [
-      evmcrisprModules(path.resolve(__dirname, "../../modules")),
+      evmcrisprModules(path.resolve(APP_DIR, "../../modules")),
       fixNoirWasmInfinityTdz(),
     ],
     rollupOptions: {

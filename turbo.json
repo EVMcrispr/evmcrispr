@@ -1,6 +1,5 @@
 {
   "$schema": "https://v2-9-7.turborepo.dev/schema.json",
-  "daemon": false,
   "globalPassThroughEnv": [
     "ASSERTIONS_ARTIFACTS",
     "EEZ_DEVNET",

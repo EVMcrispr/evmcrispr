@@ -441,5 +441,21 @@ export default defineConfig({
   ],
   vite: {
     plugins: [tailwindcss(), monacoAssets()],
+    resolve: {
+      alias: {
+        // arcsecond's Node fallback is unreachable in browsers but Vite sees
+        // its CommonJS `require("util")` unless it is aliased before builtin
+        // resolution.
+        util: resolve(
+          import.meta.dirname,
+          "../../packages/core/src/browser-util.ts",
+        ),
+      },
+    },
+    build: {
+      // Monaco's workers are loaded on demand by the embedded terminal, not
+      // on the documentation site's initial route.
+      chunkSizeWarningLimit: 7_000,
+    },
   },
 });

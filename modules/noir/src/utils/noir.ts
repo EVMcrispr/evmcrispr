@@ -91,6 +91,15 @@ type NoirWasm = typeof import("@noir-lang/noir_wasm");
 
 let noirWasmPromise: Promise<NoirWasm> | undefined;
 
+/**
+ * Keep Node-only helpers out of browser bundles. The call is reached only by
+ * the Node branch below; `@vite-ignore` prevents Vite from resolving Node
+ * builtins while it builds the browser implementation.
+ */
+function importNode<T>(specifier: string): Promise<T> {
+  return import(/* @vite-ignore */ specifier) as Promise<T>;
+}
+
 /** Load the Noir compiler on first use — it must never load with the module. */
 function loadNoirWasm(): Promise<NoirWasm> {
   if (!noirWasmPromise) {
@@ -132,9 +141,13 @@ async function compileNoirFresh(
   const isNode = typeof process !== "undefined" && !!process.versions?.node;
   let dataDir = "/";
   if (isNode) {
-    const { mkdtemp } = await import("node:fs/promises");
-    const { tmpdir } = await import("node:os");
-    const { join } = await import("node:path");
+    const { mkdtemp } = await importNode<{
+      mkdtemp(prefix: string): Promise<string>;
+    }>("node:fs/promises");
+    const { tmpdir } = await importNode<{ tmpdir(): string }>("node:os");
+    const { join } = await importNode<{
+      join(...paths: string[]): string;
+    }>("node:path");
     dataDir = await mkdtemp(join(tmpdir(), "evmcrispr-noir-"));
   }
   const fm = createFileManager(dataDir);

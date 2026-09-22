@@ -1,7 +1,6 @@
 /* ── Load fonts (same as landing page) ─────────────────────── */
 @import "@fontsource/jetbrains-mono";
 @import "@fontsource/jetbrains-mono/700.css";
-@import "@repo/ui/styles/theme.css" layer(theme);
 
 /* ── Map Starlight CSS variables to EVMcrispr theme ────────── */
 /* Apply to both :root and [data-theme='light'] to force dark-only */
