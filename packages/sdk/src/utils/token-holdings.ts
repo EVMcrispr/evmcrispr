@@ -1,5 +1,7 @@
 import { getAddress, isAddress } from "viem";
 
+import { ErrorException } from "../errors";
+
 import type { Address } from "../types";
 import { BLOCKSCOUT_HOSTS } from "./blockscout";
 
@@ -70,14 +72,55 @@ function parseHoldings(json: unknown): TokenHolding[] | null {
   return holdings;
 }
 
+/** Ask one Blockscout instance, or throw with what went wrong. */
+async function requestHoldings(
+  host: string,
+  address: Address,
+): Promise<TokenHolding[]> {
+  const url = `https://${host}/api/v2/addresses/${address}/token-balances`;
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    throw new ErrorException(
+      `could not reach the explorer at ${host}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  if (!res.ok)
+    throw new ErrorException(
+      `the explorer at ${host} answered ${res.status}${res.statusText ? ` ${res.statusText}` : ""} for ${address}`,
+    );
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch (err) {
+    throw new ErrorException(
+      `the explorer at ${host} returned an unreadable response: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  const holdings = parseHoldings(body);
+  if (holdings === null)
+    throw new ErrorException(
+      `the explorer at ${host} returned a token-balances payload that is not a list`,
+    );
+  return holdings;
+}
+
 /**
  * Fetch the ERC-20 tokens an address holds with a nonzero balance from the
  * chain's Blockscout instance (keyless), in the explorer's order (by fiat
  * value where it knows one).
  *
- * Returns `null` when no source could answer (no Blockscout host for the
- * chain, or the request failed) — distinct from an empty array, which
- * means the address genuinely holds no ERC-20.
+ * Three distinct answers, because a caller that skips a chain it cannot
+ * serve must not skip a chain whose explorer is merely down:
+ *
+ * - `null` — the chain has no configured Blockscout instance. Nothing was
+ *   asked, and nothing ever could be.
+ * - `[]` — the explorer answered: the address holds no ERC-20.
+ * - throws `ErrorException` — the request failed, the explorer answered
+ *   with a non-OK status, or its payload was not a token-balances list.
+ *
+ * Answers are cached briefly, outages never are.
  */
 export async function fetchTokenHoldings(
   chainId: number,
@@ -88,18 +131,8 @@ export async function fetchTokenHoldings(
   const hit = cache.get(key);
   if (hit && hit.expires > Date.now()) return hit.value;
 
-  let value: TokenHolding[] | null = null;
   const host = BLOCKSCOUT_HOSTS[chainId];
-  if (host) {
-    try {
-      const res = await fetch(
-        `https://${host}/api/v2/addresses/${normalized}/token-balances`,
-      );
-      if (res.ok) value = parseHoldings(await res.json());
-    } catch {
-      value = null;
-    }
-  }
+  const value = host ? await requestHoldings(host, normalized) : null;
 
   if (cache.size >= MAX_ENTRIES) {
     const oldest = cache.keys().next().value;

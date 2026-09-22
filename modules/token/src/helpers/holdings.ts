@@ -2,13 +2,13 @@ import type { Address } from "@evmcrispr/sdk";
 import {
   chainLabel,
   defineHelper,
-  ErrorException,
   fetchTokenHoldings,
   resolveChainId,
 } from "@evmcrispr/sdk";
 import type Token from "..";
+import { HOLDINGS_ERRORS } from "../holdings/errors";
 
-export default defineHelper<Token>({
+export default defineHelper<Token, typeof HOLDINGS_ERRORS>({
   name: "holdings",
   batchable: false,
   experimental: true,
@@ -24,12 +24,18 @@ export default defineHelper<Token>({
       description: "Chain to look on (default: current chain)",
     },
   ],
-  async run(module, { address, chain }) {
+  errors: HOLDINGS_ERRORS,
+  async run(module, { address, chain }, { fail }) {
     const chainId =
       chain !== undefined ? resolveChainId(chain) : await module.getChainId();
+    // `null` is the only "this chain has no explorer" answer: a failing
+    // request throws, and is no business of a NoExplorer capture.
     const holdings = await fetchTokenHoldings(chainId, address as Address);
+    // `fail` never returns; `return` says so to the type checker too.
     if (holdings === null)
-      throw new ErrorException(
+      return fail(
+        "NoExplorer",
+        { chainId },
         `could not list the tokens of ${address} on ${chainLabel(chainId)} — token holdings need a chain with a Blockscout instance`,
       );
     return holdings.map((holding) => holding.token);
