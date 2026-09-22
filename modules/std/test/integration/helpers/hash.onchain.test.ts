@@ -25,7 +25,7 @@ describeCommand("assert (@hash! algorithms)", {
   cases: [
     {
       name: "compiles the sha256 branch through a rawCall to precompile 0x02",
-      script: `assert @hash!(${TOKEN}::{name()(string)} "sha256") == ${DIGEST}`,
+      script: `assert @hash!(${TOKEN}::!{name()(string)} "sha256") == ${DIGEST}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // The digest is the third word of the returned bytes envelope.
@@ -47,7 +47,7 @@ describeCommand("assert (@hash! algorithms)", {
     },
     {
       name: "keeps the keccak256 branch on the Operations hash",
-      script: `assert @hash!(${TOKEN}::{name()(string)} "keccak256") == ${DIGEST}`,
+      script: `assert @hash!(${TOKEN}::!{name()(string)} "keccak256") == ${DIGEST}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, "hash(bytes)");
@@ -59,7 +59,7 @@ describeCommand("assert (@hash! algorithms)", {
   errorCases: [
     {
       name: "rejects an unknown on-chain algorithm",
-      script: `assert @hash!(${TOKEN}::{name()(string)} "blake2b") == ${DIGEST}`,
+      script: `assert @hash!(${TOKEN}::!{name()(string)} "blake2b") == ${DIGEST}`,
       error: "not supported at assertion time",
     },
   ],

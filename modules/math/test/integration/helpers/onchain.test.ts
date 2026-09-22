@@ -19,7 +19,7 @@ const d = createAssertDecoders({
 });
 
 /** A live uint read to put on the left of a fixed-point call. */
-const RATE = `${TOKEN}::{ratePerSecond()(uint256)}`;
+const RATE = `${TOKEN}::!{ratePerSecond()(uint256)}`;
 
 describeCommand("assert (math fixed-point faces)", {
   describeName: "Math > helpers > fixed-point on-chain faces",
@@ -75,7 +75,7 @@ describeCommand("assert (math fixed-point faces)", {
     },
     {
       name: "rejects a signed @pow! operand",
-      script: `assert @math:pow!(${TOKEN}::{drift()(int256)} 2) > 0`,
+      script: `assert @math:pow!(${TOKEN}::!{drift()(int256)} 2) > 0`,
       error: "unsigned operands",
     },
   ],

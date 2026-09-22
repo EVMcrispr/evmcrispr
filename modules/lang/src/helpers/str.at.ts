@@ -46,7 +46,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@str.at! expects (call index), e.g. @str.at!($pool::symbol() 0)",
+        "@str.at! expects (call index), e.g. @str.at!($pool::!{symbol()(string)} 0)",
       );
     }
     const arg = await chainArgWithLens(ctx, "str.at!", node.args[0]);

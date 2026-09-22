@@ -351,7 +351,7 @@ export async function compileAssertion(
       expectedWord = asWord(requireNum(cnst, "the expected value"));
       if (expectedWord < 0n) {
         throw new ErrorException(
-          "cannot compare an unsigned return against a negative value: cast the return as int256 with an inline ABI, e.g. ::{method()(int256)}",
+          "cannot compare an unsigned return against a negative value: cast the return as int256 with an inline ABI, e.g. ::!{method()(int256)}",
         );
       }
       break;

@@ -65,7 +65,7 @@ export default defineHelper<Crypto>({
         );
       }
       throw new ErrorException(
-        "@merkle.verify! expects (root leaf proof), e.g. @merkle.verify!($root 0xleaf… $dist::proofOf(@me))",
+        "@merkle.verify! expects (root leaf proof), e.g. @merkle.verify!($root 0xleaf… $dist::!{proofOf(address)(bytes32[]) @me})",
       );
     }
     const root = await compileOperand(ctx, node.args[0]);

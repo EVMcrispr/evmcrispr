@@ -61,7 +61,7 @@ describe("typed collection execution", () => {
       encodeAbiParameters([{ type: "string[]" }], [["123", "456"]]),
     );
     // bytes and string have identical ABI encoding, but callbacks require exact declared types.
-    const preamble = `def @length! "$x: string -> number" ${OPERATIONS_ADDRESS}::{byteLen(bytes)(uint256) $x}`;
+    const preamble = `def @length! "$x: string -> number" ${OPERATIONS_ADDRESS}::!{byteLen(bytes)(uint256) $x}`;
     await expect(
       resolve(
         `@map!(${SOURCE}::{values()(string[])} @length!)`,
@@ -76,7 +76,7 @@ describe("typed collection execution", () => {
       SOURCE,
       encodeAbiParameters([{ type: "bytes[]" }], [["0x1234", "0xabcdef"]]),
     );
-    const preamble = `def @length! "$x: bytes -> number" ${OPERATIONS_ADDRESS}::{byteLen(bytes)(uint256) $x}`;
+    const preamble = `def @length! "$x: bytes -> number" ${OPERATIONS_ADDRESS}::!{byteLen(bytes)(uint256) $x}`;
     expect(
       await resolve(
         `@map!(${SOURCE}::{values()(bytes[])} @length!)`,
@@ -105,7 +105,7 @@ describe("typed collection execution", () => {
       encodeAbiParameters([{ type: "bytes[]" }], [["0x61", "0x62", "0x6161"]]),
     );
     const mask = 1n << 97n;
-    const preamble = `def @onlyA! "$x: bytes -> bool" ${OPERATIONS_ADDRESS}::{charset(bytes,uint256)(bool) $x ${mask}}`;
+    const preamble = `def @onlyA! "$x: bytes -> bool" ${OPERATIONS_ADDRESS}::!{charset(bytes,uint256)(bool) $x ${mask}}`;
     expect(
       await resolve(
         `@filter!(${SOURCE}::{values()(bytes[])} @onlyA!)`,
@@ -120,8 +120,8 @@ describe("typed collection execution", () => {
       SOURCE,
       encodeAbiParameters([{ type: "int256[]" }], [[3n, -2n, 1n]]),
     );
-    const defs = `def @cmp! "$a: number $b: number -> number" ${OPERATIONS_ADDRESS}::{sub(int256,int256)(int256) $a $b}
-  def @sum! "$a: number $b: number -> number" ${OPERATIONS_ADDRESS}::{add(int256,int256)(int256) $a $b}`;
+    const defs = `def @cmp! "$a: number $b: number -> number" ${OPERATIONS_ADDRESS}::!{sub(int256,int256)(int256) $a $b}
+  def @sum! "$a: number $b: number -> number" ${OPERATIONS_ADDRESS}::!{add(int256,int256)(int256) $a $b}`;
     expect(
       await resolve(
         `@sort!(${SOURCE}::{values()(int256[])} @cmp!)`,
@@ -150,7 +150,7 @@ describe("typed collection execution", () => {
       maskAddress,
       encodeAbiParameters([{ type: "uint256" }], [1n << 97n]),
     );
-    const preamble = `def @allowed! "$x: bytes -> bool" ${OPERATIONS_ADDRESS}::{charset(bytes,uint256)(bool) $x ${maskAddress}::{mask()(uint256)}}`;
+    const preamble = `def @allowed! "$x: bytes -> bool" ${OPERATIONS_ADDRESS}::!{charset(bytes,uint256)(bool) $x ${maskAddress}::!{mask()(uint256)}}`;
     expect(
       await resolve(
         `@filter!(${SOURCE}::{values()(bytes[])} @allowed!)`,
@@ -197,7 +197,7 @@ describe("typed collection execution", () => {
       target,
       encodeAbiParameters([{ type: "int256" }], [-1n]),
     );
-    const preamble = `def @project! "$x: (int256,string) -> int256" ${target}::{project((int256,string))(int256) $x}`;
+    const preamble = `def @project! "$x: (int256,string) -> int256" ${target}::!{project((int256,string))(int256) $x}`;
     expect(
       await resolve(
         `@map!(${SOURCE}::{values()((int256,string)[])} @project!)`,
@@ -279,7 +279,7 @@ describe("typed collection execution", () => {
       predicate,
       encodeAbiParameters([{ type: "bool" }], [true]),
     );
-    const preamble = `def @equivalent! "$a: bytes $b: bytes -> bool" ${predicate}::{equal(bytes,bytes)(bool) $a $b}`;
+    const preamble = `def @equivalent! "$a: bytes $b: bytes -> bool" ${predicate}::!{equal(bytes,bytes)(bool) $a $b}`;
     expect(
       await resolve(
         `@unique!(${SOURCE}::{values()(bytes[])} @equivalent!)`,
@@ -294,7 +294,7 @@ describe("typed collection execution", () => {
       SOURCE,
       encodeAbiParameters([{ type: "bytes[]" }], [["0x62", "0x63"]]),
     );
-    const preamble = `def @replaceA! "$acc: bytes $item: bytes -> bytes" ${OPERATIONS_ADDRESS}::{replace(bytes,bytes,bytes)(bytes) $acc 0x61 $item}`;
+    const preamble = `def @replaceA! "$acc: bytes $item: bytes -> bytes" ${OPERATIONS_ADDRESS}::!{replace(bytes,bytes,bytes)(bytes) $acc 0x61 $item}`;
     expect(
       await resolve(
         `@reduce!(${SOURCE}::{values()(bytes[])} @replaceA! 0x61)`,
@@ -309,7 +309,7 @@ describe("typed collection execution", () => {
       SOURCE,
       encodeAbiParameters([{ type: "int256[]" }], [[1n]]),
     );
-    const preamble = `def @wrong! "$x: uint256 -> int256" ${OPERATIONS_ADDRESS}::{exp(int256,uint256)(int256) $x 1}`;
+    const preamble = `def @wrong! "$x: uint256 -> int256" ${OPERATIONS_ADDRESS}::!{exp(int256,uint256)(int256) $x 1}`;
     await expect(
       resolve(
         `@map!(${SOURCE}::{values()(int256[])} @wrong!)`,

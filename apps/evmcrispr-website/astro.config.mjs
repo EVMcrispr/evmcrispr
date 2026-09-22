@@ -415,6 +415,8 @@ export default defineConfig({
           items: [
             docItem("Simulation", "guides/simulation"),
             docItem("Working with DAOs", "guides/working-with-daos"),
+            docItem("Operating a Safe", "guides/safe"),
+            docItem("Safe Packages from Files", "guides/local-first-safe"),
             docItem("Managing OpenZeppelin Contracts", "guides/openzeppelin"),
             docItem("Zero-Knowledge Proofs", "guides/circom"),
             docItem("Cross-Chain with EEZ", "guides/eez"),

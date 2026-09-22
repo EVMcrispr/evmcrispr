@@ -47,7 +47,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length < 2 || node.args.length > 3) {
       throw new ErrorException(
-        "@str.slice! expects (call start end?), e.g. @str.slice!($pool::name() 0 5)",
+        "@str.slice! expects (call start end?), e.g. @str.slice!($pool::!{name()(string)} 0 5)",
       );
     }
     const arg = await chainArgWithLens(ctx, "str.slice!", node.args[0]);

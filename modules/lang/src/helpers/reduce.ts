@@ -143,7 +143,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 3) {
       throw new ErrorException(
-        "@reduce! expects (call fn initial), e.g. @reduce!($vault::caps() add 0)",
+        "@reduce! expects (call fn initial), e.g. @reduce!($vault::!{caps()(uint256[])} add 0)",
       );
     }
     const array = await arrayArg(ctx, node.args[0], "reduce!");

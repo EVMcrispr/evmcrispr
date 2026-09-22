@@ -177,7 +177,7 @@ contracts:deploy $gate @contracts:solidity($gateSrc contract:Gate) --constructor
 circom:prove $proof --circom $circuit --ptau dev --inputs [secret:$secret commitment:$commitment]
 set [$a $b $c $signals] @circom:proof($proof)
 exec $gate "admit(uint256[2],uint256[2][2],uint256[2],uint256[1])" $a $b $c $signals
-assert $gate::{admitted(address)(bool) @me} == true "admission failed"
+assert $gate::!{admitted(address)(bool) @me} == true "admission failed"
 
 # Publish the source on the chain's explorer, from the same heredoc
 contracts:verify $gate --source $gateSrc --contract-name Gate --constructor "constructor(address,uint256)" --constructor-args [$verifier $commitment]
@@ -199,7 +199,7 @@ sim:fork (
   circom:prove $proof --circom $circuit --ptau dev --inputs [secret:$secret commitment:$commitment]
   set [$a $b $c $signals] @circom:proof($proof)
   exec $gate "admit(uint256[2],uint256[2][2],uint256[2],uint256[1])" $a $b $c $signals
-  assert $gate::{admitted(address)(bool) @me} == true "admission failed"
+  assert $gate::!{admitted(address)(bool) @me} == true "admission failed"
 )
 ```
 

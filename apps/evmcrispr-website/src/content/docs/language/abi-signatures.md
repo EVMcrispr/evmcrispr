@@ -38,6 +38,15 @@ call and can be used anywhere a value is expected:
 set $reserves 0x44fA8E6f47987339850636F88629646662444217::{getReserves()(uint112,uint112,uint32)}
 ```
 
+An inline call runs while the script builds. Inside an on-chain
+expression — an `assert` side, or the arguments of a `!` helper — the call
+is instead read when the assertion is judged, and the operator says so:
+write `::!{...}`. A plain `::{...}` there is an error.
+
+```evml
+assert @token(DAI)::!{balanceOf(address)(uint256) @me} >= 100e18 "short on DAI"
+```
+
 Inline calls chain: when a call returns an address, append another
 `::{...}` to call into it directly:
 

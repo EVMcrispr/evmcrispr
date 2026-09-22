@@ -24,7 +24,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@keys! expects a single record argument, e.g. @keys!(@enumerate!($safe::getOwners()))",
+        "@keys! expects a single record argument, e.g. @keys!(@enumerate!($safe::!{getOwners()(address[])}))",
       );
     }
     const generic = await genericLane(ctx, node.args[0], 0, "keys!");

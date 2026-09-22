@@ -76,7 +76,7 @@ describeCommand("assert (token on-chain faces)", {
     },
     {
       name: "folds a live @allowance! owner into a core read splice",
-      script: `assert @allowance!(DAI ${OWNER}::{treasury()(address)} ${SPENDER}) == 0`,
+      script: `assert @allowance!(DAI ${OWNER}::!{treasury()(address)} ${SPENDER}) == 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { target, selector, segments } = d.readOf(param);

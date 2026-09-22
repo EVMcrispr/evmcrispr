@@ -35,7 +35,8 @@ export default defineHelper<Std>({
       // Both branches arrive unevaluated: which one is worth resolving
       // depends on whether the other failed.
       lazy: true,
-      description: "The read to try first — a `::` call, chain, or helper",
+      description:
+        "The read to try first — a call (`::` at build time, `::!` on-chain), chain, or helper",
     },
     {
       name: "fallback",
@@ -70,7 +71,7 @@ export default defineHelper<Std>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@orElse! expects two branches, e.g. @orElse!($vault::{previewRedeem(uint256)(uint256) 1e18} $vault::{convertToAssets(uint256)(uint256) 1e18})",
+        "@orElse! expects two branches, e.g. @orElse!($vault::!{previewRedeem(uint256)(uint256) 1e18} $vault::!{convertToAssets(uint256)(uint256) 1e18})",
       );
     }
     const first = await compileOperand(ctx, node.args[0]);

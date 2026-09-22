@@ -47,7 +47,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@sum! expects a single call argument, e.g. @sum!($vault::caps())",
+        "@sum! expects a single call argument, e.g. @sum!($vault::!{caps()(uint256[])})",
       );
     }
     const { payload, elemType } = await wordsArg(ctx, node.args[0], "sum!");

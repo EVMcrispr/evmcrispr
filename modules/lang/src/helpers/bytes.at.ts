@@ -40,7 +40,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@bytes.at! expects (call index), e.g. @bytes.at!($oracle::blob() 0)",
+        "@bytes.at! expects (call index), e.g. @bytes.at!($oracle::!{blob()(bytes)} 0)",
       );
     }
     const arg = await chainArgWithLens(ctx, "bytes.at!", node.args[0]);

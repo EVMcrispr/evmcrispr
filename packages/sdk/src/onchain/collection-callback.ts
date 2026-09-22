@@ -52,7 +52,6 @@ export async function compileCollectionCallback(
     const names = def.argDefs.map((p) => `$${p.name}`);
     const seen = new Set<string>();
     const simple =
-      !body.bang &&
       !body.returnDestructure &&
       names.every(
         (name) => !JSON.stringify(body.target).includes(JSON.stringify(name)),

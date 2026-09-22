@@ -52,7 +52,7 @@ test("composed callback keeps conditional failure branch lazy", async () => {
   expect(
     await run(
       `@map!(${source}::{get()(string[])} @safe!)`,
-      `def @safe! "$x: string -> string" @ifElse!(@str.len!($x) > 0 ? @str.concat!($x $x) : ${target}::{fail(string)(string) $x})`,
+      `def @safe! "$x: string -> string" @ifElse!(@str.len!($x) > 0 ? @str.concat!($x $x) : ${target}::!{fail(string)(string) $x})`,
     ),
   ).toEqual(["aa", "bcbc"]);
 });
@@ -74,7 +74,7 @@ test("callback call target stays live", async () => {
     `@map!(${source}::{get()(string[])} @identity!)`,
     {
       module: "lang",
-      preamble: `def @identity! "$x: string -> string" ${target}::{get()(address)}::{echo(string)(string) $x}`,
+      preamble: `def @identity! "$x: string -> string" ${target}::!{get()(address)}::!{echo(string)(string) $x}`,
     },
   );
   if (operand.kind !== "call") throw new Error("expected call");
@@ -96,7 +96,7 @@ test("composed fallback catches failure and evaluates only the selected branch",
   expect(
     await run(
       `@map!(${source}::{get()(string[])} @fallback!)`,
-      `def @fallback! "$x: string -> string" @orElse!(${target}::{fail(string)(string) $x} @str.concat!($x $x))`,
+      `def @fallback! "$x: string -> string" @orElse!(${target}::!{fail(string)(string) $x} @str.concat!($x $x))`,
     ),
   ).toEqual(["aa", "bcbc"]);
 });
@@ -110,7 +110,7 @@ test("composed revert probe accepts full dynamic parameters", async () => {
     `@map!(${source}::{get()(string[])} @probe!)`,
     {
       module: "lang",
-      preamble: `def @probe! "$x: string -> bool" @reverts!(${revertTarget}::{fail(string)(string) $x})`,
+      preamble: `def @probe! "$x: string -> bool" @reverts!(${revertTarget}::!{fail(string)(string) $x})`,
     },
   );
   if (operand.kind !== "call") throw new Error("expected call");
@@ -135,7 +135,7 @@ test("composed selector-specific revert probe preserves original call wire", asy
     `@map!(${source}::{get()(string[])} @specific!)`,
     {
       module: "lang",
-      preamble: `def @specific! "$x: string -> bool" @reverts!(${revertTarget}::{fail(string)(string) $x} -!> Unauthorized())`,
+      preamble: `def @specific! "$x: string -> bool" @reverts!(${revertTarget}::!{fail(string)(string) $x} -!> Unauthorized())`,
     },
   );
   if (operand.kind !== "call") throw new Error("expected call");

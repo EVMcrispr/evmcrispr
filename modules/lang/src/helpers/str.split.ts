@@ -57,7 +57,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length < 2 || node.args.length > 3) {
       throw new ErrorException(
-        "@str.split! expects (call delimiter index), e.g. @str.split!($pool::name() ` ` 1) — segment indexes count from the start (0, 1, …) or from the end (-1, -2, …)",
+        "@str.split! expects (call delimiter index), e.g. @str.split!($pool::!{name()(string)} ` ` 1) — segment indexes count from the start (0, 1, …) or from the end (-1, -2, …)",
       );
     }
     const arg = await chainArgWithLens(ctx, "str.split!", node.args[0]);

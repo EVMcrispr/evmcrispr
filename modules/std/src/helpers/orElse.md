@@ -18,7 +18,7 @@ The value of the first read, or the second one when the first reverts.
 
 | Name | Type | Description |
 |------|------|-------------|
-| `primary` | `any` | The read to try first — a `::` call, chain, or helper |
+| `primary` | `any` | The read to try first — a call (`::` at build time, `::!` on-chain), chain, or helper |
 | `fallback` | `any` | The value to use when the first read reverts |
 
 ## Examples
@@ -75,11 +75,11 @@ once, and the revert never escapes it.
 
 ```evml
 # Prefer the vault's own preview, fall back to the linear conversion
-assert @orElse!(0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5::{previewRedeem(uint256)(uint256) 1000000000000000000} 0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5::{convertToAssets(uint256)(uint256) 1000000000000000000}) >= 1000000000000000000
+assert @orElse!(0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5::!{previewRedeem(uint256)(uint256) 1000000000000000000} 0x1E80A006ce9B0F42a1E1AAf47e6e63e63aae60d5::!{convertToAssets(uint256)(uint256) 1000000000000000000}) >= 1000000000000000000
 
 # Bound a view that a non-standard token may not implement: the fallback
 # stands in for the missing read, so the comparison always has a value
-assert @bool!(@orElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} 18) <= 18)
+assert @bool!(@orElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{decimals()(uint8)} 18) <= 18)
 ```
 
 Mixed signed/unsigned live numeric branches are rejected; use matching integer categories so a fallback cannot silently change the value interpretation.

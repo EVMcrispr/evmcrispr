@@ -118,7 +118,7 @@ test("a callback parameter can supply both target and argument", async () => {
     await execute(
       `@map!(${SOURCE}::{items()(address[])} @identity!)`,
       { type: "address[]" },
-      `def @identity! "$x: address -> address" $x::{echo(address)(address) $x}`,
+      `def @identity! "$x: address -> address" $x::!{echo(address)(address) $x}`,
     ),
   ).toEqual([getAddress(A), getAddress(B)]);
 });

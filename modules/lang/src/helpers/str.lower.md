@@ -38,7 +38,7 @@ load lang
 
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 
-assert @str.lower!($pool::{symbol()(string)}) == "weth"
+assert @str.lower!($pool::!{symbol()(string)}) == "weth"
 ```
 
 ### See Also

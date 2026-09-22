@@ -28,7 +28,7 @@ load math
 set $pool 0x0102030405060708090a0b0c0d0e0f1011121314
 
 # The AMM invariant, computed on-chain at execution time
-assert @sqrt!($pool::{reserve0()(uint256)} * $pool::{reserve1()(uint256)}) >= 1e18
+assert @sqrt!($pool::!{reserve0()(uint256)} * $pool::!{reserve1()(uint256)}) >= 1e18
 
 # Plain face: floor integer square root off-chain (plain helpers need the
 # module prefix; only the `!` faces resolve unqualified)

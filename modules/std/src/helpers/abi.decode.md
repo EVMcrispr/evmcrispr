@@ -56,7 +56,7 @@ tighten versus the off-chain face:
 
 ```evml
 # The report blob encodes (address,uint256); judge its uint on-chain
-assert @abi.decode!("address,uint256" 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{lastReport()(uint256,bytes)}[_ $] [_ $]) > 0
+assert @abi.decode!("address,uint256" 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{lastReport()(uint256,bytes)}[_ $] [_ $]) > 0
 ```
 
 The payload is read in place: the compiled form appends the core's

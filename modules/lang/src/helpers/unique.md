@@ -47,7 +47,7 @@ load lang
 
 set $safe 0x44fA8E6f47987339850636F88629646662444217
 
-assert @unique!(@sort!($safe::{getOwners()(address[])})) == 0x1122
+assert @unique!(@sort!($safe::!{getOwners()(address[])})) == 0x1122
 
 # Strings need no explicit equality callback.
 assert @len!(@unique!(["alice" "bob" "alice"])) == 2

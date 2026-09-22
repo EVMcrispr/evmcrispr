@@ -110,7 +110,7 @@ describe("generic collection consumers", () => {
       params: [predicate, "0x60443560f81c606114600f575f5ffd5b60015f5260205ff3"],
     } as never);
     const arr = `${source}::{values()(bytes[])}`;
-    const def = `def @p! "$x: bytes -> bool" ${predicate}::{test(bytes)(bool) $x}`;
+    const def = `def @p! "$x: bytes -> bool" ${predicate}::!{test(bytes)(bool) $x}`;
     expect(await execute(`@any!(${arr} @p!)`, { type: "bool" }, def)).toBe(
       true,
     );
@@ -132,7 +132,7 @@ describe("generic collection consumers", () => {
       encodeAbiParameters([{ type: "bytes[]" }], [[]]),
     );
     const arr = `${source}::{values()(bytes[])}`;
-    const def = `def @p! "$x: bytes -> bool" ${OPERATIONS_ADDRESS}::{charset(bytes,uint256)(bool) $x 0}`;
+    const def = `def @p! "$x: bytes -> bool" ${OPERATIONS_ADDRESS}::!{charset(bytes,uint256)(bool) $x 0}`;
     expect(await execute(`@any!(${arr} @p!)`, { type: "bool" }, def)).toBe(
       false,
     );

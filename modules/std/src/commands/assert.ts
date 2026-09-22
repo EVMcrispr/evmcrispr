@@ -19,7 +19,7 @@ export default defineCommand<Std>({
       runtime: true,
       type: "expression",
       description:
-        "A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@calc!(@balance!(ETH @me) + 1e18)`",
+        "A `::!` read or on-chain helper, e.g. `@token(WETH)::!{balanceOf(address)(uint256) @me}` or `@calc!(@balance!(ETH @me) + 1e18)`",
     },
     {
       name: "operator",
@@ -33,7 +33,7 @@ export default defineCommand<Std>({
       type: "expression",
       optional: true,
       description:
-        "Expected value — a constant, or another live call/on-chain helper",
+        "Expected value — a constant, or another `::!` read/on-chain helper",
     },
     {
       name: "message",

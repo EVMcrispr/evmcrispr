@@ -117,7 +117,7 @@ export default defineHelper<Lang>({
       (input.type !== NodeType.ArrayExpression && !empty)
     ) {
       throw new ErrorException(
-        "@flat! expects an array literal of parts, e.g. @flat!([[1 2] $safe::getOwners()])",
+        "@flat! expects an array literal of parts, e.g. @flat!([[1 2] $safe::!{getOwners()(address[])}])",
       );
     }
     const elements = empty

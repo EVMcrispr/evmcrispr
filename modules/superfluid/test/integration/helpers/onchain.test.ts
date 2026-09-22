@@ -249,7 +249,7 @@ describeCommand("assert (superfluid on-chain faces)", {
     },
     {
       name: "folds a live @connected! member into a core read splice",
-      script: `assert @connected!(${POOL} ${POOL}::{admin()(address)})`,
+      script: `assert @connected!(${POOL} ${POOL}::!{admin()(address)})`,
       validate: (actions) => {
         // The pool travels as calldata to the forwarder here, so the
         // member may resolve on-chain: the read is spliced, not baked.
@@ -268,7 +268,7 @@ describeCommand("assert (superfluid on-chain faces)", {
   errorCases: [
     {
       name: "rejects a live SuperToken argument",
-      script: `assert @flow!(${USDCX}::{getUnderlyingToken()(address)} ${SOME_ADDRESS} ${RECEIVER}) > 0`,
+      script: `assert @flow!(${USDCX}::!{getUnderlyingToken()(address)} ${SOME_ADDRESS} ${RECEIVER}) > 0`,
       error: "resolves its SuperToken at composition time",
     },
   ],

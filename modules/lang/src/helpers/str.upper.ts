@@ -28,7 +28,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@str.upper! expects a single call argument, e.g. @str.upper!($pool::symbol())",
+        "@str.upper! expects a single call argument, e.g. @str.upper!($pool::!{symbol()(string)})",
       );
     }
     const arg = await chainArgWithLens(ctx, "str.upper!", node.args[0]);

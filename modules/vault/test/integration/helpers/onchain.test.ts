@@ -80,7 +80,7 @@ describeCommand("assert (vault on-chain faces)", {
     },
     {
       name: "folds a live @convertToShares! amount into a core read splice",
-      script: `assert @convertToShares!(${VAULT} ${VAULT}::{totalAssets()(uint256)}) > 0`,
+      script: `assert @convertToShares!(${VAULT} ${VAULT}::!{totalAssets()(uint256)}) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { target, selector, segments } = d.readOf(param);

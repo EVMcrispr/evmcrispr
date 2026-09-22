@@ -74,7 +74,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@lookup! expects (record name), e.g. @lookup!(@zip!($reg::names() $reg::caps()) 42)",
+        "@lookup! expects (record name), e.g. @lookup!(@zip!($reg::!{names()(string[])} $reg::!{caps()(uint256[])}) 42)",
       );
     }
     const { payload } = await wordsArg(ctx, node.args[0], "lookup!");

@@ -46,7 +46,7 @@ set $amm 0x44fA8E6f47987339850636F88629646662444217
 
 # Every pair key (lane 0) is nonzero
 def @pos! "$x: number -> bool" @bool!($x > 0)
-assert @all!(@keys!($amm::{reservePairs()(uint256[])}) @pos!)
+assert @all!(@keys!($amm::!{reservePairs()(uint256[])}) @pos!)
 ```
 
 ### Notes

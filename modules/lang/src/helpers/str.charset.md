@@ -33,10 +33,10 @@ load lang
 set $token 0x44fA8E6f47987339850636F88629646662444217
 
 # The symbol contains only lowercase letters
-assert @str.charset!($token::{symbol()(string)} "a-z") == true
+assert @str.charset!($token::!{symbol()(string)} "a-z") == true
 
 # An ENS-label-ish name: lowercase, digits and dashes
-assert @str.charset!($token::{name()(string)} "a-z0-9-") == true
+assert @str.charset!($token::!{name()(string)} "a-z0-9-") == true
 ```
 
 ### Notes

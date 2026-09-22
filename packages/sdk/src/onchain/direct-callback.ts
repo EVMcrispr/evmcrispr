@@ -48,7 +48,7 @@ export async function compileDirectCollectionCallback(
       "Generic collection callback needs a named definition containing one direct ABI call with matching parameter count",
     );
   const body = def.bodyNode as CallExpressionNode;
-  if (body.bang || body.returnDestructure)
+  if (body.returnDestructure)
     throw new ErrorException(
       "Generic collection callback requires a direct inline ABI call without a lens",
     );

@@ -80,10 +80,10 @@ loser's calls never happen at judge time.
 
 ```evml
 # Judge against a threshold that depends on live state
-assert 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{balanceOf(address)(uint256) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045} >= @ifElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} == 18 ? 1e18 : 1e6)
+assert 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{balanceOf(address)(uint256) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045} >= @ifElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{decimals()(uint8)} == 18 ? 1e18 : 1e6)
 
 # The losing branch never resolves — guard a read behind a live switch
-assert @ifElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)} > 6 ? 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{totalSupply()(uint256)} : 0) >= 0
+assert @ifElse!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{decimals()(uint8)} > 6 ? 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{totalSupply()(uint256)} : 0) >= 0
 ```
 
 Arithmetic branch expressions use checked integer rules on both faces (`//` for division). Use a nested exact helper for rational calculations.

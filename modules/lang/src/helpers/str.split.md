@@ -40,10 +40,10 @@ load lang
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 
 # "Uniswap LP Token" -> segment 1 is "LP"
-assert @str.split!($pool::{name()(string)} " " 1) == "LP"
+assert @str.split!($pool::!{name()(string)} " " 1) == "LP"
 
 # The name ends with "Token": negative index counts from the end, on-chain
-assert @str.split!($pool::{name()(string)} " " -1) == "Token"
+assert @str.split!($pool::!{name()(string)} " " -1) == "Token"
 ```
 
 ### Notes

@@ -61,7 +61,7 @@ the signature comes inline, the bang convention `::!` also follows:
 
 ```evml
 # The queued transaction transfers to the treasury, whatever the amount
-assert @abi.decodeCall!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{queuedCalldata()(bytes)} transfer(address,uint256) [$ _]) == @token(DAI)
+assert @abi.decodeCall!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{queuedCalldata()(bytes)} transfer(address,uint256) [$ _]) == @token(DAI)
 ```
 
 The argument words of calldata sit four bytes off word alignment, so the

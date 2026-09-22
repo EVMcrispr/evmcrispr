@@ -136,7 +136,7 @@ function checkProbedCall(node: Node, clause: ProbeClause): CallExpressionNode {
   }
   if (node.type !== NodeType.CallExpression) {
     throw new ErrorException(
-      "-!> needs a direct `::` call to probe — only a live call has a revert reason to match",
+      "-!> needs a direct call to probe (`::` at build time, `::!` on-chain) — only a call has a revert reason to match",
     );
   }
   const call = node as CallExpressionNode;
@@ -177,7 +177,7 @@ export default defineHelper<Std>({
       // resolution failing IS the answer — so the node arrives unevaluated.
       lazy: true,
       description:
-        "A `::` call expression (or chain, or on-chain helper) to probe",
+        "A call expression (`::` at build time, `::!` on-chain), chain, or on-chain helper to probe",
     },
     {
       name: "arrow",
@@ -260,7 +260,7 @@ export default defineHelper<Std>({
     const [callNode, ...rest] = node.args;
     if (!callNode) {
       throw new ErrorException(
-        "@reverts! expects a call argument, e.g. @reverts!($token::symbol())",
+        "@reverts! expects a call argument, e.g. @reverts!($token::!{symbol()(string)})",
       );
     }
     const clause = parseProbeClause(rest);

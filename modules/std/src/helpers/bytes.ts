@@ -140,7 +140,7 @@ export default defineHelper<Std>({
     }
     if (node.args.length !== 3) {
       throw new ErrorException(
-        '@bytes! expects (value) or (a "op" b), e.g. @bytes!($token::flags() "&" 0xff)',
+        '@bytes! expects (value) or (a "op" b), e.g. @bytes!($token::!{flags()(uint256)} "&" 0xff)',
       );
     }
     const opStr = await ctx.interpreters.interpretNode(node.args[1]);

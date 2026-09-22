@@ -37,7 +37,7 @@ describeCommand("assert (@contracts:codeAt!)", {
     },
     {
       name: "takes a live address, so a predicted deployment can be checked",
-      script: `assert @lang:bytes.len!(@contracts:codeAt!(${FACTORY}::{predicted()(address)})) > 0`,
+      script: `assert @lang:bytes.len!(@contracts:codeAt!(${FACTORY}::!{predicted()(address)})) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const len = d.opReadOf(param, "byteLen(bytes)");

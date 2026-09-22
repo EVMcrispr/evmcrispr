@@ -37,7 +37,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length < 2) {
       throw new ErrorException(
-        "@bytes.concat! expects at least two parts, e.g. @bytes.concat!(0x1234 $oracle::blob())",
+        "@bytes.concat! expects at least two parts, e.g. @bytes.concat!(0x1234 $oracle::!{blob()(bytes)})",
       );
     }
     const parts: BytesPart[] = [];

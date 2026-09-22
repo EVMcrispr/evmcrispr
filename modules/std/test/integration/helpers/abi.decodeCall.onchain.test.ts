@@ -37,7 +37,7 @@ describeCommand("assert (@abi.decodeCall! calldata shape)", {
       // slices the selector off with a live length, re-enters through
       // PAYLOAD, and picks the statically-positioned amount word.
       name: "compiles to a selector-guarded cond over a PAYLOAD re-entry",
-      script: `assert @abi.decodeCall!(${QUEUE}::{queuedCalldata()(bytes)} transfer(address,uint256) [_ $]) == 42`,
+      script: `assert @abi.decodeCall!(${QUEUE}::!{queuedCalldata()(bytes)} transfer(address,uint256) [_ $]) == 42`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const cond = d.core(param);
@@ -96,7 +96,7 @@ describeCommand("assert (@abi.decodeCall! calldata shape)", {
   errorCases: [
     {
       name: "rejects a signature-less on-chain decodeCall",
-      script: `assert @abi.decodeCall!(${QUEUE}::{queuedCalldata()(bytes)} [_ $]) == 1`,
+      script: `assert @abi.decodeCall!(${QUEUE}::!{queuedCalldata()(bytes)} [_ $]) == 1`,
       error: "function signature",
     },
   ],

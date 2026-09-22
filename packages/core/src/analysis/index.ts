@@ -963,6 +963,7 @@ class SemanticAnalyzer {
       this.#checkLiteralTypes(c, cmd);
       if (batchStack.length > 0) this.#checkBatchable(c, cmd, batchStack);
       this.#checkVariableUses(c, cmd);
+      this.#checkOnchainReadHops(c, cmd);
       this.#checkConfigDefPositions(c, cmd);
       this.#checkRecordShapes(c, cmd);
       if (batchStack.some((frame) => frame.smart)) {
@@ -1341,6 +1342,58 @@ class SemanticAnalyzer {
       collectVariableUses(opt.value, uses);
     }
     for (const name of uses) this.#checkVariableName(name, c);
+  }
+
+  /** A plain `::` call reads at build time. Inside an on-chain expression
+   *  — an `assert` side, a `::!` hop's arguments, or the body of a
+   *  `def @name!` — every hop must be a `::!` read, because the value is
+   *  fetched when the assertion is judged, not when the script builds.
+   *  Arguments of `!` helpers outside those contexts are left to the
+   *  compiler: some helpers evaluate an argument at build time. */
+  #checkOnchainReadHops(c: CommandExpressionNode, _cmd: ICommand): void {
+    const std = !c.module || c.module === "std";
+    const isAssert = std && c.name === "assert";
+    const first = c.args[0] as HelperFunctionNode | undefined;
+    const isBangDef =
+      std &&
+      c.name === "def" &&
+      first?.type === NodeType.HelperFunctionExpression &&
+      first.name.endsWith("!");
+    const walk = (node: Node, onchain: boolean): void => {
+      switch (node.type) {
+        case NodeType.CallExpression: {
+          const call = node as CallExpressionNode;
+          if (onchain && !call.bang) {
+            this.#diagnostics.push(
+              diag(
+                call,
+                `${call.method}() is a build-time \`::\` call; an on-chain expression reads with \`::!\` — write ::!{${call.method}(argTypes)(returnTypes) args…}`,
+                "build-time-call-onchain",
+              ),
+            );
+          }
+          walk(call.target, onchain);
+          for (const a of call.args) walk(a, onchain || call.bang === true);
+          break;
+        }
+        case NodeType.HelperFunctionExpression:
+          for (const a of (node as HelperFunctionNode).args) walk(a, onchain);
+          break;
+        case NodeType.ArrayExpression:
+          for (const el of (node as any).elements as Node[]) walk(el, onchain);
+          break;
+        case NodeType.NamedArg:
+          walk((node as any).value as Node, onchain);
+          break;
+        default:
+          break;
+      }
+    };
+    for (let i = 0; i < c.args.length; i++) {
+      const node = c.args[i];
+      if (node.type === NodeType.BlockExpression) continue;
+      walk(node, isAssert || (isBangDef && i === 2));
+    }
   }
 
   #checkVariableName(name: string, at: Node): void {

@@ -18,7 +18,7 @@ Whether a live call reverts: true when the chain refuses the call, false when it
 
 | Name | Type | Description |
 |------|------|-------------|
-| `call` | `address` | A `::` call expression (or chain, or on-chain helper) to probe |
+| `call` | `address` | A call expression (`::` at build time, `::!` on-chain), chain, or on-chain helper to probe |
 | `[arrow]` | `string` | `-!>` — expect a specific error |
 | `[error]` | `string` | Error signature to match, e.g. `InsufficientBalance(uint256,uint256)` (`Error` and `Panic` work by bare name) |
 | `[lens]` | `array` | Lens selecting one error argument as the value, e.g. `[_ $]` |
@@ -128,18 +128,18 @@ To guard a comparison on a read that may revert, use [@orElse!](orElse.md).
 # Assert that a read still reverts — nobody has approved this allowance,
 # and that must remain true. Nothing else can say this: a fallback can mask
 # a revert, but it cannot require one.
-assert @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{transferFrom(address,address,uint256)(bool) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 1000000000000000000000000000000})
+assert @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{transferFrom(address,address,uint256)(bool) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 1000000000000000000000000000000})
 
 # Not just that it reverts — that it reverts for the RIGHT reason
-assert @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{transferFrom(address,address,uint256)(bool) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 1000000000000000000000000000000} -!> InsufficientBalance(uint256,uint256))
+assert @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{transferFrom(address,address,uint256)(bool) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 1000000000000000000000000000000} -!> InsufficientBalance(uint256,uint256))
 
 # An error argument as a value: the shortfall the revert reports
-assert @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{withdraw(uint256)() 100} -!> InsufficientBalance(uint256,uint256) [_ $]) >= 100
+assert @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{withdraw(uint256)() 100} -!> InsufficientBalance(uint256,uint256) [_ $]) >= 100
 
 # The other direction: guard a batch on a view still resolving
-assert @bool!(not @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{decimals()(uint8)}))
+assert @bool!(not @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{decimals()(uint8)}))
 
 # Compose into boolean logic — safe here because every operand is a probe,
 # so there is no revert left for the eager `and` to trip over
-assert @bool!(@reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{transferFrom(address,address,uint256)(bool) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 1000000000000000000000000000000}) and not @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::{symbol()(string)}))
+assert @bool!(@reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{transferFrom(address,address,uint256)(bool) 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d 1000000000000000000000000000000}) and not @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{symbol()(string)}))
 ```

@@ -46,7 +46,7 @@ load lang
 set $vault 0x44fA8E6f47987339850636F88629646662444217
 
 # The cap at index 2, through the record faces
-assert @lookup!(@enumerate!($vault::{caps()(uint256[])}) 2) >= 100
+assert @lookup!(@enumerate!($vault::!{caps()(uint256[])}) 2) >= 100
 ```
 
 ### Notes

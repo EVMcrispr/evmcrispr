@@ -155,7 +155,7 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
     await l2.waitForTransactionReceipt({ hash, timeout: 60_000 });
 
     const result = await executeScript(
-      `load eez\nassert @eez:on!(eezL2 ${value}::{value()(uint256)}) == ${expected}`,
+      `load eez\nassert @eez:on!(eezL2 ${value}::!{value()(uint256)}) == ${expected}`,
       evml.registry,
       {
         chainId: L1_ID,

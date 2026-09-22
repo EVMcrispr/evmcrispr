@@ -25,7 +25,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@enumerate! expects a single call argument, e.g. @enumerate!($safe::getOwners())",
+        "@enumerate! expects a single call argument, e.g. @enumerate!($safe::!{getOwners()(address[])})",
       );
     }
     const { payload, elemType } = await wordsArg(

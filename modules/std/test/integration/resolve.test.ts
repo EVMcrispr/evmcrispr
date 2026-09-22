@@ -14,7 +14,7 @@ import {
 } from "@evmcrispr/sdk/onchain";
 import { expect, getPublicClient } from "@evmcrispr/test-utils";
 import { createInterpreter } from "@evmcrispr/test-utils/evml";
-import { installAssertionsCore } from "@evmcrispr/test-utils/onchain";
+import { installAssertionsCore, readHops } from "@evmcrispr/test-utils/onchain";
 import { decodeAbiParameters, type Hex } from "viem";
 
 /**
@@ -46,7 +46,7 @@ const PREAMBLE = "load lang";
  */
 async function compileExpression(expression: string): Promise<Operand> {
   const client = getPublicClient();
-  const script = `${PREAMBLE}\nset $res ${expression}`;
+  const script = `${PREAMBLE}\nset $res ${readHops(expression)}`;
   const i = createInterpreter(script, client);
 
   // Interpret only the preamble, so `load` binds the modules without the

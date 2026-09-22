@@ -114,7 +114,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length > 2) {
       throw new ErrorException(
-        "@sort! expects (call order?), e.g. @sort!($safe::getOwners() desc)",
+        "@sort! expects (call order?), e.g. @sort!($safe::!{getOwners()(address[])} desc)",
       );
     }
     if (node.args[1]?.type === NodeType.HelperFunctionExpression) {

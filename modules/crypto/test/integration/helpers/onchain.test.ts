@@ -59,7 +59,7 @@ describeCommand("assert (@merkle.verify!)", {
   cases: [
     {
       name: "folds a live proof through hashPairSorted from the leaf and compares the root",
-      script: `assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
+      script: `assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::!{proofOf(address)(bytes32[]) ${ME}})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "eq(uint256,uint256)");
@@ -93,7 +93,7 @@ describeCommand("assert (@merkle.verify!)", {
     },
     {
       name: "compares against a live root read",
-      script: `assert @merkle.verify!(${DIST}::{root()(bytes32)} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
+      script: `assert @merkle.verify!(${DIST}::!{root()(bytes32)} ${LEAF} ${DIST}::!{proofOf(address)(bytes32[]) ${ME}})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "eq(uint256,uint256)");
@@ -105,7 +105,7 @@ describeCommand("assert (@merkle.verify!)", {
     },
     {
       name: "accepts a nested array face as the proof",
-      script: `assert @merkle.verify!(${ROOT} ${LEAF} @reverse!(${DIST}::{proofOf(address)(bytes32[]) ${ME}}))`,
+      script: `assert @merkle.verify!(${ROOT} ${LEAF} @reverse!(${DIST}::!{proofOf(address)(bytes32[]) ${ME}}))`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a } = d.expectOpJudge(param, "eq(uint256,uint256)");
@@ -121,7 +121,7 @@ describeCommand("assert (@merkle.verify!)", {
       // thing entirely, and is not expressible: the reduction halves the
       // array each round, and mapWords is one-to-one.)
       name: "folds a plain @merkle.root into the expression as a constant",
-      script: `assert ${DIST}::{merkleRoot()(bytes32)} == @crypto:merkle.root([${LEAF} ${ROOT}])`,
+      script: `assert ${DIST}::!{merkleRoot()(bytes32)} == @crypto:merkle.root([${LEAF} ${ROOT}])`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
@@ -135,7 +135,7 @@ describeCommand("assert (@merkle.verify!)", {
   errorCases: [
     {
       name: "keeps positional (indexed) verification off-chain",
-      script: `assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}} 1)`,
+      script: `assert @merkle.verify!(${ROOT} ${LEAF} ${DIST}::!{proofOf(address)(bytes32[]) ${ME}} 1)`,
       error: "positional (indexed) verification stays off-chain",
     },
     {
@@ -145,7 +145,7 @@ describeCommand("assert (@merkle.verify!)", {
     },
     {
       name: "rejects a non-bytes32 live root",
-      script: `assert @merkle.verify!(${DIST}::{rootCount()(uint256)} ${LEAF} ${DIST}::{proofOf(address)(bytes32[]) ${ME}})`,
+      script: `assert @merkle.verify!(${DIST}::!{rootCount()(uint256)} ${LEAF} ${DIST}::!{proofOf(address)(bytes32[]) ${ME}})`,
       error: "root must be a bytes32 value",
     },
   ],

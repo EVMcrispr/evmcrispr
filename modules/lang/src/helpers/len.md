@@ -38,11 +38,11 @@ load lang
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
 # Top level: compiles to a core nav ending in the LEN sentinel
-assert @len!($gov::{voters()(address[])}) >= 3 "not enough voters"
-assert @len!($gov::{voters()(address[])}) != 0
+assert @len!($gov::!{voters()(address[])}) >= 3 "not enough voters"
+assert @len!($gov::!{voters()(address[])}) != 0
 
 # Nested: the same LEN-sentinel nav, composable as a number
-assert @calc!(@len!($gov::{voters()(address[])}) * 2) > 4
+assert @calc!(@len!($gov::!{voters()(address[])}) * 2) > 4
 ```
 
 ### Notes

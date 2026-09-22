@@ -30,7 +30,7 @@ describeCommand("assert (@abi.decode! calldata shape)", {
       // that path — the strip costs no extra frame. The claimed word at a
       // static head position rides the cheaper raw pick.
       name: "appends PAYLOAD to the reaching nav; static words pick",
-      script: `assert @abi.decode!("address,uint256" ${ORACLE}::{lastReport()(uint256,bytes)}[_ $] [_ $]) == 42`,
+      script: `assert @abi.decode!("address,uint256" ${ORACLE}::!{lastReport()(uint256,bytes)}[_ $] [_ $]) == 42`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const outer = d.core(param);
@@ -52,7 +52,7 @@ describeCommand("assert (@abi.decode! calldata shape)", {
       // the claimed type list, and the string result composes with the
       // bytes faces like any other string value.
       name: "a dynamic selection navs the claimed types over the payload",
-      script: `assert @bytes.len!(@abi.decode!("uint256,string" ${ORACLE}::{note()(bytes)} [_ $])) == 5`,
+      script: `assert @bytes.len!(@abi.decode!("uint256,string" ${ORACLE}::!{note()(bytes)} [_ $])) == 5`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const lenArgs = d.opReadOf(param, "byteLen(bytes)");
@@ -72,7 +72,7 @@ describeCommand("assert (@abi.decode! calldata shape)", {
   errorCases: [
     {
       name: "rejects a lens-less on-chain decode",
-      script: `assert @abi.decode!("uint256" ${ORACLE}::{note()(bytes)}) == 1`,
+      script: `assert @abi.decode!("uint256" ${ORACLE}::!{note()(bytes)}) == 1`,
       error: "needs a lens",
     },
   ],

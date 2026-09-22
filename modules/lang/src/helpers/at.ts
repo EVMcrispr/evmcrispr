@@ -59,7 +59,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@at! expects (call index), e.g. @at!($safe::getOwners() 0)",
+        "@at! expects (call index), e.g. @at!($safe::!{getOwners()(address[])} 0)",
       );
     }
     if (isBangHelperNode(node.args[0])) {

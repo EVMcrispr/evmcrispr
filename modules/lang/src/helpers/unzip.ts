@@ -55,7 +55,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1 && node.args.length !== 2) {
       throw new ErrorException(
-        "@unzip! expects (call lane?) with lane 0 or 1, e.g. @unzip!($amm::reservePairs() 0)",
+        "@unzip! expects (call lane?) with lane 0 or 1, e.g. @unzip!($amm::!{reservePairs()(uint256[])} 0)",
       );
     }
 

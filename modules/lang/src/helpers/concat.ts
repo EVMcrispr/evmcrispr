@@ -27,7 +27,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length < 2) {
       throw new ErrorException(
-        "@concat! expects at least two array parts, e.g. @concat!($safe::getOwners() [1 2])",
+        "@concat! expects at least two array parts, e.g. @concat!($safe::!{getOwners()(address[])} [1 2])",
       );
     }
     return concatArrayOperand(

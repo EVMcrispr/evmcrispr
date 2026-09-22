@@ -40,10 +40,10 @@ load lang
 set $pool 0x44fA8E6f47987339850636F88629646662444217
 
 # "Uniswap LP Token" contains "LP"
-assert @str.includes!($pool::{name()(string)} "LP") == true
+assert @str.includes!($pool::!{name()(string)} "LP") == true
 
 # The name must NOT mention a rebrand
-assert @str.includes!($pool::{name()(string)} "Sushi") == false
+assert @str.includes!($pool::!{name()(string)} "Sushi") == false
 ```
 
 ### Notes

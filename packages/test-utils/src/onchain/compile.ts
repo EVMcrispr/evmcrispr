@@ -49,18 +49,32 @@ function interpreterFor(env: CompileEnv): Interpreter {
   });
 }
 
+/** The on-chain spelling of an expression: every plain `::{` hop becomes a
+ *  `::!{` read hop. A plain hop is a build-time call, which an on-chain
+ *  expression refuses, so a test that feeds one string to both faces
+ *  (`runExpression` and `compileExpression`) writes the build-time
+ *  spelling and lets the on-chain face translate. */
+export function readHops(expression: string): string {
+  return expression.replaceAll("::{", "::!{");
+}
+
 /**
- * Compile one expression to its raw, PRE-JUDGE operand.
+ * Compile one expression to its raw, PRE-JUDGE operand — the on-chain face.
  *
  * Deliberately not routed through `assert`. The judge folds a
  * String/Bytes side into `hash(x) EQ digest`, after which the value cannot be
  * recovered — so going through assert would only ever tell you pass/fail.
  * This mirrors assert's own side dispatch and stops before the judging step.
+ *
+ * The expression may be written in the build-time spelling: see
+ * {@link readHops}. A preamble is interpreted as written — a `def @name!`
+ * body in it is on-chain and must spell its reads `::!` itself.
  */
 export async function compileExpression(
   expression: string,
   env: CompileEnv = {},
 ): Promise<{ operand: Operand; ctx: CompileCtx; evm: Interpreter }> {
+  expression = readHops(expression);
   const preamble = preambleOf(env);
 
   // Parse the whole script to get the expression's node, but interpret ONLY

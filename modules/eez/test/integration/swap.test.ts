@@ -94,7 +94,7 @@ interface World {
 /** The swap itself. Scheduled by Alice and executed by Bob as the same
  *  calls, so it names both parties instead of `@me`. */
 const swapBlock = ({ dai, usdc, intents }: World) => `(
-  assert ${intents}::{executor()(address)} == @eez:proxy(eezL1 ${bob.address}) "only Bob"
+  assert ${intents}::!{executor()(address)} == @eez:proxy(eezL1 ${bob.address}) "only Bob"
   token:transfer-from ${USDC_AMOUNT} ${usdc} from ${bob.address} to ${alice.address}
   eez:on eezL1 (
     token:transfer-from ${DAI_AMOUNT} ${dai} from ${alice.address} to ${bob.address}

@@ -39,7 +39,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length < 2 || node.args.length > 3) {
       throw new ErrorException(
-        "@bytes.slice! expects (call start end?), e.g. @bytes.slice!($oracle::blob() 0 4)",
+        "@bytes.slice! expects (call start end?), e.g. @bytes.slice!($oracle::!{blob()(bytes)} 0 4)",
       );
     }
     const arg = await chainArgWithLens(ctx, "bytes.slice!", node.args[0]);

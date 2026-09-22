@@ -1,137 +1,115 @@
 ---
-title: Local-first Safe workflows
-description: Prepare, review, sign, exchange and execute Safe packages with the same EVML in the terminal and CLI.
+title: Safe Packages from Files
+description: Export, exchange, and import Safe transaction packages with the CLI, terminal files, and IPFS.
+experimental: true
 ---
 
-Safe's experimental local-first workflow uses your configured RPC without the
-Safe Transaction Service. Enable experimental modules in your host; the CLI
-accepts `--experimental`. The same EVML runs in the terminal or with
-`evmcrispr run workflow.evml`. No wallet is required to prepare unsigned
-transactions, inspect packages, merge signatures, or exchange files.
+The [Safe guide](safe.md#work-without-the-safe-api) explains how to prepare,
+sign, merge, and execute Safe transactions as JSON packages without the Safe
+Transaction Service. This guide covers moving those packages between owners:
+saving them to files, piping them into the CLI, loading them in the terminal,
+and sharing them over IPFS.
 
-## Prepare and export
+The same EVML runs in the terminal and with `evmcrispr run workflow.evml`.
+The Safe module is experimental; the CLI accepts `--experimental`. No wallet
+is needed to prepare unsigned transactions, inspect packages, merge
+signatures, or exchange files. Addresses below are placeholders.
 
-Use explicit addresses and function signatures to avoid optional metadata or
-name-resolution services. The nonce defaults to the current on-chain nonce.
+## Export a package
+
+Only `print` writes to stdout. Status messages and signing hashes go to
+stderr, so the printed package can be redirected straight into a file. Save
+this script as `prepare.evml`:
 
 ```evml
 load safe
-set $mySafe 0x1111111111111111111111111111111111111111
-safe:propose $mySafe (
+
+set $safe 0x1111111111111111111111111111111111111111
+safe:propose $safe (
   send 0x2222222222222222222222222222222222222222 --value 1
 ) --no-api true --unsigned true --as $tx
 print $tx
 ```
 
-Save this as `prepare.evml` and redirect its printed package:
-
 ```sh
 evmcrispr --experimental run prepare.evml > transaction.json
 ```
 
-Only `print` goes to stdout; status messages and signing hashes go to stderr.
-In the terminal, use **Download output** to save the same printed text, then
-name the downloaded file `transaction.json`. Use **Choose input file** before
-execution to supply a file's contents to `@fetch(stdin:)`; this input stays in
-memory and is not uploaded or saved by the terminal. Alternatively, pass
-URL-encoded text in the terminal URL's `?stdin=` parameter (after the script
-path in a hash link). Simulation uses the same supplied input.
-EVML cannot read filesystem paths or `file:` URLs. The CLI receives input from
-the shell, independently of the script file. `run -` instead consumes stdin as
-EVML source, so it cannot also supply data input.
+Print only the package when exporting a JSON file. Several `print` commands
+produce consecutive outputs, not a single JSON document.
 
-## Review and sign independently
+In the terminal, **Download output** saves the same printed text. Name the
+downloaded file `transaction.json`.
+
+## Import a package
+
+Scripts read input with `@fetch(stdin:)`. EVML cannot read filesystem paths or
+`file:` URLs, so the host always supplies the data:
+
+- **CLI:** pipe the file into the command, for example
+  `cat transaction.json | evmcrispr --experimental run sign.evml`. Input comes
+  from the shell, independently of the script file. `evmcrispr run -` instead
+  reads the script itself from stdin, so it cannot also supply data.
+- **Terminal:** use **Choose input file** before running. The input stays in
+  memory and is not uploaded or saved.
+- **Terminal link:** pass URL-encoded text in the `?stdin=` parameter. In a
+  hash link, it goes after the script path.
+
+Simulation uses the same supplied input.
+
+## Sign from the CLI
+
+This script signs the package it receives and prints the signed package:
 
 ```evml
 load safe
 load http [@fetch]
-set $mySafe 0x1111111111111111111111111111111111111111
+
+set $safe 0x1111111111111111111111111111111111111111
 set $tx @fetch(stdin:)
-safe:verify $mySafe $tx --no-api true --as $review
+safe:verify $safe $tx --no-api true --as $review
 sign $signature --typed @http:json($review typedData)
-set $signed @safe:merge($tx $signature)
-print $signed
+print @safe:merge($tx $signature)
 ```
 
-Review the complete transaction, including unknown calldata, value, operation,
-refunds and nonce. Hash consistency does not establish intent. Verification
-never fetches an ABI; `--abi` accepts an address-to-ABI JSON mapping for local
-decoding. `--offline true` performs no network calls and leaves current-owner,
-threshold, approval and contract-signature checks explicitly unchecked.
-
-The CLI's signing provider is external:
+The CLI uses an external signing provider:
 
 ```sh
 cat transaction.json | evmcrispr --experimental run sign.evml --wallet-rpc http://127.0.0.1:8545 --account 0x1111111111111111111111111111111111111111 > signed.json
 ```
 
 Use an account controlled by that wallet endpoint. The terminal uses its
-connected wallet. RPC reads use existing `EVMCRISPR_RPC_URL`/per-chain settings
-in the CLI and the terminal's chain configuration.
+connected wallet instead. RPC reads use the `EVMCRISPR_RPC_URL` and per-chain
+settings in the CLI, and the chain configuration in the terminal.
 
-## Merge and execute
+## Combine signed packages
 
-```evml
-load safe
-load http [@fetch]
-set $mySafe 0x1111111111111111111111111111111111111111
-set $input @fetch(stdin:)
-set $first @http:json($input "[0]")
-set $second @http:json($input "[1]")
-set $tx @safe:merge($first $second)
-safe:verify $mySafe $tx --no-api true --as $review
-print @http:json($review readiness)
-safe:execute $mySafe $tx --no-api true
-```
-
-Supply multiple packages as a JSON array. For example, the shell can assemble
-one with `jq`, or you can select an equivalent JSON file in the terminal:
+To execute, supply the signed packages as one JSON array. The shell can
+assemble it with `jq`, or you can select an equivalent file in the terminal:
 
 ```sh
 jq -s . owner-a.json owner-b.json | evmcrispr --experimental run execute.evml
 ```
 
-Anyone may relay a sufficiently authorized package. Execution rechecks current
-state and checks Safe's success/failure event, not only the outer receipt.
-`ready` checks signatures and nonce; execution can still fail for insufficient
-funds, a guard, or the underlying call.
+```evml
+load safe
+load http [@fetch]
 
-## Nested Safe owners and approvals
-
-For each owner Safe, prepare a message using the parent report's exact
-`signingBytes`, sign its typed data, and attach the signed message:
-
-```evml novalidate
-safe:verify-message $ownerSafe @http:json($review signingBytes) --format bytes --offline true --as $messageReview
-sign $signature --typed @http:json($messageReview typedData)
-set $signedMessage @safe:merge(@http:json($messageReview package) $signature)
-set $tx @safe:merge($tx $signedMessage)
+set $safe 0x1111111111111111111111111111111111111111
+set $input @fetch(stdin:)
+set $tx @safe:merge(@http:json($input "[0]") @http:json($input "[1]"))
+safe:verify $safe $tx --no-api true --as $review
+print @http:json($review readiness)
+safe:execute $safe $tx --no-api true
 ```
 
-Collect enough signatures for the owner Safe before attaching it. Online
-verification checks its current authorization through the contract.
+## Drafts and sharing
 
-For on-chain approval, use the ordinary contract-call command from an owner:
+Drafts are ordinary files. Keep them wherever the owners already exchange
+documents, and feed them back in with the import methods above. To share a
+package by CID, use `@ipfs` and `@ipfs.get`. Uploading currently uses Pinata
+and is optional; local files need no pinning service.
 
-```evml novalidate
-exec $mySafe approveHash(bytes32) @http:json($review hashes.safeTxHash)
-```
-
-A nested Safe owner can include that call in its own Safe transaction block.
-Execution automatically discovers confirmed approvals. Approvals are not
-removed when a local package or draft is deleted.
-
-## Drafts, sharing and replacement
-
-Save drafts as ordinary files. Pipe their contents into the CLI or explicitly
-select an input file in the terminal, then access them with `@fetch(stdin:)`.
-Existing `@ipfs` and `@ipfs.get` can exchange package text by CID; upload
-currently uses Pinata and is optional. Local files need no pinning service.
-Print only the package when exporting a JSON file: multiple `print` commands
-produce consecutive outputs, not a single JSON document.
-
-To replace or cancel an unexecuted transaction, prepare a zero-value transfer
-to the Safe itself with `--nonce` set to the original nonce, then collect fresh
-signatures. Only one transaction at that nonce can execute. Old files are not
-automatically deleted; a consumed nonce alone cannot identify which proposal
-executed.
+Deleting a file does not cancel anything. A package stays executable until
+its nonce is used, and an on-chain `approveHash` approval stays in place.
+To cancel a package, see [the Safe guide](safe.md#merge-and-execute).

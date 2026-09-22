@@ -18,7 +18,7 @@ export default defineHelper<Contracts>({
   description:
     "Code hash of an address, with EXTCODEHASH semantics: `bytes32(0)` for a nonexistent account (zero nonce, balance and code), `keccak256` of the code otherwise.",
   compileDescription:
-    "The account may be a `::` call resolving to an address, such as a proxy implementation.",
+    "The account may be a call resolving to an address (`::` at build time, `::!` on-chain), such as a proxy implementation.",
   returnType: "bytes32",
   args: [
     {
@@ -44,7 +44,7 @@ export default defineHelper<Contracts>({
   compile: async (ctx, node): Promise<Operand> => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@codeHash! expects (account), e.g. @codeHash!(@me) or @codeHash!($proxy::implementation())",
+        "@codeHash! expects (account), e.g. @codeHash!(@me) or @codeHash!($proxy::!{implementation()(address)})",
       );
     }
     const [accountNode] = node.args;

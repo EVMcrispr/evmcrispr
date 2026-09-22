@@ -41,7 +41,7 @@ load lang
 set $amm 0x44fA8E6f47987339850636F88629646662444217
 
 # The pair values (lane 1) sum past the floor
-assert @reduce!(@values!($amm::{reservePairs()(uint256[])}) add 0) >= 100
+assert @reduce!(@values!($amm::!{reservePairs()(uint256[])}) add 0) >= 100
 ```
 
 ### Notes

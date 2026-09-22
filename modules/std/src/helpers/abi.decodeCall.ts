@@ -40,7 +40,7 @@ import {
 import type Std from "..";
 
 const BANG_HINT =
-  "e.g. @abi.decodeCall!($queue::{txData()(bytes)} transfer(address,uint256) [_ $])";
+  "e.g. @abi.decodeCall!($queue::!{txData()(bytes)} transfer(address,uint256) [_ $])";
 
 export default defineHelper<Std>({
   name: "abi.decodeCall",

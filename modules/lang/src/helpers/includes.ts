@@ -50,7 +50,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@includes! expects (call item), e.g. @includes!($safe::getOwners() @me)",
+        "@includes! expects (call item), e.g. @includes!($safe::!{getOwners()(address[])} @me)",
       );
     }
     const array = await arrayArg(ctx, node.args[0], "includes!");

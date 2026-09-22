@@ -38,7 +38,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 2) {
       throw new ErrorException(
-        "@zip! expects (a b), e.g. @zip!($safe::getOwners() [1 2 3])",
+        "@zip! expects (a b), e.g. @zip!($safe::!{getOwners()(address[])} [1 2 3])",
       );
     }
     const left = await arrayArg(ctx, node.args[0], "zip!");

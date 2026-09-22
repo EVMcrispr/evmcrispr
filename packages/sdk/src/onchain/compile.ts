@@ -478,9 +478,10 @@ type CompiledHop =
   | { kind: "plain"; data: Hex }
   | { kind: "read"; call: CompiledCall };
 
-/** Compile a hop's argument list. A `::!` hop always compiles as a read
- *  construction — its target is a spliced operand, never a fixed address,
- *  so there is no plain-calldata shortcut. */
+/** Compile a hop's argument list. With every argument constant the hop
+ *  is plain calldata staticcalled from the chain so far (a fixed address
+ *  or an earlier read's value); any live argument turns it into a read
+ *  construction that splices the argument at assertion time. */
 async function compileHopArgs(
   ctx: CompileCtx,
   hop: CallExpressionNode,
@@ -489,7 +490,12 @@ async function compileHopArgs(
   const liveIdx = hop.args.findIndex(
     (a) => a.type === NodeType.CallExpression || isBangHelperNode(a),
   );
-  if (liveIdx === -1 && !hop.bang) {
+  if (liveIdx === -1) {
+    if (hop.args.length !== fnAbi.inputs.length) {
+      throw new ErrorException(
+        `${hop.method} expects ${fnAbi.inputs.length} argument(s), got ${hop.args.length}`,
+      );
+    }
     const argVals = await ctx.interpreters.interpretNodes(hop.args);
     return { kind: "plain", data: encodeCalldata(fnAbi, argVals) };
   }
@@ -520,37 +526,37 @@ export async function compileChain(
 ): Promise<Chain> {
   const { hops, rootTarget } = flattenCallNodes(node);
 
+  // A plain `::` hop is a build-time call: the interpreter eth_calls it
+  // while the script builds. An on-chain expression is judged later, so
+  // every hop of it must be a `::!` read — the marker is what says the
+  // value is fetched at assertion time rather than frozen into calldata.
+  const plain = hops.find((hop) => !hop.bang);
+  if (plain) {
+    throw new ErrorException(
+      `${plain.method}() is a build-time \`::\` call and cannot be read on-chain; write \`::!{${plain.method}(argTypes)(returnTypes) args…}\` so it is read at assertion time`,
+    );
+  }
+
   let startAddress: Address | undefined;
   let start: InputParam;
 
-  if (hops[0]?.bang || PRECOMPILED_OPERAND in rootTarget) {
-    // A leading `::!` hop reads from a computed head: the target may be
-    // any operand (a bang helper, a variable, a literal), not just an
-    // address chain. A live head is spliced as the read target word — the
-    // core still requires it to resolve to a clean address word
-    // (InvalidAddressWord otherwise); the win is computed heads like
-    // `@bytes!($reg::packedPool() ">>" 96)::!{fee()(uint24)}`.
-    const head = await compileOperand(ctx, rootTarget);
-    if (head.kind === "const") {
-      if (head.cat !== "Address") {
-        throw new ErrorException(
-          `a ::! read target must resolve to an address, got ${String(head.value)}`,
-        );
-      }
-      startAddress = getAddress(head.value as string);
-      start = rawParam(toWord(BigInt(startAddress)));
-    } else {
-      start = head.param;
-    }
-  } else {
-    const rootValue = await ctx.interpreters.interpretNode(rootTarget);
-    if (typeof rootValue !== "string" || !isAddress(rootValue)) {
+  // The head may be any operand (a bang helper, a variable, a literal),
+  // not just an address. A constant head is the fixed start of the chain;
+  // a live head is spliced as the read target word — the core still
+  // requires it to resolve to a clean address word (InvalidAddressWord
+  // otherwise); the win is computed heads like
+  // `@bytes!($reg::!{packedPool()(uint256)} ">>" 96)::!{fee()(uint24)}`.
+  const head = await compileOperand(ctx, rootTarget);
+  if (head.kind === "const") {
+    if (head.cat !== "Address") {
       throw new ErrorException(
-        `assertion target must resolve to an address, got ${rootValue}`,
+        `a ::! read target must resolve to an address, got ${String(head.value)}`,
       );
     }
-    startAddress = getAddress(rootValue);
+    startAddress = getAddress(head.value as string);
     start = rawParam(toWord(BigInt(startAddress)));
+  } else {
+    start = head.param;
   }
 
   let calls: Hex[] = [];
@@ -560,10 +566,9 @@ export async function compileChain(
   for (let i = 0; i < hops.length; i++) {
     const hop = hops[i];
     const last = i === hops.length - 1;
-    // The next hop's kind decides what THIS hop's value must be: a plain
-    // `::` hop staticcalls it as an address; a `::!` hop splices it as the
-    // read target word (any single-word value is acceptable — the core
-    // enforces the clean address word on-chain).
+    // The next hop reads from THIS hop's value, so it must be a single
+    // word (any single-word value is acceptable — the core enforces the
+    // clean address word on-chain).
     const nextBang = hops[i + 1]?.bang === true;
     if (hop.bang && !(hop.inputTypes && hop.outputTypes)) {
       throw new ErrorException(
@@ -1183,7 +1188,7 @@ export async function requireChainArg(
 ): Promise<Chain> {
   if (!node || node.type !== NodeType.CallExpression) {
     throw new ErrorException(
-      `@${helper} expects a \`::\` call expression, e.g. @${helper}($target::method())`,
+      `@${helper} expects a \`::!\` call expression, e.g. @${helper}($target::!{method()(returnType)})`,
     );
   }
   if ((node as CallExpressionNode).returnDestructure) {
@@ -1227,7 +1232,7 @@ export async function chainArgWithLens(
   }
   if (!node || node.type !== NodeType.CallExpression) {
     throw new ErrorException(
-      `@${helper} expects a \`::\` call expression, e.g. @${helper}($target::method())`,
+      `@${helper} expects a \`::!\` call expression, e.g. @${helper}($target::!{method()(returnType)})`,
     );
   }
   const call = node as CallExpressionNode;

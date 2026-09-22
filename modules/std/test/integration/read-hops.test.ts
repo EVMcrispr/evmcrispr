@@ -14,11 +14,12 @@ import type { Address } from "viem";
 /**
  * `::!` read hops, resolved against the real contracts.
  *
- * These shapes are the ones whose meaning depends on WHICH hop of a chain
- * carries the read marker, so they are what a change to where that marker
- * is written can silently break. The values were captured from the retired
- * `!::` spelling before the parser moved, which is the point: the marker
- * changed position, the compiled expression must not have.
+ * Every hop of an on-chain chain is a read (a plain `::` hop is a
+ * build-time call, which the compiler refuses), so these shapes cover the
+ * places a read can sit: alone, chained, lensed, spliced as an argument,
+ * and nested inside another read's argument. The values were captured
+ * from the retired `!::` spelling before the parser moved, which is the
+ * point: the spelling changed, the compiled expression must not have.
  *
  * Values that track the fork head are asserted as relationships rather
  * than literals (`decimals()` is the one genuine constant). A number
@@ -47,7 +48,7 @@ const LONG = "a value with more than thirty-two bytes";
 /** One live string argument: an element of that array, resolved at judge
  *  time, optionally cut to `n` bytes. */
 const live = (index: 0 | 1, n?: number): string => {
-  const element = `@at!(${MOCK}::{strings()(string[])} ${index})`;
+  const element = `@at!(${MOCK}::!{strings()(string[])} ${index})`;
   return n === undefined ? element : `@str.slice!(${element} 0 ${n})`;
 };
 
@@ -101,21 +102,18 @@ describe("std > ::! read hops (resolved)", () => {
     expect(balance > 0n).to.be.true;
   }, 30_000);
 
-  it("reads after a plain hop resolved the target", async () => {
-    // The marker is on hop 2, so hop 1 staticcalls `asset()` and the read
-    // targets what it returned. Equals WXDAI's own totalSupply.
+  it("chains reads: the first resolves the target of the second", async () => {
+    // Hop 1 reads `asset()` and hop 2 reads from what it returned. Equals
+    // WXDAI's own totalSupply.
     const chained = await num(
-      `${SDAI}::{asset()(address)}::!{totalSupply()(uint256)}`,
+      `${SDAI}::!{asset()(address)}::!{totalSupply()(uint256)}`,
     );
-    expect(chained).to.equal(await num(`${WXDAI}::{totalSupply()(uint256)}`));
+    expect(chained).to.equal(await num(`${WXDAI}::!{totalSupply()(uint256)}`));
   }, 30_000);
 
-  it("continues a chain past a read hop", async () => {
-    // Marker on hop 1 this time: the read resolves the address that hop 2
-    // then staticcalls. The inverse arrangement of the case above, and the
-    // pair is what a marker that bound to the wrong hop would break.
+  it("continues a chain past a read hop into a constant", async () => {
     expect(
-      await num(`${SDAI}::!{asset()(address)}::{decimals()(uint8)}`),
+      await num(`${SDAI}::!{asset()(address)}::!{decimals()(uint8)}`),
     ).to.equal(18n);
   }, 30_000);
 
@@ -126,24 +124,13 @@ describe("std > ::! read hops (resolved)", () => {
     expect(reserve > 0n).to.be.true;
   }, 30_000);
 
-  it("splices a live call argument into a read", async () => {
+  it("splices a nested read into a read's argument", async () => {
+    // The argument is itself a read, resolved at judge time and spliced
+    // into the outer call's calldata.
     const assets = await num(
-      `${SDAI}::!{convertToAssets(uint256)(uint256) ${WXDAI}::{totalSupply()(uint256)}}`,
+      `${SDAI}::!{convertToAssets(uint256)(uint256) ${WXDAI}::!{totalSupply()(uint256)}}`,
     );
     expect(assets > 0n).to.be.true;
-  }, 30_000);
-
-  it("reads from a nested hop used as a call argument", async () => {
-    // Same computation as the case above with the marker moved to the
-    // NESTED hop. A nested read is not redundant (it is what lets an
-    // argument read from a computed head), so the two must agree.
-    const outerMarked = await num(
-      `${SDAI}::!{convertToAssets(uint256)(uint256) ${WXDAI}::{totalSupply()(uint256)}}`,
-    );
-    const nestedMarked = await num(
-      `${SDAI}::{convertToAssets(uint256)(uint256) ${WXDAI}::!{totalSupply()(uint256)}}`,
-    );
-    expect(nestedMarked).to.equal(outerMarked);
   }, 30_000);
 
   // Several dynamic arguments in one constructed call. The splice layout

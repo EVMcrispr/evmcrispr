@@ -11,6 +11,7 @@ export {
   type CompileEnv,
   compileExpression,
   moduleBaseName,
+  readHops,
   runExpression,
 } from "./compile";
 export {

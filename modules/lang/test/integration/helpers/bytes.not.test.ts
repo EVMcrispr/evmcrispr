@@ -27,7 +27,7 @@ describeCommand("assert (@bytes.not!)", {
   cases: [
     {
       name: "complements a live word with xor against all ones",
-      script: `assert @bytes.not!(${TOKEN}::{mask()(bytes32)}) == ${ZERO32}`,
+      script: `assert @bytes.not!(${TOKEN}::!{mask()(bytes32)}) == ${ZERO32}`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         // There is no NOT in the operator set, and none is needed:
@@ -40,7 +40,7 @@ describeCommand("assert (@bytes.not!)", {
     },
     {
       name: "folds a constant complement at composition time",
-      script: `assert ${TOKEN}::{mask()(bytes32)} == @bytes.not!(${ZERO32})`,
+      script: `assert ${TOKEN}::!{mask()(bytes32)} == @bytes.not!(${ZERO32})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         expect(d.staticCallOf(param).target).to.equal(TOKEN);
@@ -51,7 +51,7 @@ describeCommand("assert (@bytes.not!)", {
   errorCases: [
     {
       name: "rejects a dynamic bytes value, which has no fixed width",
-      script: `assert @bytes.not!(${TOKEN}::{payload()(bytes)}) == ${ZERO32}`,
+      script: `assert @bytes.not!(${TOKEN}::!{payload()(bytes)}) == ${ZERO32}`,
       error: "no fixed width to complement",
     },
   ],

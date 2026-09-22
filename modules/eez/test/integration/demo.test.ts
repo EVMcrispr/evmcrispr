@@ -83,7 +83,7 @@ contracts:verify $gate --source $gateSrc --contract-name Gate --constructor "con
 circom:prove $proof --circom $circuit --ptau dev --inputs [secret:$secret commitment:$commitment]
 set [$a $b $c $signals] @circom:proof($proof)
 exec $gate "admit(uint256[2],uint256[2][2],uint256[2],uint256[1])" $a $b $c $signals
-assert $gate::{admitted(address)(bool) @me} == true "admission failed"
+assert $gate::!{admitted(address)(bool) @me} == true "admission failed"
 
 switch eezL2
 

@@ -37,7 +37,7 @@ load lang
 set $gov 0xc0dbDcA66a0636236fAbe1B3C16B1bD4C84bB1E1
 
 # A uint256[] with 2 items is 64 + 2*32 = 128 bytes
-assert @bytes.len!($gov::{tallies()(uint256[])}) == 128
+assert @bytes.len!($gov::!{tallies()(uint256[])}) == 128
 ```
 
 ### See Also

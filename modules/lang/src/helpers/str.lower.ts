@@ -28,7 +28,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@str.lower! expects a single call argument, e.g. @str.lower!($pool::symbol())",
+        "@str.lower! expects a single call argument, e.g. @str.lower!($pool::!{symbol()(string)})",
       );
     }
     const arg = await chainArgWithLens(ctx, "str.lower!", node.args[0]);

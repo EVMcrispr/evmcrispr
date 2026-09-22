@@ -22,7 +22,7 @@ export default defineHelper<Lang>({
   compile: async (ctx, node) => {
     if (node.args.length !== 1) {
       throw new ErrorException(
-        "@reverse! expects a single array argument, e.g. @reverse!($safe::getOwners())",
+        "@reverse! expects a single array argument, e.g. @reverse!($safe::!{getOwners()(address[])})",
       );
     }
     const array = await arrayArg(ctx, node.args[0], "reverse!");
