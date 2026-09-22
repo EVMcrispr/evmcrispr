@@ -18,6 +18,7 @@ import {
   resolve,
   sep,
 } from "node:path";
+import { unified } from "@astrojs/markdown-remark";
 import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import circomGrammar from "@evmcrispr/editor/grammars/circom";
@@ -343,10 +344,12 @@ export default defineConfig({
     "/contributing": "/contribute/contributing",
   },
   markdown: {
-    // Keep -- as typed (e.g. command --options) instead of SmartyPants
-    // turning it into an en dash.
-    smartypants: false,
-    remarkPlugins: [remarkRewriteMdLinks, remarkExperimental],
+    processor: unified({
+      // Keep -- as typed (e.g. command --options) instead of SmartyPants
+      // turning it into an en dash.
+      smartypants: false,
+      remarkPlugins: [remarkRewriteMdLinks, remarkExperimental],
+    }),
   },
   integrations: [
     starlight({
