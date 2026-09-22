@@ -16,7 +16,7 @@ import type { Address } from "../types";
 
 /** Canonical address of the Assertions core (CREATE2). */
 export const CORE_ADDRESS: Address =
-  "0xA55e47F41968c49e084955524fA77c1B2ef2B638";
+  "0xA55e479Cfb10A70BA33560ecAf5dd29C3fDE8531";
 
 /** Canonical address of Operations (CREATE2): scalar computation over
  *  resolved values. */
@@ -32,4 +32,4 @@ export const COLLECTIONS_ADDRESS: Address =
  *  (`evaluate`), the host of collection callbacks compiled as graphs.
  *  Resolve-once call construction is the core's (`get`, `gather`). */
 export const EXPRESSIONS_ADDRESS: Address =
-  "0xE5594e551FA2209A28386418AAb971983A874029";
+  "0xe5594E555dF45DbF1a5622ED73e282EDb42e7930";
