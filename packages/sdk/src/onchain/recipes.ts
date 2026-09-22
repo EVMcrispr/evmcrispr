@@ -459,8 +459,8 @@ export function unzipParam(
  * A P1 single-read operand: a direct staticcall with build-time calldata.
  * `pickWord` unwraps one word of a multi-value return through a core
  * `pick`, so the operand stays a clean single word for the word machine
- * (constraints only inspect the FIRST word, but nested splices carry the
- * full returndata).
+ * (a single constraint checks word 0, but nested splices carry the full
+ * returndata).
  */
 export function directReadOperand(
   ctx: CompileCtx,
