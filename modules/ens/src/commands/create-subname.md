@@ -31,7 +31,7 @@ ens:create-subname <parent> <label> <owner>
 |------|------|------------|-------------|
 | `--resolver` | `address` | Runtime in smart blocks | Resolver for the subname (defaults to the parent's) |
 | `--fuses` | `number` | Build time | Fuses to burn on the subname (wrapped parents only; use @ens:fuses) |
-| `--expiry` | `number` | Build time | Subname expiry timestamp (wrapped parents only) |
+| `--expiry` | `number` | Runtime in smart blocks | Subname expiry timestamp (wrapped parents only) |
 
 <!-- HAND-WRITTEN -->
 

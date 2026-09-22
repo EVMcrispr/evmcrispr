@@ -1,6 +1,10 @@
 import type { TransactionAction } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
-import { isRuntimeValue, smartRawAction } from "@evmcrispr/sdk/onchain";
+import {
+  isRuntimeValue,
+  type RuntimeValue,
+  smartRawAction,
+} from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 
 export default defineCommand<Std>({
@@ -21,8 +25,10 @@ export default defineCommand<Std>({
   opts: [
     {
       name: "data",
+      runtime: true,
       type: "bytes",
-      description: "Pre-encoded calldata or init code",
+      description:
+        "Pre-encoded calldata or init code; runtime calldata requires a fixed selector from @abi.encodeCall!",
     },
     {
       name: "value",
@@ -53,7 +59,7 @@ export default defineCommand<Std>({
     },
   ],
   async run(_module, { to }, { opts }) {
-    const data = opts.data as `0x${string}` | undefined;
+    const data = opts.data as `0x${string}` | RuntimeValue | undefined;
 
     if (!to && !data) {
       throw new ErrorException(
@@ -61,11 +67,12 @@ export default defineCommand<Std>({
       );
     }
 
-    if (!to && isRuntimeValue(opts.value))
+    if (!to && (isRuntimeValue(opts.value) || isRuntimeValue(data)))
       throw new ErrorException(
         "plain CREATE deployments cannot be smart-batched",
       );
-    const symbolic = isRuntimeValue(to) || isRuntimeValue(opts.value);
+    const symbolic =
+      isRuntimeValue(to) || isRuntimeValue(opts.value) || isRuntimeValue(data);
     const action: TransactionAction = symbolic
       ? smartRawAction(
           to,
@@ -74,7 +81,7 @@ export default defineCommand<Std>({
         )
       : {};
     if (to && !symbolic) action.to = to;
-    if (!symbolic && data && data !== "0x") action.data = data;
+    if (!symbolic && data && data !== "0x") action.data = data as `0x${string}`;
 
     if (!symbolic && opts.value !== undefined) {
       action.value = BigInt(opts.value);

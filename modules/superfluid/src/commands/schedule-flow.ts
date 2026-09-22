@@ -60,6 +60,7 @@ export default defineCommand<Superfluid>({
     },
     {
       name: "start-window",
+      runtime: true,
       type: "number",
       description:
         "How long after --start the keeper may still open the stream (default 3d)",

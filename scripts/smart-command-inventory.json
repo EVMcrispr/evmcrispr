@@ -142,8 +142,7 @@
     "reason": "Witness generation and proving artifacts are build-time operations."
   },
   "contracts/deploy": {
-    "kind": "static",
-    "reason": "Bytecode, salt and constructor inputs determine the address binding; plain CREATE is not atomic-batch compatible."
+    "kind": "runtime"
   },
   "contracts/verify": {
     "kind": "incompatible",
@@ -433,16 +432,14 @@
     "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
   },
   "std/if": {
-    "kind": "static",
-    "reason": "Control-flow conditions are evaluated at build time."
+    "kind": "runtime"
   },
   "std/load": {
     "kind": "incompatible",
     "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
   },
   "std/loop": {
-    "kind": "static",
-    "reason": "Loop bounds are evaluated at build time; the body expands into ordered steps."
+    "kind": "runtime"
   },
   "std/print": {
     "kind": "static",
@@ -452,8 +449,7 @@
     "kind": "runtime"
   },
   "std/set": {
-    "kind": "static",
-    "reason": "Assignments are build-time values; use -> [...] capture for on-chain outputs."
+    "kind": "runtime"
   },
   "std/sign": {
     "kind": "incompatible",

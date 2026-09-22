@@ -2,12 +2,11 @@ import {
   defineCommand,
   ErrorException,
   encodeAction,
-  Num,
   normalizeSignature,
 } from "@evmcrispr/sdk";
 import { toFunctionSelector } from "viem";
 import type AccessControl from "..";
-import { resolveManagerRoleId } from "../utils";
+import { smartManagerRoleId } from "../utils";
 
 export default defineCommand<AccessControl>({
   smartSupport: { kind: "runtime" },
@@ -29,6 +28,7 @@ export default defineCommand<AccessControl>({
     },
     {
       name: "roleId",
+      runtime: true,
       type: ["number", "string"],
       description:
         "Role id required to call the functions (or ADMIN_ROLE / PUBLIC_ROLE)",
@@ -57,7 +57,7 @@ export default defineCommand<AccessControl>({
       encodeAction(manager, "setTargetFunctionRole(address,bytes4[],uint64)", [
         target,
         selectors,
-        Num.fromBigInt(resolveManagerRoleId(roleId)),
+        smartManagerRoleId(roleId),
       ]),
     ];
   },

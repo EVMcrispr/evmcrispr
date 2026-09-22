@@ -19,7 +19,7 @@ superfluid:distribute <amount> <token> <to> <pool>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `amount` | `number` | Runtime in smart blocks | Amount to distribute, in base units (18 decimals) |
-| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
+| `token` | `supertoken` | Runtime in smart blocks | SuperToken symbol (e.g. USDCx) or address |
 | `to` | `command` | Build time | Keyword `to` |
 | `pool` | `address` | Runtime in smart blocks | GDA pool address |
 

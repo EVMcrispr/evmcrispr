@@ -23,6 +23,7 @@ export default defineCommand<AragonOSx>({
   opts: [
     {
       name: "try-execution",
+      runtime: true,
       type: "bool",
       description: "Execute in the same call if the proposal already passes",
     },

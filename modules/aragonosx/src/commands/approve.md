@@ -25,7 +25,7 @@ aragonosx:approve <plugin> <proposalId>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `--try-execution` | `bool` | Build time | Execute in the same call if the proposal already passes |
+| `--try-execution` | `bool` | Runtime in smart blocks | Execute in the same call if the proposal already passes |
 
 ## Examples
 

@@ -22,7 +22,7 @@ send [to]
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `--data` | `bytes` | Build time | Pre-encoded calldata or init code |
+| `--data` | `bytes` | Runtime in smart blocks | Pre-encoded calldata or init code; runtime calldata requires a fixed selector from @abi.encodeCall! |
 | `--value` | `number` | Runtime in smart blocks | Native value to send (in wei) |
 | `--from` | `address` | Build time | Sender address (requires simulation or connected wallet) |
 | `--gas` | `number` | Build time | Gas limit |

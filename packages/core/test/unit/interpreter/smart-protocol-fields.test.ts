@@ -1,7 +1,11 @@
 import { afterAll, describe, it } from "bun:test";
+import Acl from "@evmcrispr/module-acl";
+import Contracts from "@evmcrispr/module-contracts";
 import Ens from "@evmcrispr/module-ens";
+import Governor from "@evmcrispr/module-governor";
 import Safe from "@evmcrispr/module-safe";
 import Semaphore from "@evmcrispr/module-semaphore";
+import Superfluid from "@evmcrispr/module-superfluid";
 import {
   createPublicClient,
   custom,
@@ -52,7 +56,15 @@ const transport = custom({
   },
 });
 const client = createPublicClient({ transport });
-const tag = createEvml().use(Ens, Safe, Semaphore);
+const tag = createEvml().use(
+  Ens,
+  Safe,
+  Semaphore,
+  Acl,
+  Governor,
+  Superfluid,
+  Contracts,
+);
 const factory = (script: string): TestInterpreter => {
   const evm = new Interpreter(tag.registry, {
     account,
@@ -80,13 +92,33 @@ const proof = JSON.stringify({
   points: Array(8).fill("0"),
 });
 const cases: Record<string, string[]> = {
+  acl: [
+    `grant 7 on ${other} to ${account} --delay 5`,
+    `revoke 7 on ${other} from ${account}`,
+    `renounce 7 on ${other}`,
+    `label-role ${other} 7 Treasury`,
+    `set-role-admin ${other} 7 1`,
+    `set-role-guardian ${other} 7 1`,
+    `set-target-function-role ${other} ${third} 7 ["transfer(address,uint256)"]`,
+  ],
+  governor: [`vote ${other} 7 1 --reason Treasury`],
+  superfluid: [
+    `schedule-flow 1 ${other} to ${account} --start 2000000000 --start-window 300 --no-approve true`,
+    `vest 1000000000 ${other} to ${account} over 1000 --cliff 100 --claimable-for 300 --no-approve true`,
+    `stop-stream ${other} to ${account}`,
+    `unschedule-flow ${other} to ${account}`,
+    `distribute 1 ${other} to ${account}`,
+  ],
+  contracts: [
+    `deploy $deployed 0x6000 --create3 0x${"00".repeat(32)} --constructor "constructor(uint256)" --constructor-args [7] --value 1`,
+  ],
   ens: [
     `set-text alice.eth url "https://example.com"`,
     `set-addr alice.eth ${other} 60`,
     `set-contenthash alice.eth 0xe3010170`,
     `set-resolver alice.eth ${other}`,
     `set-primary-name alice.eth --for ${other}`,
-    `create-subname alice.eth bob ${other} --resolver ${third}`,
+    `create-subname alice.eth bob ${other} --resolver ${third} --expiry 9999999999`,
     `renew alice.eth 1y`,
     `wrap alice.eth --resolver ${other}`,
     `set-fuses bob.alice.eth can-extend-expiry --expiry 9999999999`,

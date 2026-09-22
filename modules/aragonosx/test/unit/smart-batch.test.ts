@@ -9,12 +9,13 @@ const id = runtimeValue(
   { type: "uint256" },
   `0x${"12".repeat(32)}`,
 );
+const flag = runtimeValue(rawParam(toWord(1n)), { type: "bool" }, id.batchId);
 describe("smart governance lifecycle calls", () => {
   for (const adapter of ADAPTERS)
     it(adapter.id, () => {
       const methods = [
-        adapter.buildApprove && (() => adapter.buildApprove!(target, id, true)),
-        adapter.buildVote && (() => adapter.buildVote!(target, id, 2, true)),
+        adapter.buildApprove && (() => adapter.buildApprove!(target, id, flag)),
+        adapter.buildVote && (() => adapter.buildVote!(target, id, 2, flag)),
         adapter.buildExecute && (() => adapter.buildExecute!(target, id)),
       ].filter(Boolean);
       if (adapter.id === "admin") {
@@ -28,6 +29,7 @@ describe("smart governance lifecycle calls", () => {
         const call = getEncodedCall(actions[0] as TransactionAction)!;
         expect(call.target).toBe(target);
         expect(call.args[0]).toBe(id);
+        if (call.args.length > 1) expect(call.args.at(-1)).toBe(flag);
       }
     });
 });

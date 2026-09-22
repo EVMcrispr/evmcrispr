@@ -18,7 +18,7 @@ superfluid:stop-stream <token> <to> <receiver>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
+| `token` | `supertoken` | Runtime in smart blocks | SuperToken symbol (e.g. USDCx) or address |
 | `to` | `command` | Build time | Keyword `to` |
 | `receiver` | `address` | Runtime in smart blocks | Stream receiver |
 

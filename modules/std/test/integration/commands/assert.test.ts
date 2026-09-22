@@ -1650,11 +1650,6 @@ describeCommand("assert", {
       error: "wrap arithmetic in @calc!",
     },
     {
-      name: "rejects ~= between two live values",
-      script: `assert ${TOKEN}::!{supply()(uint256)} ~= ${TOKEN}::!{cap()(uint256)} --delta 5`,
-      error: "@absDiff!",
-    },
-    {
       name: "rejects ~= on a string return",
       script: `assert ${TOKEN}::!{name()(string)} ~= "x" --delta 1`,
       error: "not supported",

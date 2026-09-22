@@ -26,7 +26,7 @@ aragonosx:vote <plugin> <proposalId> <option>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `--try-early-execution` | `bool` | Build time | Execute in the same call if the proposal already passes |
+| `--try-early-execution` | `bool` | Runtime in smart blocks | Execute in the same call if the proposal already passes |
 
 ## Examples
 

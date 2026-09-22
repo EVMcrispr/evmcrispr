@@ -9,7 +9,7 @@ import type Superfluid from "..";
 import { GDA_FORWARDER } from "../addresses";
 import { requireCore } from "../utils/protocol";
 import { parseAmount } from "../utils/rate";
-import { resolveSuperToken } from "../utils/supertoken";
+import { resolveSmartSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
   smartSupport: { kind: "runtime" },
@@ -25,6 +25,7 @@ export default defineCommand<Superfluid>({
     },
     {
       name: "token",
+      runtime: true,
       type: "supertoken",
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
@@ -51,7 +52,7 @@ export default defineCommand<Superfluid>({
       throw new ErrorException(`expected keyword "to", got "${to}"`);
     }
     await requireCore(module);
-    const superToken = await resolveSuperToken(module, token);
+    const superToken = await resolveSmartSuperToken(module, token);
     const parsed = parseAmount(amount, undefined, module);
     const account = await module.getSender();
     const from = opts.from ?? account;

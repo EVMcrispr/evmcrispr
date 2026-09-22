@@ -4,7 +4,7 @@ title: "contracts:deploy"
 
 Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --mirror-chain / --mirror-address (fetches the original creation bytecode from Etherscan).
 
-Smart blocks: build-time inputs only. Bytecode, salt and constructor inputs determine the address binding; plain CREATE is not atomic-batch compatible.
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
 
 ## Syntax
 
@@ -17,7 +17,7 @@ contracts:deploy <variable> [bytecode]
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `variable` | `variable` | Build time | Variable to bind the deployed contract address to |
-| `[bytecode]` | `bytes` | Build time | Creation bytecode. Constructor args are appended automatically when --constructor is set. Omit when using --mirror-chain / --mirror-address to mirror an existing deployment. |
+| `[bytecode]` | `bytes` | Runtime in smart blocks | Creation bytecode (runtime values require --create3). Constructor args are appended automatically when --constructor is set. Omit when using --mirror-chain / --mirror-address to mirror an existing deployment. |
 
 ## Options
 
@@ -26,12 +26,12 @@ contracts:deploy <variable> [bytecode]
 | `--mirror-chain` | `chain` | Build time | Chain (id or viem name like `optimism`) to fetch the creation bytecode from (Etherscan V2). Defaults to the current chain when only --mirror-address is set. Requires --mirror-address. |
 | `--mirror-address` | `address` | Build time | Address of an existing deployment to mirror. The original creation bytecode (with constructor args already appended) is fetched from Etherscan and used as the init code for this deployment. |
 | `--constructor` | `string` | Build time | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. Mutually exclusive with --mirror-address. |
-| `--constructor-args` | `array` | Build time | Constructor arguments as an array literal, e.g. [100e18 @me true]. Requires --constructor. |
+| `--constructor-args` | `array` | Runtime in smart blocks | Constructor arguments as an array literal, e.g. [100e18 @me true]. Requires --constructor; runtime inputs require --create3. |
 | `--create2` | `bytes32` | Build time | Salt for CREATE2 deployment. Defaults to the Arachnid deterministic deployer; override factory with --via. |
 | `--create3` | `bytes32` | Build time | Salt for CREATE3 deployment. Defaults to the CreateX factory; override with --via. |
 | `--via` | `address` | Build time | Override the default factory address used by --create2 / --create3. |
 | `--from` | `address` | Build time | Sender address. Defaults to the connected wallet. For plain CREATE this is also the prediction deployer. |
-| `--value` | `number` | Build time | ETH to send with the deployment (in wei) |
+| `--value` | `number` | Runtime in smart blocks | ETH to send with the deployment (in wei) |
 | `--gas` | `number` | Build time | Gas limit |
 | `--max-fee-per-gas` | `number` | Build time | Max fee per gas (EIP-1559) |
 | `--max-priority-fee-per-gas` | `number` | Build time | Max priority fee per gas (EIP-1559) |

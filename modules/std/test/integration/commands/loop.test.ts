@@ -26,6 +26,12 @@ describeCommand("loop", {
       code: `loop $i of [1 2 3 4] (\n  if @bool($i == 2 or $i == 4) (\n    loop continue\n  )\n  print $i\n)`,
     },
   ],
+  smartCases: [
+    {
+      name: "runtime collection",
+      script: `loop $i of ${target}::!{values()(uint256[])} --max-iterations 2 (\nexec ${target} ${fnSig} ${target} $i\n)`,
+    },
+  ],
   cases: [
     {
       name: "should iterate over an array producing actions per element",

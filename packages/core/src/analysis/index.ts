@@ -20,6 +20,7 @@ import {
   isExperimentalEnabled,
   isSpecialArgType,
   NodeType,
+  nodeMatchesSpecialType,
   parseConfigVarName,
   parseImportList,
   parseSignature,
@@ -48,6 +49,7 @@ import { ModuleSchemaProvider } from "./moduleSchemas";
 interface BatchFrame {
   name: string;
   smart?: boolean;
+  conditional?: boolean;
 }
 
 /** Literal builtin scalar types we can validate statically against a literal
@@ -799,6 +801,35 @@ class SemanticAnalyzer {
     }
   }
 
+  #patternRuntime(slots: DestructureSlot[]): boolean {
+    return slots.some((slot) =>
+      typeof slot === "string"
+        ? this.#runtimeNames.has(slot.startsWith("$") ? slot : `$${slot}`)
+        : Array.isArray(slot) && this.#patternRuntime(slot),
+    );
+  }
+
+  #containsRuntime(node: any): boolean {
+    return (
+      !!node &&
+      typeof node === "object" &&
+      node.type !== NodeType.BlockExpression &&
+      (Array.isArray(node)
+        ? node.some((child: any) => this.#containsRuntime(child))
+        : (node.type === NodeType.HelperFunctionExpression &&
+            node.name.endsWith("!")) ||
+          (node.type === NodeType.CallExpression && node.bang) ||
+          (node.type === NodeType.DestructurePattern &&
+            this.#patternRuntime(node.slots)) ||
+          (node.type === NodeType.VariableIdentifier &&
+            this.#runtimeNames.has(node.value)) ||
+          Object.entries(node).some(
+            ([key, value]) =>
+              key !== "loc" && key !== "type" && this.#containsRuntime(value),
+          ))
+    );
+  }
+
   async #checkCommand(
     c: CommandExpressionNode,
     batchStack: BatchFrame[],
@@ -958,33 +989,37 @@ class SemanticAnalyzer {
       this.#checkConfigDefPositions(c, cmd);
       this.#checkRecordShapes(c, cmd);
       if (batchStack.some((frame) => frame.smart)) {
-        const containsRuntime = (node: any): boolean =>
-          !!node &&
-          typeof node === "object" &&
-          node.type !== NodeType.BlockExpression &&
-          (Array.isArray(node)
-            ? node.some(containsRuntime)
-            : (node.type === NodeType.HelperFunctionExpression &&
-                node.name.endsWith("!")) ||
-              (node.type === NodeType.CallExpression && node.bang) ||
-              (node.type === NodeType.VariableIdentifier &&
-                this.#runtimeNames.has(node.value)) ||
-              Object.entries(node).some(
-                ([key, value]) =>
-                  key !== "loc" && key !== "type" && containsRuntime(value),
-              ));
+        if (
+          batchStack.some((frame) => frame.conditional) &&
+          (cmd.smartSupport?.kind !== "runtime" || c.returnCapture)
+        )
+          this.#diagnostics.push(
+            diag(
+              c,
+              "command cannot perform build-time operations or capture returns inside a runtime conditional",
+              "runtime-conditional-command",
+            ),
+          );
         const ast = computeCommandArity(cmd.argDefs, c.args).astArgs;
         let cursor = 0;
         for (const field of cmd.argDefs) {
           if (field.type === "block") continue;
+          if (
+            field.optional &&
+            isSpecialArgType(field.type) &&
+            ast[cursor] &&
+            !nodeMatchesSpecialType(field.type, ast[cursor])
+          )
+            continue;
           const nodes = field.rest
             ? ast.slice(cursor)
             : ast.slice(cursor, cursor + 1);
           cursor += nodes.length;
           if (
             !field.runtime &&
+            field.type !== "variable" &&
             field.type !== "block" &&
-            nodes.some(containsRuntime)
+            nodes.some((node) => this.#containsRuntime(node))
           )
             this.#diagnostics.push(
               diag(
@@ -996,7 +1031,7 @@ class SemanticAnalyzer {
         }
         for (const option of c.opts) {
           const field = cmd.optDefs.find((field) => field.name === option.name);
-          if (field && !field.runtime && containsRuntime(option.value))
+          if (field && !field.runtime && this.#containsRuntime(option.value))
             this.#diagnostics.push(
               diag(
                 option.value,
@@ -1063,7 +1098,19 @@ class SemanticAnalyzer {
 
     // Record this command's own definitions so later commands (and its own
     // block body) see them.
+    const beforeCommandDefined = new Set(this.#definedSoFar);
+    const beforeCommandRuntime = new Set(this.#runtimeNames);
     this.#recordDefs(c, cmd);
+    if (
+      batchStack.some((frame) => frame.smart) &&
+      cmd &&
+      ((c.name === "set" && this.#containsRuntime(c.args[1])) ||
+        (c.name === "loop" && this.#containsRuntime(c.args[2])))
+    ) {
+      const assigned = new Set<string>();
+      this.#collectVariableDefs(c, cmd, assigned);
+      for (const name of assigned) this.#runtimeNames.add(name);
+    }
     const captured: string[] = [];
     slotNames(c.returnCapture ?? [], captured);
     for (const name of captured) this.#runtimeNames.add(`$${name}`);
@@ -1071,21 +1118,39 @@ class SemanticAnalyzer {
     // Recurse with the declared execution context; captures are block-scoped.
     const opensBatch = !!cmd?.createsBatchContext;
     for (const blk of this.#blocks(c)) {
+      const conditional = c.name === "if" && this.#containsRuntime(c.args[0]);
       const nextStack = opensBatch
         ? [
             ...batchStack,
             { name: this.#batchName(c), smart: cmd?.createsSmartBatchContext },
           ]
-        : batchStack;
+        : conditional
+          ? [...batchStack, { name: c.name, smart: true, conditional: true }]
+          : batchStack;
       const beforeRuntime = new Set(this.#runtimeNames);
       const beforeDefined = new Set(this.#definedSoFar);
       await this.#check(blk.body, nextStack);
-      if (cmd?.createsSmartBatchContext) {
+      if (c.name === "if" && this.#containsRuntime(c.args[0])) {
+        this.#runtimeNames = beforeRuntime;
+        this.#definedSoFar = beforeDefined;
+      } else if (cmd?.createsSmartBatchContext) {
         for (const name of this.#runtimeNames)
           if (!beforeRuntime.has(name) && !beforeDefined.has(name))
             this.#definedSoFar.delete(name);
         this.#runtimeNames = beforeRuntime;
       }
+    }
+    if (c.name === "loop" && batchStack.some((frame) => frame.smart)) {
+      for (const name of this.#runtimeNames)
+        if (!beforeCommandRuntime.has(name) && !beforeCommandDefined.has(name))
+          this.#definedSoFar.delete(name);
+      const loopVariable = c.args[0];
+      if (
+        loopVariable?.type === NodeType.VariableIdentifier &&
+        !beforeCommandDefined.has(loopVariable.value)
+      )
+        this.#definedSoFar.delete(loopVariable.value);
+      this.#runtimeNames = beforeCommandRuntime;
     }
   }
 

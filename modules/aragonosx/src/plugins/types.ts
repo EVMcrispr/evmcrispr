@@ -33,12 +33,12 @@ export interface GovernanceAdapter {
     plugin: Address,
     proposalId: bigint | import("@evmcrispr/sdk/onchain").RuntimeValue,
     option: number,
-    tryEarlyExecution: boolean,
+    tryEarlyExecution: boolean | import("@evmcrispr/sdk/onchain").RuntimeValue,
   ): Action[];
   buildApprove?(
     plugin: Address,
     proposalId: bigint | import("@evmcrispr/sdk/onchain").RuntimeValue,
-    tryExecution: boolean,
+    tryExecution: boolean | import("@evmcrispr/sdk/onchain").RuntimeValue,
   ): Action[];
   buildExecute?(
     plugin: Address,

@@ -39,7 +39,7 @@ import {
   formatParamType,
 } from "./compile";
 import { headWords, isDynamicParam } from "./construct";
-import { encodeResolve } from "./core";
+import { encodeCond, encodeResolve } from "./core";
 import { isBangHelperNode } from "./dispatch";
 import {
   type ComposableExecution,
@@ -129,6 +129,20 @@ export async function interpretSmartValue(
   ctx: CompileCtx,
   node: Node,
 ): Promise<any> {
+  if (node.type === NodeType.DestructurePattern) {
+    const resolve = async (slot: DestructureSlot): Promise<any> =>
+      Array.isArray(slot)
+        ? Promise.all(slot.map(resolve))
+        : slot === null
+          ? undefined
+          : interpretSmartValue(ctx, {
+              type: NodeType.VariableIdentifier,
+              value: slot,
+            });
+    return Promise.all(
+      (node as import("../types").DestructurePatternNode).slots.map(resolve),
+    );
+  }
   const binding = runtimeBinding(ctx, node);
   if (binding) return binding;
   if (node.type === NodeType.VariableIdentifier) {
@@ -383,6 +397,33 @@ function rejectEnvelope(action: TransactionAction, plan: SmartBatchPlan): void {
       );
 }
 
+/** Combine lexical branches with all enclosing loop continuation flags. */
+export function smartCondition(ctx: CompileCtx): RuntimeValue | undefined {
+  const state = ctx.interpreters.batchContext?.smartState;
+  if (!state) return;
+  let condition = state.condition;
+  for (let loop = state.loop; loop; loop = loop.parent) {
+    for (const flag of [loop.active, loop.iteration]) {
+      if (!flag) continue;
+      condition = condition
+        ? runtimeValue(
+            staticCallParam(
+              ctx.core,
+              encodeCond(
+                flag.operand.param,
+                condition.operand.param,
+                rawParam(toWord(0n)),
+              ),
+            ),
+            { type: "bool" },
+            state.plan.salt,
+          )
+        : flag;
+    }
+  }
+  return condition;
+}
+
 export function createSmartBatchState(
   plan: SmartBatchPlan,
   interpreters: NodesInterpreters,
@@ -418,6 +459,11 @@ export function createSmartBatchState(
           smartState: state,
         },
       });
+      const condition = smartCondition(ctx);
+      if (condition && node.returnCapture)
+        throw new ErrorException(
+          "return capture inside a runtime conditional requires an executor with conditional output storage",
+        );
       for (let i = 0; i < result.actions.length; i++) {
         const action = result.actions[i];
         if (!isTransactionAction(action))
@@ -428,7 +474,7 @@ export function createSmartBatchState(
         const call = getEncodedCall(action);
         const capture =
           i === result.primaryCall ? node.returnCapture : undefined;
-        const label = `${node.module ? `${node.module}:` : ""}${node.name}`;
+        const label = `${condition ? "conditional " : ""}${node.module ? `${node.module}:` : ""}${node.name}`;
         let execution: ComposableExecution;
         if (call && (action.plannedCall || capture)) {
           if (action.receiptCheck)
@@ -467,7 +513,7 @@ export function createSmartBatchState(
               paramType: PARAM_TYPE.Value,
             },
             ...(call.rawData
-              ? [rawParam(`0x${call.rawData.slice(10)}`)]
+              ? [call.rawInput ?? rawParam(`0x${call.rawData.slice(10)}`)]
               : !hasRuntimeValue(call.args)
                 ? [
                     rawParam(
@@ -508,6 +554,10 @@ export function createSmartBatchState(
             action.operation === 1 ||
             action.receiptCheck
           ) {
+            if (condition)
+              throw new ErrorException(
+                "runtime conditionals require composable calls; short calldata and delegatecalls cannot be conditionally executed by this executor",
+              );
             if (capture)
               throw new ErrorException(
                 "return capture requires a typed CALL with declared ABI outputs",
@@ -617,7 +667,22 @@ export function createSmartBatchState(
           };
           bind(capture, outputs, 0);
         }
-        const dynamicFields: string[] = [];
+        if (condition) {
+          execution.inputParams = execution.inputParams.map((param) => ({
+            ...staticCallParam(
+              ctx.core,
+              encodeCond(
+                condition!.operand.param,
+                param,
+                rawParam(
+                  param.paramType === PARAM_TYPE.CallData ? "0x" : toWord(0n),
+                ),
+              ),
+            ),
+            paramType: param.paramType,
+          }));
+        }
+        const dynamicFields: string[] = condition ? ["condition"] : [];
         const serializableValue = (
           value: any,
           field: string,
@@ -640,6 +705,7 @@ export function createSmartBatchState(
             );
           return value;
         };
+        if (call?.rawInput) dynamicFields.push("data");
         const typedCall = call
           ? {
               target: serializableValue(call.target, "target") as
@@ -657,6 +723,7 @@ export function createSmartBatchState(
                 "value",
               ) as bigint | RuntimeValue,
               ...(call.rawData ? { rawData: call.rawData } : {}),
+              ...(call.rawInput ? { rawInput: call.rawInput } : {}),
             }
           : undefined;
         const wire = JSON.stringify(execution).toLowerCase();
@@ -684,13 +751,15 @@ export function createSmartBatchState(
           execution,
           ...(typedCall ? { call: typedCall } : {}),
           dynamicFields,
+          ...(condition ? { condition: condition } : {}),
           reads,
           label,
           line: node.loc?.start.line,
         });
       }
     },
-    async snapshot(ctx, value) {
+    async snapshot(ctx, value, options) {
+      const condition = options?.control ? undefined : smartCondition(ctx);
       const previous = state.snapshots.get(value);
       if (previous) return previous;
       if (isDynamicParam(value.abiType))
@@ -712,11 +781,23 @@ export function createSmartBatchState(
       const data = encodeFunctionData({
         abi: resolveAbi,
         functionName: "resolve",
-        args: [value.operand.param],
+        args: [
+          condition
+            ? staticCallParam(
+                ctx.core,
+                encodeCond(
+                  condition.operand.param,
+                  value.operand.param,
+                  rawParam(`0x${"00".repeat(32 * headWords(value.abiType))}`),
+                ),
+              )
+            : value.operand.param,
+        ],
       });
       plan.steps.push({
         kind: "composable",
-        label: "snapshot approval amount",
+        label: condition ? "conditional snapshot" : "snapshot runtime value",
+        ...(condition ? { condition: condition } : {}),
         execution: {
           functionSig: "0x00000000",
           inputParams: [],
@@ -751,7 +832,11 @@ export function createSmartBatchState(
         0,
         plan.steps.length - 1,
       );
-      state.snapshots.set(value, captured);
+      if (value.operand.scale !== undefined)
+        captured.operand.scale = value.operand.scale;
+      // A skipped branch stores a zero fallback, which must never replace an
+      // expression used later outside that branch.
+      if (!condition) state.snapshots.set(value, captured);
       return captured;
     },
   };

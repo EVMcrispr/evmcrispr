@@ -190,6 +190,17 @@ export function defineCommand<
             interpreters,
           )
         : undefined;
+      if (
+        smartState &&
+        smartTypes!.hasSmartCondition(smartState) &&
+        (config.smartSupport?.kind !== "runtime" ||
+          (argDefs.some((arg) => arg.type === "variable") &&
+            config.name !== "set" &&
+            config.name !== "loop"))
+      )
+        throw new ErrorException(
+          `command "${config.name}" cannot perform build-time operations inside a runtime conditional`,
+        );
       const fieldValue = async (
         node: import("../types").Node,
         runtime = false,
@@ -376,6 +387,12 @@ export function defineCommand<
       // 7. Interpret and validate options
       const parsedOpts: Record<string, any> = {};
       for (const optDef of optDefs) {
+        if (optDef.type === "expression") {
+          parsedOpts[optDef.name] = c.opts.find(
+            (o) => o.name === optDef.name,
+          )?.value;
+          continue;
+        }
         if (optDef.type === "variable") {
           const option = c.opts.find((o) => o.name === optDef.name);
           if (!option) continue;

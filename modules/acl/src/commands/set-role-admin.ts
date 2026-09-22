@@ -1,6 +1,6 @@
-import { defineCommand, encodeAction, Num } from "@evmcrispr/sdk";
+import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type AccessControl from "..";
-import { resolveManagerRoleId } from "../utils";
+import { smartManagerRoleId } from "../utils";
 
 export default defineCommand<AccessControl>({
   smartSupport: { kind: "runtime" },
@@ -16,11 +16,13 @@ export default defineCommand<AccessControl>({
     },
     {
       name: "roleId",
+      runtime: true,
       type: ["number", "string"],
       description: "Role id (or ADMIN_ROLE / PUBLIC_ROLE)",
     },
     {
       name: "adminRoleId",
+      runtime: true,
       type: ["number", "string"],
       description: "New admin role id",
     },
@@ -28,8 +30,8 @@ export default defineCommand<AccessControl>({
   async run(_module, { manager, roleId, adminRoleId }) {
     return [
       encodeAction(manager, "setRoleAdmin(uint64,uint64)", [
-        Num.fromBigInt(resolveManagerRoleId(roleId)),
-        Num.fromBigInt(resolveManagerRoleId(adminRoleId)),
+        smartManagerRoleId(roleId),
+        smartManagerRoleId(adminRoleId),
       ]),
     ];
   },

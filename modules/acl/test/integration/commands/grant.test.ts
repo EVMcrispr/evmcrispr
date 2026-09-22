@@ -13,6 +13,12 @@ describeCommand("grant", {
     "AccessControl > commands > grant <role> on <target> to <account> [--delay]",
   module: "acl",
   preamble: "load acl",
+  smartCases: [
+    {
+      name: "numeric runtime role",
+      script: `acl:grant 42 on ${MANAGER} to ${SOME_ADDRESS} --delay 1`,
+    },
+  ],
   cases: [
     {
       name: "should hash string roles and encode an AccessControl grantRole",

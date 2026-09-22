@@ -1,5 +1,5 @@
 import { defineHelper, ErrorException, encodeCalldata } from "@evmcrispr/sdk";
-import { concatParam } from "@evmcrispr/sdk/onchain";
+import { concatParam, payloadParam } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
 import { parseAbiItem, toFunctionSelector } from "viem";
 import type Std from "..";
@@ -75,6 +75,10 @@ export default defineHelper<Std>({
       kind: "call",
       param: concatParam(ctx, [toFunctionSelector(fnABI), encoded]),
       cat: "Bytes",
+      calldata: {
+        selector: toFunctionSelector(fnABI),
+        arguments: payloadParam(ctx, encoded, [{ type: "bytes" }], [0]),
+      },
     };
   },
 });

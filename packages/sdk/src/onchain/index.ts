@@ -31,6 +31,7 @@ export * from "./reads";
 export * from "./recipes";
 export * from "./smart";
 export * from "./smart-amounts";
+export * from "./smart-control";
 export * from "./smart-encoding";
 export * from "./smart-execution";
 export * from "./smart-serialization";

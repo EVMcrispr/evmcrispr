@@ -20,7 +20,11 @@ import {
   partitionHelperArgs,
   ReturnSignal,
 } from "@evmcrispr/sdk";
-import { defaultCompileCtx, interpretSmartValue } from "@evmcrispr/sdk/onchain";
+import {
+  defaultCompileCtx,
+  interpretSmartValue,
+  withSmartLoopBoundary,
+} from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 import {
   buildEvmlModule,
@@ -211,9 +215,14 @@ function buildDef(
       }
 
       try {
-        return (await interpretNode(bodyNode as BlockExpressionNode, {
-          actionCallback: interpreters.actionCallback,
-        })) as Action[];
+        return await withSmartLoopBoundary(
+          module,
+          interpreters,
+          async () =>
+            (await interpretNode(bodyNode as BlockExpressionNode, {
+              actionCallback: interpreters.actionCallback,
+            })) as Action[],
+        );
       } catch (err) {
         // `def return` exits this command body; the signal carries the
         // actions the body produced before it.

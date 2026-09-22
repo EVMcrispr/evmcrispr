@@ -15,10 +15,47 @@ describe("smart batch editor diagnostics", () => {
   });
   it("rejects runtime values in build-time fields and scopes captures", async () => {
     const ds = await diagnostics(
-      `batch! (\nexec ${target} "f() returns (uint256)" -> [$amount]\nset $copy $amount\n)\nexec ${target} "g(uint256)" $amount`,
+      `batch! (\nexec ${target} "f() returns (uint256)" -> [$amount]\nset $copy $amount\nprint $copy\n)\nexec ${target} "g(uint256)" $amount`,
     );
     expect(ds.some((d) => d.code === "runtime-build-time-field")).toBe(true);
     expect(ds.some((d) => d.code === "undefined-variable")).toBe(true);
+  });
+  it("accepts live conditions, aliases, reassignment and optional loop variables", async () => {
+    expect(
+      await diagnostics(`batch! (
+set $amount ${target}::!{f()(uint256)}
+set $amount @calc!($amount + 1)
+if @bool!($amount > 0) (
+exec ${target} "g(uint256)" $amount
+)
+loop until @bool!(${target}::!{f()(uint256)} > 0) --max-iterations 2 (
+exec ${target} "g(uint256)" $amount
+)
+loop $x of [$amount] (
+exec ${target} "g(uint256)" $x
+)
+)`),
+    ).toEqual([]);
+    const ds = await diagnostics(`batch! (
+if @bool!(${target}::!{f()(uint256)} > 0) (
+set $branch 7
+)
+exec ${target} "g(uint256)" $branch
+)`);
+    expect(ds.some((d) => d.code === "undefined-variable")).toBe(true);
+  });
+  it("accepts loop exits chosen by a runtime condition", async () => {
+    expect(
+      await diagnostics(`batch! (
+loop $i of [1 2] (
+if @bool!(${target}::!{f()(uint256)} > 0) (
+loop continue
+) (
+loop break
+)
+)
+)`),
+    ).toEqual([]);
   });
   it("rejects capture outside a smart block and ordinary reads inside it", async () => {
     expect(

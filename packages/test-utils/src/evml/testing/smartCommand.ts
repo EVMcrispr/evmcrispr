@@ -11,6 +11,7 @@ import {
 } from "@evmcrispr/sdk";
 import {
   CORE_ADDRESS,
+  compileCallValue,
   compileOperand,
   compileSmartBatch,
   encodeResolve,
@@ -170,6 +171,13 @@ export async function checkSmartCommandFields(
           returnType: "any",
           async compile(ctx, node) {
             if (field.type === "expression") {
+              if (node.args[0].type === NodeType.CallExpression) {
+                const { param, terminal } = await compileCallValue(
+                  ctx,
+                  node.args[0],
+                );
+                return runtimeValue(param, terminal, salt).operand;
+              }
               const operand = await compileOperand(ctx, node.args[0]);
               return operand.kind === "call"
                 ? operand

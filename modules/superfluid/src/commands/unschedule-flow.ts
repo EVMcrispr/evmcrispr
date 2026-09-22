@@ -7,7 +7,7 @@ import {
 import type Superfluid from "..";
 import { FLOW_SCHEDULER } from "../addresses";
 import { requireCore, requirePeripheral } from "../utils/protocol";
-import { resolveSuperToken } from "../utils/supertoken";
+import { resolveSmartSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
   smartSupport: { kind: "runtime" },
@@ -17,6 +17,7 @@ export default defineCommand<Superfluid>({
   args: [
     {
       name: "token",
+      runtime: true,
       type: "supertoken",
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
@@ -39,7 +40,7 @@ export default defineCommand<Superfluid>({
       chainId,
       "FlowScheduler",
     );
-    const superToken = await resolveSuperToken(module, token);
+    const superToken = await resolveSmartSuperToken(module, token);
     return [
       encodeAction(scheduler, "deleteFlowSchedule(address,address,bytes)", [
         superToken,

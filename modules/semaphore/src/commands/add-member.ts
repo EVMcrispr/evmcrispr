@@ -5,7 +5,11 @@ import {
   encodeAction,
   fieldItem,
 } from "@evmcrispr/sdk";
-import { amountParam, isRuntimeValue } from "@evmcrispr/sdk/onchain";
+import {
+  amountParam,
+  isRuntimeValue,
+  smartValueElement,
+} from "@evmcrispr/sdk/onchain";
 import type Semaphore from "..";
 import { parseGroupId, requireSemaphore } from "../utils/semaphore";
 
@@ -31,6 +35,23 @@ export default defineCommand<Semaphore>({
     }
     const { address } = await requireSemaphore(module);
     const groupId = isRuntimeValue(group) ? group : parseGroupId(group);
+    if (isRuntimeValue(commitment) && /\[\]$/.test(commitment.abiType.type)) {
+      return [
+        encodeAction(address, "addMembers(uint256,uint256[])", [
+          amountParam(groupId),
+          commitment,
+        ]),
+      ];
+    }
+    if (isRuntimeValue(commitment)) {
+      const length = commitment.abiType.type.match(/^uint256\[(\d+)\]$/)?.[1];
+      if (length && Number(length) <= 10_000) {
+        const source = commitment;
+        commitment = Array.from({ length: Number(length) }, (_, i) =>
+          smartValueElement(module, source, i),
+        );
+      }
+    }
     if (Array.isArray(commitment)) {
       const commitments = commitment.map((c, i) =>
         isRuntimeValue(c) ? c : parseFieldInput(c, `commitment[${i}]`),

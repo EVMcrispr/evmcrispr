@@ -4,15 +4,105 @@ import { ErrorException } from "../errors";
 import type { Module } from "../Module";
 import { Num } from "../utils/Num";
 import { canonicalArgSpec } from "./collections";
-import { lensSelectData } from "./compile";
+import { formatParamType, lensSelectData } from "./compile";
 import { buildCall, callParam, headWords, isDynamicParam } from "./construct";
-import { encodePick, encodeResolve } from "./core";
+import { encodeNav, encodePick, encodeResolve, LEN_STEP } from "./core";
 import { constraint, staticCallParam, targetParam } from "./erc8211";
 import { getSmartCompileContext, runtimeValue, smartValueParam } from "./smart";
 import { isRuntimeValue, type RuntimeValue } from "./smart-types";
 import { constrainWord } from "./word-constraints";
 
 export type SmartAmount = bigint | RuntimeValue;
+
+/** Select a typed runtime tuple/array element without evaluating it at build time. */
+export function smartValueElement(
+  module: Module,
+  value: RuntimeValue,
+  index: number,
+): RuntimeValue {
+  const match = value.abiType.type.match(/\[(\d*)\]$/);
+  const element =
+    value.abiType.type === "tuple"
+      ? (
+          value.abiType as AbiParameter & {
+            components: readonly AbiParameter[];
+          }
+        ).components[index]
+      : match
+        ? ({
+            ...value.abiType,
+            type: value.abiType.type.slice(0, -match[0].length),
+          } as AbiParameter)
+        : undefined;
+  if (
+    !element ||
+    (match?.[1] && index >= Number(match[1])) ||
+    !Number.isInteger(index) ||
+    index < 0
+  )
+    throw new ErrorException(
+      "expected an in-bounds runtime tuple or array element",
+    );
+  const ctx = getSmartCompileContext(module);
+  if (!ctx) throw new ErrorException("runtime arrays require a smart batch");
+  return runtimeValue(
+    staticCallParam(
+      ctx.core,
+      encodeNav(value.operand.param, `(${formatParamType(value.abiType)})`, [
+        0n,
+        BigInt(index),
+      ]),
+    ),
+    element,
+    value.batchId,
+  );
+}
+
+export function smartArrayLength(
+  module: Module,
+  value: RuntimeValue,
+): SmartAmount {
+  const match = value.abiType.type.match(/\[(\d*)\]$/);
+  if (!match) throw new ErrorException("expected a runtime array");
+  if (match[1]) return BigInt(match[1]);
+  const ctx = getSmartCompileContext(module);
+  if (!ctx) throw new ErrorException("runtime arrays require a smart batch");
+  return runtimeValue(
+    staticCallParam(
+      ctx.core,
+      encodeNav(value.operand.param, `(${formatParamType(value.abiType)})`, [
+        0n,
+        LEN_STEP,
+      ]),
+    ),
+    { type: "uint256" },
+    value.batchId,
+  );
+}
+
+/** Assignments capture values now in the execution sequence, never on later use. */
+export async function snapshotSmartValue(
+  module: Module,
+  value: any,
+): Promise<any> {
+  if (isRuntimeValue(value)) {
+    if (value.output) return value;
+    return snapshotSmartAmount(module, value);
+  }
+  if (Array.isArray(value)) {
+    const result = [];
+    for (const item of value)
+      result.push(await snapshotSmartValue(module, item));
+    return result;
+  }
+  if (value && typeof value === "object" && !(value instanceof Num)) {
+    const result: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value))
+      result[key] = await snapshotSmartValue(module, item);
+    return result;
+  }
+  return value;
+}
 /** Pass symbolic amounts to the shared call builder without numeric coercion. */
 export const amountParam = (amount: SmartAmount): Num | RuntimeValue =>
   isRuntimeValue(amount) ? amount : Num.fromBigInt(amount);

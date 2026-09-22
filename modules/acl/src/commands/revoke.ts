@@ -3,10 +3,10 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import { amountParam } from "@evmcrispr/sdk/onchain";
 import type AccessControl from "..";
-import { resolveRole } from "../utils";
+import { resolveSmartRole } from "../utils";
 
 export default defineCommand<AccessControl>({
   smartSupport: { kind: "runtime" },
@@ -16,9 +16,10 @@ export default defineCommand<AccessControl>({
   args: [
     {
       name: "role",
+      runtime: true,
       type: ["number", "string"],
       description:
-        "Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id",
+        "Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id; runtime roles must be bytes32 or integers",
     },
     { name: "on", type: "command", description: "Keyword `on`" },
     {
@@ -46,7 +47,7 @@ export default defineCommand<AccessControl>({
     if (from !== "from") {
       throw new ErrorException(`expected keyword "from", got "${from}"`);
     }
-    const resolved = resolveRole(role);
+    const resolved = resolveSmartRole(role);
 
     if (resolved.system === "access-control") {
       return [
@@ -59,7 +60,7 @@ export default defineCommand<AccessControl>({
 
     return [
       encodeAction(target, "revokeRole(uint64,address)", [
-        Num.fromBigInt(resolved.roleId),
+        amountParam(resolved.roleId),
         account,
       ]),
     ];

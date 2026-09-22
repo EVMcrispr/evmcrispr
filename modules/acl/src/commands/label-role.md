@@ -19,8 +19,8 @@ acl:label-role <manager> <roleId> <label>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `manager` | `address` | Runtime in smart blocks | AccessManager address |
-| `roleId` | `number \| string` | Build time | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
-| `label` | `string` | Build time | Human-readable role name |
+| `roleId` | `number \| string` | Runtime in smart blocks | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `label` | `string` | Runtime in smart blocks | Human-readable role name |
 
 <!-- HAND-WRITTEN -->
 

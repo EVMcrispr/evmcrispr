@@ -4,7 +4,7 @@ title: "set"
 
 Assign a value to a variable for use later in the script.
 
-Smart blocks: build-time inputs only. Assignments are build-time values; use -> [...] capture for on-chain outputs.
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
 
 ## Syntax
 
@@ -17,7 +17,7 @@ set <variable> <value>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `variable` | `variable` | Build time | Variable name |
-| `value` | `any` | Build time | Value to assign |
+| `value` | `any` | Runtime in smart blocks | Value to assign |
 
 ## Examples
 

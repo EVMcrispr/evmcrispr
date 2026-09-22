@@ -1,6 +1,11 @@
 import type { Module } from "@evmcrispr/sdk";
 import { chainLabel, ErrorException } from "@evmcrispr/sdk";
-import { type SmartAmount, smartArithmetic } from "@evmcrispr/sdk/onchain";
+import {
+  isRuntimeValue,
+  type RuntimeValue,
+  type SmartAmount,
+  smartArithmetic,
+} from "@evmcrispr/sdk/onchain";
 import type { Abi, Address } from "viem";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import { erc20Abi, superTokenAbi } from "../abis";
@@ -131,4 +136,17 @@ export async function toSuperTokenAmount(
     );
   }
   return smartArithmetic(module, "*", amount, 10n ** BigInt(18 - decimals));
+}
+
+/** Symbols resolve at build time; typed runtime addresses pass to call encoding. */
+export async function resolveSmartSuperToken(
+  module: Module,
+  token: string | RuntimeValue,
+): Promise<Address | RuntimeValue> {
+  if (isRuntimeValue(token)) {
+    if (token.abiType.type !== "address")
+      throw new ErrorException("runtime SuperTokens must be addresses");
+    return token;
+  }
+  return resolveSuperToken(module, token);
 }

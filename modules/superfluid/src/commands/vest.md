@@ -23,15 +23,15 @@ superfluid:vest <amount> <token> <to> <receiver> <over> <duration>
 | `to` | `command` | Build time | Keyword `to` |
 | `receiver` | `address` | Runtime in smart blocks | Vesting receiver |
 | `over` | `command` | Build time | Keyword `over` |
-| `duration` | `number` | Build time | Total vesting duration, e.g. 1y or 730d |
+| `duration` | `number` | Runtime in smart blocks | Total vesting duration, e.g. 1y or 730d |
 
 ## Options
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--start` | `number` | Runtime in smart blocks | Unix timestamp at which vesting starts (defaults to now) |
-| `--cliff` | `number` | Build time | Cliff period from the start (e.g. 90d): nothing until it passes, then the accrued amount at once |
-| `--claimable-for` | `number` | Build time | Make the schedule claimable: the receiver must claim within this period after the start or it never begins |
+| `--cliff` | `number` | Runtime in smart blocks | Cliff period from the start (e.g. 90d): nothing until it passes, then the accrued amount at once |
+| `--claimable-for` | `number` | Runtime in smart blocks | Make the schedule claimable: the receiver must claim within this period after the start or it never begins |
 | `--no-approve` | `bool` | Build time | Skip the automatic permission grant and allowance actions |
 
 ## Examples

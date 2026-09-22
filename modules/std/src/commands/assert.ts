@@ -1,5 +1,5 @@
 import type { Action, Node } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException, type Num } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import {
   ASSERT_WRAP_HINT,
   assertionAction,
@@ -53,7 +53,8 @@ export default defineCommand<Std>({
   opts: [
     {
       name: "delta",
-      type: "number",
+      type: "expression",
+      runtime: true,
       description: "Allowed delta for the ~= (approximate) operator",
     },
   ],
@@ -73,7 +74,7 @@ export default defineCommand<Std>({
       operator: operator as string | undefined,
       expected: expected as Node | undefined,
       message: message as string | undefined,
-      delta: opts.delta as Num | undefined,
+      delta: opts.delta as Node | undefined,
     });
     return [assertionAction(compiled)];
   },

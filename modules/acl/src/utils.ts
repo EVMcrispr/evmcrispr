@@ -1,4 +1,5 @@
 import { ErrorException, isNum, Num } from "@evmcrispr/sdk";
+import { isRuntimeValue, type RuntimeValue } from "@evmcrispr/sdk/onchain";
 import type { Hex } from "viem";
 import { isHex, keccak256, parseAbi, toHex } from "viem";
 
@@ -81,4 +82,33 @@ export function resolveRole(value: unknown): ResolvedRole {
   throw new ErrorException(
     `invalid role ${value} — pass an AccessControl role name (e.g. MINTER_ROLE) or an AccessManager role id`,
   );
+}
+
+/** Preserve typed runtime role identifiers for the ABI encoder's range guards. */
+export function smartManagerRoleId(value: unknown): Num | RuntimeValue {
+  if (isRuntimeValue(value)) {
+    if (!/^u?int\d*$/.test(value.abiType.type))
+      throw new ErrorException(
+        "AccessManager role ids require a runtime integer",
+      );
+    return value;
+  }
+  return Num.fromBigInt(resolveManagerRoleId(value));
+}
+
+export function resolveSmartRole(
+  value: unknown,
+):
+  | { system: "access-control"; role: Hex | RuntimeValue }
+  | { system: "access-manager"; roleId: bigint | RuntimeValue } {
+  if (isRuntimeValue(value)) {
+    if (value.abiType.type === "bytes32")
+      return { system: "access-control", role: value };
+    if (/^u?int\d*$/.test(value.abiType.type))
+      return { system: "access-manager", roleId: value };
+    throw new ErrorException(
+      "runtime roles must be integer AccessManager ids or bytes32 AccessControl roles",
+    );
+  }
+  return resolveRole(value);
 }

@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { createServer } from "node:net";
 import { createEvml, Interpreter } from "@evmcrispr/core";
+import Contracts from "@evmcrispr/module-contracts";
 import Sim from "@evmcrispr/module-sim";
+import Token from "@evmcrispr/module-token";
 import Vault from "@evmcrispr/module-vault";
 import { encodeAction, type SmartBatchAction } from "@evmcrispr/sdk";
 import {
@@ -63,7 +65,7 @@ let client: PublicClient;
 let wallet: ReturnType<typeof createWalletClient>;
 let transport: ReturnType<typeof http>;
 const target = MOCK_TARGET_ADDRESS;
-const tag = createEvml().use(Vault, Sim);
+const tag = createEvml().use(Vault, Sim, Token, Contracts);
 const readAbi = parseAbi([
   "function getValue() view returns (uint256)",
   "function getAddress() view returns (address)",
@@ -74,7 +76,7 @@ const compile = async (account: Address, body: string) =>
       account,
       chainId: 1,
       transports: { 1: transport },
-    }).interpret(`load vault\nbatch! (\n${body}\n)`)
+    }).interpret(`load vault\nload token\nload contracts\nbatch! (\n${body}\n)`)
   )[0] as SmartBatchAction;
 
 beforeAll(async () => {
@@ -297,6 +299,231 @@ for (const kind of ["nexus", "kernel"] as const)
       const hash = await account.submit(calls);
       return client.waitForTransactionReceipt({ hash });
     };
+    it("snapshots assignments and selects stable, lazy runtime branches", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 7
+set $saved ${target}::!{getValue()(uint256)}
+if @bool!(${target}::!{getValue()(uint256)} == 7) (
+  exec ${target} "setValue(uint256)" 9
+  if @bool!(${target}::!{getValue()(uint256)} == 9) (
+    exec ${target} "setValue(uint256)" @calc!($saved + 4)
+  )
+) (
+  set $unused ${target}::!{revertingFunction()(uint256)}
+  exec ${target} "setValue(uint256)" $unused
+)
+if @bool!(${target}::!{getValue()(uint256)} == 0) (
+  exec ${target} "revertingFunction()"
+) (
+  exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 1)
+)`);
+      expect(await readValue()).toBe(12n);
+    });
+    it("executes runtime calldata and compares two live values with a live tolerance", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 7
+send ${target} --data @abi.encodeCall!("setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 2))
+assert ${target}::!{getValue()(uint256)} ~= @calc!(${target}::!{getValue()(uint256)} + 3) --delta @calc!(${target}::!{getValue()(uint256)} - 6)
+assert @calc!(-1 * ${target}::!{getValue()(uint256)}) ~= -10 --delta @calc!(${target}::!{getValue()(uint256)} - 8)
+`);
+      expect(await readValue()).toBe(9n);
+      await expect(
+        submit(
+          `assert ${target}::!{getValue()(uint256)} ~= 0 --delta @calc!(${target}::!{getValue()(uint256)} - 1)`,
+        ),
+      ).rejects.toThrow();
+    });
+    it("bounds runtime until loops and reverts atomically on exhaustion", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 0
+loop until @bool!(${target}::!{getValue()(uint256)} >= 3) --max-iterations 4 (
+  exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 1)
+)
+`);
+      expect(await readValue()).toBe(3n);
+      await expect(
+        submit(`
+exec ${target} "setValue(uint256)" 0
+loop until @bool!(${target}::!{getValue()(uint256)} >= 3) --max-iterations 2 (
+  exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 1)
+)
+`),
+      ).rejects.toThrow();
+      expect(await readValue()).toBe(3n);
+    });
+    it("continues fixed iterations and breaks a runtime array without leaking loop guards", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 0
+loop $i of [1 2 3 4] (
+  exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 1)
+  if @bool!(@calc!(${target}::!{getValue()(uint256)} % 10) == 2) (
+    loop continue
+    exec ${target} "revertingFunction()"
+  )
+  exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 10)
+)
+assert ${target}::!{getValue()(uint256)} == 34
+exec ${protocol} "reset()"
+loop $amount of ${protocol}::!{values(uint256)(uint256[]) 3} --max-iterations 3 (
+  exec ${target} "setValue(uint256)" $amount
+  if @bool!(${target}::!{getValue()(uint256)} == 8) (
+    loop break
+    exec ${target} "revertingFunction()"
+  )
+  exec ${target} "setAddress(address)" @sender
+)
+assert ${target}::!{getValue()(uint256)} == 8
+exec ${target} "setValue(uint256)" 99
+`);
+      expect(await readValue()).toBe(99n);
+    });
+    it("breaks only the nearest nested loop and preserves false exit branches", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 0
+loop $outer of [1 2] (
+  loop $inner of [1 2 3] (
+    exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 1)
+    if @bool!(${target}::!{getValue()(uint256)} > 0) (
+      if @bool!(${target}::!{getValue()(uint256)} == 999) (
+        loop continue
+      )
+      loop break
+    )
+    exec ${target} "revertingFunction()"
+  )
+  exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 10)
+)
+`);
+      expect(await readValue()).toBe(22n);
+    });
+    it("supports break and continue in until loops without evaluating exited iterations", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 0
+loop until @bool!(${target}::!{getValue()(uint256)} >= 100) --max-iterations 4 (
+  exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 1)
+  if @bool!(${target}::!{getValue()(uint256)} < 3) (
+    loop continue
+  )
+  loop break
+  exec ${target} "revertingFunction()"
+)
+assert ${target}::!{getValue()(uint256)} == 3
+loop until false --max-iterations 2 (
+  if @bool!(${target}::!{getValue()(uint256)} == 3) (
+    loop break
+  )
+  exec ${target} "revertingFunction()"
+)
+`);
+      expect(await readValue()).toBe(3n);
+      await expect(
+        submit(`loop until false --max-iterations 2 (
+if @bool!(${target}::!{getValue()(uint256)} == 3) (
+loop continue
+)
+)`),
+      ).rejects.toThrow();
+    });
+    it("resets runtime-array continues and isolates loops in user-defined commands", async () => {
+      await submit(`
+exec ${protocol} "reset()"
+exec ${target} "setValue(uint256)" 0
+def once "" (
+  loop $unused of [1 2] (
+    exec ${target} "setValue(uint256)" @calc!(${target}::!{getValue()(uint256)} + 1)
+    if @bool!(${target}::!{getValue()(uint256)} > 0) (
+      loop break
+    )
+  )
+)
+loop $amount of ${protocol}::!{values(uint256)(uint256[]) 3} --max-iterations 3 (
+  if @bool!($amount == 8) (
+    loop continue
+  )
+  once
+)
+assert ${target}::!{getValue()(uint256)} == 2
+exec ${target} "setValue(uint256)" 1
+loop until @bool!(@calc!(10 // ${target}::!{getValue()(uint256)}) == 0) --max-iterations 3 (
+  exec ${target} "setValue(uint256)" 0
+  loop break
+)
+assert ${target}::!{getValue()(uint256)} == 0
+`);
+      expect(await readValue()).toBe(0n);
+    });
+    it("snapshots runtime array elements before iteration and token transfers", async () => {
+      await submit(`
+exec ${protocol} "reset()"
+loop $amount of ${protocol}::!{values(uint256)(uint256[]) 2} --max-iterations 3 (
+  exec ${protocol} "transfer(address,uint256)" @sender $amount
+  exec ${target} "setValue(uint256)" $amount
+)
+`);
+      expect(await readValue()).toBe(8n);
+      await submit(`
+exec ${protocol} "reset()"
+token:disperse ${protocol} ${protocol}::!{recipients()(address[])} ${protocol}::!{values(uint256)(uint256[]) 2} --max-recipients 3
+`);
+      for (const [to, amount] of [
+        ["0x0000000000000000000000000000000000001234", 7n],
+        ["0x0000000000000000000000000000000000002345", 8n],
+      ] as const) {
+        expect(
+          await client.readContract({
+            address: protocol,
+            abi: parseAbi([
+              "function transferred(address) view returns (uint256)",
+            ]),
+            functionName: "transferred",
+            args: [to],
+          }),
+        ).toBe(amount);
+      }
+      await expect(
+        submit(`loop $x of ${protocol}::!{values(uint256)(uint256[]) 3} --max-iterations 2 (
+exec ${target} "setValue(uint256)" $x
+)`),
+      ).rejects.toThrow();
+    });
+    it("handles empty collections, fixed-array assignments and literal disperse amounts", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 17
+loop $x of ${protocol}::!{values(uint256)(uint256[]) 0} --max-iterations 1 (
+  exec ${target} "revertingFunction()"
+)
+assert ${target}::!{getValue()(uint256)} == 17
+set [$first $second] ${protocol}::!{outputs()(uint256,(uint256,address),bool,bytes4,uint256[2])}[_ _ _ _ $]
+loop $x of [$first $second] (
+  exec ${target} "setValue(uint256)" $x
+)
+token:disperse ${protocol} ${protocol}::!{recipients()(address[])} [3 4] --max-recipients 3
+`);
+      expect(await readValue()).toBe(8n);
+      expect(
+        await client.readContract({
+          address: protocol,
+          abi: parseAbi([
+            "function transferred(address) view returns (uint256)",
+          ]),
+          functionName: "transferred",
+          args: ["0x0000000000000000000000000000000000002345"],
+        }),
+      ).toBe(4n);
+      await expect(
+        submit(
+          `token:disperse ${protocol} ${protocol}::!{recipients()(address[])} [3] --max-recipients 2`,
+        ),
+      ).rejects.toThrow();
+    });
+    it("deploys CREATE3 with runtime bytecode, constructor arguments and value", async () => {
+      await submit(`
+exec ${target} "setValue(uint256)" 7
+contracts:deploy $child ${protocol}::!{creationCode()(bytes)} --via ${protocol} --create3 0x${"00".repeat(31)}01 --constructor "constructor(uint256)" --constructor-args [${target}::!{getValue()(uint256)}] --value ${target}::!{getValue()(uint256)}
+assert $child::!{amount()(uint256)} == 7
+assert @balance!(ETH $child) == 7
+`);
+    });
     it("preserves caller identity, capture namespaces and account ownership", async () => {
       await submit(
         `exec ${target} "setValue(uint256)" 82\nexec ${target} "getValue() returns (uint256)" -> [$x]\nexec ${target} "setValue(uint256)" @calc!($x + 1)\nexec ${target} "caller() returns (address)" -> [$caller]\nexec ${target} "setAddress(address)" $caller`,

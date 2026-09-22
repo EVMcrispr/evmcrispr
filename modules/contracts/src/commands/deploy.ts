@@ -4,15 +4,24 @@ import {
   chainLabel,
   defineCommand,
   ErrorException,
+  encodeAction,
   encodeConstructorParams,
   fetchContractCreation,
   readEtherscanApiKey,
   resolveChainId,
 } from "@evmcrispr/sdk";
 import {
+  getSmartCompileContext,
+  hasRuntimeValue,
+  isRuntimeValue,
+  type RuntimeValue,
+  smartAbiParameters,
+  smartRawAction,
+  smartRead,
+} from "@evmcrispr/sdk/onchain";
+import {
   concatHex,
   encodeAbiParameters,
-  encodeFunctionData,
   getAddress,
   getContractAddress,
   isAddressEqual,
@@ -31,16 +40,13 @@ const CREATEX = "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed";
 const CREATE3_PROXY_INITCODE =
   "0x67363d3d37363d34f03d5260086018f3" as `0x${string}`;
 const CREATE3_PROXY_INITCODE_HASH = keccak256(CREATE3_PROXY_INITCODE);
-const CREATEX_DEPLOY_CREATE3_ABI = parseAbiItem(
-  "function deployCreate3(bytes32 salt, bytes initCode) returns (address)",
-);
 const ZERO_ADDR_BYTES20 = pad("0x", { size: 20 });
 
 export default defineCommand<Contracts>({
   smartSupport: {
-    kind: "static",
+    kind: "runtime",
     reason:
-      "Bytecode, salt and constructor inputs determine the address binding; plain CREATE is not atomic-batch compatible.",
+      "CREATE3 accepts runtime initialization inputs; CREATE2 address prediction requires static init code.",
   },
   name: "deploy",
   description:
@@ -57,10 +63,11 @@ export default defineCommand<Contracts>({
     },
     {
       name: "bytecode",
+      runtime: true,
       type: "bytes",
       optional: true,
       description:
-        "Creation bytecode. Constructor args are appended automatically when --constructor is set. Omit when using --mirror-chain / --mirror-address to mirror an existing deployment.",
+        "Creation bytecode (runtime values require --create3). Constructor args are appended automatically when --constructor is set. Omit when using --mirror-chain / --mirror-address to mirror an existing deployment.",
     },
   ],
   opts: [
@@ -84,9 +91,10 @@ export default defineCommand<Contracts>({
     },
     {
       name: "constructor-args",
+      runtime: true,
       type: "array",
       description:
-        "Constructor arguments as an array literal, e.g. [100e18 @me true]. Requires --constructor.",
+        "Constructor arguments as an array literal, e.g. [100e18 @me true]. Requires --constructor; runtime inputs require --create3.",
     },
     {
       name: "create2",
@@ -114,6 +122,7 @@ export default defineCommand<Contracts>({
     },
     {
       name: "value",
+      runtime: true,
       type: "number",
       description: "ETH to send with the deployment (in wei)",
     },
@@ -193,7 +202,11 @@ export default defineCommand<Contracts>({
       );
     }
 
-    let initCode: `0x${string}`;
+    if (hasRuntimeValue([bytecode, ctorArgs]) && !opts.create3)
+      throw new ErrorException(
+        "runtime initialization inputs require --create3; CREATE2 predicts its address from the init code",
+      );
+    let initCode: `0x${string}` | RuntimeValue;
 
     if (isMirror) {
       if (!readEtherscanApiKey()) {
@@ -223,10 +236,33 @@ export default defineCommand<Contracts>({
       }
       initCode = fetched as `0x${string}`;
     } else {
-      initCode = bytecode as `0x${string}`;
+      initCode = bytecode as `0x${string}` | RuntimeValue;
       if (ctorSig) {
-        const encoded = encodeConstructorParams(ctorSig, ctorArgs ?? []);
-        initCode = concatHex([initCode, encoded]);
+        if (hasRuntimeValue([initCode, ctorArgs])) {
+          const constructorAbi = parseAbiItem(ctorSig);
+          if (constructorAbi.type !== "constructor")
+            throw new ErrorException("expected a constructor signature");
+          if (constructorAbi.inputs.length !== ctorArgs!.length)
+            throw new ErrorException(
+              "constructor argument count does not match signature",
+            );
+          const encoded = smartAbiParameters(
+            module,
+            constructorAbi.inputs,
+            ctorArgs!,
+          );
+          const ctx = getSmartCompileContext(module)!;
+          initCode = smartRead(
+            module,
+            ctx.operators,
+            "concat(bytes[],bytes) returns (bytes)",
+            [[initCode, encoded], "0x"],
+            { type: "bytes" },
+          );
+        } else {
+          const encoded = encodeConstructorParams(ctorSig, ctorArgs ?? []);
+          initCode = concatHex([initCode as `0x${string}`, encoded]);
+        }
       }
     }
 
@@ -246,13 +282,12 @@ export default defineCommand<Contracts>({
         opcode: "CREATE2",
         from: factory,
         salt,
-        bytecode: initCode,
+        bytecode: initCode as `0x${string}`,
       });
-      action = {
-        to: factory,
-        data: concatHex([salt, initCode]),
-        from,
-      };
+      const data = concatHex([salt, initCode as `0x${string}`]);
+      action = isRuntimeValue(opts.value)
+        ? { ...smartRawAction(factory, data, opts.value), from }
+        : { to: factory, data, from };
     } else if (opts.create3) {
       const salt = pad(opts.create3 as `0x${string}`, { size: 32 });
       const factory =
@@ -286,21 +321,29 @@ export default defineCommand<Contracts>({
       });
       predicted = getContractAddress({ from: proxy, nonce: 1n });
 
-      const data = encodeFunctionData({
-        abi: [CREATEX_DEPLOY_CREATE3_ABI],
-        functionName: "deployCreate3",
-        args: [salt, initCode],
-      });
-      action = { to: factory, data, from };
+      action = encodeAction(
+        factory,
+        "deployCreate3(bytes32,bytes) returns (address)",
+        [salt, initCode],
+        {
+          from,
+          value:
+            opts.value === undefined
+              ? undefined
+              : isRuntimeValue(opts.value)
+                ? opts.value
+                : BigInt(opts.value),
+        },
+      );
     } else {
       predicted = await module.reserveNextAddress(
         from,
         opts.nonce !== undefined ? { nonce: BigInt(opts.nonce) } : {},
       );
-      action = { data: initCode, from };
+      action = { data: initCode as `0x${string}`, from };
     }
 
-    if (opts.value !== undefined) {
+    if (opts.value !== undefined && !isRuntimeValue(opts.value)) {
       action.value = BigInt(opts.value);
     }
     if (opts.gas !== undefined) {
@@ -316,7 +359,7 @@ export default defineCommand<Contracts>({
       action.nonce = Number(opts.nonce);
     }
 
-    if (size(initCode) === 0) {
+    if (!isRuntimeValue(initCode) && size(initCode) === 0) {
       throw new ErrorException("deploy: bytecode must be non-empty");
     }
 

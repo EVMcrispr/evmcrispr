@@ -26,7 +26,7 @@ assert <call> [operator] [expected] [message] [...extra]
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `--delta` | `number` | Build time | Allowed delta for the ~= (approximate) operator |
+| `--delta` | `expression` | Runtime in smart blocks | Allowed delta for the ~= (approximate) operator |
 
 <!-- HAND-WRITTEN -->
 

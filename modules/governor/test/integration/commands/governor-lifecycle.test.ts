@@ -101,6 +101,12 @@ describeCommand("vote", {
     "Governor > commands > vote <governor> <proposalId> <support> [--reason]",
   module: "governor",
   preamble: "load governor",
+  smartCases: [
+    {
+      name: "numeric runtime vote",
+      script: `governor:vote ${GOVERNOR} 1 1 --reason "Treasury impact"`,
+    },
+  ],
   cases: [
     {
       name: "should encode a castVote action",

@@ -11,6 +11,18 @@ import {
   isBoolean,
   variableItem,
 } from "@evmcrispr/sdk";
+import {
+  defaultCompileCtx,
+  forEachSmartArray,
+  interpretSmartValue,
+  isRuntimeValue,
+  runSmartUntil,
+  smartIterationLimit,
+  smartLoopControl,
+  smartValueElement,
+  snapshotSmartValue,
+  withSmartLoop,
+} from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 
 const { USER } = BindingsSpace;
@@ -19,9 +31,9 @@ const MAX_ITERATIONS = 10_000;
 
 export default defineCommand<Std>({
   smartSupport: {
-    kind: "static",
+    kind: "runtime",
     reason:
-      "Loop bounds are evaluated at build time; the body expands into ordered steps.",
+      "Runtime loops and runtime-dependent break/continue compile to conditional steps; --max-iterations defaults to 32 (maximum 256).",
   },
   name: "loop",
   description:
@@ -41,6 +53,7 @@ export default defineCommand<Std>({
     },
     {
       name: "value",
+      runtime: true,
       type: "expression",
       optional: true,
       description: "Array to iterate over, or exit condition",
@@ -50,6 +63,14 @@ export default defineCommand<Std>({
       type: "block",
       optional: true,
       description: "Commands to repeat",
+    },
+  ],
+  opts: [
+    {
+      name: "max-iterations",
+      type: "number",
+      description:
+        "Maximum runtime iterations (default 32, at most 256); exceeding it reverts the batch",
     },
   ],
   completions: {
@@ -63,7 +84,11 @@ export default defineCommand<Std>({
     ],
     connector: () => [fieldItem("of")],
   },
-  async run(module, { variable, connector, value, block }, { interpreters }) {
+  async run(
+    module,
+    { variable, connector, value, block },
+    { interpreters, opts },
+  ) {
     const { interpretNode, actionCallback } = interpreters;
     const blockOpts = { actionCallback };
     const actions: Action[] = [];
@@ -78,6 +103,7 @@ export default defineCommand<Std>({
       ) {
         throw new ErrorException(`"loop ${connector}" takes no arguments`);
       }
+      if (await smartLoopControl(module, connector)) return [];
       throw connector === "break" ? new BreakSignal() : new ContinueSignal();
     }
 
@@ -124,62 +150,141 @@ export default defineCommand<Std>({
       return "continue";
     };
 
-    // Until form: `loop until <condition> ( ... )`
-    if (connector === "until") {
-      if (variable !== undefined) {
-        throw new ErrorException(
-          "the until form takes no loop variable (use `loop until <condition>`)",
+    return withSmartLoop(module, async (frame) => {
+      // Until form: `loop until <condition> ( ... )`
+      if (connector === "until") {
+        if (variable !== undefined) {
+          throw new ErrorException(
+            "the until form takes no loop variable (use `loop until <condition>`)",
+          );
+        }
+
+        module.bindingsManager.enterScope();
+        try {
+          let iterations = 0;
+          while (true) {
+            if (frame) frame.iteration = undefined;
+            if (iterations++ >= MAX_ITERATIONS) {
+              throw new ErrorException("loop: exceeded 10,000 iterations");
+            }
+            const condition = interpreters.batchContext?.smartState
+              ? await interpretSmartValue(
+                  defaultCompileCtx(module, interpreters),
+                  value as Node,
+                )
+              : await interpretNode(value as Node);
+            if (isRuntimeValue(condition) || frame?.runtimeControl) {
+              let first = true;
+              await runSmartUntil(
+                module,
+                async () => {
+                  const result = first
+                    ? condition
+                    : await interpretSmartValue(
+                        defaultCompileCtx(module, interpreters),
+                        value as Node,
+                      );
+                  first = false;
+                  return isRuntimeValue(result)
+                    ? result
+                    : coerceBoolean(result);
+                },
+                async () => (await runBlock()) !== "break",
+                Math.max(
+                  0,
+                  smartIterationLimit(opts["max-iterations"]) -
+                    (iterations - 1),
+                ),
+              );
+              break;
+            }
+            if (!isBoolean(condition)) {
+              throw new ErrorException(
+                `<condition> must be a boolean, got ${condition}`,
+              );
+            }
+            if (coerceBoolean(condition)) break;
+            if ((await runBlock()) === "break") break;
+          }
+        } finally {
+          module.bindingsManager.exitScope();
+        }
+        return actions;
+      }
+
+      // Iteration form: `loop $x of <array> ( ... )`
+      if (typeof variable !== "string") {
+        throw new ErrorException("<variable> must be a $variable");
+      }
+
+      const smart = interpreters.batchContext?.smartState;
+      let items = smart
+        ? await interpretSmartValue(
+            defaultCompileCtx(module, interpreters),
+            value as Node,
+          )
+        : await interpretNode(value as Node);
+      if (isRuntimeValue(items)) {
+        const length = items.abiType.type.match(/\[(\d+)\]$/)?.[1];
+        if (!length) {
+          module.bindingsManager.enterScope();
+          try {
+            await forEachSmartArray(
+              module,
+              items,
+              smartIterationLimit(opts["max-iterations"]),
+              async (item) => {
+                module.bindingsManager.setBinding(
+                  variable,
+                  item,
+                  USER,
+                  false,
+                  undefined,
+                  true,
+                );
+                return (await runBlock()) !== "break";
+              },
+              undefined,
+              () => {
+                if (frame) frame.iteration = undefined;
+              },
+            );
+          } finally {
+            module.bindingsManager.exitScope();
+          }
+          return actions;
+        }
+        if (Number(length) > MAX_ITERATIONS)
+          throw new ErrorException("loop: exceeded 10,000 iterations");
+        const source = items;
+        items = Array.from({ length: Number(length) }, (_, i) =>
+          smartValueElement(module, source, i),
         );
       }
+      if (!Array.isArray(items)) {
+        throw new ErrorException(`<value> must be an array, got ${items}`);
+      }
+
+      if (smart) items = await snapshotSmartValue(module, items);
 
       module.bindingsManager.enterScope();
       try {
-        let iterations = 0;
-        while (true) {
-          if (iterations++ >= MAX_ITERATIONS) {
-            throw new ErrorException("loop: exceeded 10,000 iterations");
-          }
-          const condition = await interpretNode(value as Node);
-          if (!isBoolean(condition)) {
-            throw new ErrorException(
-              `<condition> must be a boolean, got ${condition}`,
-            );
-          }
-          if (coerceBoolean(condition)) break;
+        for (const item of items) {
+          if (frame) frame.iteration = undefined;
+          module.bindingsManager.setBinding(
+            variable,
+            item,
+            USER,
+            false,
+            undefined,
+            true,
+          );
           if ((await runBlock()) === "break") break;
         }
       } finally {
         module.bindingsManager.exitScope();
       }
       return actions;
-    }
-
-    // Iteration form: `loop $x of <array> ( ... )`
-    if (typeof variable !== "string") {
-      throw new ErrorException("<variable> must be a $variable");
-    }
-
-    const items = await interpretNode(value as Node);
-    if (!Array.isArray(items)) {
-      throw new ErrorException(`<value> must be an array, got ${items}`);
-    }
-
-    module.bindingsManager.enterScope();
-    try {
-      for (const item of items) {
-        module.bindingsManager.setBinding(
-          variable,
-          item,
-          USER,
-          false,
-          undefined,
-          true,
-        );
-        if ((await runBlock()) === "break") break;
-      }
-    } finally {
-      module.bindingsManager.exitScope();
-    }
-    return actions;
+    });
   },
 });

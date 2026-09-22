@@ -7,17 +7,44 @@ import {
   parseConfigVarName,
   validateArgType,
 } from "@evmcrispr/sdk";
+import {
+  hasRuntimeValue,
+  hasSmartCondition,
+  isRuntimeValue,
+  smartValueElement,
+  snapshotSmartValue,
+} from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 
 const { USER } = BindingsSpace;
 
 function applyDestructure(
+  module: Std,
   slots: DestructureSlot[],
   value: unknown,
   bm: BindingsManager,
   isGlobal: boolean,
 ): void {
-  const arr = Array.isArray(value) ? value : [value];
+  const fixedLength = isRuntimeValue(value)
+    ? value.abiType.type.match(/\[(\d+)\]$/)?.[1]
+    : undefined;
+  const tuple = isRuntimeValue(value) && value.abiType.type === "tuple";
+  const arr =
+    isRuntimeValue(value) && (fixedLength || tuple)
+      ? Array.from(
+          {
+            length: fixedLength
+              ? Math.min(Number(fixedLength), slots.length)
+              : Math.min(
+                  (value.abiType as any).components.length,
+                  slots.length,
+                ),
+          },
+          (_, i) => smartValueElement(module, value, i),
+        )
+      : Array.isArray(value)
+        ? value
+        : [value];
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     if (slot === null) continue;
@@ -29,16 +56,16 @@ function applyDestructure(
     if (typeof slot === "string") {
       bm.setBinding(slot, arr[i], USER, isGlobal, undefined, true);
     } else {
-      applyDestructure(slot, arr[i], bm, isGlobal);
+      applyDestructure(module, slot, arr[i], bm, isGlobal);
     }
   }
 }
 
 export default defineCommand<Std>({
   smartSupport: {
-    kind: "static",
+    kind: "runtime",
     reason:
-      "Assignments are build-time values; use -> [...] capture for on-chain outputs.",
+      "Runtime values are captured at assignment and scoped to the smart block.",
   },
   name: "set",
   description: "Assign a value to a variable for use later in the script.",
@@ -49,9 +76,16 @@ export default defineCommand<Std>({
       description: "Variable name",
       allowConfig: true,
     },
-    { name: "value", type: "any", description: "Value to assign" },
+    {
+      name: "value",
+      type: "any",
+      runtime: true,
+      description: "Value to assign",
+    },
   ],
   async run(module, { variable, value }, { interpreters }) {
+    const smartState = interpreters.batchContext?.smartState;
+    const conditional = smartState && hasSmartCondition(smartState);
     // Config variables (`$mod:key`): declared-key + write-access checks and
     // type validation against the declaration.
     const cfg =
@@ -62,6 +96,12 @@ export default defineCommand<Std>({
       );
     }
     if (cfg) {
+      if (conditional)
+        throw new ErrorException(
+          "config assignments cannot depend on a runtime condition",
+        );
+      if (hasRuntimeValue(value))
+        throw new ErrorException("config variables require build-time values");
       const def = checkConfigAccess(
         module.bindingsManager,
         cfg.module,
@@ -84,7 +124,23 @@ export default defineCommand<Std>({
     // Module-origin code (EVML module def bodies) binds scope-locally:
     // temporaries live for the def's dynamic extent and never clobber the
     // caller's variables. User-origin sets stay global as always.
-    const isGlobal = interpreters.origin?.kind !== "module";
-    applyDestructure([variable], [value], module.bindingsManager, isGlobal);
+    const runtime = hasRuntimeValue(value);
+    const replacesRuntime = (slot: DestructureSlot): boolean =>
+      typeof slot === "string"
+        ? hasRuntimeValue(module.bindingsManager.getBindingValue(slot, USER))
+        : Array.isArray(slot) && slot.some(replacesRuntime);
+    const isGlobal =
+      interpreters.origin?.kind !== "module" &&
+      !runtime &&
+      !replacesRuntime(variable) &&
+      !conditional;
+    if (runtime) value = await snapshotSmartValue(module, value);
+    applyDestructure(
+      module,
+      [variable],
+      [value],
+      module.bindingsManager,
+      isGlobal,
+    );
   },
 });

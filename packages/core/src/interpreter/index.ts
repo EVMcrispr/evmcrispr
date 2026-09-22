@@ -53,7 +53,12 @@ import {
   setBoolVarsFalse,
   timeUnits,
 } from "@evmcrispr/sdk";
-import { applyValueLens, isRuntimeValue } from "@evmcrispr/sdk/onchain";
+import {
+  applyValueLens,
+  isRuntimeValue,
+  type RuntimeValue,
+  type SmartLoopFrame,
+} from "@evmcrispr/sdk/onchain";
 import type { Abi, AbiFunction, Address, PublicClient } from "viem";
 import { getAbiItem, isAddress, parseAbiItem } from "viem";
 
@@ -663,6 +668,19 @@ export function makeExecutionResolveCommand(
     const interpreters = withInheritedOptions(rawInterpreters, options);
     const errorCaptures = (c.errorCaptures ?? []) as ErrorCaptureNode[];
     const smart = batchContext?.smartState;
+    const loopCheckpoint: {
+      frame: SmartLoopFrame;
+      active: RuntimeValue | undefined;
+      iteration: RuntimeValue | undefined;
+      runtimeControl: boolean | undefined;
+    }[] = [];
+    for (let frame = smart?.loop; frame; frame = frame.parent)
+      loopCheckpoint.push({
+        frame,
+        active: frame.active,
+        iteration: frame.iteration,
+        runtimeControl: frame.runtimeControl,
+      });
     const checkpoint = smart
       ? {
           steps: smart.plan.steps.length,
@@ -733,12 +751,14 @@ export function makeExecutionResolveCommand(
      */
     const captureCommandFailure = async (err: unknown): Promise<boolean> => {
       // Inside a smart batch a failed line leaves no partial plan behind:
-      // its steps, captures and bindings roll back to the line's start
+      // its steps, captures, bindings and loop flags roll back to the line's start
       // whether or not a clause accepts the failure.
       if (smart && checkpoint) {
         smart.plan.steps.length = checkpoint.steps;
         smart.plan.captures.length = checkpoint.captures;
         smart.snapshots = new WeakMap();
+        for (const { frame, ...flags } of loopCheckpoint)
+          Object.assign(frame, flags);
         batchContext!.hasActions = checkpoint.hasActions;
         checkpoint.restoreBindings();
       }

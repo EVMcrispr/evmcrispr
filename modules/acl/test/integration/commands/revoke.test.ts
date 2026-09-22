@@ -11,6 +11,12 @@ describeCommand("revoke", {
     "AccessControl > commands > revoke <role> on <target> from <account>",
   module: "acl",
   preamble: "load acl",
+  smartCases: [
+    {
+      name: "numeric runtime role",
+      script: `acl:revoke 42 on ${MANAGER} from ${SOME_ADDRESS}`,
+    },
+  ],
   cases: [
     {
       name: "should encode an AccessControl revokeRole for string roles",

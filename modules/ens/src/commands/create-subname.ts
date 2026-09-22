@@ -55,6 +55,7 @@ export default defineCommand<Ens>({
     },
     {
       name: "expiry",
+      runtime: true,
       type: "number",
       description: "Subname expiry timestamp (wrapped parents only)",
     },

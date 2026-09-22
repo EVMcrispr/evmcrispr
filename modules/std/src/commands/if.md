@@ -4,7 +4,7 @@ title: "if"
 
 Conditionally execute a block of commands, with an optional else block.
 
-Smart blocks: build-time inputs only. Control-flow conditions are evaluated at build time.
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
 
 ## Syntax
 
@@ -16,7 +16,7 @@ if <condition> <thenBlock> [elseBlock]
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `condition` | `bool` | Build time | Whether to execute the then block |
+| `condition` | `bool` | Runtime in smart blocks | Whether to execute the then block |
 | `thenBlock` | `block` | Build time | Commands when condition is true |
 | `[elseBlock]` | `block` | Build time | Commands when condition is false |
 

@@ -18,7 +18,7 @@ acl:renounce <role> <on> <target>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `role` | `number \| string` | Build time | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
+| `role` | `number \| string` | Runtime in smart blocks | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id; runtime roles must be bytes32 or integers |
 | `on` | `command` | Build time | Keyword `on` |
 | `target` | `address` | Runtime in smart blocks | AccessControl contract or AccessManager address |
 

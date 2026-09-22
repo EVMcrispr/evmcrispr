@@ -3,7 +3,7 @@
  * type positions, so the base SDK (defineHelper, module metadata) can
  * reference compile faces without pulling the compiler in at runtime.
  */
-import type { AbiParameter } from "viem";
+import type { AbiParameter, Hex } from "viem";
 import type { Module } from "../Module";
 import type { Address, HelperFunctionNode, NodesInterpreters } from "../types";
 import type { Num } from "../utils/Num";
@@ -52,6 +52,8 @@ export type Operand =
        *  level judge `inner EQ 0` instead of `eq(inner, 0) EQ 1`. */
       notOf?: InputParam;
       abiType?: AbiParameter;
+      /** Known-selector calldata can be sent without interpreting its bytes off-chain. */
+      calldata?: { selector: Hex; arguments: InputParam };
       collection?: {
         element: AbiParameter;
         transport: "words" | "abi";

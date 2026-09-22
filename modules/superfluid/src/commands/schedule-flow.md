@@ -28,7 +28,7 @@ superfluid:schedule-flow <rate> <token> <to> <receiver>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--start` | `number` | Runtime in smart blocks | Unix timestamp at which the keeper opens the stream |
-| `--start-window` | `number` | Build time | How long after --start the keeper may still open the stream (default 3d) |
+| `--start-window` | `number` | Runtime in smart blocks | How long after --start the keeper may still open the stream (default 3d) |
 | `--end` | `number` | Runtime in smart blocks | Unix timestamp at which the keeper closes the stream |
 | `--start-amount` | `number` | Runtime in smart blocks | Optional lump-sum SuperToken transfer when the stream starts (needs an allowance, granted automatically) |
 | `--no-approve` | `bool` | Build time | Skip the automatic permission grant and allowance actions |

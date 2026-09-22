@@ -11,6 +11,9 @@ describeCommand("renounce", {
   describeName: "AccessControl > commands > renounce <role> on <target>",
   module: "acl",
   preamble: "load acl",
+  smartCases: [
+    { name: "numeric runtime role", script: `acl:renounce 42 on ${MANAGER}` },
+  ],
   cases: [
     {
       name: "should renounce an AccessControl role with the connected account as confirmation",

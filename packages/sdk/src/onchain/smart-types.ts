@@ -41,6 +41,8 @@ export interface PlannedCall {
   target: Address | RuntimeValue;
   /** Exact fixed calldata for a call with a dynamic target/value. */
   rawData?: Hex;
+  /** Resolved argument bytes following rawData's fixed selector. */
+  rawInput?: InputParam;
   abi: AbiFunction;
   args: unknown[];
   value?: bigint | RuntimeValue;
@@ -60,6 +62,7 @@ export interface SmartBatchCall {
   args: SmartBatchValue[];
   value: bigint | RuntimeValue;
   rawData?: Hex;
+  rawInput?: InputParam;
 }
 
 export type SmartBatchStep =
@@ -69,6 +72,8 @@ export type SmartBatchStep =
       /** Retain typed expressions alongside their route-specific wire encoding. */
       call?: SmartBatchCall;
       dynamicFields?: string[];
+      /** A snapshotted predicate; false skips the call and its input reads. */
+      condition?: RuntimeValue;
       reads?: { name: string; step: number; word: number }[];
       label: string;
       line?: number;
@@ -110,16 +115,37 @@ export type CommandCompile = (
   node: CommandExpressionNode,
 ) => Promise<SmartCommandPlan>;
 
+/** One lexical loop; each flag refers to a frozen boolean in batch storage. */
+export interface SmartLoopFrame {
+  parent?: SmartLoopFrame;
+  active?: RuntimeValue;
+  iteration?: RuntimeValue;
+  runtimeControl?: boolean;
+}
+
+export function hasSmartCondition(state: SmartBatchState): boolean {
+  if (state.condition) return true;
+  for (let loop = state.loop; loop; loop = loop.parent)
+    if (loop.active || loop.iteration) return true;
+  return false;
+}
+
 /** Interpretation-only state; the finished plan contains no closures or AST. */
 export interface SmartBatchState {
   plan: SmartBatchPlan;
+  condition?: RuntimeValue;
+  loop?: SmartLoopFrame;
   snapshots: WeakMap<RuntimeValue, RuntimeValue>;
   append(
     module: Module,
     node: CommandExpressionNode,
     result: SmartCommandPlan,
   ): Promise<void>;
-  snapshot(ctx: CompileCtx, value: RuntimeValue): Promise<RuntimeValue>;
+  snapshot(
+    ctx: CompileCtx,
+    value: RuntimeValue,
+    options?: { control?: boolean },
+  ): Promise<RuntimeValue>;
 }
 
 export interface SmartBatchAction {

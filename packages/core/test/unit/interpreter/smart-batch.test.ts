@@ -1,10 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import type { SmartBatchAction } from "@evmcrispr/sdk";
+import {
+  BindingsSpace,
+  defineCommand,
+  ErrorException,
+  type SmartBatchAction,
+} from "@evmcrispr/sdk";
 import {
   COMPOSABLE_EXECUTOR_ABI,
   deserializeSmartBatchPlan,
   lowerSmartBatch,
   serializeSmartBatchPlan,
+  smartLoopControl,
 } from "@evmcrispr/sdk/onchain";
 import { custom, decodeFunctionData } from "viem";
 import { createEvml, Interpreter, parseScript } from "../../../src/index.ts";
@@ -115,9 +121,15 @@ describe("smart batch compiler", () => {
       ),
     ).rejects.toThrow();
   });
-  it("does not use return values for build-time assignment or branching", async () => {
+  it("copies runtime bindings without leaking them outside the batch", async () => {
     const prefix = `exec ${target} "f() returns (uint256)" -> [$x]\n`;
-    await expect(compile(`${prefix}set $copy $x`)).rejects.toThrow("runtime");
+    expect(
+      (
+        await compile(
+          `${prefix}set $copy $x\nexec ${target} "g(uint256)" $copy`,
+        )
+      ).plan.steps,
+    ).toHaveLength(2);
     await expect(
       compile(`${prefix}if $x (\nexec ${target} "g()"\n)`),
     ).rejects.toThrow("runtime");
@@ -127,6 +139,129 @@ describe("smart batch compiler", () => {
         `batch! (\n${prefix})\nexec ${target} "g(uint256)" $x`,
       ),
     ).rejects.toThrow();
+  });
+  it("reassigns destructured runtime bindings locally", async () => {
+    const evm = new Interpreter(tag.registry, { account, chainId: 1 });
+    const [action] = await evm.interpret(`set $x 1
+batch! (
+set $x ${target}::!{f()(uint256)}
+set [$x] [2]
+exec ${target} "g(uint256)" $x
+)`);
+    expect(String(evm.getBinding("$x", BindingsSpace.USER))).toBe("1");
+    const step = (action as SmartBatchAction).plan.steps.at(-1)!;
+    expect(step.kind === "composable" && step.call?.args).toEqual([2n]);
+  });
+  it("requires a lexical loop and preserves def boundaries for runtime exits", async () => {
+    const guard = `@bool!(${target}::!{f()(uint256)} > 0)`;
+    for (const control of ["break", "continue"]) {
+      await expect(
+        compile(`if ${guard} (
+loop ${control}
+)`),
+      ).rejects.toThrow("inside a loop");
+      await expect(
+        compile(`def escape "" (
+loop ${control}
+)
+loop $i of [1 2] (
+if ${guard} (
+escape
+)
+)`),
+      ).rejects.toThrow("inside a loop");
+      await expect(
+        compile(`loop $i of [1] (
+if ${guard} (
+loop ${control} extra
+)
+)`),
+      ).rejects.toThrow("takes no arguments");
+    }
+  });
+  it("restores loop flags when a caught command fails after emitting a control step", async () => {
+    const evm = new Interpreter(tag.registry, { account, chainId: 1 });
+    evm.getModule("std")!.commands.discard = defineCommand({
+      name: "discard",
+      smartSupport: { kind: "runtime" },
+      args: [],
+      async run(module) {
+        await smartLoopControl(module, "break");
+        throw new ErrorException("discard partial control flow");
+      },
+    });
+    const [action] = await evm.interpret(`batch! (
+loop $i of [1] (
+if @bool!(${target}::!{f()(uint256)} > 0) (
+discard -?!> $failed
+)
+exec ${target} "g(uint256)" 7
+)
+)`);
+    const plan = (action as SmartBatchAction).plan;
+    expect(plan.steps).toHaveLength(2);
+    const tail = plan.steps.at(-1)!;
+    expect(tail.kind === "composable" && tail.condition).toBeUndefined();
+  });
+  it("scopes conditional bindings and rejects unsupported branch effects", async () => {
+    const condition = `@bool!(${target}::!{f()(uint256)} > 0)`;
+    await expect(
+      compile(`if ${condition} (
+set $branch 7
+)
+exec ${target} "g(uint256)" $branch`),
+    ).rejects.toThrow();
+    await expect(
+      compile(`if ${condition} (
+print hello
+)`),
+    ).rejects.toThrow("build-time operations");
+    await expect(
+      compile(`if ${condition} (
+exec ${target} "f() returns (uint256)" -> [$x]
+)`),
+    ).rejects.toThrow("conditional output storage");
+    await expect(
+      compile(`if ${condition} (
+send ${target} --value 1
+)`),
+    ).rejects.toThrow("short calldata");
+  });
+  it("validates runtime loop bounds and array element types", async () => {
+    for (const limit of [0, 257, 1.5]) {
+      await expect(
+        compile(`loop $x of ${target}::!{values()(uint256[])} --max-iterations ${limit} (
+exec ${target} "g(uint256)" $x
+)`),
+      ).rejects.toThrow("between 1 and 256");
+    }
+    await expect(
+      compile(`loop $x of ${target}::!{f()(uint256)} (
+exec ${target} "g(uint256)" $x
+)`),
+    ).rejects.toThrow("runtime array");
+    const action = await compile(`set [$x $y] ${target}::!{values()(uint256[2])}
+loop $v of [$x $y] (
+exec ${target} "g(uint256)" $v
+)`);
+    expect(
+      action.plan.steps.filter(
+        (step) => step.kind === "composable" && step.call?.abi.name === "g",
+      ),
+    ).toHaveLength(2);
+  });
+  it("keeps arbitrary runtime byte selectors and dynamic snapshots explicit", async () => {
+    await expect(
+      compile(`send ${target} --data ${target}::!{data()(bytes)}`),
+    ).rejects.toThrow("known selector");
+    await expect(
+      compile(`set $data ${target}::!{data()(bytes)}`),
+    ).rejects.toThrow("static ABI values");
+    await expect(
+      compile(
+        `assert ${target}::!{f()(uint256)} ~= ${target}::!{g()(uint256)} --delta -1`,
+      ),
+    ).rejects.toThrow("nonnegative");
   });
   it("retains ordinary read restrictions and rejects per-step envelopes", async () => {
     await expect(

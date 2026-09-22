@@ -69,6 +69,12 @@ describeCommand("deploy", {
   preamble: "load contracts",
   describeName:
     "Contracts > commands > deploy <$variable> [bytecode] [opts...]",
+  smartCases: [
+    {
+      name: "runtime CREATE3 inputs",
+      script: `contracts:deploy $addr ${BYTECODE} --create3 ${SALT_1} --constructor "constructor(uint256)" --constructor-args [7] --value 1`,
+    },
+  ],
   cases: [
     {
       name: "plain CREATE: emits a deployment action without `to` and binds the predicted address",

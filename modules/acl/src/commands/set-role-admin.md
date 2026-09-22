@@ -19,8 +19,8 @@ acl:set-role-admin <manager> <roleId> <adminRoleId>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `manager` | `address` | Runtime in smart blocks | AccessManager address |
-| `roleId` | `number \| string` | Build time | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
-| `adminRoleId` | `number \| string` | Build time | New admin role id |
+| `roleId` | `number \| string` | Runtime in smart blocks | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `adminRoleId` | `number \| string` | Runtime in smart blocks | New admin role id |
 
 <!-- HAND-WRITTEN -->
 

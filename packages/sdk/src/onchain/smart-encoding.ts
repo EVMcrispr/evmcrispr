@@ -120,9 +120,34 @@ export function smartDataAction(
 /** Raw calldata keeps its selector fixed; ERC-8211 cannot send dynamic short data. */
 export function smartRawAction(
   target: Address | RuntimeValue,
-  data: Hex,
+  data: Hex | RuntimeValue,
   value: bigint | RuntimeValue = 0n,
 ): TransactionAction {
+  if (isRuntimeValue(data)) {
+    const known = calls.get(data);
+    if (known) return { plannedCall: { ...known, target, value } };
+    const encoded = data.operand.calldata;
+    if (!encoded)
+      throw new ErrorException(
+        "runtime send calldata requires a known selector; use @abi.encodeCall! or exec",
+      );
+    return {
+      plannedCall: {
+        target,
+        value,
+        rawData: encoded.selector,
+        rawInput: encoded.arguments,
+        abi: {
+          type: "function",
+          name: "raw",
+          inputs: [],
+          outputs: [],
+          stateMutability: "payable",
+        },
+        args: [],
+      },
+    };
+  }
   if (!isRuntimeValue(target) && !isRuntimeValue(value))
     return { to: target, data, value };
   if (data.length < 10)

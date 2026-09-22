@@ -7,9 +7,11 @@ import {
 } from "@evmcrispr/sdk";
 import {
   amountParam,
+  assertSmartComparison,
   isRuntimeValue,
   positiveRuntimeAmount,
   smartArithmetic,
+  snapshotSmartAmount,
 } from "@evmcrispr/sdk/onchain";
 import type { Abi } from "viem";
 import type Superfluid from "..";
@@ -51,6 +53,7 @@ export default defineCommand<Superfluid>({
     { name: "over", type: "command", description: "Keyword `over`" },
     {
       name: "duration",
+      runtime: true,
       type: "number",
       description: "Total vesting duration, e.g. 1y or 730d",
     },
@@ -64,12 +67,14 @@ export default defineCommand<Superfluid>({
     },
     {
       name: "cliff",
+      runtime: true,
       type: "number",
       description:
         "Cliff period from the start (e.g. 90d): nothing until it passes, then the accrued amount at once",
     },
     {
       name: "claimable-for",
+      runtime: true,
       type: "number",
       description:
         "Make the schedule claimable: the receiver must claim within this period after the start or it never begins",
@@ -99,24 +104,31 @@ export default defineCommand<Superfluid>({
     );
     const superToken = await resolveSuperToken(module, token);
     const total = parseAmount(amount, undefined, module);
-    const totalDuration = parseDuration(duration, "<duration>") as bigint;
+    const totalDuration = await snapshotSmartAmount(
+      module,
+      parseDuration(duration, "<duration>", module),
+    );
     const start =
       opts.start === undefined
         ? 0n
         : parseAmount(opts.start, "--start", module);
-    const cliff =
+    const cliff = await snapshotSmartAmount(
+      module,
       opts.cliff === undefined
         ? 0n
-        : (parseDuration(opts.cliff, "--cliff") as bigint);
+        : parseDuration(opts.cliff, "--cliff", module),
+    );
     const claimPeriod =
       opts["claimable-for"] === undefined
         ? 0n
         : parseDuration(opts["claimable-for"], "--claimable-for", module);
-    if (cliff >= totalDuration) {
-      throw new ErrorException(
-        "--cliff must be shorter than the total duration",
-      );
-    }
+    await assertSmartComparison(
+      module,
+      cliff,
+      "<",
+      totalDuration,
+      "--cliff must be shorter than the total duration",
+    );
 
     let flowRate = await smartArithmetic(module, "/", total, totalDuration);
     if (isRuntimeValue(flowRate))

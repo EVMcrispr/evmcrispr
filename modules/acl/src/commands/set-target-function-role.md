@@ -20,7 +20,7 @@ acl:set-target-function-role <manager> <target> <roleId> <signatures>
 |------|------|------------|-------------|
 | `manager` | `address` | Runtime in smart blocks | AccessManager address |
 | `target` | `address` | Runtime in smart blocks | Managed contract address |
-| `roleId` | `number \| string` | Build time | Role id required to call the functions (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `roleId` | `number \| string` | Runtime in smart blocks | Role id required to call the functions (or ADMIN_ROLE / PUBLIC_ROLE) |
 | `signatures` | `array` | Build time | Function signatures to gate |
 
 <!-- HAND-WRITTEN -->

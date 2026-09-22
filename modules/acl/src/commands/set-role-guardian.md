@@ -19,8 +19,8 @@ acl:set-role-guardian <manager> <roleId> <guardianRoleId>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `manager` | `address` | Runtime in smart blocks | AccessManager address |
-| `roleId` | `number \| string` | Build time | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
-| `guardianRoleId` | `number \| string` | Build time | New guardian role id |
+| `roleId` | `number \| string` | Runtime in smart blocks | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `guardianRoleId` | `number \| string` | Runtime in smart blocks | New guardian role id |
 
 <!-- HAND-WRITTEN -->
 

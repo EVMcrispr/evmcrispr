@@ -20,6 +20,12 @@ token:disperse <token> <recipients> <amounts>
 | `recipients` | `array` | Runtime in smart blocks | Recipient addresses |
 | `amounts` | `array \| number` | Runtime in smart blocks | Per-recipient amounts in token units (wei), or a single amount sent to every recipient |
 
+## Options
+
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--max-recipients` | `number` | Build time | Maximum recipients for a runtime array (default 32, at most 256); exceeding it reverts the batch |
+
 <!-- HAND-WRITTEN -->
 
 ## Examples

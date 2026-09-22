@@ -18,9 +18,9 @@ governor:vote <governor> <proposalId> <support>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `governor` | `address` | Build time | Governor address |
+| `governor` | `address` | Runtime in smart blocks | Governor address |
 | `proposalId` | `number` | Runtime in smart blocks | Proposal id |
-| `support` | `voteSupport` | Build time | for, against or abstain |
+| `support` | `voteSupport` | Runtime in smart blocks | for, against or abstain; runtime values use 0 (against), 1 (for), or 2 (abstain) |
 
 ## Options
 

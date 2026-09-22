@@ -54,7 +54,7 @@ Write `-> [...]` after a command to name its return values:
 | `-> [_ $second]` | Skip the first value and save the second |
 | `-> [[$amount $recipient] _]` | Unpack the first returned tuple and ignore the second result |
 
-Captured variables are available only to later commands in the same smart block. You cannot copy them into ordinary variables with `set` or use them after the block ends.
+Captured variables are available only to later commands in the same smart block. `set $copy $result` can copy a captured value within that block; runtime bindings do not escape the block.
 
 Use return capture when a state-changing command produces a value you need later. For a direct `exec` call, include the output types in the function signature: for example, `"deposit(uint256,address) returns (uint256)"` declares a returned share amount, which you can capture with `-> [$shares]`. For read-only values, use an on-chain helper such as `@balance!(...)` or a `::!` call expression instead of `exec`.
 
@@ -70,7 +70,62 @@ The `!` on a helper asks for its on-chain value. For example, `@balance!($asset 
 
 Commands inside the block keep their ordinary names: use `token:transfer`, not `token:transfer!`. Each command's reference page marks which arguments and options accept runtime values. Amounts and recipients commonly do; choices such as which protocol or vault to use may need to be known before execution.
 
-Values read during execution can feed subsequent calls and assertions. They cannot decide which `if` branch to take, how many times a loop runs, which module to load, or which function signature to use. You can still use loops and user-defined commands whose structure is known while preparing the batch.
+Values read during execution can feed calls, assignments, conditions, loops and assertions. Module selection, function signatures and options that choose a protocol route still require build-time values.
+
+## Assign values and choose a branch
+
+`set` snapshots a runtime value at that point in the transaction. Later writes do not change the saved value. It supports static ABI values, including tuples and fixed-size arrays, and literal collections of those values. Dynamic strings, bytes and whole dynamic arrays cannot be snapshotted by the current executor.
+
+```evml
+load token
+set $asset 0x1111111111111111111111111111111111111111
+set $recipient 0x2222222222222222222222222222222222222222
+batch! (
+  set $balance @balance!($asset @sender)
+  if @bool!($balance > 0) (
+    token:transfer $balance $asset to $recipient
+  )
+)
+```
+
+The condition is evaluated once before either branch. Only the selected branch makes calls or resolves its runtime arguments. Both branches must compile. Bindings made inside a runtime branch are local to that branch, including assignments to names defined outside it. Build-time operations such as `print`, configuration changes and deployment-address bindings are unavailable inside a runtime branch.
+
+The current executor cannot conditionally store call return data, so `-> [...]` captures inside runtime branches are rejected. Use a runtime read or branch-local `set` when a read-only result is sufficient.
+
+## Iterate runtime collections
+
+A literal or fixed-size array can contain runtime values. A whole runtime array with static ABI elements uses bounded iteration:
+
+```evml
+load token
+set $source 0x1111111111111111111111111111111111111111
+set $asset 0x2222222222222222222222222222222222222222
+set $recipient 0x3333333333333333333333333333333333333333
+batch! (
+  loop $amount of $source::!{amounts()(uint256[])} --max-iterations 8 (
+    if @bool!($amount == 0) (
+      loop continue
+    )
+    if @bool!($amount > 100e18) (
+      loop break
+    )
+    token:transfer $amount $asset to $recipient
+  )
+)
+```
+
+The array length and selected elements are snapshotted before the first iteration writes state. `loop until @bool!(...) (...)` rechecks its condition before each iteration. For runtime arrays, runtime exit conditions and until loops with runtime-dependent `break` or `continue`, `--max-iterations` defaults to 32 and accepts 1–256. An array longer than the bound reverts before iteration, even if the body could break early. An until loop that reaches the bound without finishing or breaking also reverts. Runtime loops are expanded into conditional steps, so choose a small sufficient bound to control calldata size and gas.
+
+`loop continue` skips the rest of the current iteration; an until loop rechecks its condition before the next iteration. `loop break` skips the rest of the iteration and all later iterations, including later until-condition reads. Both support runtime decisions inside `if @bool!(...)`, affect only the nearest enclosing loop, and cannot cross a `def` command boundary. They use conditional guards supported by the existing executor. Commands skipped by a runtime loop exit have the same restrictions as runtime branches, including no return captures.
+
+`token:disperse` also accepts runtime recipient and amount arrays. Their lengths must match, and all recipients and amounts are snapshotted before transfers. `--max-recipients` sets the same 1–256 bound for a runtime recipient array (default 32).
+
+## Other runtime inputs
+
+- `send --data @abi.encodeCall!("transfer(address,uint256)" $recipient $amount)` supports runtime arguments with a fixed selector. Arbitrary runtime calldata and native transfers with a runtime recipient or value remain unsupported by the executor; ordinary native transfers still work.
+- Approximate assertions accept two live sides and a runtime nonnegative `--delta`: `assert @balance!($asset @sender) ~= $expected --delta $tolerance`.
+- `contracts:deploy --create3` accepts runtime bytecode, constructor arguments and value. CREATE2 initialization inputs remain static because they determine the predicted address.
+- Runtime Governor vote support must be a numeric value from 0 to 2. Runtime ACL roles must be integer AccessManager IDs or bytes32 AccessControl roles; aliases and role names are resolved at build time.
 
 ## Stop a stream, unwrap, and transfer the balance
 

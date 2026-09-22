@@ -17,6 +17,7 @@ import type {
 } from "../types";
 import { isTransactionAction, NodeType } from "../types";
 import { Num } from "../utils/Num";
+import { guardAbiInteger } from "./abi-guards";
 import {
   COLLECTIONS_ADDRESS,
   CORE_ADDRESS,
@@ -30,9 +31,11 @@ import {
   wholeDelta,
 } from "./assert";
 import {
+  arithCombine,
   cmpCombine,
   compileOperand,
   compileTopCall,
+  constOperand,
   hashParamOf,
   scaleOf,
   stringDigest,
@@ -81,7 +84,7 @@ export interface AssertionSpec {
   /** Revert message when the assertion fails. */
   message?: string;
   /** Allowed delta for `~=`, in the subject's own units. */
-  delta?: Num;
+  delta?: Num | Node;
 }
 
 /** Everything a compiled assertion knows, beside the calldata. */
@@ -221,6 +224,51 @@ export async function compileAssertion(
 
   let rhs = await compileAssertionSide(ctx, spec.expected);
   let op = spec.operator;
+  const tolerance =
+    spec.delta === undefined
+      ? undefined
+      : spec.delta instanceof Num
+        ? constOperand(spec.delta)
+        : await compileAssertionSide(ctx, spec.delta);
+
+  if (
+    op === "~=" &&
+    (tolerance?.kind === "call" || (lhs.kind === "call" && rhs.kind === "call"))
+  ) {
+    if (!tolerance)
+      throw new ErrorException("the ~= operator requires a --delta value");
+    if (
+      ![lhs, rhs, tolerance].every(
+        (value) => value.cat === "Uint" || value.cat === "Int",
+      )
+    )
+      throw new ErrorException("~= requires numeric operands and tolerance");
+    const distance = arithCombine(ctx, "AbsDiff", lhs, rhs);
+    let bound = tolerance;
+    if (bound.kind === "const") {
+      const value = requireNum(bound, "--delta");
+      const scaled = value.mul(Num(10n ** BigInt(scaleOf(distance))));
+      if (wholeDelta(scaled, value) < 0n)
+        throw new ErrorException("--delta must be nonnegative");
+    } else {
+      bound = {
+        ...bound,
+        cat: "Uint",
+        param: guardAbiInteger(ctx, bound.param, bound.cat, "uint256"),
+      };
+    }
+    const comparison = cmpCombine(ctx, "Le", distance, bound);
+    if (comparison.kind !== "call")
+      throw new ErrorException(
+        "nothing to assert on-chain: the comparison folded to a constant",
+      );
+    return done(judged(comparison.param, [constraint("Eq", 1n)], ctx), {
+      subject: comparison,
+      expected: rhs,
+      operator: op,
+      fragment: "ApproxEq",
+    });
+  }
 
   // Put the live side on the left: `5 < $t::f()` ≡ `$t::f() > 5`.
   if (lhs.kind === "const" && rhs.kind === "call") {
@@ -236,11 +284,6 @@ export async function compileAssertion(
 
   // ---- both sides live: nested comparison judged EQ 1 ----------------
   if (lhs.kind === "call" && rhs.kind === "call") {
-    if (op === "~=") {
-      throw new ErrorException(
-        "~= needs a constant side: compare two live values with `@calc!(@absDiff!(a b)) <= <delta>` instead",
-      );
-    }
     const fragment = operatorFragment(op, ["Eq", "Ne", "Gt", "Lt", "Ge", "Le"]);
     const cmp = cmpCombine(ctx, fragment as never, lhs, rhs);
     if (cmp.kind !== "call") {
@@ -304,10 +347,15 @@ export async function compileAssertion(
   const isApprox = fragment === "ApproxEq";
   let delta: bigint | undefined;
   if (isApprox) {
-    if (spec.delta === undefined) {
+    if (tolerance === undefined) {
       throw new ErrorException("the ~= operator requires a --delta value");
     }
-    delta = wholeDelta(upscale(spec.delta), spec.delta);
+    const value = requireNum(
+      tolerance as Operand & { kind: "const" },
+      "--delta",
+    );
+    delta = wholeDelta(upscale(value), value);
+    if (delta < 0n) throw new ErrorException("--delta must be nonnegative");
   }
 
   // Dynamic values (string/bytes envelopes) judge via keccak of their
