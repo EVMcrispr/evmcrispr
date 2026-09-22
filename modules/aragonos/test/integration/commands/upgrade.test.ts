@@ -26,6 +26,12 @@ describeCommand("upgrade", {
       code: "aragonos:connect 0x8ccbeab14b5ac4a431fffc39f4bec4089020a155 (\n  aragonos:upgrade disputable-conviction-voting.open\n)",
     },
   ],
+  smartCases: [
+    {
+      name: "runtime implementation address",
+      script: `upgrade disputable-conviction-voting.open 0x1111111111111111111111111111111111111111\n)`,
+    },
+  ],
   cases: [
     {
       name: "should return a correct upgrade action to the latest app's version",

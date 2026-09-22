@@ -6,6 +6,8 @@ Enable a module on the Safe, allowing it to execute transactions without owner s
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ safe:enable-module <module>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `module` | `address` | Module address to enable |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `module` | `address` | Runtime in smart blocks | Module address to enable |
 
 <!-- HAND-WRITTEN -->
 

@@ -2,12 +2,14 @@ import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Safe from "..";
 
 export default defineCommand<Safe>({
+  smartSupport: { kind: "runtime" },
   name: "change-threshold",
   description: "Change the signature threshold of the Safe.",
   args: [
     {
       name: "threshold",
       type: "number",
+      runtime: true,
       description: "New signature threshold",
     },
   ],

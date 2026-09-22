@@ -4,6 +4,8 @@ title: "exit"
 
 Stop script execution immediately.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml

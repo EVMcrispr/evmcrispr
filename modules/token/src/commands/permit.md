@@ -4,6 +4,8 @@ title: "token:permit"
 
 Approve a spender through an EIP-2612 permit signed by the connected wallet, encoded as a permit() call anyone can submit.
 
+Smart blocks: build-time inputs only. Typed-data signatures bind concrete owners, spenders, amounts, nonces and deadlines.
+
 ## Syntax
 
 ```evml
@@ -12,18 +14,18 @@ token:permit <amount> <token> <for> <spender>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Allowance in token units (wei) |
-| `token` | `address` | Token address |
-| `for` | `command` | Keyword `for` |
-| `spender` | `address` | Spender address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Build time | Allowance in token units (wei) |
+| `token` | `address` | Build time | Token address |
+| `for` | `command` | Build time | Keyword `for` |
+| `spender` | `address` | Build time | Spender address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--deadline` | `number` | Permit expiry as a Unix timestamp (defaults to no expiry) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--deadline` | `number` | Build time | Permit expiry as a Unix timestamp (defaults to no expiry) |
 
 <!-- HAND-WRITTEN -->
 

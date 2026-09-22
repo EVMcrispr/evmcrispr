@@ -9,6 +9,11 @@ import {
 } from "../utils/packages";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "verify-message",
   description:
     "Compute the EIP-712 hashes of an off-chain Safe message (plain string or typed-data JSON) so signers can verify what their wallet displays.",

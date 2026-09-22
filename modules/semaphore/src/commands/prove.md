@@ -6,6 +6,8 @@ Prove membership in a Semaphore group anonymously, signaling a message nullified
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ semaphore:prove <variable>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the proof JSON to |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the proof JSON to |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--group` | `number` | Group id to prove membership in |
-| `--message` | `any` | Message (number, hex or string) the proof signals |
-| `--scope` | `any` | Scope (external nullifier) — one accepted proof per identity per scope |
-| `--identity` | `number` | Identity commitment to prove with (default: the only identity of this session) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--group` | `number` | Build time | Group id to prove membership in |
+| `--message` | `any` | Build time | Message (number, hex or string) the proof signals |
+| `--scope` | `any` | Build time | Scope (external nullifier) — one accepted proof per identity per scope |
+| `--identity` | `number` | Build time | Identity commitment to prove with (default: the only identity of this session) |
 
 <!-- HAND-WRITTEN -->
 

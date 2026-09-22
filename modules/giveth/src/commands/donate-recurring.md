@@ -9,6 +9,8 @@ Start, adjust, or stop a recurring Giveth donation: a Superfluid stream of the t
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -17,22 +19,22 @@ giveth:donate-recurring <rate> <token> <mode> <to> <project>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `rate` | `number` | Flow rate in wei per second — use a rate literal like 100e18/mo |
-| `token` | `address` | Token to stream: underlying token, its SuperToken, or the zero address for the native token |
-| `mode` | `command` | Keyword `total` (set the absolute rate; 0 stops), `more` or `less` (adjust the existing stream by <rate>) |
-| `to` | `command` | Keyword `to` |
-| `project` | `giveth-project` | Giveth project URL slug |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `rate` | `number` | Build time | Flow rate in wei per second — use a rate literal like 100e18/mo |
+| `token` | `address` | Build time | Token to stream: underlying token, its SuperToken, or the zero address for the native token |
+| `mode` | `command` | Build time | Keyword `total` (set the absolute rate; 0 stops), `more` or `less` (adjust the existing stream by <rate>) |
+| `to` | `command` | Build time | Keyword `to` |
+| `project` | `giveth-project` | Build time | Giveth project URL slug |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--wrap` | `number` | Amount of underlying token (base units) to wrap into the SuperToken before streaming |
-| `--tip` | `number` | Extra stream to Giveth itself as a percentage of <rate> (0-100), added on top (only with `total`) |
-| `--anonymous` | `bool` | Hide your identity on the recorded donation |
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--wrap` | `number` | Build time | Amount of underlying token (base units) to wrap into the SuperToken before streaming |
+| `--tip` | `number` | Build time | Extra stream to Giveth itself as a percentage of <rate> (0-100), added on top (only with `total`) |
+| `--anonymous` | `bool` | Build time | Hide your identity on the recorded donation |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 <!-- HAND-WRITTEN -->
 

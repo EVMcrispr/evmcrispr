@@ -6,6 +6,8 @@ Request a deposit into an ERC-7540 asynchronous vault, approving the vault autom
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ vault:request-deposit <assets> <into> <vault>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `assets` | `number` | Amount of the underlying asset to deposit, in base units (wei) |
-| `into` | `command` | Keyword `into` |
-| `vault` | `address` | ERC-7540 vault address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `assets` | `number` | Runtime in smart blocks | Amount of the underlying asset to deposit, in base units (wei) |
+| `into` | `command` | Build time | Keyword `into` |
+| `vault` | `address` | Build time | ERC-7540 vault address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--controller` | `address` | Controller of the request, entitled to claim it (defaults to the connected account) |
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--controller` | `address` | Runtime in smart blocks | Controller of the request, entitled to claim it (defaults to the connected account) |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 ## Examples
 

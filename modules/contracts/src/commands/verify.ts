@@ -297,6 +297,11 @@ async function pollVerification(
 }
 
 export default defineCommand<Contracts>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "verify",
   description:
     "Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source. Inside sim:fork this becomes a local dry-run: the source is compiled and checked against the fork's deployed bytecode instead of being sent to Etherscan.",

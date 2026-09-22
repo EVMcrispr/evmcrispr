@@ -31,16 +31,19 @@ export interface GovernanceAdapter {
   ): Action[];
   buildVote?(
     plugin: Address,
-    proposalId: bigint,
+    proposalId: bigint | import("@evmcrispr/sdk/onchain").RuntimeValue,
     option: number,
     tryEarlyExecution: boolean,
   ): Action[];
   buildApprove?(
     plugin: Address,
-    proposalId: bigint,
+    proposalId: bigint | import("@evmcrispr/sdk/onchain").RuntimeValue,
     tryExecution: boolean,
   ): Action[];
-  buildExecute?(plugin: Address, proposalId: bigint): Action[];
+  buildExecute?(
+    plugin: Address,
+    proposalId: bigint | import("@evmcrispr/sdk/onchain").RuntimeValue,
+  ): Action[];
 }
 
 export const VOTE_OPTIONS: Record<string, number> = {

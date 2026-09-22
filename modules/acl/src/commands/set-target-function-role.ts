@@ -10,14 +10,21 @@ import type AccessControl from "..";
 import { resolveManagerRoleId } from "../utils";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "set-target-function-role",
   description:
     "Map functions of a managed contract to the AccessManager role required to call them.",
   args: [
-    { name: "manager", type: "address", description: "AccessManager address" },
+    {
+      name: "manager",
+      type: "address",
+      runtime: true,
+      description: "AccessManager address",
+    },
     {
       name: "target",
       type: "address",
+      runtime: true,
       description: "Managed contract address",
     },
     {

@@ -6,6 +6,8 @@ Revoke a role on an AccessControl contract (string roles, hashed with keccak256)
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,13 +16,13 @@ acl:revoke <role> <on> <target> <from> <account>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `role` | `number \| string` | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
-| `on` | `command` | Keyword `on` |
-| `target` | `address` | AccessControl contract or AccessManager address |
-| `from` | `command` | Keyword `from` |
-| `account` | `address` | Account to revoke from |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `role` | `number \| string` | Build time | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
+| `on` | `command` | Build time | Keyword `on` |
+| `target` | `address` | Runtime in smart blocks | AccessControl contract or AccessManager address |
+| `from` | `command` | Build time | Keyword `from` |
+| `account` | `address` | Runtime in smart blocks | Account to revoke from |
 
 <!-- HAND-WRITTEN -->
 

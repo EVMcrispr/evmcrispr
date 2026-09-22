@@ -13,7 +13,7 @@ export async function withApproval(
   token: Address,
   owner: Address,
   spender: Address,
-  amount: bigint,
+  amount: import("@evmcrispr/sdk/onchain").SmartAmount,
   opts: Record<string, any>,
 ): Promise<Action[]> {
   const skipApprove =

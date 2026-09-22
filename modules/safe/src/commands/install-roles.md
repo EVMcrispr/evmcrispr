@@ -6,6 +6,8 @@ Deploy a Zodiac Roles modifier (fine-grained permissions) owned by the Safe and 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Deployment salt and initializer determine the predicted module address.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ safe:install-roles
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--salt` | `number` | Deployment salt nonce (defaults to 0) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--salt` | `number` | Build time | Deployment salt nonce (defaults to 0) |
 
 <!-- HAND-WRITTEN -->
 

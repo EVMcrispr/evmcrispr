@@ -4,6 +4,8 @@ title: "aragonos:forward"
 
 Route actions through a chain of forwarder apps with optional context.
 
+Smart blocks: cannot be nested. This command opens a separate atomic execution context; nested atomic blocks are unsupported.
+
 ## Syntax
 
 ```evml
@@ -12,17 +14,17 @@ aragonos:forward [...forwarders] <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[...forwarders]` | `app` | Forwarding path through apps |
-| `block` | `block` | Commands to forward |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[...forwarders]` | `app` | Build time | Forwarding path through apps |
+| `block` | `block` | Build time | Commands to forward |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--context` | `string` | Context string attached to the forwarding |
-| `--check-forwarder` | `bool` | Verify forwarder can forward before submitting |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--context` | `string` | Build time | Context string attached to the forwarding |
+| `--check-forwarder` | `bool` | Build time | Verify forwarder can forward before submitting |
 
 ## Examples
 

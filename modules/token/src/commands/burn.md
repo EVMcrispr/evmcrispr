@@ -4,6 +4,8 @@ title: "token:burn"
 
 Burn tokens from the connected account (ERC20Burnable burn function).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ token:burn <amount> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount in token units (wei) |
-| `token` | `address` | Token address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount in token units (wei) |
+| `token` | `address` | Runtime in smart blocks | Token address |
 
 <!-- HAND-WRITTEN -->
 

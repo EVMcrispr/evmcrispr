@@ -3,8 +3,8 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import { amountParam } from "@evmcrispr/sdk/onchain";
 import type Superfluid from "..";
 import { cfaForwarder } from "../addresses";
 import { PERM_FULL, parsePermissions } from "../utils/acl";
@@ -13,6 +13,7 @@ import { INT96_MAX, parseFlowRate } from "../utils/rate";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "grant-flow-operator",
   description:
     "Let an operator manage your streams of a SuperToken. Defaults to full control (create, update, delete) with unlimited flow-rate allowance; restrict with --permissions and --allowance. The allowance is a decrementing budget consumed by creates and rate increases.",
@@ -23,7 +24,12 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "operator", type: "address", description: "Flow operator" },
+    {
+      name: "operator",
+      type: "address",
+      runtime: true,
+      description: "Flow operator",
+    },
   ],
   opts: [
     {
@@ -34,6 +40,7 @@ export default defineCommand<Superfluid>({
     },
     {
       name: "allowance",
+      runtime: true,
       type: "number",
       description:
         "Flow-rate allowance in wei per second (e.g. 5000e18/mo); defaults to unlimited",
@@ -58,7 +65,7 @@ export default defineCommand<Superfluid>({
     const allowance =
       opts.allowance === undefined
         ? INT96_MAX
-        : parseFlowRate(opts.allowance, "--allowance");
+        : parseFlowRate(opts.allowance, "--allowance", module);
 
     if (permissions === PERM_FULL && allowance === INT96_MAX) {
       return [
@@ -76,8 +83,8 @@ export default defineCommand<Superfluid>({
         [
           superToken,
           operator,
-          Num.fromBigInt(BigInt(permissions)),
-          Num.fromBigInt(allowance),
+          amountParam(BigInt(permissions)),
+          amountParam(allowance),
         ],
       ),
     ];

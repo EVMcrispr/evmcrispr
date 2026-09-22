@@ -24,6 +24,13 @@ export function makeSafeBatchedHandler(
 
     const chainId = await safeConnector.getChainId();
     const { actions } = batch;
+    if (
+      actions.some((action) => action.operation === 1 || action.plannedCall)
+    ) {
+      throw new Error(
+        "The Safe Apps SDK cannot submit smart delegatecalls. Connect an owner wallet and use safe:propose! or safe:execute!.",
+      );
+    }
 
     if (
       batch.chainId !== chainId ||
@@ -157,7 +164,14 @@ export function useTransactionExecutor(
             );
           },
           ...(safeConnector
-            ? { batched: makeSafeBatchedHandler(safeConnector) }
+            ? {
+                batched: makeSafeBatchedHandler(safeConnector),
+                smartBatch: async () => {
+                  throw new Error(
+                    "The Safe Apps SDK cannot submit this smart-batch route. Connect an owner wallet and use safe:propose! or safe:execute!.",
+                  );
+                },
+              }
             : {}),
         },
       });

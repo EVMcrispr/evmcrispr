@@ -6,6 +6,8 @@ Add an identity commitment (or an array of them) to a Semaphore group. Only the 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ semaphore:add-member <commitment> <to> <group>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `commitment` | `any` | Identity commitment, or an array of commitments |
-| `to` | `command` | Keyword `to` |
-| `group` | `number` | Group id |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `commitment` | `any` | Runtime in smart blocks | Identity commitment, or an array of commitments |
+| `to` | `command` | Build time | Keyword `to` |
+| `group` | `number` | Runtime in smart blocks | Group id |
 
 <!-- HAND-WRITTEN -->
 

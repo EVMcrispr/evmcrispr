@@ -6,6 +6,8 @@ Open a money stream of a SuperToken to a receiver, or retarget an existing one t
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,19 +16,19 @@ superfluid:stream <rate> <token> <to> <receiver>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `rate` | `number` | Flow rate in wei per second, e.g. 1000e18/mo |
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
-| `to` | `command` | Keyword `to` |
-| `receiver` | `address` | Stream receiver |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `rate` | `number` | Runtime in smart blocks | Flow rate in wei per second, e.g. 1000e18/mo |
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
+| `to` | `command` | Build time | Keyword `to` |
+| `receiver` | `address` | Runtime in smart blocks | Stream receiver |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--from` | `address` | Stream sender when acting as a flow operator (requires prior grant-flow-operator by the sender) |
-| `--user-data` | `bytes` | Arbitrary user data forwarded to stream hooks |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--from` | `address` | Runtime in smart blocks | Stream sender when acting as a flow operator (requires prior grant-flow-operator by the sender) |
+| `--user-data` | `bytes` | Runtime in smart blocks | Arbitrary user data forwarded to stream hooks |
 
 ## Examples
 

@@ -6,6 +6,8 @@ Derive a Semaphore v4 identity and bind its public commitment to <variable>. The
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ semaphore:identity <variable>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the identity commitment to |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the identity commitment to |
 
 <!-- HAND-WRITTEN -->
 

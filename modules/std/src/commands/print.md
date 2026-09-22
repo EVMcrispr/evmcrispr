@@ -4,6 +4,8 @@ title: "print"
 
 Print values to script output (stdout in the CLI). Arrays render as headerless tables: a flat array as one row, an array of arrays as one row per inner array.
 
+Smart blocks: build-time inputs only. Logging consumes build-time values and cannot preview a guaranteed on-chain result.
+
 ## Syntax
 
 ```evml
@@ -12,15 +14,15 @@ print [...values]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[...values]` | `any` | Values to output, space-separated |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[...values]` | `any` | Build time | Values to output, space-separated |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--headers` | `array` | Column headers; renders the printed arrays as a table, one array per column |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--headers` | `array` | Build time | Column headers; renders the printed arrays as a table, one array per column |
 
 ## Examples
 

@@ -18,6 +18,11 @@ import {
 import { parseGroupId, readSemaphore } from "../utils/semaphore";
 
 export default defineCommand<Semaphore>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "prove",
   description:
     "Prove membership in a Semaphore group anonymously, signaling a message nullified per scope, and bind the proof JSON to <variable>. Uses the production ceremony artifacts for the group's tree depth. Requires an identity derived this session (semaphore:identity).",

@@ -1,14 +1,17 @@
 import type { TransactionAction } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { isRuntimeValue, smartRawAction } from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 
 export default defineCommand<Std>({
+  smartSupport: { kind: "runtime" },
   name: "send",
   description:
     "Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination.",
   args: [
     {
       name: "to",
+      runtime: true,
       type: "address",
       optional: true,
       description:
@@ -23,6 +26,7 @@ export default defineCommand<Std>({
     },
     {
       name: "value",
+      runtime: true,
       type: "number",
       description: "Native value to send (in wei)",
     },
@@ -57,11 +61,22 @@ export default defineCommand<Std>({
       );
     }
 
-    const action: TransactionAction = {};
-    if (to) action.to = to;
-    if (data && data !== "0x") action.data = data;
+    if (!to && isRuntimeValue(opts.value))
+      throw new ErrorException(
+        "plain CREATE deployments cannot be smart-batched",
+      );
+    const symbolic = isRuntimeValue(to) || isRuntimeValue(opts.value);
+    const action: TransactionAction = symbolic
+      ? smartRawAction(
+          to,
+          data ?? "0x",
+          isRuntimeValue(opts.value) ? opts.value : BigInt(opts.value ?? 0),
+        )
+      : {};
+    if (to && !symbolic) action.to = to;
+    if (!symbolic && data && data !== "0x") action.data = data;
 
-    if (opts.value !== undefined) {
+    if (!symbolic && opts.value !== undefined) {
       action.value = BigInt(opts.value);
     }
     if (opts.from) {

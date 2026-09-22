@@ -45,12 +45,40 @@ export interface InputParam {
   constraints: Constraint[];
 }
 
-/** One smart-batch entry. The judge is view-only, so `outputParams` is
- *  always empty here. */
+/** One executor entry. The view-only assertions judge uses no outputs. */
 export interface ComposableExecution {
   functionSig: Hex;
   inputParams: InputParam[];
-  outputParams: [];
+  outputParams: OutputParam[];
+}
+
+export const OUTPUT_FETCHER_TYPE = { ExecResult: 0, StaticCall: 1 } as const;
+export interface OutputParam {
+  fetcherType: number;
+  paramData: Hex;
+}
+
+export const COMPOSABLE_EXECUTOR_ABI = parseAbi([
+  "struct Constraint { uint8 constraintType; bytes referenceData; }",
+  "struct InputParam { uint8 paramType; uint8 fetcherType; bytes paramData; Constraint[] constraints; }",
+  "struct OutputParam { uint8 fetcherType; bytes paramData; }",
+  "struct ComposableExecution { bytes4 functionSig; InputParam[] inputParams; OutputParam[] outputParams; }",
+  "function executeComposableCall(ComposableExecution[] executions)",
+  "function executeComposableDelegateCall(ComposableExecution[] executions)",
+]);
+
+export function encodeComposable(
+  executions: ComposableExecution[],
+  route: "executor" | "delegatecall",
+): Hex {
+  return encodeFunctionData({
+    abi: COMPOSABLE_EXECUTOR_ABI,
+    functionName:
+      route === "executor"
+        ? "executeComposableCall"
+        : "executeComposableDelegateCall",
+    args: [executions],
+  });
 }
 
 // ---------------------------------------------------------------------------

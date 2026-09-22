@@ -4,6 +4,8 @@ title: "ens:renew"
 
 Renew ENS domain registrations via bulk renewal.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ ens:renew <domains> <duration>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `domains` | `string \| array` | ENS label(s) or names to renew |
-| `duration` | `number` | Renewal duration, in time units (e.g. 1y) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `domains` | `string \| array` | Build time | ENS label(s) or names to renew |
+| `duration` | `number` | Runtime in smart blocks | Renewal duration, in time units (e.g. 1y) |
 
 <!-- HAND-WRITTEN -->
 

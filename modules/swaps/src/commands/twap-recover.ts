@@ -8,6 +8,11 @@ import { resolveTwap } from "../twap/registry";
 import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
 
 export default defineCommand<Swaps>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "The concrete order determines the recovery actions and settlement contract.",
+  },
   name: "twap-recover",
   description:
     "Return residual TWAP sell tokens after cancellation, expiry, or proven complete settlement, removing authorization and clearing the allowance. Reads the current balance; run after prior actions are mined.",

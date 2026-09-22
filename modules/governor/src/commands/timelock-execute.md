@@ -6,6 +6,8 @@ Execute a ready TimelockController operation. Takes the same action block, prede
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command opens a separate atomic execution context; nested atomic blocks are unsupported.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ governor:timelock-execute <timelock> <actions>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `timelock` | `address` | TimelockController address |
-| `actions` | `block` | Block of commands making up the operation |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `timelock` | `address` | Build time | TimelockController address |
+| `actions` | `block` | Build time | Block of commands making up the operation |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--predecessor` | `bytes32` | Operation id that must execute first (default none) |
-| `--salt` | `bytes32` | Salt used when scheduling (default zero) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--predecessor` | `bytes32` | Build time | Operation id that must execute first (default none) |
+| `--salt` | `bytes32` | Build time | Salt used when scheduling (default zero) |
 
 <!-- HAND-WRITTEN -->
 

@@ -11,6 +11,10 @@ import {
 } from "../utils/deployment";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "static",
+    reason: "Owners, threshold and salt determine the predicted Safe address.",
+  },
   name: "new",
   description:
     "Deploy a new Safe (v1.4.1 L2 singleton) with the given owners, at a deterministic address.",

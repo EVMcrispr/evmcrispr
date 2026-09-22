@@ -6,6 +6,8 @@ Finalize a two-step bridge on the destination chain: mint a CCTP transfer once C
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Source receipts and external attestations/proofs must exist before the destination call is compiled.
+
 ## Syntax
 
 ```evml
@@ -14,16 +16,16 @@ bridges:claim <transferId>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `transferId` | `string` | Transaction hash of the bridge on the source chain |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `transferId` | `string` | Build time | Transaction hash of the bridge on the source chain |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--using` | `bridge-adapter` | Adapter that initiated the transfer (default: detected from the source transaction) |
-| `--from-chain` | `chain` | Source chain of the transfer (default: probed across supported chains) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--using` | `bridge-adapter` | Build time | Adapter that initiated the transfer (default: detected from the source transaction) |
+| `--from-chain` | `chain` | Build time | Source chain of the transfer (default: probed across supported chains) |
 
 <!-- HAND-WRITTEN -->
 

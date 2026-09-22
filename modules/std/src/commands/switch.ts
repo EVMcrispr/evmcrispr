@@ -4,6 +4,11 @@ import type Std from "..";
 import { resolveChainId } from "../argTypes";
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "switch",
   description: "Switch the active chain by name or ID.",
   batchable: false,

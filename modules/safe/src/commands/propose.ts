@@ -16,6 +16,7 @@ import {
   getSafeTxTypedData,
   interpretSafeBlock,
   proposeTransaction,
+  smartPlanFor,
 } from "../utils";
 import {
   normalizeSafeSignature,
@@ -31,6 +32,11 @@ import {
 } from "../utils/packages";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "propose",
   description:
     "Propose a signed transaction to the Safe queue, or prepare and sign portable transaction JSON with --no-api.",
@@ -46,6 +52,12 @@ export default defineCommand<Safe>({
     },
   ],
   opts: [
+    {
+      name: "salt",
+      type: "bytes32",
+      description:
+        "Smart-batch storage salt for reproducible offline signing (block forms with !)",
+    },
     {
       name: "as",
       type: "variable",
@@ -76,7 +88,12 @@ export default defineCommand<Safe>({
       description: "Origin tag shown in the Safe UI",
     },
   ],
-  async run(module, { safe, block }, { opts, interpreters }) {
+  async run(module, { safe, block }, { opts, interpreters, node }) {
+    if (
+      opts.salt !== undefined &&
+      (!node.name.endsWith("!") || typeof block === "string")
+    )
+      throw new ErrorException("--salt requires a smart command block");
     const noApi = opts["no-api"];
     if (noApi && !opts.unsigned && interpreters.simulation)
       throw new ErrorException(
@@ -107,6 +124,7 @@ export default defineCommand<Safe>({
             block as BlockExpressionNode,
             "safe:propose",
             interpreters,
+            { smart: node.name.endsWith("!"), salt: opts.salt },
           );
 
     if (actions?.length === 0) {
@@ -179,6 +197,7 @@ export default defineCommand<Safe>({
     }
     const signature = (await actionCallback!({
       type: "wallet",
+      executionPlan: smartPlanFor(actions),
       method: "eth_signTypedData_v4",
       params: [
         sender,

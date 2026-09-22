@@ -133,14 +133,9 @@ export function defineHelper<M extends Module>(
     // that the enclosing batch could change, but it would evaluate at
     // batch-build time and only ever see pre-batch state. Before the batch
     // collects its first action the read is still sound, so reading state
-    // into variables at the beginning of the batch is allowed. Smart
-    // batches compile reads on-chain instead of evaluating them at build
-    // time, so the gate does not apply there.
-    if (
-      interpreters.batchContext?.hasActions &&
-      config.batchable === false &&
-      !interpreters.batchContext.smart
-    ) {
+    // into variables at the beginning of the batch is allowed. Explicit bang helpers compile separately; ordinary reads keep this gate
+    // inside smart batches too.
+    if (interpreters.batchContext?.hasActions && config.batchable === false) {
       const { name } = interpreters.batchContext;
       throw new ErrorException(
         `helper @${config.name} reads on-chain state at batch-build time and cannot observe the effects of earlier actions in the same ${name}; read it into a variable with \`set\` at the beginning of the ${name} and use the variable instead`,

@@ -55,6 +55,10 @@ export function isBuiltinType(type: ArgType): boolean {
 }
 
 export interface ArgDef {
+  /** This field can be compiled from an explicit on-chain expression. */
+  runtime?: boolean;
+  /** Resolve a static runtime value once before this command expands into calls. */
+  snapshot?: boolean;
   /** Optional concrete ABI type for typed callback definitions. */
   abiType?: import("viem").AbiParameter;
   name: string;
@@ -118,6 +122,8 @@ export function buildRuntimeResolver(
 }
 
 export interface OptDef {
+  /** This field can be compiled from an explicit on-chain expression. */
+  runtime?: boolean;
   name: string;
   type: ArgType;
   /** Human-readable description for documentation. */

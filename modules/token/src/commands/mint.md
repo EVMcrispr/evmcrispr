@@ -4,6 +4,8 @@ title: "token:mint"
 
 Mint tokens to an account. Calls the mint(address,uint256) function commonly exposed by OpenZeppelin-based ERC20 tokens (usually role- or owner-gated).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,12 +14,12 @@ token:mint <amount> <token> <to> <account>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount in token units (wei) |
-| `token` | `address` | Token address |
-| `to` | `command` | Keyword `to` |
-| `account` | `address` | Recipient |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount in token units (wei) |
+| `token` | `address` | Runtime in smart blocks | Token address |
+| `to` | `command` | Build time | Keyword `to` |
+| `account` | `address` | Runtime in smart blocks | Recipient |
 
 <!-- HAND-WRITTEN -->
 

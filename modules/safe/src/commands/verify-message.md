@@ -6,6 +6,8 @@ Compute the EIP-712 hashes of an off-chain Safe message (plain string or typed-d
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ safe:verify-message <safe> <message>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `safe` | `address` | Safe address |
-| `message` | `string` | Raw message string, or an EIP-712 typed-data JSON document |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `safe` | `address` | Build time | Safe address |
+| `message` | `string` | Build time | Raw message string, or an EIP-712 typed-data JSON document |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--as` | `variable` | Bind the JSON verification report |
-| `--format` | `string` | auto (text or typed data) or bytes (exact hex bytes for nested signatures) |
-| `--offline` | `bool` | Compute the report without RPC; chain-dependent checks remain unchecked |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--as` | `variable` | Build time | Bind the JSON verification report |
+| `--format` | `string` | Build time | auto (text or typed data) or bytes (exact hex bytes for nested signatures) |
+| `--offline` | `bool` | Build time | Compute the report without RPC; chain-dependent checks remain unchecked |
 
 <!-- HAND-WRITTEN -->
 

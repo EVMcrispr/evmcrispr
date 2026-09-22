@@ -4,6 +4,7 @@ import { getDAOAppIdentifiers } from "../utils";
 import { batchForwarderActions } from "../utils/forwarders";
 
 export default defineCommand<AragonOS>({
+  smartSupport: { kind: "runtime" },
   name: "act",
   description:
     "Execute an action on a target contract through an agent or vault.",
@@ -11,9 +12,15 @@ export default defineCommand<AragonOS>({
     {
       name: "agent",
       type: "address",
-      description: "Agent or vault forwarder address",
+      description:
+        "Agent or vault forwarder address (build-time protocol discovery)",
     },
-    { name: "target", type: "address", description: "Target contract address" },
+    {
+      name: "target",
+      type: "address",
+      runtime: true,
+      description: "Target contract address",
+    },
     {
       name: "signature",
       type: "write-abi",
@@ -22,6 +29,7 @@ export default defineCommand<AragonOS>({
     {
       name: "params",
       type: "any",
+      runtime: true,
       description: "Function arguments",
       rest: true,
     },

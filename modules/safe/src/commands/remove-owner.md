@@ -6,6 +6,8 @@ Remove an owner from the Safe, lowering the threshold if it would exceed the rem
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,15 +16,15 @@ safe:remove-owner <owner>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `owner` | `address` | Owner address to remove |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `owner` | `address` | Build time | Owner address to remove |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--threshold` | `number` | New signature threshold (defaults to the current one, capped at the remaining owner count) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--threshold` | `number` | Runtime in smart blocks | New signature threshold (defaults to the current one, capped at the remaining owner count) |
 
 <!-- HAND-WRITTEN -->
 

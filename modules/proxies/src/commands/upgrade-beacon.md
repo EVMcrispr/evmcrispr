@@ -6,6 +6,8 @@ Upgrade an UpgradeableBeacon to a new implementation, upgrading every beacon pro
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ proxies:upgrade-beacon <beacon> <to> <implementation>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `beacon` | `address` | UpgradeableBeacon address |
-| `to` | `command` | Keyword `to` |
-| `implementation` | `address` | New implementation address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `beacon` | `address` | Runtime in smart blocks | UpgradeableBeacon address |
+| `to` | `command` | Build time | Keyword `to` |
+| `implementation` | `address` | Runtime in smart blocks | New implementation address |
 
 <!-- HAND-WRITTEN -->
 

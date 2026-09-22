@@ -5,6 +5,11 @@ import { nameWrapperMap, requireAddress } from "../addresses";
 import { assertSupportedChain, eth2LDLabel, getNode, isEth2LD } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "The name selects a registrar/wrapper route and is normalized at build time.",
+  },
   name: "unwrap",
   experimental: true,
   description: "Unwrap an ENS name from the NameWrapper.",
@@ -19,7 +24,7 @@ export default defineCommand<Ens>({
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
     const nameWrapper = requireAddress(nameWrapperMap, chainId, "NameWrapper");
-    const owner = await module.getConnectedAccount();
+    const owner = await module.getSender();
 
     if (isEth2LD(name)) {
       return [

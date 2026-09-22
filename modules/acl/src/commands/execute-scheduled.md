@@ -6,6 +6,8 @@ Execute an operation through an AccessManager, consuming its schedule when the o
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ acl:execute-scheduled <manager> <target> <signature> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `manager` | `address` | AccessManager address |
-| `target` | `address` | Managed contract address |
-| `signature` | `write-abi` | Function to call on the target |
-| `[...params]` | `any` | Arguments matching the signature types |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `manager` | `address` | Runtime in smart blocks | AccessManager address |
+| `target` | `address` | Runtime in smart blocks | Managed contract address |
+| `signature` | `write-abi` | Build time | Function to call on the target |
+| `[...params]` | `any` | Runtime in smart blocks | Arguments matching the signature types |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--value` | `number` | ETH to send with the call (in wei) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--value` | `number` | Runtime in smart blocks | ETH to send with the call (in wei) |
 
 <!-- HAND-WRITTEN -->
 

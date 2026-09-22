@@ -1,4 +1,5 @@
 import type { Action, NodesInterpreters } from "@evmcrispr/sdk";
+import type { RuntimeValue, SmartAmount } from "@evmcrispr/sdk/onchain";
 import type { Address } from "viem";
 import type Swaps from "..";
 
@@ -34,15 +35,19 @@ export interface Quote {
   route?: unknown;
 }
 
-export interface SwapRequest extends QuoteRequest {
+export interface SwapRequest extends Omit<QuoteRequest, "amount"> {
+  amount: SmartAmount;
+  /** Explicit V3/V4 route fee for amounts that cannot be quoted at build time. */
+  fee?: number;
   from: Address;
   /** minOut (exactIn) / maxIn (exactOut), already slippage-adjusted. */
-  limit: bigint;
+  limit: SmartAmount;
   /** Raw slippage for API venues that take it natively. */
   slippageBps: number;
-  recipient: Address;
+  recipient: Address | RuntimeValue;
   /** Unix timestamp. */
-  deadline: bigint;
+  deadline: SmartAmount;
+  skipApproval?: boolean;
   /** Reuse when the command already quoted this request. */
   quote?: Quote;
 }
@@ -52,7 +57,7 @@ export interface SwapPlan {
    *  tokenIn is native or the venue needs no ERC-20 approval. */
   approvalTarget?: Address;
   /** Amount the approval must cover; defaults to the input amount/limit. */
-  approvalAmount?: bigint;
+  approvalAmount?: SmartAmount;
   /** Actions to run after any auto-approve action ([] for intent venues). */
   actions: Action[];
 }
@@ -70,4 +75,24 @@ export interface VenueAdapter {
     req: SwapRequest,
     ctx: { interpreters: NodesInterpreters },
   ): Promise<SwapPlan>;
+}
+
+/** API routes and signed orders require concrete quote inputs. */
+export function requireConcreteSwap(
+  req: SwapRequest,
+): asserts req is SwapRequest & {
+  amount: bigint;
+  limit: bigint;
+  recipient: Address;
+  deadline: bigint;
+} {
+  if (
+    typeof req.amount !== "bigint" ||
+    typeof req.limit !== "bigint" ||
+    typeof req.recipient !== "string" ||
+    typeof req.deadline !== "bigint"
+  )
+    throw new Error(
+      "this venue requires build-time amount, bounds, deadline, and recipient for its external quote",
+    );
 }

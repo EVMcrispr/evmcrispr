@@ -6,6 +6,8 @@ Generate an UltraHonk proof with Barretenberg and bind the result (proof + publi
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Witness generation and proving artifacts are build-time operations.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ noir:prove <variable>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the proof JSON string to |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the proof JSON string to |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--noir` | `string` | Noir source (or a http(s)/ipfs URL) to compile in-place instead of --artifact — single-file circuits with the stdlib only |
-| `--artifact` | `string` | URL (http(s):// or ipfs://) of a compiled Noir program artifact (nargo target/*.json or @noir:compile output); supports a #sha256=0x… integrity pin |
-| `--oracle` | `string` | Proof transcript: keccak (default; verifiable on-chain by the @noir:verifier contract) or poseidon (bb's native transcript, off-chain use only) |
-| `--inputs` | `any` | Circuit inputs: an entries array like [[x 3] [y 11]] (nest values for array inputs), or a JSON object string (required for struct inputs) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--noir` | `string` | Build time | Noir source (or a http(s)/ipfs URL) to compile in-place instead of --artifact — single-file circuits with the stdlib only |
+| `--artifact` | `string` | Build time | URL (http(s):// or ipfs://) of a compiled Noir program artifact (nargo target/*.json or @noir:compile output); supports a #sha256=0x… integrity pin |
+| `--oracle` | `string` | Build time | Proof transcript: keccak (default; verifiable on-chain by the @noir:verifier contract) or poseidon (bb's native transcript, off-chain use only) |
+| `--inputs` | `any` | Build time | Circuit inputs: an entries array like [[x 3] [y 11]] (nest values for array inputs), or a JSON object string (required for struct inputs) |
 
 ## Examples
 

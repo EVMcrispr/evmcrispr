@@ -1,13 +1,16 @@
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 
 export default defineCommand<Std>({
+  smartSupport: { kind: "runtime" },
   name: "exec",
   description:
     "Call a contract function, encoding the arguments from its signature.",
   args: [
     {
       name: "contractAddress",
+      runtime: true,
       type: "address",
       description: "Target contract address",
     },
@@ -18,6 +21,7 @@ export default defineCommand<Std>({
     },
     {
       name: "params",
+      runtime: true,
       type: "any",
       description: "Arguments matching the signature types",
       rest: true,
@@ -26,6 +30,7 @@ export default defineCommand<Std>({
   opts: [
     {
       name: "value",
+      runtime: true,
       type: "number",
       description: "ETH to send with the call (in wei)",
     },
@@ -52,11 +57,14 @@ export default defineCommand<Std>({
     },
   ],
   async run(_module, { contractAddress, signature, params }, { opts }) {
-    const execAction = encodeAction(contractAddress, signature, params);
-
-    if (opts.value !== undefined) {
-      execAction.value = BigInt(opts.value);
-    }
+    const execAction = encodeAction(contractAddress, signature, params, {
+      value:
+        opts.value === undefined
+          ? undefined
+          : isRuntimeValue(opts.value)
+            ? opts.value
+            : BigInt(opts.value),
+    });
 
     if (opts.from) {
       execAction.from = opts.from;

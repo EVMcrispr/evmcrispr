@@ -4,6 +4,8 @@ title: "assert"
 
 Assert that an on-chain expression satisfies a comparison, on-chain.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,19 +14,19 @@ assert <call> [operator] [expected] [message] [...extra]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `call` | `expression` | A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@calc!(@balance!(ETH @me) + 1e18)` |
-| `[operator]` | `string` | Comparison operator: ==, !=, >, <, >=, <=, ~= |
-| `[expected]` | `expression` | Expected value — a constant, or another live call/on-chain helper |
-| `[message]` | `string` | Revert message when the assertion fails |
-| `[...extra]` | `any` | (invalid) trailing tokens — infix expressions must be wrapped in @calc!/@bool! |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `call` | `expression` | Runtime in smart blocks | A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@calc!(@balance!(ETH @me) + 1e18)` |
+| `[operator]` | `string` | Build time | Comparison operator: ==, !=, >, <, >=, <=, ~= |
+| `[expected]` | `expression` | Runtime in smart blocks | Expected value — a constant, or another live call/on-chain helper |
+| `[message]` | `string` | Build time | Revert message when the assertion fails |
+| `[...extra]` | `any` | Build time | (invalid) trailing tokens — infix expressions must be wrapped in @calc!/@bool! |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--delta` | `number` | Allowed delta for the ~= (approximate) operator |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--delta` | `number` | Build time | Allowed delta for the ~= (approximate) operator |
 
 <!-- HAND-WRITTEN -->
 

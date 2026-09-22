@@ -7,6 +7,11 @@ import {
 } from "../utils";
 
 export default defineCommand<Governor>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command opens a separate atomic execution context; nested atomic blocks are unsupported.",
+  },
   name: "cancel",
   description:
     "Cancel a pending Governor proposal (only its proposer, before voting starts). Takes the same description and action block used in governor:propose.",

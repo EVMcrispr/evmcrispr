@@ -198,7 +198,7 @@ try {
       console.warn("anvil: reset failed — restarting…");
       anvil?.kill();
       killStaleAnvil();
-      anvil = spawnAnvil(endpoint);
+      anvil = await spawnAnvil(endpoint);
       if (!(await waitForAnvil(30_000))) {
         console.error("ERROR: could not restart anvil, aborting");
         exitCode = 1;

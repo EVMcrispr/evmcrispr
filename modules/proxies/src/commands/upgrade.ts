@@ -2,14 +2,15 @@ import {
   defineCommand,
   ErrorException,
   encodeAction,
-  encodeSignatureCall,
   fieldItem,
 } from "@evmcrispr/sdk";
-import type { Hex } from "viem";
+import { smartFunctionData } from "@evmcrispr/sdk/onchain";
+import { type AbiFunction, parseAbiItem } from "viem";
 import type Proxies from "..";
 import { ADMIN_SLOT, IMPLEMENTATION_SLOT, readSlotAddress } from "../utils";
 
 export default defineCommand<Proxies>({
+  smartSupport: { kind: "runtime" },
   name: "upgrade",
   description:
     "Upgrade an ERC-1967 proxy to a new implementation, detecting whether it is a transparent proxy (upgraded through its ProxyAdmin) or a UUPS proxy (upgraded through itself). Optionally calls an initializer on the new implementation.",
@@ -18,6 +19,7 @@ export default defineCommand<Proxies>({
     { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "implementation",
+      runtime: true,
       type: "address",
       description: "New implementation address",
     },
@@ -30,6 +32,7 @@ export default defineCommand<Proxies>({
     },
     {
       name: "params",
+      runtime: true,
       type: "any",
       description: "Arguments matching the signature types",
       rest: true,
@@ -40,8 +43,18 @@ export default defineCommand<Proxies>({
     if (to !== "to") {
       throw new ErrorException(`expected keyword "to", got "${to}"`);
     }
-    const data: Hex = signature
-      ? encodeSignatureCall(signature, params ?? [])
+    const data = signature
+      ? smartFunctionData(module, {
+          abi: [
+            parseAbiItem(
+              String(signature).startsWith("function ")
+                ? String(signature)
+                : `function ${signature}`,
+            ) as AbiFunction,
+          ],
+          functionName: signature.replace(/^function\s+/, "").split("(")[0],
+          args: params ?? [],
+        })
       : "0x";
 
     const client = await module.getClient();

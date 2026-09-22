@@ -3,6 +3,8 @@
   "files": {
     "includes": [
       "**",
+      "!!**/.claude",
+      "!**/onchain/fixtures/*.json",
       "!**/dist",
       "!**/node_modules",
       "!**/.astro",

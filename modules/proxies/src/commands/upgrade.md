@@ -6,6 +6,8 @@ Upgrade an ERC-1967 proxy to a new implementation, detecting whether it is a tra
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,13 +16,13 @@ proxies:upgrade <proxy> <to> <implementation> [signature] [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `proxy` | `address` | Proxy address |
-| `to` | `command` | Keyword `to` |
-| `implementation` | `address` | New implementation address |
-| `[signature]` | `write-abi` | Function to call on the new implementation after upgrading (e.g. a reinitializer) |
-| `[...params]` | `any` | Arguments matching the signature types |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `proxy` | `address` | Build time | Proxy address |
+| `to` | `command` | Build time | Keyword `to` |
+| `implementation` | `address` | Runtime in smart blocks | New implementation address |
+| `[signature]` | `write-abi` | Build time | Function to call on the new implementation after upgrading (e.g. a reinitializer) |
+| `[...params]` | `any` | Runtime in smart blocks | Arguments matching the signature types |
 
 <!-- HAND-WRITTEN -->
 

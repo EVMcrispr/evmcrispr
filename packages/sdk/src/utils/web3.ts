@@ -17,7 +17,7 @@ export const isFunctionSignature = (signature: string) => {
     const bare = signature.startsWith("function ")
       ? signature.slice(9)
       : signature;
-    parseAbiItem(`function ${bare} external`);
+    parseAbiItem(`function ${bare}`);
     if (bare.includes(",)")) {
       return false;
     }
@@ -113,7 +113,7 @@ function solidityTypeToArgType(solType: string): ArgType {
 export function parseSignatureParamTypes(sig: string): ArgType[] {
   try {
     const bare = sig.startsWith("function ") ? sig.slice(9) : sig;
-    const item = parseAbiItem(`function ${bare} external`) as AbiFunction;
+    const item = parseAbiItem(`function ${bare}`) as AbiFunction;
     return item.inputs.map((p) => solidityTypeToArgType(formatAbiParamType(p)));
   } catch {
     return [];

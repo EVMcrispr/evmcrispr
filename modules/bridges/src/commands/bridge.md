@@ -6,6 +6,8 @@ Send tokens from the current chain to another chain, approving the bridge automa
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,22 +16,22 @@ bridges:bridge <amount> <token> <to> <destChain>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount to bridge, in base units (wei) |
-| `token` | `address` | Token to bridge (use @token(SYM); the native token resolves to the zero address) |
-| `to` | `command` | Keyword `to` |
-| `destChain` | `chain` | Destination chain name or id (e.g. optimism, base, 8453) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount to bridge, in base units (wei) |
+| `token` | `address` | Build time | Token to bridge (use @token(SYM); the native token resolves to the zero address) |
+| `to` | `command` | Build time | Keyword `to` |
+| `destChain` | `chain` | Build time | Destination chain name or id (e.g. optimism, base, 8453) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--receiver` | `address` | Recipient on the destination chain (defaults to the connected account) |
-| `--using` | `bridge-adapter` | Adapter: CCTPv2, Across, NativeBridge, LayerZero or CCIP (default: the best adapter for the token and lane) |
-| `--max-fee` | `number` | Abort when the bridge fee, in base units of <token>, exceeds this bound |
-| `--remote-token` | `address` | Destination-chain address of <token> (NativeBridge ERC-20 transfers only) |
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--receiver` | `address` | Runtime in smart blocks | Recipient on the destination chain (defaults to the connected account) |
+| `--using` | `bridge-adapter` | Build time | Adapter: CCTPv2, Across, NativeBridge, LayerZero or CCIP (default: the best adapter for the token and lane) |
+| `--max-fee` | `number` | Build time | Abort when the bridge fee, in base units of <token>, exceeds this bound |
+| `--remote-token` | `address` | Build time | Destination-chain address of <token> (NativeBridge ERC-20 transfers only) |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 ## Examples
 

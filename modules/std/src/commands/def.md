@@ -4,6 +4,8 @@ title: "def"
 
 Define a user command, helper, on-chain helper (`def @name!`), or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).
 
+Smart blocks: build-time inputs only. Definitions and signatures are build-time operations; command bodies expand inside smart blocks.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ def <name> [params] [body]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `command \| helper` |  |
-| `[params]` | `string` | Definition expression (see syntax variants below) |
-| `[body]` | `expression \| block` |  |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `command \| helper` | Build time |  |
+| `[params]` | `string` | Build time | Definition expression (see syntax variants below) |
+| `[body]` | `expression \| block` | Build time |  |
 
 ## Examples
 

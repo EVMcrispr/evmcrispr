@@ -4,6 +4,8 @@ title: "giveth:claim"
 
 Harvest GIV rewards: collect the accrued GIVpower staking rewards (when the chain has a staking contract) and claim the GIV the GIVstream has already released. Does nothing when there is nothing to claim.
 
+Smart blocks: build-time inputs only. Reward reads select which claim function to call; these decisions require build-time state.
+
 ## Syntax
 
 ```evml

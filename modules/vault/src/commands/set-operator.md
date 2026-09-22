@@ -6,6 +6,8 @@ Approve (default) or revoke an operator on an ERC-7540 vault. Operators can requ
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,12 +16,12 @@ vault:set-operator <operator> <on> <vault> [approved]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `operator` | `address` | Operator account to approve or revoke |
-| `on` | `command` | Keyword `on` |
-| `vault` | `address` | ERC-7540 vault address |
-| `[approved]` | `bool` | Pass `false` to revoke the operator (defaults to `true`) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `operator` | `address` | Runtime in smart blocks | Operator account to approve or revoke |
+| `on` | `command` | Build time | Keyword `on` |
+| `vault` | `address` | Build time | ERC-7540 vault address |
+| `[approved]` | `bool` | Runtime in smart blocks | Pass `false` to revoke the operator (defaults to `true`) |
 
 ## Examples
 

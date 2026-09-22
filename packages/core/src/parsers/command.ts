@@ -15,6 +15,7 @@ import {
   either,
   endOfInput,
   everyCharUntil,
+  fail,
   lookAhead,
   possibly,
   recursiveParser,
@@ -23,6 +24,7 @@ import {
   str,
 } from "arcsecond";
 import {
+  captureSlotsParser,
   errorCaptureParser,
   eventCaptureParser,
   txCaptureParser,
@@ -49,14 +51,14 @@ type CommandName = {
 };
 
 const COMMAND_NAME_REGEX =
-  /^(?:(?<module>[a-zA-Z-]{1,63}(?<!-))(?::))?(?<command>[a-zA-Z-]{1,63}(?<!-))/;
+  /^(?:(?<module>[a-zA-Z-]{1,63}(?<!-))(?::))?(?<command>[a-zA-Z-]{1,63}(?<!-)!?)/;
 
 const commandNameParser = enclose(regex(COMMAND_NAME_REGEX))
   .errorMap((err) =>
     buildParserError(
       err,
       COMMAND_PARSER_ERROR,
-      'Expected a command name like "set" or "aragonos:connect" (letters and dashes only)',
+      'Expected a command name like "set" or "aragonos:connect" (letters and dashes, with an optional trailing !)',
     ),
   )
   .map((value): CommandName => {
@@ -100,6 +102,10 @@ export const commandOptParser: NodeParser<CommandOptNode> = recursiveParser(
 
 const captureArrowLookahead = lookAhead(
   sequenceOf([whitespace, str("->"), whitespace]),
+);
+
+const returnCaptureArrowLookahead = lookAhead(
+  sequenceOf([whitespace, str("->"), whitespace, str("[")]),
 );
 
 const errorCaptureArrowLookahead = lookAhead(
@@ -173,6 +179,7 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
              * Check if there's a capture arrow (->, -!>, -?!>, $>, $*>)
              * ahead. If so, stop parsing args and move to capture parsing.
              */
+            if (run(possibly(returnCaptureArrowLookahead))) break;
             if (run(possibly(captureArrowLookahead))) {
               break;
             }
@@ -199,13 +206,28 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
           } while (!run(isLastParameter));
 
           // Parse capture clauses in any textual order:
+          //   -> [...]           (return capture in smart blocks)
           //   -> EventName ...   (event captures)
           //   -!> / -?!> ...     (error captures)
           //   $> $var / $*> $var (tx-hash captures)
+          let returnCapture:
+            | import("@evmcrispr/sdk").DestructureSlot[]
+            | undefined;
           const eventCaptures: EventCaptureNode[] = [];
           const errorCaptures: ErrorCaptureNode[] = [];
           const txCaptures: TxCaptureNode[] = [];
           for (;;) {
+            if (run(possibly(returnCaptureArrowLookahead))) {
+              if (returnCapture)
+                return run(
+                  fail("only one return capture is allowed per command"),
+                );
+              run(whitespace);
+              run(str("->"));
+              run(whitespace);
+              returnCapture = run(captureSlotsParser);
+              continue;
+            }
             if (run(possibly(lookAhead(sequenceOf([whitespace, str("->")]))))) {
               run(whitespace);
               eventCaptures.push(run(eventCaptureParser));
@@ -260,6 +282,7 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
             eventCaptures,
             errorCaptures,
             txCaptures,
+            returnCapture,
           ];
         }),
         ({
@@ -275,6 +298,7 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
               eventCaptures,
               errorCaptures,
               txCaptures,
+              returnCapture,
             ],
           ],
         }) => {
@@ -290,6 +314,9 @@ export const commandExpressionParser: NodeParser<CommandExpressionNode> =
               offset: data.offset,
             }),
           };
+          if (returnCapture)
+            node.returnCapture =
+              returnCapture as import("@evmcrispr/sdk").DestructureSlot[];
           const evtCaptures = eventCaptures as EventCaptureNode[];
           if (evtCaptures && evtCaptures.length > 0) {
             node.eventCaptures = evtCaptures;

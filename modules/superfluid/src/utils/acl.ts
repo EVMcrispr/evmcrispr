@@ -1,5 +1,14 @@
 import type { Action, Module } from "@evmcrispr/sdk";
 import { ErrorException, encodeAction, Num } from "@evmcrispr/sdk";
+import {
+  amountParam,
+  getSmartCompileContext,
+  type SmartAmount,
+  smartArithmetic,
+  smartOperation,
+  smartRead,
+  smartReadOutput,
+} from "@evmcrispr/sdk/onchain";
 import type { Abi, Address } from "viem";
 import { cfaForwarderAbi } from "../abis";
 import { cfaForwarder } from "../addresses";
@@ -65,9 +74,64 @@ export async function buildOperatorGrantActions(
   owner: Address,
   operator: Address,
   permissions: number,
-  rateAllowance: bigint,
+  rateAllowance: SmartAmount,
 ): Promise<Action[]> {
   const chainId = await module.getChainId();
+  if (getSmartCompileContext(module)) {
+    const signature =
+      "getFlowOperatorPermissions(address,address,address) returns (uint8,int96)";
+    const args = [token, owner, operator];
+    const existingPermissions = smartReadOutput(
+      module,
+      cfaForwarder(chainId),
+      signature,
+      args,
+      0,
+    );
+    const existingRate = smartReadOutput(
+      module,
+      cfaForwarder(chainId),
+      signature,
+      args,
+      1,
+    );
+    // Preserve existing grants; add only the required finite rate budget.
+    // Convert a nonnegative signed int96 through the normal ABI bounds guard.
+    const currentRate = smartRead(
+      module,
+      getSmartCompileContext(module)!.operators,
+      "max(int256,int256) returns (int256)",
+      [existingRate, 0n],
+      { type: "int256" },
+    );
+    const unsigned = {
+      ...currentRate,
+      abiType: { type: "uint256" },
+      operand: { ...currentRate.operand, cat: "Uint" as const },
+    };
+    const wanted = await smartArithmetic(module, "+", unsigned, rateAllowance);
+    return [
+      encodeAction(
+        cfaForwarder(chainId),
+        "updateFlowOperatorPermissions(address,address,uint8,int96)",
+        [
+          token,
+          operator,
+          amountParam(
+            smartOperation(
+              module,
+              "bitOr",
+              existingPermissions,
+              BigInt(permissions),
+            ),
+          ),
+          amountParam(smartOperation(module, "min", wanted, INT96_MAX)),
+        ],
+      ),
+    ];
+  }
+  if (typeof rateAllowance !== "bigint")
+    throw new ErrorException("runtime grant requires a smart batch");
   const current = await getOperatorPermissions(module, token, owner, operator);
 
   const hasPermissions = (current.permissions & permissions) === permissions;

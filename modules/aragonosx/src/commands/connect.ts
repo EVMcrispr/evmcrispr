@@ -4,6 +4,11 @@ import type AragonOSx from "..";
 import { loadDao } from "../dao";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "DAO selection and ABI discovery happen at build time; the block expands into the surrounding execution context.",
+  },
   name: "connect",
   description:
     "Connect to an Aragon OSx DAO and execute commands within its context.",
@@ -41,6 +46,7 @@ export default defineCommand<AragonOSx>({
         // Inherit hasActions from any enclosing batch context: reads
         // inside this block can't see the outer batch's actions either.
         batchContext: {
+          ...interpreters.batchContext,
           name: "connect",
           hasActions: interpreters.batchContext?.hasActions ?? false,
         },

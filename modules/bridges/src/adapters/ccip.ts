@@ -1,5 +1,15 @@
 import type { Action } from "@evmcrispr/sdk";
-import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  clientFor,
+  ErrorException,
+  encodeAction,
+} from "@evmcrispr/sdk";
+import {
+  smartAbiParameters,
+  smartRead,
+  snapshotSmartAmount,
+} from "@evmcrispr/sdk/onchain";
 import type { Address, Hex } from "viem";
 import {
   decodeEventLog,
@@ -105,6 +115,49 @@ const ccip: BridgeAdapter = {
       nativeFee: fee,
       amountOut: req.amount,
       route: { router, selector, message, fee },
+    };
+  },
+
+  async buildSmartBridge(module, req) {
+    const router = CCIP_ROUTER[req.srcChainId];
+    const selector = CCIP_SELECTORS[req.dstChainId];
+    const message = {
+      receiver: smartAbiParameters(
+        module,
+        [{ type: "address" }],
+        [req.recipient],
+      ),
+      data: "0x",
+      tokenAmounts: [{ token: req.token, amount: req.amount }],
+      feeToken: zeroAddress,
+      extraArgs: encodeExtraArgs(0n),
+    };
+    const fee = await snapshotSmartAmount(
+      module,
+      smartRead(
+        module,
+        router,
+        "getFee(uint64,(bytes,bytes,(address,uint256)[],address,bytes)) returns (uint256)",
+        [
+          selector,
+          [
+            message.receiver,
+            message.data,
+            [[req.token, req.amount]],
+            message.feeToken,
+            message.extraArgs,
+          ],
+        ],
+      ),
+    );
+    return {
+      approvalTarget: router,
+      actions: [
+        encodeAction(router, "ccipSend", [selector, message], {
+          abi: routerAbi,
+          value: fee,
+        }),
+      ],
     };
   },
 

@@ -127,6 +127,7 @@ export interface BatchContext {
    *  not apply. Nothing sets this yet (reserved for the executeComposable
    *  smart-batch compiler). */
   smart?: boolean;
+  smartState?: import("../onchain/smart-types").SmartBatchState;
 }
 
 export interface InterpretOptions {
@@ -204,6 +205,12 @@ export type BatchableSpec =
     ) => boolean | string);
 
 export interface ICommand<M extends Module = Module> {
+  compile?: import("../onchain/smart-types").CommandCompile;
+  createsSmartBatchContext?: boolean;
+  smartSupport?: {
+    kind: "runtime" | "static" | "incompatible";
+    reason?: string;
+  };
   run: CommandFunction<M>;
   argDefs: ArgDef[];
   optDefs: OptDef[];

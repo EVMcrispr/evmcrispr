@@ -52,6 +52,11 @@ function setFlowrateAction(
 }
 
 export default defineCommand<Giveth>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "donate-recurring",
   experimental: true,
   description:

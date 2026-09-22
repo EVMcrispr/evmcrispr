@@ -6,6 +6,8 @@ Redeem an exact amount of ERC-4626 vault shares for the underlying asset. Pass `
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ vault:redeem <shares> <of> <vault>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `shares` | `command \| number` | Amount of vault shares to redeem in base units (wei), or the keyword `max` for the full balance |
-| `of` | `command` | Keyword `of` |
-| `vault` | `address` | ERC-4626 vault address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `shares` | `command \| number` | Runtime in smart blocks | Amount of vault shares to redeem in base units (wei), or the keyword `max` for the full balance |
+| `of` | `command` | Build time | Keyword `of` |
+| `vault` | `address` | Build time | ERC-4626 vault address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--to` | `address` | Receiver of the redeemed assets (defaults to the connected account) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--to` | `address` | Runtime in smart blocks | Receiver of the redeemed assets (defaults to the connected account) |
 
 ## Examples
 

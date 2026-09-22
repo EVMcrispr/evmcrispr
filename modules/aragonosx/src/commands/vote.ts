@@ -1,9 +1,11 @@
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type AragonOSx from "..";
 import { resolveAdapter } from "../plugins/registry";
 import { VOTE_OPTIONS } from "../plugins/types";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: { kind: "runtime" },
   name: "vote",
   description: "Vote on a token-voting proposal.",
   args: [
@@ -12,7 +14,12 @@ export default defineCommand<AragonOSx>({
       type: "plugin",
       description: "Voting plugin holding the proposal",
     },
-    { name: "proposalId", type: "number", description: "Proposal id" },
+    {
+      name: "proposalId",
+      type: "number",
+      runtime: true,
+      description: "Proposal id",
+    },
     {
       name: "option",
       type: "string",
@@ -49,7 +56,7 @@ export default defineCommand<AragonOSx>({
 
     return adapter.buildVote(
       plugin.address,
-      BigInt(proposalId),
+      isRuntimeValue(proposalId) ? proposalId : BigInt(proposalId),
       voteOption,
       opts["try-early-execution"] ?? false,
     );

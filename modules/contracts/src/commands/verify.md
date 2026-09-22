@@ -4,6 +4,8 @@ title: "contracts:verify"
 
 Submit Solidity Standard JSON Input source code to Etherscan V2 for verification at <address>. Mirror an existing verification with --mirror-chain / --mirror-address, or supply source explicitly with --source. Inside sim:fork this becomes a local dry-run: the source is compiled and checked against the fork's deployed bytecode instead of being sent to Etherscan.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,25 +14,25 @@ contracts:verify <address>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `address` | `address` | Deployed contract address on the current chain to verify. |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `address` | `address` | Build time | Deployed contract address on the current chain to verify. |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--mirror-chain` | `chain` | Chain (id or viem name like `optimism`) to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set. |
-| `--mirror-address` | `address` | Existing verified contract to mirror. Defaults to <address> when only --mirror-chain is set. |
-| `--source` | `string` | What was deployed: the Solidity source (inline text or URL, compiled exactly like @contracts:solidity so a preceding deploy's compile is reused) or a solc Standard JSON Input. Required for explicit (non-mirror) mode. |
-| `--contract-name` | `string` | Contract to verify when the source defines several (with Standard JSON: the qualified `path/File.sol:ContractName`, required). |
-| `--compiler` | `string` | Solidity compiler release, e.g. `0.8.26` (default: from the pragma; with Standard JSON: the long version `0.8.20+commit.a1b79de6`, required). |
-| `--license` | `string` | SPDX license identifier (e.g. MIT, Apache-2.0). Defaults to `None` in explicit mode; mirrored in mirror mode. |
-| `--constructor` | `string` | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. |
-| `--constructor-args` | `array` | Constructor arguments as an array literal, e.g. [100e18 @me]. Requires --constructor. |
-| `--constructor-args-hex` | `bytes` | Pre-encoded ABI constructor arguments as hex. Mutually exclusive with --constructor / --constructor-args. |
-| `--timeout` | `number` | Maximum time to wait for verification to complete, in time units (default 60s). |
-| `--poll-interval` | `number` | Time between status polls, in time units (default 3s). |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--mirror-chain` | `chain` | Build time | Chain (id or viem name like `optimism`) to mirror an existing verification from. Defaults to the current chain when only --mirror-address is set. |
+| `--mirror-address` | `address` | Build time | Existing verified contract to mirror. Defaults to <address> when only --mirror-chain is set. |
+| `--source` | `string` | Build time | What was deployed: the Solidity source (inline text or URL, compiled exactly like @contracts:solidity so a preceding deploy's compile is reused) or a solc Standard JSON Input. Required for explicit (non-mirror) mode. |
+| `--contract-name` | `string` | Build time | Contract to verify when the source defines several (with Standard JSON: the qualified `path/File.sol:ContractName`, required). |
+| `--compiler` | `string` | Build time | Solidity compiler release, e.g. `0.8.26` (default: from the pragma; with Standard JSON: the long version `0.8.20+commit.a1b79de6`, required). |
+| `--license` | `string` | Build time | SPDX license identifier (e.g. MIT, Apache-2.0). Defaults to `None` in explicit mode; mirrored in mirror mode. |
+| `--constructor` | `string` | Build time | Constructor signature like `constructor(uint256,address)`. Requires --constructor-args. |
+| `--constructor-args` | `array` | Build time | Constructor arguments as an array literal, e.g. [100e18 @me]. Requires --constructor. |
+| `--constructor-args-hex` | `bytes` | Build time | Pre-encoded ABI constructor arguments as hex. Mutually exclusive with --constructor / --constructor-args. |
+| `--timeout` | `number` | Build time | Maximum time to wait for verification to complete, in time units (default 60s). |
+| `--poll-interval` | `number` | Build time | Time between status polls, in time units (default 3s). |
 
 <!-- HAND-WRITTEN -->
 

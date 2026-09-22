@@ -1,0 +1,280 @@
+{
+  "provenance": {
+    "sourceHash": "0xf28f3f05d763542b7cfa5dd53912e1a8d736795642ac1a85f48188f615e95e71",
+    "compiler": "0.8.27+commit.40a35a09",
+    "settings": {
+      "remappings": [],
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "metadata": {
+        "bytecodeHash": "ipfs"
+      },
+      "compilationTarget": {
+        "src/SmartProtocolFixture.sol": "SmartProtocolFixture"
+      },
+      "evmVersion": "cancun",
+      "libraries": {}
+    }
+  },
+  "abi": [
+    {
+      "type": "function",
+      "name": "allowance",
+      "inputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "approvals",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "approve",
+      "inputs": [
+        {
+          "name": "spender",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "value",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "asset",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "balanceOf",
+      "inputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "deposit",
+      "inputs": [
+        {
+          "name": "amount",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "to",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "shares",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "deposited",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "nested",
+      "inputs": [
+        {
+          "name": "pairs",
+          "type": "tuple[]",
+          "internalType": "struct SmartProtocolFixture.Pair[]",
+          "components": [
+            {
+              "name": "amount",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "to",
+              "type": "address",
+              "internalType": "address"
+            }
+          ]
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "internalType": "string"
+        },
+        {
+          "name": "payload",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "outputs",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct SmartProtocolFixture.Pair",
+          "components": [
+            {
+              "name": "amount",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "to",
+              "type": "address",
+              "internalType": "address"
+            }
+          ]
+        },
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        },
+        {
+          "name": "",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        },
+        {
+          "name": "",
+          "type": "uint256[2]",
+          "internalType": "uint256[2]"
+        }
+      ],
+      "stateMutability": "pure"
+    },
+    {
+      "type": "function",
+      "name": "quotedBalance",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "receiver",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "reset",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "zeroResets",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    }
+  ],
+  "bytecode": "0x608060405260076001553480156013575f5ffd5b506107b9806100215f395ff3fe608060405234801561000f575f5ffd5b50600436106100cb575f3560e01c8063d826f88f11610088578063eef49ee311610063578063eef49ee3146101a3578063f5740881146101ac578063f65450ea146101bf578063f7260d3e146101d8575f5ffd5b8063d826f88f14610159578063dd0d555b14610173578063dd62ed3e1461017c575f5ffd5b8063095ea7b3146100cf57806338d52e0f146100f75780636e553f651461011157806370a0823114610132578063751585ef14610147578063b05dba9614610150575b5f5ffd5b6100e26100dd366004610509565b6101eb565b60405190151581526020015b60405180910390f35b305b6040516001600160a01b0390911681526020016100ee565b61012461011f366004610531565b6102ba565b6040519081526020016100ee565b61012461014036600461055b565b5060015490565b61012460045481565b61012460055481565b61017160076001555f60028190556004819055600555565b005b61012460015481565b61012461018a366004610574565b5f60208181529281526040808220909352908152205481565b61012460025481565b6101716101ba3660046105e1565b610346565b6101c761046e565b6040516100ee9594939291906106af565b6003546100f9906001600160a01b031681565b5f8115806102175750335f908152602081815260408083206001600160a01b0387168452909152902054155b6102595760405162461bcd60e51b815260206004820152600e60248201526d1c995cd95d081c995c5d5a5c995960921b60448201526064015b60405180910390fd5b335f908152602081815260408083206001600160a01b038716845290915281208390556063600155600580549161028f83610731565b9190505550815f036102b05760048054905f6102aa83610731565b91905055505b5060015b92915050565b335f9081526020818152604080832030845290915281205483146103145760405162461bcd60e51b81526020600482015260116024820152700e6dcc2e0e6d0dee840dad2e6dac2e8c6d607b1b6044820152606401610250565b6002838155600380546001600160a01b0319166001600160a01b03851617905561033f908490610749565b9392505050565b7f1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac88484604051610377929190610760565b60405180910390201480156103c257507f56570de287d73cd1cb6092bb8fdee6173974955fdef345ae579ee9f475ea743282826040516103b8929190610760565b6040518091039020145b6104005760405162461bcd60e51b815260206004820152600f60248201526e6e657374656420656e636f64696e6760881b6044820152606401610250565b85855f8181106104125761041261076f565b60400291909101356002555085855f8161042e5761042e61076f565b9050604002016020016020810190610446919061055b565b600380546001600160a01b0319166001600160a01b0392909216919091179055505050505050565b604080518082019091525f80825260208201819052905f5f61048e6104d0565b5050604080518082018252600681526112346020808301919091528251808401909352600783526008908301526005959094506001935062abcdef60e81b9250565b60405180604001604052806002906020820280368337509192915050565b80356001600160a01b0381168114610504575f5ffd5b919050565b5f5f6040838503121561051a575f5ffd5b610523836104ee565b946020939093013593505050565b5f5f60408385031215610542575f5ffd5b82359150610552602084016104ee565b90509250929050565b5f6020828403121561056b575f5ffd5b61033f826104ee565b5f5f60408385031215610585575f5ffd5b61058e836104ee565b9150610552602084016104ee565b5f5f83601f8401126105ac575f5ffd5b50813567ffffffffffffffff8111156105c3575f5ffd5b6020830191508360208285010111156105da575f5ffd5b9250929050565b5f5f5f5f5f5f606087890312156105f6575f5ffd5b863567ffffffffffffffff81111561060c575f5ffd5b8701601f8101891361061c575f5ffd5b803567ffffffffffffffff811115610632575f5ffd5b8960208260061b8401011115610646575f5ffd5b60209182019750955087013567ffffffffffffffff811115610666575f5ffd5b61067289828a0161059c565b909550935050604087013567ffffffffffffffff811115610691575f5ffd5b61069d89828a0161059c565b979a9699509497509295939492505050565b85815284516020808301919091528501516001600160a01b0316604082015283151560608201526001600160e01b03198316608082015260e0810160a08201835f5b60028110156107105781518352602092830192909101906001016106f1565b5050509695505050505050565b634e487b7160e01b5f52601160045260245ffd5b5f600182016107425761074261071d565b5060010190565b80820281158282048414176102b4576102b461071d565b818382375f9101908152919050565b634e487b7160e01b5f52603260045260245ffdfea264697066735822122000611cc2b3c6a6c3b2fdaccafc71db857d1c10989e0e44e27753e4d03520254e64736f6c634300081b0033"
+}

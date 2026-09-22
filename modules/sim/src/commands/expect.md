@@ -4,6 +4,8 @@ title: "sim:expect"
 
 Assert that a condition is true.
 
+Smart blocks: build-time inputs only. Simulation expectations inspect executed receipts at build time.
+
 ## Syntax
 
 ```evml
@@ -12,9 +14,9 @@ sim:expect <condition>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `condition` | `bool` | Boolean condition to assert |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `condition` | `bool` | Build time | Boolean condition to assert |
 
 ## Examples
 

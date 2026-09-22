@@ -6,6 +6,8 @@ Unwrap a SuperToken back to its underlying token (DAIx to DAI, xDAIx to native x
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ superfluid:unwrap <amount> <of> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `command \| number` | SuperToken amount to unwrap in base units (18 decimals), or the keyword `max` for the full balance |
-| `of` | `command` | Keyword `of` |
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `command \| number` | Runtime in smart blocks | SuperToken amount to unwrap in base units (18 decimals), or the keyword `max` for the full balance |
+| `of` | `command` | Build time | Keyword `of` |
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
 
 ## Examples
 

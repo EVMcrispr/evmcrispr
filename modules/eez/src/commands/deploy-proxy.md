@@ -6,6 +6,8 @@ Create the cross-chain proxy on the current chain for a contract on another EEZ 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. The destination chain and proxy address are derived at build time.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ eez:deploy-proxy <target>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `target` | `address` | Contract address on the other rollup |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `target` | `address` | Build time | Contract address on the other rollup |
 
 ## Examples
 

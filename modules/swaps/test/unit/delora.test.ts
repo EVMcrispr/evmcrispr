@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
 import type { Address } from "viem";
 import delora from "../../src/venues/delora";
-import type { SwapRequest } from "../../src/venues/types";
+import type { QuoteRequest, SwapRequest } from "../../src/venues/types";
 import { GNO, SOME_ADDRESS, WXDAI, ZERO_ADDRESS } from "../fixtures";
 import {
   DELORA_DATA,
@@ -17,7 +17,9 @@ const stubModule = { getConfigBinding: () => undefined } as any;
 
 const AMOUNT = 100n * 10n ** 18n;
 
-function baseRequest(overrides: Partial<SwapRequest>): SwapRequest {
+function baseRequest(
+  overrides: Partial<SwapRequest & QuoteRequest>,
+): SwapRequest & QuoteRequest {
   return {
     chainId: 100,
     tokenIn: WXDAI as Address,

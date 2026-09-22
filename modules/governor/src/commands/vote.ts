@@ -3,11 +3,17 @@ import type Governor from "..";
 import { resolveVoteSupport } from "../argTypes";
 
 export default defineCommand<Governor>({
+  smartSupport: { kind: "runtime" },
   name: "vote",
   description: "Cast a vote on an active Governor proposal.",
   args: [
     { name: "governor", type: "address", description: "Governor address" },
-    { name: "proposalId", type: "number", description: "Proposal id" },
+    {
+      name: "proposalId",
+      type: "number",
+      runtime: true,
+      description: "Proposal id",
+    },
     {
       name: "support",
       type: "voteSupport",
@@ -18,6 +24,7 @@ export default defineCommand<Governor>({
     {
       name: "reason",
       type: "string",
+      runtime: true,
       description: "Reason for the vote, stored on-chain",
     },
   ],

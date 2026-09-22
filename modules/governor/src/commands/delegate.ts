@@ -7,15 +7,22 @@ import {
 import type Governor from "..";
 
 export default defineCommand<Governor>({
+  smartSupport: { kind: "runtime" },
   name: "delegate",
   description:
     "Delegate the voting power the connected account holds in an ERC20Votes/ERC721Votes token.",
   args: [
-    { name: "token", type: "address", description: "Votes token address" },
+    {
+      name: "token",
+      type: "address",
+      runtime: true,
+      description: "Votes token address",
+    },
     { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "delegatee",
       type: "address",
+      runtime: true,
       description: "Account receiving the voting power",
     },
   ],

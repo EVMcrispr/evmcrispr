@@ -6,6 +6,8 @@ Transfer ownership of an Ownable contract. On Ownable2Step contracts this stages
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,12 +16,12 @@ acl:transfer-ownership <of> <contract> <to> <newOwner>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `of` | `command` | Keyword `of` |
-| `contract` | `address` | Ownable contract address |
-| `to` | `command` | Keyword `to` |
-| `newOwner` | `address` | New owner address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `of` | `command` | Build time | Keyword `of` |
+| `contract` | `address` | Runtime in smart blocks | Ownable contract address |
+| `to` | `command` | Build time | Keyword `to` |
+| `newOwner` | `address` | Runtime in smart blocks | New owner address |
 
 <!-- HAND-WRITTEN -->
 

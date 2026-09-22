@@ -9,12 +9,14 @@ import {
 import type Std from "..";
 
 export default defineCommand<Std>({
+  smartSupport: { kind: "runtime" },
   name: "assert",
   description:
     "Assert that an on-chain expression satisfies a comparison, on-chain.",
   args: [
     {
       name: "call",
+      runtime: true,
       type: "expression",
       description:
         "A `::` call expression or on-chain helper, e.g. `@token(WETH)::balanceOf(@me)` or `@calc!(@balance!(ETH @me) + 1e18)`",
@@ -27,6 +29,7 @@ export default defineCommand<Std>({
     },
     {
       name: "expected",
+      runtime: true,
       type: "expression",
       optional: true,
       description:

@@ -6,6 +6,8 @@ Verify Safe transaction hashes and flag dangerous fields, using the service queu
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -14,22 +16,22 @@ safe:verify <safe> <proposal>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `safe` | `address` | Safe address |
-| `proposal` | `number \| bytes32 \| block \| string` | Nonce or hash of a queued transaction, or a command block or exported transaction JSON with --no-api |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `safe` | `address` | Build time | Safe address |
+| `proposal` | `number \| bytes32 \| block \| string` | Build time | Nonce or hash of a queued transaction, or a command block or exported transaction JSON with --no-api |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--as` | `variable` | Bind the JSON verification report (requires --no-api) |
-| `--offline` | `bool` | Inspect an exported package without any network access |
-| `--abi` | `string` | JSON mapping target addresses to explicit ABIs for local decoding |
-| `--no-api` | `bool` | Verify a command block or exported transaction JSON without contacting the Safe Transaction Service |
-| `--nonce` | `number` | Nonce override for a command block (requires --no-api; defaults to the on-chain nonce) |
-| `--nested-safe` | `address` | Owner Safe that will approve the transaction via approveHash; also prints the hashes its owners must sign |
-| `--nested-safe-nonce` | `number` | Nonce override for the nested Safe approveHash transaction |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--as` | `variable` | Build time | Bind the JSON verification report (requires --no-api) |
+| `--offline` | `bool` | Build time | Inspect an exported package without any network access |
+| `--abi` | `string` | Build time | JSON mapping target addresses to explicit ABIs for local decoding |
+| `--no-api` | `bool` | Build time | Verify a command block or exported transaction JSON without contacting the Safe Transaction Service |
+| `--nonce` | `number` | Build time | Nonce override for a command block (requires --no-api; defaults to the on-chain nonce) |
+| `--nested-safe` | `address` | Build time | Owner Safe that will approve the transaction via approveHash; also prints the hashes its owners must sign |
+| `--nested-safe-nonce` | `number` | Build time | Nonce override for the nested Safe approveHash transaction |
 
 <!-- HAND-WRITTEN -->
 

@@ -17,6 +17,7 @@ import {
 } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "set-fuses",
   experimental: true,
   description: "Burn NameWrapper fuses on a wrapped ENS name.",
@@ -42,6 +43,7 @@ export default defineCommand<Ens>({
     {
       name: "expiry",
       type: "number",
+      runtime: true,
       description:
         "New expiry timestamp (parent-controlled fuses only; defaults to the current expiry)",
     },

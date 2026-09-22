@@ -1,8 +1,13 @@
-import { ErrorException, encodeAction, Num } from "@evmcrispr/sdk";
+import { ErrorException, encodeAction } from "@evmcrispr/sdk";
 import {
+  amountParam,
   callReadOperand,
   directReadOperand,
+  getSmartCompileContext,
   operandNode,
+  type SmartAmount,
+  smartRead,
+  snapshotSmartAmount,
 } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction, Address } from "viem";
 import { encodeFunctionData, getAbiItem, maxUint256 } from "viem";
@@ -28,16 +33,16 @@ const compoundV3: LendingAdapter = {
 
   async buildSupply(module, req) {
     const { deployment } = await marketForToken(module, req.chainId, req.token);
-    const amount = req.amount as bigint;
+    const amount = req.amount as SmartAmount;
     const action = sameAddress(req.onBehalfOf, req.from)
       ? encodeAction(deployment.comet, "supply(address,uint256)", [
           req.token,
-          Num.fromBigInt(amount),
+          amountParam(amount),
         ])
       : encodeAction(deployment.comet, "supplyTo(address,address,uint256)", [
           req.onBehalfOf,
           req.token,
-          Num.fromBigInt(amount),
+          amountParam(amount),
         ]);
     return {
       approvalTarget: deployment.comet,
@@ -54,12 +59,12 @@ const compoundV3: LendingAdapter = {
     const action = sameAddress(req.to, req.from)
       ? encodeAction(deployment.comet, "withdraw(address,uint256)", [
           req.token,
-          Num.fromBigInt(amount),
+          amountParam(amount),
         ])
       : encodeAction(deployment.comet, "withdrawTo(address,address,uint256)", [
           req.to,
           req.token,
-          Num.fromBigInt(amount),
+          amountParam(amount),
         ]);
     return { actions: [action] };
   },
@@ -76,7 +81,7 @@ const compoundV3: LendingAdapter = {
       actions: [
         encodeAction(comet, "withdraw(address,uint256)", [
           req.token,
-          Num.fromBigInt(req.amount as bigint),
+          amountParam(req.amount as SmartAmount),
         ]),
       ],
     };
@@ -84,28 +89,38 @@ const compoundV3: LendingAdapter = {
 
   async buildRepay(module, req) {
     const { comet } = await marketForBase(module, req.chainId, req.token);
-    let amount: bigint;
-    let approvalAmount: bigint;
+    let amount: SmartAmount;
+    let approvalAmount: SmartAmount;
     if (req.amount === "max") {
       if (!sameAddress(req.onBehalfOf, req.from)) {
         throw new ErrorException(
           "CompoundV3 does not accept `max` together with --on-behalf-of; pass an explicit amount",
         );
       }
-      const client = await module.getClient();
-      const debt = await client.readContract({
-        address: comet,
-        abi: cometAbi,
-        functionName: "borrowBalanceOf",
-        args: [req.from],
-      });
-      if (debt === 0n) {
-        throw new ErrorException(`no ${req.token} debt to repay on CompoundV3`);
+      if (getSmartCompileContext(module)) {
+        amount = await snapshotSmartAmount(
+          module,
+          smartRead(module, comet, "borrowBalanceOf(address)", [req.from]),
+        );
+        approvalAmount = amount;
+      } else {
+        const client = await module.getClient();
+        const debt = await client.readContract({
+          address: comet,
+          abi: cometAbi,
+          functionName: "borrowBalanceOf",
+          args: [req.from],
+        });
+        if (debt === 0n) {
+          throw new ErrorException(
+            `no ${req.token} debt to repay on CompoundV3`,
+          );
+        }
+        // supply(base, uint256.max) repays exactly the outstanding borrow;
+        // the 0.1% buffer covers interest accrued between build and execution.
+        amount = maxUint256;
+        approvalAmount = debt + debt / 1000n + 1n;
       }
-      // supply(base, uint256.max) repays exactly the outstanding borrow;
-      // the 0.1% buffer covers interest accrued between build and execution.
-      amount = maxUint256;
-      approvalAmount = debt + debt / 1000n + 1n;
     } else {
       amount = req.amount;
       approvalAmount = req.amount;
@@ -114,12 +129,12 @@ const compoundV3: LendingAdapter = {
     const action = sameAddress(req.onBehalfOf, req.from)
       ? encodeAction(comet, "supply(address,uint256)", [
           req.token,
-          Num.fromBigInt(amount),
+          amountParam(amount),
         ])
       : encodeAction(comet, "supplyTo(address,address,uint256)", [
           req.onBehalfOf,
           req.token,
-          Num.fromBigInt(amount),
+          amountParam(amount),
         ]);
     return { approvalTarget: comet, approvalAmount, actions: [action] };
   },

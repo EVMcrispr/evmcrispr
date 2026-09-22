@@ -6,6 +6,8 @@ Cancel a pending default admin transfer. Must be sent by the current default adm
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ acl:cancel-default-admin-transfer <contract>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `contract` | `address` | AccessControlDefaultAdminRules contract address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `contract` | `address` | Runtime in smart blocks | AccessControlDefaultAdminRules contract address |
 
 <!-- HAND-WRITTEN -->
 

@@ -9,6 +9,7 @@ import type AccessControl from "..";
 import { resolveRole } from "../utils";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "revoke",
   description:
     "Revoke a role on an AccessControl contract (string roles, hashed with keccak256) or an AccessManager (numeric role ids).",
@@ -23,10 +24,16 @@ export default defineCommand<AccessControl>({
     {
       name: "target",
       type: "address",
+      runtime: true,
       description: "AccessControl contract or AccessManager address",
     },
     { name: "from", type: "command", description: "Keyword `from`" },
-    { name: "account", type: "address", description: "Account to revoke from" },
+    {
+      name: "account",
+      type: "address",
+      runtime: true,
+      description: "Account to revoke from",
+    },
   ],
   completions: {
     on: () => [fieldItem("on")],

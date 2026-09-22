@@ -6,6 +6,12 @@ import {
   fieldItem,
   Num,
 } from "@evmcrispr/sdk";
+import {
+  getSmartCompileContext,
+  isRuntimeValue,
+  positiveRuntimeAmount,
+  type SmartAmount,
+} from "@evmcrispr/sdk/onchain";
 import { zeroAddress } from "viem";
 import type Swaps from "..";
 import { WRAPPED_NATIVE } from "../addresses";
@@ -19,12 +25,16 @@ import type { Quote } from "../venues/types";
 const DEFAULT_SLIPPAGE_PCT = 0.5;
 
 export default defineCommand<Swaps>({
+  smartSupport: { kind: "runtime" },
   name: "swap",
+  primaryCall: -1,
   description:
     "Sell an exact amount of one token for another on a DEX or aggregator, approving the venue automatically when needed. Slippage protection comes from --min, or --slippage applied to a quote (default 0.5%).",
   args: [
     {
       name: "amount",
+      runtime: true,
+      snapshot: true,
       type: "number",
       description: "Amount of tokenIn to sell, in base units (wei)",
     },
@@ -39,7 +49,14 @@ export default defineCommand<Swaps>({
   ],
   opts: [
     {
+      name: "fee",
+      type: "number",
+      description:
+        "Explicit single-pool V3/V4 fee tier; required when a runtime amount cannot be quoted",
+    },
+    {
       name: "min",
+      runtime: true,
       type: "number",
       description: "Minimum output in base units (overrides --slippage)",
     },
@@ -57,11 +74,13 @@ export default defineCommand<Swaps>({
     {
       name: "to",
       type: "address",
+      runtime: true,
       description:
         "Recipient of the output (defaults to the connected account)",
     },
     {
       name: "deadline",
+      runtime: true,
       type: "number",
       description:
         "Unix timestamp after which the swap reverts (default: 20 minutes after the latest block)",
@@ -99,12 +118,14 @@ export default defineCommand<Swaps>({
       );
     }
 
-    const amountIn = Num(amount).toBigInt();
-    if (amountIn <= 0n) {
+    const amountIn = isRuntimeValue(amount)
+      ? positiveRuntimeAmount(module, amount)
+      : Num(amount).toBigInt();
+    if (!isRuntimeValue(amountIn) && amountIn <= 0n) {
       throw new ErrorException("<amount> must be greater than zero");
     }
 
-    const owner = await module.getConnectedAccount(true);
+    const owner = await module.getSender();
     const recipient = opts.to ?? owner;
     const venue = await resolveVenue(module, opts.using);
     if (interpreters.batchContext && venue.kind === "intent") {
@@ -113,6 +134,15 @@ export default defineCommand<Swaps>({
       );
     }
 
+    if (
+      venue.kind !== "onchain" &&
+      (isRuntimeValue(amountIn) ||
+        isRuntimeValue(recipient) ||
+        isRuntimeValue(opts.min))
+    )
+      throw new ErrorException(
+        `${venue.name} requires build-time amount, bounds, and recipient for its external quote`,
+      );
     const quoteReq = {
       chainId,
       tokenIn,
@@ -127,24 +157,42 @@ export default defineCommand<Swaps>({
         : DEFAULT_SLIPPAGE_PCT,
     );
 
-    let limit: bigint;
+    let limit: SmartAmount;
     let quote: Quote | undefined;
     if (opts.min !== undefined) {
-      limit = Num(opts.min).toBigInt();
+      limit = isRuntimeValue(opts.min) ? opts.min : Num(opts.min).toBigInt();
+      if (isRuntimeValue(limit))
+        limit = await interpreters.batchContext!.smartState!.snapshot(
+          getSmartCompileContext(module)!,
+          limit,
+        );
     } else {
-      if (interpreters.batchContext?.hasActions) {
+      if (isRuntimeValue(amountIn) || interpreters.batchContext?.hasActions) {
         throw new ErrorException(
-          `the quote backing --slippage runs at batch-build time and cannot observe earlier actions in the same ${interpreters.batchContext.name}; pass an explicit --min bound instead`,
+          `the quote backing --slippage runs at batch-build time and cannot observe earlier actions in the same ${interpreters.batchContext?.name ?? "smart batch"}; pass an explicit --min bound instead`,
         );
       }
-      quote = await venue.quote(module, quoteReq);
+      quote = await venue.quote(module, {
+        ...quoteReq,
+        amount: amountIn as bigint,
+      });
       limit = applySlippageDown(quote.amountOut, slippageBps);
     }
 
     const deadline = await resolveDeadline(module, opts);
     const plan = await venue.buildSwap(
       module,
-      { ...quoteReq, limit, slippageBps, recipient, deadline, quote },
+      {
+        ...quoteReq,
+        limit,
+        slippageBps,
+        recipient,
+        deadline,
+        skipApproval:
+          opts["no-approve"] !== undefined && coerceBoolean(opts["no-approve"]),
+        quote,
+        fee: opts.fee === undefined ? undefined : Number(opts.fee),
+      },
       { interpreters },
     );
 

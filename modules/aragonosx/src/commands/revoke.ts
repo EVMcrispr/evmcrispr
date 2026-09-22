@@ -9,6 +9,7 @@ import { resolveTarget } from "../utils/commands";
 import { permissionId } from "../utils/permissions";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: { kind: "runtime" },
   name: "revoke",
   description:
     "Revoke a permission on the DAO or one of its plugins from an entity.",
@@ -27,6 +28,7 @@ export default defineCommand<AragonOSx>({
     { name: "from", type: "command", description: "Keyword `from`" },
     {
       name: "who",
+      runtime: true,
       type: "address",
       description: "Address losing the permission (or ANY_ENTITY)",
     },

@@ -6,6 +6,8 @@ Borrow a token from a lending market against the connected account's collateral 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ lending:borrow <amount> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount to borrow, in base units (wei) |
-| `token` | `address` | Token to borrow (use @token(SYM)) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount to borrow, in base units (wei) |
+| `token` | `address` | Build time | Token to borrow (use @token(SYM)) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--using` | `lending-adapter` | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
-| `--on-behalf-of` | `address` | Account whose debt grows (requires prior credit delegation; defaults to the connected account) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--using` | `lending-adapter` | Build time | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
+| `--on-behalf-of` | `address` | Runtime in smart blocks | Account whose debt grows (requires prior credit delegation; defaults to the connected account) |
 
 ## Examples
 

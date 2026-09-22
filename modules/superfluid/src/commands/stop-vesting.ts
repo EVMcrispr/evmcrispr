@@ -11,6 +11,7 @@ import { requireCore, requirePeripheral } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "stop-vesting",
   description:
     "Delete a pending vesting schedule, or end a running one immediately with --now true (the receiver keeps what has vested so far).",
@@ -21,7 +22,12 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "receiver", type: "address", description: "Vesting receiver" },
+    {
+      name: "receiver",
+      runtime: true,
+      type: "address",
+      description: "Vesting receiver",
+    },
   ],
   opts: [
     {

@@ -14,6 +14,11 @@ import {
 import { resolveRepoAddress } from "../utils/repos";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Plugin setup and predicted DAO bindings require concrete initialization inputs.",
+  },
   name: "new-dao",
   description: "Create a new Aragon OSx DAO with an initial governance plugin.",
   args: [

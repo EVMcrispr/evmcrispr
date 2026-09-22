@@ -36,6 +36,11 @@ const approveHashAbi = parseAbi([
 ]);
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "verify",
   description:
     "Verify Safe transaction hashes and flag dangerous fields, using the service queue or a command block or exported transaction JSON with --no-api.",

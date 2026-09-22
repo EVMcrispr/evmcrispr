@@ -7,6 +7,7 @@ import {
 import type Token from "..";
 
 export default defineCommand<Token>({
+  smartSupport: { kind: "runtime" },
   name: "transfer-from",
   description:
     "Transfer ERC20 tokens from one account to another, consuming the sender allowance.",
@@ -14,13 +15,29 @@ export default defineCommand<Token>({
     {
       name: "amount",
       type: "number",
+      runtime: true,
       description: "Amount in token units (wei)",
     },
-    { name: "token", type: "address", description: "Token address" },
+    {
+      name: "token",
+      type: "address",
+      runtime: true,
+      description: "Token address",
+    },
     { name: "from", type: "command", description: "Keyword `from`" },
-    { name: "owner", type: "address", description: "Account to debit" },
+    {
+      name: "owner",
+      type: "address",
+      runtime: true,
+      description: "Account to debit",
+    },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "recipient", type: "address", description: "Recipient" },
+    {
+      name: "recipient",
+      type: "address",
+      runtime: true,
+      description: "Recipient",
+    },
   ],
   completions: {
     from: () => [fieldItem("from")],
@@ -34,11 +51,11 @@ export default defineCommand<Token>({
       throw new ErrorException(`expected keyword "to", got "${to}"`);
     }
     return [
-      encodeAction(token, "transferFrom(address,address,uint256)", [
-        owner,
-        recipient,
-        amount,
-      ]),
+      encodeAction(
+        token,
+        "transferFrom(address,address,uint256) returns (bool)",
+        [owner, recipient, amount],
+      ),
     ];
   },
 });

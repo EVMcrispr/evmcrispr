@@ -3,6 +3,10 @@ import { defineCommand } from "@evmcrispr/sdk";
 import type Std from "..";
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "static",
+    reason: "Control-flow conditions are evaluated at build time.",
+  },
   name: "if",
   description:
     "Conditionally execute a block of commands, with an optional else block.",

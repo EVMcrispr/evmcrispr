@@ -2,6 +2,11 @@ import { defineCommand, ExitSignal } from "@evmcrispr/sdk";
 import type Std from "..";
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "exit",
   description: "Stop script execution immediately.",
   batchable: false,

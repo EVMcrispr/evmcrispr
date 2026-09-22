@@ -174,7 +174,8 @@ function flattenActions(actions: Action[]): Action[] {
 
 function actionChainId(action: Action): number | undefined {
   if (!("type" in action)) return (action as TransactionAction).chainId;
-  if (action.type === "batched") return action.chainId;
+  if (action.type === "batched" || action.type === "smartBatch")
+    return action.chainId;
   return undefined;
 }
 
@@ -190,7 +191,19 @@ function targetChainIds(actions: Action[]): number[] {
   return ids;
 }
 
-function actionSummary(action: Action) {
+function actionSummary(action: Action): {
+  title: string;
+  detail: string;
+  meta: string;
+  warning?: string;
+} {
+  if ("executionPlan" in action && action.executionPlan)
+    return actionSummary({
+      type: "smartBatch",
+      from: action.executionPlan.account,
+      chainId: action.executionPlan.chainId,
+      plan: action.executionPlan,
+    });
   if (!("type" in action)) {
     const transaction = action as TransactionAction;
     const selector = transaction.data?.slice(0, 10);
@@ -254,6 +267,14 @@ function actionSummary(action: Action) {
       meta: "Local operation",
     };
   }
+  if (action.type === "smartBatch")
+    return {
+      title: "Atomic smart batch",
+      detail: `Account ${action.plan.account}`,
+      meta: `${action.plan.steps.length} steps`,
+      warning:
+        "Dynamic values are resolved during execution. Simulation values can change before signing.",
+    };
   return {
     title: "Transaction batch",
     detail: `${action.actions.length} calls`,
@@ -442,6 +463,12 @@ export function TransactionReviewSheet({
 
               {actions.map((action, index) => {
                 const summary = actionSummary(action);
+                const smartPlan =
+                  "executionPlan" in action && action.executionPlan
+                    ? action.executionPlan
+                    : "type" in action && action.type === "smartBatch"
+                      ? action.plan
+                      : undefined;
                 const chainId = actionChainId(action);
                 return (
                   <article
@@ -474,6 +501,61 @@ export function TransactionReviewSheet({
                         <ExclamationTriangleIcon className="size-4 shrink-0" />
                         {summary.warning}
                       </div>
+                    )}
+                    {smartPlan && (
+                      <ol className="mt-3 flex flex-col gap-2 font-mono text-xs text-foreground/65">
+                        {smartPlan.steps.map((step, stepIndex) => (
+                          <li key={stepIndex}>
+                            {stepIndex + 1}. {step.label}
+                            {step.kind === "transaction" && (
+                              <span className="block break-all">
+                                {step.action.to} ·{" "}
+                                {String(step.action.value ?? 0n)} wei
+                                {step.action.operation === 1
+                                  ? " · delegatecall"
+                                  : ""}
+                              </span>
+                            )}
+                            {step.kind === "composable" && step.call && (
+                              <span className="block break-all">
+                                {typeof step.call.target === "string"
+                                  ? step.call.target
+                                  : "runtime target"}{" "}
+                                · {step.call.abi.name}(
+                                {step.call.abi.inputs
+                                  .map((input) => input.type)
+                                  .join(", ")}
+                                )
+                              </span>
+                            )}
+                            {step.kind === "composable" &&
+                              !!step.dynamicFields?.length && (
+                                <span className="block">
+                                  Runtime: {step.dynamicFields.join(", ")}
+                                </span>
+                              )}
+                            {step.kind === "composable" &&
+                              !!step.reads?.length && (
+                                <span className="block">
+                                  Uses{" "}
+                                  {step.reads
+                                    .map(
+                                      (read) =>
+                                        `$${read.name} from step ${read.step + 1}`,
+                                    )
+                                    .join(", ")}
+                                </span>
+                              )}
+                            {smartPlan.captures
+                              .filter((capture) => capture.step === stepIndex)
+                              .map(
+                                (capture) =>
+                                  ` → $${capture.name} (${capture.type.type})`,
+                              )
+                              .join("")}
+                          </li>
+                        ))}
+                      </ol>
                     )}
                   </article>
                 );

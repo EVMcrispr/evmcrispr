@@ -6,6 +6,8 @@ Add an owner to the Safe, optionally updating the threshold (keeps the current o
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,15 +16,15 @@ safe:add-owner <owner>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `owner` | `address` | New owner address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `owner` | `address` | Runtime in smart blocks | New owner address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--threshold` | `number` | New signature threshold (defaults to the current one) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--threshold` | `number` | Runtime in smart blocks | New signature threshold (defaults to the current one) |
 
 <!-- HAND-WRITTEN -->
 

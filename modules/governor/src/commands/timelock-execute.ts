@@ -5,6 +5,11 @@ import { collectBlockActions } from "../utils";
 const ZERO_BYTES32 = `0x${"00".repeat(32)}` as const;
 
 export default defineCommand<Governor>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command opens a separate atomic execution context; nested atomic blocks are unsupported.",
+  },
   name: "timelock-execute",
   description:
     "Execute a ready TimelockController operation. Takes the same action block, predecessor and salt used in governor:timelock-schedule.",

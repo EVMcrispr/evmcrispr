@@ -42,6 +42,11 @@ function parseAmounts(value: unknown, count: number): bigint[] {
 }
 
 export default defineCommand<Giveth>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "donate",
   description:
     "Donate to Giveth projects and record the donation in Giveth's database (project totals, GIVbacks). A single project gets a direct wallet transfer; several projects ([amounts] to [slugs]) donate through the DonationHandler contract in one transaction. Signs you in to Giveth (SIWE) and sends the transactions immediately to report their hashes, so it cannot be batched. The zero address (@token(ETH), @token(XDAI)...) donates the chain's native token.",

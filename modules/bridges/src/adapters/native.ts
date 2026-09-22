@@ -5,6 +5,7 @@ import {
   ErrorException,
   encodeAction,
 } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type { Address, Hex } from "viem";
 import {
   decodeAbiParameters,
@@ -123,7 +124,7 @@ async function arbRetryableFees(module: any): Promise<{
 }
 
 function remoteToken(
-  req: BridgeRequest,
+  req: Pick<BridgeRequest, "token">,
   l2ChainId: number,
   opts: Record<string, unknown>,
 ): Address {
@@ -179,7 +180,11 @@ const native: BridgeAdapter = {
     return { tokenFee: 0n, nativeFee: 0n, amountOut: req.amount };
   },
 
-  async buildBridge(module, req, { opts }) {
+  async buildBridge(module, req, ctx) {
+    return native.buildSmartBridge!(module, req, ctx);
+  },
+
+  async buildSmartBridge(module, req, { opts }) {
     const route = routeFor(req.srcChainId, req.dstChainId);
     if (!route) {
       throw new ErrorException(
@@ -206,21 +211,19 @@ const native: BridgeAdapter = {
         return {
           approvalTarget: l1Bridge,
           actions: [
-            {
-              to: l1Bridge,
-              data: encodeFunctionData({
-                abi: l1BridgeAbi,
-                functionName: "bridgeERC20To",
-                args: [
-                  req.token,
-                  remoteToken(req, route.l2ChainId, opts),
-                  req.recipient,
-                  req.amount,
-                  200000,
-                  "0x",
-                ],
-              }),
-            },
+            encodeAction(
+              l1Bridge,
+              "bridgeERC20To",
+              [
+                req.token,
+                remoteToken(req, route.l2ChainId, opts),
+                req.recipient,
+                req.amount,
+                200000,
+                "0x",
+              ],
+              { abi: l1BridgeAbi },
+            ),
           ],
         };
       }
@@ -241,28 +244,29 @@ const native: BridgeAdapter = {
         return {
           approvalTarget: OP_L2_STANDARD_BRIDGE,
           actions: [
-            {
-              to: OP_L2_STANDARD_BRIDGE,
-              data: encodeFunctionData({
-                abi: l1BridgeAbi,
-                functionName: "bridgeERC20To",
-                args: [
-                  req.token,
-                  remoteToken(req, route.l2ChainId, opts),
-                  req.recipient,
-                  req.amount,
-                  200000,
-                  "0x",
-                ],
-              }),
-            },
+            encodeAction(
+              OP_L2_STANDARD_BRIDGE,
+              "bridgeERC20To",
+              [
+                req.token,
+                remoteToken(req, route.l2ChainId, opts),
+                req.recipient,
+                req.amount,
+                200000,
+                "0x",
+              ],
+              { abi: l1BridgeAbi },
+            ),
           ],
         };
       }
 
       case "arb-deposit": {
         if (isNative) {
-          if (req.recipient.toLowerCase() !== req.from.toLowerCase()) {
+          if (
+            isRuntimeValue(req.recipient) ||
+            req.recipient.toLowerCase() !== req.from.toLowerCase()
+          ) {
             throw new ErrorException(
               "Arbitrum ETH deposits credit the sender's own address; drop --receiver, or bridge WETH with --using Across",
             );
@@ -289,25 +293,22 @@ const native: BridgeAdapter = {
           // The gateway (not the router) pulls the tokens.
           approvalTarget: gateway,
           actions: [
-            {
-              to: ARB_L1_GATEWAY_ROUTER,
-              value: nativeFee,
-              data: encodeFunctionData({
-                abi: gatewayRouterAbi,
-                functionName: "outboundTransfer",
-                args: [
-                  req.token,
-                  req.recipient,
-                  req.amount,
-                  ARB_RETRYABLE_MAX_GAS,
-                  gasPriceBid,
-                  encodeAbiParameters(
-                    [{ type: "uint256" }, { type: "bytes" }],
-                    [maxSubmissionCost, "0x"],
-                  ),
-                ],
-              }),
-            },
+            encodeAction(
+              ARB_L1_GATEWAY_ROUTER,
+              "outboundTransfer",
+              [
+                req.token,
+                req.recipient,
+                req.amount,
+                ARB_RETRYABLE_MAX_GAS,
+                gasPriceBid,
+                encodeAbiParameters(
+                  [{ type: "uint256" }, { type: "bytes" }],
+                  [maxSubmissionCost, "0x"],
+                ),
+              ],
+              { abi: gatewayRouterAbi, value: nativeFee },
+            ),
           ],
         };
       }
@@ -328,14 +329,12 @@ const native: BridgeAdapter = {
         }
         return {
           actions: [
-            {
-              to: ARB_L2_GATEWAY_ROUTER,
-              data: encodeFunctionData({
-                abi: gatewayRouterAbi,
-                functionName: "outboundTransfer",
-                args: [req.token, req.recipient, req.amount, 0n, 0n, "0x"],
-              }),
-            },
+            encodeAction(
+              ARB_L2_GATEWAY_ROUTER,
+              "outboundTransfer",
+              [req.token, req.recipient, req.amount, 0n, 0n, "0x"],
+              { abi: gatewayRouterAbi },
+            ),
           ],
         };
       }

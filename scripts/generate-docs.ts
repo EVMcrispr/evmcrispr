@@ -78,6 +78,7 @@ const MODULES = discoverModules();
 // ── Types ────────────────────────────────────────────────────────────
 
 interface ArgDef {
+  runtime?: boolean;
   name: string;
   type: string | string[];
   optional?: boolean;
@@ -87,6 +88,7 @@ interface ArgDef {
 }
 
 interface OptDef {
+  runtime?: boolean;
   name: string;
   type: string;
   description?: string;
@@ -94,6 +96,8 @@ interface OptDef {
 }
 
 interface CommandMeta {
+  smartKind?: string;
+  smartReason?: string;
   name: string;
   description: string;
   argDefs: ArgDef[];
@@ -146,10 +150,19 @@ function parseModuleSource(modDir: string): {
 
 function extractCommandMeta(modDir: string, name: string): CommandMeta {
   const filePath = join(modDir, "src/commands", `${name}.ts`);
-  const content = readFileSync(filePath, "utf-8");
+  const ownContent = readFileSync(filePath, "utf-8");
+  const parent = ownContent.match(/import command from "\.\/([^"]+)"/);
+  const content = parent
+    ? readFileSync(join(modDir, "src/commands", `${parent[1]}.ts`), "utf-8")
+    : ownContent;
   return {
     name,
-    description: extractStringProp(content, "description") ?? "",
+    smartKind: ownContent.match(/kind:\s*"(runtime|static|incompatible)"/)?.[1],
+    smartReason: extractStringProp(ownContent, "reason"),
+    description:
+      extractStringProp(ownContent, "description") ??
+      extractStringProp(content, "description") ??
+      "",
     argDefs: extractArgs(content),
     optDefs: extractOpts(content, modDir, filePath),
     experimental: hasTopLevelExperimental(content),
@@ -281,6 +294,7 @@ function extractOpts(
         name: optName,
         type: typeMatch[1],
         description: extractStringProp(m[1], "description") ?? undefined,
+        runtime: /\bruntime:\s*true/.test(m[1]) || undefined,
         experimental: /\bexperimental:\s*true/.test(m[1]) || undefined,
       });
     }
@@ -403,6 +417,7 @@ function parseArgObjects(block: string): ArgDef[] {
       const arg: ArgDef = { name: nameMatch[1], type: typeValue };
       if (/optional:\s*true/.test(objContent)) arg.optional = true;
       if (/rest:\s*true/.test(objContent)) arg.rest = true;
+      if (/runtime:\s*true/.test(objContent)) arg.runtime = true;
       if (/namedOnly:\s*true/.test(objContent)) arg.namedOnly = true;
       const description = extractStringProp(objContent, "description");
       if (description !== null) arg.description = description;
@@ -691,6 +706,15 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
     lines.push("");
   }
 
+  if (cmd.smartKind) {
+    lines.push(
+      cmd.smartKind === "runtime"
+        ? "Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time."
+        : `Smart blocks: ${cmd.smartKind === "incompatible" ? "cannot be nested" : "build-time inputs only"}. ${cmd.smartReason ?? ""}`,
+    );
+    lines.push("");
+  }
+
   // Syntax
   lines.push("## Syntax");
   lines.push("");
@@ -710,8 +734,8 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
   if (cmd.argDefs.length > 0) {
     lines.push("## Arguments");
     lines.push("");
-    lines.push("| Name | Type | Description |");
-    lines.push("|------|------|-------------|");
+    lines.push("| Name | Type | Evaluation | Description |");
+    lines.push("|------|------|------------|-------------|");
     for (const arg of cmd.argDefs) {
       const typeStr = Array.isArray(arg.type)
         ? arg.type.join(" \\| ")
@@ -723,7 +747,7 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
           ? `[${rawName}]`
           : rawName;
       lines.push(
-        `| \`${displayName}\` | \`${typeStr}\` | ${arg.description ?? ""} |`,
+        `| \`${displayName}\` | \`${typeStr}\` | ${arg.runtime ? "Runtime in smart blocks" : "Build time"} | ${arg.description ?? ""} |`,
       );
     }
     lines.push("");
@@ -733,12 +757,12 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
   if (cmd.optDefs.length > 0) {
     lines.push("## Options");
     lines.push("");
-    lines.push("| Name | Type | Description |");
-    lines.push("|------|------|-------------|");
+    lines.push("| Name | Type | Evaluation | Description |");
+    lines.push("|------|------|------------|-------------|");
     for (const opt of cmd.optDefs) {
       const chip = opt.experimental ? EXP_CHIP : "";
       lines.push(
-        `| \`--${opt.name}\`${chip} | \`${opt.type}\` | ${opt.description ?? ""} |`,
+        `| \`--${opt.name}\`${chip} | \`${opt.type}\` | ${opt.runtime ? "Runtime in smart blocks" : "Build time"} | ${opt.description ?? ""} |`,
       );
     }
     lines.push("");

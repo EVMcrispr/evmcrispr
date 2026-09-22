@@ -4,6 +4,8 @@ title: "giveth:unstake"
 
 Unstake GIV from GIVpower: unwrap gGIV on Gnosis, withdraw from the staking contract on Optimism and Polygon zkEVM. Pass `max` as the amount to unstake everything the contract allows right now — staked GIV minus locks, where locks whose round already ended still count until giveth:unlock frees them (see @giveth:unlockable). A zero amount does nothing.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,9 +14,9 @@ giveth:unstake <amount>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `command \| number` | Amount of GIV to unstake in base units (wei), or the keyword `max` for everything not locked |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `command \| number` | Runtime in smart blocks | Amount of GIV to unstake in base units (wei), or the keyword `max` for everything not locked |
 
 ## Examples
 

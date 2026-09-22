@@ -1,6 +1,9 @@
-import type { TransactionAction } from "@evmcrispr/sdk";
+import {
+  encodeAction,
+  type Param,
+  type TransactionAction,
+} from "@evmcrispr/sdk";
 import type { Abi, Address } from "viem";
-import { encodeFunctionData } from "viem";
 
 /**
  * Build a transaction action from a parsed ABI. Unlike the SDK's
@@ -14,9 +17,5 @@ export function abiAction(
   args: readonly unknown[],
   value?: bigint,
 ): TransactionAction {
-  return {
-    to,
-    data: encodeFunctionData({ abi, functionName, args }),
-    ...(value !== undefined ? { value } : {}),
-  };
+  return encodeAction(to, functionName, args as Param[], { abi, value });
 }

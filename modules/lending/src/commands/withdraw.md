@@ -6,6 +6,8 @@ Withdraw a supplied token from a lending market. Pass `max` as the amount to wit
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ lending:withdraw <amount> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `command \| number` | Amount to withdraw in base units (wei), or the keyword `max` for the full balance |
-| `token` | `address` | Supplied token to withdraw (use @token(SYM)) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `command \| number` | Runtime in smart blocks | Amount to withdraw in base units (wei), or the keyword `max` for the full balance |
+| `token` | `address` | Build time | Supplied token to withdraw (use @token(SYM)) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--using` | `lending-adapter` | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
-| `--to` | `address` | Recipient of the withdrawn tokens (defaults to the connected account) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--using` | `lending-adapter` | Build time | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
+| `--to` | `address` | Runtime in smart blocks | Recipient of the withdrawn tokens (defaults to the connected account) |
 
 ## Examples
 

@@ -1,9 +1,20 @@
 import type { Address } from "viem";
+import type {
+  PlannedCall,
+  SmartBatchAction,
+  SmartBatchPlan,
+} from "../onchain/smart-types";
+
+export type { SmartBatchAction } from "../onchain/smart-types";
 
 /**
  * An on-chain transaction action (e.g. contract call, token transfer, deployment).
  */
 export interface TransactionAction {
+  /** Review-only compiler plan; never part of signed transaction fields. */
+  executionPlan?: SmartBatchPlan;
+  /** Compiler-only call descriptor. Executors must reject unlowered calls. */
+  plannedCall?: PlannedCall;
   /** Receipt event outcome required by the command that built this action. */
   receiptCheck?: {
     address: Address;
@@ -95,6 +106,7 @@ export interface BatchedAction {
  * A request to the wallet provider (e.g. switch chain, sign message).
  */
 export interface WalletAction {
+  executionPlan?: SmartBatchPlan;
   type: "wallet";
   method: string;
   params: any[];
@@ -120,6 +132,7 @@ export interface TerminalAction {
 
 export type Action =
   | TransactionAction
+  | SmartBatchAction
   | BatchedAction
   | WalletAction
   | RpcAction
@@ -133,6 +146,10 @@ export function isTransactionAction(
 
 export function isBatchedAction(action: Action): action is BatchedAction {
   return "type" in action && action.type === "batched";
+}
+
+export function isSmartBatchAction(action: Action): action is SmartBatchAction {
+  return "type" in action && action.type === "smartBatch";
 }
 
 export function isWalletAction(action: Action): action is WalletAction {

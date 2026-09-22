@@ -6,6 +6,8 @@ Stream a SuperToken to all members of a GDA pool, split pro-rata to their units 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ superfluid:distribute-flow <rate> <token> <to> <pool>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `rate` | `number` | Flow rate in wei per second (e.g. 1000e18/mo), or 0 to stop |
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
-| `to` | `command` | Keyword `to` |
-| `pool` | `address` | GDA pool address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `rate` | `number` | Runtime in smart blocks | Flow rate in wei per second (e.g. 1000e18/mo), or 0 to stop |
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
+| `to` | `command` | Build time | Keyword `to` |
+| `pool` | `address` | Runtime in smart blocks | GDA pool address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--from` | `address` | Distributor account (defaults to the connected account; pools only accept third-party distributors when created with --open-distribution) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--from` | `address` | Runtime in smart blocks | Distributor account (defaults to the connected account; pools only accept third-party distributors when created with --open-distribution) |
 
 ## Examples
 

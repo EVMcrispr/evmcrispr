@@ -96,6 +96,11 @@ const setApp = (
 };
 
 export default defineCommand<AragonOS>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Package lookup, initializer ABI selection and predicted address bindings are build-time operations.",
+  },
   name: "install",
   description: "Install an Aragon app into the connected DAO.",
   args: [

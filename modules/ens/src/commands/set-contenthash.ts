@@ -1,4 +1,5 @@
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type Ens from "..";
 import {
   assertSupportedChain,
@@ -8,6 +9,7 @@ import {
 } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "set-contenthash",
   description: "Set the content hash of an ENS name.",
   args: [
@@ -15,6 +17,7 @@ export default defineCommand<Ens>({
     {
       name: "hash",
       type: "string",
+      runtime: true,
       description:
         'Content hash ("ipfs://Qm…", "ipns://…", "skynet://…" or encoded 0x bytes)',
     },
@@ -28,7 +31,7 @@ export default defineCommand<Ens>({
     return [
       encodeAction(resolver, "setContenthash(bytes32,bytes)", [
         node,
-        encodeContenthash(hash),
+        isRuntimeValue(hash) ? hash : encodeContenthash(hash),
       ]),
     ];
   },

@@ -1,15 +1,30 @@
-import { defineCommand, encodeAction, Num } from "@evmcrispr/sdk";
+import { defineCommand, encodeAction } from "@evmcrispr/sdk";
+import {
+  amountParam,
+  getSmartCompileContext,
+  isRuntimeValue,
+  smartRead,
+} from "@evmcrispr/sdk/onchain";
 import type Safe from "..";
 import { getThreshold, toBigInt } from "../utils";
 
 export default defineCommand<Safe>({
+  smartSupport: { kind: "runtime" },
   name: "add-owner",
   description:
     "Add an owner to the Safe, optionally updating the threshold (keeps the current one by default).",
-  args: [{ name: "owner", type: "address", description: "New owner address" }],
+  args: [
+    {
+      name: "owner",
+      type: "address",
+      runtime: true,
+      description: "New owner address",
+    },
+  ],
   opts: [
     {
       name: "threshold",
+      runtime: true,
       type: "number",
       description: "New signature threshold (defaults to the current one)",
     },
@@ -19,13 +34,17 @@ export default defineCommand<Safe>({
 
     const threshold =
       opts.threshold !== undefined
-        ? toBigInt(opts.threshold)
-        : await getThreshold(await module.getClient(), safe);
+        ? isRuntimeValue(opts.threshold)
+          ? opts.threshold
+          : toBigInt(opts.threshold)
+        : getSmartCompileContext(module)
+          ? smartRead(module, safe, "getThreshold() returns (uint256)", [])
+          : await getThreshold(await module.getClient(), safe);
 
     return [
       encodeAction(safe, "addOwnerWithThreshold(address,uint256)", [
         owner,
-        Num.fromBigInt(threshold),
+        amountParam(threshold),
       ]),
     ];
   },

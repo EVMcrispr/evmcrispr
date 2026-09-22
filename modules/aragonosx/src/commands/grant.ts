@@ -9,6 +9,7 @@ import { resolveTarget } from "../utils/commands";
 import { permissionId } from "../utils/permissions";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: { kind: "runtime" },
   name: "grant",
   description:
     "Grant a permission on the DAO or one of its plugins to an entity, optionally gated by a condition contract.",
@@ -27,6 +28,7 @@ export default defineCommand<AragonOSx>({
     { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "who",
+      runtime: true,
       type: "address",
       description: "Address receiving the permission (or ANY_ENTITY)",
     },
@@ -34,6 +36,7 @@ export default defineCommand<AragonOSx>({
   opts: [
     {
       name: "condition",
+      runtime: true,
       type: "address",
       description: "PermissionCondition contract gating the permission",
     },

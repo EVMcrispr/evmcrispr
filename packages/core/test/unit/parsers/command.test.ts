@@ -882,7 +882,7 @@ describe("Parsers - command expression", () => {
       commandExpressionParser,
       "my-command:",
       COMMAND_PARSER_ERROR,
-      'Expected a command name like "set" or "aragonos:connect" (letters and dashes only)',
+      'Expected a command name like "set" or "aragonos:connect" (letters and dashes, with an optional trailing !)',
     );
   });
 
@@ -891,7 +891,7 @@ describe("Parsers - command expression", () => {
       commandExpressionParser,
       "my-command:wer234",
       COMMAND_PARSER_ERROR,
-      'Expected a command name like "set" or "aragonos:connect" (letters and dashes only)',
+      'Expected a command name like "set" or "aragonos:connect" (letters and dashes, with an optional trailing !)',
     );
   });
 

@@ -20,6 +20,7 @@ import {
   partitionHelperArgs,
   ReturnSignal,
 } from "@evmcrispr/sdk";
+import { defaultCompileCtx, interpretSmartValue } from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 import {
   buildEvmlModule,
@@ -64,6 +65,15 @@ function buildDef(
     interpreters: NodesInterpreters,
   ): Promise<any> => {
     const { interpretNode } = interpreters;
+    const interpretArgument =
+      !isHelper && interpreters.batchContext?.smartState
+        ? (node: Node) =>
+            interpretSmartValue(defaultCompileCtx(module, interpreters), node)
+        : interpretNode;
+    if (!isHelper && "returnCapture" in callNode && callNode.returnCapture)
+      throw new ErrorException(
+        "capture the declared protocol call inside the user-defined command body",
+      );
 
     // Named args (`name:value`) fill their param by name; positional args
     // fill the rest in order. Commands never receive NamedArg nodes, so
@@ -151,7 +161,7 @@ function buildDef(
         if (def.rest) {
           const restValues = [];
           for (const restNode of positional.slice(cursor)) {
-            restValues.push(await interpretNode(restNode));
+            restValues.push(await interpretArgument(restNode));
           }
           cursor = positional.length;
           module.bindingsManager.setBinding(
@@ -165,7 +175,7 @@ function buildDef(
         } else {
           const argNode = nodeFor(def);
           if (argNode) {
-            const val = await interpretNode(argNode);
+            const val = await interpretArgument(argNode);
             module.bindingsManager.setBinding(
               bindKey,
               val,
@@ -183,7 +193,7 @@ function buildDef(
         for (const optDef of optDefs) {
           const opt = cmdNode.opts.find((o) => o.name === optDef.name);
           if (opt) {
-            const val = await interpretNode(opt.value);
+            const val = await interpretArgument(opt.value);
             module.bindingsManager.setBinding(
               optDef.name,
               val,
@@ -231,6 +241,11 @@ function buildDef(
 }
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Definitions and signatures are build-time operations; command bodies expand inside smart blocks.",
+  },
   name: "def",
   description:
     "Define a user command, helper, on-chain helper (`def @name!`), or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`).",

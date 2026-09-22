@@ -4,6 +4,8 @@ title: "ens:set-primary-name"
 
 Set the primary ENS name (reverse record) of the calling account.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,15 +14,15 @@ ens:set-primary-name <name>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | ENS name (e.g. mydao.eth) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | ENS name (e.g. mydao.eth) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--for` | `address` | Set the primary name of this contract instead (the caller must be the contract, its Ownable owner, or an approved operator) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--for` | `address` | Runtime in smart blocks | Set the primary name of this contract instead (the caller must be the contract, its Ownable owner, or an approved operator) |
 
 <!-- HAND-WRITTEN -->
 

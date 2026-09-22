@@ -2,9 +2,9 @@ import {
   chainLabel,
   ErrorNotFound,
   encodeAction,
-  Num,
   tokenLabel,
 } from "@evmcrispr/sdk";
+import { amountParam } from "@evmcrispr/sdk/onchain";
 import type { Address, PublicClient } from "viem";
 import { parseAbiItem, zeroAddress } from "viem";
 import type Swaps from "../..";
@@ -102,7 +102,7 @@ async function resolveRoute(
   module: Swaps,
   venueName: string,
   deployments: Record<number, V2Deployment>,
-  req: QuoteRequest,
+  req: Pick<QuoteRequest, "chainId" | "tokenIn" | "tokenOut">,
 ): Promise<ResolvedRoute> {
   const client = await module.getClient();
   const deployment = await requireDeployment(
@@ -167,11 +167,11 @@ function encodeSwap(
   const nativeOut = req.tokenOut === zeroAddress;
   const pathParam = path as string[];
   const to = req.recipient;
-  const deadline = Num.fromBigInt(req.deadline);
+  const deadline = amountParam(req.deadline);
 
   if (req.kind === "exactIn") {
-    const minOut = Num.fromBigInt(req.limit);
-    const amountIn = Num.fromBigInt(req.amount);
+    const minOut = amountParam(req.limit);
+    const amountIn = amountParam(req.amount);
     if (nativeIn) {
       return {
         actions: [
@@ -202,8 +202,8 @@ function encodeSwap(
     };
   }
 
-  const amountOut = Num.fromBigInt(req.amount);
-  const maxIn = Num.fromBigInt(req.limit);
+  const amountOut = amountParam(req.amount);
+  const maxIn = amountParam(req.limit);
   if (nativeIn) {
     return {
       actions: [

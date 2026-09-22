@@ -4,12 +4,15 @@ import { resolveAdapter } from "../adapters/registry";
 import { parseAmountOrMax, rejectNative } from "../utils/amounts";
 
 export default defineCommand<Lending>({
+  smartSupport: { kind: "runtime" },
   name: "withdraw",
   description:
     "Withdraw a supplied token from a lending market. Pass `max` as the amount to withdraw the full balance, accrued interest included.",
   args: [
     {
       name: "amount",
+      runtime: true,
+      snapshot: true,
       type: ["command", "number"],
       description:
         "Amount to withdraw in base units (wei), or the keyword `max` for the full balance",
@@ -30,6 +33,7 @@ export default defineCommand<Lending>({
     {
       name: "to",
       type: "address",
+      runtime: true,
       description:
         "Recipient of the withdrawn tokens (defaults to the connected account)",
     },
@@ -39,9 +43,9 @@ export default defineCommand<Lending>({
   },
   async run(module, { amount, token }, { opts }) {
     rejectNative(token);
-    const parsed = parseAmountOrMax(amount);
+    const parsed = parseAmountOrMax(amount, module);
     const chainId = await module.getChainId();
-    const from = await module.getConnectedAccount(true);
+    const from = await module.getSender();
     const adapter = await resolveAdapter(module, opts.using);
     const plan = await adapter.buildWithdraw(module, {
       chainId,

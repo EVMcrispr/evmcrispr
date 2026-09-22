@@ -15,6 +15,7 @@ import {
 import type Swaps from "..";
 import { BALANCER_CHAINS, BALANCER_VAULT } from "../addresses";
 import type { Quote, QuoteRequest, VenueAdapter } from "./types";
+import { requireConcreteSwap } from "./types";
 
 const API_URL = "https://api-v3.balancer.fi/";
 
@@ -154,6 +155,7 @@ const balancer: VenueAdapter = {
   },
 
   async buildSwap(module, req) {
+    requireConcreteSwap(req);
     rejectNative(req);
     const paths =
       (req.quote?.route as SorPaths | undefined) ??

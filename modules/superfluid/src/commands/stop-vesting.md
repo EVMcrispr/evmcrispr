@@ -6,6 +6,8 @@ Delete a pending vesting schedule, or end a running one immediately with --now t
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ superfluid:stop-vesting <token> <to> <receiver>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
-| `to` | `command` | Keyword `to` |
-| `receiver` | `address` | Vesting receiver |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
+| `to` | `command` | Build time | Keyword `to` |
+| `receiver` | `address` | Runtime in smart blocks | Vesting receiver |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--now` | `bool` | End a running schedule immediately instead of deleting a pending one |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--now` | `bool` | Build time | End a running schedule immediately instead of deleting a pending one |
 
 ## Examples
 

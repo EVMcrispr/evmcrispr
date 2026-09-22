@@ -2,6 +2,7 @@ import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Governor from "..";
 
 export default defineCommand<Governor>({
+  smartSupport: { kind: "runtime" },
   name: "timelock-cancel",
   description:
     "Cancel a pending TimelockController operation. The sender needs the CANCELLER_ROLE.",
@@ -9,11 +10,13 @@ export default defineCommand<Governor>({
     {
       name: "timelock",
       type: "address",
+      runtime: true,
       description: "TimelockController address",
     },
     {
       name: "operationId",
       type: "bytes32",
+      runtime: true,
       description: "Operation id (bound by governor:timelock-schedule)",
     },
   ],

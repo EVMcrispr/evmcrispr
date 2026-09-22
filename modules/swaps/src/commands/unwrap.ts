@@ -5,16 +5,19 @@ import {
   encodeAction,
   Num,
 } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type Swaps from "..";
 import { WRAPPED_NATIVE } from "../addresses";
 
 export default defineCommand<Swaps>({
+  smartSupport: { kind: "runtime" },
   name: "unwrap",
   description:
     "Unwrap the canonical wrapped-native token back into the native token (WETH to ETH, WXDAI to xDAI...).",
   args: [
     {
       name: "amount",
+      runtime: true,
       type: "number",
       description: "Wrapped amount to unwrap, in base units (wei)",
     },
@@ -27,6 +30,10 @@ export default defineCommand<Swaps>({
         `no wrapped-native token known for ${chainLabel(chainId)}`,
       );
     }
-    return [encodeAction(wrapped, "withdraw(uint256)", [Num(amount)])];
+    return [
+      encodeAction(wrapped, "withdraw(uint256)", [
+        isRuntimeValue(amount) ? amount : Num(amount),
+      ]),
+    ];
   },
 });

@@ -57,6 +57,11 @@ function renderRowsTable(value: any[]): string {
 }
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Logging consumes build-time values and cannot preview a guaranteed on-chain result.",
+  },
   name: "print",
   description:
     "Print values to script output (stdout in the CLI). Arrays render as headerless tables: a flat array as one row, an array of arrays as one row per inner array.",

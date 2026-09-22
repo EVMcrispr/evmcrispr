@@ -11,6 +11,7 @@ import {
   postOrder,
 } from "./lib/cowApi";
 import type { VenueAdapter } from "./types";
+import { requireConcreteSwap } from "./types";
 
 const MAX_UINT32 = 0xffffffff;
 
@@ -52,6 +53,7 @@ const cowswap: VenueAdapter = {
   },
 
   async buildSwap(module, req, { interpreters }) {
+    requireConcreteSwap(req);
     if (req.tokenIn === zeroAddress) {
       throw new ErrorException(
         "CoWSwap cannot sell the native token; wrap it first with swaps:wrap",

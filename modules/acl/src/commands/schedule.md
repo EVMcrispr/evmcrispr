@@ -6,6 +6,8 @@ Schedule a delayed operation on an AccessManager for later execution with acl:ex
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ acl:schedule <manager> <target> <signature> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `manager` | `address` | AccessManager address |
-| `target` | `address` | Managed contract address |
-| `signature` | `write-abi` | Function to call on the target |
-| `[...params]` | `any` | Arguments matching the signature types |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `manager` | `address` | Runtime in smart blocks | AccessManager address |
+| `target` | `address` | Runtime in smart blocks | Managed contract address |
+| `signature` | `write-abi` | Build time | Function to call on the target |
+| `[...params]` | `any` | Runtime in smart blocks | Arguments matching the signature types |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--when` | `number` | Unix timestamp at which the operation becomes executable (default 0 = as soon as the delay allows) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--when` | `number` | Runtime in smart blocks | Unix timestamp at which the operation becomes executable (default 0 = as soon as the delay allows) |
 
 <!-- HAND-WRITTEN -->
 

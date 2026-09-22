@@ -1,20 +1,23 @@
-import {
-  defineCommand,
-  encodeAction,
-  encodeSignatureCall,
-  Num,
-} from "@evmcrispr/sdk";
+import { defineCommand, encodeAction, Num } from "@evmcrispr/sdk";
+import { smartSignatureCall } from "@evmcrispr/sdk/onchain";
 import type AccessControl from "..";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "schedule",
   description:
     "Schedule a delayed operation on an AccessManager for later execution with acl:execute-scheduled.",
   args: [
-    { name: "manager", type: "address", description: "AccessManager address" },
+    {
+      name: "manager",
+      type: "address",
+      runtime: true,
+      description: "AccessManager address",
+    },
     {
       name: "target",
       type: "address",
+      runtime: true,
       description: "Managed contract address",
     },
     {
@@ -25,6 +28,7 @@ export default defineCommand<AccessControl>({
     {
       name: "params",
       type: "any",
+      runtime: true,
       description: "Arguments matching the signature types",
       rest: true,
     },
@@ -33,6 +37,7 @@ export default defineCommand<AccessControl>({
     {
       name: "when",
       type: "number",
+      runtime: true,
       description:
         "Unix timestamp at which the operation becomes executable (default 0 = as soon as the delay allows)",
     },
@@ -41,7 +46,7 @@ export default defineCommand<AccessControl>({
     return [
       encodeAction(manager, "schedule(address,bytes,uint48)", [
         target,
-        encodeSignatureCall(signature, params ?? []),
+        smartSignatureCall(_module, signature, params ?? []),
         opts.when ?? Num.fromBigInt(0n),
       ]),
     ];

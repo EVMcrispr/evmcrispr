@@ -3,6 +3,11 @@ import type Safe from "..";
 import { findListPredecessor, getModules } from "../utils";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "The module address selects its predecessor in the Safe linked list at build time.",
+  },
   name: "disable-module",
   description: "Disable a module on the Safe.",
   args: [

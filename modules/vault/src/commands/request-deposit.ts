@@ -3,8 +3,8 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import { amountParam } from "@evmcrispr/sdk/onchain";
 import type Vault from "..";
 import { vaultAsset } from "../erc4626";
 import { requireAsyncDeposit } from "../erc7540";
@@ -12,12 +12,16 @@ import { parseAmount, rejectNative } from "../utils/amounts";
 import { withApproval } from "../utils/plan";
 
 export default defineCommand<Vault>({
+  smartSupport: { kind: "runtime" },
   name: "request-deposit",
+  primaryCall: -1,
   description:
     "Request a deposit into an ERC-7540 asynchronous vault, approving the vault automatically when needed. The assets are taken immediately; claim the shares with vault:claim-deposit once the request is fulfilled.",
   args: [
     {
       name: "assets",
+      runtime: true,
+      snapshot: true,
       type: "number",
       description:
         "Amount of the underlying asset to deposit, in base units (wei)",
@@ -33,6 +37,7 @@ export default defineCommand<Vault>({
     {
       name: "controller",
       type: "address",
+      runtime: true,
       description:
         "Controller of the request, entitled to claim it (defaults to the connected account)",
     },
@@ -50,15 +55,15 @@ export default defineCommand<Vault>({
       throw new ErrorException(`expected keyword "into", got "${into}"`);
     }
     rejectNative(vault);
-    const amount = parseAmount(assets);
+    const amount = parseAmount(assets, module);
     await requireAsyncDeposit(module, vault);
-    const owner = await module.getConnectedAccount(true);
+    const owner = await module.getSender();
     const controller = opts.controller ?? owner;
     const asset = await vaultAsset(module, vault);
     const action = encodeAction(
       vault,
-      "requestDeposit(uint256,address,address)",
-      [Num.fromBigInt(amount), controller, owner],
+      "requestDeposit(uint256,address,address) returns (uint256)",
+      [amountParam(amount), controller, owner],
     );
     return withApproval(module, [action], asset, owner, vault, amount, opts);
   },

@@ -4,6 +4,8 @@ title: "sim:set-code"
 
 Set the bytecode at an address in a fork simulation.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ sim:set-code <address> <bytecode>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `address` | `string` | Contract or account address |
-| `bytecode` | `string` | New bytecode to set |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `address` | `string` | Build time | Contract or account address |
+| `bytecode` | `string` | Build time | New bytecode to set |
 
 ## Examples
 

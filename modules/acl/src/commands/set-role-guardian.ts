@@ -3,11 +3,17 @@ import type AccessControl from "..";
 import { resolveManagerRoleId } from "../utils";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "set-role-guardian",
   description:
     "Set the guardian role allowed to cancel scheduled operations of an AccessManager role.",
   args: [
-    { name: "manager", type: "address", description: "AccessManager address" },
+    {
+      name: "manager",
+      type: "address",
+      runtime: true,
+      description: "AccessManager address",
+    },
     {
       name: "roleId",
       type: ["number", "string"],

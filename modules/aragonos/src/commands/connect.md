@@ -4,6 +4,8 @@ title: "aragonos:connect"
 
 Connect to an Aragon DAO and execute commands within its context.
 
+Smart blocks: build-time inputs only. DAO selection and ABI discovery happen at build time; the block expands into the surrounding execution context.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ aragonos:connect <daoName> <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `daoName` | `dao` | DAO kernel address or Aragonid ENS name |
-| `block` | `block` | Commands to execute in DAO context |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `daoName` | `dao` | Build time | DAO kernel address or Aragonid ENS name |
+| `block` | `block` | Build time | Commands to execute in DAO context |
 
 ## Examples
 

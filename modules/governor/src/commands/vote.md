@@ -6,6 +6,8 @@ Cast a vote on an active Governor proposal.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ governor:vote <governor> <proposalId> <support>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `governor` | `address` | Governor address |
-| `proposalId` | `number` | Proposal id |
-| `support` | `voteSupport` | for, against or abstain |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `governor` | `address` | Build time | Governor address |
+| `proposalId` | `number` | Runtime in smart blocks | Proposal id |
+| `support` | `voteSupport` | Build time | for, against or abstain |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--reason` | `string` | Reason for the vote, stored on-chain |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--reason` | `string` | Runtime in smart blocks | Reason for the vote, stored on-chain |
 
 <!-- HAND-WRITTEN -->
 

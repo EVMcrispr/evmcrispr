@@ -9,6 +9,8 @@ Create a subname under an ENS name you own.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -17,19 +19,19 @@ ens:create-subname <parent> <label> <owner>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `parent` | `string` | Parent ENS name (e.g. mydao.eth) |
-| `label` | `string` | Subname label (e.g. vault for vault.mydao.eth) |
-| `owner` | `address` | Owner of the subname |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `parent` | `string` | Build time | Parent ENS name (e.g. mydao.eth) |
+| `label` | `string` | Build time | Subname label (e.g. vault for vault.mydao.eth) |
+| `owner` | `address` | Runtime in smart blocks | Owner of the subname |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--resolver` | `address` | Resolver for the subname (defaults to the parent's) |
-| `--fuses` | `number` | Fuses to burn on the subname (wrapped parents only; use @ens:fuses) |
-| `--expiry` | `number` | Subname expiry timestamp (wrapped parents only) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--resolver` | `address` | Runtime in smart blocks | Resolver for the subname (defaults to the parent's) |
+| `--fuses` | `number` | Build time | Fuses to burn on the subname (wrapped parents only; use @ens:fuses) |
+| `--expiry` | `number` | Build time | Subname expiry timestamp (wrapped parents only) |
 
 <!-- HAND-WRITTEN -->
 

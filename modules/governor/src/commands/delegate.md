@@ -6,6 +6,8 @@ Delegate the voting power the connected account holds in an ERC20Votes/ERC721Vot
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ governor:delegate <token> <to> <delegatee>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `address` | Votes token address |
-| `to` | `command` | Keyword `to` |
-| `delegatee` | `address` | Account receiving the voting power |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `address` | Runtime in smart blocks | Votes token address |
+| `to` | `command` | Build time | Keyword `to` |
+| `delegatee` | `address` | Runtime in smart blocks | Account receiving the voting power |
 
 <!-- HAND-WRITTEN -->
 

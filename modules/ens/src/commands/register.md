@@ -4,6 +4,8 @@ title: "ens:register"
 
 Register a .eth name via the controller's commit/reveal flow (commits, waits and reveals in one go by default).
 
+Smart blocks: build-time inputs only. Commitment hashing and rent quotes require concrete registration inputs.
+
 ## Syntax
 
 ```evml
@@ -12,20 +14,20 @@ ens:register <name> <owner> <duration>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | .eth name or label (e.g. mydao.eth or mydao) |
-| `owner` | `address` | Owner of the name |
-| `duration` | `number` | Registration duration, in time units (e.g. 1y) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | .eth name or label (e.g. mydao.eth or mydao) |
+| `owner` | `address` | Build time | Owner of the name |
+| `duration` | `number` | Build time | Registration duration, in time units (e.g. 1y) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--secret` | `bytes32` | Commitment secret; must be identical across the commit and reveal steps |
-| `--resolver` | `address` | Resolver to set at registration (defaults to the chain's Public Resolver) |
-| `--reverse-record` | `bool` | Also set the owner's primary ENS name |
-| `--step` | `string` | Which part of the flow to run: commit-wait-reveal (default), only-commit, only-reveal, only-commit-and-wait, only-wait-and-reveal |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--secret` | `bytes32` | Build time | Commitment secret; must be identical across the commit and reveal steps |
+| `--resolver` | `address` | Build time | Resolver to set at registration (defaults to the chain's Public Resolver) |
+| `--reverse-record` | `bool` | Build time | Also set the owner's primary ENS name |
+| `--step` | `string` | Build time | Which part of the flow to run: commit-wait-reveal (default), only-commit, only-reveal, only-commit-and-wait, only-wait-and-reveal |
 
 <!-- HAND-WRITTEN -->
 

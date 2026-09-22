@@ -6,6 +6,8 @@ Attach a human-readable label to an AccessManager role (emitted as an event for 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ acl:label-role <manager> <roleId> <label>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `manager` | `address` | AccessManager address |
-| `roleId` | `number \| string` | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
-| `label` | `string` | Human-readable role name |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `manager` | `address` | Runtime in smart blocks | AccessManager address |
+| `roleId` | `number \| string` | Build time | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `label` | `string` | Build time | Human-readable role name |
 
 <!-- HAND-WRITTEN -->
 

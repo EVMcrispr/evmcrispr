@@ -6,6 +6,7 @@ import {
   ErrorException,
   isBatchedAction,
   isRpcAction,
+  isSmartBatchAction,
   isTerminalAction,
   isTransactionAction,
   isWalletAction,
@@ -51,6 +52,11 @@ const BALANCE_OF_ABI = [
 const DEAL_MAX_SLOT = 25;
 
 export default defineCommand<Sim>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "fork",
   description: "Fork the blockchain and execute commands in a simulation.",
   batchable: false,
@@ -367,6 +373,17 @@ export default defineCommand<Sim>({
           await execAction(rpcAction, { relayScan: false });
         }
         return undefined;
+      }
+
+      if (isSmartBatchAction(action)) {
+        const { prepareSmartAccountSimulation } = await import(
+          "@evmcrispr/sdk/onchain"
+        );
+        const transaction = await prepareSmartAccountSimulation(
+          forkManager.active.publicClient,
+          action.plan,
+        );
+        return execAction(transaction, { relayScan });
       }
 
       if (isBatchedAction(action)) {

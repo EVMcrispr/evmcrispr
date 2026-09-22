@@ -84,6 +84,10 @@ export interface CommandContext {
 }
 
 export interface CommandConfig<M extends Module> {
+  compile?: import("../onchain/smart-types").CommandCompile;
+  createsSmartBatchContext?: boolean;
+  smartSupport?: import("../types").ICommand["smartSupport"];
+  primaryCall?: number;
   name: string;
   /** Human-readable description shown in hover tooltips. */
   description?: string;
@@ -125,7 +129,44 @@ export function defineCommand<M extends Module>(
         );
       }
 
-      const { interpretNode, interpretNodes } = interpreters;
+      const smartState = interpreters.batchContext?.smartState;
+      if (c.returnCapture && !smartState) {
+        throw new ErrorException(
+          "-> [...] return capture is only valid inside a smart batch",
+        );
+      }
+      if (smartState && config.smartSupport?.kind === "incompatible") {
+        throw new ErrorException(
+          config.smartSupport.reason ??
+            `${config.name} cannot run inside a smart batch`,
+        );
+      }
+      const { interpretNode } = interpreters;
+      const smartApi = smartState
+        ? await import("../onchain/smart")
+        : undefined;
+      const smartTypes = smartState
+        ? await import("../onchain/smart-types")
+        : undefined;
+      const compileCtx = smartState
+        ? (await import("../onchain/assertion")).defaultCompileCtx(
+            module,
+            interpreters,
+          )
+        : undefined;
+      const fieldValue = async (
+        node: import("../types").Node,
+        runtime = false,
+      ) => {
+        if (smartApi && runtime)
+          return smartApi.interpretSmartValue(compileCtx!, node);
+        const value = await interpretNode(node);
+        if (smartTypes?.hasRuntimeValue(value))
+          throw new ErrorException(
+            "this field requires a build-time value; runtime outputs need a supported command field or an on-chain helper (!)",
+          );
+        return value;
+      };
 
       // 1-2. Extract trailing block(s) and check argument length. Shared with
       // the static analyzer via `computeCommandArity` so both agree on arity.
@@ -164,6 +205,26 @@ export function defineCommand<M extends Module>(
         );
       }
 
+      if (
+        smartState &&
+        config.compile &&
+        typeof config.batchable !== "function"
+      ) {
+        if (config.batchable === false)
+          throw new ErrorException(
+            `command "${config.name}" cannot be used inside ${interpreters.batchContext!.name}`,
+          );
+        const result = await smartApi!.withSmartCompileContext(
+          module,
+          compileCtx!,
+          () => config.compile!({ ...compileCtx!, batch: smartState }, c),
+        );
+        await smartState.append(module, c, result);
+        if (smartState.plan.steps.length)
+          interpreters.batchContext!.hasActions = true;
+        return [];
+      }
+
       // 4. Interpret arguments by type. A cursor walks astArgs so optional
       // special-typed defs whose node doesn't match are skipped without
       // consuming it, letting later defs shift left (e.g.
@@ -200,10 +261,12 @@ export function defineCommand<M extends Module>(
         // All other types (or unmatched union fallthrough): auto-interpret
         if (def.rest) {
           const restNodes = astArgs.slice(cursor);
-          parsedArgs[def.name] = await interpretNodes(restNodes);
+          parsedArgs[def.name] = await Promise.all(
+            restNodes.map((node) => fieldValue(node, def.runtime)),
+          );
           cursor = astArgs.length;
         } else if (astArgs[cursor]) {
-          parsedArgs[def.name] = await interpretNode(astArgs[cursor]);
+          parsedArgs[def.name] = await fieldValue(astArgs[cursor], def.runtime);
           cursor++;
         }
       }
@@ -214,12 +277,26 @@ export function defineCommand<M extends Module>(
         );
       }
 
+      if (smartState) {
+        for (const def of argDefs) {
+          if (
+            def.runtime &&
+            def.snapshot &&
+            smartTypes!.isRuntimeValue(parsedArgs[def.name])
+          )
+            parsedArgs[def.name] = await smartState.snapshot(
+              compileCtx!,
+              parsedArgs[def.name],
+            );
+        }
+      }
       // 5. Validate argument types (skip special types)
       for (let vi = 0; vi < argDefs.length; vi++) {
         const def = argDefs[vi];
         if (isSpecialType(def.type)) continue;
         const formatted = def.optional ? `[${def.name}]` : `<${def.name}>`;
         const value = parsedArgs[def.name];
+        if (def.runtime && smartTypes?.hasRuntimeValue(value)) continue;
         if (value !== undefined && !def.rest) {
           parsedArgs[def.name] = coerceArgType(value, def.type);
           validateArgType(
@@ -279,7 +356,13 @@ export function defineCommand<M extends Module>(
           parsedOpts[optDef.name] = extracted.value;
           continue;
         }
-        const value = await getOptValue(c, optDef.name, interpretNode);
+        const value = await getOptValue(c, optDef.name, (node) =>
+          fieldValue(node, optDef.runtime),
+        );
+        if (optDef.runtime && smartTypes?.hasRuntimeValue(value)) {
+          parsedOpts[optDef.name] = value;
+          continue;
+        }
         if (value !== undefined) {
           const coerced = coerceArgType(value, optDef.type);
           validateArgType(
@@ -310,14 +393,43 @@ export function defineCommand<M extends Module>(
         }
       }
 
+      if (smartState && config.compile) {
+        const result = await smartApi!.withSmartCompileContext(
+          module,
+          compileCtx!,
+          () => config.compile!({ ...compileCtx!, batch: smartState }, c),
+        );
+        await smartState.append(module, c, result);
+        if (smartState.plan.steps.length)
+          interpreters.batchContext!.hasActions = true;
+        return [];
+      }
+
       // 9. Call user's run function
-      return run(module as M, parsedArgs, {
-        opts: parsedOpts,
-        node: c,
-        interpreters,
-      });
+      const invoke = () =>
+        run(module as M, parsedArgs, {
+          opts: parsedOpts,
+          node: c,
+          interpreters,
+        });
+      const result = smartApi
+        ? await smartApi.withSmartCompileContext(module, compileCtx!, invoke)
+        : await invoke();
+      if (smartState) {
+        await smartState.append(module, c, {
+          actions: result ?? [],
+          primaryCall: config.primaryCall,
+        });
+        if (smartState.plan.steps.length)
+          interpreters.batchContext!.hasActions = true;
+        return [];
+      }
+      return result;
     },
 
+    compile: config.compile,
+    createsSmartBatchContext: config.createsSmartBatchContext,
+    smartSupport: config.smartSupport,
     argDefs,
     optDefs,
     completions: config.completions,

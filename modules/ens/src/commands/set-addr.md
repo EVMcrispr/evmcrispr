@@ -4,6 +4,8 @@ title: "ens:set-addr"
 
 Set the address record of an ENS name.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ ens:set-addr <name> <address> [coinType]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | ENS name (e.g. mydao.eth) |
-| `address` | `address` | Address to set |
-| `[coinType]` | `number` | ENSIP-9/11 coin type (defaults to 60, ETH; e.g. @coinType(optimism); only EVM-style addresses are supported) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | ENS name (e.g. mydao.eth) |
+| `address` | `address` | Runtime in smart blocks | Address to set |
+| `[coinType]` | `number` | Runtime in smart blocks | ENSIP-9/11 coin type (defaults to 60, ETH; e.g. @coinType(optimism); only EVM-style addresses are supported) |
 
 <!-- HAND-WRITTEN -->
 

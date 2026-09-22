@@ -4,6 +4,8 @@ title: "ens:transfer"
 
 Transfer ownership of an ENS name. For unwrapped .eth names this hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ ens:transfer <name> <to> <newOwner>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | ENS name (e.g. mydao.eth) |
-| `to` | `command` | Keyword `to` |
-| `newOwner` | `address` | New owner address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | ENS name (e.g. mydao.eth) |
+| `to` | `command` | Build time | Keyword `to` |
+| `newOwner` | `address` | Runtime in smart blocks | New owner address |
 
 <!-- HAND-WRITTEN -->
 

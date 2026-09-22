@@ -6,6 +6,8 @@ Schedule a change of the delay applied to future default admin transfers.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,10 +16,10 @@ acl:change-default-admin-delay <contract> <delay>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `contract` | `address` | AccessControlDefaultAdminRules contract address |
-| `delay` | `number` | New delay, in time units (e.g. 5d) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `contract` | `address` | Runtime in smart blocks | AccessControlDefaultAdminRules contract address |
+| `delay` | `number` | Runtime in smart blocks | New delay, in time units (e.g. 5d) |
 
 <!-- HAND-WRITTEN -->
 

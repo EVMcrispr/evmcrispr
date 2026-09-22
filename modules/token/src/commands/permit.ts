@@ -84,6 +84,11 @@ async function resolveDomain(
 }
 
 export default defineCommand<Token>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Typed-data signatures bind concrete owners, spenders, amounts, nonces and deadlines.",
+  },
   name: "permit",
   description:
     "Approve a spender through an EIP-2612 permit signed by the connected wallet, encoded as a permit() call anyone can submit.",

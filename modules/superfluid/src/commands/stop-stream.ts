@@ -11,6 +11,7 @@ import { requireCore } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "stop-stream",
   description:
     "Stop a money stream to a receiver, refunding the sender's buffer deposit. With --from, deletes another sender's stream — allowed for the stream's receiver, a granted flow operator, or anyone once the sender is insolvent.",
@@ -21,12 +22,18 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "receiver", type: "address", description: "Stream receiver" },
+    {
+      name: "receiver",
+      type: "address",
+      runtime: true,
+      description: "Stream receiver",
+    },
   ],
   opts: [
     {
       name: "from",
       type: "address",
+      runtime: true,
       description:
         "Stream sender when stopping a stream you don't send (as receiver or flow operator)",
     },

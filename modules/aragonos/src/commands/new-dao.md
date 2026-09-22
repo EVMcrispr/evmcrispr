@@ -4,6 +4,8 @@ title: "aragonos:new-dao"
 
 Create a new Aragon DAO and register it with an ENS name.
 
+Smart blocks: build-time inputs only. DAO name registration and deterministic configuration are prepared at build time.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ aragonos:new-dao <variable> <daoName>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable name |
-| `daoName` | `string` | ENS name for the DAO |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable name |
+| `daoName` | `string` | Build time | ENS name for the DAO |
 
 ## Examples
 

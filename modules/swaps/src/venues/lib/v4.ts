@@ -1,13 +1,13 @@
 import { chainLabel, ErrorNotFound } from "@evmcrispr/sdk";
-import type { Address } from "viem";
 import {
-  encodeAbiParameters,
-  encodeFunctionData,
-  encodePacked,
-  parseAbi,
-  parseAbiParameters,
-  zeroAddress,
-} from "viem";
+  isRuntimeValue,
+  type RuntimeValue,
+  smartAbiParameters,
+  smartDataAction,
+  smartFunctionData,
+} from "@evmcrispr/sdk/onchain";
+import type { Address } from "viem";
+import { encodePacked, parseAbi, parseAbiParameters, zeroAddress } from "viem";
 import type Swaps from "../..";
 import type { V4Deployment } from "../../addresses";
 import { V4_FEE_TIERS } from "../../addresses";
@@ -64,7 +64,12 @@ export interface V4Route {
   zeroForOne: boolean;
 }
 
-function toPoolKey(a: Address, b: Address, fee: number, tickSpacing: number) {
+export function toPoolKey(
+  a: Address,
+  b: Address,
+  fee: number,
+  tickSpacing: number,
+) {
   const [currency0, currency1] = BigInt(a) < BigInt(b) ? [a, b] : [b, a];
   return {
     currency0,
@@ -136,14 +141,17 @@ export function buildV4Swap(
   deployment: V4Deployment,
   route: V4Route,
   req: SwapRequest,
+  module?: Swaps,
 ): SwapPlan {
   const nativeIn = req.tokenIn === zeroAddress;
   const exactIn = req.kind === "exactIn";
   const inputAmount = exactIn ? req.amount : req.limit;
-  const takeToSender = req.recipient.toLowerCase() === req.from.toLowerCase();
+  const takeToSender =
+    !isRuntimeValue(req.recipient) &&
+    req.recipient.toLowerCase() === req.from.toLowerCase();
 
   const swapParams = exactIn
-    ? encodeAbiParameters(exactInputSingleParams, [
+    ? smartAbiParameters(module, exactInputSingleParams, [
         {
           poolKey: route.poolKey,
           zeroForOne: route.zeroForOne,
@@ -152,7 +160,7 @@ export function buildV4Swap(
           hookData: "0x",
         },
       ])
-    : encodeAbiParameters(exactOutputSingleParams, [
+    : smartAbiParameters(module, exactOutputSingleParams, [
         {
           poolKey: route.poolKey,
           zeroForOne: route.zeroForOne,
@@ -161,7 +169,8 @@ export function buildV4Swap(
           hookData: "0x",
         },
       ]);
-  const settleParams = encodeAbiParameters(
+  const settleParams = smartAbiParameters(
+    module,
     parseAbiParameters("address currency, uint256 maxAmount"),
     [req.tokenIn, inputAmount],
   );
@@ -169,11 +178,13 @@ export function buildV4Swap(
   // open delta (amount 0) to a custom recipient, the swap action itself
   // already enforcing the bound.
   const takeParams = takeToSender
-    ? encodeAbiParameters(
+    ? smartAbiParameters(
+        module,
         parseAbiParameters("address currency, uint256 minAmount"),
         [req.tokenOut, exactIn ? req.limit : req.amount],
       )
-    : encodeAbiParameters(
+    : smartAbiParameters(
+        module,
         parseAbiParameters(
           "address currency, address recipient, uint256 amount",
         ),
@@ -188,18 +199,20 @@ export function buildV4Swap(
       takeToSender ? TAKE_ALL : TAKE,
     ],
   );
-  const v4Input = encodeAbiParameters(
+  const v4Input = smartAbiParameters(
+    module,
     parseAbiParameters("bytes actions, bytes[] params"),
     [actions, [swapParams, settleParams, takeParams]],
   );
 
   const commands: number[] = [V4_SWAP];
-  const inputs: `0x${string}`[] = [v4Input];
+  const inputs: (`0x${string}` | RuntimeValue)[] = [v4Input];
   if (nativeIn && !exactIn) {
     // Return the unspent portion of msg.value.
     commands.push(SWEEP);
     inputs.push(
-      encodeAbiParameters(
+      smartAbiParameters(
+        module,
         parseAbiParameters(
           "address token, address recipient, uint256 amountMin",
         ),
@@ -208,7 +221,7 @@ export function buildV4Swap(
     );
   }
 
-  const data = encodeFunctionData({
+  const data = smartFunctionData(module, {
     abi: routerAbi,
     functionName: "execute",
     args: [
@@ -223,11 +236,11 @@ export function buildV4Swap(
 
   return {
     actions: [
-      {
-        to: deployment.universalRouter,
+      smartDataAction(
+        deployment.universalRouter,
         data,
-        ...(nativeIn ? { value: inputAmount } : {}),
-      },
+        nativeIn ? inputAmount : undefined,
+      ),
     ],
   };
 }

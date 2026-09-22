@@ -1,5 +1,6 @@
 import type { Module } from "@evmcrispr/sdk";
 import { chainLabel, ErrorException } from "@evmcrispr/sdk";
+import { type SmartAmount, smartArithmetic } from "@evmcrispr/sdk/onchain";
 import type { Abi, Address } from "viem";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import { erc20Abi, superTokenAbi } from "../abis";
@@ -116,8 +117,8 @@ export function isPureSuperToken(underlying: Address): boolean {
 export async function toSuperTokenAmount(
   module: Module,
   underlying: Address,
-  amount: bigint,
-): Promise<bigint> {
+  amount: SmartAmount,
+): Promise<SmartAmount> {
   const client = await module.getClient();
   const decimals = (await client.readContract({
     address: underlying,
@@ -129,5 +130,5 @@ export async function toSuperTokenAmount(
       `tokens with more than 18 decimals are not supported (got ${decimals})`,
     );
   }
-  return amount * 10n ** BigInt(18 - decimals);
+  return smartArithmetic(module, "*", amount, 10n ** BigInt(18 - decimals));
 }

@@ -6,6 +6,8 @@ Set a member's share units in a GDA pool (admin only). Units are plain unitless 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,13 +16,13 @@ superfluid:set-units <units> <to> <member> <in> <pool>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `units` | `number` | New unit count for the member (0 removes them) |
-| `to` | `command` | Keyword `to` |
-| `member` | `address` | Pool member |
-| `in` | `command` | Keyword `in` |
-| `pool` | `address` | GDA pool address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `units` | `number` | Runtime in smart blocks | New unit count for the member (0 removes them) |
+| `to` | `command` | Build time | Keyword `to` |
+| `member` | `address` | Runtime in smart blocks | Pool member |
+| `in` | `command` | Build time | Keyword `in` |
+| `pool` | `address` | Runtime in smart blocks | GDA pool address |
 
 ## Examples
 

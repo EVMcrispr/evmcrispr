@@ -3,12 +3,19 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import {
+  amountParam,
+  getSmartCompileContext,
+  isRuntimeValue,
+  type SmartAmount,
+  smartRead,
+} from "@evmcrispr/sdk/onchain";
 import type { Abi } from "viem";
 import type Superfluid from "..";
 import { superTokenAbi } from "../abis";
 import { requireCore } from "../utils/protocol";
+import { parseAmount } from "../utils/rate";
 import {
   getUnderlyingToken,
   isNativeSuperToken,
@@ -17,6 +24,7 @@ import {
 } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "unwrap",
   description:
     "Unwrap a SuperToken back to its underlying token (DAIx to DAI, xDAIx to native xDAI...). The amount is in the SuperToken's 18-decimal base units; pass `max` to unwrap the full balance. Keep some balance if streams are still running — unwrapping below the buffer makes them liquidatable.",
@@ -24,6 +32,7 @@ export default defineCommand<Superfluid>({
     {
       name: "amount",
       type: ["command", "number"],
+      runtime: true,
       description:
         "SuperToken amount to unwrap in base units (18 decimals), or the keyword `max` for the full balance",
     },
@@ -45,39 +54,33 @@ export default defineCommand<Superfluid>({
     await requireCore(module);
     const superToken = await resolveSuperToken(module, token);
 
-    let parsed: bigint;
+    let parsed: SmartAmount;
     if (amount === "max") {
-      const owner = await module.getConnectedAccount(true);
-      const client = await module.getClient();
-      parsed = (await client.readContract({
-        address: superToken,
-        abi: superTokenAbi as Abi,
-        functionName: "balanceOf",
-        args: [owner],
-      })) as bigint;
-      if (parsed <= 0n) {
+      const owner = await module.getSender();
+      parsed = getSmartCompileContext(module)
+        ? smartRead(
+            module,
+            superToken,
+            "balanceOf(address) returns (uint256)",
+            [owner],
+          )
+        : ((await (
+            await module.getClient()
+          ).readContract({
+            address: superToken,
+            abi: superTokenAbi as Abi,
+            functionName: "balanceOf",
+            args: [owner],
+          })) as bigint);
+      if (!isRuntimeValue(parsed) && parsed <= 0n)
         throw new ErrorException("nothing to unwrap");
-      }
-    } else {
-      let value: bigint;
-      try {
-        value = Num(amount as string).toBigInt();
-      } catch {
-        throw new ErrorException(
-          `<amount> must be a number or the keyword \`max\`, got ${amount}`,
-        );
-      }
-      if (value <= 0n) {
-        throw new ErrorException("<amount> must be greater than zero");
-      }
-      parsed = value;
-    }
+    } else parsed = parseAmount(amount, "<amount>", module);
 
     const chainId = await module.getChainId();
     if (isNativeSuperToken(chainId, superToken)) {
       return [
         encodeAction(superToken, "downgradeToETH(uint256)", [
-          Num.fromBigInt(parsed),
+          amountParam(parsed),
         ]),
       ];
     }
@@ -89,7 +92,7 @@ export default defineCommand<Superfluid>({
       );
     }
     return [
-      encodeAction(superToken, "downgrade(uint256)", [Num.fromBigInt(parsed)]),
+      encodeAction(superToken, "downgrade(uint256)", [amountParam(parsed)]),
     ];
   },
 });

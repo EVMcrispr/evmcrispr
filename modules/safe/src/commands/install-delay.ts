@@ -10,6 +10,11 @@ import {
 } from "../utils";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Deployment salt and initializer determine the predicted module address.",
+  },
   name: "install-delay",
   description:
     "Deploy a Zodiac Delay modifier (timelock) owned by the Safe and enable it as a module.",

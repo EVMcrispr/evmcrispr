@@ -6,6 +6,8 @@ Stop a money stream to a receiver, refunding the sender's buffer deposit. With -
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ superfluid:stop-stream <token> <to> <receiver>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
-| `to` | `command` | Keyword `to` |
-| `receiver` | `address` | Stream receiver |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
+| `to` | `command` | Build time | Keyword `to` |
+| `receiver` | `address` | Runtime in smart blocks | Stream receiver |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--from` | `address` | Stream sender when stopping a stream you don't send (as receiver or flow operator) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--from` | `address` | Runtime in smart blocks | Stream sender when stopping a stream you don't send (as receiver or flow operator) |
 
 ## Examples
 

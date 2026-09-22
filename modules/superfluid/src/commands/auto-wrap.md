@@ -6,6 +6,8 @@ Keep a SuperToken balance topped up automatically: when the balance falls below 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,19 +16,19 @@ superfluid:auto-wrap <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--lower` | `number` | Runway threshold that triggers a wrap, in time units (default 7d; protocol minimum 2d) |
-| `--upper` | `number` | Runway to top up to when triggered, in time units (default 14d; protocol minimum 7d) |
-| `--expiry` | `number` | Unix timestamp when the schedule expires (default: never) |
-| `--allowance` | `number` | Cap the underlying allowance granted to the wrap strategy (default: unlimited) |
-| `--no-approve` | `bool` | Skip the automatic allowance action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--lower` | `number` | Runtime in smart blocks | Runway threshold that triggers a wrap, in time units (default 7d; protocol minimum 2d) |
+| `--upper` | `number` | Runtime in smart blocks | Runway to top up to when triggered, in time units (default 14d; protocol minimum 7d) |
+| `--expiry` | `number` | Runtime in smart blocks | Unix timestamp when the schedule expires (default: never) |
+| `--allowance` | `number` | Runtime in smart blocks | Cap the underlying allowance granted to the wrap strategy (default: unlimited) |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance action |
 
 ## Examples
 

@@ -9,6 +9,11 @@ import {
 } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "The token identifies a schedule before signing; this command has no runtime amount.",
+  },
   name: "stop-auto-wrap",
   description:
     "Cancel an auto-wrap schedule. The strategy's token allowance is not touched — revoke it with token:approve 0 if you want it gone.",
@@ -29,7 +34,7 @@ export default defineCommand<Superfluid>({
         `${superToken} has no underlying token — auto-wrap only works for wrapper SuperTokens`,
       );
     }
-    const account = await module.getConnectedAccount(true);
+    const account = await module.getSender();
     return [
       encodeAction(manager, "deleteWrapSchedule(address,address,address)", [
         account,

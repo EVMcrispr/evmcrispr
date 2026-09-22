@@ -3,19 +3,23 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import { amountParam, isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type Vault from "..";
-import { isAsyncRedeemVault, vaultShareBalance } from "../erc7540";
+import { isAsyncRedeemVault } from "../erc7540";
 import { parseAmountOrMax, rejectNative } from "../utils/amounts";
+import { vaultShareBalance } from "../utils/smart";
 
 export default defineCommand<Vault>({
+  smartSupport: { kind: "runtime" },
   name: "redeem",
   description:
     "Redeem an exact amount of ERC-4626 vault shares for the underlying asset. Pass `max` as the amount to redeem the full share balance. For ERC-7540 asynchronous vaults use vault:request-redeem instead.",
   args: [
     {
       name: "shares",
+      runtime: true,
+      snapshot: true,
       type: ["command", "number"],
       description:
         "Amount of vault shares to redeem in base units (wei), or the keyword `max` for the full balance",
@@ -31,6 +35,7 @@ export default defineCommand<Vault>({
     {
       name: "to",
       type: "address",
+      runtime: true,
       description:
         "Receiver of the redeemed assets (defaults to the connected account)",
     },
@@ -49,17 +54,17 @@ export default defineCommand<Vault>({
         "this vault uses asynchronous redemptions (ERC-7540) — use vault:request-redeem / vault:claim-redeem",
       );
     }
-    const parsed = parseAmountOrMax(shares);
-    const owner = await module.getConnectedAccount(true);
+    const parsed = parseAmountOrMax(shares, module);
+    const owner = await module.getSender();
     const receiver = opts.to ?? owner;
     const amount =
       parsed === "max" ? await vaultShareBalance(module, vault, owner) : parsed;
-    if (amount <= 0n) {
+    if (!isRuntimeValue(amount) && amount <= 0n) {
       throw new ErrorException("nothing to redeem");
     }
     return [
-      encodeAction(vault, "redeem(uint256,address,address)", [
-        Num.fromBigInt(amount),
+      encodeAction(vault, "redeem(uint256,address,address) returns (uint256)", [
+        amountParam(amount),
         receiver,
         owner,
       ]),

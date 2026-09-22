@@ -4,6 +4,8 @@ title: "ens:set-contenthash"
 
 Set the content hash of an ENS name.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ ens:set-contenthash <name> <hash>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | ENS name (e.g. mydao.eth) |
-| `hash` | `string` | Content hash ("ipfs://Qm…", "ipns://…", "skynet://…" or encoded 0x bytes) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | ENS name (e.g. mydao.eth) |
+| `hash` | `string` | Runtime in smart blocks | Content hash ("ipfs://Qm…", "ipns://…", "skynet://…" or encoded 0x bytes) |
 
 <!-- HAND-WRITTEN -->
 

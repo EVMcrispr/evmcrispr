@@ -2,6 +2,11 @@ import { defineCommand, type TerminalAction } from "@evmcrispr/sdk";
 import type Std from "..";
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "wait",
   description:
     "Wait for a duration before executing the next action (fork simulations advance the chain's clock instead).",

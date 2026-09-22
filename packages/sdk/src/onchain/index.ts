@@ -8,6 +8,7 @@ export * from "./abi-guards";
  * give its helpers an on-chain (`compile`) face.
  */
 export * from "./addresses";
+export * from "./approvals";
 export * from "./arrays";
 export * from "./assert";
 export * from "./assertion";
@@ -28,6 +29,12 @@ export * from "./lambda";
 export * from "./operators";
 export * from "./reads";
 export * from "./recipes";
-
+export * from "./smart";
+export * from "./smart-amounts";
+export * from "./smart-encoding";
+export * from "./smart-execution";
+export * from "./smart-serialization";
+export * from "./smart-types";
 export * from "./types";
+
 export * from "./word-constraints";

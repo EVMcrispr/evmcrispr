@@ -6,6 +6,8 @@ Propose a signed transaction to the Safe queue, or prepare and sign portable tra
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -14,20 +16,21 @@ safe:propose <safe> <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `safe` | `address` | Safe address |
-| `block` | `block \| string` | Commands composing the transaction, or exported transaction JSON with --no-api |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `safe` | `address` | Build time | Safe address |
+| `block` | `block \| string` | Build time | Commands composing the transaction, or exported transaction JSON with --no-api |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--as` | `variable` | Bind the exported package to a variable (requires --no-api) |
-| `--no-api` | `bool` | Export transaction JSON and collect signatures locally without contacting the Safe Transaction Service |
-| `--unsigned` | `bool` | Prepare transaction JSON without a wallet signature (requires --no-api) |
-| `--nonce` | `number` | Safe nonce override for a block (defaults to the next free service nonce, or the on-chain nonce with --no-api) |
-| `--origin` | `string` | Origin tag shown in the Safe UI |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--salt` | `bytes32` | Build time | Smart-batch storage salt for reproducible offline signing (block forms with !) |
+| `--as` | `variable` | Build time | Bind the exported package to a variable (requires --no-api) |
+| `--no-api` | `bool` | Build time | Export transaction JSON and collect signatures locally without contacting the Safe Transaction Service |
+| `--unsigned` | `bool` | Build time | Prepare transaction JSON without a wallet signature (requires --no-api) |
+| `--nonce` | `number` | Build time | Safe nonce override for a block (defaults to the next free service nonce, or the on-chain nonce with --no-api) |
+| `--origin` | `string` | Build time | Origin tag shown in the Safe UI |
 
 <!-- HAND-WRITTEN -->
 

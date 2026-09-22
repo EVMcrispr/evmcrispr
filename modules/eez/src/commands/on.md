@@ -6,6 +6,8 @@ Run a block of commands on another EEZ chain synchronously from the current one.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. Cross-chain execution changes account and chain; it cannot run inside a single-account smart batch.
+
 ## Syntax
 
 ```evml
@@ -14,10 +16,10 @@ eez:on <chain> <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `chain` | `chain` | EEZ chain the block runs on (`eezL2`, or its chain id) |
-| `block` | `block` | Commands whose calls execute on that chain (`exec`, `if`, `loop`, other modules' commands) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `chain` | `chain` | Build time | EEZ chain the block runs on (`eezL2`, or its chain id) |
+| `block` | `block` | Build time | Commands whose calls execute on that chain (`exec`, `if`, `loop`, other modules' commands) |
 
 ## Examples
 

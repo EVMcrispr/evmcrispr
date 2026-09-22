@@ -5,12 +5,16 @@ import { parseAmountOrMax, rejectNative } from "../utils/amounts";
 import { withApproval } from "../utils/plan";
 
 export default defineCommand<Lending>({
+  smartSupport: { kind: "runtime" },
   name: "repay",
+  primaryCall: -1,
   description:
     "Repay borrowed tokens, approving the pool automatically when needed. Pass `max` as the amount to clear the debt dust-exact: the approval covers the current debt plus a 0.1% interest buffer, and the pool pulls only what is owed.",
   args: [
     {
       name: "amount",
+      runtime: true,
+      snapshot: true,
       type: ["command", "number"],
       description:
         "Amount to repay in base units (wei), or the keyword `max` to repay the full debt",
@@ -31,6 +35,7 @@ export default defineCommand<Lending>({
     {
       name: "on-behalf-of",
       type: "address",
+      runtime: true,
       description:
         "Account whose debt is repaid (defaults to the connected account; not combinable with `max`)",
     },
@@ -45,9 +50,9 @@ export default defineCommand<Lending>({
   },
   async run(module, { amount, token }, { opts }) {
     rejectNative(token);
-    const parsed = parseAmountOrMax(amount);
+    const parsed = parseAmountOrMax(amount, module);
     const chainId = await module.getChainId();
-    const from = await module.getConnectedAccount(true);
+    const from = await module.getSender();
     const onBehalfOf = opts["on-behalf-of"] ?? from;
     const adapter = await resolveAdapter(module, opts.using);
     const plan = await adapter.buildRepay(module, {

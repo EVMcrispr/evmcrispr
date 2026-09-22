@@ -3,8 +3,8 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import { amountParam, getSmartCompileContext } from "@evmcrispr/sdk/onchain";
 import type { Abi } from "viem";
 import type Superfluid from "..";
 import { cfaForwarderAbi } from "../abis";
@@ -14,6 +14,7 @@ import { parseFlowRate } from "../utils/rate";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "stream",
   description:
     "Open a money stream of a SuperToken to a receiver, or retarget an existing one to the new rate (idempotent). Rates are wei per second — use a rate literal like 1000e18/mo. Opening a stream locks a buffer deposit (hours of streaming) that is refunded when the stream stops.",
@@ -21,6 +22,7 @@ export default defineCommand<Superfluid>({
     {
       name: "rate",
       type: "number",
+      runtime: true,
       description: "Flow rate in wei per second, e.g. 1000e18/mo",
     },
     {
@@ -29,18 +31,25 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "receiver", type: "address", description: "Stream receiver" },
+    {
+      name: "receiver",
+      type: "address",
+      runtime: true,
+      description: "Stream receiver",
+    },
   ],
   opts: [
     {
       name: "from",
       type: "address",
+      runtime: true,
       description:
         "Stream sender when acting as a flow operator (requires prior grant-flow-operator by the sender)",
     },
     {
       name: "user-data",
       type: "bytes",
+      runtime: true,
       description: "Arbitrary user data forwarded to stream hooks",
     },
   ],
@@ -52,10 +61,10 @@ export default defineCommand<Superfluid>({
     const chainId = await requireCore(module);
     const forwarder = cfaForwarder(chainId);
     const superToken = await resolveSuperToken(module, token);
-    const flowRate = parseFlowRate(rate, "<rate>");
+    const flowRate = parseFlowRate(rate, "<rate>", module);
     const userData = opts["user-data"] ?? "0x";
 
-    const account = await module.getConnectedAccount(true);
+    const account = await module.getSender();
     const sender = opts.from ?? account;
 
     // setFlowrate only acts for msg.sender and takes no user data; the
@@ -65,11 +74,15 @@ export default defineCommand<Superfluid>({
         encodeAction(forwarder, "setFlowrate(address,address,int96)", [
           superToken,
           receiver,
-          Num.fromBigInt(flowRate),
+          amountParam(flowRate),
         ]),
       ];
     }
 
+    if (getSmartCompileContext(module))
+      throw new ErrorException(
+        "stream with --from or --user-data chooses create/update from build-time state; use exec with an explicit createFlow or updateFlow ABI inside a smart batch",
+      );
     const client = await module.getClient();
     const current = (await client.readContract({
       address: forwarder,
@@ -87,7 +100,7 @@ export default defineCommand<Superfluid>({
         superToken,
         sender,
         receiver,
-        Num.fromBigInt(flowRate),
+        amountParam(flowRate),
         userData,
       ]),
     ];

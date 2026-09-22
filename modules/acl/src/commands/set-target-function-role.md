@@ -6,6 +6,8 @@ Map functions of a managed contract to the AccessManager role required to call t
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,12 +16,12 @@ acl:set-target-function-role <manager> <target> <roleId> <signatures>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `manager` | `address` | AccessManager address |
-| `target` | `address` | Managed contract address |
-| `roleId` | `number \| string` | Role id required to call the functions (or ADMIN_ROLE / PUBLIC_ROLE) |
-| `signatures` | `array` | Function signatures to gate |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `manager` | `address` | Runtime in smart blocks | AccessManager address |
+| `target` | `address` | Runtime in smart blocks | Managed contract address |
+| `roleId` | `number \| string` | Build time | Role id required to call the functions (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `signatures` | `array` | Build time | Function signatures to gate |
 
 <!-- HAND-WRITTEN -->
 

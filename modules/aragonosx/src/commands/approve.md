@@ -6,6 +6,8 @@ Approve a multisig proposal.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,16 +16,16 @@ aragonosx:approve <plugin> <proposalId>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `plugin` | `plugin` | Multisig plugin holding the proposal |
-| `proposalId` | `number` | Proposal id |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `plugin` | `plugin` | Build time | Multisig plugin holding the proposal |
+| `proposalId` | `number` | Runtime in smart blocks | Proposal id |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--try-execution` | `bool` | Execute in the same call if the proposal already passes |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--try-execution` | `bool` | Build time | Execute in the same call if the proposal already passes |
 
 ## Examples
 

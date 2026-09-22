@@ -4,6 +4,8 @@ title: "if"
 
 Conditionally execute a block of commands, with an optional else block.
 
+Smart blocks: build-time inputs only. Control-flow conditions are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ if <condition> <thenBlock> [elseBlock]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `condition` | `bool` | Whether to execute the then block |
-| `thenBlock` | `block` | Commands when condition is true |
-| `[elseBlock]` | `block` | Commands when condition is false |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `condition` | `bool` | Build time | Whether to execute the then block |
+| `thenBlock` | `block` | Build time | Commands when condition is true |
+| `[elseBlock]` | `block` | Build time | Commands when condition is false |
 
 ## Examples
 

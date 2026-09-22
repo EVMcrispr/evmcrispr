@@ -15,6 +15,11 @@ import { getGroupMembers } from "../utils/members";
 import { parseGroupId, requireSemaphore } from "../utils/semaphore";
 
 export default defineCommand<Semaphore>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "A concrete identity and group are needed to reconstruct the Merkle proof.",
+  },
   name: "remove-member",
   description:
     "Remove an identity commitment from a Semaphore group (the leaf becomes 0; the tree keeps its size). Computes the required Merkle siblings from the reconstructed member set — they go stale if the group changes before execution.",

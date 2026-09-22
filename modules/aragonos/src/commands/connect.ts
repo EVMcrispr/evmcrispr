@@ -43,6 +43,11 @@ const setDAOContext = (aragonos: AragonOS, dao: DaoContext) => {
 };
 
 export default defineCommand<AragonOS>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "DAO selection and ABI discovery happen at build time; the block expands into the surrounding execution context.",
+  },
   name: "connect",
   description:
     "Connect to an Aragon DAO and execute commands within its context.",
@@ -83,6 +88,7 @@ export default defineCommand<AragonOS>({
           // Inherit hasActions from any enclosing batch context: reads
           // inside this block can't see the outer batch's actions either.
           batchContext: {
+            ...interpreters.batchContext,
             name: "connect",
             hasActions: interpreters.batchContext?.hasActions ?? false,
           },

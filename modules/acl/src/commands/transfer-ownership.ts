@@ -7,6 +7,7 @@ import {
 import type AccessControl from "..";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "transfer-ownership",
   description:
     "Transfer ownership of an Ownable contract. On Ownable2Step contracts this stages the pending owner, who must then accept.",
@@ -15,10 +16,16 @@ export default defineCommand<AccessControl>({
     {
       name: "contract",
       type: "address",
+      runtime: true,
       description: "Ownable contract address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "newOwner", type: "address", description: "New owner address" },
+    {
+      name: "newOwner",
+      type: "address",
+      runtime: true,
+      description: "New owner address",
+    },
   ],
   completions: {
     of: () => [fieldItem("of")],

@@ -4,6 +4,8 @@ title: "set"
 
 Assign a value to a variable for use later in the script.
 
+Smart blocks: build-time inputs only. Assignments are build-time values; use -> [...] capture for on-chain outputs.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ set <variable> <value>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable name |
-| `value` | `any` | Value to assign |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable name |
+| `value` | `any` | Build time | Value to assign |
 
 ## Examples
 

@@ -7,6 +7,11 @@ import { toMetadataBytes } from "../utils/metadata";
 import { toOsxActions } from "../utils/osxActions";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command opens a separate atomic execution context; nested atomic blocks are unsupported.",
+  },
   name: "propose",
   description:
     "Wrap actions into a proposal on one of the DAO's governance plugins.",

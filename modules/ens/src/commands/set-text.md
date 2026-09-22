@@ -4,6 +4,8 @@ title: "ens:set-text"
 
 Set a text record on an ENS name.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ ens:set-text <name> <key> <value>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | ENS name (e.g. mydao.eth) |
-| `key` | `string` | Text record key (e.g. "url", "com.twitter") |
-| `value` | `string` | Text record value |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | ENS name (e.g. mydao.eth) |
+| `key` | `string` | Runtime in smart blocks | Text record key (e.g. "url", "com.twitter") |
+| `value` | `string` | Runtime in smart blocks | Text record value |
 
 <!-- HAND-WRITTEN -->
 

@@ -6,6 +6,8 @@ Set the admin role that manages grants and revocations of an AccessManager role.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ acl:set-role-admin <manager> <roleId> <adminRoleId>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `manager` | `address` | AccessManager address |
-| `roleId` | `number \| string` | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
-| `adminRoleId` | `number \| string` | New admin role id |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `manager` | `address` | Runtime in smart blocks | AccessManager address |
+| `roleId` | `number \| string` | Build time | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `adminRoleId` | `number \| string` | Build time | New admin role id |
 
 <!-- HAND-WRITTEN -->
 

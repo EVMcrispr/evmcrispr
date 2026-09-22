@@ -10,6 +10,11 @@ import { toOsxActions } from "../utils/osxActions";
 const ZERO_CALL_ID = `0x${"0".repeat(64)}` as Hex;
 
 export default defineCommand<AragonOSx>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command opens a separate atomic execution context; nested atomic blocks are unsupported.",
+  },
   name: "act",
   description:
     "Execute actions directly through the DAO (the caller needs EXECUTE_PERMISSION on it).",

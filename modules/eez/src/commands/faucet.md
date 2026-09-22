@@ -6,6 +6,8 @@ Send devnet ETH to an account from the EEZ devnet's pre-funded faucet key, so a 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -14,15 +16,15 @@ eez:faucet [recipient]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[recipient]` | `address` | Account to fund (defaults to the connected account) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[recipient]` | `address` | Build time | Account to fund (defaults to the connected account) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--amount` | `number` | Amount to send in wei (default 0.1 ETH, enough for many transactions) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--amount` | `number` | Build time | Amount to send in wei (default 0.1 ETH, enough for many transactions) |
 
 ## Examples
 

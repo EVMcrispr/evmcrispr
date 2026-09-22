@@ -26,7 +26,7 @@ export interface LendingActionRequest {
   token: Address;
   /** "max" only reaches buildWithdraw (full balance) and buildRepay
    *  (full debt). */
-  amount: bigint | "max";
+  amount: import("@evmcrispr/sdk/onchain").SmartAmount | "max";
   /** Connected account (msg.sender). */
   from: Address;
   /** Position owner; equals `from` unless --on-behalf-of. */
@@ -40,7 +40,7 @@ export interface LendingPlan {
    *  when the operation needs no allowance (withdraw, borrow...). */
   approvalTarget?: Address;
   /** Amount the approval must cover. */
-  approvalAmount?: bigint;
+  approvalAmount?: import("@evmcrispr/sdk/onchain").SmartAmount;
   /** Actions to run after any auto-approve action. */
   actions: Action[];
 }
@@ -67,7 +67,10 @@ export interface LendingAdapter {
   /** Optional: not every protocol has e-mode (Compound v3 doesn't). */
   buildSetEmode?(
     module: Lending,
-    req: { chainId: number; categoryId: number },
+    req: {
+      chainId: number;
+      categoryId: number | import("@evmcrispr/sdk/onchain").RuntimeValue;
+    },
   ): Promise<LendingPlan>;
 
   /** Reads — optional so adapters without the concept (Compound v3 has no

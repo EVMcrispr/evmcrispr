@@ -9,12 +9,14 @@ import { requireOperatorSupport } from "../erc7540";
 import { rejectNative } from "../utils/amounts";
 
 export default defineCommand<Vault>({
+  smartSupport: { kind: "runtime" },
   name: "set-operator",
   description:
     "Approve (default) or revoke an operator on an ERC-7540 vault. Operators can request and claim on behalf of the connected account.",
   args: [
     {
       name: "operator",
+      runtime: true,
       type: "address",
       description: "Operator account to approve or revoke",
     },
@@ -26,6 +28,7 @@ export default defineCommand<Vault>({
     },
     {
       name: "approved",
+      runtime: true,
       type: "bool",
       optional: true,
       description: "Pass `false` to revoke the operator (defaults to `true`)",

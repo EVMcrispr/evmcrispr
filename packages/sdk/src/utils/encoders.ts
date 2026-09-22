@@ -8,10 +8,23 @@ import {
 } from "viem";
 
 import { ErrorInvalid } from "../errors";
+import {
+  hasRuntimeValue,
+  type PlannedCall,
+  type RuntimeValue,
+} from "../onchain/smart-types";
 import type { Address, TransactionAction } from "../types";
 import { Num } from "./Num";
 
-export type Param = string | boolean | Num | Param[];
+export type Param =
+  | string
+  | boolean
+  | number
+  | bigint
+  | Num
+  | RuntimeValue
+  | Param[]
+  | { [key: string]: Param };
 
 /** Convert recursively without silently truncating rational ABI integers. */
 export function coerceAbiValue(type: AbiParameter, value: unknown): unknown {
@@ -128,11 +141,11 @@ export const encodeSignatureCall = (
 };
 
 export const encodeAction = (
-  target: Address,
+  target: Address | RuntimeValue,
   signature: string,
-  params: Param[],
+  params: (Param | RuntimeValue)[],
   opts?: {
-    value?: bigint;
+    value?: bigint | RuntimeValue;
     from?: Address;
     abi?: Abi;
   },
@@ -149,14 +162,29 @@ export const encodeAction = (
     throw new ErrorInvalid(`Wrong signature format: ${signature}.`);
   }
 
-  const action: TransactionAction = {
-    to: target,
-    data: encodeCalldata(fnABI, params),
+  const call: PlannedCall = {
+    target,
+    abi: fnABI,
+    args: params,
+    value: opts?.value,
   };
-  if (opts?.value !== undefined) action.value = opts.value;
+  if (hasRuntimeValue(call)) return { plannedCall: call, from: opts?.from };
+  const action: TransactionAction = {
+    to: target as Address,
+    data: encodeCalldata(fnABI, params as Param[]),
+  };
+  if (opts?.value !== undefined) action.value = opts.value as bigint;
   if (opts?.from !== undefined) action.from = opts.from;
+  encodedCalls.set(action, call);
   return action;
 };
+
+// Preserve ABI information for smart return capture without changing ordinary
+// action serialization or sending compiler metadata to wallet providers.
+const encodedCalls = new WeakMap<TransactionAction, PlannedCall>();
+export const getEncodedCall = (
+  action: TransactionAction,
+): PlannedCall | undefined => action.plannedCall ?? encodedCalls.get(action);
 
 export const encodeCalldata = (
   abiFn: AbiFunction,

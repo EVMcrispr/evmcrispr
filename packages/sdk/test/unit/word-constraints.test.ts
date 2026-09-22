@@ -10,6 +10,7 @@ import {
   rawParam,
   toWord,
 } from "../../src/onchain/erc8211";
+import { wordJudge } from "../../src/onchain/judge";
 import { constrainWord } from "../../src/onchain/word-constraints";
 
 const ctx = { core: "0x0000000000000000000000000000000000001001" } as const;
@@ -139,4 +140,12 @@ describe("constraints on the same word", () => {
       expect(resolvedInput(output)).toEqual(input);
     });
   }
+});
+
+it("assertion comparisons merge an existing guard with the same algorithm", () => {
+  const input = rawParam(toWord(42n), [constraint("Gte", 1n)]);
+  const addresses = { ...ctx, operators: ctx.core };
+  expect(wordJudge(addresses, input, "Le", 100n)).toEqual(
+    constrainWord(ctx, input, constraint("Lte", 100n)),
+  );
 });

@@ -6,6 +6,8 @@ Repay borrowed tokens, approving the pool automatically when needed. Pass `max` 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ lending:repay <amount> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `command \| number` | Amount to repay in base units (wei), or the keyword `max` to repay the full debt |
-| `token` | `address` | Borrowed token to repay (use @token(SYM)) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `command \| number` | Runtime in smart blocks | Amount to repay in base units (wei), or the keyword `max` to repay the full debt |
+| `token` | `address` | Build time | Borrowed token to repay (use @token(SYM)) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--using` | `lending-adapter` | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
-| `--on-behalf-of` | `address` | Account whose debt is repaid (defaults to the connected account; not combinable with `max`) |
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--using` | `lending-adapter` | Build time | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
+| `--on-behalf-of` | `address` | Runtime in smart blocks | Account whose debt is repaid (defaults to the connected account; not combinable with `max`) |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 ## Examples
 

@@ -4,8 +4,8 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import { amountParam, snapshotSmartAmount } from "@evmcrispr/sdk/onchain";
 import type Superfluid from "..";
 import { FLOW_SCHEDULER } from "../addresses";
 import {
@@ -25,13 +25,16 @@ import {
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "schedule-flow",
+  primaryCall: -1,
   description:
     "Schedule a stream to start and/or end at future timestamps, executed by Superfluid's keeper network. Automatically grants the FlowScheduler the flow-operator permissions it needs (create for --start, delete for --end) plus a SuperToken allowance when --start-amount is set. At least one of --start / --end is required; execution is permissionless but not guaranteed if the grants are revoked.",
   args: [
     {
       name: "rate",
       type: "number",
+      runtime: true,
       description:
         "Flow rate in wei per second (e.g. 1000e18/mo); may be 0 for end-only schedules",
     },
@@ -41,12 +44,18 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "receiver", type: "address", description: "Stream receiver" },
+    {
+      name: "receiver",
+      type: "address",
+      runtime: true,
+      description: "Stream receiver",
+    },
   ],
   opts: [
     {
       name: "start",
       type: "number",
+      runtime: true,
       description: "Unix timestamp at which the keeper opens the stream",
     },
     {
@@ -58,11 +67,13 @@ export default defineCommand<Superfluid>({
     {
       name: "end",
       type: "number",
+      runtime: true,
       description: "Unix timestamp at which the keeper closes the stream",
     },
     {
       name: "start-amount",
       type: "number",
+      runtime: true,
       description:
         "Optional lump-sum SuperToken transfer when the stream starts (needs an allowance, granted automatically)",
     },
@@ -86,8 +97,11 @@ export default defineCommand<Superfluid>({
     const superToken = await resolveSuperToken(module, token);
 
     const start =
-      opts.start === undefined ? 0n : parseAmount(opts.start, "--start");
-    const end = opts.end === undefined ? 0n : parseAmount(opts.end, "--end");
+      opts.start === undefined
+        ? 0n
+        : parseAmount(opts.start, "--start", module);
+    const end =
+      opts.end === undefined ? 0n : parseAmount(opts.end, "--end", module);
     if (start === 0n && end === 0n) {
       throw new ErrorException(
         "schedule-flow needs at least one of --start or --end",
@@ -96,26 +110,29 @@ export default defineCommand<Superfluid>({
     const startWindow =
       opts["start-window"] === undefined
         ? 259200n // 3d — how late the keeper may still start the stream
-        : parseDuration(opts["start-window"], "--start-window");
-    const startAmount =
+        : parseDuration(opts["start-window"], "--start-window", module);
+    const startAmount = await snapshotSmartAmount(
+      module,
       opts["start-amount"] === undefined
         ? 0n
-        : parseAmount(opts["start-amount"], "--start-amount");
-    if (startAmount > 0n && start === 0n) {
+        : parseAmount(opts["start-amount"], "--start-amount", module),
+    );
+    if (opts["start-amount"] !== undefined && start === 0n) {
       throw new ErrorException("--start-amount requires --start");
     }
 
     const flowRate =
-      start > 0n
-        ? parseFlowRate(rate, "<rate>")
-        : parseFlowRateOrZero(rate, "<rate>");
+      opts.start !== undefined
+        ? parseFlowRate(rate, "<rate>", module)
+        : parseFlowRateOrZero(rate, "<rate>", module);
 
-    const account = await module.getConnectedAccount(true);
+    const account = await module.getSender();
     const actions: Action[] = [];
 
     if (!skipPrereqs(opts)) {
       const permissions =
-        (start > 0n ? PERM_CREATE : 0) | (end > 0n ? PERM_DELETE : 0);
+        (opts.start !== undefined ? PERM_CREATE : 0) |
+        (opts.end !== undefined ? PERM_DELETE : 0);
       actions.push(
         ...(await buildOperatorGrantActions(
           module,
@@ -126,7 +143,7 @@ export default defineCommand<Superfluid>({
           flowRate,
         )),
       );
-      if (startAmount > 0n) {
+      if (opts["start-amount"] !== undefined) {
         actions.push(
           ...(await buildApprovalActions(
             module,
@@ -146,11 +163,11 @@ export default defineCommand<Superfluid>({
         [
           superToken,
           receiver,
-          Num.fromBigInt(start),
-          Num.fromBigInt(startWindow),
-          Num.fromBigInt(flowRate),
-          Num.fromBigInt(startAmount),
-          Num.fromBigInt(end),
+          amountParam(start),
+          amountParam(startWindow),
+          amountParam(flowRate),
+          amountParam(startAmount),
+          amountParam(end),
           "0x",
           "0x",
         ],

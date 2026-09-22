@@ -644,6 +644,7 @@ function seedCaptureBindings(
   c: CommandExpressionNode,
   bindings: BindingsManager,
 ): void {
+  seedCapturePlaceholders(c.returnCapture ?? [], bindings);
   const captures: Array<EventCaptureNode | ErrorCaptureNode> = [
     ...(c.eventCaptures ?? []),
     ...(c.errorCaptures ?? []),

@@ -3,16 +3,23 @@ import type Ens from "..";
 import { assertSupportedChain, getNode, getRegistryResolver } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "set-text",
   description: "Set a text record on an ENS name.",
   args: [
     { name: "name", type: "string", description: "ENS name (e.g. mydao.eth)" },
     {
       name: "key",
+      runtime: true,
       type: "string",
       description: 'Text record key (e.g. "url", "com.twitter")',
     },
-    { name: "value", type: "string", description: "Text record value" },
+    {
+      name: "value",
+      runtime: true,
+      type: "string",
+      description: "Text record value",
+    },
   ],
   async run(module, { name, key, value }) {
     const chainId = await module.getChainId();

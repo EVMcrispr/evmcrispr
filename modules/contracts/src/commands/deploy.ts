@@ -37,6 +37,11 @@ const CREATEX_DEPLOY_CREATE3_ABI = parseAbiItem(
 const ZERO_ADDR_BYTES20 = pad("0x", { size: 20 });
 
 export default defineCommand<Contracts>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Bytecode, salt and constructor inputs determine the address binding; plain CREATE is not atomic-batch compatible.",
+  },
   name: "deploy",
   description:
     "Deploy a contract from raw creation bytecode. Binds the predicted address to <variable>. Mirror an existing deployment with --mirror-chain / --mirror-address (fetches the original creation bytecode from Etherscan).",

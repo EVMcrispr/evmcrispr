@@ -3,11 +3,17 @@ import type AccessControl from "..";
 import { resolveManagerRoleId } from "../utils";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "label-role",
   description:
     "Attach a human-readable label to an AccessManager role (emitted as an event for off-chain indexing).",
   args: [
-    { name: "manager", type: "address", description: "AccessManager address" },
+    {
+      name: "manager",
+      type: "address",
+      runtime: true,
+      description: "AccessManager address",
+    },
     {
       name: "roleId",
       type: ["number", "string"],

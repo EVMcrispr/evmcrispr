@@ -6,6 +6,8 @@ Grant a role on an AccessControl contract (string roles, hashed with keccak256) 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,19 +16,19 @@ acl:grant <role> <on> <target> <to> <account>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `role` | `number \| string` | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
-| `on` | `command` | Keyword `on` |
-| `target` | `address` | AccessControl contract or AccessManager address |
-| `to` | `command` | Keyword `to` |
-| `account` | `address` | Account to grant to |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `role` | `number \| string` | Build time | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
+| `on` | `command` | Build time | Keyword `on` |
+| `target` | `address` | Runtime in smart blocks | AccessControl contract or AccessManager address |
+| `to` | `command` | Build time | Keyword `to` |
+| `account` | `address` | Runtime in smart blocks | Account to grant to |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--delay` | `number` | Execution delay for the grantee, in time units (e.g. 1d; AccessManager role ids only) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--delay` | `number` | Runtime in smart blocks | Execution delay for the grantee, in time units (e.g. 1d; AccessManager role ids only) |
 
 <!-- HAND-WRITTEN -->
 

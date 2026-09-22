@@ -63,7 +63,7 @@ describe("defineHelper run/compile faces", () => {
     ).rejects.toThrow("evaluates on-chain and is only valid inside");
   });
 
-  it("lifts the non-batchable gate inside a smart batch context", async () => {
+  it("keeps ordinary reads build-time inside a smart batch context", async () => {
     const fn = defineHelper({
       name: "reader",
       args: [],
@@ -82,6 +82,8 @@ describe("defineHelper run/compile faces", () => {
       ...interpreters,
       batchContext: { name: "batch", hasActions: true, smart: true },
     };
-    expect(await fn(null as any, helperNode("reader"), smart)).toBe("read");
+    await expect(fn(null as any, helperNode("reader"), smart)).rejects.toThrow(
+      "batch-build time",
+    );
   });
 });

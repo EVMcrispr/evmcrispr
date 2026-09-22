@@ -1,5 +1,10 @@
 import type { Action } from "@evmcrispr/sdk";
 import { chainLabel, ErrorException, encodeAction } from "@evmcrispr/sdk";
+import {
+  amountParam,
+  isRuntimeValue,
+  type RuntimeValue,
+} from "@evmcrispr/sdk/onchain";
 import type { Address, Hex } from "viem";
 import {
   encodeFunctionData,
@@ -112,6 +117,35 @@ const cctp: BridgeAdapter = {
     return { tokenFee: 0n, nativeFee: 0n, amountOut: req.amount };
   },
 
+  async buildSmartBridge(_module, req) {
+    assertUsdcLane(req.srcChainId, req.dstChainId, req.token);
+    return {
+      approvalTarget: CCTP_TOKEN_MESSENGER_V2,
+      actions: [
+        encodeAction(
+          CCTP_TOKEN_MESSENGER_V2,
+          "depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)",
+          [
+            amountParam(req.amount),
+            String(CCTP_DOMAINS[req.dstChainId]),
+            isRuntimeValue(req.recipient)
+              ? ({
+                  ...req.recipient,
+                  abiType: { type: "bytes32" },
+                  operand: { ...req.recipient.operand, cat: "Bytes32" },
+                } as RuntimeValue)
+              : addressToBytes32(req.recipient),
+            req.token,
+            addressToBytes32(
+              "0x0000000000000000000000000000000000000000", // any caller may deliver
+            ),
+            "0", // maxFee: standard transfers are free
+            String(CCTP_FINALITY_FINALIZED),
+          ],
+        ),
+      ],
+    };
+  },
   async buildBridge(_module, req) {
     assertUsdcLane(req.srcChainId, req.dstChainId, req.token);
     return {

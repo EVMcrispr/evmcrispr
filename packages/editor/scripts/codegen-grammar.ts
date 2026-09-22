@@ -33,7 +33,7 @@ if (!existsSync(stdCommandsDir)) {
 const commandNames = readdirSync(stdCommandsDir)
   .filter((f) => f.endsWith(".ts") && !f.startsWith("_"))
   .map((f) => f.replace(/\.ts$/, ""))
-  .sort();
+  .sort((a, b) => b.length - a.length || a.localeCompare(b));
 
 if (commandNames.length === 0) {
   console.error(
@@ -51,7 +51,7 @@ if (!commandBlockRe.test(raw)) {
   process.exit(1);
 }
 
-const match = `\\b(?:${commandNames.join("|")})\\b`;
+const match = `\\b(?:${commandNames.join("|")})(?![a-zA-Z0-9_!:-])`;
 const block = [
   '"command": {',
   '      "comment": "Auto-generated from modules/std/src/commands by scripts/codegen-grammar.ts — do not edit by hand.",',

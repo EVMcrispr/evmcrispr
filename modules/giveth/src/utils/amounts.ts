@@ -1,4 +1,5 @@
 import { ErrorException, Num } from "@evmcrispr/sdk";
+import { isRuntimeValue, type RuntimeValue } from "@evmcrispr/sdk/onchain";
 
 /**
  * Parse an amount arg declared as ["command", "number"]: the bareword `max`
@@ -6,7 +7,10 @@ import { ErrorException, Num } from "@evmcrispr/sdk";
  * number. Zero is allowed so commands can no-op on it — scripts like
  * `stake @giveth:claimable()` shouldn't need an `if` guard around them.
  */
-export function parseAmountOrMax(value: unknown): bigint | "max" {
+export function parseAmountOrMax(
+  value: unknown,
+): bigint | "max" | RuntimeValue {
+  if (isRuntimeValue(value)) return value;
   if (value === "max") return "max";
   let amount: bigint;
   try {

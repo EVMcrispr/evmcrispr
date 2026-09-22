@@ -1,10 +1,10 @@
 import type { Action } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException, encodeAction } from "@evmcrispr/sdk";
 import {
-  defineCommand,
-  ErrorException,
-  encodeAction,
-  Num,
-} from "@evmcrispr/sdk";
+  amountParam,
+  assertSmartComparison,
+  getSmartCompileContext,
+} from "@evmcrispr/sdk/onchain";
 import { maxUint256 } from "viem";
 import type Superfluid from "..";
 import { AUTOWRAP_MANAGER, AUTOWRAP_STRATEGY } from "../addresses";
@@ -22,6 +22,7 @@ import {
 const DEFAULT_EXPIRY = 32503680000n;
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "auto-wrap",
   description:
     "Keep a SuperToken balance topped up automatically: when the balance falls below --lower of outflow runway, Superfluid's keepers wrap enough underlying to reach --upper. WARNING: by default this grants the wrap strategy an unlimited allowance on the underlying token (matching Superfluid's own UI, since the schedule is open-ended) — cap it with --allowance.",
@@ -35,23 +36,27 @@ export default defineCommand<Superfluid>({
   opts: [
     {
       name: "lower",
+      runtime: true,
       type: "number",
       description:
         "Runway threshold that triggers a wrap, in time units (default 7d; protocol minimum 2d)",
     },
     {
       name: "upper",
+      runtime: true,
       type: "number",
       description:
         "Runway to top up to when triggered, in time units (default 14d; protocol minimum 7d)",
     },
     {
       name: "expiry",
+      runtime: true,
       type: "number",
       description: "Unix timestamp when the schedule expires (default: never)",
     },
     {
       name: "allowance",
+      runtime: true,
       type: "number",
       description:
         "Cap the underlying allowance granted to the wrap strategy (default: unlimited)",
@@ -79,24 +84,38 @@ export default defineCommand<Superfluid>({
     }
 
     const lower =
-      opts.lower === undefined ? 604800n : parseDuration(opts.lower, "--lower");
+      opts.lower === undefined
+        ? 604800n
+        : parseDuration(opts.lower, "--lower", module);
     const upper =
       opts.upper === undefined
         ? 1209600n
-        : parseDuration(opts.upper, "--upper");
-    if (upper <= lower) {
-      throw new ErrorException("--upper must be greater than --lower");
-    }
+        : parseDuration(opts.upper, "--upper", module);
+    await assertSmartComparison(
+      module,
+      upper,
+      ">",
+      lower,
+      "--upper must be greater than --lower",
+    );
+    if (
+      getSmartCompileContext(module) &&
+      !skipPrereqs(opts) &&
+      opts.allowance === undefined
+    )
+      throw new ErrorException(
+        "smart auto-wrap requires an explicit finite --allowance or --no-approve",
+      );
     const expiry =
       opts.expiry === undefined
         ? DEFAULT_EXPIRY
-        : parseAmount(opts.expiry, "--expiry");
+        : parseAmount(opts.expiry, "--expiry", module);
     const allowance =
       opts.allowance === undefined
         ? maxUint256
-        : parseAmount(opts.allowance, "--allowance");
+        : parseAmount(opts.allowance, "--allowance", module);
 
-    const account = await module.getConnectedAccount(true);
+    const account = await module.getSender();
     const actions: Action[] = [];
     if (!skipPrereqs(opts)) {
       actions.push(
@@ -117,9 +136,9 @@ export default defineCommand<Superfluid>({
           superToken,
           strategy,
           underlying,
-          Num.fromBigInt(expiry),
-          Num.fromBigInt(lower),
-          Num.fromBigInt(upper),
+          amountParam(expiry),
+          amountParam(lower),
+          amountParam(upper),
         ],
       ),
     );

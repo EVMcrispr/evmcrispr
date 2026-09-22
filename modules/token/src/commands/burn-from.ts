@@ -7,6 +7,7 @@ import {
 import type Token from "..";
 
 export default defineCommand<Token>({
+  smartSupport: { kind: "runtime" },
   name: "burn-from",
   description:
     "Burn tokens from another account, consuming the sender allowance (ERC20Burnable burnFrom function).",
@@ -14,11 +15,22 @@ export default defineCommand<Token>({
     {
       name: "amount",
       type: "number",
+      runtime: true,
       description: "Amount in token units (wei)",
     },
-    { name: "token", type: "address", description: "Token address" },
+    {
+      name: "token",
+      type: "address",
+      runtime: true,
+      description: "Token address",
+    },
     { name: "from", type: "command", description: "Keyword `from`" },
-    { name: "account", type: "address", description: "Account to burn from" },
+    {
+      name: "account",
+      type: "address",
+      runtime: true,
+      description: "Account to burn from",
+    },
   ],
   completions: { from: () => [fieldItem("from")] },
   async run(_module, { amount, token, from, account }) {

@@ -8,6 +8,7 @@ import type Semaphore from "..";
 import { readSemaphore, requireSemaphore } from "../utils/semaphore";
 
 export default defineCommand<Semaphore>({
+  smartSupport: { kind: "runtime" },
   name: "create-group",
   description:
     "Create a Semaphore group on the canonical contract and bind the predicted group id to <variable>. Without --admin the transaction sender becomes the admin (correct through Safes and forwarders).",
@@ -22,6 +23,7 @@ export default defineCommand<Semaphore>({
     {
       name: "admin",
       type: "address",
+      runtime: true,
       description: "Group admin (default: the transaction sender)",
     },
   ],

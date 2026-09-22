@@ -34,6 +34,11 @@ const registerAragonId = async (
 };
 
 export default defineCommand<AragonOS>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "DAO name registration and deterministic configuration are prepared at build time.",
+  },
   name: "new-dao",
   description: "Create a new Aragon DAO and register it with an ENS name.",
   args: [

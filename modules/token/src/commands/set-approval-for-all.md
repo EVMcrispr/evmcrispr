@@ -4,6 +4,8 @@ title: "token:set-approval-for-all"
 
 Approve or revoke an operator for all ERC721 or ERC1155 tokens of the connected account.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ token:set-approval-for-all <token> <operator> <approved>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `address` | Token address |
-| `operator` | `address` | Operator address |
-| `approved` | `bool` | true to approve, false to revoke |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `address` | Runtime in smart blocks | Token address |
+| `operator` | `address` | Runtime in smart blocks | Operator address |
+| `approved` | `bool` | Runtime in smart blocks | true to approve, false to revoke |
 
 <!-- HAND-WRITTEN -->
 

@@ -35,6 +35,11 @@ function applyDestructure(
 }
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Assignments are build-time values; use -> [...] capture for on-chain outputs.",
+  },
   name: "set",
   description: "Assign a value to a variable for use later in the script.",
   args: [

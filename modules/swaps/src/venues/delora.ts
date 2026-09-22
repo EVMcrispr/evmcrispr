@@ -3,6 +3,7 @@ import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import type Swaps from "..";
 import type { Quote, QuoteRequest, VenueAdapter } from "./types";
+import { requireConcreteSwap } from "./types";
 
 const BASE_URL = "https://api.delora.build";
 
@@ -81,6 +82,7 @@ const delora: VenueAdapter = {
   },
 
   async buildSwap(module, req) {
+    requireConcreteSwap(req);
     if (req.kind === "exactOut") {
       throw new ErrorException("Delora does not support exact-output swaps");
     }

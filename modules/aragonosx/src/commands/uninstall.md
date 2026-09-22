@@ -6,6 +6,8 @@ Uninstall a plugin from the connected DAO via the Plugin Setup Processor.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Plugin setup preparation determines the permission diff before signing.
+
 ## Syntax
 
 ```evml
@@ -14,10 +16,10 @@ aragonosx:uninstall <plugin> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `plugin` | `plugin` | Installed plugin to remove |
-| `[...params]` | `any` | Plugin uninstallation parameters |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `plugin` | `plugin` | Build time | Installed plugin to remove |
+| `[...params]` | `any` | Build time | Plugin uninstallation parameters |
 
 <!-- HAND-WRITTEN -->
 

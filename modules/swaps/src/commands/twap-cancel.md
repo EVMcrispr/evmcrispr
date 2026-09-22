@@ -6,6 +6,8 @@ Cancel a CoW TWAP and revoke its sell-token allowance. Cancellation takes effect
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. The concrete order identifies its hash and settlement contract.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ swaps:twap-cancel <order>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `order` | `string` | JSON order reference bound by swaps:twap |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `order` | `string` | Build time | JSON order reference bound by swaps:twap |
 
 <!-- HAND-WRITTEN -->
 

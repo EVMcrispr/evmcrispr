@@ -4,6 +4,8 @@ title: "aragonos:upgrade"
 
 Upgrade an installed Aragon app to a new version.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ aragonos:upgrade <apmRepo> [newAppAddress]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `apmRepo` | `repo` | APM repository name for the app package |
-| `[newAppAddress]` | `address \| string` | Implementation address or semantic version (e.g. 1.2.0) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `apmRepo` | `repo` | Build time | APM repository name for the app package |
+| `[newAppAddress]` | `address \| string` | Runtime in smart blocks | Implementation address or semantic version (e.g. 1.2.0) |
 
 ## Examples
 

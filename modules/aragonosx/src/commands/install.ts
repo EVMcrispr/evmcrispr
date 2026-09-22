@@ -14,6 +14,11 @@ import {
 import { resolveRepoAddress } from "../utils/repos";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Plugin setup preparation and permission diffs require concrete repository inputs.",
+  },
   name: "install",
   description:
     "Install a plugin into the connected DAO via the Plugin Setup Processor.",

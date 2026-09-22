@@ -24,6 +24,11 @@ type Step = (typeof STEPS)[number];
 const WAIT_MARGIN_SECONDS = 12;
 
 export default defineCommand<Ens>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Commitment hashing and rent quotes require concrete registration inputs.",
+  },
   name: "register",
   description:
     "Register a .eth name via the controller's commit/reveal flow (commits, waits and reveals in one go by default).",

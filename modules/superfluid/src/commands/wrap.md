@@ -6,6 +6,8 @@ Wrap an underlying token into its SuperToken (DAI to DAIx, native xDAI to xDAIx.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ superfluid:wrap <amount> <into> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount to wrap, in the underlying token's base units |
-| `into` | `command` | Keyword `into` |
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount to wrap, in the underlying token's base units |
+| `into` | `command` | Build time | Keyword `into` |
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 ## Examples
 

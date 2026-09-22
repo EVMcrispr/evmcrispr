@@ -1,0 +1,607 @@
+{
+  "acl/accept-default-admin-transfer": {
+    "kind": "runtime"
+  },
+  "acl/accept-ownership": {
+    "kind": "runtime"
+  },
+  "acl/begin-default-admin-transfer": {
+    "kind": "runtime"
+  },
+  "acl/cancel-default-admin-transfer": {
+    "kind": "runtime"
+  },
+  "acl/cancel-scheduled": {
+    "kind": "runtime"
+  },
+  "acl/change-default-admin-delay": {
+    "kind": "runtime"
+  },
+  "acl/execute-scheduled": {
+    "kind": "runtime"
+  },
+  "acl/grant": {
+    "kind": "runtime"
+  },
+  "acl/label-role": {
+    "kind": "runtime"
+  },
+  "acl/renounce-ownership": {
+    "kind": "runtime"
+  },
+  "acl/renounce": {
+    "kind": "runtime"
+  },
+  "acl/revoke": {
+    "kind": "runtime"
+  },
+  "acl/rollback-default-admin-delay": {
+    "kind": "runtime"
+  },
+  "acl/schedule": {
+    "kind": "runtime"
+  },
+  "acl/set-role-admin": {
+    "kind": "runtime"
+  },
+  "acl/set-role-guardian": {
+    "kind": "runtime"
+  },
+  "acl/set-target-closed": {
+    "kind": "runtime"
+  },
+  "acl/set-target-function-role": {
+    "kind": "runtime"
+  },
+  "acl/transfer-ownership": {
+    "kind": "runtime"
+  },
+  "aragonos/act": {
+    "kind": "runtime"
+  },
+  "aragonos/connect": {
+    "kind": "static",
+    "reason": "DAO selection and ABI discovery happen at build time; the block expands into the surrounding execution context."
+  },
+  "aragonos/forward": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "aragonos/grant": {
+    "kind": "runtime"
+  },
+  "aragonos/install": {
+    "kind": "static",
+    "reason": "Package lookup, initializer ABI selection and predicted address bindings are build-time operations."
+  },
+  "aragonos/new-dao": {
+    "kind": "static",
+    "reason": "DAO name registration and deterministic configuration are prepared at build time."
+  },
+  "aragonos/new-token": {
+    "kind": "runtime"
+  },
+  "aragonos/revoke": {
+    "kind": "runtime"
+  },
+  "aragonos/upgrade": {
+    "kind": "runtime"
+  },
+  "aragonosx/act": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "aragonosx/approve": {
+    "kind": "runtime"
+  },
+  "aragonosx/connect": {
+    "kind": "static",
+    "reason": "DAO selection and ABI discovery happen at build time; the block expands into the surrounding execution context."
+  },
+  "aragonosx/execute-proposal": {
+    "kind": "runtime"
+  },
+  "aragonosx/grant": {
+    "kind": "runtime"
+  },
+  "aragonosx/install": {
+    "kind": "static",
+    "reason": "Plugin setup preparation and permission diffs require concrete repository inputs."
+  },
+  "aragonosx/new-dao": {
+    "kind": "static",
+    "reason": "Plugin setup and predicted DAO bindings require concrete initialization inputs."
+  },
+  "aragonosx/propose": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "aragonosx/revoke": {
+    "kind": "runtime"
+  },
+  "aragonosx/uninstall": {
+    "kind": "static",
+    "reason": "Plugin setup preparation determines the permission diff before signing."
+  },
+  "aragonosx/upgrade": {
+    "kind": "static",
+    "reason": "Plugin update preparation and permission diffs require concrete version inputs."
+  },
+  "aragonosx/vote": {
+    "kind": "runtime"
+  },
+  "bridges/bridge": {
+    "kind": "runtime"
+  },
+  "bridges/claim": {
+    "kind": "static",
+    "reason": "Source receipts and external attestations/proofs must exist before the destination call is compiled."
+  },
+  "circom/prove": {
+    "kind": "static",
+    "reason": "Witness generation and proving artifacts are build-time operations."
+  },
+  "contracts/deploy": {
+    "kind": "static",
+    "reason": "Bytecode, salt and constructor inputs determine the address binding; plain CREATE is not atomic-batch compatible."
+  },
+  "contracts/verify": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "eez/batch": {
+    "kind": "incompatible",
+    "reason": "Cross-chain execution changes account and chain; it cannot run inside a single-account smart batch."
+  },
+  "eez/deploy-proxy": {
+    "kind": "static",
+    "reason": "The destination chain and proxy address are derived at build time."
+  },
+  "eez/faucet": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "eez/on": {
+    "kind": "incompatible",
+    "reason": "Cross-chain execution changes account and chain; it cannot run inside a single-account smart batch."
+  },
+  "ens/create-subname": {
+    "kind": "runtime"
+  },
+  "ens/register": {
+    "kind": "static",
+    "reason": "Commitment hashing and rent quotes require concrete registration inputs."
+  },
+  "ens/renew": {
+    "kind": "runtime"
+  },
+  "ens/set-addr": {
+    "kind": "runtime"
+  },
+  "ens/set-contenthash": {
+    "kind": "runtime"
+  },
+  "ens/set-fuses": {
+    "kind": "runtime"
+  },
+  "ens/set-primary-name": {
+    "kind": "runtime"
+  },
+  "ens/set-resolver": {
+    "kind": "runtime"
+  },
+  "ens/set-text": {
+    "kind": "runtime"
+  },
+  "ens/transfer": {
+    "kind": "runtime"
+  },
+  "ens/unwrap": {
+    "kind": "static",
+    "reason": "The name selects a registrar/wrapper route and is normalized at build time."
+  },
+  "ens/wrap": {
+    "kind": "runtime"
+  },
+  "giveth/boost": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "giveth/claim": {
+    "kind": "static",
+    "reason": "Reward reads select which claim function to call; these decisions require build-time state."
+  },
+  "giveth/donate-recurring": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "giveth/donate": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "giveth/lock": {
+    "kind": "runtime"
+  },
+  "giveth/stake": {
+    "kind": "runtime"
+  },
+  "giveth/unlock": {
+    "kind": "runtime"
+  },
+  "giveth/unstake": {
+    "kind": "runtime"
+  },
+  "governor/cancel": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "governor/delegate": {
+    "kind": "runtime"
+  },
+  "governor/execute": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "governor/propose": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "governor/queue": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "governor/timelock-cancel": {
+    "kind": "runtime"
+  },
+  "governor/timelock-execute": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "governor/timelock-schedule": {
+    "kind": "incompatible",
+    "reason": "This command opens a separate atomic execution context; nested atomic blocks are unsupported."
+  },
+  "governor/vote": {
+    "kind": "runtime"
+  },
+  "lending/borrow": {
+    "kind": "runtime"
+  },
+  "lending/repay": {
+    "kind": "runtime"
+  },
+  "lending/set-collateral": {
+    "kind": "runtime"
+  },
+  "lending/set-emode": {
+    "kind": "runtime"
+  },
+  "lending/supply": {
+    "kind": "runtime"
+  },
+  "lending/withdraw": {
+    "kind": "runtime"
+  },
+  "noir/prove": {
+    "kind": "static",
+    "reason": "Witness generation and proving artifacts are build-time operations."
+  },
+  "proxies/clone": {
+    "kind": "static",
+    "reason": "Implementation, factory and salt determine the bound clone address."
+  },
+  "proxies/upgrade-beacon": {
+    "kind": "runtime"
+  },
+  "proxies/upgrade": {
+    "kind": "runtime"
+  },
+  "safe/add-owner": {
+    "kind": "runtime"
+  },
+  "safe/change-threshold": {
+    "kind": "runtime"
+  },
+  "safe/delegate-exec": {
+    "kind": "static",
+    "reason": "Only exact static delegatecalls are supported; the composability executor cannot represent dynamic delegatecalls."
+  },
+  "safe/disable-module": {
+    "kind": "static",
+    "reason": "The module address selects its predecessor in the Safe linked list at build time."
+  },
+  "safe/enable-module": {
+    "kind": "runtime"
+  },
+  "safe/execute!": {
+    "kind": "incompatible",
+    "reason": "Safe workflows open their own atomic context; they cannot be nested."
+  },
+  "safe/execute": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "safe/install-delay": {
+    "kind": "static",
+    "reason": "Deployment salt and initializer determine the predicted module address."
+  },
+  "safe/install-roles": {
+    "kind": "static",
+    "reason": "Deployment salt and initializer determine the predicted module address."
+  },
+  "safe/install-scope-guard": {
+    "kind": "static",
+    "reason": "Deployment salt and initializer determine the predicted guard address."
+  },
+  "safe/new": {
+    "kind": "static",
+    "reason": "Owners, threshold and salt determine the predicted Safe address."
+  },
+  "safe/propose!": {
+    "kind": "incompatible",
+    "reason": "Safe workflows open their own atomic context; they cannot be nested."
+  },
+  "safe/propose": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "safe/remove-guard": {
+    "kind": "static",
+    "reason": "This command has no value arguments; it emits the fixed guard removal call."
+  },
+  "safe/remove-owner": {
+    "kind": "runtime"
+  },
+  "safe/set-fallback-handler": {
+    "kind": "runtime"
+  },
+  "safe/set-guard": {
+    "kind": "runtime"
+  },
+  "safe/swap-owner": {
+    "kind": "runtime"
+  },
+  "safe/verify-message": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "safe/verify": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "semaphore/add-member": {
+    "kind": "runtime"
+  },
+  "semaphore/create-group": {
+    "kind": "runtime"
+  },
+  "semaphore/identity": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "semaphore/prove": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "semaphore/remove-member": {
+    "kind": "static",
+    "reason": "A concrete identity and group are needed to reconstruct the Merkle proof."
+  },
+  "semaphore/validate": {
+    "kind": "runtime"
+  },
+  "sim/expect": {
+    "kind": "static",
+    "reason": "Simulation expectations inspect executed receipts at build time."
+  },
+  "sim/fork": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "sim/set-balance": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "sim/set-code": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "sim/set-storage-at": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "std/assert": {
+    "kind": "runtime"
+  },
+  "std/batch!": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "std/batch": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "std/def": {
+    "kind": "static",
+    "reason": "Definitions and signatures are build-time operations; command bodies expand inside smart blocks."
+  },
+  "std/exec": {
+    "kind": "runtime"
+  },
+  "std/exit": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "std/if": {
+    "kind": "static",
+    "reason": "Control-flow conditions are evaluated at build time."
+  },
+  "std/load": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "std/loop": {
+    "kind": "static",
+    "reason": "Loop bounds are evaluated at build time; the body expands into ordered steps."
+  },
+  "std/print": {
+    "kind": "static",
+    "reason": "Logging consumes build-time values and cannot preview a guaranteed on-chain result."
+  },
+  "std/send": {
+    "kind": "runtime"
+  },
+  "std/set": {
+    "kind": "static",
+    "reason": "Assignments are build-time values; use -> [...] capture for on-chain outputs."
+  },
+  "std/sign": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "std/switch": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "std/wait": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "superfluid/auto-wrap": {
+    "kind": "runtime"
+  },
+  "superfluid/claim": {
+    "kind": "runtime"
+  },
+  "superfluid/connect-pool": {
+    "kind": "runtime"
+  },
+  "superfluid/create-pool": {
+    "kind": "runtime"
+  },
+  "superfluid/disconnect-pool": {
+    "kind": "runtime"
+  },
+  "superfluid/distribute-flow": {
+    "kind": "runtime"
+  },
+  "superfluid/distribute": {
+    "kind": "runtime"
+  },
+  "superfluid/grant-flow-operator": {
+    "kind": "runtime"
+  },
+  "superfluid/revoke-flow-operator": {
+    "kind": "runtime"
+  },
+  "superfluid/schedule-flow": {
+    "kind": "runtime"
+  },
+  "superfluid/set-units": {
+    "kind": "runtime"
+  },
+  "superfluid/stop-auto-wrap": {
+    "kind": "static",
+    "reason": "The token identifies a schedule before signing; this command has no runtime amount."
+  },
+  "superfluid/stop-stream": {
+    "kind": "runtime"
+  },
+  "superfluid/stop-vesting": {
+    "kind": "runtime"
+  },
+  "superfluid/stream": {
+    "kind": "runtime"
+  },
+  "superfluid/unschedule-flow": {
+    "kind": "runtime"
+  },
+  "superfluid/unwrap": {
+    "kind": "runtime"
+  },
+  "superfluid/vest": {
+    "kind": "runtime"
+  },
+  "superfluid/wrap": {
+    "kind": "runtime"
+  },
+  "swaps/swap-to": {
+    "kind": "runtime"
+  },
+  "swaps/swap": {
+    "kind": "runtime"
+  },
+  "swaps/twap-cancel": {
+    "kind": "static",
+    "reason": "The concrete order identifies its hash and settlement contract."
+  },
+  "swaps/twap-recover": {
+    "kind": "static",
+    "reason": "The concrete order determines the recovery actions and settlement contract."
+  },
+  "swaps/twap": {
+    "kind": "static",
+    "reason": "Order scheduling, hashing and signed/offline order artifacts require concrete amounts and bounds."
+  },
+  "swaps/unwrap": {
+    "kind": "runtime"
+  },
+  "swaps/wrap": {
+    "kind": "runtime"
+  },
+  "token/approve": {
+    "kind": "runtime"
+  },
+  "token/burn-from": {
+    "kind": "runtime"
+  },
+  "token/burn": {
+    "kind": "runtime"
+  },
+  "token/disperse": {
+    "kind": "runtime"
+  },
+  "token/mint": {
+    "kind": "runtime"
+  },
+  "token/permit": {
+    "kind": "static",
+    "reason": "Typed-data signatures bind concrete owners, spenders, amounts, nonces and deadlines."
+  },
+  "token/set-approval-for-all": {
+    "kind": "runtime"
+  },
+  "token/transfer-from": {
+    "kind": "runtime"
+  },
+  "token/transfer": {
+    "kind": "runtime"
+  },
+  "vault/claim-deposit": {
+    "kind": "runtime"
+  },
+  "vault/claim-redeem": {
+    "kind": "runtime"
+  },
+  "vault/deposit": {
+    "kind": "runtime"
+  },
+  "vault/mint": {
+    "kind": "runtime"
+  },
+  "vault/redeem": {
+    "kind": "runtime"
+  },
+  "vault/request-deposit": {
+    "kind": "runtime"
+  },
+  "vault/request-redeem": {
+    "kind": "runtime"
+  },
+  "vault/set-operator": {
+    "kind": "runtime"
+  },
+  "vault/withdraw": {
+    "kind": "runtime"
+  }
+}

@@ -4,6 +4,7 @@ import {
   encodeAction,
   fieldItem,
 } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import { labelhash, parseAbi } from "viem";
 import type Ens from "..";
 import {
@@ -22,13 +23,19 @@ import {
 } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "transfer",
   description:
     "Transfer ownership of an ENS name. For unwrapped .eth names this hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role.",
   args: [
     { name: "name", type: "string", description: "ENS name (e.g. mydao.eth)" },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "newOwner", type: "address", description: "New owner address" },
+    {
+      name: "newOwner",
+      type: "address",
+      runtime: true,
+      description: "New owner address",
+    },
   ],
   completions: { to: () => [fieldItem("to")] },
   async run(module, { name, to, newOwner }) {
@@ -76,7 +83,10 @@ export default defineCommand<Ens>({
           newOwner,
         ]),
       ];
-      if (String(newOwner).toLowerCase() !== registrant.toLowerCase()) {
+      if (
+        isRuntimeValue(newOwner) ||
+        String(newOwner).toLowerCase() !== registrant.toLowerCase()
+      ) {
         actions.push(
           encodeAction(
             baseRegistrar,

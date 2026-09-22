@@ -1,10 +1,8 @@
 import type { languages } from "monaco-editor";
 
-const bounded = (text: string) => `\\b${text}\\b`;
-
 const identifierStart = "[a-zA-Z]";
 const identifierContinue = "[\\-:a-zA-Z0-9]";
-const identifier = bounded(`${identifierStart}${identifierContinue}*`);
+const identifier = `\\b${identifierStart}${identifierContinue}*!?(?![\\-:a-zA-Z0-9_!])`;
 
 const namedLiterals = ["true", "false"];
 
@@ -212,7 +210,7 @@ export const createLanguage: (
       // Module-qualified command head at line start stays one identifier
       // token so the named-arg rule below doesn't split `circom:prove`.
       {
-        regex: /^[ \t]*[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][a-zA-Z0-9.\-]*(?=\s|$)/,
+        regex: /^[ \t]*[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z][a-zA-Z0-9.\-]*!?(?=\s|$)/,
         action: { token: "identifier" },
       },
       // `name:` of a named argument / record entry (never `://` or `::`).
@@ -258,7 +256,7 @@ export const createLanguage: (
       { regex: /::/, action: { token: "operator" } },
       { regex: /-\?!>/, action: { token: "operator" } },
       { regex: /-!>/, action: { token: "operator" } },
-      { regex: /->|=>/, action: { token: "operator" } },
+      { regex: /->/, action: { token: "operator" } },
       { regex: /\$\*?>(?=\s|$)/, action: { token: "operator" } },
     ],
   },

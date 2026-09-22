@@ -6,6 +6,8 @@ Revoke an operator's permissions over your streams of a SuperToken.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ superfluid:revoke-flow-operator <token> <from> <operator>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
-| `from` | `command` | Keyword `from` |
-| `operator` | `address` | Flow operator |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
+| `from` | `command` | Build time | Keyword `from` |
+| `operator` | `address` | Runtime in smart blocks | Flow operator |
 
 ## Examples
 

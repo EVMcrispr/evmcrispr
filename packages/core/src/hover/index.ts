@@ -198,6 +198,16 @@ function formatCommandHover(
   if (command.description) {
     result += `\n${command.description}`;
   }
+  const runtime = [...command.argDefs, ...command.optDefs]
+    .filter((field) => field.runtime)
+    .map((field) => `\`${field.name}\``);
+  if (runtime.length)
+    result += `\n\nRuntime fields in smart blocks: ${runtime.join(", ")}. Other fields are build-time values.`;
+  if (command.createsSmartBatchContext)
+    result +=
+      "\n\nUse explicit @helper! expressions and -> [$result] capture inside this block.";
+  if (command.smartSupport?.reason)
+    result += `\n\nSmart batches: ${command.smartSupport.reason}`;
   return result;
 }
 

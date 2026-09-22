@@ -28,6 +28,11 @@ function detectAdapter(src: SourceTx): BridgeAdapter | undefined {
 }
 
 export default defineCommand<Bridges>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Source receipts and external attestations/proofs must exist before the destination call is compiled.",
+  },
   name: "claim",
   description:
     "Finalize a two-step bridge on the destination chain: mint a CCTP transfer once Circle has attested it, or prove and finalize a canonical L2 withdrawal. Run it after switching to the destination chain.",

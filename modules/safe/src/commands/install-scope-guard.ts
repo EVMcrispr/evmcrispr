@@ -10,6 +10,11 @@ import {
 } from "../utils";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Deployment salt and initializer determine the predicted guard address.",
+  },
   name: "install-scope-guard",
   description:
     "Deploy a Zodiac ScopeGuard owned by the Safe and set it as the transaction guard of the Safe, limiting which targets and functions owners can call.",

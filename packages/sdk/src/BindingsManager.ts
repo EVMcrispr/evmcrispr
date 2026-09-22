@@ -176,6 +176,27 @@ export class BindingsManager {
     return !!this.#getBinding(name, memSpace);
   }
 
+  /** Roll back local bindings after a command fails while collecting an atomic plan. */
+  checkpointLocal(space: BindingsSpace): () => void {
+    const scope = this.#bindings;
+    const saved = new Map(
+      [...scope.symbols].map(([name, bindings]) => [
+        name,
+        bindings.filter((b) => b.type === space).map((b) => ({ ...b })),
+      ]),
+    );
+    return () => {
+      for (const name of new Set([...scope.symbols.keys(), ...saved.keys()])) {
+        const bindings = [
+          ...(scope.symbols.get(name) ?? []).filter((b) => b.type !== space),
+          ...(saved.get(name) ?? []),
+        ];
+        if (bindings.length) scope.symbols.set(name, bindings);
+        else scope.symbols.delete(name);
+      }
+    };
+  }
+
   /** Remove all bindings belonging to the given space (across all scopes). */
   clearSpace(space: BindingsSpace): void {
     let scope: SymbolTable<Binding> | undefined = this.#bindings;

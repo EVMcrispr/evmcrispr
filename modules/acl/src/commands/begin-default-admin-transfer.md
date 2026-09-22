@@ -6,6 +6,8 @@ Start the delayed two-step transfer of the DEFAULT_ADMIN_ROLE on an AccessContro
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,10 +16,10 @@ acl:begin-default-admin-transfer <contract> <newAdmin>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `contract` | `address` | AccessControlDefaultAdminRules contract address |
-| `newAdmin` | `address` | New default admin |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `contract` | `address` | Runtime in smart blocks | AccessControlDefaultAdminRules contract address |
+| `newAdmin` | `address` | Runtime in smart blocks | New default admin |
 
 <!-- HAND-WRITTEN -->
 

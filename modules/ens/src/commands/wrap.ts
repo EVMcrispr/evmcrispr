@@ -4,7 +4,8 @@ import {
   encodeAction,
   Num,
 } from "@evmcrispr/sdk";
-import { encodeAbiParameters, labelhash, toHex, zeroAddress } from "viem";
+import { smartAbiParameters } from "@evmcrispr/sdk/onchain";
+import { labelhash, toHex, zeroAddress } from "viem";
 import { normalize, packetToBytes } from "viem/ens";
 import type Ens from "..";
 import {
@@ -17,6 +18,7 @@ import { PARENT_CANNOT_CONTROL, validateFusePrereqs } from "../fuses";
 import { assertSupportedChain, eth2LDLabel, isEth2LD } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "wrap",
   experimental: true,
   description: "Wrap an ENS name in the NameWrapper.",
@@ -27,6 +29,7 @@ export default defineCommand<Ens>({
     {
       name: "resolver",
       type: "address",
+      runtime: true,
       description: "Resolver of the wrapped name",
     },
     {
@@ -40,7 +43,7 @@ export default defineCommand<Ens>({
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
     const nameWrapper = requireAddress(nameWrapperMap, chainId, "NameWrapper");
-    const owner = await module.getConnectedAccount();
+    const owner = await module.getSender();
     const resolver = opts.resolver ?? zeroAddress;
 
     if (isEth2LD(name)) {
@@ -58,7 +61,8 @@ export default defineCommand<Ens>({
             owner,
             nameWrapper,
             Num.fromBigInt(BigInt(labelhash(label))),
-            encodeAbiParameters(
+            smartAbiParameters(
+              module,
               [
                 { type: "string" },
                 { type: "address" },

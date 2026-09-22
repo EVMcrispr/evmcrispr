@@ -6,6 +6,8 @@ Install a plugin into the connected DAO via the Plugin Setup Processor.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Plugin setup preparation and permission diffs require concrete repository inputs.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ aragonosx:install <variable> <repo> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable name |
-| `repo` | `repo` | Plugin repo subdomain or address |
-| `[...params]` | `any` | Plugin setup parameters |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable name |
+| `repo` | `repo` | Build time | Plugin repo subdomain or address |
+| `[...params]` | `any` | Build time | Plugin setup parameters |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--version` | `string` | Version to install as <release>.<build> (default latest) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--version` | `string` | Build time | Version to install as <release>.<build> (default latest) |
 
 <!-- HAND-WRITTEN -->
 

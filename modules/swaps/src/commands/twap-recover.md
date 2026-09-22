@@ -6,6 +6,8 @@ Return residual TWAP sell tokens after cancellation, expiry, or proven complete 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. The concrete order determines the recovery actions and settlement contract.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ swaps:twap-recover <order>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `order` | `string` | JSON order reference bound by swaps:twap |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `order` | `string` | Build time | JSON order reference bound by swaps:twap |
 
 <!-- HAND-WRITTEN -->
 

@@ -6,6 +6,8 @@ Generate a proof with snarkjs (groth16, plonk or fflonk) and bind the result (pr
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Witness generation and proving artifacts are build-time operations.
+
 ## Syntax
 
 ```evml
@@ -14,19 +16,19 @@ circom:prove <variable>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the proof JSON string to |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the proof JSON string to |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--wasm` | `string` | URL (http(s):// or ipfs://) of the compiled circuit WASM |
-| `--zkey` | `string` | URL (http(s):// or ipfs://) of the final Groth16 proving key (.zkey) |
-| `--circom` | `string` | circom source (or URL) to compile and set up in-place instead of --wasm/--zkey — DEV-ONLY trusted setup, never for production proofs |
-| `--ptau` | `string` | Powers-of-tau for the in-place setup: dev (generate locally) or a ptau URL (default: auto-download a hez file sized to the circuit); only valid with --circom |
-| `--system` | `string` | Proof system for the in-place setup: groth16 (default, DEV-ONLY), plonk or fflonk (deterministic); only valid with --circom (pre-built zkeys carry their system) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--wasm` | `string` | Build time | URL (http(s):// or ipfs://) of the compiled circuit WASM |
+| `--zkey` | `string` | Build time | URL (http(s):// or ipfs://) of the final Groth16 proving key (.zkey) |
+| `--circom` | `string` | Build time | circom source (or URL) to compile and set up in-place instead of --wasm/--zkey — DEV-ONLY trusted setup, never for production proofs |
+| `--ptau` | `string` | Build time | Powers-of-tau for the in-place setup: dev (generate locally) or a ptau URL (default: auto-download a hez file sized to the circuit); only valid with --circom |
+| `--system` | `string` | Build time | Proof system for the in-place setup: groth16 (default, DEV-ONLY), plonk or fflonk (deterministic); only valid with --circom (pre-built zkeys carry their system) |
 
 <!-- HAND-WRITTEN -->
 

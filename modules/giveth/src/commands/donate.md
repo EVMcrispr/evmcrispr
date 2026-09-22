@@ -4,6 +4,8 @@ title: "giveth:donate"
 
 Donate to Giveth projects and record the donation in Giveth's database (project totals, GIVbacks). A single project gets a direct wallet transfer; several projects ([amounts] to [slugs]) donate through the DonationHandler contract in one transaction. Signs you in to Giveth (SIWE) and sends the transactions immediately to report their hashes, so it cannot be batched. The zero address (@token(ETH), @token(XDAI)...) donates the chain's native token.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,20 +14,20 @@ giveth:donate <amount> <token> <to> <projects>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `array \| number` | Donation amount in token base units, or one amount per project (a single amount with several projects donates that amount to each) |
-| `token` | `address` | Token to donate (use @token(SYM); the native token resolves to the zero address) |
-| `to` | `command` | Keyword `to` |
-| `projects` | `array \| giveth-project` | Giveth project URL slug, or several slugs |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `array \| number` | Build time | Donation amount in token base units, or one amount per project (a single amount with several projects donates that amount to each) |
+| `token` | `address` | Build time | Token to donate (use @token(SYM); the native token resolves to the zero address) |
+| `to` | `command` | Build time | Keyword `to` |
+| `projects` | `array \| giveth-project` | Build time | Giveth project URL slug, or several slugs |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--tip` | `number` | Extra donation to Giveth itself as a percentage of the total amount (0-100), added on top |
-| `--anonymous` | `bool` | Hide your identity on the recorded donation |
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--tip` | `number` | Build time | Extra donation to Giveth itself as a percentage of the total amount (0-100), added on top |
+| `--anonymous` | `bool` | Build time | Hide your identity on the recorded donation |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 <!-- HAND-WRITTEN -->
 

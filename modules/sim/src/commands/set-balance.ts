@@ -4,6 +4,11 @@ import type Sim from "..";
 import { rpcPrefix } from "../lib/modes";
 
 export default defineCommand<Sim>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "set-balance",
   description: "Set the ETH balance of an account in a fork simulation.",
   batchable: false,

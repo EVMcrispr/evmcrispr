@@ -4,6 +4,8 @@ title: "send"
 
 Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,21 +14,21 @@ send [to]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[to]` | `address` | Target address. Omit for a CREATE-style deployment (use the `deploy` command for address binding). |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[to]` | `address` | Runtime in smart blocks | Target address. Omit for a CREATE-style deployment (use the `deploy` command for address binding). |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--data` | `bytes` | Pre-encoded calldata or init code |
-| `--value` | `number` | Native value to send (in wei) |
-| `--from` | `address` | Sender address (requires simulation or connected wallet) |
-| `--gas` | `number` | Gas limit |
-| `--max-fee-per-gas` | `number` | Max fee per gas (EIP-1559) |
-| `--max-priority-fee-per-gas` | `number` | Max priority fee per gas (EIP-1559) |
-| `--nonce` | `number` | Transaction nonce override |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--data` | `bytes` | Build time | Pre-encoded calldata or init code |
+| `--value` | `number` | Runtime in smart blocks | Native value to send (in wei) |
+| `--from` | `address` | Build time | Sender address (requires simulation or connected wallet) |
+| `--gas` | `number` | Build time | Gas limit |
+| `--max-fee-per-gas` | `number` | Build time | Max fee per gas (EIP-1559) |
+| `--max-priority-fee-per-gas` | `number` | Build time | Max priority fee per gas (EIP-1559) |
+| `--nonce` | `number` | Build time | Transaction nonce override |
 
 ## Examples
 

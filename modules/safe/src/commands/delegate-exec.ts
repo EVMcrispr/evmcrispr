@@ -2,6 +2,11 @@ import { defineCommand, ErrorException, encodeAction } from "@evmcrispr/sdk";
 import type Safe from "..";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Only exact static delegatecalls are supported; the composability executor cannot represent dynamic delegatecalls.",
+  },
   name: "delegate-exec",
   description:
     "Call a contract function via DELEGATECALL from the Safe. The code runs in the storage context of the Safe — only use audited libraries you trust.",

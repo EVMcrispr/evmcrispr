@@ -6,6 +6,8 @@ Update an installed plugin to a newer build via the Plugin Setup Processor.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Plugin update preparation and permission diffs require concrete version inputs.
+
 ## Syntax
 
 ```evml
@@ -14,16 +16,16 @@ aragonosx:upgrade <plugin> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `plugin` | `plugin` | Installed plugin to update |
-| `[...params]` | `any` | Plugin update parameters |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `plugin` | `plugin` | Build time | Installed plugin to update |
+| `[...params]` | `any` | Build time | Plugin update parameters |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--version` | `string` | Target version as <release>.<build> (default latest build) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--version` | `string` | Build time | Target version as <release>.<build> (default latest build) |
 
 <!-- HAND-WRITTEN -->
 

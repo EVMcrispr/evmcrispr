@@ -512,6 +512,8 @@ class SemanticAnalyzer {
     }
   }
 
+  #runtimeNames = new Set<string>();
+
   #collectCaptureDefs(c: CommandExpressionNode, into: Set<string>): void {
     for (const cap of [
       ...(c.eventCaptures ?? []),
@@ -522,6 +524,9 @@ class SemanticAnalyzer {
       for (const n of names) into.add(`$${n}`);
       if ("boolVar" in cap && cap.boolVar) into.add(`$${cap.boolVar}`);
     }
+    const returned: string[] = [];
+    slotNames(c.returnCapture ?? [], returned);
+    for (const name of returned) into.add(`$${name}`);
     for (const cap of c.txCaptures ?? []) {
       into.add(`$${cap.variable}`);
     }
@@ -960,6 +965,64 @@ class SemanticAnalyzer {
       this.#checkVariableUses(c, cmd);
       this.#checkConfigDefPositions(c, cmd);
       this.#checkRecordShapes(c, cmd);
+      if (batchStack.some((frame) => frame.smart)) {
+        const containsRuntime = (node: any): boolean =>
+          !!node &&
+          typeof node === "object" &&
+          node.type !== NodeType.BlockExpression &&
+          (Array.isArray(node)
+            ? node.some(containsRuntime)
+            : (node.type === NodeType.HelperFunctionExpression &&
+                node.name.endsWith("!")) ||
+              (node.type === NodeType.CallExpression && node.bang) ||
+              (node.type === NodeType.VariableIdentifier &&
+                this.#runtimeNames.has(node.value)) ||
+              Object.entries(node).some(
+                ([key, value]) =>
+                  key !== "loc" && key !== "type" && containsRuntime(value),
+              ));
+        const ast = computeCommandArity(cmd.argDefs, c.args).astArgs;
+        let cursor = 0;
+        for (const field of cmd.argDefs) {
+          if (field.type === "block") continue;
+          const nodes = field.rest
+            ? ast.slice(cursor)
+            : ast.slice(cursor, cursor + 1);
+          cursor += nodes.length;
+          if (
+            !field.runtime &&
+            field.type !== "block" &&
+            nodes.some(containsRuntime)
+          )
+            this.#diagnostics.push(
+              diag(
+                nodes[0],
+                `<${field.name}> requires a build-time value`,
+                "runtime-build-time-field",
+              ),
+            );
+        }
+        for (const option of c.opts) {
+          const field = cmd.optDefs.find((field) => field.name === option.name);
+          if (field && !field.runtime && containsRuntime(option.value))
+            this.#diagnostics.push(
+              diag(
+                option.value,
+                `--${field.name} requires a build-time value`,
+                "runtime-build-time-field",
+              ),
+            );
+        }
+        if (cmd.smartSupport?.kind === "incompatible")
+          this.#diagnostics.push(
+            diag(
+              c,
+              cmd.smartSupport.reason ??
+                "command cannot run inside a smart batch",
+              "smart-batch-incompatible",
+            ),
+          );
+      }
     }
 
     // 7. Helpers anywhere in the args (module-agnostic resolution).
@@ -974,20 +1037,41 @@ class SemanticAnalyzer {
 
     // 8. Return-capture markers in nested calls.
     this.#checkReturnCaptures(c);
+    if (c.returnCapture && !batchStack.some((frame) => frame.smart)) {
+      this.#diagnostics.push(
+        diag(
+          c,
+          "-> [...] return capture is only valid inside a smart batch",
+          "return-capture-context",
+        ),
+      );
+    }
 
     // Record this command's own definitions so later commands (and its own
     // block body) see them.
     this.#recordDefs(c, cmd);
+    const captured: string[] = [];
+    slotNames(c.returnCapture ?? [], captured);
+    for (const name of captured) this.#runtimeNames.add(`$${name}`);
 
-    // Recurse into blocks, tracking batch context. No producer sets
-    // `smart` yet — it arrives with the executeComposable smart-batch
-    // compiler (`batch --smart`).
+    // Recurse with the declared execution context; captures are block-scoped.
     const opensBatch = !!cmd?.createsBatchContext;
     for (const blk of this.#blocks(c)) {
       const nextStack = opensBatch
-        ? [...batchStack, { name: this.#batchName(c) }]
+        ? [
+            ...batchStack,
+            { name: this.#batchName(c), smart: cmd?.createsSmartBatchContext },
+          ]
         : batchStack;
+      const beforeRuntime = new Set(this.#runtimeNames);
+      const beforeDefined = new Set(this.#definedSoFar);
       await this.#check(blk.body, nextStack);
+      if (cmd?.createsSmartBatchContext) {
+        for (const name of this.#runtimeNames)
+          if (!beforeRuntime.has(name) && !beforeDefined.has(name))
+            this.#definedSoFar.delete(name);
+        this.#runtimeNames = beforeRuntime;
+      }
     }
   }
 
@@ -1607,19 +1691,14 @@ class SemanticAnalyzer {
       // Non-batchable helper inside a batch context. An on-chain face
       // (`name!`) is exempt: it compiles into the batch's transaction and
       // reads state when that executes, never at batch-build time — even
-      // though its file declares `batchable: false` for the run face. A
-      // smart batch lifts the gate for the run face too: the smart
-      // compiler evaluates the read on-chain, in sequence.
+      // though its file declares `batchable: false` for the run face. Ordinary helpers retain their build-time read restrictions.
       if (batchStack.length > 0 && !localName.endsWith("!")) {
         const frame = batchStack[batchStack.length - 1];
         const batchable = await this.#schemas.getHelperBatchable(
           owningModule,
           localName,
         );
-        const liftedBySmart =
-          frame.smart === true &&
-          this.#schemas.getHelperOnchain(owningModule, localName);
-        if (batchable === false && !liftedBySmart) {
+        if (batchable === false) {
           this.#diagnostics.push(
             diag(
               h,

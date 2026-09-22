@@ -8,6 +8,10 @@ import { resolveTwap } from "../twap/registry";
 import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
 
 export default defineCommand<Swaps>({
+  smartSupport: {
+    kind: "static",
+    reason: "The concrete order identifies its hash and settlement contract.",
+  },
   name: "twap-cancel",
   description:
     "Cancel a CoW TWAP and revoke its sell-token allowance. Cancellation takes effect when mined; use twap-recover afterwards to return unused tokens.",

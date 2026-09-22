@@ -6,6 +6,8 @@ Execute a succeeded (and queued, if the Governor uses a timelock) proposal. Take
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command opens a separate atomic execution context; nested atomic blocks are unsupported.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ governor:execute <governor> <description> <actions>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `governor` | `address` | Governor address |
-| `description` | `string` | Proposal description used when proposing |
-| `actions` | `block` | Block of commands making up the proposal |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `governor` | `address` | Build time | Governor address |
+| `description` | `string` | Build time | Proposal description used when proposing |
+| `actions` | `block` | Build time | Block of commands making up the proposal |
 
 <!-- HAND-WRITTEN -->
 

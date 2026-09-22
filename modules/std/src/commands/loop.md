@@ -4,6 +4,8 @@ title: "loop"
 
 Repeat a block: iterate over an array (`loop $x of $arr`), repeat until a condition is true (`loop until <condition>`), or exit/skip an iteration from inside the block (`loop break`, `loop continue`).
 
+Smart blocks: build-time inputs only. Loop bounds are evaluated at build time; the body expands into ordered steps.
+
 ## Syntax
 
 ```evml
@@ -12,12 +14,12 @@ loop [variable] <connector> [value] [block]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[variable]` | `variable` | Loop variable, bound per element (iteration form) |
-| `connector` | `command` | Keyword `of` (iterate an array), `until` (repeat while false), `break` or `continue` (inside a loop block) |
-| `[value]` | `expression` | Array to iterate over, or exit condition |
-| `[block]` | `block` | Commands to repeat |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[variable]` | `variable` | Build time | Loop variable, bound per element (iteration form) |
+| `connector` | `command` | Build time | Keyword `of` (iterate an array), `until` (repeat while false), `break` or `continue` (inside a loop block) |
+| `[value]` | `expression` | Build time | Array to iterate over, or exit condition |
+| `[block]` | `block` | Build time | Commands to repeat |
 
 ## Examples
 

@@ -38,7 +38,7 @@ export interface RenameRange {
 
 export type RenameResult = { edits: RenameEdit[] } | { error: string };
 
-const COMMAND_NAME_RE = /^[a-zA-Z-]{1,63}$/;
+const COMMAND_NAME_RE = /^[a-zA-Z-]{1,63}!?$/;
 const HELPER_NAME_RE = /^(?!-|\.)[a-zA-Z0-9_\-.]+!?$/;
 
 interface ImportEntryTarget {

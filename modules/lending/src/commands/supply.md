@@ -6,6 +6,8 @@ Supply a token to a lending market, approving the pool automatically when needed
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ lending:supply <amount> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount to supply, in base units (wei) |
-| `token` | `address` | Token to supply (use @token(SYM); lending markets take the wrapped token, not the native one) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount to supply, in base units (wei) |
+| `token` | `address` | Build time | Token to supply (use @token(SYM); lending markets take the wrapped token, not the native one) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--using` | `lending-adapter` | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
-| `--on-behalf-of` | `address` | Account credited with the supplied position (defaults to the connected account) |
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--using` | `lending-adapter` | Build time | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
+| `--on-behalf-of` | `address` | Runtime in smart blocks | Account credited with the supplied position (defaults to the connected account) |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 ## Examples
 

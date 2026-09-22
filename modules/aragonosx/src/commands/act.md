@@ -6,6 +6,8 @@ Execute actions directly through the DAO (the caller needs EXECUTE_PERMISSION on
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command opens a separate atomic execution context; nested atomic blocks are unsupported.
+
 ## Syntax
 
 ```evml
@@ -14,16 +16,16 @@ aragonosx:act <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `block` | `block` | Actions to execute |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `block` | `block` | Build time | Actions to execute |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--call-id` | `string` | bytes32 identifier attached to the execution (default 0x0) |
-| `--allow-failure-map` | `number` | Bitmap of actions allowed to fail (default none) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--call-id` | `string` | Build time | bytes32 identifier attached to the execution (default 0x0) |
+| `--allow-failure-map` | `number` | Build time | Bitmap of actions allowed to fail (default none) |
 
 ## Examples
 

@@ -6,6 +6,8 @@ Schedule a batch of actions on a TimelockController. Optionally binds the operat
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command opens a separate atomic execution context; nested atomic blocks are unsupported.
+
 ## Syntax
 
 ```evml
@@ -14,19 +16,19 @@ governor:timelock-schedule [variable] <timelock> <delay> <actions>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[variable]` | `variable` | Variable to bind the operation id to |
-| `timelock` | `address` | TimelockController address |
-| `delay` | `number` | Delay, in time units (e.g. 2d; at least the timelock minimum delay) |
-| `actions` | `block` | Block of commands making up the operation |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[variable]` | `variable` | Build time | Variable to bind the operation id to |
+| `timelock` | `address` | Build time | TimelockController address |
+| `delay` | `number` | Build time | Delay, in time units (e.g. 2d; at least the timelock minimum delay) |
+| `actions` | `block` | Build time | Block of commands making up the operation |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--predecessor` | `bytes32` | Operation id that must execute first (default none) |
-| `--salt` | `bytes32` | Salt to disambiguate identical operations (default zero) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--predecessor` | `bytes32` | Build time | Operation id that must execute first (default none) |
+| `--salt` | `bytes32` | Build time | Salt to disambiguate identical operations (default zero) |
 
 <!-- HAND-WRITTEN -->
 

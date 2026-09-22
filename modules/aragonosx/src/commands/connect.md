@@ -6,6 +6,8 @@ Connect to an Aragon OSx DAO and execute commands within its context.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. DAO selection and ABI discovery happen at build time; the block expands into the surrounding execution context.
+
 ## Syntax
 
 ```evml
@@ -14,10 +16,10 @@ aragonosx:connect <dao> <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `dao` | `dao` | DAO address or ENS subdomain (e.g. `mydao` for mydao.dao.eth) |
-| `block` | `block` | Commands to execute in DAO context |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `dao` | `dao` | Build time | DAO address or ENS subdomain (e.g. `mydao` for mydao.dao.eth) |
+| `block` | `block` | Build time | Commands to execute in DAO context |
 
 ## Examples
 

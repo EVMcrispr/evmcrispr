@@ -6,6 +6,8 @@ Deploy an ERC-1167 minimal proxy (clone) of an implementation contract. Binds th
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Implementation, factory and salt determine the bound clone address.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ proxies:clone <variable> <implementation>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the clone address to |
-| `implementation` | `address` | Implementation contract the clone delegates to |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the clone address to |
+| `implementation` | `address` | Build time | Implementation contract the clone delegates to |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--salt` | `bytes32` | Salt for deterministic CREATE2 deployment through the Arachnid deployer (override with --via) |
-| `--via` | `address` | Override the CREATE2 factory address used with --salt |
-| `--from` | `address` | Sender address. Defaults to the connected wallet. For plain CREATE this is also the prediction deployer. |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--salt` | `bytes32` | Build time | Salt for deterministic CREATE2 deployment through the Arachnid deployer (override with --via) |
+| `--via` | `address` | Build time | Override the CREATE2 factory address used with --salt |
+| `--from` | `address` | Build time | Sender address. Defaults to the connected wallet. For plain CREATE this is also the prediction deployer. |
 
 <!-- HAND-WRITTEN -->
 

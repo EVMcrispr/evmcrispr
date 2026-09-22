@@ -1,5 +1,18 @@
 import type { Action } from "@evmcrispr/sdk";
-import { chainLabel, clientFor, ErrorException } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  clientFor,
+  ErrorException,
+  encodeAction,
+} from "@evmcrispr/sdk";
+import {
+  assertSmartComparison,
+  isRuntimeValue,
+  type RuntimeValue,
+  smartArithmetic,
+  smartReadLens,
+  snapshotSmartAmount,
+} from "@evmcrispr/sdk/onchain";
 import type { Address, Hex } from "viem";
 import {
   encodeFunctionData,
@@ -168,6 +181,81 @@ const layerzero: BridgeAdapter = {
       nativeFee: fee.nativeFee,
       amountOut: receipt.amountReceivedLD,
       route: { oft, sendParam, nativeFee: fee.nativeFee },
+    };
+  },
+
+  async buildSmartBridge(module, req, { opts }) {
+    const { oft, needsApproval, underlying } = await resolveOft(
+      module,
+      req.srcChainId,
+      req.token,
+    );
+    const recipient = isRuntimeValue(req.recipient)
+      ? ({
+          ...req.recipient,
+          abiType: { type: "bytes32" },
+          operand: { ...req.recipient.operand, cat: "Bytes32" },
+        } as RuntimeValue)
+      : addressToBytes32(req.recipient);
+    const sendParam = {
+      dstEid: LZ_EIDS[req.dstChainId],
+      to: recipient,
+      amountLD: req.amount,
+      minAmountLD: 0n,
+      extraOptions: "0x",
+      composeMsg: "0x",
+      oftCmd: "0x",
+    };
+    const tuple =
+      "(uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd)";
+    const signature = `quoteOFT(${tuple}) returns ((uint256,uint256),(int256,string)[],(uint256,uint256))`;
+    const received = await snapshotSmartAmount(
+      module,
+      smartReadLens(
+        module,
+        oft,
+        signature,
+        [sendParam],
+        [null, null, [null, "$"]],
+      ),
+    );
+    const sent = smartReadLens(
+      module,
+      oft,
+      signature,
+      [sendParam],
+      [null, null, ["$"]],
+    );
+    if (opts["max-fee"] !== undefined)
+      await assertSmartComparison(
+        module,
+        await smartArithmetic(module, "-", sent, received),
+        "<=",
+        BigInt(String(opts["max-fee"])),
+        "LayerZero token fee exceeds --max-fee",
+      );
+    const bounded = { ...sendParam, minAmountLD: received };
+    const fee = await snapshotSmartAmount(
+      module,
+      smartReadLens(
+        module,
+        oft,
+        `quoteSend(${tuple},bool) returns ((uint256,uint256))`,
+        [bounded, false],
+        [["$"]],
+      ),
+    );
+    return {
+      approvalTarget: needsApproval ? oft : undefined,
+      approvalToken: underlying,
+      actions: [
+        encodeAction(
+          oft,
+          "send",
+          [bounded, { nativeFee: fee, lzTokenFee: 0n }, req.from],
+          { abi: oftAbi, value: fee },
+        ),
+      ],
     };
   },
 

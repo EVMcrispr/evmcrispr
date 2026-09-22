@@ -1,15 +1,21 @@
-import { ErrorException, encodeAction, Num } from "@evmcrispr/sdk";
+import { ErrorException, encodeAction } from "@evmcrispr/sdk";
 import {
+  amountParam,
   callReadOperand,
   directReadOperand,
   encodeCond,
   encodePick,
   encodeRead,
+  getSmartCompileContext,
+  isRuntimeValue,
   materializeWord,
   OP_SELECTORS,
   operandNode,
   opReadParam,
   rawParam,
+  runtimeValue,
+  type SmartAmount,
+  snapshotSmartAmount,
   staticCallParam,
   toWord,
   wordOpParam,
@@ -56,15 +62,16 @@ export function makeAaveStyleAdapter(
 
     async buildSupply(module, req) {
       const { pool } = await getMarket(module, market, req.chainId);
-      await readReserve(module, market, req.chainId, req.token);
-      const amount = req.amount as bigint;
+      if (!isRuntimeValue(req.token))
+        await readReserve(module, market, req.chainId, req.token);
+      const amount = req.amount as SmartAmount;
       return {
         approvalTarget: pool,
         approvalAmount: amount,
         actions: [
           encodeAction(pool, "supply(address,uint256,address,uint16)", [
             req.token,
-            Num.fromBigInt(amount),
+            amountParam(amount),
             req.onBehalfOf,
             REFERRAL_CODE,
           ]),
@@ -74,28 +81,30 @@ export function makeAaveStyleAdapter(
 
     async buildWithdraw(module, req) {
       const { pool } = await getMarket(module, market, req.chainId);
-      await readReserve(module, market, req.chainId, req.token);
+      if (!isRuntimeValue(req.token))
+        await readReserve(module, market, req.chainId, req.token);
       // maxUint256 makes the Pool burn the full aToken balance.
       const amount = req.amount === "max" ? maxUint256 : req.amount;
       return {
         actions: [
-          encodeAction(pool, "withdraw(address,uint256,address)", [
-            req.token,
-            Num.fromBigInt(amount),
-            req.to,
-          ]),
+          encodeAction(
+            pool,
+            "withdraw(address,uint256,address) returns (uint256)",
+            [req.token, amountParam(amount), req.to],
+          ),
         ],
       };
     },
 
     async buildBorrow(module, req) {
       const { pool } = await getMarket(module, market, req.chainId);
-      await readReserve(module, market, req.chainId, req.token);
+      if (!isRuntimeValue(req.token))
+        await readReserve(module, market, req.chainId, req.token);
       return {
         actions: [
           encodeAction(pool, "borrow(address,uint256,uint256,uint16,address)", [
             req.token,
-            Num.fromBigInt(req.amount as bigint),
+            amountParam(req.amount as SmartAmount),
             VARIABLE_RATE,
             REFERRAL_CODE,
             req.onBehalfOf,
@@ -106,8 +115,8 @@ export function makeAaveStyleAdapter(
 
     async buildRepay(module, req) {
       const { pool } = await getMarket(module, market, req.chainId);
-      let amount: bigint;
-      let approvalAmount: bigint;
+      let amount: SmartAmount;
+      let approvalAmount: SmartAmount;
       if (req.amount === "max") {
         // Aave rejects uint256.max repays on behalf of another account
         // (validation error 26): the debt owner must be the sender.
@@ -116,24 +125,47 @@ export function makeAaveStyleAdapter(
             `${name} does not accept \`max\` together with --on-behalf-of; pass an explicit amount`,
           );
         }
-        const debt = await readVariableDebt(
-          module,
-          market,
-          req.chainId,
-          req.onBehalfOf,
-          req.token,
-        );
-        if (debt === 0n) {
-          throw new ErrorException(
-            `no variable ${req.token} debt to repay on ${name}`,
+        const ctx = getSmartCompileContext(module);
+        if (ctx) {
+          const debt = await this.compileDebt!(
+            ctx,
+            module,
+            req.chainId,
+            { kind: "const", cat: "Address", value: req.from },
+            req.token,
           );
+          if (debt.kind !== "call")
+            throw new ErrorException("expected a runtime debt read");
+          amount = await snapshotSmartAmount(
+            module,
+            runtimeValue(
+              debt.param,
+              { type: "uint256" },
+              ctx.interpreters.batchContext!.smartState!.plan.salt,
+            ),
+          );
+          approvalAmount = amount;
+        } else {
+          const debt = await readVariableDebt(
+            module,
+            market,
+            req.chainId,
+            req.onBehalfOf,
+            req.token,
+          );
+          if (debt === 0n) {
+            throw new ErrorException(
+              `no variable ${req.token} debt to repay on ${name}`,
+            );
+          }
+          // The Pool pulls only the actual debt; the 0.1% buffer covers
+          // interest accrued between build and execution and is never spent.
+          amount = maxUint256;
+          approvalAmount = debt + debt / 1000n + 1n;
         }
-        // The Pool pulls only the actual debt; the 0.1% buffer covers
-        // interest accrued between build and execution and is never spent.
-        amount = maxUint256;
-        approvalAmount = debt + debt / 1000n + 1n;
       } else {
-        await readReserve(module, market, req.chainId, req.token);
+        if (!isRuntimeValue(req.token))
+          await readReserve(module, market, req.chainId, req.token);
         amount = req.amount;
         approvalAmount = req.amount;
       }
@@ -141,19 +173,19 @@ export function makeAaveStyleAdapter(
         approvalTarget: pool,
         approvalAmount,
         actions: [
-          encodeAction(pool, "repay(address,uint256,uint256,address)", [
-            req.token,
-            Num.fromBigInt(amount),
-            VARIABLE_RATE,
-            req.onBehalfOf,
-          ]),
+          encodeAction(
+            pool,
+            "repay(address,uint256,uint256,address) returns (uint256)",
+            [req.token, amountParam(amount), VARIABLE_RATE, req.onBehalfOf],
+          ),
         ],
       };
     },
 
     async buildSetCollateral(module, req) {
       const { pool } = await getMarket(module, market, req.chainId);
-      await readReserve(module, market, req.chainId, req.token);
+      if (!isRuntimeValue(req.token))
+        await readReserve(module, market, req.chainId, req.token);
       return {
         actions: [
           encodeAction(pool, "setUserUseReserveAsCollateral(address,bool)", [
@@ -168,7 +200,11 @@ export function makeAaveStyleAdapter(
       const { pool } = await getMarket(module, market, req.chainId);
       return {
         actions: [
-          encodeAction(pool, "setUserEMode(uint8)", [String(req.categoryId)]),
+          encodeAction(pool, "setUserEMode(uint8)", [
+            isRuntimeValue(req.categoryId)
+              ? req.categoryId
+              : String(req.categoryId),
+          ]),
         ],
       };
     },

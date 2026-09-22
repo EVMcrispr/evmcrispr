@@ -2,12 +2,14 @@ import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Safe from "..";
 
 export default defineCommand<Safe>({
+  smartSupport: { kind: "runtime" },
   name: "set-fallback-handler",
   description: "Set the fallback handler contract of the Safe.",
   args: [
     {
       name: "handler",
       type: "address",
+      runtime: true,
       description: "Fallback handler contract address",
     },
   ],

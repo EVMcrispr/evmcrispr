@@ -4,8 +4,13 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import {
+  amountParam,
+  isRuntimeValue,
+  positiveRuntimeAmount,
+  smartArithmetic,
+} from "@evmcrispr/sdk/onchain";
 import type { Abi } from "viem";
 import type Superfluid from "..";
 import { vestingSchedulerAbi } from "../abis";
@@ -18,13 +23,17 @@ import { parseAmount, parseDuration } from "../utils/rate";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "vest",
+  primaryCall: -1,
   description:
     "Vest a total SuperToken amount to a receiver over a duration through the VestingScheduler (V3), executed by Superfluid's keeper network. With --cliff, everything accrued up to the cliff is transferred at once when it passes, then the rest streams. Automatically grants the scheduler flow-operator rights and the SuperToken allowance it needs; execution is permissionless but not guaranteed if the grants are revoked.",
   args: [
     {
       name: "amount",
+      snapshot: true,
       type: "number",
+      runtime: true,
       description: "Total amount to vest, in base units (18 decimals)",
     },
     {
@@ -33,7 +42,12 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "receiver", type: "address", description: "Vesting receiver" },
+    {
+      name: "receiver",
+      type: "address",
+      runtime: true,
+      description: "Vesting receiver",
+    },
     { name: "over", type: "command", description: "Keyword `over`" },
     {
       name: "duration",
@@ -45,6 +59,7 @@ export default defineCommand<Superfluid>({
     {
       name: "start",
       type: "number",
+      runtime: true,
       description: "Unix timestamp at which vesting starts (defaults to now)",
     },
     {
@@ -83,30 +98,36 @@ export default defineCommand<Superfluid>({
       "VestingScheduler",
     );
     const superToken = await resolveSuperToken(module, token);
-    const total = parseAmount(amount);
-    const totalDuration = parseDuration(duration, "<duration>");
+    const total = parseAmount(amount, undefined, module);
+    const totalDuration = parseDuration(duration, "<duration>") as bigint;
     const start =
-      opts.start === undefined ? 0n : parseAmount(opts.start, "--start");
+      opts.start === undefined
+        ? 0n
+        : parseAmount(opts.start, "--start", module);
     const cliff =
-      opts.cliff === undefined ? 0n : parseDuration(opts.cliff, "--cliff");
+      opts.cliff === undefined
+        ? 0n
+        : (parseDuration(opts.cliff, "--cliff") as bigint);
     const claimPeriod =
       opts["claimable-for"] === undefined
         ? 0n
-        : parseDuration(opts["claimable-for"], "--claimable-for");
+        : parseDuration(opts["claimable-for"], "--claimable-for", module);
     if (cliff >= totalDuration) {
       throw new ErrorException(
         "--cliff must be shorter than the total duration",
       );
     }
 
-    const flowRate = total / totalDuration;
-    if (flowRate <= 0n) {
+    let flowRate = await smartArithmetic(module, "/", total, totalDuration);
+    if (isRuntimeValue(flowRate))
+      flowRate = positiveRuntimeAmount(module, flowRate);
+    if (!isRuntimeValue(flowRate) && flowRate <= 0n) {
       throw new ErrorException(
         "<amount> over <duration> yields a flow rate of 0 wei/second",
       );
     }
 
-    const account = await module.getConnectedAccount(true);
+    const account = await module.getSender();
     const actions: Action[] = [];
 
     if (!skipPrereqs(opts)) {
@@ -136,8 +157,17 @@ export default defineCommand<Superfluid>({
           functionName: "END_DATE_VALID_BEFORE",
         }),
       ])) as [number, number];
-      const allowance =
-        total + flowRate * (BigInt(startValidAfter) + BigInt(endValidBefore));
+      const allowance = await smartArithmetic(
+        module,
+        "+",
+        total,
+        await smartArithmetic(
+          module,
+          "*",
+          flowRate,
+          BigInt(startValidAfter) + BigInt(endValidBefore),
+        ),
+      );
       actions.push(
         ...(await buildApprovalActions(
           module,
@@ -156,11 +186,11 @@ export default defineCommand<Superfluid>({
         [
           superToken,
           receiver,
-          Num.fromBigInt(total),
-          Num.fromBigInt(totalDuration),
-          Num.fromBigInt(start),
-          Num.fromBigInt(cliff),
-          Num.fromBigInt(claimPeriod),
+          amountParam(total),
+          amountParam(totalDuration),
+          amountParam(start),
+          amountParam(cliff),
+          amountParam(claimPeriod),
         ],
       ),
     );

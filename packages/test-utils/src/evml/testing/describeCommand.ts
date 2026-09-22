@@ -2,10 +2,12 @@ import { beforeAll, describe, it } from "bun:test";
 import type { Action, ErrorException } from "@evmcrispr/sdk";
 import { expect } from "chai";
 import type { PublicClient } from "viem";
+import inventory from "../../../../../scripts/smart-command-inventory.json";
 import { getPublicClient } from "../../client";
 import { createInterpreter, interpretDoc, type TestInterpreter } from "../evml";
 import { expectThrowAsync } from "../expects";
 import type { DocExample } from "./describeHelper";
+import { checkSmartCommandFields } from "./smartCommand";
 
 export interface CommandTestCase {
   name: string;
@@ -43,6 +45,8 @@ export interface CommandTestConfig {
   preamble?: string;
   /** Happy-path test cases. */
   cases?: CommandTestCase[];
+  /** Explicit successful fixture when ordinary examples select a build-time-only route. */
+  smartCases?: CommandTestCase[];
   /** Error test cases. */
   errorCases?: CommandErrorCase[];
   /** Documentation examples — tested as runnable scripts and included in generated docs. */
@@ -108,6 +112,19 @@ export function describeCommand(
         if (c.timeout !== undefined) it(c.name, testCase, c.timeout);
         else it(c.name, testCase);
       }
+    }
+
+    const inventoryKey = `${config.module ? moduleBaseName(config.module) : "std"}/${commandName}`;
+    if (
+      (inventory as Record<string, { kind: string }>)[inventoryKey]?.kind ===
+        "runtime" &&
+      config.cases?.length
+    ) {
+      it(
+        "[SMART] compiles declared runtime fields from the protocol fixture",
+        () => checkSmartCommandFields(commandName, config, client),
+        30_000,
+      );
     }
 
     if (config.docCases) {

@@ -1,5 +1,6 @@
 import type { Module } from "@evmcrispr/sdk";
 import { Num } from "@evmcrispr/sdk";
+import { isRuntimeValue, type SmartAmount } from "@evmcrispr/sdk/onchain";
 
 const DEFAULT_DEADLINE_SECONDS = 1200n;
 
@@ -11,9 +12,11 @@ const DEFAULT_DEADLINE_SECONDS = 1200n;
 export async function resolveDeadline(
   module: Module,
   opts: Record<string, any>,
-): Promise<bigint> {
+): Promise<SmartAmount> {
   if (opts.deadline !== undefined) {
-    return Num(opts.deadline).toBigInt();
+    return isRuntimeValue(opts.deadline)
+      ? opts.deadline
+      : Num(opts.deadline).toBigInt();
   }
   const client = await module.getClient();
   const block = await client.getBlock();

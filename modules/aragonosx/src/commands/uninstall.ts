@@ -12,6 +12,11 @@ import {
 } from "../utils/psp";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Plugin setup preparation determines the permission diff before signing.",
+  },
   name: "uninstall",
   description:
     "Uninstall a plugin from the connected DAO via the Plugin Setup Processor.",

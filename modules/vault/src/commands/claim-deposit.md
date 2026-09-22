@@ -6,6 +6,8 @@ Claim the shares of a fulfilled ERC-7540 deposit request. Pass `max` as the amou
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,20 +16,20 @@ vault:claim-deposit <amount> <from> <vault>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `command \| number` | Amount to claim in base units (wei) — assets by default, shares with --exact shares — or the keyword `max` for everything claimable |
-| `from` | `command` | Keyword `from` |
-| `vault` | `address` | ERC-7540 vault address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `command \| number` | Runtime in smart blocks | Amount to claim in base units (wei) — assets by default, shares with --exact shares — or the keyword `max` for everything claimable |
+| `from` | `command` | Build time | Keyword `from` |
+| `vault` | `address` | Build time | ERC-7540 vault address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--to` | `address` | Receiver of the claimed shares (defaults to the connected account) |
-| `--controller` | `address` | Controller of the request being claimed (defaults to the connected account; requires operator rights when it is not the sender) |
-| `--request-id` | `number` | Request id, for vaults that key requests by id (defaults to 0, the controller-keyed convention) |
-| `--exact` | `string` | Which amount is exact: `assets` (default, uses deposit) or `shares` (uses mint) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--to` | `address` | Runtime in smart blocks | Receiver of the claimed shares (defaults to the connected account) |
+| `--controller` | `address` | Runtime in smart blocks | Controller of the request being claimed (defaults to the connected account; requires operator rights when it is not the sender) |
+| `--request-id` | `number` | Runtime in smart blocks | Request id, for vaults that key requests by id (defaults to 0, the controller-keyed convention) |
+| `--exact` | `string` | Build time | Which amount is exact: `assets` (default, uses deposit) or `shares` (uses mint) |
 
 ## Examples
 

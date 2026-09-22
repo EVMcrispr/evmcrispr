@@ -6,6 +6,8 @@ Grant a permission on the DAO or one of its plugins to an entity, optionally gat
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,19 +16,19 @@ aragonosx:grant <permission> <on> <where> <to> <who>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `permission` | `permission` | Permission name (e.g. EXECUTE) or bytes32 id |
-| `on` | `command` | Keyword `on` |
-| `where` | `plugin` | Target: `dao`, a plugin identifier, or an address |
-| `to` | `command` | Keyword `to` |
-| `who` | `address` | Address receiving the permission (or ANY_ENTITY) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `permission` | `permission` | Build time | Permission name (e.g. EXECUTE) or bytes32 id |
+| `on` | `command` | Build time | Keyword `on` |
+| `where` | `plugin` | Build time | Target: `dao`, a plugin identifier, or an address |
+| `to` | `command` | Build time | Keyword `to` |
+| `who` | `address` | Runtime in smart blocks | Address receiving the permission (or ANY_ENTITY) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--condition` | `address` | PermissionCondition contract gating the permission |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--condition` | `address` | Runtime in smart blocks | PermissionCondition contract gating the permission |
 
 ## Examples
 

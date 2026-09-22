@@ -1,5 +1,6 @@
 import type { Action, Module } from "@evmcrispr/sdk";
 import { coerceBoolean } from "@evmcrispr/sdk";
+import type { SmartAmount } from "@evmcrispr/sdk/onchain";
 import type { Address } from "viem";
 import { buildApprovalActions } from "./approval";
 
@@ -22,7 +23,7 @@ export async function withApproval(
   token: Address,
   owner: Address,
   spender: Address,
-  amount: bigint,
+  amount: SmartAmount,
   opts: Record<string, any>,
 ): Promise<Action[]> {
   if (skipPrereqs(opts)) return actions;

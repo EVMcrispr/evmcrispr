@@ -9,6 +9,8 @@ Unwrap an ENS name from the NameWrapper.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. The name selects a registrar/wrapper route and is normalized at build time.
+
 ## Syntax
 
 ```evml
@@ -17,9 +19,9 @@ ens:unwrap <name>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | Wrapped ENS name (e.g. mydao.eth) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | Wrapped ENS name (e.g. mydao.eth) |
 
 <!-- HAND-WRITTEN -->
 

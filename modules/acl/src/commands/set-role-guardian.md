@@ -6,6 +6,8 @@ Set the guardian role allowed to cancel scheduled operations of an AccessManager
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ acl:set-role-guardian <manager> <roleId> <guardianRoleId>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `manager` | `address` | AccessManager address |
-| `roleId` | `number \| string` | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
-| `guardianRoleId` | `number \| string` | New guardian role id |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `manager` | `address` | Runtime in smart blocks | AccessManager address |
+| `roleId` | `number \| string` | Build time | Role id (or ADMIN_ROLE / PUBLIC_ROLE) |
+| `guardianRoleId` | `number \| string` | Build time | New guardian role id |
 
 <!-- HAND-WRITTEN -->
 

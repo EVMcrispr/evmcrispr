@@ -10,6 +10,7 @@ import { requireCore, requirePeripheral } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "unschedule-flow",
   description:
     "Cancel a pending flow schedule (both its start and end legs). Streams already opened keep running — use stop-stream for those.",
@@ -20,7 +21,12 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "receiver", type: "address", description: "Scheduled receiver" },
+    {
+      name: "receiver",
+      runtime: true,
+      type: "address",
+      description: "Scheduled receiver",
+    },
   ],
   completions: { to: () => [fieldItem("to")] },
   async run(module, { token, to, receiver }) {

@@ -6,6 +6,11 @@ import { requireDistro } from "../utils/givpower";
 import { recordVirtual } from "../utils/ledger";
 
 export default defineCommand<Giveth>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Reward reads select which claim function to call; these decisions require build-time state.",
+  },
   name: "claim",
   description:
     "Harvest GIV rewards: collect the accrued GIVpower staking rewards (when the chain has a staking contract) and claim the GIV the GIVstream has already released. Does nothing when there is nothing to claim.",

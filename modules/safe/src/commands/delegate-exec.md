@@ -6,6 +6,8 @@ Call a contract function via DELEGATECALL from the Safe. The code runs in the st
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Only exact static delegatecalls are supported; the composability executor cannot represent dynamic delegatecalls.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ safe:delegate-exec <contractAddress> <signature> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `contractAddress` | `address` | Target library/contract address |
-| `signature` | `write-abi` | Function signature (e.g. `"signMessage(bytes)"`) |
-| `[...params]` | `any` | Arguments matching the signature types |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `contractAddress` | `address` | Build time | Target library/contract address |
+| `signature` | `write-abi` | Build time | Function signature (e.g. `"signMessage(bytes)"`) |
+| `[...params]` | `any` | Build time | Arguments matching the signature types |
 
 <!-- HAND-WRITTEN -->
 

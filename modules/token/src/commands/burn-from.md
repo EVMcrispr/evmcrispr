@@ -4,6 +4,8 @@ title: "token:burn-from"
 
 Burn tokens from another account, consuming the sender allowance (ERC20Burnable burnFrom function).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,12 +14,12 @@ token:burn-from <amount> <token> <from> <account>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount in token units (wei) |
-| `token` | `address` | Token address |
-| `from` | `command` | Keyword `from` |
-| `account` | `address` | Account to burn from |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount in token units (wei) |
+| `token` | `address` | Runtime in smart blocks | Token address |
+| `from` | `command` | Build time | Keyword `from` |
+| `account` | `address` | Runtime in smart blocks | Account to burn from |
 
 <!-- HAND-WRITTEN -->
 

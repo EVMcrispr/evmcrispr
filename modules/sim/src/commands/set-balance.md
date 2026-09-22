@@ -4,6 +4,8 @@ title: "sim:set-balance"
 
 Set the ETH balance of an account in a fork simulation.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ sim:set-balance <address> <amount>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `address` | `address` | Contract or account address |
-| `amount` | `number` | New balance in wei |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `address` | `address` | Build time | Contract or account address |
+| `amount` | `number` | Build time | New balance in wei |
 
 ## Examples
 

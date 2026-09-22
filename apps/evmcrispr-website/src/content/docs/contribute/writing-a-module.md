@@ -164,3 +164,40 @@ async run(module, args) {
 bun run build        # Build all packages
 bun test:unit        # Run tests
 ```
+
+
+## Smart-batch command compilation
+
+Commands retain their ordinary names inside `batch!`, `safe:propose!` and
+`safe:execute!`. Classify each command with `smartSupport`: `runtime`,
+`static`, or `incompatible`. Static and incompatible commands need a concrete
+`reason`. Add the classification to `scripts/smart-command-inventory.json`;
+`scripts/check-smart-command-coverage.ts` checks that every command is covered.
+
+Mark individual argument and option definitions with `runtime: true` where
+execution-time values are supported. Unmarked fields remain build-time values.
+The metadata drives validation, editor diagnostics and generated documentation.
+Use `snapshot: true` on a runtime argument when several calls must consume the
+same resolved value, such as an amount shared by approvals and a protocol call.
+
+Prefer one builder for ordinary execution and smart compilation. `encodeAction`
+and the encoding functions in `@evmcrispr/sdk/onchain` preserve typed values
+inside an active smart context. Never coerce a runtime value into a JavaScript
+number, boolean or address string. Use the executing account from
+`module.getSender()` for sender-dependent defaults.
+
+For commands that need the raw AST, supply `compile(ctx, node)` alongside `run`.
+This hook returns a `SmartCommandPlan` with ordered `actions` and an optional
+`primaryCall` index. `primaryCall` identifies the protocol call whose declared
+ABI outputs can be captured with `-> [$result]`; approvals must not be selected
+implicitly. The hook compiles only inside a smart block. AST nodes, module
+instances and SDK clients must not be included in the final execution action.
+
+Reuse `compileOperand`, `smartValueParam`, the runtime ABI builders and
+`buildApprovalActions` from `@evmcrispr/sdk/onchain`. Assertions and smart batches
+share ERC-8211 positional constraints: constraint *i* checks resolved word *i*.
+Use `constrainWord` to combine checks on the same word; appending another
+constraint would check the next word. Add parity and runtime-field tests for
+new transaction commands and adapter routes, including rejected build-time-only
+inputs. See the [smart-batch guide](../guides/smart-batches.md) for execution
+requirements and return capture limits.

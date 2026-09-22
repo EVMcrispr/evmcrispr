@@ -15,6 +15,11 @@ import {
 } from "../utils/psp";
 
 export default defineCommand<AragonOSx>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Plugin update preparation and permission diffs require concrete version inputs.",
+  },
   name: "upgrade",
   description:
     "Update an installed plugin to a newer build via the Plugin Setup Processor.",

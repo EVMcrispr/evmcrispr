@@ -197,15 +197,15 @@ export async function compileAssertion(
     const bare = { subject: lhs };
     // assertTrue(eq(x, 0)) ≡ x EQ 0: drop the wrapper when we can.
     if (lhs.notOf) {
-      return done(judged(lhs.notOf, [constraint("Eq", 0n)]), bare);
+      return done(judged(lhs.notOf, [constraint("Eq", 0n)], ctx), bare);
     }
     // assertTrue(isValid(x)) ≡ x resolving: judge a zero-constraint
     // entry on the raw operand, so a failure reports the resolution's
     // own error (e.g. UnexpectedRevertData) instead of ConstraintFailed.
     if (lhs.validOf) {
-      return done(judged(lhs.validOf, []), bare);
+      return done(judged(lhs.validOf, [], ctx), bare);
     }
-    return done(judged(lhs.param, [constraint("Eq", 1n)]), bare);
+    return done(judged(lhs.param, [constraint("Eq", 1n)], ctx), bare);
   }
 
   if (!(spec.operator in MIRRORED)) {
@@ -248,7 +248,7 @@ export async function compileAssertion(
         "nothing to assert on-chain: the comparison folded to a constant",
       );
     }
-    return done(judged(cmp.param, [constraint("Eq", 1n)]), {
+    return done(judged(cmp.param, [constraint("Eq", 1n)], ctx), {
       subject: lhs,
       expected: rhs,
       operator: op,
@@ -285,7 +285,7 @@ export async function compileAssertion(
     // bound.
     if (live.notOf) {
       return done(
-        judged(live.notOf, [constraint("Eq", want ? 0n : 1n)]),
+        judged(live.notOf, [constraint("Eq", want ? 0n : 1n)], ctx),
         sides,
       );
     }
@@ -293,9 +293,12 @@ export async function compileAssertion(
     // bare form. Expecting false keeps the word comparison, since "does
     // not resolve" has no raw-entry spelling.
     if (live.validOf && want) {
-      return done(judged(live.validOf, []), sides);
+      return done(judged(live.validOf, [], ctx), sides);
     }
-    return done(judged(live.param, [constraint("Eq", want ? 1n : 0n)]), sides);
+    return done(
+      judged(live.param, [constraint("Eq", want ? 1n : 0n)], ctx),
+      sides,
+    );
   }
 
   const isApprox = fragment === "ApproxEq";
@@ -334,7 +337,7 @@ export async function compileAssertion(
     }
     const hashed = hashParamOf(ctx, live.param);
     if (fragment === "Eq") {
-      return done(judged(hashed, [constraint("Eq", digest)]), sides);
+      return done(judged(hashed, [constraint("Eq", digest)], ctx), sides);
     }
     return done(opJudge(ctx, "ne", false, hashed, BigInt(digest)), sides);
   }

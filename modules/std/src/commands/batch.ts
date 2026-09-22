@@ -12,6 +12,11 @@ import {
 import type Std from "..";
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "batch",
   description: "Group multiple commands into a single transaction.",
   args: [{ name: "block", type: "block", description: "Block of commands" }],

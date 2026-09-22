@@ -10,6 +10,11 @@ import {
 } from "../utils";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Deployment salt and initializer determine the predicted module address.",
+  },
   name: "install-roles",
   description:
     "Deploy a Zodiac Roles modifier (fine-grained permissions) owned by the Safe and enable it as a module.",

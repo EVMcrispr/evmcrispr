@@ -4,11 +4,17 @@ import { nameWrapperMap, registryMap, requireAddress } from "../addresses";
 import { assertSupportedChain, getNode, isWrapped } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "set-resolver",
   description: "Set the resolver contract of an ENS name.",
   args: [
     { name: "name", type: "string", description: "ENS name (e.g. mydao.eth)" },
-    { name: "resolver", type: "address", description: "Resolver address" },
+    {
+      name: "resolver",
+      runtime: true,
+      type: "address",
+      description: "Resolver address",
+    },
   ],
   async run(module, { name, resolver }) {
     const chainId = await module.getChainId();

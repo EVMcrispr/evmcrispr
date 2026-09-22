@@ -4,6 +4,8 @@ title: "sim:fork"
 
 Fork the blockchain and execute commands in a simulation.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,18 +14,18 @@ sim:fork <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `block` | `block` | Commands to execute in the fork |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `block` | `block` | Build time | Commands to execute in the fork |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--block-number` | `number` | Block number to fork from |
-| `--from` | `address` | Default sender address |
-| `--auth-token` | `string` | RPC provider authentication token |
-| `--using` | `simulation-mode` | Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--block-number` | `number` | Build time | Block number to fork from |
+| `--from` | `address` | Build time | Default sender address |
+| `--auth-token` | `string` | Build time | RPC provider authentication token |
+| `--using` | `simulation-mode` | Build time | Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm) |
 
 ## Examples
 

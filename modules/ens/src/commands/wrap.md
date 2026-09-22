@@ -9,6 +9,8 @@ Wrap an ENS name in the NameWrapper.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -17,16 +19,16 @@ ens:wrap <name>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | ENS name (e.g. mydao.eth) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | ENS name (e.g. mydao.eth) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--resolver` | `address` | Resolver of the wrapped name |
-| `--fuses` | `number` | Owner-controlled fuses to burn while wrapping (.eth second-level names only; use @ens:fuses) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--resolver` | `address` | Runtime in smart blocks | Resolver of the wrapped name |
+| `--fuses` | `number` | Build time | Owner-controlled fuses to burn while wrapping (.eth second-level names only; use @ens:fuses) |
 
 <!-- HAND-WRITTEN -->
 

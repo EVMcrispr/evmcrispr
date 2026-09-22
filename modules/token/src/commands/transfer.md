@@ -4,6 +4,8 @@ title: "token:transfer"
 
 Transfer ERC20 tokens from the connected account to a recipient.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,12 +14,12 @@ token:transfer <amount> <token> <to> <recipient>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Amount in token units (wei) |
-| `token` | `address` | Token address |
-| `to` | `command` | Keyword `to` |
-| `recipient` | `address` | Recipient |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Amount in token units (wei) |
+| `token` | `address` | Runtime in smart blocks | Token address |
+| `to` | `command` | Build time | Keyword `to` |
+| `recipient` | `address` | Runtime in smart blocks | Recipient |
 
 <!-- HAND-WRITTEN -->
 

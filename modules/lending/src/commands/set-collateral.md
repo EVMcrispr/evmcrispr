@@ -6,6 +6,8 @@ Enable or disable a supplied token as collateral for the connected account's bor
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,16 +16,16 @@ lending:set-collateral <token> <mode>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `address` | Supplied token to toggle (use @token(SYM)) |
-| `mode` | `command` | `on` to use the token as collateral, `off` to stop |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `address` | Runtime in smart blocks | Supplied token to toggle (use @token(SYM)) |
+| `mode` | `command` | Build time | `on` to use the token as collateral, `off` to stop |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--using` | `lending-adapter` | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--using` | `lending-adapter` | Build time | Lending protocol: AaveV3, Spark or CompoundV3 (default: the best available on the chain) |
 
 ## Examples
 

@@ -4,6 +4,8 @@ title: "token:approve"
 
 Approve a spender for an ERC20 token allowance.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,12 +14,12 @@ token:approve <amount> <token> <for> <spender>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `number` | Allowance in token units (wei) |
-| `token` | `address` | Token address |
-| `for` | `command` | Keyword `for` |
-| `spender` | `address` | Spender address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `number` | Runtime in smart blocks | Allowance in token units (wei) |
+| `token` | `address` | Runtime in smart blocks | Token address |
+| `for` | `command` | Build time | Keyword `for` |
+| `spender` | `address` | Runtime in smart blocks | Spender address |
 
 <!-- HAND-WRITTEN -->
 

@@ -2,6 +2,7 @@ import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Safe from "..";
 
 export default defineCommand<Safe>({
+  smartSupport: { kind: "runtime" },
   name: "enable-module",
   description:
     "Enable a module on the Safe, allowing it to execute transactions without owner signatures (e.g. a Zodiac module).",
@@ -9,6 +10,7 @@ export default defineCommand<Safe>({
     {
       name: "module",
       type: "address",
+      runtime: true,
       description: "Module address to enable",
     },
   ],

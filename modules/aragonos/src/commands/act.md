@@ -4,6 +4,8 @@ title: "aragonos:act"
 
 Execute an action on a target contract through an agent or vault.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,12 +14,12 @@ aragonos:act <agent> <target> <signature> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `agent` | `address` | Agent or vault forwarder address |
-| `target` | `address` | Target contract address |
-| `signature` | `write-abi` | Function signature to call |
-| `[...params]` | `any` | Function arguments |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `agent` | `address` | Build time | Agent or vault forwarder address (build-time protocol discovery) |
+| `target` | `address` | Runtime in smart blocks | Target contract address |
+| `signature` | `write-abi` | Build time | Function signature to call |
+| `[...params]` | `any` | Runtime in smart blocks | Function arguments |
 
 ## Examples
 

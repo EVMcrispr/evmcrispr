@@ -4,12 +4,15 @@ import { resolveAdapter } from "../adapters/registry";
 import { parseAmount, rejectNative } from "../utils/amounts";
 
 export default defineCommand<Lending>({
+  smartSupport: { kind: "runtime" },
   name: "borrow",
   description:
     "Borrow a token from a lending market against the connected account's collateral (variable rate). The borrowed tokens go to the connected account.",
   args: [
     {
       name: "amount",
+      runtime: true,
+      snapshot: true,
       type: "number",
       description: "Amount to borrow, in base units (wei)",
     },
@@ -29,15 +32,16 @@ export default defineCommand<Lending>({
     {
       name: "on-behalf-of",
       type: "address",
+      runtime: true,
       description:
         "Account whose debt grows (requires prior credit delegation; defaults to the connected account)",
     },
   ],
   async run(module, { amount, token }, { opts }) {
     rejectNative(token);
-    const amountOut = parseAmount(amount);
+    const amountOut = parseAmount(amount, module);
     const chainId = await module.getChainId();
-    const from = await module.getConnectedAccount(true);
+    const from = await module.getSender();
     const onBehalfOf = opts["on-behalf-of"] ?? from;
     const adapter = await resolveAdapter(module, opts.using);
     const plan = await adapter.buildBorrow(module, {

@@ -87,9 +87,12 @@ function toolArtifact(output: unknown): ChatToolArtifact | undefined {
         const item = record(action);
         return (
           count +
-          (item?.type === "batched" && Array.isArray(item.actions)
-            ? item.actions.length
-            : 1)
+          (item?.type === "smartBatch" &&
+          Array.isArray(record(item.plan)?.steps)
+            ? (record(item.plan)!.steps as unknown[]).length
+            : item?.type === "batched" && Array.isArray(item.actions)
+              ? item.actions.length
+              : 1)
         );
       }, 0),
       error: typeof value.error === "string" ? value.error : undefined,

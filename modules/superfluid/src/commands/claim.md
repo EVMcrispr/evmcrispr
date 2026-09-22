@@ -6,6 +6,8 @@ Claim all accrued earnings from a GDA pool without connecting to it. Anyone can 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,16 +16,16 @@ superfluid:claim <from> <pool>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `from` | `command` | Keyword `from` |
-| `pool` | `address` | GDA pool address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `from` | `command` | Build time | Keyword `from` |
+| `pool` | `address` | Runtime in smart blocks | GDA pool address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--for` | `address` | Member to claim for (defaults to the connected account) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--for` | `address` | Runtime in smart blocks | Member to claim for (defaults to the connected account) |
 
 ## Examples
 

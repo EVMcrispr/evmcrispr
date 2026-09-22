@@ -4,6 +4,8 @@ title: "aragonos:install"
 
 Install an Aragon app into the connected DAO.
 
+Smart blocks: build-time inputs only. Package lookup, initializer ABI selection and predicted address bindings are build-time operations.
+
 ## Syntax
 
 ```evml
@@ -12,17 +14,17 @@ aragonos:install <variable> <identifier> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable name |
-| `identifier` | `repo` | App APM repository name |
-| `[...params]` | `any` | App initialization arguments |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable name |
+| `identifier` | `repo` | Build time | App APM repository name |
+| `[...params]` | `any` | Build time | App initialization arguments |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--version` | `string` | Specific app version to install |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--version` | `string` | Build time | Specific app version to install |
 
 ## Examples
 

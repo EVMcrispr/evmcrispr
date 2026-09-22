@@ -6,6 +6,8 @@ Create a Governor proposal from a block of commands: each action in the block be
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command opens a separate atomic execution context; nested atomic blocks are unsupported.
+
 ## Syntax
 
 ```evml
@@ -14,12 +16,12 @@ governor:propose [variable] <governor> <description> <actions>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[variable]` | `variable` | Variable to bind the proposal id to |
-| `governor` | `address` | Governor address |
-| `description` | `string` | Proposal description (markdown) |
-| `actions` | `block` | Block of commands making up the proposal |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[variable]` | `variable` | Build time | Variable to bind the proposal id to |
+| `governor` | `address` | Build time | Governor address |
+| `description` | `string` | Build time | Proposal description (markdown) |
+| `actions` | `block` | Build time | Block of commands making up the proposal |
 
 <!-- HAND-WRITTEN -->
 

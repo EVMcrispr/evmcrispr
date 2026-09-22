@@ -4,6 +4,8 @@ title: "giveth:stake"
 
 Stake GIV for GIVpower, approving the staking contract automatically when needed. Pass `max` as the amount to stake the full GIV balance; a zero amount does nothing. On Gnosis GIV is wrapped into gGIV through the GIVgarden (which auto-stakes it); on Optimism and Polygon zkEVM it is staked directly. Staked GIV earns GIVstream rewards and can be locked for more GIVpower.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,15 +14,15 @@ giveth:stake <amount>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `command \| number` | Amount of GIV to stake in base units (wei), or the keyword `max` for the full GIV balance (see @giveth:stakable) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `command \| number` | Runtime in smart blocks | Amount of GIV to stake in base units (wei), or the keyword `max` for the full GIV balance (see @giveth:stakable) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 ## Examples
 

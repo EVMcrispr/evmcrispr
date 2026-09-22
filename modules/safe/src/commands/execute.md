@@ -6,6 +6,8 @@ Execute a Safe transaction on-chain from a command block, a confirmed service tr
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,19 @@ safe:execute <safe> <proposal>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `safe` | `address` | Safe address |
-| `proposal` | `block \| bytes32 \| string` | Commands, the safeTxHash of a queued transaction, or exported transaction JSON with --no-api |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `safe` | `address` | Build time | Safe address |
+| `proposal` | `block \| bytes32 \| string` | Build time | Commands, the safeTxHash of a queued transaction, or exported transaction JSON with --no-api |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--no-api` | `bool` | Execute a block or exported transaction JSON without contacting the Safe Transaction Service |
-| `--signatures` | `array` | EIP-712 owner signatures to add locally (requires --no-api; blocks also require --nonce) |
-| `--nonce` | `number` | Nonce signed for a command block (requires --no-api) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--salt` | `bytes32` | Build time | Smart-batch storage salt for reproducible offline signing (block forms with !) |
+| `--no-api` | `bool` | Build time | Execute a block or exported transaction JSON without contacting the Safe Transaction Service |
+| `--signatures` | `array` | Build time | EIP-712 owner signatures to add locally (requires --no-api; blocks also require --nonce) |
+| `--nonce` | `number` | Build time | Nonce signed for a command block (requires --no-api) |
 
 <!-- HAND-WRITTEN -->
 

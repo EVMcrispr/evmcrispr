@@ -18,6 +18,7 @@ import {
 } from "../utils";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "create-subname",
   experimental: true,
   description: "Create a subname under an ENS name you own.",
@@ -32,12 +33,18 @@ export default defineCommand<Ens>({
       type: "string",
       description: "Subname label (e.g. vault for vault.mydao.eth)",
     },
-    { name: "owner", type: "address", description: "Owner of the subname" },
+    {
+      name: "owner",
+      type: "address",
+      runtime: true,
+      description: "Owner of the subname",
+    },
   ],
   opts: [
     {
       name: "resolver",
       type: "address",
+      runtime: true,
       description: "Resolver for the subname (defaults to the parent's)",
     },
     {

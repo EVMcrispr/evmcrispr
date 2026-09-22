@@ -8,6 +8,12 @@ import {
   Num,
   tokenAmountFormatter,
 } from "@evmcrispr/sdk";
+import {
+  getSmartCompileContext,
+  isRuntimeValue,
+  positiveRuntimeAmount,
+  snapshotSmartAmount,
+} from "@evmcrispr/sdk/onchain";
 import { parseAbiItem, zeroAddress } from "viem";
 import type Bridges from "..";
 import { resolveAdapter } from "../adapters/registry";
@@ -21,12 +27,16 @@ const balanceOfAbi = parseAbiItem(
 );
 
 export default defineCommand<Bridges>({
+  smartSupport: { kind: "runtime" },
   name: "bridge",
+  primaryCall: -1,
   description:
     "Send tokens from the current chain to another chain, approving the bridge automatically when needed. The adapter defaults to CCTPv2 for native USDC, Across for other tokens, and the canonical bridge between an L2 and mainnet.",
   args: [
     {
       name: "amount",
+      runtime: true,
+      snapshot: true,
       type: "number",
       description: "Amount to bridge, in base units (wei)",
     },
@@ -46,6 +56,7 @@ export default defineCommand<Bridges>({
   opts: [
     {
       name: "receiver",
+      runtime: true,
       type: "address",
       description:
         "Recipient on the destination chain (defaults to the connected account)",
@@ -88,13 +99,61 @@ export default defineCommand<Bridges>({
       );
     }
 
-    const amountIn = Num(amount).toBigInt();
-    if (amountIn <= 0n) {
+    const amountIn = isRuntimeValue(amount)
+      ? positiveRuntimeAmount(module, amount)
+      : Num(amount).toBigInt();
+    if (!isRuntimeValue(amountIn) && amountIn <= 0n) {
       throw new ErrorException("<amount> must be greater than zero");
     }
 
-    const owner = await module.getConnectedAccount(true);
+    const owner = await module.getSender();
     const recipient = opts.receiver ?? owner;
+
+    if (getSmartCompileContext(module)) {
+      const adapter = await resolveAdapter(module, opts.using, {
+        srcChainId,
+        dstChainId,
+        token,
+      });
+      if (
+        !adapter.buildSmartBridge &&
+        (isRuntimeValue(amountIn) || isRuntimeValue(recipient))
+      )
+        throw new ErrorException(
+          `${adapter.name} requires a build-time external quote and cannot compile runtime bridge inputs`,
+        );
+      if (adapter.buildSmartBridge) {
+        const resolved = await snapshotSmartAmount(module, amountIn);
+        const plan = await adapter.buildSmartBridge(
+          module,
+          {
+            srcChainId,
+            dstChainId,
+            token,
+            amount: resolved,
+            from: owner,
+            recipient,
+          },
+          { interpreters, opts },
+        );
+        const skip =
+          opts["no-approve"] !== undefined && coerceBoolean(opts["no-approve"]);
+        const approvalToken = plan.approvalToken ?? token;
+        const approvals =
+          !skip && approvalToken !== zeroAddress && plan.approvalTarget
+            ? await buildApprovalActions(
+                module,
+                approvalToken,
+                owner,
+                plan.approvalTarget,
+                plan.approvalAmount ?? resolved,
+              )
+            : [];
+        return [...approvals, ...plan.actions];
+      }
+    }
+    if (isRuntimeValue(amountIn))
+      throw new ErrorException("runtime amount requires a smart batch");
 
     // Pre-check the sender's balance so a doomed bridge fails with a real
     // message instead of a bare on-chain revert. The read reflects already

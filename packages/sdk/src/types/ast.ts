@@ -186,6 +186,8 @@ export interface CommandExpressionNode extends Node {
   eventCaptures?: EventCaptureNode[];
   errorCaptures?: ErrorCaptureNode[];
   txCaptures?: TxCaptureNode[];
+  /** On-chain write-call outputs; names have no leading $. */
+  returnCapture?: DestructureSlot[];
 }
 
 export interface CommandOptNode extends Node {

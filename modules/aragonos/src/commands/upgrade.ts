@@ -1,4 +1,5 @@
 import { defineCommand, ErrorException, encodeAction } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import {
   isAddress,
   keccak256,
@@ -14,6 +15,7 @@ import { REPO_ABI, SEMANTIC_VERSION_REGEX } from "../utils";
 import { getModuleDAO } from "../utils/commands";
 
 export default defineCommand<AragonOS>({
+  smartSupport: { kind: "runtime" },
   name: "upgrade",
   description: "Upgrade an installed Aragon app to a new version.",
   args: [
@@ -24,6 +26,7 @@ export default defineCommand<AragonOS>({
     },
     {
       name: "newAppAddress",
+      runtime: true,
       type: ["address", "string"],
       description: "Implementation address or semantic version (e.g. 1.2.0)",
       optional: true,
@@ -80,14 +83,17 @@ export default defineCommand<AragonOS>({
         abi: REPO_ABI,
         functionName: "getLatest",
       });
-    } else if (SEMANTIC_VERSION_REGEX.test(newAppAddress)) {
+    } else if (
+      !isRuntimeValue(newAppAddress) &&
+      SEMANTIC_VERSION_REGEX.test(newAppAddress)
+    ) {
       [, newAppAddress] = await client.readContract({
         address: repoAddr,
         abi: REPO_ABI,
         functionName: "getBySemanticVersion",
         args: [newAppAddress.split(".").map((s: string) => parseInt(s, 10))],
       });
-    } else if (!isAddress(newAppAddress)) {
+    } else if (!isRuntimeValue(newAppAddress) && !isAddress(newAppAddress)) {
       throw new ErrorException(
         "second upgrade parameter must be a semantic version, an address, or nothing",
       );

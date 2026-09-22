@@ -4,6 +4,8 @@ title: "ens:set-resolver"
 
 Set the resolver contract of an ENS name.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ ens:set-resolver <name> <resolver>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | ENS name (e.g. mydao.eth) |
-| `resolver` | `address` | Resolver address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | ENS name (e.g. mydao.eth) |
+| `resolver` | `address` | Runtime in smart blocks | Resolver address |
 
 <!-- HAND-WRITTEN -->
 

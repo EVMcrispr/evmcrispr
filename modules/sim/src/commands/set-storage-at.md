@@ -4,6 +4,8 @@ title: "sim:set-storage-at"
 
 Set a storage slot value at an address in a fork simulation.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ sim:set-storage-at <address> <slot> <value>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `address` | `address` | Contract or account address |
-| `slot` | `bytes32` | Storage slot |
-| `value` | `string` | New 32-byte value |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `address` | `address` | Build time | Contract or account address |
+| `slot` | `bytes32` | Build time | Storage slot |
+| `value` | `string` | Build time | New 32-byte value |
 
 ## Examples
 

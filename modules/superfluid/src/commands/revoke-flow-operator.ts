@@ -10,6 +10,7 @@ import { requireCore } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "revoke-flow-operator",
   description:
     "Revoke an operator's permissions over your streams of a SuperToken.",
@@ -20,7 +21,12 @@ export default defineCommand<Superfluid>({
       description: "SuperToken symbol (e.g. USDCx) or address",
     },
     { name: "from", type: "command", description: "Keyword `from`" },
-    { name: "operator", type: "address", description: "Flow operator" },
+    {
+      name: "operator",
+      runtime: true,
+      type: "address",
+      description: "Flow operator",
+    },
   ],
   completions: { from: () => [fieldItem("from")] },
   async run(module, { token, from, operator }) {

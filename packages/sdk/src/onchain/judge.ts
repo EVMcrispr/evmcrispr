@@ -1,6 +1,7 @@
 import { ErrorException } from "../errors";
 import type { Address } from "../types";
-import { encodeOpRead } from "./core";
+import { CORE_ADDRESS } from "./addresses";
+import { encodeOpRead, encodeResolve } from "./core";
 import type { Constraint, InputParam } from "./erc8211";
 import {
   constraint,
@@ -10,6 +11,7 @@ import {
   toWord,
 } from "./erc8211";
 import { opSelector } from "./operators";
+import { constrainWord } from "./word-constraints";
 
 /**
  * Constraint mapping: how a DSL comparison over a live word value becomes
@@ -30,12 +32,21 @@ export interface OpsAddresses {
   operators: Address;
 }
 
-/** Attach constraints to a compiled (constraint-free) param. */
+/** Judge resolved words while preserving any guards already on the operand. */
 export function judged(
   param: InputParam,
   constraints: Constraint[],
+  ctx: { core: Address } = { core: CORE_ADDRESS },
 ): InputParam {
-  return { ...param, constraints };
+  if (constraints.length === 0) return param;
+  if (constraints.length === 1)
+    return constrainWord(ctx, param, constraints[0]);
+  return param.constraints.length === 0
+    ? { ...param, constraints }
+    : {
+        ...staticCallParam(ctx.core, encodeResolve(param), constraints),
+        paramType: param.paramType,
+      };
 }
 
 /** Wrap a live param in `read(operators, op, [live, word])` judged `EQ 1`. */
@@ -69,15 +80,15 @@ export function wordJudge(
   const { signed = false, delta } = opts;
   switch (fragment) {
     case "Eq":
-      return judged(live, [constraint("Eq", expected)]);
+      return judged(live, [constraint("Eq", expected)], addrs);
     case "Ne":
       return opJudge(addrs, "ne", false, live, expected);
     case "Ge":
       if (signed) return opJudge(addrs, "ge", true, live, expected);
-      return judged(live, [constraint("Gte", expected)]);
+      return judged(live, [constraint("Gte", expected)], addrs);
     case "Le":
       if (signed) return opJudge(addrs, "le", true, live, expected);
-      return judged(live, [constraint("Lte", expected)]);
+      return judged(live, [constraint("Lte", expected)], addrs);
     case "Gt":
       if (signed) return opJudge(addrs, "gt", true, live, expected);
       if (expected === MAX_UINT) {
@@ -85,7 +96,7 @@ export function wordJudge(
           "nothing can be greater than the maximum uint256 — the assertion would always fail",
         );
       }
-      return judged(live, [constraint("Gte", expected + 1n)]);
+      return judged(live, [constraint("Gte", expected + 1n)], addrs);
     case "Lt":
       if (signed) return opJudge(addrs, "lt", true, live, expected);
       if (expected === 0n) {
@@ -93,7 +104,7 @@ export function wordJudge(
           "no unsigned value is less than zero — the assertion would always fail",
         );
       }
-      return judged(live, [constraint("Lte", expected - 1n)]);
+      return judged(live, [constraint("Lte", expected - 1n)], addrs);
     case "ApproxEq": {
       if (delta === undefined) {
         throw new ErrorException("the ~= operator requires a --delta value");
@@ -111,7 +122,7 @@ export function wordJudge(
       }
       const lower = expected > delta ? expected - delta : 0n;
       const upper = expected > MAX_UINT - delta ? MAX_UINT : expected + delta;
-      return judged(live, [inConstraint(lower, upper)]);
+      return judged(live, [inConstraint(lower, upper)], addrs);
     }
     default:
       throw new ErrorException(`unsupported operator fragment ${fragment}`);

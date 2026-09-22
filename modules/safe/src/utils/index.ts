@@ -6,6 +6,12 @@ import type {
   TransactionAction,
 } from "@evmcrispr/sdk";
 import { Num, withSender } from "@evmcrispr/sdk";
+import type { SmartBatchPlan } from "@evmcrispr/sdk/onchain";
+import {
+  compileSmartBatch,
+  lowerSmartBatch,
+  verifySmartDeployment,
+} from "@evmcrispr/sdk/onchain";
 import type Safe from "..";
 import { assertAllTransactionActions } from "./safeTx";
 
@@ -15,6 +21,10 @@ export * from "./reads";
 export * from "./safeTx";
 export * from "./txService";
 export * from "./zodiac";
+
+const smartPlans = new WeakMap<TransactionAction[], SmartBatchPlan>();
+export const smartPlanFor = (actions?: TransactionAction[]) =>
+  actions && smartPlans.get(actions);
 
 export const toBigInt = (value: unknown): bigint => {
   if (value instanceof Num) return value.toBigInt();
@@ -33,10 +43,28 @@ export const interpretSafeBlock = async (
   block: BlockExpressionNode,
   commandName: string,
   interpreters: NodesInterpreters,
+  options: { smart?: boolean; salt?: `0x${string}` } = {},
 ): Promise<TransactionAction[]> => {
   let actions: Action[];
   let pushed = false;
   try {
+    if (options.smart) {
+      const plan = await compileSmartBatch(module, block, interpreters, {
+        name: `${commandName}!`,
+        account: safe,
+        route: "delegatecall",
+        salt: options.salt,
+        blockInitializer: async () => {
+          module.pushSafe(safe);
+          pushed = true;
+        },
+      });
+      if (plan.steps.length)
+        await verifySmartDeployment(await module.getClient(), plan);
+      const lowered = lowerSmartBatch(plan);
+      smartPlans.set(lowered, plan);
+      return lowered;
+    }
     // The block's calls execute from the Safe: `@sender` is the Safe.
     actions = (await withSender(module, safe, () =>
       interpreters.interpretNode(block, {

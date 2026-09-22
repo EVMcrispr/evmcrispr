@@ -216,10 +216,8 @@ export class ModuleSchemaProvider {
   }
 
   /** Whether `moduleName`'s helper `name` has an on-chain face — a `name!`
-   *  sibling registry key (marked `onchain` by codegen). Inside a smart
-   *  batch the non-batchable diagnostic is lifted for such helpers: the
-   *  batch compiles the read on-chain instead of evaluating it at build
-   *  time. */
+   *  sibling registry key (marked `onchain` by codegen). Only explicit bang
+   *  expressions use this face. */
   getHelperOnchain(moduleName: string, name: string): boolean {
     const mod = this.#modules.get(moduleName);
     if (!mod) return false;

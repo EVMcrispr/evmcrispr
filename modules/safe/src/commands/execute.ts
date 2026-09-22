@@ -17,6 +17,7 @@ import {
   interpretSafeBlock,
   preValidatedSignature,
   serviceTxToSafeTx,
+  smartPlanFor,
 } from "../utils";
 import { safeUint } from "../utils/offline";
 import {
@@ -27,6 +28,11 @@ import {
 } from "../utils/packages";
 
 export default defineCommand<Safe>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "execute",
   description:
     "Execute a Safe transaction on-chain from a command block, a confirmed service transaction hash, or locally signed transaction JSON with --no-api.",
@@ -42,6 +48,12 @@ export default defineCommand<Safe>({
     },
   ],
   opts: [
+    {
+      name: "salt",
+      type: "bytes32",
+      description:
+        "Smart-batch storage salt for reproducible offline signing (block forms with !)",
+    },
     {
       name: "no-api",
       type: "bool",
@@ -60,7 +72,12 @@ export default defineCommand<Safe>({
       description: "Nonce signed for a command block (requires --no-api)",
     },
   ],
-  async run(module, { safe, proposal }, { opts, interpreters }) {
+  async run(module, { safe, proposal }, { opts, interpreters, node }) {
+    if (
+      opts.salt !== undefined &&
+      (!node.name.endsWith("!") || typeof proposal === "string")
+    )
+      throw new ErrorException("--salt requires a smart command block");
     const noApi = opts["no-api"];
     if (!noApi && (opts.signatures !== undefined || opts.nonce !== undefined)) {
       throw new ErrorException("--signatures and --nonce require --no-api");
@@ -100,6 +117,7 @@ export default defineCommand<Safe>({
             proposal as BlockExpressionNode,
             "safe:execute",
             interpreters,
+            { smart: node.name.endsWith("!"), salt: opts.salt },
           );
       if (actions?.length === 0) return [];
       if (imported && imported.kind !== "transaction")
@@ -131,7 +149,12 @@ export default defineCommand<Safe>({
           collectSafeTxWarnings(tx, safeDeployment(chainId)),
         ),
       );
-      return [encodeExecTransaction(safe, tx, signatures, hashes.safeTxHash)];
+      return [
+        {
+          ...encodeExecTransaction(safe, tx, signatures, hashes.safeTxHash),
+          executionPlan: smartPlanFor(actions),
+        },
+      ];
     }
 
     // Hash form: execute a queued transaction confirmed on the service.
@@ -204,6 +227,7 @@ export default defineCommand<Safe>({
       proposal as BlockExpressionNode,
       "safe:execute",
       interpreters,
+      { smart: node.name.endsWith("!"), salt: opts.salt },
     );
 
     if (actions.length === 0) {
@@ -244,6 +268,7 @@ export default defineCommand<Safe>({
           getSafeTxHashes(chainId, safe, tx).safeTxHash,
         ),
         from: sender,
+        executionPlan: smartPlanFor(actions),
       },
     ];
   },

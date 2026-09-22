@@ -6,6 +6,8 @@ Request a redemption of shares from an ERC-7540 asynchronous vault. Pass `max` a
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,17 +16,17 @@ vault:request-redeem <shares> <of> <vault>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `shares` | `command \| number` | Amount of vault shares to redeem in base units (wei), or the keyword `max` for the full balance |
-| `of` | `command` | Keyword `of` |
-| `vault` | `address` | ERC-7540 vault address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `shares` | `command \| number` | Runtime in smart blocks | Amount of vault shares to redeem in base units (wei), or the keyword `max` for the full balance |
+| `of` | `command` | Build time | Keyword `of` |
+| `vault` | `address` | Build time | ERC-7540 vault address |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--controller` | `address` | Controller of the request, entitled to claim it (defaults to the connected account) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--controller` | `address` | Runtime in smart blocks | Controller of the request, entitled to claim it (defaults to the connected account) |
 
 ## Examples
 

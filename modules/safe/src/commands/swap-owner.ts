@@ -8,12 +8,18 @@ import type Safe from "..";
 import { findListPredecessor, getOwners } from "../utils";
 
 export default defineCommand<Safe>({
+  smartSupport: { kind: "runtime" },
   name: "swap-owner",
   description: "Replace an owner of the Safe with a new address.",
   args: [
     { name: "oldOwner", type: "address", description: "Owner to replace" },
     { name: "for", type: "command", description: "Keyword `for`" },
-    { name: "newOwner", type: "address", description: "New owner address" },
+    {
+      name: "newOwner",
+      runtime: true,
+      type: "address",
+      description: "New owner address",
+    },
   ],
   completions: { for: () => [fieldItem("for")] },
   async run(module, { oldOwner, for: forKeyword, newOwner }) {

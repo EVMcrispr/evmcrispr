@@ -4,6 +4,8 @@ title: "token:disperse"
 
 Transfer a token to multiple recipients, encoding one transfer per recipient.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,11 +14,11 @@ token:disperse <token> <recipients> <amounts>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `address` | Token address |
-| `recipients` | `array` | Recipient addresses |
-| `amounts` | `array \| number` | Per-recipient amounts in token units (wei), or a single amount sent to every recipient |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `address` | Runtime in smart blocks | Token address |
+| `recipients` | `array` | Runtime in smart blocks | Recipient addresses |
+| `amounts` | `array \| number` | Runtime in smart blocks | Per-recipient amounts in token units (wei), or a single amount sent to every recipient |
 
 <!-- HAND-WRITTEN -->
 

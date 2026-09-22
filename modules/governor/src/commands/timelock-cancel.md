@@ -6,6 +6,8 @@ Cancel a pending TimelockController operation. The sender needs the CANCELLER_RO
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,10 +16,10 @@ governor:timelock-cancel <timelock> <operationId>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `timelock` | `address` | TimelockController address |
-| `operationId` | `bytes32` | Operation id (bound by governor:timelock-schedule) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `timelock` | `address` | Runtime in smart blocks | TimelockController address |
+| `operationId` | `bytes32` | Runtime in smart blocks | Operation id (bound by governor:timelock-schedule) |
 
 <!-- HAND-WRITTEN -->
 

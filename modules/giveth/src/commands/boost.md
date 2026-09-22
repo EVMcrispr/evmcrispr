@@ -4,6 +4,8 @@ title: "giveth:boost"
 
 Allocate your GIVpower across Giveth projects by percentage. With --with (or no option) it replaces your entire existing allocation; with --by it changes the listed projects by percentage points and the rest of your allocation absorbs the difference proportionally. Off-chain: signs you in to Giveth with the connected wallet (SIWE) and updates the allocation through the Giveth API; no transaction is sent, so it cannot be batched; inside sim:fork the allocation is applied to the simulation only (later reads in the same sim:fork see it) and never sent to Giveth.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,16 +14,16 @@ giveth:boost <projects>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `projects` | `array \| giveth-project` | Giveth project URL slugs |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `projects` | `array \| giveth-project` | Build time | Giveth project URL slugs |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--with` | `array` | GIVpower percentage per project, matching <projects> and summing to 100; replaces your entire allocation. Defaults to an equal split |
-| `--by` | `array` | Percentage-point change per project (e.g. [20 -20]), matching <projects>; the net change is absorbed proportionally by your other boosted projects |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--with` | `array` | Build time | GIVpower percentage per project, matching <projects> and summing to 100; replaces your entire allocation. Defaults to an equal split |
+| `--by` | `array` | Build time | Percentage-point change per project (e.g. [20 -20]), matching <projects>; the net change is absorbed proportionally by your other boosted projects |
 
 <!-- HAND-WRITTEN -->
 

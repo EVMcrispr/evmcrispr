@@ -6,6 +6,7 @@ import {
   encodeAction,
   fieldItem,
 } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import { isAddress, zeroAddress } from "viem";
 import type AragonOS from "..";
 import type { DaoContext } from "../dao";
@@ -27,12 +28,16 @@ const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
     appPermission.manager !== zeroAddress &&
     params.length === 0
   ) {
-    if (appPermission.grantees.has(granteeAddress)) {
+    if (
+      !isRuntimeValue(granteeAddress) &&
+      appPermission.grantees.has(granteeAddress)
+    ) {
       throw new ErrorException(
         `grantee already has given permission on app ${name}`,
       );
     }
-    appPermission.grantees.add(granteeAddress);
+    if (!isRuntimeValue(granteeAddress))
+      appPermission.grantees.add(granteeAddress);
 
     return [
       encodeAction(aclAddress, "grantPermission(address,address,bytes32)", [
@@ -55,7 +60,9 @@ const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
     }
     appPermissions.set(roleHash, {
       manager: permissionManager,
-      grantees: new AddressSet([granteeAddress]),
+      grantees: new AddressSet(
+        isRuntimeValue(granteeAddress) ? [] : [granteeAddress],
+      ),
     });
 
     actions.push(
@@ -68,12 +75,16 @@ const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
   }
 
   if (params.length > 0) {
-    if (appPermission.grantees.has(granteeAddress)) {
+    if (
+      !isRuntimeValue(granteeAddress) &&
+      appPermission.grantees.has(granteeAddress)
+    ) {
       throw new ErrorException(
         `grantee ${granteeAddress} already has given permission on app ${name}`,
       );
     }
-    appPermission.grantees.add(granteeAddress);
+    if (!isRuntimeValue(granteeAddress))
+      appPermission.grantees.add(granteeAddress);
 
     actions.push(
       encodeAction(
@@ -88,6 +99,7 @@ const _grant = (dao: DaoContext, permission: CompletePermission): Action[] => {
 };
 
 export default defineCommand<AragonOS>({
+  smartSupport: { kind: "runtime" },
   name: "grant",
   description:
     "Grant a permission on a DAO app to an entity, with an optional oracle.",
@@ -98,6 +110,7 @@ export default defineCommand<AragonOS>({
     { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "grantee",
+      runtime: true,
       type: "address",
       description: "Address to grant the permission to",
     },

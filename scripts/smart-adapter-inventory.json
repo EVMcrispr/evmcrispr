@@ -1,0 +1,117 @@
+{
+  "swaps/UniswapV2": {
+    "kind": "runtime",
+    "fields": "amount, limit, recipient, deadline",
+    "buildTime": "chain, tokens and route",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "swaps/SushiSwap": {
+    "kind": "runtime",
+    "fields": "amount, limit, recipient, deadline",
+    "buildTime": "chain, tokens and route",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "swaps/Honeyswap": {
+    "kind": "runtime",
+    "fields": "amount, limit, recipient, deadline",
+    "buildTime": "chain, tokens and route",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "swaps/UniswapV3": {
+    "kind": "runtime",
+    "fields": "amount, limit, recipient, deadline",
+    "buildTime": "chain, tokens, route and explicit fee tier",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "swaps/UniswapV4": {
+    "kind": "runtime",
+    "fields": "amount, limit, recipient, deadline",
+    "buildTime": "chain, tokens, route and explicit fee tier",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "swaps/Delora": {
+    "kind": "static",
+    "reason": "The external route service needs concrete quote and transaction inputs.",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "swaps/Balancer": {
+    "kind": "static",
+    "reason": "The external routing API needs concrete quote and transaction inputs.",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "swaps/CoWSwap": {
+    "kind": "incompatible",
+    "reason": "Signed off-chain intent orders cannot execute within the atomic transaction.",
+    "tests": "modules/swaps/test/unit/smart-batch.test.ts"
+  },
+  "lending/AaveV3": {
+    "kind": "runtime",
+    "fields": "amount, recipient, on-behalf-of, collateral token, e-mode category",
+    "buildTime": "chain, pool and market selection",
+    "tests": "modules/lending/test/unit/smart-batch.test.ts"
+  },
+  "lending/Spark": {
+    "kind": "runtime",
+    "fields": "amount, recipient, on-behalf-of, collateral token, e-mode category",
+    "buildTime": "chain, pool and market selection",
+    "tests": "modules/lending/test/unit/smart-batch.test.ts"
+  },
+  "lending/CompoundV3": {
+    "kind": "runtime",
+    "fields": "amount, recipient, on-behalf-of",
+    "buildTime": "chain, base token and Comet market selection",
+    "tests": "modules/lending/test/unit/smart-batch.test.ts"
+  },
+  "bridges/CCTPv2": {
+    "kind": "runtime",
+    "fields": "amount and recipient",
+    "buildTime": "source/destination chain, USDC lane and finality",
+    "tests": "modules/bridges/test/unit/smart-batch.test.ts"
+  },
+  "bridges/NativeBridge": {
+    "kind": "runtime",
+    "fields": "amount and recipient where the lane supports them",
+    "buildTime": "chain lane, token mapping, Arbitrum deposit receiver and retryable fee inputs",
+    "tests": "modules/bridges/test/unit/smart-batch.test.ts"
+  },
+  "bridges/LayerZero": {
+    "kind": "runtime",
+    "fields": "amount, recipient and on-chain fee",
+    "buildTime": "chain lane, OFT deployment, messaging options and fee bound",
+    "tests": "modules/bridges/test/unit/smart-batch.test.ts"
+  },
+  "bridges/CCIP": {
+    "kind": "runtime",
+    "fields": "amount, recipient and on-chain fee",
+    "buildTime": "chain lane, router and token mapping",
+    "tests": "modules/bridges/test/unit/smart-batch.test.ts"
+  },
+  "bridges/Across": {
+    "kind": "static",
+    "reason": "Relayer quotes and order parameters require concrete inputs before any preceding atomic writes.",
+    "tests": "modules/bridges/test/unit/smart-batch.test.ts"
+  },
+  "aragonosx/admin": {
+    "kind": "incompatible",
+    "reason": "The admin adapter executes proposal blocks in their own DAO context and has no standalone proposal lifecycle calls.",
+    "tests": "modules/aragonosx/test/unit/smart-batch.test.ts"
+  },
+  "aragonosx/multisig": {
+    "kind": "runtime",
+    "fields": "proposalId in approve and execute",
+    "buildTime": "DAO, plugin and vote routing",
+    "tests": "modules/aragonosx/test/unit/smart-batch.test.ts"
+  },
+  "aragonosx/token-voting": {
+    "kind": "runtime",
+    "fields": "proposalId in vote and execute",
+    "buildTime": "DAO, plugin and vote routing",
+    "tests": "modules/aragonosx/test/unit/smart-batch.test.ts"
+  },
+  "aragonosx/staged-proposal-processor": {
+    "kind": "runtime",
+    "fields": "proposalId in execute",
+    "buildTime": "DAO, plugin and stage routing",
+    "tests": "modules/aragonosx/test/unit/smart-batch.test.ts"
+  }
+}

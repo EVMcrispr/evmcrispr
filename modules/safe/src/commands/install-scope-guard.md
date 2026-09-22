@@ -6,6 +6,8 @@ Deploy a Zodiac ScopeGuard owned by the Safe and set it as the transaction guard
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Deployment salt and initializer determine the predicted guard address.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ safe:install-scope-guard
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--salt` | `number` | Deployment salt nonce (defaults to 0) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--salt` | `number` | Build time | Deployment salt nonce (defaults to 0) |
 
 <!-- HAND-WRITTEN -->
 

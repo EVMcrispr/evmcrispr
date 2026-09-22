@@ -9,12 +9,23 @@ import {
   ErrorInvalid,
   encodeAction,
   isTransactionAction,
+  NodeType,
   Num,
 } from "@evmcrispr/sdk";
+import {
+  buildApprovalActions,
+  constraint,
+  constrainWord,
+  encodeAssertParam,
+  getSmartCompileContext,
+  type RuntimeValue,
+  type SmartAmount,
+  smartReadOutput,
+  snapshotSmartAmount,
+} from "@evmcrispr/sdk/onchain";
 import type { PublicClient } from "viem";
 import { erc20Abi, parseAbi, toHex, zeroAddress } from "viem";
-import type { CallScriptAction } from "../types";
-import { encodeCallScript } from "./evmscripts";
+import { encodeSmartCallScript } from "./evmscripts";
 
 /**
  * Asserts that all actions are transaction actions.
@@ -100,14 +111,14 @@ export const batchForwarderActions = async (
   context?: string,
   checkForwarder = true,
 ): Promise<Action[]> => {
-  let script: string;
-  let value: bigint = 0n;
+  let script: string | RuntimeValue;
+  let value: SmartAmount = 0n;
   const actions: Action[] = [];
 
   const client = await module.getClient();
 
   for (const forwarderAddress of forwarders) {
-    script = encodeCallScript(forwarderActions as CallScriptAction[]);
+    script = encodeSmartCallScript(module, forwarderActions);
 
     if (checkForwarder && !(await isForwarder(forwarderAddress, client))) {
       throw new ErrorInvalid(`app ${forwarderAddress} is not a forwarder`);
@@ -116,20 +127,76 @@ export const batchForwarderActions = async (
     const fee = await getForwarderFee(forwarderAddress, client);
 
     if (fee) {
-      const [feeTokenAddress, feeAmount] = fee;
+      const [feeTokenAddress, quotedFee] = fee;
+      const smart = getSmartCompileContext(module);
+      if (smart) {
+        const token = smartReadOutput(
+          module,
+          forwarderAddress,
+          "forwardFee() returns (address,uint256)",
+          [],
+          0,
+        );
+        await smart.interpreters.batchContext!.smartState!.append(
+          module,
+          {
+            type: NodeType.CommandExpression,
+            name: "forwarder fee token",
+            args: [],
+            opts: [],
+          },
+          {
+            actions: [
+              {
+                to: smart.core,
+                data: encodeAssertParam(
+                  constrainWord(
+                    smart,
+                    token.operand.param,
+                    constraint("Eq", BigInt(feeTokenAddress)),
+                  ),
+                  "forwarder fee token changed",
+                ),
+              },
+            ],
+          },
+        );
+      }
+      const feeAmount = getSmartCompileContext(module)
+        ? await snapshotSmartAmount(
+            module,
+            smartReadOutput(
+              module,
+              forwarderAddress,
+              "forwardFee() returns (address,uint256)",
+              [],
+              1,
+            ),
+          )
+        : quotedFee;
 
       // Check if fees are in ETH
       if (feeTokenAddress === zeroAddress) {
         value = feeAmount;
+      } else if (getSmartCompileContext(module)) {
+        actions.push(
+          ...(await buildApprovalActions(
+            module,
+            feeTokenAddress,
+            await module.getSender(),
+            forwarderAddress,
+            feeAmount,
+          )),
+        );
       } else {
         const allowance = await client.readContract({
           address: feeTokenAddress,
           abi: erc20Abi,
           functionName: "allowance",
-          args: [await module.getConnectedAccount(), forwarderAddress],
+          args: [await module.getSender(), forwarderAddress],
         });
 
-        if (allowance > 0n && allowance < feeAmount) {
+        if (allowance > 0n && allowance < quotedFee) {
           actions.push(
             encodeAction(feeTokenAddress, "approve(address,uint256)", [
               forwarderAddress,
@@ -141,7 +208,7 @@ export const batchForwarderActions = async (
           actions.push(
             encodeAction(feeTokenAddress, "approve(address,uint256)", [
               forwarderAddress,
-              Num.fromBigInt(feeAmount),
+              Num.fromBigInt(quotedFee),
             ]),
           );
         }
@@ -168,7 +235,9 @@ export const batchForwarderActions = async (
     }
   }
   if (value) {
-    forwarderActions[forwarderActions.length - 1].value = value;
+    const action = forwarderActions[forwarderActions.length - 1];
+    if (action.plannedCall) action.plannedCall.value = value;
+    else if (typeof value === "bigint") action.value = value;
   }
   return [...actions, ...forwarderActions];
 };

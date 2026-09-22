@@ -4,6 +4,8 @@ title: "exec"
 
 Call a contract function, encoding the arguments from its signature.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,22 +14,22 @@ exec <contractAddress> <signature> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `contractAddress` | `address` | Target contract address |
-| `signature` | `write-abi` | Function signature (e.g. `"transfer(address,uint256)"`) |
-| `[...params]` | `any` | Arguments matching the signature types |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `contractAddress` | `address` | Runtime in smart blocks | Target contract address |
+| `signature` | `write-abi` | Build time | Function signature (e.g. `"transfer(address,uint256)"`) |
+| `[...params]` | `any` | Runtime in smart blocks | Arguments matching the signature types |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--value` | `number` | ETH to send with the call (in wei) |
-| `--from` | `address` | Sender address (requires simulation or connected wallet) |
-| `--gas` | `number` | Gas limit |
-| `--max-fee-per-gas` | `number` | Max fee per gas (EIP-1559) |
-| `--max-priority-fee-per-gas` | `number` | Max priority fee per gas (EIP-1559) |
-| `--nonce` | `number` | Transaction nonce override |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--value` | `number` | Runtime in smart blocks | ETH to send with the call (in wei) |
+| `--from` | `address` | Build time | Sender address (requires simulation or connected wallet) |
+| `--gas` | `number` | Build time | Gas limit |
+| `--max-fee-per-gas` | `number` | Build time | Max fee per gas (EIP-1559) |
+| `--max-priority-fee-per-gas` | `number` | Build time | Max priority fee per gas (EIP-1559) |
+| `--nonce` | `number` | Build time | Transaction nonce override |
 
 ## Examples
 

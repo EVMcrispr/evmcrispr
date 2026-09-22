@@ -6,6 +6,8 @@ Create a Semaphore group on the canonical contract and bind the predicted group 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,15 +16,15 @@ semaphore:create-group <variable>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the new group id to |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the new group id to |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--admin` | `address` | Group admin (default: the transaction sender) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--admin` | `address` | Runtime in smart blocks | Group admin (default: the transaction sender) |
 
 <!-- HAND-WRITTEN -->
 

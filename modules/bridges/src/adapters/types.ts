@@ -1,4 +1,5 @@
 import type { Action, NodesInterpreters } from "@evmcrispr/sdk";
+import type { RuntimeValue, SmartAmount } from "@evmcrispr/sdk/onchain";
 import type { Address, Hex } from "viem";
 import type Bridges from "..";
 import type { SourceTx } from "../utils/receipts";
@@ -22,6 +23,12 @@ export interface BridgeRequest {
   recipient: Address;
 }
 
+export interface SmartBridgeRequest
+  extends Omit<BridgeRequest, "amount" | "recipient"> {
+  amount: SmartAmount;
+  recipient: Address | RuntimeValue;
+}
+
 export interface BridgeFeeQuote {
   /** Fee deducted from the bridged amount, in base units of `token`. */
   tokenFee: bigint;
@@ -39,7 +46,7 @@ export interface BridgePlan {
    *  token is native or no approval is needed. */
   approvalTarget?: Address;
   /** Amount the approval must cover; defaults to the bridged amount. */
-  approvalAmount?: bigint;
+  approvalAmount?: SmartAmount;
   /** ERC-20 to approve, when it isn't the bridged token itself — an OFT
    *  adapter, for instance, escrows the underlying token. */
   approvalToken?: Address;
@@ -81,6 +88,11 @@ export interface BridgeAdapter {
   /** True when the destination leg needs an explicit `bridges:claim`. */
   requiresClaim(srcChainId: number, dstChainId: number): boolean;
   quote(module: Bridges, req: BridgeRequest): Promise<BridgeFeeQuote>;
+  buildSmartBridge?(
+    module: Bridges,
+    req: SmartBridgeRequest,
+    ctx: { interpreters: NodesInterpreters; opts: Record<string, unknown> },
+  ): Promise<BridgePlan>;
   buildBridge(
     module: Bridges,
     req: BridgeRequest & { quote?: BridgeFeeQuote },

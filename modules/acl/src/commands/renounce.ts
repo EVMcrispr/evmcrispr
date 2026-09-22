@@ -9,6 +9,7 @@ import type AccessControl from "..";
 import { resolveRole } from "../utils";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "renounce",
   description:
     "Renounce a role held by the connected account on an AccessControl contract or an AccessManager.",
@@ -23,6 +24,7 @@ export default defineCommand<AccessControl>({
     {
       name: "target",
       type: "address",
+      runtime: true,
       description: "AccessControl contract or AccessManager address",
     },
   ],
@@ -33,7 +35,7 @@ export default defineCommand<AccessControl>({
     }
     const resolved = resolveRole(role);
     // v5 renounceRole takes the caller's own address as confirmation
-    const account = await module.getConnectedAccount();
+    const account = await module.getSender();
 
     if (resolved.system === "access-control") {
       return [

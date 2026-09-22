@@ -7,6 +7,7 @@ import {
 import type Proxies from "..";
 
 export default defineCommand<Proxies>({
+  smartSupport: { kind: "runtime" },
   name: "upgrade-beacon",
   description:
     "Upgrade an UpgradeableBeacon to a new implementation, upgrading every beacon proxy that points to it at once.",
@@ -14,12 +15,14 @@ export default defineCommand<Proxies>({
     {
       name: "beacon",
       type: "address",
+      runtime: true,
       description: "UpgradeableBeacon address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
     {
       name: "implementation",
       type: "address",
+      runtime: true,
       description: "New implementation address",
     },
   ],

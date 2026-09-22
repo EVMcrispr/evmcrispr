@@ -733,3 +733,28 @@ describe("Parsers - tx capture", () => {
     });
   });
 });
+
+describe("Parsers - return capture", () => {
+  it("distinguishes return slots from an event name after the same arrow", () => {
+    for (const suffix of [
+      "-> [$result] -> Transfer(address,uint256) [_ $amount]",
+      "-> Transfer(address,uint256) [_ $amount] -> [$result]",
+    ]) {
+      const result = runParser(
+        commandExpressionParser,
+        `exec $c "f() returns (uint256)" ${suffix}`,
+      );
+      expect(result.returnCapture).to.deep.equal(["result"]);
+      expect(result.eventCaptures[0]).to.deep.include({
+        eventName: "Transfer",
+        captures: [null, "amount"],
+      });
+    }
+  });
+  it("rejects duplicate return captures", () => {
+    expect(
+      parseScript('exec $c "f() returns (uint256)" -> [$a] -> [$b]').errors
+        .length,
+    ).to.be.greaterThan(0);
+  });
+});

@@ -59,7 +59,14 @@ function isBatchedAction(action: Action): action is BatchedAction {
 export function countReviewActions(actions: Action[]) {
   return actions.reduce(
     (count, action) =>
-      count + (isBatchedAction(action) ? action.actions.length : 1),
+      count +
+      ("executionPlan" in action && action.executionPlan
+        ? action.executionPlan.steps.length
+        : isBatchedAction(action)
+          ? action.actions.length
+          : "type" in action && action.type === "smartBatch"
+            ? action.plan.steps.length
+            : 1),
     0,
   );
 }

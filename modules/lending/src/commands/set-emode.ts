@@ -1,8 +1,10 @@
 import { defineCommand, ErrorException, Num } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type Lending from "..";
 import { resolveAdapter } from "../adapters/registry";
 
 export default defineCommand<Lending>({
+  smartSupport: { kind: "runtime" },
   name: "set-emode",
   description:
     "Set the connected account's efficiency-mode category, unlocking higher LTV between correlated assets (e.g. stablecoins). Category 0 disables e-mode.",
@@ -10,6 +12,7 @@ export default defineCommand<Lending>({
     {
       name: "categoryId",
       type: "number",
+      runtime: true,
       description: "E-mode category id (0 disables e-mode)",
     },
   ],
@@ -22,8 +25,10 @@ export default defineCommand<Lending>({
     },
   ],
   async run(module, { categoryId }, { opts }) {
-    const category = Num(categoryId).toBigInt();
-    if (category < 0n || category > 255n) {
+    const category = isRuntimeValue(categoryId)
+      ? categoryId
+      : Num(categoryId).toBigInt();
+    if (!isRuntimeValue(category) && (category < 0n || category > 255n)) {
       throw new ErrorException(
         `<categoryId> must be between 0 and 255, got ${categoryId}`,
       );
@@ -35,7 +40,7 @@ export default defineCommand<Lending>({
     }
     const plan = await adapter.buildSetEmode(module, {
       chainId,
-      categoryId: Number(category),
+      categoryId: isRuntimeValue(category) ? category : Number(category),
     });
     return plan.actions;
   },

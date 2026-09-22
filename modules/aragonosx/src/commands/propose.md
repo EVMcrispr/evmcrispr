@@ -6,6 +6,8 @@ Wrap actions into a proposal on one of the DAO's governance plugins.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: cannot be nested. This command opens a separate atomic execution context; nested atomic blocks are unsupported.
+
 ## Syntax
 
 ```evml
@@ -14,22 +16,22 @@ aragonosx:propose <plugin> <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `plugin` | `plugin` | Governance plugin creating the proposal |
-| `block` | `block` | Actions to propose |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `plugin` | `plugin` | Build time | Governance plugin creating the proposal |
+| `block` | `block` | Build time | Actions to propose |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--metadata` | `string` | Proposal metadata (conventionally an IPFS URI) |
-| `--start` | `number` | Start date (unix seconds); defaults to now |
-| `--end` | `number` | End date (unix seconds); defaults to the minimum duration |
-| `--vote` | `string` | Vote on creation (token-voting): yes, no or abstain |
-| `--approve` | `bool` | Approve on creation (multisig) |
-| `--try-execution` | `bool` | Execute in the same call if the proposal already passes |
-| `--allow-failure-map` | `number` | Bitmap of actions allowed to fail (default none) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--metadata` | `string` | Build time | Proposal metadata (conventionally an IPFS URI) |
+| `--start` | `number` | Build time | Start date (unix seconds); defaults to now |
+| `--end` | `number` | Build time | End date (unix seconds); defaults to the minimum duration |
+| `--vote` | `string` | Build time | Vote on creation (token-voting): yes, no or abstain |
+| `--approve` | `bool` | Build time | Approve on creation (multisig) |
+| `--try-execution` | `bool` | Build time | Execute in the same call if the proposal already passes |
+| `--allow-failure-map` | `number` | Build time | Bitmap of actions allowed to fail (default none) |
 
 ## Examples
 

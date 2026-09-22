@@ -4,6 +4,8 @@ title: "aragonos:revoke"
 
 Revoke a permission from an entity on a DAO app, optionally removing the manager.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,14 +14,14 @@ aragonos:revoke <role> <on> <app> <from> <grantee> [removeManager]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `role` | `permission` | Permission to revoke |
-| `on` | `command` | Keyword `on` |
-| `app` | `app` | Target app |
-| `from` | `command` | Keyword `from` |
-| `grantee` | `address` | Address whose permission is revoked |
-| `[removeManager]` | `bool` | Also remove the permission manager |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `role` | `permission` | Build time | Permission to revoke |
+| `on` | `command` | Build time | Keyword `on` |
+| `app` | `app` | Build time | Target app |
+| `from` | `command` | Build time | Keyword `from` |
+| `grantee` | `address` | Runtime in smart blocks | Address whose permission is revoked |
+| `[removeManager]` | `bool` | Build time | Also remove the permission manager |
 
 ## Examples
 

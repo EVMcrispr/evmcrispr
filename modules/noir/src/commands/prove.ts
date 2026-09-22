@@ -19,6 +19,11 @@ import {
 } from "../utils/noir";
 
 export default defineCommand<Noir>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Witness generation and proving artifacts are build-time operations.",
+  },
   name: "prove",
   description:
     "Generate an UltraHonk proof with Barretenberg and bind the result (proof + public inputs, as JSON) to <variable>. Compile Noir source in-place (--noir) or prove from a pre-built compiled-program artifact (--artifact). Defaults to the keccak transcript so proofs verify on-chain against the @noir:verifier contract; read the verifier-call arguments back with @noir:proof.",

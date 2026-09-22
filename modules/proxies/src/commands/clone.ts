@@ -5,6 +5,11 @@ import type Proxies from "..";
 import { ARACHNID_CREATE2, cloneInitCode } from "../utils";
 
 export default defineCommand<Proxies>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Implementation, factory and salt determine the bound clone address.",
+  },
   name: "clone",
   description:
     "Deploy an ERC-1167 minimal proxy (clone) of an implementation contract. Binds the predicted clone address to <variable>. Pass --salt for a deterministic CREATE2 deployment.",

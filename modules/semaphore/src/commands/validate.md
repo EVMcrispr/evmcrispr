@@ -6,6 +6,8 @@ Validate a Semaphore membership proof on-chain. The contract records the nullifi
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ semaphore:validate <proof> <for> <group>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `proof` | `string` | Proof JSON from semaphore:prove |
-| `for` | `command` | Keyword `for` |
-| `group` | `number` | Group id |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `proof` | `string` | Build time | Proof JSON from semaphore:prove |
+| `for` | `command` | Build time | Keyword `for` |
+| `group` | `number` | Runtime in smart blocks | Group id |
 
 <!-- HAND-WRITTEN -->
 

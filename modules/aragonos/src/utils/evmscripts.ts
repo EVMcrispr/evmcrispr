@@ -1,3 +1,22 @@
+import type { Module, TransactionAction } from "@evmcrispr/sdk";
+import { ErrorException, getEncodedCall } from "@evmcrispr/sdk";
+import {
+  byteLenParamOf,
+  canonicalBytesParam,
+  concatenateResolved,
+  getSmartCompileContext,
+  guardAbiInteger,
+  type InputParam,
+  isRuntimeValue,
+  type RuntimeValue,
+  rawParam,
+  runtimeValue,
+  smartFunctionData,
+  smartValueParam,
+  toWord,
+  unwrapBytesParam,
+  wordPartParam,
+} from "@evmcrispr/sdk/onchain";
 import type { Address } from "viem";
 import { encodeAbiParameters, parseAbiParameters } from "viem";
 
@@ -110,4 +129,68 @@ export function encodeCallScript(actions: CallScriptAction[]): string {
 
     return script + address.slice(26) + dataLength.slice(58) + data.slice(2);
   }, CALLSCRIPT_ID);
+}
+
+/** The same CallsScript layout with typed execution-time targets and calldata. */
+export function encodeSmartCallScript(
+  module: Module,
+  actions: TransactionAction[],
+): string | RuntimeValue {
+  const ctx = getSmartCompileContext(module);
+  if (!ctx) return encodeCallScript(actions as CallScriptAction[]);
+  const parts: InputParam[] = [rawParam("0x00000001")];
+  for (const action of actions) {
+    if (
+      action.operation === 1 ||
+      (action.value !== undefined && action.value !== 0n)
+    )
+      throw new ErrorException(
+        "CallsScript cannot represent delegatecalls or per-call native value",
+      );
+    const call = getEncodedCall(action);
+    const target = call?.target ?? action.to;
+    if (!target) throw new ErrorException("CallsScript requires a target");
+    const data = call
+      ? smartFunctionData(module, {
+          abi: [call.abi],
+          functionName: call.abi.name,
+          args: call.args,
+        })
+      : (action.data ?? "0x");
+    parts.push(
+      unwrapBytesParam(
+        ctx,
+        wordPartParam(
+          ctx,
+          smartValueParam(ctx, { type: "address" }, target),
+          12n,
+          20n,
+        ),
+      ),
+    );
+    const length = isRuntimeValue(data)
+      ? byteLenParamOf(ctx, data.operand.param)
+      : rawParam(toWord(BigInt((data.length - 2) / 2)));
+    parts.push(
+      unwrapBytesParam(
+        ctx,
+        wordPartParam(
+          ctx,
+          guardAbiInteger(ctx, length, "Uint", "uint32"),
+          28n,
+          4n,
+        ),
+      ),
+    );
+    parts.push(
+      isRuntimeValue(data)
+        ? unwrapBytesParam(ctx, data.operand.param)
+        : rawParam(data as `0x${string}`),
+    );
+  }
+  return runtimeValue(
+    canonicalBytesParam(ctx, concatenateResolved(ctx, parts)),
+    { type: "bytes" },
+    ctx.interpreters.batchContext!.smartState!.plan.salt,
+  );
 }

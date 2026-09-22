@@ -59,6 +59,28 @@ describe("evml > worker", () => {
     });
   });
 
+  it("transports smart plans to a host override with captures and exact calldata", async () => {
+    let received: any;
+    await workerEvml
+      .with({ account: TEST_ACCOUNT_ADDRESS })
+      .script(
+        `batch! (\nexec ${TEST_ACCOUNT_ADDRESS} "f() returns (uint256)" -> [$x]\nexec ${TEST_ACCOUNT_ADDRESS} "g(uint256)" $x\nsend ${TEST_ACCOUNT_ADDRESS} --value 1\n)`,
+      )
+      .execute(stubWallet, {
+        prepareChains: false,
+        handlers: {
+          smartBatch: async (action) => {
+            received = action;
+            return { logs: [] };
+          },
+        },
+      });
+    expect(received.type).to.equal("smartBatch");
+    expect(received.plan.captures[0].name).to.equal("x");
+    expect(received.plan.steps[2].action.value).to.equal(1n);
+    expect(structuredClone(received)).to.deep.equal(received);
+  });
+
   describe("execute via worker", () => {
     it("makes supplied input available in the worker without a wallet or host action", async () => {
       const output: string[] = [];

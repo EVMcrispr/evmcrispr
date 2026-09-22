@@ -4,6 +4,7 @@ import { resolveAdapter } from "../adapters/registry";
 import { rejectNative } from "../utils/amounts";
 
 export default defineCommand<Lending>({
+  smartSupport: { kind: "runtime" },
   name: "set-collateral",
   description:
     "Enable or disable a supplied token as collateral for the connected account's borrows.",
@@ -11,6 +12,7 @@ export default defineCommand<Lending>({
     {
       name: "token",
       type: "address",
+      runtime: true,
       description: "Supplied token to toggle (use @token(SYM))",
     },
     {

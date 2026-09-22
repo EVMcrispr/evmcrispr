@@ -6,6 +6,8 @@ Deploy a new Safe (v1.4.1 L2 singleton) with the given owners, at a deterministi
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Owners, threshold and salt determine the predicted Safe address.
+
 ## Syntax
 
 ```evml
@@ -14,16 +16,16 @@ safe:new [...owners]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `[...owners]` | `address` | Owner addresses |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `[...owners]` | `address` | Build time | Owner addresses |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--threshold` | `number` | Signature threshold (defaults to 1) |
-| `--salt` | `number` | Deployment salt nonce (defaults to 0) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--threshold` | `number` | Build time | Signature threshold (defaults to 1) |
+| `--salt` | `number` | Build time | Deployment salt nonce (defaults to 0) |
 
 <!-- HAND-WRITTEN -->
 

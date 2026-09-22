@@ -8,6 +8,11 @@ import { EEZ_CHAINS } from "../constants";
 const DEFAULT_AMOUNT = parseEther("0.1");
 
 export default defineCommand<Eez>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "faucet",
   batchable: false,
   description:

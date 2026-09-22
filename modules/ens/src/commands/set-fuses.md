@@ -9,6 +9,8 @@ Burn NameWrapper fuses on a wrapped ENS name.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -17,17 +19,17 @@ ens:set-fuses <name> <fuse> [...moreFuses]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `name` | `string` | Wrapped ENS name (e.g. vault.mydao.eth) |
-| `fuse` | `fuse` | Fuse name to burn (e.g. cannot-unwrap) |
-| `[...moreFuses]` | `fuse` | Additional fuse names to burn |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `name` | `string` | Build time | Wrapped ENS name (e.g. vault.mydao.eth) |
+| `fuse` | `fuse` | Build time | Fuse name to burn (e.g. cannot-unwrap) |
+| `[...moreFuses]` | `fuse` | Build time | Additional fuse names to burn |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--expiry` | `number` | New expiry timestamp (parent-controlled fuses only; defaults to the current expiry) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--expiry` | `number` | Runtime in smart blocks | New expiry timestamp (parent-controlled fuses only; defaults to the current expiry) |
 
 <!-- HAND-WRITTEN -->
 

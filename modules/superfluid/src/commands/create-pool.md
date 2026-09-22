@@ -6,6 +6,8 @@ Create a GDA distribution pool for a SuperToken and bind the predicted pool addr
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,18 +16,18 @@ superfluid:create-pool <variable> <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the new pool's address to |
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address the pool distributes |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the new pool's address to |
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address the pool distributes |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--admin` | `address` | Pool admin, the only account that can update member units (defaults to the connected account) |
-| `--transferable-units` | `bool` | Let members transfer their units (default false) |
-| `--open-distribution` | `bool` | Let anyone distribute through the pool, not just the admin (default false) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--admin` | `address` | Runtime in smart blocks | Pool admin, the only account that can update member units (defaults to the connected account) |
+| `--transferable-units` | `bool` | Runtime in smart blocks | Let members transfer their units (default false) |
+| `--open-distribution` | `bool` | Runtime in smart blocks | Let anyone distribute through the pool, not just the admin (default false) |
 
 ## Examples
 

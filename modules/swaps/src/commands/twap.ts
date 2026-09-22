@@ -32,6 +32,11 @@ import { activeSimMode } from "../utils/sim";
 import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
 
 export default defineCommand<Swaps>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Order scheduling, hashing and signed/offline order artifacts require concrete amounts and bounds.",
+  },
   name: "twap",
   description:
     "Sell tokens in equal timed parts through CoW from a reusable Safe controlled by @sender. Requires --parts, --every and exactly one of --min or --price-protection. Live preflight is required unless --offline is explicit.",

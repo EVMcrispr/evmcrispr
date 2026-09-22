@@ -18,6 +18,11 @@ const { USER } = BindingsSpace;
 const MAX_ITERATIONS = 10_000;
 
 export default defineCommand<Std>({
+  smartSupport: {
+    kind: "static",
+    reason:
+      "Loop bounds are evaluated at build time; the body expands into ordered steps.",
+  },
   name: "loop",
   description:
     "Repeat a block: iterate over an array (`loop $x of $arr`), repeat until a condition is true (`loop until <condition>`), or exit/skip an iteration from inside the block (`loop break`, `loop continue`).",

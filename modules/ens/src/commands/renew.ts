@@ -1,4 +1,5 @@
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
+import { getSmartCompileContext, smartRead } from "@evmcrispr/sdk/onchain";
 import { parseAbi } from "viem";
 
 import type Ens from "..";
@@ -7,6 +8,7 @@ import { eth2LDLabel } from "../utils";
 const bulkRenewal = "0xa12159e5131b1eEf6B4857EEE3e1954744b5033A";
 
 export default defineCommand<Ens>({
+  smartSupport: { kind: "runtime" },
   name: "renew",
   description: "Renew ENS domain registrations via bulk renewal.",
   args: [
@@ -18,6 +20,7 @@ export default defineCommand<Ens>({
     {
       name: "duration",
       type: "number",
+      runtime: true,
       description: "Renewal duration, in time units (e.g. 1y)",
     },
   ],
@@ -32,23 +35,29 @@ export default defineCommand<Ens>({
 
     const client = await module.getClient();
 
-    const value = await client.readContract({
-      address: bulkRenewal,
-      abi: parseAbi([
-        "function rentPrice(string[] calldata names, uint duration) external view returns(uint total)",
-      ]),
-      functionName: "rentPrice",
-      args: [labels, BigInt(duration)],
-    });
+    const value = getSmartCompileContext(module)
+      ? smartRead(
+          module,
+          bulkRenewal,
+          "rentPrice(string[],uint256) returns (uint256)",
+          [labels, duration],
+        )
+      : await client.readContract({
+          address: bulkRenewal,
+          abi: parseAbi([
+            "function rentPrice(string[] calldata names, uint duration) external view returns(uint total)",
+          ]),
+          functionName: "rentPrice",
+          args: [labels, BigInt(duration)],
+        });
 
     return [
-      {
-        ...encodeAction(bulkRenewal, "renewAll(string[],uint256)", [
-          labels,
-          duration,
-        ]),
-        value,
-      },
+      encodeAction(
+        bulkRenewal,
+        "renewAll(string[],uint256)",
+        [labels, duration],
+        { value },
+      ),
     ];
   },
 });

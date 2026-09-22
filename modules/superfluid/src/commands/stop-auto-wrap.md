@@ -6,6 +6,8 @@ Cancel an auto-wrap schedule. The strategy's token allowance is not touched — 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. The token identifies a schedule before signing; this command has no runtime amount.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ superfluid:stop-auto-wrap <token>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `token` | `supertoken` | SuperToken symbol (e.g. USDCx) or address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `token` | `supertoken` | Build time | SuperToken symbol (e.g. USDCx) or address |
 
 ## Examples
 

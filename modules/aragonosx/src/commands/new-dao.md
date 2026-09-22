@@ -6,6 +6,8 @@ Create a new Aragon OSx DAO with an initial governance plugin.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Plugin setup and predicted DAO bindings require concrete initialization inputs.
+
 ## Syntax
 
 ```evml
@@ -14,20 +16,20 @@ aragonosx:new-dao <variable> <plugin> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable name |
-| `plugin` | `repo` | Governance plugin repo (e.g. admin, token-voting) |
-| `[...params]` | `any` | Plugin setup parameters |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable name |
+| `plugin` | `repo` | Build time | Governance plugin repo (e.g. admin, token-voting) |
+| `[...params]` | `any` | Build time | Plugin setup parameters |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--subdomain` | `string` | ENS subdomain to register (e.g. `mydao` for mydao.dao.eth) |
-| `--dao-uri` | `string` | DAO URI (EIP-4824) |
-| `--metadata` | `string` | DAO metadata (conventionally an IPFS URI) |
-| `--version` | `string` | Plugin version as <release>.<build> (default latest) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--subdomain` | `string` | Build time | ENS subdomain to register (e.g. `mydao` for mydao.dao.eth) |
+| `--dao-uri` | `string` | Build time | DAO URI (EIP-4824) |
+| `--metadata` | `string` | Build time | DAO metadata (conventionally an IPFS URI) |
+| `--version` | `string` | Build time | Plugin version as <release>.<build> (default latest) |
 
 <!-- HAND-WRITTEN -->
 

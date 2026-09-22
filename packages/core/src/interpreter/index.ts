@@ -52,7 +52,7 @@ import {
   setBoolVarsFalse,
   timeUnits,
 } from "@evmcrispr/sdk";
-import { applyValueLens } from "@evmcrispr/sdk/onchain";
+import { applyValueLens, isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type { Abi, AbiFunction, Address, PublicClient } from "viem";
 import { getAbiItem, isAddress, parseAbiItem } from "viem";
 
@@ -412,6 +412,11 @@ async function interpretDestructurePattern(
     if (slot === null) return undefined;
     if (Array.isArray(slot)) return Promise.all(slot.map(resolveSlot));
     const binding = ctx.bindings.getBindingValue(slot, USER);
+    if (isRuntimeValue(binding))
+      panic(
+        n,
+        "runtime return values require a supported smart-command argument or an on-chain helper (!)",
+      );
     if (binding !== undefined) return binding;
     panic(n, `${slot} not defined`);
   };
@@ -446,6 +451,11 @@ function interpretVariableIdentifier(
   }
 
   const binding = ctx.bindings.getBindingValue(n.value, USER);
+  if (isRuntimeValue(binding))
+    panic(
+      n,
+      "runtime return values require a supported smart-command argument or an on-chain helper (!)",
+    );
   if (binding !== undefined) return binding;
   panic(n, `${n.value} not defined`);
 }
@@ -662,6 +672,26 @@ export function makeExecutionResolveCommand(
     const batchContext: BatchContext | undefined = options?.batchContext;
     const interpreters = withInheritedOptions(rawInterpreters, options);
     const std = input.std();
+    const smart = batchContext?.smartState;
+    const checkpoint = smart
+      ? {
+          steps: smart.plan.steps.length,
+          captures: smart.plan.captures.length,
+          hasActions: batchContext!.hasActions,
+          restoreBindings: input.bindings.checkpointLocal(BindingsSpace.USER),
+        }
+      : undefined;
+    if (
+      smart &&
+      ((c.eventCaptures?.length ?? 0) > 0 ||
+        (c.txCaptures?.length ?? 0) > 0 ||
+        c.errorCaptures?.some((cap) => !cap.optional))
+    ) {
+      panic(
+        c,
+        "inner receipt-dependent captures are unsupported in a smart batch; capture the outer command instead",
+      );
+    }
 
     // Once a command yields actions inside a batch, later chain-state reads
     // (non-batchable helpers, inline calls) become misleading — flag it.
@@ -684,6 +714,13 @@ export function makeExecutionResolveCommand(
       c: CommandExpressionNode,
       err: unknown,
     ): Promise<boolean> => {
+      if (smart && checkpoint) {
+        smart.plan.steps.length = checkpoint.steps;
+        smart.plan.captures.length = checkpoint.captures;
+        smart.snapshots = new WeakMap();
+        batchContext!.hasActions = checkpoint.hasActions;
+        checkpoint.restoreBindings();
+      }
       if (!c.errorCaptures || c.errorCaptures.length === 0) return false;
       if (c.txCaptures && c.txCaptures.length > 0) return false;
       await resolveErrorCaptures(
@@ -1063,7 +1100,11 @@ export function makeExecuteWithCaptures(
     }
 
     for (const action of res) {
-      if (!isTransactionAction(action) && !isBatchedAction(action)) {
+      if (
+        !isTransactionAction(action) &&
+        !isBatchedAction(action) &&
+        !("type" in action && action.type === "smartBatch")
+      ) {
         throw new ErrorException(
           "captures require transaction actions (not RPC, wallet, or terminal actions)",
         );

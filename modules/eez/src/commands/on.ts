@@ -18,6 +18,11 @@ import {
 } from "../utils/eez";
 
 export default defineCommand<Eez>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "Cross-chain execution changes account and chain; it cannot run inside a single-account smart batch.",
+  },
   name: "on",
   description:
     "Run a block of commands on another EEZ chain synchronously from the current one. Every call the block produces goes out through the target's cross-chain proxy and executes on the other side atomically with this transaction; helpers, conditions and loops inside evaluate on that chain. Creates each missing proxy first and estimates the gas the composed calls need.",

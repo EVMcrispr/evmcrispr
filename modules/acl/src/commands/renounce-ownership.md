@@ -6,6 +6,8 @@ Renounce ownership of an Ownable contract, leaving it without an owner and perma
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,9 +16,9 @@ acl:renounce-ownership <contract>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `contract` | `address` | Ownable contract address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `contract` | `address` | Runtime in smart blocks | Ownable contract address |
 
 <!-- HAND-WRITTEN -->
 

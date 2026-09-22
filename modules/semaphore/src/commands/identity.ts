@@ -8,6 +8,11 @@ import type Semaphore from "..";
 import { deriveIdentity, IDENTITY_MESSAGE } from "../utils/identity";
 
 export default defineCommand<Semaphore>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.",
+  },
   name: "identity",
   description:
     "Derive a Semaphore v4 identity and bind its public commitment to <variable>. The connected wallet signs a fixed message and the signature seeds the identity - deterministic per wallet, recoverable anywhere by re-signing. The secret never leaves module memory.",

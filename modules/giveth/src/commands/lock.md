@@ -4,6 +4,8 @@ title: "giveth:lock"
 
 Lock staked GIV for a number of GIVpower rounds (2 weeks each) to multiply its GIVpower. Pass `max` as the amount to lock all staked GIV that is not already locked; a zero amount does nothing. Locked GIV cannot be unstaked until the last round ends and it is unlocked.
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -12,10 +14,10 @@ giveth:lock <amount> <rounds>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amount` | `command \| number` | Amount of staked GIV to lock in base units (wei), or the keyword `max` for all staked GIV not already locked (see @giveth:lockable) |
-| `rounds` | `number` | Number of rounds to lock for (each round lasts 2 weeks) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amount` | `command \| number` | Runtime in smart blocks | Amount of staked GIV to lock in base units (wei), or the keyword `max` for all staked GIV not already locked (see @giveth:lockable) |
+| `rounds` | `number` | Runtime in smart blocks | Number of rounds to lock for (each round lasts 2 weeks) |
 
 ## Examples
 

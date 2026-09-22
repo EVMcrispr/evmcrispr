@@ -1,8 +1,10 @@
 import { ErrorException, Num } from "@evmcrispr/sdk";
+import { isRuntimeValue, type SmartAmount } from "@evmcrispr/sdk/onchain";
 
 /** Parse the --request-id opt; 0 (the controller-keyed convention) if absent. */
-export function parseRequestId(opts: Record<string, any>): bigint {
+export function parseRequestId(opts: Record<string, any>): SmartAmount {
   if (opts["request-id"] === undefined) return 0n;
+  if (isRuntimeValue(opts["request-id"])) return opts["request-id"];
   let requestId: bigint;
   try {
     requestId = Num(opts["request-id"] as string).toBigInt();

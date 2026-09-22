@@ -9,6 +9,7 @@ import type AccessControl from "..";
 import { resolveRole } from "../utils";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "grant",
   description:
     "Grant a role on an AccessControl contract (string roles, hashed with keccak256) or an AccessManager (numeric role ids).",
@@ -23,14 +24,21 @@ export default defineCommand<AccessControl>({
     {
       name: "target",
       type: "address",
+      runtime: true,
       description: "AccessControl contract or AccessManager address",
     },
     { name: "to", type: "command", description: "Keyword `to`" },
-    { name: "account", type: "address", description: "Account to grant to" },
+    {
+      name: "account",
+      type: "address",
+      runtime: true,
+      description: "Account to grant to",
+    },
   ],
   opts: [
     {
       name: "delay",
+      runtime: true,
       type: "number",
       description:
         "Execution delay for the grantee, in time units (e.g. 1d; AccessManager role ids only)",

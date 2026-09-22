@@ -4,6 +4,8 @@ title: "batch"
 
 Group multiple commands into a single transaction.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,9 +14,9 @@ batch <block>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `block` | `block` | Block of commands |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `block` | `block` | Build time | Block of commands |
 
 ## Examples
 

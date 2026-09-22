@@ -6,6 +6,8 @@ Buy an exact amount of a token, spending as little as possible of another. The i
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,23 +16,24 @@ swaps:swap-to <amountOut> <tokenOut> <from> <tokenIn>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `amountOut` | `number` | Exact amount of tokenOut to buy, in base units (wei) |
-| `tokenOut` | `address` | Token to buy |
-| `from` | `command` | Keyword `from` |
-| `tokenIn` | `address` | Token to spend (use @token(SYM); the native token resolves to the zero address) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `amountOut` | `number` | Runtime in smart blocks | Exact amount of tokenOut to buy, in base units (wei) |
+| `tokenOut` | `address` | Build time | Token to buy |
+| `from` | `command` | Build time | Keyword `from` |
+| `tokenIn` | `address` | Build time | Token to spend (use @token(SYM); the native token resolves to the zero address) |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--max` | `number` | Maximum input in base units (overrides --slippage) |
-| `--slippage` | `number` | Maximum slippage vs. the quote, in percent (default 0.5) |
-| `--using` | `swap-venue` | Venue: Delora, UniswapV4, UniswapV3, UniswapV2, Honeyswap, SushiSwap, Balancer, or CoWSwap (default: the best venue available on the chain) |
-| `--to` | `address` | Recipient of the output (defaults to the connected account) |
-| `--deadline` | `number` | Unix timestamp after which the swap reverts (default: 20 minutes after the latest block) |
-| `--no-approve` | `bool` | Skip the automatic allowance check and approve action |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--fee` | `number` | Build time | Explicit single-pool V3/V4 fee tier; required when a runtime amount cannot be quoted |
+| `--max` | `number` | Runtime in smart blocks | Maximum input in base units (overrides --slippage) |
+| `--slippage` | `number` | Build time | Maximum slippage vs. the quote, in percent (default 0.5) |
+| `--using` | `swap-venue` | Build time | Venue: Delora, UniswapV4, UniswapV3, UniswapV2, Honeyswap, SushiSwap, Balancer, or CoWSwap (default: the best venue available on the chain) |
+| `--to` | `address` | Runtime in smart blocks | Recipient of the output (defaults to the connected account) |
+| `--deadline` | `number` | Runtime in smart blocks | Unix timestamp after which the swap reverts (default: 20 minutes after the latest block) |
+| `--no-approve` | `bool` | Build time | Skip the automatic allowance check and approve action |
 
 ## Examples
 

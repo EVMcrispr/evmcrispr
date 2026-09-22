@@ -5,6 +5,11 @@ import { collectBlockActions, hashOperationBatchLocal } from "../utils";
 const ZERO_BYTES32 = `0x${"00".repeat(32)}` as const;
 
 export default defineCommand<Governor>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command opens a separate atomic execution context; nested atomic blocks are unsupported.",
+  },
   name: "timelock-schedule",
   description:
     "Schedule a batch of actions on a TimelockController. Optionally binds the operation id to a variable for later state checks or cancellation.",

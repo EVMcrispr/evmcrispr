@@ -2,6 +2,10 @@ import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Sim from "..";
 
 export default defineCommand<Sim>({
+  smartSupport: {
+    kind: "static",
+    reason: "Simulation expectations inspect executed receipts at build time.",
+  },
   name: "expect",
   description: "Assert that a condition is true.",
   args: [

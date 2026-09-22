@@ -1,6 +1,12 @@
-import { chainLabel, ErrorNotFound } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
+import {
+  isRuntimeValue,
+  type RuntimeValue,
+  smartDataAction,
+  smartFunctionData,
+} from "@evmcrispr/sdk/onchain";
 import type { Address, PublicClient } from "viem";
-import { encodeFunctionData, encodePacked, parseAbi, zeroAddress } from "viem";
+import { encodePacked, parseAbi, zeroAddress } from "viem";
 import type Swaps from "../..";
 import type { V3Deployment } from "../../addresses";
 import { V3_FEE_TIERS, WRAPPED_NATIVE } from "../../addresses";
@@ -211,16 +217,17 @@ export function buildV3Swap(
   deployment: V3Deployment,
   route: V3Route,
   req: SwapRequest,
+  module?: Swaps,
 ): SwapPlan {
   const nativeIn = req.tokenIn === zeroAddress;
   const nativeOut = req.tokenOut === zeroAddress;
   const swapRecipient = nativeOut ? ADDRESS_THIS : req.recipient;
-  const calls: `0x${string}`[] = [];
+  const calls: (`0x${string}` | RuntimeValue)[] = [];
 
   if (req.kind === "exactIn") {
     if (route.fees.length === 1) {
       calls.push(
-        encodeFunctionData({
+        smartFunctionData(module, {
           abi: routerAbi,
           functionName: "exactInputSingle",
           args: [
@@ -238,7 +245,7 @@ export function buildV3Swap(
       );
     } else {
       calls.push(
-        encodeFunctionData({
+        smartFunctionData(module, {
           abi: routerAbi,
           functionName: "exactInput",
           args: [
@@ -254,7 +261,7 @@ export function buildV3Swap(
     }
     if (nativeOut) {
       calls.push(
-        encodeFunctionData({
+        smartFunctionData(module, {
           abi: routerAbi,
           functionName: "unwrapWETH9",
           args: [req.limit, req.recipient],
@@ -264,7 +271,7 @@ export function buildV3Swap(
   } else {
     if (route.fees.length === 1) {
       calls.push(
-        encodeFunctionData({
+        smartFunctionData(module, {
           abi: routerAbi,
           functionName: "exactOutputSingle",
           args: [
@@ -282,7 +289,7 @@ export function buildV3Swap(
       );
     } else {
       calls.push(
-        encodeFunctionData({
+        smartFunctionData(module, {
           abi: routerAbi,
           functionName: "exactOutput",
           args: [
@@ -298,7 +305,7 @@ export function buildV3Swap(
     }
     if (nativeOut) {
       calls.push(
-        encodeFunctionData({
+        smartFunctionData(module, {
           abi: routerAbi,
           functionName: "unwrapWETH9",
           args: [req.amount, req.recipient],
@@ -308,12 +315,15 @@ export function buildV3Swap(
     if (nativeIn) {
       // Return the unspent portion of msg.value.
       calls.push(
-        encodeFunctionData({ abi: routerAbi, functionName: "refundETH" }),
+        smartFunctionData(module, {
+          abi: routerAbi,
+          functionName: "refundETH",
+        }),
       );
     }
   }
 
-  const data = encodeFunctionData({
+  const data = smartFunctionData(module, {
     abi: routerAbi,
     functionName: "multicall",
     args: [req.deadline, calls],
@@ -325,11 +335,11 @@ export function buildV3Swap(
       ? {}
       : { approvalTarget: deployment.router, approvalAmount: inputAmount }),
     actions: [
-      {
-        to: deployment.router,
+      smartDataAction(
+        deployment.router,
         data,
-        ...(nativeIn ? { value: inputAmount } : {}),
-      },
+        nativeIn ? inputAmount : undefined,
+      ),
     ],
   };
 }
@@ -350,10 +360,32 @@ export function makeV3Venue(
     },
 
     async buildSwap(module, req) {
-      const route =
-        (req.quote?.route as V3Route | undefined) ??
-        ((await quoteV3(module, name, deployments, req)).route as V3Route);
-      return buildV3Swap(deployments[req.chainId], route, req);
+      let route = req.quote?.route as V3Route | undefined;
+      if (req.fee !== undefined) {
+        if (!Number.isInteger(req.fee) || req.fee < 0 || req.fee >= 2 ** 24)
+          throw new ErrorException("--fee must fit uint24");
+        const wrapped = WRAPPED_NATIVE[req.chainId];
+        route = {
+          tokens: [
+            req.tokenIn === zeroAddress ? wrapped : req.tokenIn,
+            req.tokenOut === zeroAddress ? wrapped : req.tokenOut,
+          ],
+          fees: [req.fee],
+        };
+      }
+      if (!route) {
+        if (isRuntimeValue(req.amount))
+          throw new ErrorException(
+            "runtime V3 swaps require --fee and an explicit --min/--max bound",
+          );
+        route = (
+          await quoteV3(module, name, deployments, {
+            ...req,
+            amount: req.amount,
+          })
+        ).route as V3Route;
+      }
+      return buildV3Swap(deployments[req.chainId], route, req, module);
     },
   };
 }

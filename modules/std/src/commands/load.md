@@ -4,6 +4,8 @@ title: "load"
 
 Load a module. Its commands and helpers become available qualified (`mod:cmd`, `@mod:helper`); an import list makes selected names available unqualified.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,16 +14,16 @@ load <moduleName> [imports]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `moduleName` | `module` | Module name (e.g. `aragonos`, `sim`); with --from, `name>alias` loads the module under a local alias |
-| `[imports]` | `expression` | Import list: `[cmd cmd>renamed @helper @helper>@renamed]` — names usable without the module prefix |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `moduleName` | `module` | Build time | Module name (e.g. `aragonos`, `sim`); with --from, `name>alias` loads the module under a local alias |
+| `[imports]` | `expression` | Build time | Import list: `[cmd cmd>renamed @helper @helper>@renamed]` — names usable without the module prefix |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--from` ⚗️ | `string` | ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias); for encrypted share links, append the link key and quote: "ipfs://<cid>#<key>" |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--from` ⚗️ | `string` | Build time | ipfs://<cid> of an external EVML module file whose def module name matches the load line (rename with name>alias); for encrypted share links, append the link key and quote: "ipfs://<cid>#<key>" |
 
 ## Examples
 

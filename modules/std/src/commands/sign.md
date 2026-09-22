@@ -4,6 +4,8 @@ title: "sign"
 
 Sign a message or typed data with the connected wallet.
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,16 +14,16 @@ sign <variable> [message]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable name |
-| `[message]` | `string` | Plain-text message to sign |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable name |
+| `[message]` | `string` | Build time | Plain-text message to sign |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--typed` | `string` | EIP-712 typed data JSON string |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--typed` | `string` | Build time | EIP-712 typed data JSON string |
 
 <!-- HAND-WRITTEN -->
 

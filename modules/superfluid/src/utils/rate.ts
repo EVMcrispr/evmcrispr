@@ -1,4 +1,9 @@
-import { ErrorException, Num } from "@evmcrispr/sdk";
+import { ErrorException, type Module, Num } from "@evmcrispr/sdk";
+import {
+  boundedRuntimeAmount,
+  isRuntimeValue,
+  type SmartAmount,
+} from "@evmcrispr/sdk/onchain";
 
 /** Largest int96 value — CFA/GDA flow rates are int96 wei/second. */
 export const INT96_MAX = 2n ** 95n - 1n;
@@ -21,7 +26,22 @@ function toRate(value: unknown, name: string): bigint {
 }
 
 /** Parse a strictly positive flow rate; `1/y`-style dust that floors to 0 is rejected. */
-export function parseFlowRate(value: unknown, name = "<rate>"): bigint {
+export function parseFlowRate(value: unknown, name?: string): bigint;
+export function parseFlowRate(
+  value: unknown,
+  name: string | undefined,
+  module: Module,
+): SmartAmount;
+export function parseFlowRate(
+  value: unknown,
+  name = "<rate>",
+  module?: Module,
+): SmartAmount {
+  if (isRuntimeValue(value)) {
+    if (!module)
+      throw new ErrorException("runtime amount requires a compilation context");
+    return boundedRuntimeAmount(module, value, 1n, INT96_MAX, "int96");
+  }
   const rate = toRate(value, name);
   if (rate <= 0n) {
     throw new ErrorException(
@@ -32,7 +52,22 @@ export function parseFlowRate(value: unknown, name = "<rate>"): bigint {
 }
 
 /** Parse a flow rate where `0` is meaningful (stop a distribution flow). */
-export function parseFlowRateOrZero(value: unknown, name = "<rate>"): bigint {
+export function parseFlowRateOrZero(value: unknown, name?: string): bigint;
+export function parseFlowRateOrZero(
+  value: unknown,
+  name: string | undefined,
+  module: Module,
+): SmartAmount;
+export function parseFlowRateOrZero(
+  value: unknown,
+  name = "<rate>",
+  module?: Module,
+): SmartAmount {
+  if (isRuntimeValue(value)) {
+    if (!module)
+      throw new ErrorException("runtime amount requires a compilation context");
+    return boundedRuntimeAmount(module, value, 0n, INT96_MAX, "int96");
+  }
   const rate = toRate(value, name);
   if (rate < 0n) {
     throw new ErrorException(`${name} must not be negative`);
@@ -41,7 +76,22 @@ export function parseFlowRateOrZero(value: unknown, name = "<rate>"): bigint {
 }
 
 /** Parse a plain amount arg into a positive bigint. */
-export function parseAmount(value: unknown, name = "<amount>"): bigint {
+export function parseAmount(value: unknown, name?: string): bigint;
+export function parseAmount(
+  value: unknown,
+  name: string | undefined,
+  module: Module,
+): SmartAmount;
+export function parseAmount(
+  value: unknown,
+  name = "<amount>",
+  module?: Module,
+): SmartAmount {
+  if (isRuntimeValue(value)) {
+    if (!module)
+      throw new ErrorException("runtime amount requires a compilation context");
+    return boundedRuntimeAmount(module, value, 1n, 2n ** 256n - 1n, "uint256");
+  }
   let amount: bigint;
   try {
     amount = Num(value as string).toBigInt();
@@ -55,7 +105,22 @@ export function parseAmount(value: unknown, name = "<amount>"): bigint {
 }
 
 /** Parse a duration/period arg (duration literals arrive in seconds). */
-export function parseDuration(value: unknown, name = "<duration>"): bigint {
+export function parseDuration(value: unknown, name?: string): bigint;
+export function parseDuration(
+  value: unknown,
+  name: string | undefined,
+  module: Module,
+): SmartAmount;
+export function parseDuration(
+  value: unknown,
+  name = "<duration>",
+  module?: Module,
+): SmartAmount {
+  if (isRuntimeValue(value)) {
+    if (!module)
+      throw new ErrorException("runtime amount requires a compilation context");
+    return boundedRuntimeAmount(module, value, 1n, 2n ** 32n - 1n, "uint32");
+  }
   let seconds: bigint;
   try {
     seconds = Num(value as string).toBigInt();

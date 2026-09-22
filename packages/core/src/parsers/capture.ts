@@ -104,26 +104,27 @@ const captureSlotParser: NodeParser<DestructureSlot> = recursiveParser(() =>
  * Variable names are stored WITHOUT the $ prefix.
  * `_` marks a hole (null).
  */
-const captureSlotsParser: NodeParser<DestructureSlot[]> = recursiveParser(() =>
-  coroutine((run) => {
-    run(char("["));
-    run(optionalWhitespace);
+export const captureSlotsParser: NodeParser<DestructureSlot[]> =
+  recursiveParser(() =>
+    coroutine((run) => {
+      run(char("["));
+      run(optionalWhitespace);
 
-    const slots: DestructureSlot[] = [];
+      const slots: DestructureSlot[] = [];
 
-    if (run(possibly(char("]")))) return slots;
+      if (run(possibly(char("]")))) return slots;
 
-    slots.push(run(captureSlotParser));
-    run(optionalWhitespace);
-
-    while (!run(possibly(char("]")))) {
       slots.push(run(captureSlotParser));
       run(optionalWhitespace);
-    }
 
-    return slots;
-  }),
-);
+      while (!run(possibly(char("]")))) {
+        slots.push(run(captureSlotParser));
+        run(optionalWhitespace);
+      }
+
+      return slots;
+    }),
+  );
 
 /**
  * Matches the contract filter prefix: `$var:` or `0xADDRESS:`.

@@ -5,12 +5,16 @@ import { parseAmount, rejectNative } from "../utils/amounts";
 import { withApproval } from "../utils/plan";
 
 export default defineCommand<Lending>({
+  smartSupport: { kind: "runtime" },
   name: "supply",
+  primaryCall: -1,
   description:
     "Supply a token to a lending market, approving the pool automatically when needed. Supplied tokens earn interest and can back borrows as collateral.",
   args: [
     {
       name: "amount",
+      runtime: true,
+      snapshot: true,
       type: "number",
       description: "Amount to supply, in base units (wei)",
     },
@@ -31,6 +35,7 @@ export default defineCommand<Lending>({
     {
       name: "on-behalf-of",
       type: "address",
+      runtime: true,
       description:
         "Account credited with the supplied position (defaults to the connected account)",
     },
@@ -42,9 +47,9 @@ export default defineCommand<Lending>({
   ],
   async run(module, { amount, token }, { opts }) {
     rejectNative(token);
-    const amountIn = parseAmount(amount);
+    const amountIn = parseAmount(amount, module);
     const chainId = await module.getChainId();
-    const from = await module.getConnectedAccount(true);
+    const from = await module.getSender();
     const onBehalfOf = opts["on-behalf-of"] ?? from;
     const adapter = await resolveAdapter(module, opts.using);
     const plan = await adapter.buildSupply(module, {

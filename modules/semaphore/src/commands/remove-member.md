@@ -6,6 +6,8 @@ Remove an identity commitment from a Semaphore group (the leaf becomes 0; the tr
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. A concrete identity and group are needed to reconstruct the Merkle proof.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ semaphore:remove-member <commitment> <from> <group>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `commitment` | `number` | Identity commitment to remove |
-| `from` | `command` | Keyword `from` |
-| `group` | `number` | Group id |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `commitment` | `number` | Build time | Identity commitment to remove |
+| `from` | `command` | Build time | Keyword `from` |
+| `group` | `number` | Build time | Group id |
 
 <!-- HAND-WRITTEN -->
 

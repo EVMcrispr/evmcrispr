@@ -4,6 +4,8 @@ title: "wait"
 
 Wait for a duration before executing the next action (fork simulations advance the chain's clock instead).
 
+Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
+
 ## Syntax
 
 ```evml
@@ -12,9 +14,9 @@ wait <duration>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `duration` | `number` | Time to wait, in time units (e.g. 30s, 1d) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `duration` | `number` | Build time | Time to wait, in time units (e.g. 30s, 1d) |
 
 <!-- HAND-WRITTEN -->
 

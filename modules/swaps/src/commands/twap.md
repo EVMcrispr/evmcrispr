@@ -6,6 +6,8 @@ Sell tokens in equal timed parts through CoW from a reusable Safe controlled by 
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Smart blocks: build-time inputs only. Order scheduling, hashing and signed/offline order artifacts require concrete amounts and bounds.
+
 ## Syntax
 
 ```evml
@@ -14,28 +16,28 @@ swaps:twap <variable> <amount> <tokenIn> <to> <tokenOut>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `variable` | `variable` | Variable to bind the order reference to |
-| `amount` | `command \| number` | Total sell amount in base units, or the keyword `max` for the funder's whole balance; rounded down to a multiple of --parts, the remainder stays with the funder |
-| `tokenIn` | `address` | ERC-20 token to sell |
-| `to` | `command` | Keyword `to` |
-| `tokenOut` | `address` | ERC-20 token to buy |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `variable` | `variable` | Build time | Variable to bind the order reference to |
+| `amount` | `command \| number` | Build time | Total sell amount in base units, or the keyword `max` for the funder's whole balance; rounded down to a multiple of --parts, the remainder stays with the funder |
+| `tokenIn` | `address` | Build time | ERC-20 token to sell |
+| `to` | `command` | Build time | Keyword `to` |
+| `tokenOut` | `address` | Build time | ERC-20 token to buy |
 
 ## Options
 
-| Name | Type | Description |
-|------|------|-------------|
-| `--parts` | `number` | Required number of equal parts (at least 2) |
-| `--every` | `number` | Required seconds between parts (1 to 31536000) |
-| `--min` | `number` | Total minimum output if all parts fill; rounded up per part (exclusive with --price-protection) |
-| `--price-protection` | `number` | Maximum decrease from a fresh per-part quote, in percent (0 to 99.99, exact basis points); freezes a fixed price limit |
-| `--offline` | `bool` | Skip external quote, valuation and service checks; requires --min and is mandatory inside sim:fork |
-| `--using` | `twap-venue` | TWAP provider (default: CoWSwap) |
-| `--start` | `number` | Unix start timestamp; omitted or 0 starts when the registration transaction is mined |
-| `--window` | `number` | Validity of each part in seconds; omitted or 0 uses the full interval |
-| `--to` | `address` | Recipient of bought tokens (default: @sender) |
-| `--salt` | `bytes32` | Order salt (default: fresh random bytes32) |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--parts` | `number` | Build time | Required number of equal parts (at least 2) |
+| `--every` | `number` | Build time | Required seconds between parts (1 to 31536000) |
+| `--min` | `number` | Build time | Total minimum output if all parts fill; rounded up per part (exclusive with --price-protection) |
+| `--price-protection` | `number` | Build time | Maximum decrease from a fresh per-part quote, in percent (0 to 99.99, exact basis points); freezes a fixed price limit |
+| `--offline` | `bool` | Build time | Skip external quote, valuation and service checks; requires --min and is mandatory inside sim:fork |
+| `--using` | `twap-venue` | Build time | TWAP provider (default: CoWSwap) |
+| `--start` | `number` | Build time | Unix start timestamp; omitted or 0 starts when the registration transaction is mined |
+| `--window` | `number` | Build time | Validity of each part in seconds; omitted or 0 uses the full interval |
+| `--to` | `address` | Build time | Recipient of bought tokens (default: @sender) |
+| `--salt` | `bytes32` | Build time | Order salt (default: fresh random bytes32) |
 
 <!-- HAND-WRITTEN -->
 

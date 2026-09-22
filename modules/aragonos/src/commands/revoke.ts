@@ -6,6 +6,7 @@ import {
   encodeAction,
   fieldItem,
 } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type { Address } from "viem";
 import { isAddress } from "viem";
 import type AragonOS from "..";
@@ -25,7 +26,7 @@ import {
 const _revoke = (dao: DaoContext, resolvedArgs: any[]): Action[] => {
   const permission = resolvedArgs.slice(0, 3);
 
-  if (!isPermission(permission)) {
+  if (!isRuntimeValue(permission[0]) && !isPermission(permission)) {
     throw new ErrorException("Invalid permission");
   }
 
@@ -46,13 +47,17 @@ const _revoke = (dao: DaoContext, resolvedArgs: any[]): Action[] => {
     role,
   );
 
-  if (!appPermission.grantees.has(granteeAddress.toLowerCase() as Address)) {
+  if (
+    !isRuntimeValue(granteeAddress) &&
+    !appPermission.grantees.has(granteeAddress.toLowerCase() as Address)
+  ) {
     throw new ErrorException(
       `grantee ${granteeAddress} doesn't have the given permission`,
     );
   }
 
-  appPermission.grantees.delete(granteeAddress);
+  if (!isRuntimeValue(granteeAddress))
+    appPermission.grantees.delete(granteeAddress);
 
   const actions: Action[] = [];
 
@@ -78,6 +83,7 @@ const _revoke = (dao: DaoContext, resolvedArgs: any[]): Action[] => {
 };
 
 export default defineCommand<AragonOS>({
+  smartSupport: { kind: "runtime" },
   name: "revoke",
   description:
     "Revoke a permission from an entity on a DAO app, optionally removing the manager.",
@@ -88,6 +94,7 @@ export default defineCommand<AragonOS>({
     { name: "from", type: "command", description: "Keyword `from`" },
     {
       name: "grantee",
+      runtime: true,
       type: "address",
       description: "Address whose permission is revoked",
     },

@@ -17,6 +17,11 @@ import {
 } from "../utils/forwarders";
 
 export default defineCommand<AragonOS>({
+  smartSupport: {
+    kind: "incompatible",
+    reason:
+      "This command opens a separate atomic execution context; nested atomic blocks are unsupported.",
+  },
   name: "forward",
   description:
     "Route actions through a chain of forwarder apps with optional context.",

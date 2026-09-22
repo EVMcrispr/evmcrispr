@@ -85,6 +85,8 @@ import type { Constraint, InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import { bytesPayloadParam, envelopeLenParam } from "./layout";
 import { OP_SELECTORS, opSelector } from "./operators";
+import { interpretSmartValue, runtimeBinding, smartValueParam } from "./smart";
+import { hasRuntimeValue } from "./smart-types";
 import type { Category, CompileCtx, Operand } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -439,7 +441,22 @@ export async function compileArgSpecs(
   for (let i = 0; i < argNodes.length; i++) {
     const arg = argNodes[i];
     const input = fnAbi.inputs[i];
-    if (arg.type === NodeType.CallExpression) {
+    const bound = runtimeBinding(ctx, arg);
+    if (bound) {
+      specs.push(
+        canonicalArgSpec(ctx, input, smartValueParam(ctx, input, bound)),
+      );
+    } else if (
+      arg.type === NodeType.ArrayExpression &&
+      ctx.interpreters.batchContext?.smart
+    ) {
+      const value = await interpretSmartValue(ctx, arg);
+      specs.push(
+        hasRuntimeValue(value)
+          ? canonicalArgSpec(ctx, input, smartValueParam(ctx, input, value))
+          : { kind: "value", value },
+      );
+    } else if (arg.type === NodeType.CallExpression) {
       specs.push(
         await compileLiveCallArg(ctx, arg as CallExpressionNode, input, method),
       );
@@ -1145,6 +1162,8 @@ export async function compileOperand(
     PRECOMPILED_OPERAND
   ];
   if (preCompiled) return preCompiled as Operand;
+  const bound = runtimeBinding(ctx, node);
+  if (bound) return bound.operand;
   if (node.type === NodeType.CallExpression) {
     return compileCallOperand(ctx, node as CallExpressionNode);
   }
@@ -2158,6 +2177,7 @@ export async function compileCheckedExpr(
       ];
       const operand =
         precompiled ||
+        runtimeBinding(ctx, node) ||
         node.type === NodeType.CallExpression ||
         isBangHelperNode(node)
           ? await compileOperand(ctx, node)

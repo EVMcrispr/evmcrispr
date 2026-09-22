@@ -6,6 +6,8 @@ Renounce a role held by the connected account on an AccessControl contract or an
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,11 +16,11 @@ acl:renounce <role> <on> <target>
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `role` | `number \| string` | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
-| `on` | `command` | Keyword `on` |
-| `target` | `address` | AccessControl contract or AccessManager address |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `role` | `number \| string` | Build time | Role name (e.g. MINTER_ROLE), bytes32 value, or AccessManager role id |
+| `on` | `command` | Build time | Keyword `on` |
+| `target` | `address` | Runtime in smart blocks | AccessControl contract or AccessManager address |
 
 <!-- HAND-WRITTEN -->
 

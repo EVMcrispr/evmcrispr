@@ -2,12 +2,14 @@ import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type AccessControl from "..";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "rollback-default-admin-delay",
   description: "Cancel a scheduled default admin delay change.",
   args: [
     {
       name: "contract",
       type: "address",
+      runtime: true,
       description: "AccessControlDefaultAdminRules contract address",
     },
   ],

@@ -3,11 +3,17 @@ import type AccessControl from "..";
 import { resolveManagerRoleId } from "../utils";
 
 export default defineCommand<AccessControl>({
+  smartSupport: { kind: "runtime" },
   name: "set-role-admin",
   description:
     "Set the admin role that manages grants and revocations of an AccessManager role.",
   args: [
-    { name: "manager", type: "address", description: "AccessManager address" },
+    {
+      name: "manager",
+      type: "address",
+      runtime: true,
+      description: "AccessManager address",
+    },
     {
       name: "roleId",
       type: ["number", "string"],

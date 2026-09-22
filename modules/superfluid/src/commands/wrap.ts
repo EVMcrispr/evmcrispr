@@ -3,8 +3,8 @@ import {
   ErrorException,
   encodeAction,
   fieldItem,
-  Num,
 } from "@evmcrispr/sdk";
+import { amountParam } from "@evmcrispr/sdk/onchain";
 import type Superfluid from "..";
 import { withApproval } from "../utils/plan";
 import { requireCore } from "../utils/protocol";
@@ -18,13 +18,17 @@ import {
 } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "wrap",
+  primaryCall: -1,
   description:
     "Wrap an underlying token into its SuperToken (DAI to DAIx, native xDAI to xDAIx...), approving the SuperToken automatically when needed. The amount is in the underlying token's base units (e.g. 100e6 for 100 USDC); SuperTokens themselves are always 18 decimals.",
   args: [
     {
       name: "amount",
+      snapshot: true,
       type: "number",
+      runtime: true,
       description: "Amount to wrap, in the underlying token's base units",
     },
     { name: "into", type: "command", description: "Keyword `into`" },
@@ -48,7 +52,7 @@ export default defineCommand<Superfluid>({
     }
     const chainId = await requireCore(module);
     const superToken = await resolveSuperToken(module, token);
-    const parsed = parseAmount(amount);
+    const parsed = parseAmount(amount, undefined, module);
 
     if (isNativeSuperToken(chainId, superToken)) {
       return [
@@ -63,12 +67,12 @@ export default defineCommand<Superfluid>({
       );
     }
 
-    const owner = await module.getConnectedAccount(true);
+    const owner = await module.getSender();
     // upgrade() takes the 18-decimal SuperToken amount but pulls the
     // equivalent underlying amount, which is what the allowance covers.
     const superAmount = await toSuperTokenAmount(module, underlying, parsed);
     const action = encodeAction(superToken, "upgrade(uint256)", [
-      Num.fromBigInt(superAmount),
+      amountParam(superAmount),
     ]);
     return withApproval(
       module,

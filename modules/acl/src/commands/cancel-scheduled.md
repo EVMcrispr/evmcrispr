@@ -6,6 +6,8 @@ Cancel a scheduled AccessManager operation. Callable by its scheduler, a guardia
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
+Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
+
 ## Syntax
 
 ```evml
@@ -14,13 +16,13 @@ acl:cancel-scheduled <manager> <caller> <target> <signature> [...params]
 
 ## Arguments
 
-| Name | Type | Description |
-|------|------|-------------|
-| `manager` | `address` | AccessManager address |
-| `caller` | `address` | Account that scheduled the operation |
-| `target` | `address` | Managed contract address |
-| `signature` | `write-abi` | Function of the scheduled call |
-| `[...params]` | `any` | Arguments matching the signature types |
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `manager` | `address` | Runtime in smart blocks | AccessManager address |
+| `caller` | `address` | Runtime in smart blocks | Account that scheduled the operation |
+| `target` | `address` | Runtime in smart blocks | Managed contract address |
+| `signature` | `write-abi` | Build time | Function of the scheduled call |
+| `[...params]` | `any` | Runtime in smart blocks | Arguments matching the signature types |
 
 <!-- HAND-WRITTEN -->
 

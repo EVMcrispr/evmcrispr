@@ -6,6 +6,7 @@ import {
   ErrorException,
   encodeAction,
 } from "@evmcrispr/sdk";
+import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import { zeroAddress } from "viem";
 import type Superfluid from "..";
 import { GDA_AGREEMENT, GDA_FORWARDER } from "../addresses";
@@ -13,6 +14,7 @@ import { requireCore } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineCommand<Superfluid>({
+  smartSupport: { kind: "runtime" },
   name: "create-pool",
   description:
     "Create a GDA distribution pool for a SuperToken and bind the predicted pool address to <variable>. Members hold units and every distribution splits pro-rata to units. The prediction reads the pool factory's account nonce, so it assumes no other pool is created on the chain between planning and execution.",
@@ -33,16 +35,19 @@ export default defineCommand<Superfluid>({
     {
       name: "admin",
       type: "address",
+      runtime: true,
       description:
         "Pool admin, the only account that can update member units (defaults to the connected account)",
     },
     {
       name: "transferable-units",
+      runtime: true,
       type: "bool",
       description: "Let members transfer their units (default false)",
     },
     {
       name: "open-distribution",
+      runtime: true,
       type: "bool",
       description:
         "Let anyone distribute through the pool, not just the admin (default false)",
@@ -57,14 +62,18 @@ export default defineCommand<Superfluid>({
       );
     }
     const superToken = await resolveSuperToken(module, token);
-    const account = await module.getConnectedAccount(true);
+    const account = await module.getSender();
     const admin = opts.admin ?? account;
     const transferableUnits =
       opts["transferable-units"] !== undefined &&
-      coerceBoolean(opts["transferable-units"]);
+      (isRuntimeValue(opts["transferable-units"])
+        ? opts["transferable-units"]
+        : coerceBoolean(opts["transferable-units"]));
     const openDistribution =
       opts["open-distribution"] !== undefined &&
-      coerceBoolean(opts["open-distribution"]);
+      (isRuntimeValue(opts["open-distribution"])
+        ? opts["open-distribution"]
+        : coerceBoolean(opts["open-distribution"]));
 
     // SuperfluidPool proxies are deployed with plain CREATE from the GDA
     // agreement contract, so its account nonce predicts the pool address.

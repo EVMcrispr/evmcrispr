@@ -2,6 +2,7 @@ import type {
   Action,
   BatchedAction,
   RpcAction,
+  SmartBatchAction,
   TerminalAction,
   TransactionAction,
   WalletAction,
@@ -12,6 +13,11 @@ import {
   isTransactionAction,
   resolveChain,
 } from "@evmcrispr/sdk";
+import {
+  checkSmartAccountReceipt,
+  prepareSmartAccountSimulation,
+  prepareSmartAccountTransaction,
+} from "@evmcrispr/sdk/onchain";
 import type {
   Address,
   Hash,
@@ -91,6 +97,7 @@ export interface ActionHandlerCtx {
 }
 
 export type ActionHandlers = {
+  smartBatch(action: SmartBatchAction, ctx: ActionHandlerCtx): Promise<unknown>;
   transaction(
     action: TransactionAction,
     ctx: ActionHandlerCtx,
@@ -572,7 +579,59 @@ async function sendThrough(
 
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
+    async smartBatch(action, ctx) {
+      if (
+        action.chainId !== action.plan.chainId ||
+        action.from.toLowerCase() !== action.plan.account.toLowerCase()
+      )
+        throw new Error("smart-batch action does not match its plan");
+      const chain = chainFor(action.chainId, ctx);
+      if (chain) await switchOrAddChain(ctx.walletClient, action.chainId);
+      const addresses = await ctx.walletClient.getAddresses();
+      const selected = ctx.walletClient.account?.address ?? addresses[0];
+      if (
+        selected?.toLowerCase() !== action.from.toLowerCase() ||
+        addresses[0]?.toLowerCase() !== action.from.toLowerCase()
+      )
+        throw new Error(
+          "connect the smart-account address itself, not its owner wallet",
+        );
+      if ((await ctx.walletClient.getChainId()) !== action.chainId)
+        throw new Error("wallet chain does not match the smart batch");
+      const client = ctx.getPublicClient(action.chainId);
+      const tx = await prepareSmartAccountTransaction(client, action.plan);
+      const simulation = await prepareSmartAccountSimulation(
+        client,
+        action.plan,
+      );
+      await client.call({
+        account: simulation.from,
+        to: simulation.to,
+        data: simulation.data,
+        value: simulation.value,
+      });
+      const result = await ctx.next(tx);
+      if (result && typeof result === "object")
+        checkSmartAccountReceipt(action.plan, simulation.from!, result);
+      for (const step of action.plan.steps) {
+        if (step.kind === "transaction" && step.action.receiptCheck) {
+          if (!result || typeof result !== "object" || !("logs" in result))
+            throw new Error(
+              "smart-batch submission did not return the receipt required by an inner command",
+            );
+          checkReceiptOutcome(
+            step.action,
+            result as Parameters<typeof checkReceiptOutcome>[1],
+          );
+        }
+      }
+      return result;
+    },
     async transaction(action, ctx) {
+      if (action.plannedCall)
+        throw new Error("uncompiled runtime call; use a smart batch");
+      if (action.operation === 1)
+        throw new Error("delegatecall requires an explicit account adapter");
       const publicClient = ctx.getPublicClient(action.chainId);
 
       if (action.readOnly) {
@@ -731,7 +790,13 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         const allLogs = result.receipts.flatMap((r) => r.logs);
         for (const inner of actions)
           checkReceiptOutcome(inner, { logs: allLogs });
-        return { logs: allLogs };
+        return {
+          logs: allLogs,
+          transactionHash:
+            result.receipts.length === 1
+              ? result.receipts[0].transactionHash
+              : undefined,
+        };
       }
 
       // Wallet executed the batch but didn't return receipts (EIP-5792
@@ -831,6 +896,8 @@ export async function executeScript(
   const runDefault = (action: Action, ctx: ActionHandlerCtx) => {
     if (isTransactionAction(action)) return defaults.transaction(action, ctx);
     switch (action.type) {
+      case "smartBatch":
+        return defaults.smartBatch(action, ctx);
       case "batched":
         return defaults.batched(action, ctx);
       case "wallet":
