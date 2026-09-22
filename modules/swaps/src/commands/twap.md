@@ -39,6 +39,30 @@ swaps:twap <variable> <amount> <tokenIn> <to> <tokenOut>
 | `--to` | `address` | Build time | Recipient of bought tokens (default: @sender) |
 | `--salt` | `bytes32` | Build time | Order salt (default: fresh random bytes32) |
 
+## Errors
+
+Failures this command declares. Capture them by name with `-?!>` or `-!>` — see [Event & Error Captures](/language/captures/).
+
+| Error | Description |
+|-------|-------------|
+| `SameToken()` | The sell and buy token are the same |
+| `NoBalance()` | The funder holds none of the sell token |
+| `Unfunded(uint256)` | The sell amount is below the requested number of parts, so a part would sell nothing |
+| `BelowMinimum(uint256)` | A part is worth less than the network's minimum order value |
+| `NoQuote()` | CoW declines to quote this token or order under a documented rejection code |
+
+**`Unfunded(uint256)` fields**
+
+| # | Field | Type | Description |
+|---|-------|------|-------------|
+| 1 | `parts` | `number` | Parts the order asks for, and its minimum base units |
+
+**`BelowMinimum(uint256)` fields**
+
+| # | Field | Type | Description |
+|---|-------|------|-------------|
+| 1 | `minimum` | `number` | Minimum value per part, in USDC base units |
+
 <!-- HAND-WRITTEN -->
 
 ## Examples
@@ -58,10 +82,16 @@ amount is rounded **down** to a multiple of the part count; the few base units
 left over never leave the funder, and the log reports them. The keyword `max`
 sells the funder's whole balance, read when the script builds — inside a Safe
 block that is the balance before the block executes, so keep one `max` order
-per token. An order the command cannot create — a part below the network
-minimum, no quote for the token, the buy token itself — fails before any
-action exists; `-?!> $skipped` catches that failure so a loop over several
-tokens continues with the next one. Together with [@token:holdings](../../../token/src/helpers/holdings.md)
+per token.
+
+An order the command deliberately will not create fails before any action
+exists, under one of the names in **Errors** above: `SameToken` for the buy
+token itself, `NoBalance` for a token the funder does not hold, `Unfunded` for
+an amount below `--parts` base units, `BelowMinimum` for a part below the
+network's minimum order value, and `NoQuote` when CoW declines to quote the
+token or the order. Capturing those names skips exactly those orders and lets
+everything else — a mistyped option, an RPC outage, a quote that does not
+verify — stop the script. Together with [@token:holdings](../../../token/src/helpers/holdings.md)
 this sells everything a Safe holds in one transaction:
 
 ```evml
@@ -75,9 +105,16 @@ set $tokens @token:holdings($safe)
 
 safe:execute $safe (
   loop $token of $tokens (
-    swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?!> $skipped
+    swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?!> SameToken -?!> BelowMinimum -?!> NoBalance -?!> Unfunded -?!> NoQuote
   )
 )
+```
+
+A refusal carries its fields, so a script can read the limit it missed:
+
+```evml
+load swaps
+swaps:twap $order 12e18 @token(WXDAI) to @token(GNO) --parts 3 --every 3600 --price-protection 1 -?!> BelowMinimum [$minimum]
 ```
 
 Parts are sell orders and cannot be partially filled.
@@ -93,6 +130,15 @@ as its ERC-1271 owner and the selected recipient. Invalid quotes, unsupported
 tokens, insufficient fee coverage, missing liquidity, unavailable valuations,
 or unavailable service checks stop encoding before funding actions are returned.
 This TWAP quote path does not change spot-swap quoting or wallet signing.
+
+`NoQuote` is raised only for the documented rejection codes with which CoW
+declines to quote a token or an order — `NoLiquidity`, `InsufficientLiquidity`,
+`UnsupportedToken` and `SellAmountDoesNotCoverFee` in its
+[orderbook API](https://github.com/cowprotocol/services/blob/main/crates/orderbook/openapi.yml).
+An unknown code, a server error, a timeout, a malformed response, an
+unavailable valuation, a temporarily suspended token and a quote that does not
+verify or does not match the requested order are **not** declared: they stop
+the script even under a `-?!> NoQuote` capture.
 
 ```evml
 load swaps

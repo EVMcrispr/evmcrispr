@@ -1,13 +1,17 @@
 import "../setup";
 import { afterEach, describe, expect, it } from "bun:test";
 import type { Module } from "@evmcrispr/sdk";
+import { createFail, findDeclaredError } from "@evmcrispr/sdk";
+import { expectDeclaredFailure } from "@evmcrispr/test-utils/evml";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import { zeroHash } from "viem";
-import { cowJson, orderbookOrders } from "../../src/twap/api";
+import { CowApiError, cowJson, orderbookOrders } from "../../src/twap/api";
+import { TWAP_ERRORS } from "../../src/twap/errors";
 import { TWAP_CREATION_CHAINS, TWAP_NETWORKS } from "../../src/twap/networks";
 import {
   protectedMinimum,
   protectionBps,
+  QUOTE_REFUSAL_CODES,
   twapPreflight,
   validateQuote,
 } from "../../src/twap/preflight";
@@ -30,6 +34,18 @@ const schedule: TwapSchedule = {
   appData: zeroHash,
 };
 const validTo = 1900000000;
+/** The command's own `fail`, so a refusal raised here is the one a script
+ *  captures by name. */
+const fail = createFail(TWAP_ERRORS, 'command "twap"');
+const quoteUrl = "https://api.cow.fi/xdai/api/v1/quote";
+const preflight = (changes: Partial<TwapSchedule> = {}) =>
+  twapPreflight(
+    100,
+    { ...schedule, ...changes },
+    SOME_ADDRESS,
+    1800000000n,
+    fail,
+  );
 const response = () => ({
   verified: true,
   expiration: new Date(Date.now() + 60000).toISOString(),
@@ -124,12 +140,7 @@ describe("TWAP > live preflight", () => {
 
   it("quotes one part for the Safe and checks its notional with atom-based prices", async () => {
     cowState.reset();
-    const result = await twapPreflight(
-      100,
-      schedule,
-      SOME_ADDRESS,
-      1800000000n,
-    );
+    const result = await preflight();
     expect(result.notionalUsdc).toBe("12");
     expect(cowState.quoteRequests[0]).toMatchObject({
       from: SOME_ADDRESS,
@@ -140,17 +151,125 @@ describe("TWAP > live preflight", () => {
       sellAmountBeforeFee: schedule.partSellAmount.toString(),
       validTo: 1800001200,
     });
-    await expect(
-      twapPreflight(100, { ...schedule, t: 299n }, SOME_ADDRESS, 1800000000n),
-    ).rejects.toThrow("300");
-    await expect(
-      twapPreflight(
-        100,
-        { ...schedule, partSellAmount: 10n ** 17n },
-        SOME_ADDRESS,
-        1800000000n,
+    await expect(preflight({ t: 299n })).rejects.toThrow("300");
+  });
+
+  it("refuses a part below the network minimum with BelowMinimum", async () => {
+    const declared = await expectDeclaredFailure(
+      () => preflight({ partSellAmount: 10n ** 17n }),
+      { name: "BelowMinimum", fields: { minimum: 1_000000n } },
+      "a part worth 0.1 USDC on Gnosis",
+      /1 USDC-equivalent minimum/,
+    );
+    // The field is the minimum in USDC base units, not the notional value.
+    expect(declared.fields.minimum).toBe(TWAP_NETWORKS[100].minimumUsdc);
+  });
+
+  // Semantic rejections CoW documents for POST /api/v1/quote, with the status
+  // its OpenAPI schema pairs them with (PriceEstimationError).
+  it.each([
+    ["NoLiquidity", 404],
+    ["InsufficientLiquidity", 400],
+    ["UnsupportedToken", 400],
+    ["SellAmountDoesNotCoverFee", 400],
+  ] as const)("refuses a quote CoW declines with %s", async (code, status) => {
+    server.use(
+      http.post(quoteUrl, () =>
+        HttpResponse.json(
+          { errorType: code, description: `CoW declined: ${code}` },
+          { status },
+        ),
       ),
-    ).rejects.toThrow("minimum");
+    );
+    await expectDeclaredFailure(
+      () => preflight(),
+      { name: "NoQuote" },
+      `a ${code} quote rejection`,
+      new RegExp(code),
+    );
+  });
+
+  it("maps exactly the allowlisted quote rejection codes", () => {
+    expect([...QUOTE_REFUSAL_CODES].sort()).toEqual([
+      "InsufficientLiquidity",
+      "NoLiquidity",
+      "SellAmountDoesNotCoverFee",
+      "UnsupportedToken",
+    ]);
+  });
+
+  it.each([
+    ["QuoteNotVerified", 400, "a verification failure"],
+    ["Forbidden", 403, "a deny-listed owner"],
+    ["InternalServerError", 500, "an upstream outage"],
+    ["TokenTemporarilySuspended", 400, "a transient suspension"],
+    ["SomeFutureCode", 400, "an unknown code"],
+  ])("keeps %s undeclared", async (code, status, _what) => {
+    server.use(
+      http.post(quoteUrl, () =>
+        HttpResponse.json({ errorType: code, description: code }, { status }),
+      ),
+    );
+    const thrown = await preflight().catch((error: unknown) => error);
+    expect(findDeclaredError(thrown)).toBeUndefined();
+    expect((thrown as Error).message).toContain(`HTTP ${status}`);
+  });
+
+  it("keeps a malformed error body undeclared", async () => {
+    server.use(
+      http.post(
+        quoteUrl,
+        () => new HttpResponse("<html>gateway</html>", { status: 400 }),
+      ),
+    );
+    const thrown = await preflight().catch((error: unknown) => error);
+    expect(findDeclaredError(thrown)).toBeUndefined();
+    expect((thrown as Error).message).toContain("HTTP 400");
+  });
+
+  it("preserves a bounded, parsed CoW error body for classification", async () => {
+    const url = "https://api.cow.fi/xdai/api/v1/failing";
+    server.use(
+      http.get(url, () =>
+        HttpResponse.json(
+          {
+            errorType: "UnsupportedToken",
+            description: `line\nbreak ${"x".repeat(4000)}`,
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    const thrown = await cowJson(url).catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(CowApiError);
+    const error = thrown as CowApiError;
+    expect(error.status).toBe(400);
+    expect(error.errorType).toBe("UnsupportedToken");
+    expect(error.description!.length).toBeLessThanOrEqual(256);
+    expect(error.description).not.toContain("\n");
+    expect(error.message).toContain("HTTP 400");
+    expect(error.message).toContain("UnsupportedToken");
+  });
+
+  it("drops an oversized error body instead of classifying it", async () => {
+    const url = "https://api.cow.fi/xdai/api/v1/huge-error";
+    server.use(
+      http.get(
+        url,
+        () =>
+          new HttpResponse(
+            `{"errorType":"NoLiquidity","d":"${"x".repeat(200_000)}"}`,
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            },
+          ),
+      ),
+    );
+    const thrown = await cowJson(url).catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(CowApiError);
+    expect((thrown as CowApiError).errorType).toBeUndefined();
+    expect((thrown as Error).message).toContain("HTTP 400");
   });
 
   it.each([400, 403, 404, 429, 500])(
@@ -162,9 +281,7 @@ describe("TWAP > live preflight", () => {
           () => new HttpResponse(null, { status }),
         ),
       );
-      await expect(
-        twapPreflight(100, schedule, SOME_ADDRESS, 1800000000n),
-      ).rejects.toThrow(`HTTP ${status}`);
+      await expect(preflight()).rejects.toThrow(`HTTP ${status}`);
     },
   );
 
@@ -174,18 +291,14 @@ describe("TWAP > live preflight", () => {
         HttpResponse.json({ price: 0 }),
       ),
     );
-    await expect(
-      twapPreflight(100, schedule, SOME_ADDRESS, 1800000000n),
-    ).rejects.toThrow("positive");
+    await expect(preflight()).rejects.toThrow("positive");
     server.resetHandlers();
     server.use(
       http.post("https://programmatic-orders.cow.fi/graphql", () =>
         HttpResponse.json({ errors: [{ message: "unavailable" }] }),
       ),
     );
-    await expect(
-      twapPreflight(100, schedule, SOME_ADDRESS, 1800000000n),
-    ).rejects.toThrow("indexer");
+    await expect(preflight()).rejects.toThrow("indexer");
   });
 
   it("keeps management available when creation is disabled", async () => {

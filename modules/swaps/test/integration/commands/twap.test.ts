@@ -17,12 +17,17 @@ import {
   getTransports,
   getWalletClients,
 } from "@evmcrispr/test-utils";
-import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
+import {
+  evml,
+  expectDeclaredFailure,
+  Interpreter,
+} from "@evmcrispr/test-utils/evml";
 import type { Address, Hex } from "viem";
 import {
   decodeFunctionData,
   encodeFunctionData,
   erc20Abi,
+  getAddress,
   hashTypedData,
   keccak256,
   parseAbi,
@@ -44,12 +49,13 @@ import {
   decodeSchedule,
   orderHash,
 } from "../../../src/twap/cow";
+import { TWAP_NETWORKS } from "../../../src/twap/networks";
 import type { TwapReference } from "../../../src/twap/types";
 import {
   buildOrderTypedData,
   COW_VAULT_RELAYER,
 } from "../../../src/venues/lib/cowApi";
-import { GNO, SOME_ADDRESS, WXDAI } from "../../fixtures";
+import { GNO, WXDAI } from "../../fixtures";
 
 const tradeAbi = parseAbi([
   "struct Params { address handler; bytes32 salt; bytes staticInput; }",
@@ -467,7 +473,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     const salt = BigInt(Date.now()) + 1n;
     const outer = predictSafeAddress(deployment, bytecode, initializer, salt);
     await send(encodeSafeDeployment(deployment, initializer, salt));
-    // Two tokens the Safe can sell, one address that is not a token at all.
+    // Two tokens the Safe can sell, plus two it deliberately refuses.
     await send({
       to: WXDAI,
       data: encodeFunctionData({
@@ -487,12 +493,15 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     });
     expect(gnoHeld).toBeGreaterThan(3n);
     const sdai = "0xaf204776c7245bF4147c2612BF6e5972Ee483701";
+    // The Safe holds none of this one, and the last entry is the buy token
+    // itself: one refusal the command names NoBalance, one SameToken.
+    const usdc = getAddress(TWAP_NETWORKS[100].usdc);
     const source = [
       "load safe",
-      `set $tokens [${WXDAI} ${GNO} ${SOME_ADDRESS}]`,
+      `set $tokens [${WXDAI} ${GNO} ${usdc} ${sdai}]`,
       `safe:execute ${outer} (`,
       "  loop $token of $tokens (",
-      `    swaps:twap $order max $token to ${sdai} --parts 3 --every 3600 --min 4 --offline true -?!> $skipped`,
+      `    swaps:twap $order max $token to ${sdai} --parts 3 --every 3600 --min 4 --offline true -?!> SameToken $same -?!> BelowMinimum $small -?!> NoBalance $empty`,
       "  )",
       ")",
     ].join("\n");
@@ -521,12 +530,15 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
       .toLowerCase()
       .split(registerSelector).length;
     expect(registrations - 1).toBe(2);
-    expect(
-      dry.interpreter.bindingsManager.getBindingValue(
-        "$skipped",
-        BindingsSpace.USER,
-      ),
-    ).toBe("true");
+    // Each clause carries its own flag, left by the last iteration: sDAI
+    // sold for itself. The two tokens it could sell left no refusal at all.
+    const flag = (name: string) =>
+      dry.interpreter.bindingsManager.getBindingValue(name, BindingsSpace.USER);
+    expect([flag("$same"), flag("$small"), flag("$empty")]).toEqual([
+      "true",
+      "false",
+      "false",
+    ]);
 
     await run(source);
     expect(await balance(outer)).toBe(0n);
@@ -643,29 +655,58 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
       transports: getTransports(),
     });
     bare.switchChainId(100);
-    await expect(
-      bare.interpret(
-        `load swaps\n${script().replace(total.toString(), "max")}`,
-      ),
-    ).rejects.toThrow("holds no");
+    await expectDeclaredFailure(
+      () =>
+        bare.interpret(
+          `load swaps\n${script().replace(total.toString(), "max")}`,
+        ),
+      { name: "NoBalance" },
+      "`max` for a funder holding none of the token",
+      /holds no balance to sell/,
+    );
+  });
+
+  it("refuses to sell a token for itself before reading anything", async () => {
+    await expectDeclaredFailure(
+      () => run(script().replace(GNO, WXDAI), false),
+      { name: "SameToken" },
+      "an order whose sell and buy token are the same",
+      /WXDAI cannot be sold for itself/,
+    );
   });
 
   it("lets -?!> skip an order the command refuses and pass a prepared one through", async () => {
     // Below --parts base units: the command fails before any action exists.
-    const refused = await run(
-      `${script().replace(total.toString(), "2")} -?!> $skipped`,
-      false,
+    const tooSmall = script().replace(total.toString(), "2");
+    await expectDeclaredFailure(
+      () => run(tooSmall, false),
+      { name: "Unfunded", fields: { parts: 3 } },
+      "an amount below --parts base units",
+      /at least --parts base units/,
     );
+    // A clause carries either a destructure or a flag, so pin both in turn.
+    const refused = await run(`${tooSmall} -?!> Unfunded [$parts]`, false);
     expect(refused.actions).toEqual([]);
     expect(
       refused.interpreter.bindingsManager.getBindingValue(
+        "$parts",
+        BindingsSpace.USER,
+      ),
+    ).toBe("3");
+    const flagged = await run(`${tooSmall} -?!> Unfunded $skipped`, false);
+    expect(flagged.actions).toEqual([]);
+    expect(
+      flagged.interpreter.bindingsManager.getBindingValue(
         "$skipped",
         BindingsSpace.USER,
       ),
     ).toBe("true");
     // A valid order inside a collecting block (no send context) is handed
     // through untouched and the flag reads false.
-    const prepared = await run(`${script("$order", "-?!> $skipped")}`, false);
+    const prepared = await run(
+      `${script("$order", "-?!> Unfunded $skipped")}`,
+      false,
+    );
     expect(prepared.actions.length).toBeGreaterThan(0);
     expect(
       prepared.interpreter.bindingsManager.getBindingValue(

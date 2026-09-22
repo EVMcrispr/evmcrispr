@@ -8,21 +8,34 @@ export function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-/** Bounded requests, including response bodies. Never used to submit orders. */
-export async function cowJson(url: string, body?: unknown): Promise<unknown> {
-  const response = await fetch(url, {
-    method: body === undefined ? "GET" : "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    signal: AbortSignal.timeout(20_000),
-    redirect: "error",
-  });
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new ErrorException(
-      `CoW API request failed (HTTP ${response.status})`,
+const MAX_RESPONSE = 2_000_000;
+/** An error body only has to carry `errorType`/`description`; anything longer
+ *  is a body we refuse to hold on to, not a classification input. */
+const MAX_ERROR_RESPONSE = 8_000;
+const MAX_DESCRIPTION = 256;
+const ERROR_TYPE = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
+
+/**
+ * A CoW API response that was not OK, with the bounded, parsed part of its
+ * body that classifies it: the documented `errorType` and its description
+ * (see the orderbook OpenAPI's `PriceEstimationError`). Both are absent when
+ * the body was missing, oversized, not JSON or not shaped like one.
+ */
+export class CowApiError extends ErrorException {
+  constructor(
+    readonly status: number,
+    readonly errorType?: string,
+    readonly description?: string,
+  ) {
+    super(
+      `CoW API request failed (HTTP ${status}${errorType ? `, ${errorType}` : ""})${
+        description ? `: ${description}` : ""
+      }`,
     );
   }
+}
+
+async function readBounded(response: Response, limit: number): Promise<string> {
   const reader = response.body?.getReader();
   if (!reader) throw new ErrorException("Empty CoW API response");
   const decoder = new TextDecoder();
@@ -33,14 +46,59 @@ export async function cowJson(url: string, body?: unknown): Promise<unknown> {
       const chunk = await reader.read();
       if (chunk.done) break;
       size += chunk.value.length;
-      if (size > 2_000_000)
+      if (size > limit)
         throw new ErrorException("CoW API response is too large");
       text += decoder.decode(chunk.value, { stream: true });
     }
-    return JSON.parse(text + decoder.decode());
+    return text + decoder.decode();
   } finally {
     await reader.cancel();
   }
+}
+
+/** The documented failure fields of a bounded error body, or nothing. An
+ *  unreadable, oversized or non-JSON body classifies nothing; the status
+ *  alone still fails the request. */
+async function errorDetail(
+  response: Response,
+): Promise<{ errorType?: string; description?: string }> {
+  try {
+    const parsed: unknown = JSON.parse(
+      await readBounded(response, MAX_ERROR_RESPONSE),
+    );
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      return {};
+    const { errorType, description } = parsed as Record<string, unknown>;
+    return {
+      errorType:
+        typeof errorType === "string" && ERROR_TYPE.test(errorType)
+          ? errorType
+          : undefined,
+      description:
+        typeof description === "string"
+          ? // It lands in a message a person reads: one line, bounded.
+            description.replace(/\s+/g, " ").trim().slice(0, MAX_DESCRIPTION)
+          : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/** Bounded requests, including response bodies. Never used to submit orders. */
+export async function cowJson(url: string, body?: unknown): Promise<unknown> {
+  const response = await fetch(url, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    signal: AbortSignal.timeout(20_000),
+    redirect: "error",
+  });
+  if (!response.ok) {
+    const { errorType, description } = await errorDetail(response);
+    throw new CowApiError(response.status, errorType, description);
+  }
+  return JSON.parse(await readBounded(response, MAX_RESPONSE));
 }
 
 export function orderbookUrl(chainId: number): string {

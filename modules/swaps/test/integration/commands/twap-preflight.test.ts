@@ -1,12 +1,20 @@
 import "../../setup";
 import { afterEach, describe, expect, it } from "bun:test";
-import { BindingsSpace, isTransactionAction } from "@evmcrispr/sdk";
+import {
+  BindingsSpace,
+  findDeclaredError,
+  isTransactionAction,
+} from "@evmcrispr/sdk";
 import {
   getPublicClient,
   getTransports,
   getWalletClients,
 } from "@evmcrispr/test-utils";
-import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
+import {
+  evml,
+  expectDeclaredFailure,
+  Interpreter,
+} from "@evmcrispr/test-utils/evml";
 import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
 import { toHex } from "viem";
 import { gnosis } from "viem/chains";
@@ -112,6 +120,90 @@ describe("TWAP > creation preflight", () => {
       await expect(run(source("--min 1"), true)).rejects.toThrow(
         `HTTP ${status}`,
       );
+    }
+  }, 120000);
+
+  it("refuses a part below the network minimum with BelowMinimum", async () => {
+    // 0.1 WXDAI per part is 0.1 USDC at the mocked native prices, below
+    // Gnosis' 1 USDC minimum.
+    const small = `swaps:twap $order 3e17 ${WXDAI} to ${GNO} --parts 3 --every 3600 --min 1`;
+    await expectDeclaredFailure(
+      () => run(small),
+      { name: "BelowMinimum", fields: { minimum: 1_000000 } },
+      "a part worth 0.1 USDC",
+      /1 USDC-equivalent minimum/,
+    );
+    // The field is what the script destructures, in USDC base units.
+    const { interpreter } = await run(`${small} -?!> BelowMinimum [$minimum]`);
+    expect(
+      interpreter.bindingsManager.getBindingValue(
+        "$minimum",
+        BindingsSpace.USER,
+      ),
+    ).toBe("1000000");
+  }, 120000);
+
+  it("refuses an order CoW declines to quote with NoQuote", async () => {
+    server.use(
+      http.post("https://api.cow.fi/xdai/api/v1/quote", () =>
+        HttpResponse.json(
+          {
+            errorType: "UnsupportedToken",
+            description: "token not supported",
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    await expectDeclaredFailure(
+      () => run(source("--min 1")),
+      { name: "NoQuote" },
+      "a token CoW does not support",
+      /UnsupportedToken/,
+    );
+    const { interpreter, actions } = await run(
+      `${source("--min 1")} -?!> NoQuote $skipped`,
+    );
+    expect(actions).toEqual([]);
+    expect(
+      interpreter.bindingsManager.getBindingValue(
+        "$skipped",
+        BindingsSpace.USER,
+      ),
+    ).toBe("true");
+  }, 120000);
+
+  it("lets a failing quote service through a named capture", async () => {
+    const captured = `${source("--min 1")} -?!> NoQuote -?!> BelowMinimum -?!> SameToken`;
+    for (const [what, response] of [
+      [
+        "an upstream outage",
+        () =>
+          HttpResponse.json(
+            { errorType: "InternalServerError", description: "boom" },
+            { status: 500 },
+          ),
+      ],
+      [
+        "a malformed body",
+        () => new HttpResponse("<html>gateway</html>", { status: 200 }),
+      ],
+      [
+        "a quote CoW could not verify",
+        () =>
+          HttpResponse.json(
+            { errorType: "QuoteNotVerified", description: "unverified" },
+            { status: 400 },
+          ),
+      ],
+    ] as const) {
+      server.use(http.post("https://api.cow.fi/xdai/api/v1/quote", response));
+      const thrown = await run(captured).then(
+        () => new Error(`${what} was swallowed by the named captures`),
+        (error: unknown) => error,
+      );
+      expect(findDeclaredError(thrown)).toBeUndefined();
+      expect((thrown as Error).message).not.toContain("was swallowed");
     }
   }, 120000);
 

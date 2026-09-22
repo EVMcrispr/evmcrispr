@@ -1,9 +1,36 @@
 import { ErrorException, Num } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import { isAddress, isAddressEqual, maxUint256 } from "viem";
-import { cowJson, indexedOrders, orderbookUrl, record } from "./api";
+import {
+  CowApiError,
+  cowJson,
+  indexedOrders,
+  orderbookUrl,
+  record,
+} from "./api";
+import type { TwapFail } from "./errors";
 import { MIN_PART_INTERVAL, TWAP_NETWORKS } from "./networks";
 import type { TwapSchedule } from "./types";
+
+/**
+ * The `errorType` values of CoW's `PriceEstimationError` that mean "this
+ * token or this order is one we decline to quote", so a script may skip it
+ * by name. Verified against the orderbook OpenAPI schema:
+ * https://github.com/cowprotocol/services/blob/main/crates/orderbook/openapi.yml
+ *
+ * Every other documented code is a problem with the request we built, the
+ * owner, verification or CoW itself — those stop the script, as do unknown
+ * codes, bodies that carry none and transport failures. So does
+ * `TokenTemporarilySuspended`: it names its own transience, and skipping a
+ * token CoW suspended for an hour would report success for a position that
+ * was never sold.
+ */
+export const QUOTE_REFUSAL_CODES: ReadonlySet<string> = new Set([
+  "NoLiquidity",
+  "InsufficientLiquidity",
+  "UnsupportedToken",
+  "SellAmountDoesNotCoverFee",
+]);
 
 export function protectionBps(value: unknown): bigint {
   let bps: Num;
@@ -115,6 +142,7 @@ export async function twapPreflight(
   schedule: TwapSchedule,
   owner: Address,
   timestamp: bigint,
+  fail: TwapFail,
 ) {
   if (schedule.t < MIN_PART_INTERVAL)
     throw new ErrorException(
@@ -137,6 +165,17 @@ export async function twapPreflight(
     onchainOrder: false,
     priceQuality: "verified",
     appData: schedule.appData,
+  }).catch((error: unknown) => {
+    if (
+      error instanceof CowApiError &&
+      error.errorType &&
+      QUOTE_REFUSAL_CODES.has(error.errorType)
+    )
+      fail(
+        "NoQuote",
+        `CoW declines to quote this order (${error.errorType}${error.description ? `: ${error.description}` : ""})`,
+      );
+    throw error;
   });
   const quote = validateQuote(result, schedule, owner, validTo);
   const [sellPrice, usdcPrice] = await Promise.all([
@@ -148,7 +187,9 @@ export async function twapPreflight(
   // reference USDC contracts in the support manifest use six decimals.
   const usdc = Num(schedule.partSellAmount).mul(sellPrice).div(usdcPrice);
   if (usdc.lt(Num(network.minimumUsdc)))
-    throw new ErrorException(
+    fail(
+      "BelowMinimum",
+      { minimum: network.minimumUsdc },
       `TWAP part is below the ${network.minimumUsdc / 1000000n} USDC-equivalent minimum`,
     );
   if (quote.expiration <= Date.now())

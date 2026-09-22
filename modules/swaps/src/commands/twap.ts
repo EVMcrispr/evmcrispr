@@ -7,7 +7,7 @@ import {
   tokenAmountFormatter,
   tokenLabel,
 } from "@evmcrispr/sdk";
-import { encodeFunctionData, erc20Abi, toHex } from "viem";
+import { encodeFunctionData, erc20Abi, isAddressEqual, toHex } from "viem";
 import type Swaps from "..";
 import {
   executeAccount,
@@ -20,6 +20,7 @@ import {
   orderHash,
   validateSchedule,
 } from "../twap/cow";
+import { TWAP_ERRORS } from "../twap/errors";
 import {
   protectedMinimum,
   protectionBps,
@@ -31,7 +32,7 @@ import { buildApprovalActions } from "../utils/approval";
 import { activeSimMode } from "../utils/sim";
 import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
 
-export default defineCommand<Swaps>({
+export default defineCommand<Swaps, typeof TWAP_ERRORS>({
   smartSupport: {
     kind: "static",
     reason:
@@ -113,13 +114,25 @@ export default defineCommand<Swaps>({
       description: "Order salt (default: fresh random bytes32)",
     },
   ],
+  errors: TWAP_ERRORS,
   completions: {
     amount: () => [fieldItem("max")],
     to: () => [fieldItem("to")],
   },
-  async run(module, { variable, amount, tokenIn, to, tokenOut }, { opts }) {
+  async run(
+    module,
+    { variable, amount, tokenIn, to, tokenOut },
+    { opts, fail },
+  ) {
     if (to !== "to")
       throw new ErrorException(`expected keyword "to", got "${to}"`);
+    // Both tokens are parsed here, so this order is refused before any
+    // provider, quote or balance work a loop would otherwise pay for.
+    if (isAddressEqual(tokenIn, tokenOut))
+      fail(
+        "SameToken",
+        `${await tokenLabel(module, tokenIn)} cannot be sold for itself`,
+      );
     for (const name of ["parts", "every"]) {
       if (opts[name] === undefined)
         throw new ErrorException(`--${name} is required for TWAP orders`);
@@ -158,13 +171,16 @@ export default defineCommand<Swaps>({
     const min = opts.min === undefined ? undefined : integer(opts.min, "--min");
     if (parts < 2n) throw new ErrorException("--parts must be at least 2");
     if (amount === "max" && requested === 0n)
-      throw new ErrorException(
+      fail(
+        "NoBalance",
         `${await tokenLabel(module, tokenIn)}: ${controller} holds no balance to sell`,
       );
     if (requested === 0n || min === 0n)
       throw new ErrorException("<amount> and --min must be greater than zero");
     if (requested < parts)
-      throw new ErrorException(
+      fail(
+        "Unfunded",
+        { parts },
         "<amount> must be at least --parts base units so every part sells something",
       );
     // Every TWAP part sells the same amount, so the total must split into
@@ -210,6 +226,7 @@ export default defineCommand<Swaps>({
           schedule,
           account.account,
           block.timestamp,
+          fail,
         );
     if (preflight && protection !== undefined)
       schedule.minPartLimit = protectedMinimum(preflight.netBuy, protection);
