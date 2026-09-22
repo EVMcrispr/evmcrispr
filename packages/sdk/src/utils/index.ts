@@ -43,4 +43,5 @@ export * from "./shareEnvelope";
 export * from "./signatures";
 export * from "./sliceNodeText";
 export * from "./time";
+export * from "./token-holdings";
 export * from "./web3";

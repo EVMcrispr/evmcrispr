@@ -28,6 +28,7 @@ load token
 | [@token:amount](src/helpers/amount.md) | `number` | Convert a human-readable token amount to its base unit (applying decimals). |
 | [@token:decimals](src/helpers/decimals.md) | `number` | Number of decimals of a token. |
 | [@token:format](src/helpers/format.md) | `string` | Format a base-unit token amount as a human-readable string with the token symbol. |
+| [@token:holdings](src/helpers/holdings.md) ⚗️ | `array` | Addresses of the ERC-20 tokens an account holds with a nonzero balance, as indexed by the chain's explorer. Read live amounts with @balance before spending them. Needs a chain with a Blockscout instance: plain RPC cannot list what an address holds. |
 | [@token:symbol](src/helpers/symbol.md) | `string` | Symbol a token reports, looked up by address. |
 | [@token:totalSupply](src/helpers/totalSupply.md) | `number` | Total supply of a token, in base units. |
 
