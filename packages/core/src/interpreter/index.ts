@@ -6,7 +6,8 @@ import type {
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
-  DefValue,
+  DeclaredError,
+  DeclaredErrorEntry,
   DestructurePatternNode,
   DestructureSlot,
   ErrorCaptureNode,
@@ -16,7 +17,6 @@ import type {
   ImportValue,
   InterpretOptions,
   LiteralExpressionNode,
-  Module,
   ModuleContext,
   ModuleData,
   NamedArgNode,
@@ -34,6 +34,7 @@ import {
   BindingsSpace,
   CommandError,
   ControlFlowSignal,
+  captureListRequiresFailure,
   checkConfigAccess,
   ErrorException,
   ExpressionError,
@@ -55,6 +56,22 @@ import {
 import { applyValueLens, isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type { Abi, AbiFunction, Address, PublicClient } from "viem";
 import { getAbiItem, isAddress, parseAbiItem } from "viem";
+
+import {
+  captureStructureIssues,
+  runsBlockInline,
+} from "../errors/captureStructure";
+import {
+  capturableDeclaredCause,
+  checkCaptureNames,
+  collectLineDeclaredErrors,
+} from "../errors/declarations";
+import { runtimeDeclarationLookup } from "./declarations";
+import {
+  locateCommand,
+  locateHelper,
+  type ResolutionInput,
+} from "./resolution";
 
 const { ABI, USER, CACHE } = BindingsSpace;
 
@@ -558,104 +575,50 @@ function withInheritedOptions(
  *  of module instances (execution mode). All sources of state are getters
  *  so the resolvers see the latest `std` / modules across `interpret()`
  *  invocations (which rebuild `#std`). */
-export interface ExecutionResolversInput {
-  bindings: BindingsManager;
-  std: () => Module;
-  /** User-loaded modules (excluding std). */
-  modules: () => Module[];
+export interface ExecutionResolversInput extends ResolutionInput {
   /** Used by `CallExpression` to look up a client. Throws if none. */
   getClient: () => Promise<PublicClient>;
-  /** Captures wrapper, fired after a command produces actions. */
+  /** Captures wrapper, fired after a command produces actions. `declared`
+   *  is the line's declared-error union when it has error captures. */
   executeWithCaptures: (
     c: CommandExpressionNode,
     res: Action[] | void,
     actionCallback: ((action: Action) => Promise<unknown>) | undefined,
+    declared?: readonly DeclaredErrorEntry[],
   ) => Promise<Action[] | void>;
 }
 
-/** Dispatch a helper/constant invocation against one specific module.
- *  Constants only apply to zero-arg invocations. */
-async function dispatchHelperOnModule(
-  m: Module,
-  h: HelperFunctionNode,
-  localName: string,
-  interpreters: NodesInterpreters,
-): Promise<any> {
-  if (h.args.length === 0 && m.constants[localName] !== undefined) {
-    return m.constants[localName];
-  }
-  if (!m.helpers[localName]) {
-    panic(
-      h,
-      `module ${m.name} has no helper${h.args.length === 0 ? " or constant" : ""} named ${localName}`,
-    );
-  }
-  // The module dispatches on the node's local name.
-  const localNode = localName === h.name ? h : { ...h, name: localName };
-  return m.interpretHelper(localNode, interpreters);
-}
-
 export function makeExecutionResolveHelper(
-  input: Pick<ExecutionResolversInput, "bindings" | "std" | "modules">,
+  input: ResolutionInput,
 ): InterpretCtx["resolveHelper"] {
   return async (h, rawInterpreters, options) => {
-    const helperName = h.name;
-    const std = input.std();
     const interpreters = withInheritedOptions(rawInterpreters, options);
 
     try {
-      // Qualified: @mod:name — strict, no fallback.
-      if (h.module) {
-        const m =
-          h.module === "std"
-            ? std
-            : input.modules().find((mod) => mod.name === h.module);
-        if (!m) panic(h, `module ${h.module} not loaded`);
-        return await dispatchHelperOnModule(m, h, helperName, interpreters);
-      }
-
-      // Unqualified: def → import → std prelude.
-      const defHelper = input.bindings.getBindingValue(
-        `@${helperName}`,
-        BindingsSpace.DEF,
-      ) as DefValue | undefined;
-
-      if (defHelper && defHelper.kind === "helper") {
-        // A `def @name!` is an on-chain definition: its body compiles to
-        // calldata and has no off-chain face. Module `!` helpers are
-        // stopped by defineHelper's own guard, but a def reaches here
-        // without passing through it, so the check belongs here too.
-        if (helperName.endsWith("!")) {
-          panic(
-            h,
-            `@${helperName} evaluates on-chain and is only valid inside an on-chain expression`,
-          );
+      const target = locateHelper(h, input);
+      if (target.kind === "missing") panic(h, target.message);
+      switch (target.kind) {
+        case "def":
+          // A `def @name!` is an on-chain definition: its body compiles to
+          // calldata and has no off-chain face. Module `!` helpers are
+          // stopped by defineHelper's own guard, but a def reaches here
+          // without passing through it, so the check belongs here too.
+          if (h.name.endsWith("!")) {
+            panic(
+              h,
+              `@${h.name} evaluates on-chain and is only valid inside an on-chain expression`,
+            );
+          }
+          return await target.def.run(input.std(), h, interpreters);
+        case "constant":
+          return target.value;
+        case "module": {
+          // The module dispatches on the node's local name.
+          const localNode =
+            target.localName === h.name ? h : { ...h, name: target.localName };
+          return await target.module.interpretHelper(localNode, interpreters);
         }
-        return await defHelper.run(std, h, interpreters);
       }
-
-      const imported = input.bindings.getBindingValue(
-        `@${helperName}`,
-        BindingsSpace.IMPORT,
-      ) as ImportValue | undefined;
-
-      if (imported) {
-        const m = input.modules().find((mod) => mod.name === imported.module);
-        if (!m) panic(h, `module ${imported.module} not loaded`);
-        return await dispatchHelperOnModule(m, h, imported.name, interpreters);
-      }
-
-      if (h.args.length === 0 && std.constants[helperName] !== undefined) {
-        return std.constants[helperName];
-      }
-      if (std.helpers[helperName]) {
-        return await std.interpretHelper(h, interpreters);
-      }
-
-      panic(
-        h,
-        `helper @${helperName} not found — qualify it as @<module>:${helperName} or add it to the module's load import list`,
-      );
     } catch (err) {
       if (err instanceof NodeError) throw err;
       panic(h, (err as Error).message, err);
@@ -663,15 +626,33 @@ export function makeExecutionResolveHelper(
   };
 }
 
+function hasAnyCaptures(c: CommandExpressionNode): boolean {
+  return (
+    (c.eventCaptures?.length ?? 0) > 0 ||
+    (c.errorCaptures?.length ?? 0) > 0 ||
+    (c.txCaptures?.length ?? 0) > 0
+  );
+}
+
 export function makeExecutionResolveCommand(
   input: ExecutionResolversInput,
 ): InterpretCtx["resolveCommand"] {
+  const lookup = runtimeDeclarationLookup(input);
+
+  // Declared refusals that already reached a command boundary. A refusal
+  // raised inside a block is the inner line's failure: once that line's
+  // catch has seen it, no outer line may capture it — even though the
+  // wrapper it travels in (a helper's location error) is not a
+  // `CommandError`, which is the boundary `capturableDeclaredCause` stops
+  // at on its own.
+  const observed = new WeakSet<DeclaredError>();
+
   return async (c, rawInterpreters, options) => {
     const actionCallback: ((a: Action) => Promise<unknown>) | undefined =
       options?.actionCallback;
     const batchContext: BatchContext | undefined = options?.batchContext;
     const interpreters = withInheritedOptions(rawInterpreters, options);
-    const std = input.std();
+    const errorCaptures = (c.errorCaptures ?? []) as ErrorCaptureNode[];
     const smart = batchContext?.smartState;
     const checkpoint = smart
       ? {
@@ -702,18 +683,48 @@ export function makeExecutionResolveCommand(
       return res;
     };
 
+    const target = locateCommand(c, input);
+    if (target.kind === "missing") panic(c, target.message);
+
+    // A line whose captures cannot work does not run at all — the same
+    // rules the analyzer reports, for callers that bypass it.
+    if (hasAnyCaptures(c)) {
+      const [issue] = captureStructureIssues(c, {
+        blockCommand:
+          target.kind === "def" ||
+          runsBlockInline(target.module.name, target.localName, c),
+      });
+      if (issue) panic(c, issue.message);
+    }
+
+    // The declarations the error captures resolve against: the command's
+    // own plus those of every helper the line evaluates. Gathered before
+    // the line runs so an ambiguous bare name is refused up front.
+    let declared: DeclaredErrorEntry[] | undefined;
+    if (errorCaptures.length > 0) {
+      try {
+        declared = await collectLineDeclaredErrors(c, lookup);
+        checkCaptureNames(errorCaptures, declared);
+      } catch (err) {
+        if (err instanceof NodeError) throw err;
+        panic(c, (err as Error).message, err);
+      }
+    }
+
     /**
      * Error captures observe a failed command: a reverted transaction, or
-     * the command refusing to run before any action exists (a failed
-     * preflight, an invalid amount, a missing argument). The second case
-     * lands here — the failure is resolved against the captures and the
-     * command yields no actions. Script errors (NodeError) and control
-     * flow never reach this point.
+     * the line failing before any action exists — the command refusing to
+     * run (a failed preflight, an invalid amount, a missing argument) or a
+     * helper in its arguments refusing with a declared error. The second
+     * case lands here: the failure is resolved against the captures and
+     * the command yields no actions. Ordinary script errors (NodeError)
+     * stay uncapturable; a declared refusal is let through its wrappers,
+     * and the wrapper itself is what propagates when no clause matches.
      */
-    const captureCommandFailure = async (
-      c: CommandExpressionNode,
-      err: unknown,
-    ): Promise<boolean> => {
+    const captureCommandFailure = async (err: unknown): Promise<boolean> => {
+      // Inside a smart batch a failed line leaves no partial plan behind:
+      // its steps, captures and bindings roll back to the line's start
+      // whether or not a clause accepts the failure.
       if (smart && checkpoint) {
         smart.plan.steps.length = checkpoint.steps;
         smart.plan.captures.length = checkpoint.captures;
@@ -721,99 +732,56 @@ export function makeExecutionResolveCommand(
         batchContext!.hasActions = checkpoint.hasActions;
         checkpoint.restoreBindings();
       }
-      if (!c.errorCaptures || c.errorCaptures.length === 0) return false;
-      if (c.txCaptures && c.txCaptures.length > 0) return false;
-      await resolveErrorCaptures(
-        err,
-        undefined,
-        c.errorCaptures as ErrorCaptureNode[],
-        input.bindings,
-      );
+      const refusal = capturableDeclaredCause(err);
+      if (refusal) {
+        if (observed.has(refusal)) return false;
+        observed.add(refusal);
+      } else if (err instanceof NodeError) {
+        return false;
+      }
+      if (errorCaptures.length === 0) return false;
+      try {
+        await resolveErrorCaptures(
+          err,
+          { declared },
+          errorCaptures,
+          input.bindings,
+        );
+      } catch (resolveErr) {
+        // No clause matched: the resolver rethrows the original failure by
+        // identity, and the caller reports it the way an uncaptured
+        // failure is reported (location prefix, original cause). Anything
+        // else is a script error about the capture itself.
+        if (resolveErr === err) return false;
+        throw resolveErr;
+      }
       return true;
     };
 
-    if (!c.module) {
-      const defCmd = input.bindings.getBindingValue(
-        c.name,
-        BindingsSpace.DEF,
-      ) as DefValue | undefined;
-
-      if (defCmd && defCmd.kind === "command") {
-        let res: Action[] | void;
-        try {
-          res = await defCmd.run(std, c, {
-            ...interpreters,
-            actionCallback,
-          });
-        } catch (err) {
-          if (err instanceof NodeError || err instanceof ControlFlowSignal)
-            throw err;
-          if (await captureCommandFailure(c, err)) return trackBatchActions([]);
-          panic(c, (err as Error).message, err);
-        }
-        try {
-          return trackBatchActions(
-            await input.executeWithCaptures(c, res, actionCallback),
-          );
-        } catch (err) {
-          if (err instanceof NodeError || err instanceof ControlFlowSignal)
-            throw err;
-          panic(c, (err as Error).message, err);
-        }
-      }
-    }
-
-    let mod: Module = std;
-    let localName = c.name;
-
-    if (c.module) {
-      // Qualified: mod:cmd — strict, no std fallback.
-      if (c.module !== "std") {
-        const m = input.modules().find((m) => m.name === c.module);
-        if (!m) panic(c, `module ${c.module} not loaded`);
-        mod = m;
-      }
-      if (!mod.commands[localName]) {
-        panic(c, `module ${mod.name} has no command named ${localName}`);
-      }
-    } else {
-      // Unqualified: import → std prelude (defs were handled above).
-      const imported = input.bindings.getBindingValue(
-        c.name,
-        BindingsSpace.IMPORT,
-      ) as ImportValue | undefined;
-
-      if (imported?.kind === "command") {
-        const m = input.modules().find((m) => m.name === imported.module);
-        if (!m) panic(c, `module ${imported.module} not loaded`);
-        mod = m;
-        localName = imported.name;
-      } else if (!std.commands[c.name]) {
-        panic(
-          c,
-          `command ${c.name} not found — qualify it as <module>:${c.name} or add it to the module's load import list`,
-        );
-      }
-    }
-
-    // Modules dispatch on the node's name; renamed imports swap in the
-    // module-local name.
-    const localNode = localName === c.name ? c : { ...c, name: localName };
     let res: Action[] | void;
     try {
-      res = await mod.interpretCommand(localNode, {
-        ...interpreters,
-        actionCallback,
-      });
+      const commandInterpreters = { ...interpreters, actionCallback };
+      if (target.kind === "def") {
+        res = await target.def.run(input.std(), c, commandInterpreters);
+      } else {
+        // Modules dispatch on the node's name; renamed imports swap in the
+        // module-local name.
+        const localNode =
+          target.localName === c.name ? c : { ...c, name: target.localName };
+        res = await target.module.interpretCommand(
+          localNode,
+          commandInterpreters,
+        );
+      }
     } catch (err) {
-      if (err instanceof NodeError || err instanceof ControlFlowSignal)
-        throw err;
-      if (await captureCommandFailure(c, err)) return trackBatchActions([]);
+      if (err instanceof ControlFlowSignal) throw err;
+      if (await captureCommandFailure(err)) return trackBatchActions([]);
+      if (err instanceof NodeError) throw err;
       panic(c, (err as Error).message, err);
     }
     try {
       return trackBatchActions(
-        await input.executeWithCaptures(c, res, actionCallback),
+        await input.executeWithCaptures(c, res, actionCallback, declared),
       );
     } catch (err) {
       if (err instanceof NodeError || err instanceof ControlFlowSignal)
@@ -976,16 +944,18 @@ export function makeExecuteWithCaptures(
   c: CommandExpressionNode,
   res: Action[] | void,
   actionCallback: ((action: Action) => Promise<unknown>) | undefined,
+  declared?: readonly DeclaredErrorEntry[],
 ) => Promise<Action[] | void> {
   const { bindings, getClient, interpretNode, onActionDispatch } = input;
 
-  const tryLookupAbi = async (actions: Action[]): Promise<Abi | undefined> => {
-    const first = actions[0];
-    if (isTransactionAction(first) && first.to) {
+  /** The cached ABI of an action's target, when the action is a
+   *  transaction to a known contract. */
+  const tryLookupAbi = async (action: Action): Promise<Abi | undefined> => {
+    if (isTransactionAction(action) && action.to) {
       try {
         const chainId = await getClient().then((c) => c.getChainId());
         return bindings.getBindingValue(
-          abiBindingKey(chainId, first.to),
+          abiBindingKey(chainId, action.to),
           BindingsSpace.ABI,
         ) as Abi | undefined;
       } catch {
@@ -1049,11 +1019,11 @@ export function makeExecuteWithCaptures(
     return receipt;
   };
 
-  return async (c, res, actionCallback) => {
+  return async (c, res, actionCallback, declared) => {
+    const errorCaptures = (c.errorCaptures ?? []) as ErrorCaptureNode[];
     const hasEventCaptures =
       c.eventCaptures != null && c.eventCaptures.length > 0;
-    const hasErrorCaptures =
-      c.errorCaptures != null && c.errorCaptures.length > 0;
+    const hasErrorCaptures = errorCaptures.length > 0;
     const hasTxCaptures = c.txCaptures != null && c.txCaptures.length > 0;
 
     if (actionCallback) await stampChainId(res);
@@ -1067,10 +1037,30 @@ export function makeExecuteWithCaptures(
       return res;
     }
 
-    if (hasTxCaptures && hasErrorCaptures) {
-      throw new ErrorException(
-        "tx captures ($>, $*>) cannot be combined with error captures (-!>, -?!>) — a reverted transaction has no meaningful hash to capture",
-      );
+    // Structural rules (tx + error captures, captures on block commands,
+    // duplicate tx captures) were checked before the command ran — see
+    // `captureStructureIssues` in the command resolver.
+    const requiresFailure =
+      hasErrorCaptures && captureListRequiresFailure(errorCaptures);
+
+    // A command that completed without producing actions has an
+    // observable outcome for error captures: the line succeeded. There is
+    // no send left to wait for, so this holds inside a collecting block
+    // too — optional flags clear, a required capture is an assertion
+    // failure.
+    if (
+      hasErrorCaptures &&
+      !hasEventCaptures &&
+      !hasTxCaptures &&
+      (!res || res.length === 0)
+    ) {
+      if (requiresFailure) {
+        throw new ErrorException(
+          "expected the command to fail but it succeeded",
+        );
+      }
+      setBoolVarsFalse(errorCaptures, bindings);
+      return res;
     }
 
     if (!actionCallback) {
@@ -1079,13 +1069,12 @@ export function makeExecuteWithCaptures(
       // revert cannot be observed. Optional error captures then only cover
       // the command refusing to run (handled before this point): clear
       // their flags and let the actions through. Anything that must observe
-      // the send itself still needs an execution context.
+      // the send itself — an event or tx capture, a required error capture
+      // on deferred actions — still needs an execution context.
       const onlyOptionalErrors =
-        !hasEventCaptures &&
-        !hasTxCaptures &&
-        (c.errorCaptures as ErrorCaptureNode[]).every((cap) => cap.optional);
+        !hasEventCaptures && !hasTxCaptures && !requiresFailure;
       if (onlyOptionalErrors) {
-        setBoolVarsFalse(c.errorCaptures as ErrorCaptureNode[], bindings);
+        setBoolVarsFalse(errorCaptures, bindings);
         return res;
       }
       throw new ErrorException(
@@ -1127,7 +1116,7 @@ export function makeExecuteWithCaptures(
             allLogs.push(...(receipt as { logs: any[] }).logs);
           }
         }
-        const abi = await tryLookupAbi(res);
+        const abi = await tryLookupAbi(res[0]);
         await resolveEventCaptures(
           { logs: allLogs },
           abi,
@@ -1179,38 +1168,41 @@ export function makeExecuteWithCaptures(
       }
     }
 
-    const abi = await tryLookupAbi(res);
-    try {
-      for (const action of res) {
-        executed.add(action);
-        onActionDispatch?.(action);
+    // Send in order and stop at the first failure: that action's revert
+    // is the line's failure. Whatever was sent before it stays sent — a
+    // capture handles the failure, it does not roll the line back.
+    let failure: { error: unknown; action: Action } | undefined;
+    for (const action of res) {
+      executed.add(action);
+      onActionDispatch?.(action);
+      try {
         await actionCallback(action);
+      } catch (error) {
+        failure = { error, action };
+        break;
       }
-      const required = (c.errorCaptures as ErrorCaptureNode[]).find(
-        (cap) => !cap.optional,
-      );
-      if (required) {
+    }
+
+    if (!failure) {
+      if (requiresFailure) {
         throw new ErrorException(
           "expected transaction to revert but it succeeded",
         );
       }
-      setBoolVarsFalse(c.errorCaptures as ErrorCaptureNode[], bindings);
-      return [];
-    } catch (err) {
-      if (
-        err instanceof ErrorException &&
-        err.message === "expected transaction to revert but it succeeded"
-      ) {
-        throw err;
-      }
-      await resolveErrorCaptures(
-        err,
-        abi,
-        c.errorCaptures as ErrorCaptureNode[],
-        bindings,
-      );
+      setBoolVarsFalse(errorCaptures, bindings);
       return [];
     }
+
+    // Contract metadata belongs to the action that failed, not to the
+    // first one a multi-action command produced.
+    const abi = await tryLookupAbi(failure.action);
+    await resolveErrorCaptures(
+      failure.error,
+      { abi, declared },
+      errorCaptures,
+      bindings,
+    );
+    return [];
   };
 }
 

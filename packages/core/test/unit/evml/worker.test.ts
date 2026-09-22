@@ -1,5 +1,12 @@
 import { afterAll, describe, it } from "bun:test";
-import { ErrorException, ExitSignal, RevertError } from "@evmcrispr/sdk";
+import {
+  CommandError,
+  DeclaredError,
+  ErrorException,
+  ExitSignal,
+  HelperFunctionError,
+  RevertError,
+} from "@evmcrispr/sdk";
 import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import type { WalletClient } from "viem";
 import { createWorkerEvml } from "../../../src/worker/client";
@@ -56,6 +63,76 @@ describe("evml > worker", () => {
       const plain = deserializeError(serializeError(new TypeError("t")));
       expect(plain.name).to.equal("TypeError");
       expect(plain.message).to.equal("t");
+      expect(plain).to.not.be.instanceOf(ErrorException);
+    });
+
+    it("rehydrates an ErrorException subclass as an ErrorException keeping its name", () => {
+      const node = { name: "risky", loc: undefined } as any;
+      const command = deserializeError(
+        structuredClone(serializeError(new CommandError(node, "it refused"))),
+      );
+      expect(command).to.be.instanceOf(ErrorException);
+      expect(command.name).to.equal("CommandError");
+      expect(command.message).to.equal("risky(): it refused");
+
+      const helper = deserializeError(
+        structuredClone(
+          serializeError(new HelperFunctionError(node, "it refused")),
+        ),
+      );
+      expect(helper).to.be.instanceOf(ErrorException);
+      expect(helper.name).to.equal("HelperFunctionError");
+    });
+
+    it("round-trips a DeclaredError directly, including bigint fields", () => {
+      const declared = new DeclaredError(
+        "Refused",
+        "refused: not enough",
+        { code: 9007199254740993n },
+        "0xdeadbeef",
+      );
+      // The serialized form must itself survive structuredClone (what
+      // Worker postMessage uses) before deserialization runs on the other
+      // side of the boundary.
+      const serialized = structuredClone(serializeError(declared));
+      const revived = deserializeError(serialized);
+
+      expect(revived).to.be.instanceOf(DeclaredError);
+      const d = revived as DeclaredError;
+      expect(d.errorName).to.equal("Refused");
+      expect(d.message).to.equal("refused: not enough");
+      expect(d.fields).to.deep.equal({ code: 9007199254740993n });
+      expect(d.fields.code).to.equal(9007199254740993n);
+      expect(d.revertData).to.equal("0xdeadbeef");
+    });
+
+    it("preserves a wrapped cause chain: HelperFunctionError over a DeclaredError", () => {
+      const declared = new DeclaredError(
+        "Refused",
+        "the helper refused",
+        { code: 3n },
+        "0xabcdef01",
+      );
+      const node = { name: "refuse", loc: undefined } as any;
+      const wrapper = new HelperFunctionError(node, "the helper refused");
+      wrapper.cause = declared;
+
+      const serialized = structuredClone(serializeError(wrapper));
+      const revived = deserializeError(serialized);
+
+      // The outer wrapper's own display name and message survive, and it
+      // stays an `ErrorException` — only DeclaredError/RevertError/
+      // ExitSignal get their exact class back, every other subclass comes
+      // home as the base class wearing its own name.
+      expect(revived).to.be.instanceOf(ErrorException);
+      expect(revived.name).to.equal("HelperFunctionError");
+      expect(revived.message).to.equal("@refuse(): the helper refused");
+
+      const cause = (revived as Error).cause;
+      expect(cause).to.be.instanceOf(DeclaredError);
+      expect((cause as DeclaredError).errorName).to.equal("Refused");
+      expect((cause as DeclaredError).fields).to.deep.equal({ code: 3n });
+      expect((cause as DeclaredError).revertData).to.equal("0xabcdef01");
     });
   });
 
@@ -159,6 +236,29 @@ describe("evml > worker", () => {
         expect.fail("should have thrown");
       } catch (err) {
         expect((err as Error).message).to.match(/notarealcommand/);
+      }
+    });
+
+    it("propagates an uncaptured declared refusal with its wrapper and declared cause", async () => {
+      // Exercises the actual interpreter wrapper path: `load declaring` ->
+      // @declaring:refuse -> HelperFunctionError(DeclaredError) -> real
+      // worker postMessage (structured clone) -> deserializeError here.
+      try {
+        await workerEvml
+          .script("load declaring\nset $x @declaring:refuse")
+          .execute(stubWallet, { prepareChains: false });
+        expect.fail("should have thrown");
+      } catch (err) {
+        expect((err as Error).name).to.equal("HelperFunctionError");
+        expect((err as Error).message).to.match(
+          /^@refuse\(.*\): refused across the worker/,
+        );
+        const cause = (err as Error).cause;
+        expect(cause).to.be.instanceOf(DeclaredError);
+        expect((cause as DeclaredError).errorName).to.equal("Refused");
+        expect((cause as DeclaredError).fields).to.deep.equal({
+          code: 9007199254740993n,
+        });
       }
     });
 

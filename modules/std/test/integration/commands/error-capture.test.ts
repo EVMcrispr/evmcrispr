@@ -200,13 +200,22 @@ describe("Std > commands > exec > error capture", () => {
       expect(String(evm.getBinding("$reason", USER))).to.include("encoding");
     });
 
-    it("J3: a named error does not match a pre-send failure", async () => {
+    // A named clause that does not match no longer swallows the failure:
+    // the original error propagates (with the command's location prefix
+    // and the original as its cause), and nothing is bound.
+    it("J3: an unmatched named clause propagates the pre-send failure", async () => {
       const evm = newEvm();
-      await evm.interpret(
-        `exec ${contractAddress} "mint(uint256)" -?!> Unauthorized() $e`,
-        actionCallback,
-      );
-      expect(evm.getBinding("$e", USER)).to.equal("false");
+      try {
+        await evm.interpret(
+          `exec ${contractAddress} "mint(uint256)" -?!> Unauthorized() $e`,
+          actionCallback,
+        );
+        throw new Error("Expected to throw");
+      } catch (err: any) {
+        expect(err.message).to.include("encoding");
+      }
+      expect(evm.getBinding("$e", USER)).to.be.undefined;
+
       try {
         await newEvm().interpret(
           `exec ${contractAddress} "mint(uint256)" -!> Unauthorized()`,
@@ -214,7 +223,7 @@ describe("Std > commands > exec > error capture", () => {
         );
         throw new Error("Expected to throw");
       } catch (err: any) {
-        expect(err.message).to.include("failed before sending");
+        expect(err.message).to.include("encoding");
       }
     });
   });
@@ -258,13 +267,32 @@ describe("Std > commands > exec > error capture", () => {
       expect(evm.getBinding("$e", USER)).to.equal("false");
     });
 
-    it("B5: should set boolVar to false on mismatched error", async () => {
+    // Breaking change: an unmatched clause is no longer an accepted
+    // outcome. The original RevertError propagates — the harness raises it
+    // with the message "Transaction reverted" — and no flag is published.
+    it("B5: should propagate the original error on a mismatched clause", async () => {
+      const evm = newEvm();
+      try {
+        await evm.interpret(
+          `exec ${contractAddress} "transfer(address,uint256)" @me 100 -?!> Unauthorized() $e`,
+          actionCallback,
+        );
+        throw new Error("Expected to throw");
+      } catch (err: any) {
+        expect(err.message).to.include("Transaction reverted");
+        expect(err.cause).to.be.instanceOf(RevertError);
+      }
+      expect(evm.getBinding("$e", USER)).to.be.undefined;
+    });
+
+    it("B6: should accept the failure when any clause matches", async () => {
       const evm = newEvm();
       await evm.interpret(
-        `exec ${contractAddress} "transfer(address,uint256)" @me 100 -?!> Unauthorized() $e`,
+        `exec ${contractAddress} "transfer(address,uint256)" @me 100 -?!> Unauthorized() $denied -?!> Error(string) [$reason]`,
         actionCallback,
       );
-      expect(evm.getBinding("$e", USER)).to.equal("false");
+      expect(evm.getBinding("$denied", USER)).to.equal("false");
+      expect(evm.getBinding("$reason", USER)).to.equal("not enough tokens");
     });
   });
 
@@ -406,7 +434,7 @@ describe("Std > commands > exec > error capture", () => {
   // ── I. Mismatches ──────────────────────────────────────────────────
 
   describe("I — Error mismatches", () => {
-    it("I1: should throw on wrong error name without boolVar", async () => {
+    it("I1: should propagate the revert on a wrong error name", async () => {
       const evm = newEvm();
       try {
         await evm.interpret(
@@ -415,11 +443,12 @@ describe("Std > commands > exec > error capture", () => {
         );
         throw new Error("Expected to throw");
       } catch (err: any) {
-        expect(err.message).to.include("expected error");
+        expect(err.message).to.include("Transaction reverted");
+        expect(err.cause).to.be.instanceOf(RevertError);
       }
     });
 
-    it("I2: should throw when named error expected but empty revert", async () => {
+    it("I2: should propagate an empty revert a named clause cannot match", async () => {
       const evm = newEvm();
       try {
         await evm.interpret(
@@ -428,8 +457,10 @@ describe("Std > commands > exec > error capture", () => {
         );
         throw new Error("Expected to throw");
       } catch (err: any) {
-        expect(err.message).to.include("reverted with no data");
+        expect(err.message).to.include("Transaction reverted");
+        expect(err.cause).to.be.instanceOf(RevertError);
       }
+      expect(evm.getBinding("$b", USER)).to.be.undefined;
     });
   });
 });

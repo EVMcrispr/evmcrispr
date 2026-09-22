@@ -155,7 +155,8 @@ describe("Interpreter - tx captures", () => {
         },
       ),
     ).rejects.toThrow(/not supported on block commands/);
-    expect(sent).toBe(1);
+    // Refused before the block runs: nothing is sent.
+    expect(sent).toBe(0);
   });
 
   it("rejects combining tx and error captures", async () => {

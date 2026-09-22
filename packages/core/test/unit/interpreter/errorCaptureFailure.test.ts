@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import "../../setup.js";
 
 import type { Action } from "@evmcrispr/sdk";
-import { BindingsSpace } from "@evmcrispr/sdk";
+import { BindingsSpace, CommandError } from "@evmcrispr/sdk";
 import { custom } from "viem";
 import { evml, Interpreter } from "../../../src/index";
 
@@ -23,23 +23,32 @@ describe("Interpreter - error captures on command failures", () => {
     },
   });
 
-  const run = async (script: string, withCallback = true) => {
+  const session = (withCallback = true) => {
     const interpreter = new Interpreter(evml.registry, {
       account: ACCOUNT,
       transports: { 1: fakeTransport },
     });
     const seen: Action[] = [];
-    const returned = await interpreter.interpret(
-      script,
-      withCallback
-        ? async (action) => {
-            seen.push(action);
-            return undefined;
-          }
-        : undefined,
-    );
-    const binding = (name: string) =>
-      interpreter.bindingsManager.getBindingValue(name, BindingsSpace.USER);
+    return {
+      seen,
+      binding: (name: string) =>
+        interpreter.bindingsManager.getBindingValue(name, BindingsSpace.USER),
+      exec: (script: string) =>
+        interpreter.interpret(
+          script,
+          withCallback
+            ? async (action) => {
+                seen.push(action);
+                return undefined;
+              }
+            : undefined,
+        ),
+    };
+  };
+
+  const run = async (script: string, withCallback = true) => {
+    const { seen, binding, exec } = session(withCallback);
+    const returned = await exec(script);
     return { seen, returned, binding };
   };
 
@@ -60,11 +69,32 @@ describe("Interpreter - error captures on command failures", () => {
     expect(binding("$failed")).toBe("true");
   });
 
-  it("a named capture does not match a command failure", async () => {
-    const { binding } = await run(`${FAILING} -?!> Unauthorized() $denied`);
-    expect(binding("$denied")).toBe("false");
+  // A named clause that does not match no longer swallows the failure:
+  // the original error propagates, through the interpreter's usual
+  // location-prefixed wrapper, and nothing is bound.
+  it("an unmatched named capture propagates the original failure", async () => {
+    const { binding, exec } = session();
+    await expect(
+      exec(`${FAILING} -?!> Unauthorized() $denied`),
+    ).rejects.toThrow(/Invalid integer value/);
+    expect(binding("$denied")).toBeUndefined();
+
     await expect(run(`${FAILING} -!> Unauthorized()`)).rejects.toThrow(
-      /failed before sending/,
+      /Invalid integer value/,
+    );
+  });
+
+  it("the propagated failure keeps its location and cause", async () => {
+    let thrown: unknown;
+    try {
+      await run(`${FAILING} -?!> Unauthorized() $denied`);
+    } catch (err) {
+      thrown = err;
+    }
+    expect(thrown).toBeInstanceOf(CommandError);
+    expect((thrown as Error).message).toMatch(/^exec\(1:0/);
+    expect(String(((thrown as Error).cause as Error)?.message)).toMatch(
+      /Invalid integer value/,
     );
   });
 
