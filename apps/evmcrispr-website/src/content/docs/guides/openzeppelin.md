@@ -111,7 +111,8 @@ safe:execute $safe $safeTxHash
 The calls execute in order as the Safe. Proposing or signing does not change
 the token's roles. For a threshold-one Safe whose owner is connected, you can
 use `safe:execute $safe (...)` directly with the same block. For signatures
-exchanged without the service, follow the [local-first Safe guide](local-first-safe.md).
+exchanged without the service, follow the [local-first Safe guide](local-first-safe.md);
+for checking hashes before signing, see the [Safe guide](safe.md).
 
 The same wrapper handles application calls. If the Safe holds `PAUSER_ROLE`
 and the token's `pause()` function checks it, prepare a pause like this:
