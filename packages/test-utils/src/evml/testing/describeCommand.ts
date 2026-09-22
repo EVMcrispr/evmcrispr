@@ -5,7 +5,13 @@ import type { PublicClient } from "viem";
 import inventory from "../../../../../scripts/smart-command-inventory.json";
 import { getPublicClient } from "../../client";
 import { createInterpreter, interpretDoc, type TestInterpreter } from "../evml";
-import { expectThrowAsync } from "../expects";
+import { assertErrorMatches, expectThrowAsync } from "../expects";
+import {
+  checkDeclaredErrorCases,
+  type DeclaredErrorExpectation,
+  type DeclaredErrorsSource,
+  expectDeclaredFailure,
+} from "./declaredErrors";
 import type { DocExample } from "./describeHelper";
 import { checkSmartCommandFields } from "./smartCommand";
 
@@ -27,11 +33,19 @@ export interface CommandTestCase {
 export interface CommandErrorCase {
   name: string;
   script: string;
-  error:
+  /** Message assertion. Optional only when `declared` says what to expect. */
+  error?:
     | string
     | RegExp
     | ErrorException
     | ((interpreter: TestInterpreter) => ErrorException);
+  /**
+   * The declared error (`errors:` on the definition, raised with `fail`)
+   * this case expects, by name and optionally by field. Verified through the
+   * failure's bounded cause chain, so an interpreter or helper wrapper around
+   * it is fine. Combine with `error` to also pin the raise-site message.
+   */
+  declared?: DeclaredErrorExpectation;
 }
 
 export interface CommandTestConfig {
@@ -49,6 +63,12 @@ export interface CommandTestConfig {
   smartCases?: CommandTestCase[];
   /** Error test cases. */
   errorCases?: CommandErrorCase[];
+  /**
+   * The command's declaration metadata (the definition, or its `errors`
+   * block). Given it, the suite refuses to register unless every declared
+   * name has an error case designating it with `declared`.
+   */
+  declaredErrors?: DeclaredErrorsSource;
   /** Documentation examples — tested as runnable scripts and included in generated docs. */
   docCases?: DocExample[];
   /** Start the interpreter on this chain instead of gnosis. For faces that
@@ -78,6 +98,15 @@ export function describeCommand(
   const label =
     config.describeName ??
     `${config.module ? `${capitalize(moduleBaseName(config.module))} >` : "Std >"} commands > ${commandName}`;
+
+  // Synchronous, before a single `it` is registered: a coverage gap is a
+  // registration failure, not a test whose verdict depends on what else ran.
+  checkDeclaredErrorCases(
+    label,
+    config.errorCases ?? [],
+    config.declaredErrors,
+    (c, i) => (c.name ? `"${c.name}"` : `#${i + 1}`),
+  );
 
   const describeFn = config.skip ? describe.skip : describe;
 
@@ -155,23 +184,34 @@ export function describeCommand(
             chainId: config.chainId,
           });
 
-          if (typeof ec.error === "function") {
+          if (ec.declared) {
+            await expectDeclaredFailure(
+              () => interpreter.interpret(),
+              ec.declared,
+              commandName,
+              typeof ec.error === "function" ? ec.error(interpreter) : ec.error,
+            );
+          } else if (typeof ec.error === "function") {
             const errorObj = ec.error(interpreter);
             await expectThrowAsync(() => interpreter.interpret(), errorObj);
-          } else if (typeof ec.error === "string") {
+          } else if (
+            typeof ec.error === "string" ||
+            ec.error instanceof RegExp
+          ) {
+            // Two-phase, as in `describeHelper`: catch first, assert after,
+            // so the "did not throw" sentinel is never caught and matched
+            // by the case's own matcher.
+            const expected = ec.error;
+            let thrown: unknown;
+            let threw = false;
             try {
               await interpreter.interpret();
-              throw new Error("Expected command to throw");
-            } catch (err: any) {
-              expect(err.message).to.include(ec.error);
+            } catch (err) {
+              thrown = err;
+              threw = true;
             }
-          } else if (ec.error instanceof RegExp) {
-            try {
-              await interpreter.interpret();
-              throw new Error("Expected command to throw");
-            } catch (err: any) {
-              expect(err.message).to.match(ec.error);
-            }
+            if (!threw) throw new Error("Expected command to throw");
+            assertErrorMatches(thrown, expected);
           } else {
             await expectThrowAsync(() => interpreter.interpret(), ec.error);
           }

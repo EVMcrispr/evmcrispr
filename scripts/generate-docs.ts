@@ -17,6 +17,11 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { sortModuleNames } from "../packages/modules/src/order";
+import type { NormalizedDeclaredErrors } from "../packages/sdk/src/types/declaredErrors";
+import {
+  loadDeclaredErrors,
+  renderDeclaredErrorsSection,
+} from "../packages/sdk/src/utils/declaredErrorsDoc";
 import {
   EXPERIMENTAL_BADGE,
   EXPERIMENTAL_MARKER,
@@ -103,6 +108,8 @@ interface CommandMeta {
   argDefs: ArgDef[];
   optDefs: OptDef[];
   experimental: boolean;
+  /** Declared errors, read from the imported definition (spreads included). */
+  errors: NormalizedDeclaredErrors | undefined;
 }
 
 interface HelperMeta {
@@ -119,6 +126,8 @@ interface HelperMeta {
   hasArgs: boolean;
   argDefs: ArgDef[];
   experimental: boolean;
+  /** Declared errors, read from the imported definition (spreads included). */
+  errors: NormalizedDeclaredErrors | undefined;
 }
 
 // ── Parse metadata directly from source .ts files ────────────────────
@@ -131,24 +140,27 @@ function getNames(dir: string): string[] {
     .sort();
 }
 
-function parseModuleSource(modDir: string): {
+async function parseModuleSource(modDir: string): Promise<{
   commands: CommandMeta[];
   helpers: HelperMeta[];
-} {
+}> {
   const commandsDir = join(modDir, "src/commands");
   const helpersDir = join(modDir, "src/helpers");
 
-  const commands = getNames(commandsDir).map((name) =>
-    extractCommandMeta(modDir, name),
+  const commands = await Promise.all(
+    getNames(commandsDir).map((name) => extractCommandMeta(modDir, name)),
   );
-  const helpers = getNames(helpersDir).map((name) =>
-    extractHelperMeta(modDir, name),
+  const helpers = await Promise.all(
+    getNames(helpersDir).map((name) => extractHelperMeta(modDir, name)),
   );
 
   return { commands, helpers };
 }
 
-function extractCommandMeta(modDir: string, name: string): CommandMeta {
+async function extractCommandMeta(
+  modDir: string,
+  name: string,
+): Promise<CommandMeta> {
   const filePath = join(modDir, "src/commands", `${name}.ts`);
   const ownContent = readFileSync(filePath, "utf-8");
   const parent = ownContent.match(/import command from "\.\/([^"]+)"/);
@@ -166,10 +178,14 @@ function extractCommandMeta(modDir: string, name: string): CommandMeta {
     argDefs: extractArgs(content),
     optDefs: extractOpts(content, modDir, filePath),
     experimental: hasTopLevelExperimental(content),
+    errors: await loadDeclaredErrors(filePath),
   };
 }
 
-function extractHelperMeta(modDir: string, name: string): HelperMeta {
+async function extractHelperMeta(
+  modDir: string,
+  name: string,
+): Promise<HelperMeta> {
   const filePath = join(modDir, "src/helpers", `${name}.ts`);
   const content = readFileSync(filePath, "utf-8");
   const returnType = parseTypeValue(content, "returnType") ?? "any";
@@ -200,6 +216,7 @@ function extractHelperMeta(modDir: string, name: string): HelperMeta {
     hasArgs: argDefs.length > 0,
     argDefs,
     experimental: hasTopLevelExperimental(content),
+    errors: await loadDeclaredErrors(filePath),
   };
 }
 
@@ -768,6 +785,9 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
     lines.push("");
   }
 
+  // Errors (declared refusals, read from the definition itself)
+  lines.push(...renderDeclaredErrorsSection(cmd.errors, "command"));
+
   // Examples
   if (docCases.length > 0) {
     lines.push("## Examples");
@@ -892,6 +912,9 @@ function generateHelperDoc(mod: ModuleInfo, helper: HelperMeta): string {
     }
     lines.push("");
   }
+
+  // Errors (declared refusals, read from the definition itself)
+  lines.push(...renderDeclaredErrorsSection(helper.errors, "helper"));
 
   // Examples
   if (docCases.length > 0) {
@@ -1159,7 +1182,7 @@ let totalHelpers = 0;
 const allDocs: string[] = [];
 
 for (const mod of MODULES) {
-  const { commands, helpers } = parseModuleSource(mod.dir);
+  const { commands, helpers } = await parseModuleSource(mod.dir);
   totalCommands += commands.length;
   totalHelpers += helpers.length;
 

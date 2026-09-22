@@ -10,7 +10,13 @@ import {
   itChecksInvalidArgsLength,
   preparingExpression,
 } from "../evml";
-import { expectThrowAsync } from "../expects";
+import { assertErrorMatches, expectThrowAsync } from "../expects";
+import {
+  checkDeclaredErrorCases,
+  type DeclaredErrorExpectation,
+  type DeclaredErrorsSource,
+  expectDeclaredFailure,
+} from "./declaredErrors";
 
 export interface DocExample {
   /** Human-readable description — shown as a comment in the generated markdown. */
@@ -35,17 +41,25 @@ export interface HelperErrorCase {
   name?: string;
   input: string;
   /**
-   * Error to match against. Can be:
+   * Error to match against. Optional only when `declared` says what to
+   * expect. Can be:
    * - A string (checked via `.includes()` on the error message)
    * - A RegExp (checked via `.match()` on the error message)
    * - An ErrorException instance (checked via `expectThrowAsync`)
    * - A function `(helperNode) => ErrorException` for node-dependent errors
    */
-  error:
+  error?:
     | string
     | RegExp
     | ErrorException
     | ((helperNode: any) => ErrorException);
+  /**
+   * The declared error (`errors:` on the definition, raised with `fail`)
+   * this case expects, by name and optionally by field. Verified through the
+   * failure's bounded cause chain, so the interpreter's `HelperFunctionError`
+   * wrapper is fine. Combine with `error` to also pin the raise-site message.
+   */
+  declared?: DeclaredErrorExpectation;
 }
 
 export interface HelperTestConfig {
@@ -61,6 +75,12 @@ export interface HelperTestConfig {
   cases?: HelperTestCase[];
   /** Error test cases. */
   errorCases?: HelperErrorCase[];
+  /**
+   * The helper's declaration metadata (the definition, or its `errors`
+   * block). Given it, the suite refuses to register unless every declared
+   * name has an error case designating it with `declared`.
+   */
+  declaredErrors?: DeclaredErrorsSource;
   /** Documentation examples — tested as runnable scripts and included in generated docs. */
   docCases?: DocExample[];
   /**
@@ -158,6 +178,15 @@ export function describeHelper(
       config.module ? `${capitalize(moduleBaseName(config.module))} >` : "Std >"
     } helpers > ${atExpr}`;
 
+  // Synchronous, before a single `it` is registered: a coverage gap is a
+  // registration failure, not a test whose verdict depends on what else ran.
+  checkDeclaredErrorCases(
+    label,
+    config.errorCases ?? [],
+    config.declaredErrors,
+    (c, i) => `"${c.name ?? c.input ?? `#${i + 1}`}"`,
+  );
+
   const describeFn = config.skip ? describe.skip : describe;
 
   describeFn(label, () => {
@@ -207,27 +236,30 @@ export function describeHelper(
             config.preamble,
           );
 
-          if (typeof ec.error === "function") {
+          if (ec.declared) {
+            await expectDeclaredFailure(
+              () => interpret(),
+              ec.declared,
+              atExpr,
+              typeof ec.error === "function" ? ec.error(helperNode) : ec.error,
+            );
+          } else if (typeof ec.error === "function") {
             const errorObj = ec.error(helperNode);
             await expectThrowAsync(() => interpret(), errorObj);
           } else {
+            // Registration guarantees a case without `declared` carries an
+            // `error` matcher.
+            const expected = ec.error!;
+            let thrown: unknown;
+            let threw = false;
             try {
               await interpret();
-              throw new Error("Expected expression to throw");
-            } catch (err: any) {
-              if (typeof ec.error === "string") {
-                expect(err.message).to.include(ec.error);
-              } else if (ec.error instanceof RegExp) {
-                expect(err.message).to.match(ec.error);
-              } else {
-                if (ec.error.message?.length) {
-                  expect(err.message).to.equal(ec.error.message);
-                }
-                expect(err.constructor.name).to.equal(
-                  ec.error.constructor.name,
-                );
-              }
+            } catch (err) {
+              thrown = err;
+              threw = true;
             }
+            if (!threw) throw new Error("Expected expression to throw");
+            assertErrorMatches(thrown, expected);
           }
         });
       }

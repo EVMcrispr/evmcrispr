@@ -47,6 +47,9 @@
       "import": "./src/msw/npm.ts"
     }
   },
+  "scripts": {
+    "test:unit": "bun test ./test"
+  },
   "dependencies": {
     "arcsecond": "^5.0.0",
     "chai": "^6.2.2",
