@@ -77,8 +77,9 @@ let anvil = await ensureAnvil();
  *
  * A full sweep costs minutes and most of it re-runs suites nothing touched.
  * The key is a hash of the suite's own `src` and `test` trees plus the shared
- * packages every module compiles against, so editing the SDK re-runs
- * everything and editing one module re-runs one.
+ * packages every module compiles against and the lockfile, so editing the
+ * SDK or bumping a dependency re-runs everything and editing one module
+ * re-runs one.
  *
  * Deliberately NOT turbo: turbo would run the suites in parallel against a
  * single shared anvil, and these tests mutate chain state and reset between
@@ -114,6 +115,9 @@ function hashTree(dir: string, hasher: Bun.CryptoHasher): void {
 
 function suiteKey(pkg: string): string {
   const hasher = new Bun.CryptoHasher("sha256");
+  // A dependency bump changes no src/test file, yet can break any suite.
+  const lock = statSync(resolve(ROOT, "bun.lock"));
+  hasher.update(`bun.lock:${lock.size}:${lock.mtimeMs}`);
   for (const dir of [pkg, ...SHARED]) {
     hashTree(resolve(ROOT, dir, "src"), hasher);
     hashTree(resolve(ROOT, dir, "test"), hasher);
