@@ -12,6 +12,10 @@ import type {
   Node,
 } from "./ast";
 import type { CompletionOverrides } from "./completions";
+import type {
+  DeclaredErrors,
+  NormalizedDeclaredErrorsOf,
+} from "./declaredErrors";
 
 /**
  * Narrow context object passed to every module instead of the full EVMcrispr
@@ -173,11 +177,26 @@ export type CommandFunction<T extends Module = Module> = (
   c: CommandExpressionNode,
   interpreters: NodesInterpreters,
 ) => Promise<Action[] | void>;
-export type HelperFunction<T = Module> = (
-  module: T,
-  h: HelperFunctionNode,
-  interpreters: NodesInterpreters,
-) => Promise<Param>;
+/**
+ * A registered helper: the wrapper `defineHelper` returns, plus the
+ * metadata it carries. `E` is the helper's declared-error schema; storage
+ * (registries, import maps) uses the erased default, which accepts a
+ * definition with any schema.
+ */
+export type HelperFunction<
+  T = Module,
+  E extends DeclaredErrors = DeclaredErrors,
+> = {
+  (
+    module: T,
+    h: HelperFunctionNode,
+    interpreters: NodesInterpreters,
+  ): Promise<Param>;
+  /** The helper's declared errors, normalized and deeply frozen (an empty
+   *  block when it declares none). Absent only on helpers built by hand
+   *  rather than by `defineHelper` (EVML-defined modules). */
+  errors?: NormalizedDeclaredErrorsOf<E>;
+};
 
 /** Lazy loader: () => Promise<HelperFunction>. Resolved on first use. */
 export type HelperLoader<M extends Module = Module> = () => Promise<
@@ -204,7 +223,15 @@ export type BatchableSpec =
       opts: Record<string, any>,
     ) => boolean | string);
 
-export interface ICommand<M extends Module = Module> {
+/**
+ * A registered command: what `defineCommand` returns. `E` is the command's
+ * declared-error schema; storage (registries, import maps) uses the erased
+ * default, which accepts a definition with any schema.
+ */
+export interface ICommand<
+  M extends Module = Module,
+  E extends DeclaredErrors = DeclaredErrors,
+> {
   compile?: import("../onchain/smart-types").CommandCompile;
   createsSmartBatchContext?: boolean;
   smartSupport?: {
@@ -214,6 +241,10 @@ export interface ICommand<M extends Module = Module> {
   run: CommandFunction<M>;
   argDefs: ArgDef[];
   optDefs: OptDef[];
+  /** The command's declared errors, normalized and deeply frozen (an empty
+   *  block when it declares none). Absent only on commands built by hand
+   *  rather than by `defineCommand` (EVML-defined modules). */
+  errors?: NormalizedDeclaredErrorsOf<E>;
   /** Override type-driven completions for specific args or opts by name. */
   completions?: CompletionOverrides;
   /** Human-readable description shown in hover tooltips. */

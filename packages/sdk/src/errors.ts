@@ -1,6 +1,7 @@
 import type {
   Action,
   CommandExpressionNode,
+  DeclaredErrorFieldValue,
   HelperFunctionNode,
   Node,
 } from "./types";
@@ -185,6 +186,37 @@ export class RevertError extends ErrorException {
   revertData: `0x${string}` | undefined;
   constructor(message: string, revertData?: `0x${string}`) {
     super(message, { name: "RevertError", code: "RevertError" });
+    this.revertData = revertData;
+  }
+}
+
+/**
+ * A named refusal a command or helper declared in its `errors` block and
+ * raised with the run context's `fail`. It carries the declaration's ABI
+ * encoding as `revertData` so error captures (`-!>` / `-?!>`) decode it
+ * exactly like a contract's custom error — but it is an off-chain
+ * module-contract failure, not proof that the chain reverted, so it is
+ * deliberately NOT a `RevertError` and never an `isChainFailure`.
+ * @category Error
+ */
+export class DeclaredError extends ErrorException {
+  /** The declared name, e.g. `BelowMinimum`. */
+  readonly errorName: string;
+  /** The validated fields, in declaration order, as ABI-ready values. */
+  readonly fields: Readonly<Record<string, DeclaredErrorFieldValue>>;
+  /** The ABI-encoded custom error: selector plus encoded fields. */
+  readonly revertData: `0x${string}`;
+
+  constructor(
+    errorName: string,
+    /** The raise-site message, written where the failure is detected. */
+    message: string,
+    fields: Readonly<Record<string, DeclaredErrorFieldValue>>,
+    revertData: `0x${string}`,
+  ) {
+    super(message, { name: "DeclaredError", code: "DeclaredError" });
+    this.errorName = errorName;
+    this.fields = fields;
     this.revertData = revertData;
   }
 }

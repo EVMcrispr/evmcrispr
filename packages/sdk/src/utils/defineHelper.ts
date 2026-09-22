@@ -3,14 +3,19 @@ import type { Module } from "../Module";
 import type { HelperCompile } from "../onchain/types";
 import type {
   CompletionOverrides,
+  DeclaredErrors,
+  FailFn,
   HelperFunction,
   HelperFunctionNode,
+  NoDeclaredErrors,
   Node,
   NodesInterpreters,
+  NormalizedDeclaredErrorsOf,
 } from "../types";
 import { BindingsSpace, NodeType } from "../types";
 import { buildArgsLengthErrorMsg, coerceBoolean } from "./args";
 import { computeCommandArity } from "./arity";
+import { createFail, normalizeDeclaredErrors } from "./declaredErrors";
 import type { Param } from "./encoders";
 import {
   experimentalDisabledMessage,
@@ -25,16 +30,22 @@ import {
   validateArgType,
 } from "./schema";
 
-export interface HelperContext {
+export interface HelperContext<E extends DeclaredErrors = DeclaredErrors> {
   node: HelperFunctionNode;
   interpreters: NodesInterpreters;
+  /** Refuse to return a value with one of the helper's declared errors,
+   *  typed against their names and exact field shapes. Always throws. */
+  fail: FailFn<E>;
 }
 
 /** A helper's run signature — the off-chain (composition-time) face. */
-export type HelperRun<M extends Module> = (
+export type HelperRun<
+  M extends Module,
+  E extends DeclaredErrors = DeclaredErrors,
+> = (
   module: M,
   args: Record<string, any>,
-  context: HelperContext,
+  context: HelperContext<E>,
 ) => Promise<Param>;
 
 /**
@@ -46,7 +57,10 @@ export type HelperRun<M extends Module> = (
  * in every config literal, and avoid the literal substrings `name: "`,
  * `description: "`, `returnType: "` and `args: [` inside face bodies.
  */
-export interface HelperConfigShared<M extends Module> {
+export interface HelperConfigShared<
+  M extends Module,
+  E extends DeclaredErrors = NoDeclaredErrors,
+> {
   /** Registration name. NEVER includes a trailing `!` (codegen enforces
    *  this) — the on-chain face of a helper is addressed as `@name!` and
    *  dispatched to `compile` automatically. */
@@ -72,6 +86,17 @@ export interface HelperConfigShared<M extends Module> {
   compileDescription?: string;
   returnType?: ArgType;
   args: ArgDef[];
+  /**
+   * The named ways this helper refuses to return a value, raised with
+   * `fail` in the `run` face and captured by scripts on the containing
+   * command line. Validated and deeply frozen when the helper is defined.
+   *
+   * Keep the declarations in a separate metadata file (a `defineErrors`
+   * call exported from it) and reference them here: the codegen scans a
+   * helper's source for the first `description: "` / `args: [`, so an
+   * error's own description must not appear inside this config literal.
+   */
+  errors?: E;
   /** Override type-driven completions for specific args by name. */
   completions?: CompletionOverrides;
   /** Whether this helper may be evaluated inside an atomic batch context
@@ -85,7 +110,7 @@ export interface HelperConfigShared<M extends Module> {
   experimental?: boolean;
   /** Off-chain face: interpret the helper at composition time. Optional
    *  when `compile` is present (an on-chain-only helper). */
-  run?: HelperRun<M>;
+  run?: HelperRun<M, E>;
   /** On-chain face: compile the helper's raw AST node into an on-chain
    *  expression operand (`@name!` inside assert expressions and smart
    *  batches). Optional when `run` is present. Receives the raw node —
@@ -96,13 +121,17 @@ export interface HelperConfigShared<M extends Module> {
 /** Helper config: at least one of `run` (off-chain face) / `compile`
  *  (on-chain face) is required — type-enforced here, re-checked at
  *  runtime for untyped callers. */
-export type HelperConfig<M extends Module> =
-  | (HelperConfigShared<M> & { run: HelperRun<M> })
-  | (HelperConfigShared<M> & { compile: HelperCompile });
+export type HelperConfig<
+  M extends Module,
+  E extends DeclaredErrors = NoDeclaredErrors,
+> =
+  | (HelperConfigShared<M, E> & { run: HelperRun<M, E> })
+  | (HelperConfigShared<M, E> & { compile: HelperCompile });
 
-export function defineHelper<M extends Module>(
-  config: HelperConfig<M>,
-): HelperFunction<M> {
+export function defineHelper<
+  M extends Module,
+  const E extends DeclaredErrors = NoDeclaredErrors,
+>(config: HelperConfig<M, E>): HelperFunction<M, E> {
   const { args: argDefs, run, compile } = config;
 
   if (!run && !compile) {
@@ -111,7 +140,22 @@ export function defineHelper<M extends Module>(
     );
   }
 
-  const fn: HelperFunction<M> = async (module, h, interpreters) => {
+  // Validated (and deeply frozen) once, when the helper is defined: a
+  // malformed declaration must not wait for a failing run to be noticed.
+  // The on-chain face gets no `fail`: a compilation failure is not
+  // catchable, so it has no declared-refusal channel.
+  const label = `helper "@${config.name}"`;
+  const errors = normalizeDeclaredErrors(
+    config.errors ?? {},
+    label,
+  ) as NormalizedDeclaredErrorsOf<E>;
+  // The normalized block carries the same names and field shapes as `E`
+  // (it only fills `fields` in), so it types `fail` exactly. It is also
+  // the block `normalizeDeclaredErrors` already validated, which
+  // `createFail` re-normalizes for free.
+  const fail = createFail<E>(errors as unknown as E, label);
+
+  const fn: HelperFunction<M, E> = async (module, h, interpreters) => {
     if (config.experimental && !isExperimentalEnabled()) {
       throw new ExperimentalDisabledError(
         experimentalDisabledMessage("helper", config.name),
@@ -324,6 +368,7 @@ export function defineHelper<M extends Module>(
     const result = await run(module as M, parsedArgs, {
       node: h,
       interpreters,
+      fail,
     });
 
     if (config.returnType && config.returnType !== "any") {
@@ -338,6 +383,7 @@ export function defineHelper<M extends Module>(
     return result;
   };
 
+  fn.errors = errors;
   if (config.description) {
     (fn as any).description = config.description;
   }

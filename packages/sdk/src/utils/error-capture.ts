@@ -1,35 +1,78 @@
 import type { AbiError } from "abitype";
-import type { Abi, Hex } from "viem";
-import {
-  decodeErrorResult,
-  getAbiItem,
-  parseAbiItem,
-  toFunctionSelector,
-} from "viem";
+import { decodeErrorResult } from "viem";
 
 import type { BindingsManager } from "../BindingsManager";
-import { ErrorException, RevertError } from "../errors";
+import { RevertError } from "../errors";
 import type { ErrorCaptureNode } from "../types";
 import { BindingsSpace } from "../types";
+import { findDeclaredError, MAX_CAUSE_DEPTH } from "./declaredErrors";
 import { applyDestructure } from "./destructure";
+import type { ErrorCaptureSources } from "./error-signatures";
+import {
+  errorSelector,
+  PANIC_ABI,
+  STANDARD_ERROR_ABI,
+  selectCaptureErrorAbis,
+} from "./error-signatures";
+
+export type {
+  DeclaredErrorEntry,
+  DeclaredErrorIndex,
+  DeclaredErrorOwnerKind,
+  ErrorCaptureSources,
+} from "./error-signatures";
+export {
+  errorAbiFromSignature,
+  errorSelector,
+  errorSignature,
+  indexDeclaredErrors,
+  selectCaptureErrorAbis,
+} from "./error-signatures";
 
 const { USER } = BindingsSpace;
+
+/** Well-formed ABI error data: a selector, optionally followed by whole
+ *  32-byte words. Checked structurally so a `DeclaredError` revived across
+ *  the worker boundary is read the same way as a live one — without
+ *  trusting an arbitrary `revertData` property to be hex. */
+function asRevertData(value: unknown): `0x${string}` | undefined {
+  return typeof value === "string" &&
+    /^0x([0-9a-fA-F]{2})*$/.test(value) &&
+    value.length % 2 === 0
+    ? (value as `0x${string}`)
+    : undefined;
+}
 
 /**
  * Walk a viem / provider error chain looking for raw ABI-encoded revert data.
  *
  * Covers:
  *  - RevertError (our own, thrown by EthereumJS backend and fork command)
+ *  - DeclaredError, whose off-chain `revertData` is the ABI encoding of a
+ *    declared refusal — carried structurally, so it is *not* a chain failure
  *  - viem BaseError chain (TransactionExecutionError wrapping inner errors)
  *  - Generic errors whose `data` property is a hex string
+ *
+ * The `cause` walk is depth-bounded and cycle-guarded.
  */
 export function extractRevertData(error: unknown): `0x${string}` | undefined {
-  if (error instanceof RevertError) {
-    return error.revertData;
-  }
+  const seen = new Set<unknown>();
+  let current: unknown = error;
 
-  if (error && typeof error === "object") {
-    const err = error as Record<string, any>;
+  for (let depth = 0; current && depth < MAX_CAUSE_DEPTH; depth++) {
+    if (seen.has(current)) return undefined;
+    seen.add(current);
+
+    if (current instanceof RevertError) {
+      return current.revertData;
+    }
+    if (typeof current !== "object") return undefined;
+
+    const err = current as Record<string, any>;
+
+    // A declared (off-chain) error carries its own encoded data.
+    const declared = asRevertData(err.revertData);
+    if (declared) return declared;
 
     // viem errors often have a `walk` method to traverse the cause chain
     if (typeof err.walk === "function") {
@@ -52,94 +95,10 @@ export function extractRevertData(error: unknown): `0x${string}` | undefined {
       return err.data as `0x${string}`;
     }
 
-    // Nested cause chain
-    if (err.cause) {
-      return extractRevertData(err.cause);
-    }
+    current = err.cause;
   }
 
   return undefined;
-}
-
-const STANDARD_ERROR_ABI = parseAbiItem("error Error(string)") as AbiError;
-const PANIC_ABI = parseAbiItem("error Panic(uint256)") as AbiError;
-
-/**
- * Build an ABI error item from a name and inline parameter types, with the
- * `Error(string)` / `Panic(uint256)` builtins recognized by bare name.
- * This is the build-time face of an error signature: no contract ABI is
- * consulted, so anything else must spell its types inline.
- */
-export function errorAbiFromSignature(
-  errorName: string,
-  errorParams: string[] | undefined,
-): AbiError {
-  if (errorParams != null) {
-    const sig = `error ${errorName}(${errorParams.join(",")})`;
-    try {
-      return parseAbiItem(sig) as AbiError;
-    } catch (err) {
-      const err_ = err as Error;
-      throw new ErrorException(
-        `invalid inline error signature "${sig}": ${err_.message}`,
-      );
-    }
-  }
-  if (errorName === "Error") return STANDARD_ERROR_ABI;
-  if (errorName === "Panic") return PANIC_ABI;
-  throw new ErrorException(
-    `error "${errorName}" needs its parameter types spelled inline, e.g. ${errorName}(uint256,address)`,
-  );
-}
-
-/**
- * The 4-byte selector of an ABI error. Errors hash exactly as functions do
- * (keccak of `Name(canonicalTypes)`), so the item is recast through the
- * function selector path — `parseAbiItem` has already canonicalized the
- * types (`uint` -> `uint256`, tuples flattened to their components).
- */
-export function errorSelector(error: AbiError): Hex {
-  return toFunctionSelector({
-    type: "function",
-    name: error.name,
-    inputs: error.inputs,
-    outputs: [],
-    stateMutability: "view",
-  });
-}
-
-/**
- * Build an ABI error item from an ErrorCaptureNode.
- */
-function getErrorAbi(
-  capture: ErrorCaptureNode,
-  abi: Abi | undefined,
-): AbiError {
-  if (
-    capture.errorParams != null ||
-    capture.errorName === "Error" ||
-    capture.errorName === "Panic"
-  ) {
-    return errorAbiFromSignature(capture.errorName!, capture.errorParams);
-  }
-
-  if (!abi) {
-    throw new ErrorException(
-      `no ABI available for error "${capture.errorName}" decoding (use inline signature e.g. ${capture.errorName}(uint256,address))`,
-    );
-  }
-
-  try {
-    const item = getAbiItem({ abi, name: capture.errorName! });
-    if (item?.type !== "error") {
-      throw new Error("not found");
-    }
-    return item as AbiError;
-  } catch {
-    throw new ErrorException(
-      `error "${capture.errorName}" not found in contract ABI`,
-    );
-  }
 }
 
 /**
@@ -239,145 +198,187 @@ export function setBoolVarsFalse(
 }
 
 /**
- * Resolve error captures from a caught transaction error.
+ * Does this clause list require the line to fail? A single `-!>` clause
+ * makes the whole alternation required, so success is an assertion failure
+ * — which the caller reports, since the resolver only sees failures.
+ */
+export function captureListRequiresFailure(
+  captures: readonly ErrorCaptureNode[],
+): boolean {
+  return captures.some((capture) => !capture.optional);
+}
+
+/** What one capture clause made of the failure. */
+interface ClauseOutcome {
+  readonly capture: ErrorCaptureNode;
+  readonly matched: boolean;
+  /** Values a matching clause destructures. */
+  readonly args: readonly unknown[];
+  /** Context name for destructure diagnostics. */
+  readonly label: string;
+}
+
+/** The failure, decoded once for every clause. */
+interface Failure {
+  readonly error: unknown;
+  readonly revertData: `0x${string}` | undefined;
+  /** The raise-site refusal, found anywhere in the cause chain. */
+  readonly declaredMessage: string | undefined;
+}
+
+function noMatch(capture: ErrorCaptureNode): ClauseOutcome {
+  return { capture, matched: false, args: [], label: "error" };
+}
+
+/**
+ * Decode `revertData` as exactly this ABI error: the selector must match
+ * first, so a same-named error of another signature is not a match, and
+ * a payload that does not decode against the item is not one either.
+ */
+function matchErrorAbi(
+  abi: AbiError,
+  revertData: `0x${string}`,
+): readonly unknown[] | undefined {
+  if (
+    revertData.slice(0, 10).toLowerCase() !== errorSelector(abi).toLowerCase()
+  )
+    return undefined;
+  try {
+    const decoded = decodeErrorResult({ abi: [abi], data: revertData });
+    // viem decodes the Solidity builtins whatever ABI it is given.
+    if (decoded.errorName !== abi.name) return undefined;
+    return decoded.args ?? [];
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * What a generic clause binds: a declared refusal supplies its raise-site
+ * message (also through a wrapper), an ordinary pre-send exception its own
+ * message, and a chain failure keeps its `Error(string)` / `Panic` / raw
+ * bytes decoding.
+ */
+function genericOutcome(
+  capture: ErrorCaptureNode,
+  failure: Failure,
+): ClauseOutcome {
+  if (failure.declaredMessage !== undefined) {
+    return {
+      capture,
+      matched: true,
+      args: [failure.declaredMessage],
+      label: "error",
+    };
+  }
+  if (failure.revertData && failure.revertData !== "0x") {
+    const decoded = decodeGenericError(failure.revertData);
+    return {
+      capture,
+      matched: true,
+      args: decoded.args,
+      label: `error ${decoded.errorName}`,
+    };
+  }
+  const reason =
+    failure.error instanceof Error
+      ? failure.error.message
+      : "transaction reverted";
+  return { capture, matched: true, args: [reason], label: "error" };
+}
+
+/**
+ * Evaluate one clause against the failure. Never writes a binding: the
+ * whole list is evaluated before anything is published, so an unmatched
+ * failure leaves no partial captures behind.
  *
- * Extracts revert data from the error, decodes it against the error ABI,
- * and stores captured values as user bindings.
+ * Throws only for a script error (a malformed inline signature, an
+ * ambiguous bare name). An unavailable name or an undecodable payload is
+ * a plain mismatch.
+ */
+function evaluateClause(
+  capture: ErrorCaptureNode,
+  failure: Failure,
+  sources: ErrorCaptureSources | undefined,
+): ClauseOutcome {
+  if (!capture.errorName) return genericOutcome(capture, failure);
+
+  // Selection first, and unconditionally: a capture the script cannot
+  // resolve at all is a script error whatever the failure looks like.
+  const candidates = selectCaptureErrorAbis(capture, sources);
+  if (!failure.revertData || failure.revertData === "0x") {
+    return noMatch(capture);
+  }
+  for (const abi of candidates) {
+    const args = matchErrorAbi(abi, failure.revertData);
+    if (args) {
+      return { capture, matched: true, args, label: `error ${abi.name}` };
+    }
+  }
+  return noMatch(capture);
+}
+
+/** Publish one clause's bindings. Only called once a clause matched. */
+function applyClause(
+  outcome: ClauseOutcome,
+  bindingsManager: BindingsManager,
+): void {
+  const { capture, matched } = outcome;
+  if (capture.boolVar) {
+    bindingsManager.setBinding(
+      `$${capture.boolVar}`,
+      matched ? "true" : "false",
+      USER,
+      true,
+      undefined,
+      true,
+    );
+    return;
+  }
+  if (matched && capture.captures.length > 0) {
+    applyDestructure(
+      capture.captures,
+      outcome.args,
+      outcome.label,
+      bindingsManager,
+    );
+  }
+}
+
+/**
+ * Resolve a command line's error captures against the failure it caught.
+ *
+ * Three steps, in order: select each clause's ABI error item, evaluate
+ * every clause against the failure, then — only if at least one clause
+ * matched — publish the bindings.
+ *
+ * Any-match: several clauses on one line are an alternation. Every flagged
+ * clause reads `"true"` or `"false"` for its own match, and only a matching
+ * clause's destructure applies. If no clause matches, the original error
+ * object is rethrown by identity, with no binding written.
  *
  * Capture modes (mutually exclusive):
- *  - boolVar: set `$var = "true"` on match
+ *  - boolVar: set `$var` to `"true"` / `"false"`
  *  - captures (non-empty): destructure decoded args into variables
- *  - neither: assertion-only (verify match, bind nothing)
- *
- * For `-?!>` (optional) with boolVar, mismatches set `$var = "false"`.
- * All other mismatches throw.
+ *  - neither: assertion-only (accept the failure, bind nothing)
  */
 export async function resolveErrorCaptures(
   error: unknown,
-  abi: Abi | undefined,
+  sources: ErrorCaptureSources | undefined,
   errorCaptures: ErrorCaptureNode[],
   bindingsManager: BindingsManager,
 ): Promise<void> {
-  const revertData = extractRevertData(error);
+  const failure: Failure = {
+    error,
+    revertData: extractRevertData(error),
+    declaredMessage: findDeclaredError(error)?.message,
+  };
 
-  for (const capture of errorCaptures) {
-    if (!capture.errorName) {
-      // Generic catch-all — always matches any revert
-      if (capture.boolVar) {
-        bindingsManager.setBinding(
-          `$${capture.boolVar}`,
-          "true",
-          USER,
-          true,
-          undefined,
-          true,
-        );
-        continue;
-      }
-      if (capture.captures.length === 0) continue;
+  const outcomes = errorCaptures.map((capture) =>
+    evaluateClause(capture, failure, sources),
+  );
 
-      if (!revertData || revertData === "0x") {
-        const reason =
-          error instanceof Error ? error.message : "transaction reverted";
-        applyDestructure(capture.captures, [reason], "error", bindingsManager);
-        continue;
-      }
+  if (!outcomes.some((outcome) => outcome.matched)) throw error;
 
-      const decoded = decodeGenericError(revertData);
-      applyDestructure(
-        capture.captures,
-        decoded.args,
-        `error ${decoded.errorName}`,
-        bindingsManager,
-      );
-      continue;
-    }
-
-    // Named error capture
-    const errorAbi = getErrorAbi(capture, abi);
-
-    if (!revertData || revertData === "0x") {
-      if (capture.optional && capture.boolVar) {
-        bindingsManager.setBinding(
-          `$${capture.boolVar}`,
-          "false",
-          USER,
-          true,
-          undefined,
-          true,
-        );
-        continue;
-      }
-      if (revertData === undefined && !(error instanceof RevertError)) {
-        throw new ErrorException(
-          `expected error "${capture.errorName}" but the command failed before sending a transaction: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-      throw new ErrorException(
-        `expected error "${capture.errorName}" but transaction reverted with no data (empty revert / jump error)`,
-      );
-    }
-
-    try {
-      const decoded = decodeErrorResult({
-        abi: [errorAbi],
-        data: revertData,
-      });
-
-      if (decoded.errorName !== capture.errorName) {
-        throw new ErrorException(
-          `expected error "${capture.errorName}" but got "${decoded.errorName}"`,
-        );
-      }
-
-      if (capture.boolVar) {
-        bindingsManager.setBinding(
-          `$${capture.boolVar}`,
-          "true",
-          USER,
-          true,
-          undefined,
-          true,
-        );
-      } else if (capture.captures.length > 0) {
-        applyDestructure(
-          capture.captures,
-          decoded.args,
-          `error ${capture.errorName}`,
-          bindingsManager,
-        );
-      }
-    } catch (err) {
-      if (err instanceof ErrorException) {
-        if (capture.optional && capture.boolVar) {
-          bindingsManager.setBinding(
-            `$${capture.boolVar}`,
-            "false",
-            USER,
-            true,
-            undefined,
-            true,
-          );
-          continue;
-        }
-        throw err;
-      }
-      if (capture.optional && capture.boolVar) {
-        bindingsManager.setBinding(
-          `$${capture.boolVar}`,
-          "false",
-          USER,
-          true,
-          undefined,
-          true,
-        );
-        continue;
-      }
-      throw new ErrorException(
-        `failed to decode error "${capture.errorName}" from revert data: ${(err as Error).message}`,
-      );
-    }
-  }
+  for (const outcome of outcomes) applyClause(outcome, bindingsManager);
 }

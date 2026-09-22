@@ -6,9 +6,13 @@ import type {
   BlockExpressionNode,
   CommandExpressionNode,
   CompletionOverrides,
+  DeclaredErrors,
+  FailFn,
   HelperFunctionNode,
   ICommand,
+  NoDeclaredErrors,
   NodesInterpreters,
+  NormalizedDeclaredErrorsOf,
 } from "../types";
 import { NodeType } from "../types";
 import { isSpecialArgType as isSpecialType } from "./argAlignment";
@@ -19,6 +23,7 @@ import {
   getOptValue,
 } from "./args";
 import { computeCommandArity, prepareCommandArity } from "./arity";
+import { createFail, normalizeDeclaredErrors } from "./declaredErrors";
 import {
   experimentalDisabledMessage,
   isExperimentalEnabled,
@@ -77,13 +82,19 @@ function extractSpecialArg(
   return { ok: false };
 }
 
-export interface CommandContext {
+export interface CommandContext<E extends DeclaredErrors = DeclaredErrors> {
   opts: Record<string, any>;
+  /** Refuse to run with one of the command's declared errors, typed
+   *  against their names and exact field shapes. Always throws. */
+  fail: FailFn<E>;
   node: CommandExpressionNode;
   interpreters: NodesInterpreters;
 }
 
-export interface CommandConfig<M extends Module> {
+export interface CommandConfig<
+  M extends Module,
+  E extends DeclaredErrors = NoDeclaredErrors,
+> {
   compile?: import("../onchain/smart-types").CommandCompile;
   createsSmartBatchContext?: boolean;
   smartSupport?: import("../types").ICommand["smartSupport"];
@@ -93,10 +104,21 @@ export interface CommandConfig<M extends Module> {
   description?: string;
   args: ArgDef[];
   opts?: OptDef[];
+  /**
+   * The named ways this command refuses to run, raised with `fail` and
+   * captured by scripts with `-?!> Name [$field]`. Validated and deeply
+   * frozen when the command is defined.
+   *
+   * Keep the declarations in a separate metadata file (a `defineErrors`
+   * call exported from it) and reference them here: the codegen scans a
+   * command's source for the first `description: "` / `args: [`, so an
+   * error's own description must not appear inside this config literal.
+   */
+  errors?: E;
   run(
     module: M,
     args: Record<string, any>,
-    context: CommandContext,
+    context: CommandContext<E>,
   ): Promise<Action[] | void>;
   /** Override type-driven completions for specific args or opts by name.
    *  Keys are matched against arg names first, then opt names. */
@@ -114,12 +136,26 @@ export interface CommandConfig<M extends Module> {
   experimental?: boolean;
 }
 
-export function defineCommand<M extends Module>(
-  config: CommandConfig<M>,
-): ICommand<M> {
+export function defineCommand<
+  M extends Module,
+  const E extends DeclaredErrors = NoDeclaredErrors,
+>(config: CommandConfig<M, E>): ICommand<M, E> {
   const { args: argDefs, opts: optDefs = [], run } = config;
 
   const arityMeta = prepareCommandArity(argDefs);
+
+  // Validated (and deeply frozen) once, when the command is defined: a
+  // malformed declaration must not wait for a failing run to be noticed.
+  const label = `command "${config.name}"`;
+  const errors = normalizeDeclaredErrors(
+    config.errors ?? {},
+    label,
+  ) as NormalizedDeclaredErrorsOf<E>;
+  // The normalized block carries the same names and field shapes as `E`
+  // (it only fills `fields` in), so it types `fail` exactly. It is also
+  // the block `normalizeDeclaredErrors` already validated, which
+  // `createFail` re-normalizes for free.
+  const fail = createFail<E>(errors as unknown as E, label);
 
   return {
     async run(module, c, interpreters) {
@@ -406,9 +442,13 @@ export function defineCommand<M extends Module>(
       }
 
       // 9. Call user's run function
+      // The smart `compile` faces above get no `fail`: a compile-only
+      // step has no catchable declared refusal, the same rule as helper
+      // compile faces.
       const invoke = () =>
         run(module as M, parsedArgs, {
           opts: parsedOpts,
+          fail,
           node: c,
           interpreters,
         });
@@ -432,6 +472,7 @@ export function defineCommand<M extends Module>(
     smartSupport: config.smartSupport,
     argDefs,
     optDefs,
+    errors,
     completions: config.completions,
     description: config.description,
     batchable: config.batchable,

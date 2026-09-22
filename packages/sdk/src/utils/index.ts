@@ -15,6 +15,7 @@ export * from "./compare";
 export * from "./configVars";
 export * from "./contract-source";
 export * from "./contract-verification";
+export * from "./declaredErrors";
 export * from "./defineCommand";
 export * from "./defineHelper";
 export * from "./defineModule";
