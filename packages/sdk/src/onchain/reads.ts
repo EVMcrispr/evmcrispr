@@ -69,7 +69,7 @@ async function argSpec(
  * `pickWord` unwraps one word of a multi-value return through a core
  * `pick` (the same service `directReadOperand` provides for build-time
  * calldata), so the operand stays a single word wherever it
- * nests — a constraint only inspects the first word, but a nested splice
+ * nests — a single constraint only inspects the first word, but a nested splice
  * would otherwise carry the whole returndata.
  */
 export async function callReadOperand(

@@ -20,8 +20,10 @@ export const PARAM_TYPE = { Target: 0, Value: 1, CallData: 2 } as const;
 /** How an input parameter's value is obtained (InputParamFetcherType). */
 export const FETCHER_TYPE = { RawBytes: 0, StaticCall: 1, Balance: 2 } as const;
 
-/** Inline predicate kinds (ConstraintType). Comparisons are unsigned over
- *  the resolved value's first 32-byte word. */
+/** Unsigned predicate helpers (a subset of the reference ConstraintType).
+ *  Constraint i checks resolved word i. One scalar uses one constraint;
+ *  use IN for a range. The wire also supports signed kinds (4/5/8), OR (6)
+ *  and SKIP (7), represented through Constraint.constraintType. */
 export const CONSTRAINT_TYPE = { Eq: 0, Gte: 1, Lte: 2, In: 3 } as const;
 export type ConstraintTypeName = keyof typeof CONSTRAINT_TYPE;
 
