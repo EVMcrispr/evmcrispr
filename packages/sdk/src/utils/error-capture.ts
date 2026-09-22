@@ -308,6 +308,13 @@ export async function resolveErrorCaptures(
         );
         continue;
       }
+      if (revertData === undefined && !(error instanceof RevertError)) {
+        throw new ErrorException(
+          `expected error "${capture.errorName}" but the command failed before sending a transaction: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
       throw new ErrorException(
         `expected error "${capture.errorName}" but transaction reverted with no data (empty revert / jump error)`,
       );

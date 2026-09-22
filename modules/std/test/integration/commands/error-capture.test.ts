@@ -177,6 +177,48 @@ describe("Std > commands > exec > error capture", () => {
     });
   });
 
+  // ── J. Command failures before sending ──────────────────────────────
+
+  describe("J — Command fails before sending", () => {
+    // `mint(uint256)` without its argument: exec fails while encoding.
+    it("J1: -?!> $e is true when the command refuses to run", async () => {
+      const evm = newEvm();
+      const actions = await evm.interpret(
+        `exec ${contractAddress} "mint(uint256)" -?!> $e`,
+        actionCallback,
+      );
+      expect(evm.getBinding("$e", USER)).to.equal("true");
+      expect(actions).to.deep.equal([]);
+    });
+
+    it("J2: -?!> [$reason] receives the command's message", async () => {
+      const evm = newEvm();
+      await evm.interpret(
+        `exec ${contractAddress} "mint(uint256)" -?!> [$reason]`,
+        actionCallback,
+      );
+      expect(String(evm.getBinding("$reason", USER))).to.include("encoding");
+    });
+
+    it("J3: a named error does not match a pre-send failure", async () => {
+      const evm = newEvm();
+      await evm.interpret(
+        `exec ${contractAddress} "mint(uint256)" -?!> Unauthorized() $e`,
+        actionCallback,
+      );
+      expect(evm.getBinding("$e", USER)).to.equal("false");
+      try {
+        await newEvm().interpret(
+          `exec ${contractAddress} "mint(uint256)" -!> Unauthorized()`,
+          actionCallback,
+        );
+        throw new Error("Expected to throw");
+      } catch (err: any) {
+        expect(err.message).to.include("failed before sending");
+      }
+    });
+  });
+
   // ── B. Optional -?!> ────────────────────────────────────────────────
 
   describe("B — Optional error capture (-?!>)", () => {

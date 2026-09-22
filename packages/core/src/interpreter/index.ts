@@ -672,6 +672,29 @@ export function makeExecutionResolveCommand(
       return res;
     };
 
+    /**
+     * Error captures observe a failed command: a reverted transaction, or
+     * the command refusing to run before any action exists (a failed
+     * preflight, an invalid amount, a missing argument). The second case
+     * lands here — the failure is resolved against the captures and the
+     * command yields no actions. Script errors (NodeError) and control
+     * flow never reach this point.
+     */
+    const captureCommandFailure = async (
+      c: CommandExpressionNode,
+      err: unknown,
+    ): Promise<boolean> => {
+      if (!c.errorCaptures || c.errorCaptures.length === 0) return false;
+      if (c.txCaptures && c.txCaptures.length > 0) return false;
+      await resolveErrorCaptures(
+        err,
+        undefined,
+        c.errorCaptures as ErrorCaptureNode[],
+        input.bindings,
+      );
+      return true;
+    };
+
     if (!c.module) {
       const defCmd = input.bindings.getBindingValue(
         c.name,
@@ -685,6 +708,13 @@ export function makeExecutionResolveCommand(
             ...interpreters,
             actionCallback,
           });
+        } catch (err) {
+          if (err instanceof NodeError || err instanceof ControlFlowSignal)
+            throw err;
+          if (await captureCommandFailure(c, err)) return trackBatchActions([]);
+          panic(c, (err as Error).message, err);
+        }
+        try {
           return trackBatchActions(
             await input.executeWithCaptures(c, res, actionCallback),
           );
@@ -729,14 +759,22 @@ export function makeExecutionResolveCommand(
       }
     }
 
+    // Modules dispatch on the node's name; renamed imports swap in the
+    // module-local name.
+    const localNode = localName === c.name ? c : { ...c, name: localName };
+    let res: Action[] | void;
     try {
-      // Modules dispatch on the node's name; renamed imports swap in the
-      // module-local name.
-      const localNode = localName === c.name ? c : { ...c, name: localName };
-      const res = await mod.interpretCommand(localNode, {
+      res = await mod.interpretCommand(localNode, {
         ...interpreters,
         actionCallback,
       });
+    } catch (err) {
+      if (err instanceof NodeError || err instanceof ControlFlowSignal)
+        throw err;
+      if (await captureCommandFailure(c, err)) return trackBatchActions([]);
+      panic(c, (err as Error).message, err);
+    }
+    try {
       return trackBatchActions(
         await input.executeWithCaptures(c, res, actionCallback),
       );
@@ -999,6 +1037,20 @@ export function makeExecuteWithCaptures(
     }
 
     if (!actionCallback) {
+      // Inside a collecting block (safe:execute, batch, a proposal) the
+      // actions are handed to the block instead of being sent here, so a
+      // revert cannot be observed. Optional error captures then only cover
+      // the command refusing to run (handled before this point): clear
+      // their flags and let the actions through. Anything that must observe
+      // the send itself still needs an execution context.
+      const onlyOptionalErrors =
+        !hasEventCaptures &&
+        !hasTxCaptures &&
+        (c.errorCaptures as ErrorCaptureNode[]).every((cap) => cap.optional);
+      if (onlyOptionalErrors) {
+        setBoolVarsFalse(c.errorCaptures as ErrorCaptureNode[], bindings);
+        return res;
+      }
       throw new ErrorException(
         "captures require an execution context with transaction access",
       );

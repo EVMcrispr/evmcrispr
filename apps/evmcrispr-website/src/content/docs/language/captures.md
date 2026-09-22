@@ -19,7 +19,9 @@ one.
 
 ## Error Captures
 
-Use `-!>` to catch and decode transaction reverts. After the error name you
+Use `-!>` to catch a failed command: a transaction that reverts, or a command
+that refuses to run before any transaction exists (a failed preflight, an
+amount below a protocol minimum, a missing argument). After the error name you
 can add a destructure (`[...]`), a boolean variable (`$var`), or nothing:
 
 ```evml
@@ -42,7 +44,7 @@ exec $c "doSomething()" -!> [$reason]
 exec $c "doSomething()" -!> $e
 ```
 
-Use `-?!>` if the error is optional (transaction may or may not revert).
+Use `-?!>` if the error is optional (the command may or may not fail).
 With a boolean variable, `$e` is `"true"` on match, `"false"` on success or
 mismatched error:
 
@@ -58,6 +60,23 @@ Supported error types:
 - **Error(string)**: `require(cond, "msg")` / `revert("msg")`
 - **Panic(uint256)**: `assert(cond)` failures
 - **Empty reverts**: pre-0.4.22 `revert()` with no data
+
+A command that fails before sending only matches the generic forms: `-!> $e`
+turns `"true"` and `-!> [$reason]` receives the command's own message. A
+named error never matches it, so `-?!> Unauthorized() $e` reads `"false"`
+and `-!> Unauthorized()` stops the script. This is how a loop skips the
+entries a command cannot serve:
+
+```evml novalidate
+loop $token of @token:holdings(@sender) (
+  swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?!> $skipped
+)
+```
+
+Inside a block that collects its calls into one transaction (`batch`,
+`safe:execute`, a DAO proposal) the send happens later, so `-?!>` there covers
+only the command refusing to run; a revert of the outer transaction is not
+captured. `-!>` still needs a command that sends its own transaction.
 
 ## Transaction Hash Captures
 
