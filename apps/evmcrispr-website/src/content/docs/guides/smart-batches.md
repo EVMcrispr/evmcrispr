@@ -62,7 +62,7 @@ You can capture integers, addresses, booleans, fixed-size bytes, and tuples or f
 
 Commands such as `vault:deposit` capture the protocol call's result, even when they also add approvals. A command without declared return types cannot provide a capture.
 
-Event capture keeps its existing spelling, `-> EventName(...) [...]`. The opening bracket directly after `->` selects a returned value instead. Put event, transaction-hash and required error captures on the outer batch command. Optional error captures inside the block can handle failures while preparing the script; they do not catch a contract revert and let the remaining batch continue.
+Event capture keeps its existing spelling, `-> EventName(...) [...]`. The opening bracket directly after `->` selects a returned value instead. Put event, transaction-hash and required error captures on the outer batch command; to require a revert inside the batch, assert it on-chain instead, as in `assert @reverts!(0xTarget::!{withdraw(uint256)() 100} -!> InsufficientBalance(uint256,uint256))`. Optional error captures inside the block can handle failures while preparing the script; they do not catch a contract revert and let the remaining batch continue.
 
 ## Read values during execution
 

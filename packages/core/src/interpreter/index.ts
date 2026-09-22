@@ -626,6 +626,15 @@ export function makeExecutionResolveHelper(
   };
 }
 
+/**
+ * A smart batch compiles its lines into one on-chain plan: a revert aborts
+ * the whole batch, so no inner line can observe it. Requiring a revert is
+ * an assertion instead — kept in step with the analyzer's
+ * `smart-batch-required-capture` diagnostic.
+ */
+const SMART_BATCH_REQUIRED_CAPTURE =
+  "required error captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())";
+
 function hasAnyCaptures(c: CommandExpressionNode): boolean {
   return (
     (c.eventCaptures?.length ?? 0) > 0 ||
@@ -662,11 +671,12 @@ export function makeExecutionResolveCommand(
           restoreBindings: input.bindings.checkpointLocal(BindingsSpace.USER),
         }
       : undefined;
+    if (smart && errorCaptures.some((cap) => !cap.optional)) {
+      panic(c, SMART_BATCH_REQUIRED_CAPTURE);
+    }
     if (
       smart &&
-      ((c.eventCaptures?.length ?? 0) > 0 ||
-        (c.txCaptures?.length ?? 0) > 0 ||
-        c.errorCaptures?.some((cap) => !cap.optional))
+      ((c.eventCaptures?.length ?? 0) > 0 || (c.txCaptures?.length ?? 0) > 0)
     ) {
       panic(
         c,

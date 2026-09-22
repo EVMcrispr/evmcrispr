@@ -204,7 +204,10 @@ Inside a block that collects its calls into one transaction (`batch`,
 covers the command (or its helpers) refusing to run — with either arrow — and
 lets prepared actions through. A revert of the outer transaction happens after
 the block is composed, so `-!>` cannot assert it from inside; put the required
-capture on a command that sends its own transaction.
+capture on a command that sends its own transaction. A smart batch (`batch!`)
+refuses an inner required capture for the same reason; to require a revert
+there, assert it on-chain with
+`assert @reverts!(0xTarget::!{withdraw(uint256)() 100} -!> InsufficientBalance(uint256,uint256))`.
 
 ### What stays uncapturable
 

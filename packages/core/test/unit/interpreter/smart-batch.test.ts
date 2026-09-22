@@ -181,4 +181,15 @@ describe("smart batch compiler", () => {
       "receipt-dependent",
     );
   });
+
+  it("points required error captures at assert @reverts!", async () => {
+    await expect(compile(`exec ${target} "f()" -!> Failure()`)).rejects.toThrow(
+      "required error captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())",
+    );
+    await expect(
+      compile(`exec ${target} "f()" -> [$x] $*> $txs`),
+    ).rejects.toThrow(
+      "inner receipt-dependent captures are unsupported in a smart batch; capture the outer command instead",
+    );
+  });
 });

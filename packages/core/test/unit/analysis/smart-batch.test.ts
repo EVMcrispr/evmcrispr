@@ -34,4 +34,17 @@ describe("smart batch editor diagnostics", () => {
       ).some((d) => d.code === "not-batchable"),
     ).toBe(true);
   });
+  it("rejects required error captures inside a smart batch but not optional ones", async () => {
+    const required = (
+      await diagnostics(`batch! (\nexec ${target} "x()" -!> Failure()\n)`)
+    ).filter((d) => d.code === "smart-batch-required-capture");
+    expect(required).toHaveLength(1);
+    expect(required[0]).toMatchObject({ severity: "error" });
+    expect(required[0].message).toContain("assert @reverts!(");
+    expect(
+      (await diagnostics(`batch! (\nexec ${target} "x()" -?!> $e\n)`)).some(
+        (d) => d.code === "smart-batch-required-capture",
+      ),
+    ).toBe(false);
+  });
 });

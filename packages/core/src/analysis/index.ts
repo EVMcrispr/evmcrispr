@@ -1032,6 +1032,23 @@ class SemanticAnalyzer {
     // inline calls) anywhere in the args/opt values.
     this.#checkNamedArgStructures(c);
 
+    // 8a. A required error capture on a line inside a smart batch: the
+    // batch compiles to one on-chain plan, so a revert aborts it whole and
+    // no inner line is left to observe it. Requiring one is an assertion
+    // instead. (Kept in step with the interpreter's own refusal.)
+    if (batchStack.some((frame) => frame.smart)) {
+      for (const capture of c.errorCaptures ?? []) {
+        if (capture.optional) continue;
+        this.#diagnostics.push(
+          diag(
+            capture,
+            "required error captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())",
+            "smart-batch-required-capture",
+          ),
+        );
+      }
+    }
+
     // 8. Return-capture markers in nested calls.
     this.#checkReturnCaptures(c);
     if (c.returnCapture && !batchStack.some((frame) => frame.smart)) {
