@@ -20,8 +20,15 @@ import {
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { isAddress } from "viem";
-
 import type { EvmlAST } from "../EvmlAST";
+import { collectLineDeclaredErrors } from "../errors/declarations";
+import {
+  declarationsNamed,
+  editorErrorContext,
+  editorSchemas,
+  formatDeclaredErrorCard,
+  formatDeclaredErrorsSection,
+} from "../errors/editor";
 import { createInterpreter, type InterpretCtx } from "../interpreter";
 import { parseScript } from "../parsers/script";
 import { collectScriptImports, type VariableHistory } from "../scriptWalk";
@@ -150,6 +157,7 @@ function findHelperInCache(
   returnType?: string | string[];
   description?: string;
   moduleName: string;
+  localName: string;
 } | null {
   const { module, name } = splitHelperToken(spelled);
   let owner = module ?? "std";
@@ -168,6 +176,7 @@ function findHelperInCache(
     returnType: mod.helperReturnTypes?.[localName],
     description: mod.helperDescriptions?.[localName],
     moduleName: owner,
+    localName,
   };
 }
 
@@ -208,6 +217,10 @@ function formatCommandHover(
       "\n\nUse explicit @helper! expressions and -> [$result] capture inside this block.";
   if (command.smartSupport?.reason)
     result += `\n\nSmart batches: ${command.smartSupport.reason}`;
+  const errors = formatDeclaredErrorsSection(command.errors);
+  if (errors) {
+    result += `\n\n${errors}`;
+  }
   return result;
 }
 
@@ -216,6 +229,7 @@ function formatHelperHover(
   argDefs: HelperArgDefEntry[] | undefined,
   returnType: string | string[] | undefined,
   description: string | undefined,
+  errorsSection?: string,
 ): string {
   const params = argDefs
     ? argDefs
@@ -234,6 +248,9 @@ function formatHelperHover(
   let result = `\`\`\`\n@${helperName}(${params})${ret}\n\`\`\``;
   if (description) {
     result += `\n${description}`;
+  }
+  if (errorsSection) {
+    result += `\n\n${errorsSection}`;
   }
   return result;
 }
@@ -410,11 +427,22 @@ export async function getHoverInfo(
     );
     if (!info) return null;
 
+    // An on-chain face (`@name!`) compiles into an assertion transaction:
+    // its off-chain declaration table says nothing about what the compiled
+    // code can raise, so it gets no Errors section.
+    const helperErrors = spelled.endsWith("!")
+      ? undefined
+      : await editorSchemas(moduleCache).getHelperErrors(
+          info.moduleName,
+          info.localName,
+        );
+
     const baseContents = formatHelperHover(
       spelled,
       info.argDefs,
       info.returnType,
       info.description,
+      formatDeclaredErrorsSection(helperErrors),
     );
 
     const returnsAddress = Array.isArray(info.returnType)
@@ -649,6 +677,24 @@ export async function getHoverInfo(
 
   const commandNode = ast.getCommandAtLine(position.line);
   if (!commandNode) return null;
+
+  // --- a name captured with `-!>` / `-?!>` ---
+  // The declarations the line can raise: the command's own, then those of
+  // every helper reachable in its arguments and options. A name several of
+  // them declare with different signatures gets one card per signature —
+  // the bare name is ambiguous and the script must spell one out.
+  const capture = commandNode.errorCaptures?.find(
+    (e) =>
+      e.errorName === token.value && isInside(e, position.line, position.col),
+  );
+  if (capture) {
+    const { lookup } = editorErrorContext(ast.body, moduleCache);
+    const declared = await collectLineDeclaredErrors(commandNode, lookup);
+    const cards = declarationsNamed(declared, token.value).map(
+      formatDeclaredErrorCard,
+    );
+    return cards.length > 0 ? { contents: cards } : null;
+  }
 
   if (isOnCommandName(commandNode, position.col)) {
     const resolved = await resolveCommandFromCache(

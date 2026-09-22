@@ -44,6 +44,54 @@ describe("ModuleSchemaProvider registry metadata", () => {
     });
   });
 
+  describe("getHelperErrors", () => {
+    const declaring = (errors: unknown) => {
+      const fn = async () => "ok";
+      (fn as any).errors = errors;
+      return fn;
+    };
+
+    it("resolves a declaring helper's normalized errors", async () => {
+      const errors = { NoExplorer: { description: "no explorer", fields: [] } };
+      const p = provider({
+        helpers: {
+          holdings: () => Promise.resolve(declaring(errors) as never),
+        },
+      });
+      expect(await p.getHelperErrors("mod", "holdings")).toEqual(errors as any);
+    });
+
+    it("distinguishes a helper that declares nothing from an unavailable schema", async () => {
+      const p = provider({
+        helpers: {
+          plain: () => Promise.resolve(declaring(undefined) as never),
+          broken: () => Promise.reject(new Error("boom")) as never,
+        },
+      });
+      // Resolved, declares nothing.
+      expect(await p.getHelperErrors("mod", "plain")).toEqual({});
+      // Failed to import, and unknown names: schema unavailable.
+      expect(await p.getHelperErrors("mod", "broken")).toBeUndefined();
+      expect(await p.getHelperErrors("mod", "ghost")).toBeUndefined();
+      expect(await p.getHelperErrors("ghost", "plain")).toBeUndefined();
+    });
+
+    it("imports each helper at most once", async () => {
+      let loads = 0;
+      const p = provider({
+        helpers: {
+          counted: () => {
+            loads++;
+            return Promise.resolve(declaring({}) as never);
+          },
+        },
+      });
+      await p.getHelperErrors("mod", "counted");
+      await p.getHelperErrors("mod", "counted");
+      expect(loads).toBe(1);
+    });
+  });
+
   describe("getHelperOnchain", () => {
     it("finds the `name!` sibling via the helperOnchain map", () => {
       const p = provider({

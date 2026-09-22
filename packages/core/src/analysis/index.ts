@@ -15,6 +15,7 @@ import type {
 import {
   buildArgsLengthErrorMsg,
   computeCommandArity,
+  errorSignature,
   experimentalDisabledMessage,
   isExperimentalEnabled,
   isSpecialArgType,
@@ -23,11 +24,21 @@ import {
   parseImportList,
   parseSignature,
   partitionHelperArgs,
+  selectCaptureErrorAbis,
   validateArgType,
 } from "@evmcrispr/sdk";
 
+import { isLoadCommand, lineHelpers } from "../astWalk";
 import type { ParseDiagnostic } from "../diagnostics";
+import {
+  captureStructureIssues,
+  runsBlockInline,
+} from "../errors/captureStructure";
+import type { DeclarationLookup } from "../errors/declarations";
+import { collectLineDeclaredErrors } from "../errors/declarations";
 import { parseScript } from "../parsers/script";
+import type { StaticImportRef } from "./declarations";
+import { staticDeclarationLookup } from "./declarations";
 import { ModuleSchemaProvider } from "./moduleSchemas";
 
 /** One enclosing batch context (batch / connect / forward) on the walk
@@ -117,6 +128,14 @@ function experimentalModuleDiag(name: string, node: Node): ParseDiagnostic {
   );
 }
 
+/** One ABI error item, as the capture resolver hands them out. */
+type CaptureAbi = ReturnType<typeof selectCaptureErrorAbis>[number];
+
+/** The SDK's own messages start lowercase; analyzer messages don't. */
+function capitalize(message: string): string {
+  return message.charAt(0).toUpperCase() + message.slice(1);
+}
+
 function didYouMean(word: string, candidates: Iterable<string>): string {
   const s = suggest(word, candidates);
   return s ? ` Did you mean "${s}"?` : "";
@@ -148,33 +167,6 @@ function collectVariableUses(node: Node, out: string[]): void {
     }
     case NodeType.NamedArg:
       collectVariableUses((node as any).value as Node, out);
-      break;
-    default:
-      break;
-  }
-}
-
-/** Every helper node reachable inside an argument expression. */
-function collectHelpers(node: Node, out: HelperFunctionNode[]): void {
-  switch (node.type) {
-    case NodeType.HelperFunctionExpression: {
-      const h = node as HelperFunctionNode;
-      out.push(h);
-      for (const a of h.args) collectHelpers(a, out);
-      break;
-    }
-    case NodeType.ArrayExpression:
-      for (const el of (node as any).elements as Node[])
-        collectHelpers(el, out);
-      break;
-    case NodeType.CallExpression: {
-      const call = node as CallExpressionNode;
-      collectHelpers(call.target, out);
-      for (const a of call.args) collectHelpers(a, out);
-      break;
-    }
-    case NodeType.NamedArg:
-      collectHelpers((node as any).value as Node, out);
       break;
     default:
       break;
@@ -251,10 +243,6 @@ function hasCaptureMarker(slots: DestructureSlot[]): boolean {
 
 function isDefCommand(c: CommandExpressionNode): boolean {
   return (c.module ?? "std") === "std" && c.name === "def";
-}
-
-function isLoadCommand(c: CommandExpressionNode): boolean {
-  return (c.module ?? "std") === "std" && c.name === "load";
 }
 
 /** `def module <name> ( ...defs )` — an inline EVML module definition. */
@@ -365,11 +353,9 @@ function isVariableDef(type: ArgType): boolean {
   return Array.isArray(type) ? type.includes("variable") : type === "variable";
 }
 
-interface ImportRef {
-  module: string;
-  /** The export's local name on the module (before any `>` rename). */
-  sourceName: string;
-}
+/** A `load` import binding — the shape the static declaration lookup
+ *  reads (`analysis/declarations.ts`). */
+type ImportRef = StaticImportRef;
 
 interface AnalyzerMeta {
   /** bound name -> module command import (from `load m [cmd cmd>bound]`). */
@@ -404,8 +390,13 @@ class SemanticAnalyzer {
     collidingModules: new Set(),
   };
 
+  /** Resolves the definitions a line names, offline (see
+   *  `analysis/declarations.ts`). Reads `#meta` as it fills up. */
+  #declarations: DeclarationLookup;
+
   constructor(schemas: ModuleSchemaProvider) {
     this.#schemas = schemas;
+    this.#declarations = staticDeclarationLookup(schemas, this.#meta);
   }
 
   async analyze(body: CommandExpressionNode[]): Promise<ParseDiagnostic[]> {
@@ -1029,6 +1020,11 @@ class SemanticAnalyzer {
     // 7. Helpers anywhere in the args (module-agnostic resolution).
     await this.#checkHelpers(c, batchStack);
 
+    // 7a. Declared-error captures, against the union the command and its
+    // helpers declare. Runs after resolution and for every command — one
+    // that takes an abi signature can still fail through its helpers.
+    await this.#checkErrorCaptures(c);
+
     // 7b. Malformed hex/address literals anywhere in the args.
     this.#checkMalformedHexLiterals(c);
 
@@ -1594,17 +1590,7 @@ class SemanticAnalyzer {
     c: CommandExpressionNode,
     batchStack: BatchFrame[],
   ): Promise<void> {
-    const helpers: HelperFunctionNode[] = [];
-    // A load command's import list contains bare helper *names*, not
-    // invocations — skip it.
-    const skipNode = isLoadCommand(c) ? c.args[1] : undefined;
-    for (const arg of c.args) {
-      if (arg === skipNode) continue;
-      collectHelpers(arg, helpers);
-    }
-    for (const opt of c.opts) collectHelpers(opt.value, helpers);
-
-    for (const h of helpers) {
+    for (const h of lineHelpers(c)) {
       if (h.rename) {
         this.#diagnostics.push(
           diag(
@@ -1947,51 +1933,97 @@ class SemanticAnalyzer {
 
   /** Structural validation shared by all capture kinds (`->`, `-!>`, `$>`, `$*>`). */
   #checkCaptures(c: CommandExpressionNode, owningModule: string): void {
-    const txCaps = c.txCaptures ?? [];
-    const hasCaptures =
-      (c.eventCaptures?.length ?? 0) > 0 ||
-      (c.errorCaptures?.length ?? 0) > 0 ||
-      txCaps.length > 0;
-    if (!hasCaptures) return;
-
     // `if`/`loop` (and def commands) execute their inner transactions
     // while interpreting the block. Event and tx captures still work —
     // the interpreter reuses the recorded receipts — but error captures
     // observe the send itself, which already happened: an inner revert
     // propagates before the outer boundary is reached.
-    const isBlockish =
-      (owningModule === "std" &&
-        (c.name === "if" || c.name === "loop") &&
-        this.#blocks(c).length > 0) ||
+    const blockCommand =
+      runsBlockInline(owningModule, c.name, c) ||
       (!c.module && this.#meta.defCommands.has(c.name));
-    if (isBlockish && (c.errorCaptures?.length ?? 0) > 0) {
-      this.#diagnostics.push(
-        diag(
-          c.errorCaptures?.[0] ?? c,
-          `Error captures are not supported on "${c.name}" — its transactions execute inside the block; capture on the inner commands instead.`,
-          "capture-on-block-command",
-        ),
-      );
+    for (const issue of captureStructureIssues(c, { blockCommand })) {
+      this.#diagnostics.push(diag(issue.node, issue.message, issue.code));
     }
+  }
 
-    if (txCaps.length > 0 && (c.errorCaptures?.length ?? 0) > 0) {
-      this.#diagnostics.push(
-        diag(
-          txCaps[0],
-          "Tx captures ($>, $*>) cannot be combined with error captures (-!>, -?!>) — a reverted transaction has no meaningful hash to capture.",
-          "tx-capture-with-error-capture",
-        ),
-      );
-    }
+  /**
+   * Declared-error checks for a line's `-!>` / `-?!>` clauses. The names a
+   * clause may use are the command's declarations plus those of every
+   * helper reachable in its arguments and options — the same union the
+   * interpreter resolves against, gathered offline.
+   *
+   * That union is *not* an exhaustive account of how a line can fail: a
+   * command may also revert a contract whose ABI the analyzer never sees.
+   * So an unrecognized name is at most a warning, and only when a
+   * declaration is close enough to look like the intended one. What the
+   * declarations do decide is errors: a bare name the union declares twice
+   * cannot be resolved at all, and a destructure wider than the signature
+   * a clause resolves to can only fail.
+   */
+  async #checkErrorCaptures(c: CommandExpressionNode): Promise<void> {
+    const captures = c.errorCaptures ?? [];
+    if (captures.length === 0) return;
 
-    for (const all of [false, true]) {
-      const sameForm = txCaps.filter((t) => t.all === all);
-      if (sameForm.length > 1) {
+    const declared = await collectLineDeclaredErrors(c, this.#declarations);
+
+    for (const capture of captures) {
+      const { errorName } = capture;
+      // A generic clause names no error: it matches whatever failed.
+      if (!errorName) continue;
+
+      let abis: readonly CaptureAbi[];
+      try {
+        abis = selectCaptureErrorAbis(capture, { declared });
+      } catch (err) {
+        // The resolver's own verdict, with its own message: an ambiguous
+        // bare name, or an inline signature that is not valid ABI.
         this.#diagnostics.push(
           diag(
-            sameForm[1],
-            `Duplicate "${all ? "$*>" : "$>"}" capture — each tx-capture form may appear at most once per command.`,
-            "duplicate-tx-capture",
+            capture,
+            capitalize((err as Error).message),
+            capture.errorParams != null
+              ? "invalid-error-signature"
+              : "ambiguous-declared-error",
+          ),
+        );
+        continue;
+      }
+
+      if (abis.length === 0) {
+        // Nothing on this line declares the name and it is no builtin.
+        // Offline that is not proof of a mistake — unless a declared name
+        // is one typo away.
+        const hint = didYouMean(
+          errorName,
+          declared.map((entry) => entry.name),
+        );
+        if (hint) {
+          this.#diagnostics.push(
+            diag(
+              capture,
+              `No error "${errorName}" is declared by this command or its helpers.${hint}`,
+              "unknown-declared-error",
+              "warning",
+            ),
+          );
+        }
+        continue;
+      }
+
+      const abi = abis[0];
+      // Trailing holes bind nothing, and the runtime skips them before it
+      // bounds-checks, so they cost no field. Width is the last bound slot.
+      const slots = capture.captures.findLastIndex((s) => s !== null) + 1;
+      if (slots > abi.inputs.length) {
+        this.#diagnostics.push(
+          diag(
+            capture,
+            `Error capture destructures ${slots} values, but ${errorSignature(
+              abi,
+            )} has ${abi.inputs.length} field${
+              abi.inputs.length === 1 ? "" : "s"
+            }.`,
+            "error-capture-destructure",
           ),
         );
       }

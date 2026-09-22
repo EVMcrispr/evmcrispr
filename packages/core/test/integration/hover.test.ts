@@ -1,7 +1,9 @@
 import "../setup";
 import { describe, it } from "bun:test";
-import { expect } from "@evmcrispr/test-utils";
+import { expect, getTransports } from "@evmcrispr/test-utils";
 import { TestContext } from "@evmcrispr/test-utils/evml";
+import type { Transport } from "viem";
+import { gnosis } from "viem/chains";
 import { evml, Module, type ModuleContext } from "../../src";
 
 describe("Core > hover", () => {
@@ -570,6 +572,150 @@ describe("Core > hover", () => {
       const text = result!.contents.join("\n");
       expect(text).to.include("Default:");
       expect(text).to.include("api.evmcrispr.com/tokenlist/{chainId}");
+    });
+  });
+
+  describe("over declared errors", () => {
+    /** Column of the first occurrence of `token` on the given line. */
+    const colOf = (script: string, line: number, token: string) =>
+      script.split("\n")[line - 1].indexOf(token) + 1;
+
+    it("lists a command's declared errors on its card", async () => {
+      const script = "load coretest\ncoretest:risky";
+      const result = await ctx.hover(script, { line: 2, col: 2 });
+      expect(result).to.not.be.null;
+      const text = result!.contents.join("\n");
+      expect(text).to.include("**Errors**");
+      expect(text).to.include("BelowMinimum(uint256)");
+      expect(text).to.include(
+        "A part is worth less than the minimum order value",
+      );
+      expect(text).to.include("SameToken()");
+    });
+
+    it("lists a helper's declared errors on its card", async () => {
+      const script = "load coretest\nprint @coretest:hfail()";
+      const result = await ctx.hover(script, {
+        line: 2,
+        col: colOf(script, 2, "@coretest:hfail"),
+      });
+      expect(result).to.not.be.null;
+      const text = result!.contents.join("\n");
+      expect(text).to.include("**Errors**");
+      expect(text).to.include("NoExplorer(uint256)");
+      expect(text).to.include("The chain has no supported explorer");
+    });
+
+    it("leaves a card without declarations unchanged", async () => {
+      const result = await ctx.hover("set $x 1", { line: 1, col: 1 });
+      expect(result).to.not.be.null;
+      expect(result!.contents.join("\n")).to.not.include("**Errors**");
+    });
+
+    it("describes a captured name declared by the command", async () => {
+      const script = "load coretest\ncoretest:risky -!> BelowMinimum [$min]";
+      const result = await ctx.hover(script, {
+        line: 2,
+        col: colOf(script, 2, "BelowMinimum"),
+      });
+      expect(result).to.not.be.null;
+      const text = result!.contents.join("\n");
+      expect(text).to.include("**Error**");
+      expect(text).to.include("BelowMinimum(uint256)");
+      expect(text).to.include("coretest:risky");
+      expect(text).to.include(
+        "A part is worth less than the minimum order value",
+      );
+      // Field table
+      expect(text).to.include("minimum");
+      expect(text).to.include("uint256");
+    });
+
+    it("describes a captured name declared by a helper, under either arrow", async () => {
+      for (const arrow of ["-!>", "-?!>"]) {
+        const script = `load coretest\ncoretest:risky @coretest:hfail() ${arrow} NoExplorer`;
+        const result = await ctx.hover(script, {
+          line: 2,
+          col: colOf(script, 2, "NoExplorer"),
+        });
+        expect(result, `no card after ${arrow}`).to.not.be.null;
+        const text = result!.contents.join("\n");
+        expect(text).to.include("NoExplorer(uint256)");
+        expect(text).to.include("@coretest:hfail");
+        expect(text).to.include("chain");
+      }
+    });
+
+    it("shows every declaration of an ambiguous captured name", async () => {
+      const script =
+        "load coretest\ncoretest:risky @coretest:hfail() -!> Shared";
+      const result = await ctx.hover(script, {
+        line: 2,
+        col: colOf(script, 2, "-!> Shared") + 4,
+      });
+      expect(result).to.not.be.null;
+      const text = result!.contents.join("\n");
+      expect(text).to.include("Shared(uint256)");
+      expect(text).to.include("Shared()");
+    });
+
+    it("asks nothing of the network, cold or warm", async () => {
+      // Count both routes a hover could take out: `fetch` (the ABI and
+      // explorer endpoints, and viem's http transport) and the viem
+      // transports the workspace was built with.
+      let requests = 0;
+      const transports: Record<number, Transport> = {};
+      for (const [id, transport] of Object.entries(getTransports())) {
+        transports[Number(id)] = ((config: never) => {
+          const instance = (transport as Transport)(config);
+          return {
+            ...instance,
+            request: async (args: never) => {
+              requests++;
+              return instance.request(args);
+            },
+          };
+        }) as Transport;
+      }
+      const workspace = evml
+        .with({ chainId: gnosis.id, transports })
+        .workspace();
+      const script =
+        "load coretest\ncoretest:risky @coretest:hfail() -!> NoExplorer";
+      const position = {
+        line: 2,
+        col: colOf(script, 2, "NoExplorer"),
+      };
+
+      const offline = async (label: string) => {
+        const originalFetch = globalThis.fetch;
+        let fetches = 0;
+        requests = 0;
+        globalThis.fetch = ((...args: Parameters<typeof fetch>) => {
+          fetches++;
+          return originalFetch(...args);
+        }) as typeof fetch;
+        try {
+          const result = await workspace.getHoverInfo(script, position);
+          expect(result, label).to.not.be.null;
+          expect(fetches, `${label}: hover fetched over HTTP`).to.equal(0);
+          expect(requests, `${label}: hover made an RPC request`).to.equal(0);
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      };
+
+      await offline("cold cache");
+      await offline("warm cache");
+    });
+
+    it("returns nothing for a name no declaration covers", async () => {
+      const script = "load coretest\ncoretest:risky -!> Whatever";
+      const result = await ctx.hover(script, {
+        line: 2,
+        col: colOf(script, 2, "Whatever"),
+      });
+      expect(result).to.be.null;
     });
   });
 

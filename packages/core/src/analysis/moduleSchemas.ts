@@ -7,6 +7,7 @@ import type {
   ModuleBinding,
   ModuleData,
   NoNullableBinding,
+  NormalizedDeclaredErrors,
 } from "@evmcrispr/sdk";
 import { BindingsSpace, resolveCommand, resolveHelper } from "@evmcrispr/sdk";
 
@@ -25,6 +26,7 @@ export class ModuleSchemaProvider {
   #modules = new Map<string, ModuleData>();
   #commandCache = new Map<string, ICommand | undefined>();
   #helperBatchableCache = new Map<string, boolean | undefined>();
+  #helperErrorsCache = new Map<string, NormalizedDeclaredErrors | undefined>();
   readonly #registered: Set<string>;
   readonly #experimentalModules: Set<string>;
 
@@ -213,6 +215,37 @@ export class ModuleSchemaProvider {
     }
     this.#helperBatchableCache.set(key, batchable);
     return batchable;
+  }
+
+  /** The declared errors of `moduleName`'s helper `name`. Helper metadata
+   *  lives on the definition, not in the registry, so this imports the
+   *  helper module locally (never over the network) and memoizes it.
+   *
+   *  `undefined` means the schema is *unavailable* — no such helper, or its
+   *  definition failed to import; a helper that declares nothing resolves
+   *  to an empty record. Diagnostics depend on that difference: an
+   *  unavailable schema must not be read as "declares nothing". */
+  async getHelperErrors(
+    moduleName: string,
+    name: string,
+  ): Promise<NormalizedDeclaredErrors | undefined> {
+    const key = `${moduleName}:${name}`;
+    if (this.#helperErrorsCache.has(key)) {
+      return this.#helperErrorsCache.get(key);
+    }
+    const loader = this.#modules.get(moduleName)?.helpers[name];
+    let errors: NormalizedDeclaredErrors | undefined;
+    if (loader) {
+      try {
+        // Hand-built helpers (EVML-defined modules) carry no `errors`;
+        // they resolved, so they declare nothing.
+        errors = (await resolveHelper(loader)).errors ?? {};
+      } catch {
+        errors = undefined;
+      }
+    }
+    this.#helperErrorsCache.set(key, errors);
+    return errors;
   }
 
   /** Whether `moduleName`'s helper `name` has an on-chain face — a `name!`

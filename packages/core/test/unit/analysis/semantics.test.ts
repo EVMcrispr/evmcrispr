@@ -65,6 +65,36 @@ class StubModule extends Module {
           ],
           run: async () => [],
         }),
+        // Declares errors; its optional argument is where a declaring
+        // helper goes when a test needs both owners on one line.
+        risky: defineCommand({
+          name: "risky",
+          args: [{ name: "value", type: "any", optional: true }],
+          errors: {
+            BelowMinimum: {
+              description: "Amount below the minimum",
+              fields: [{ name: "minimum", type: "number" }],
+            },
+            SameToken: { description: "Both sides are the same token" },
+            Shared: {
+              description: "Declared by the command with a code",
+              fields: [{ name: "code", type: "number" }],
+            },
+            Twin: { description: "Declared identically by both owners" },
+          },
+          run: async () => [],
+        }),
+        // Takes a write-abi argument: it can raise contract errors, which
+        // must not disable the declaration checks on its helpers.
+        abicall: defineCommand({
+          name: "abicall",
+          args: [
+            { name: "target", type: "address" },
+            { name: "signature", type: "write-abi" },
+            { name: "params", type: "any", rest: true },
+          ],
+          run: async () => [],
+        }),
       },
       {
         htwo: defineHelper({
@@ -106,6 +136,28 @@ class StubModule extends Module {
           args: [],
           run: async () => "ok",
         }),
+        // Declares errors of its own; `Shared` collides with the command's
+        // same-named declaration, `Twin` is identical to it.
+        hfail: defineHelper({
+          name: "hfail",
+          args: [],
+          errors: {
+            NoExplorer: {
+              description: "The chain has no supported explorer",
+              fields: [{ name: "chain", type: "number" }],
+            },
+            Failure: {
+              description: "The helper refused",
+              fields: [
+                { name: "first", type: "number" },
+                { name: "second", type: "number" },
+              ],
+            },
+            Shared: { description: "Declared by the helper without fields" },
+            Twin: { description: "Declared identically by both owners" },
+          },
+          run: async () => "ok",
+        }),
       },
       {
         htwo: "string",
@@ -113,14 +165,23 @@ class StubModule extends Module {
         "hnob!": "string",
         hopt: "string",
         hmeta: "string",
+        hfail: "string",
       },
-      { htwo: true, hnob: false, "hnob!": false, hopt: true, hmeta: false },
+      {
+        htwo: true,
+        hnob: false,
+        "hnob!": false,
+        hopt: true,
+        hmeta: false,
+        hfail: false,
+      },
       {
         htwo: [
           { name: "a", type: "string" },
           { name: "b", type: "string" },
         ],
         hnob: [],
+        hfail: [],
         hopt: [
           { name: "a", type: "string" },
           { name: "b", type: "string", optional: true },
@@ -886,6 +947,181 @@ print @x:whatever(5)`,
 
       const ok = await semantic("load stub\nstub:needtwo a b $> $a $*> $b");
       expect(codes(ok)).to.not.include("duplicate-tx-capture");
+    });
+  });
+
+  describe("declared error captures", () => {
+    const DECLARATION_CODES = [
+      "unknown-declared-error",
+      "ambiguous-declared-error",
+      "invalid-error-signature",
+      "error-capture-destructure",
+    ];
+    const declarationCodes = (ds: ParseDiagnostic[]): string[] =>
+      codes(ds).filter((c) => DECLARATION_CODES.includes(c));
+
+    it("accepts a declared name, with and without a destructure", async () => {
+      expect(await semantic("load stub\nstub:risky -?!> SameToken")).to.be
+        .empty;
+      expect(await semantic("load stub\nstub:risky -!> BelowMinimum [$min]")).to
+        .be.empty;
+    });
+
+    it("warns with a did-you-mean on a near-miss name", async () => {
+      const ds = await semantic("load stub\nstub:risky -?!> BelowMinimun");
+      const d = ds.find((x) => x.code === "unknown-declared-error");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("warning");
+      expect(d!.message).to.match(/Did you mean "BelowMinimum"/);
+    });
+
+    it("stays silent on an unknown name with no close declaration", async () => {
+      // Declarations are not exhaustive: the command may raise a contract
+      // error the analyzer cannot see.
+      expect(await semantic("load stub\nstub:risky -?!> Unauthorized")).to.be
+        .empty;
+    });
+
+    it("accepts an explicit signature without a matching declaration", async () => {
+      expect(await semantic("load stub\nstub:risky -?!> Unauthorized(address)"))
+        .to.be.empty;
+      expect(await semantic("load stub\nstub:risky -!> Error(string) [$why]"))
+        .to.be.empty;
+    });
+
+    it("checks an explicit signature against its own fields", async () => {
+      // Same name as the fieldless declaration, different signature: the
+      // inline one wins and one slot fits it.
+      expect(
+        await semantic("load stub\nstub:risky -!> SameToken(uint256) [$a]"),
+      ).to.be.empty;
+
+      const ds = await semantic(
+        "load stub\nstub:risky -!> SameToken(uint256) [$a $b]",
+      );
+      const d = ds.find((x) => x.code === "error-capture-destructure");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(d!.message).to.match(/SameToken\(uint256\)/);
+    });
+
+    it("flags a malformed inline signature", async () => {
+      const ds = await semantic("load stub\nstub:risky -?!> Weird(notatype)");
+      const d = ds.find((x) => x.code === "invalid-error-signature");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+    });
+
+    it("flags a destructure wider than the declared signature", async () => {
+      const ds = await semantic(
+        "load stub\nstub:risky -!> BelowMinimum [$min $extra]",
+      );
+      const d = ds.find((x) => x.code === "error-capture-destructure");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(d!.message).to.match(/BelowMinimum\(uint256\)/);
+    });
+
+    it("accepts trailing holes past the declared fields", async () => {
+      // The runtime skips holes before bounds-checking, so a trailing `_`
+      // binds nothing and costs no field.
+      expect(await semantic("load stub\nstub:risky -!> BelowMinimum [$min _]"))
+        .to.be.empty;
+      expect(await semantic("load stub\nstub:risky -!> SameToken [_]")).to.be
+        .empty;
+    });
+
+    it("sees a helper's declarations under either arrow", async () => {
+      expect(await semantic("load stub\nset $x @stub:hfail -?!> NoExplorer")).to
+        .be.empty;
+      expect(
+        await semantic("load stub\nset $x @stub:hfail -!> NoExplorer [$chain]"),
+      ).to.be.empty;
+      // Binding a field straight into the assignment target.
+      expect(await semantic("load stub\nset $x @stub:hfail -!> Failure [_ $x]"))
+        .to.be.empty;
+
+      const ds = await semantic(
+        "load stub\nset $x @stub:hfail -!> NoExplorer [$chain $extra]",
+      );
+      expect(declarationCodes(ds)).to.deep.equal(["error-capture-destructure"]);
+    });
+
+    it("finds a helper nested in an array and in an option value", async () => {
+      expect(
+        await semantic("load stub\nset $x [1 @stub:hfail] -?!> NoExplorer"),
+      ).to.be.empty;
+      const ds = await semantic(
+        "load stub\nstub:optone --foo @stub:hfail -?!> NoExplorre",
+      );
+      const d = ds.find((x) => x.code === "unknown-declared-error");
+      expect(d).to.exist;
+      expect(d!.message).to.match(/Did you mean "NoExplorer"/);
+    });
+
+    it("flags an ambiguous bare name declared by both owners", async () => {
+      const ds = await semantic(
+        "load stub\nstub:risky @stub:hfail -?!> Shared",
+      );
+      const d = ds.find((x) => x.code === "ambiguous-declared-error");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(d!.message).to.match(/more than one signature/);
+    });
+
+    it("accepts the inline signature that resolves an ambiguous name", async () => {
+      expect(
+        await semantic(
+          "load stub\nstub:risky @stub:hfail -?!> Shared(uint256) [$code]",
+        ),
+      ).to.be.empty;
+      expect(await semantic("load stub\nstub:risky @stub:hfail -?!> Shared()"))
+        .to.be.empty;
+    });
+
+    it("accepts a signature declared identically by both owners", async () => {
+      expect(await semantic("load stub\nstub:risky @stub:hfail -!> Twin")).to.be
+        .empty;
+    });
+
+    it("checks helpers on a command that takes an abi signature", async () => {
+      const ds = await semantic(
+        'load stub\nstub:abicall 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 "transfer(address,uint256)" @stub:hfail 1 -?!> NoExplorre',
+      );
+      const d = ds.find((x) => x.code === "unknown-declared-error");
+      expect(d).to.exist;
+      expect(d!.message).to.match(/Did you mean "NoExplorer"/);
+    });
+
+    it("says nothing about declarations when the schema is unavailable", async () => {
+      // Unknown module, unknown command and an opaque def command each
+      // leave the line's declaration set unknown, not empty.
+      expect(
+        declarationCodes(await semantic("ghost:thing -?!> Whatever [$a $b]")),
+      ).to.be.empty;
+      expect(
+        declarationCodes(
+          await semantic("load stub\nstub:nosuch -?!> Whatever [$a $b]"),
+        ),
+      ).to.be.empty;
+
+      const defDs = await semantic(
+        'def go "()" (\n  set $x 5\n)\ngo -!> Whatever [$a $b]',
+      );
+      expect(codes(defDs)).to.include("capture-on-block-command");
+      expect(declarationCodes(defDs)).to.be.empty;
+    });
+
+    it("keeps the structural checks on a declaring command", async () => {
+      const ds = await semantic(
+        "load stub\nstub:risky $> $tx -!> BelowMinimum [$min]",
+      );
+      expect(codes(ds)).to.include("tx-capture-with-error-capture");
+    });
+
+    it("says nothing about a generic clause", async () => {
+      expect(await semantic("load stub\nstub:risky -?!> $failed")).to.be.empty;
+      expect(await semantic("load stub\nstub:risky -!> [$reason]")).to.be.empty;
     });
   });
 });

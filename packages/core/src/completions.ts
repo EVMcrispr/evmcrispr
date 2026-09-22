@@ -32,8 +32,14 @@ import {
 } from "@evmcrispr/sdk";
 import type { PublicClient, Transport } from "viem";
 import { mainnet } from "viem/chains";
-
 import type { EvmlAST } from "./EvmlAST";
+import { collectLineDeclaredErrors } from "./errors/declarations";
+import {
+  cachedTargetAbi,
+  editorErrorContext,
+  errorCaptureCompletionItems,
+  findCaptureNamePosition,
+} from "./errors/editor";
 import { parseScript } from "./parsers/script";
 import {
   applyLoadImports,
@@ -359,6 +365,26 @@ export async function getCompletions(
   // (e.g. Solidity) — EVML suggestions there are pure noise.
   if (isInsideHeredoc(scriptLines, position.line)) return [];
 
+  // An error name being typed after `-!>` / `-?!>` on this line. The clause
+  // does not parse while its name is missing, so the command node comes
+  // from the text before the arrow; a head that is not a command means the
+  // arrow was not one (a mid-edit line), and the ordinary paths apply.
+  const capturePos = findCaptureNamePosition(currentLineContent, position.col);
+  let captureCommandNode: CommandExpressionNode | undefined;
+  if (capturePos) {
+    try {
+      const head = currentLineContent.slice(0, capturePos.arrowStart);
+      const { ast } = parseScript(
+        [...Array.from({ length: position.line - 1 }, () => ""), head].join(
+          "\n",
+        ),
+      );
+      captureCommandNode = ast.getCommandAtLine(position.line);
+    } catch {
+      /* not a capture clause after all */
+    }
+  }
+
   let fullAST: EvmlAST | undefined;
   try {
     const result = parseScript(script);
@@ -570,6 +596,25 @@ export async function getCompletions(
     state,
     resolveNode,
   );
+
+  // Error-capture completions: what the line itself declares (the command
+  // first, then every helper reachable in its arguments and options), the
+  // Solidity builtins, and the custom errors of a target contract whose
+  // ABI the editor already holds. Nothing here goes on the network.
+  if (captureCommandNode) {
+    const { lookup } = editorErrorContext(fullAST?.body ?? [], moduleCache);
+    const declared = await collectLineDeclaredErrors(
+      captureCommandNode,
+      lookup,
+    );
+    const abi = cachedTargetAbi(
+      captureCommandNode,
+      bindings,
+      moduleCache,
+      state.chainId,
+    );
+    return errorCaptureCompletionItems(declared, abi);
+  }
 
   // Also walk the current command to populate bindings for its own completions
   // (e.g. grant's role arg needs to resolve the grantee and app args first)
