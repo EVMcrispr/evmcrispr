@@ -768,7 +768,11 @@ describe("failureTiming", () => {
   });
 });
 
-describe("resolveErrorCaptures — the two timings never cross", () => {
+// The interpreter decides which family a failure is routed to: a revert
+// clause refuses anything that did not come from the chain, while a
+// refusal clause takes whatever it is handed — including a read that
+// reverted while the line's arguments were being evaluated.
+describe("resolveErrorCaptures — timing", () => {
   const sameTokenRevert = () =>
     new RevertError(
       "Transaction reverted",
@@ -821,23 +825,43 @@ describe("resolveErrorCaptures — the two timings never cross", () => {
     expect(value("$why")).toBe("nope");
   });
 
-  it("does not match a revert with a refusal clause", async () => {
+  it("matches a pre-send read revert with an inline refusal clause", async () => {
+    // A view call that reverted while the line's arguments were evaluated:
+    // the line never sent anything, so it is the refusal family's failure.
     const err = reasonRevert();
-    const { result } = run(err, [
+    const { result, value } = run(err, [
       capture(
         { errorName: "Error", errorParams: ["string"], captures: ["why"] },
         "refusal",
       ),
     ]);
-    expect(await caught(result)).toBe(err);
+    await result;
+    expect(value("$why")).toBe("nope");
   });
 
-  it("does not match a contract revert with a refusal clause", async () => {
+  it("matches a pre-send read revert whose selector equals a declared name", async () => {
     const err = sameTokenRevert();
-    const { result } = run(
+    const { result, value } = run(
       err,
       [capture({ errorName: "SameToken", boolVar: "same" }, "refusal")],
       { declared: COMMAND_ONLY },
+    );
+    await result;
+    expect(value("$same")).toBe("true");
+  });
+
+  it("still resolves a refusal name in the declared union alone", async () => {
+    // `Dup` is only in the contract ABI, so the refusal clause has nothing
+    // to decode with even though the payload would match.
+    const abi = parseAbi(["error Dup()"]) as Abi;
+    const err = new RevertError(
+      "Transaction reverted",
+      encodeErrorResult({ abi, errorName: "Dup" }),
+    );
+    const { result } = run(
+      err,
+      [capture({ errorName: "Dup", boolVar: "dup" }, "refusal")],
+      { abi, declared: COMMAND_ONLY },
     );
     expect(await caught(result)).toBe(err);
   });
@@ -860,6 +884,14 @@ describe("resolveErrorCaptures — the two timings never cross", () => {
     ]);
     await result;
     expect(value("$reason")).toBe("no explorer for gnosis");
+  });
+
+  it("binds a pre-send read revert's decoded reason to a generic refusal clause", async () => {
+    const { result, value } = run(reasonRevert(), [
+      capture({ captures: ["reason"] }, "refusal"),
+    ]);
+    await result;
+    expect(value("$reason")).toBe("nope");
   });
 
   it("binds a revert's decoded reason to a generic revert clause", async () => {

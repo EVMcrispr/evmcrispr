@@ -31,17 +31,23 @@ export {
 } from "./error-signatures";
 
 /**
- * When a failure happened, in the terms a capture clause is written in.
+ * What the failure looks like: a chain failure — a revert reported by the
+ * provider, or our own {@link RevertError}, anywhere in a bounded `cause`
+ * chain — is `"revert"`; anything else is `"refusal"`, a `DeclaredError`
+ * included (it carries ABI-encoded `revertData` so it decodes like a
+ * custom error, but it is a module's own off-chain refusal).
  *
- * A chain failure — a revert reported by the provider, or our own
- * {@link RevertError}, anywhere in a bounded `cause` chain — is a
- * `"revert"`: the transaction was sent and the chain rejected it.
- * Everything else failed before anything was sent and is a `"refusal"`,
- * including a `DeclaredError`: it carries ABI-encoded `revertData` so it
- * decodes like a custom error, but it is a module's own off-chain refusal.
+ * This is the shape of a failure, not the phase it happened in: the
+ * interpreter decides which family a failure is routed to, and a chain
+ * failure can still reach a refusal clause when a read reverted while the
+ * line's arguments were being evaluated. Only the revert family reads this
+ * verdict, to refuse a failure that never reached the chain.
  */
 export function failureTiming(error: unknown): ErrorCaptureNode["timing"] {
   if (isChainFailure(error)) return "revert";
+  // `isChainFailure` matches on `error.name` over 10 links, so a
+  // `RevertError` subclass that renames itself slips past it; the walk
+  // below catches it by identity, over the shared `MAX_CAUSE_DEPTH`.
   const seen = new Set<unknown>();
   let current: unknown = error;
   for (let depth = 0; current && depth < MAX_CAUSE_DEPTH; depth++) {
@@ -319,11 +325,14 @@ function genericOutcome(
  * whole list is evaluated before anything is published, so an unmatched
  * failure leaves no partial captures behind.
  *
- * A clause only ever sees a failure of its own timing: a refusal clause
- * never matches a revert, and a revert clause never matches a refusal —
- * not even a `DeclaredError`, whose `revertData` would otherwise decode.
- * That verdict comes first, for named and generic clauses alike, so a
- * clause of the other timing is a plain mismatch and not a script error.
+ * Timing is asymmetric, because the caller's routing already carries the
+ * phase. A revert clause additionally checks the failure's shape and never
+ * matches one that did not come from the chain — not even a
+ * `DeclaredError`, whose `revertData` would otherwise decode. A refusal
+ * clause checks nothing: whatever the interpreter routed here failed
+ * before sending, a chain-shaped failure included (a read that reverted
+ * while the line's arguments were evaluated), and a named refusal clause
+ * still only resolves in the declared union.
  *
  * Throws only for a script error (a malformed inline signature, an
  * ambiguous bare name). An unavailable name or an undecodable payload is
@@ -334,11 +343,13 @@ function evaluateClause(
   failure: Failure,
   sources: ErrorCaptureSources | undefined,
 ): ClauseOutcome {
-  if (failure.timing !== capture.timing) return noMatch(capture);
+  if (capture.timing === "revert" && failure.timing !== "revert") {
+    return noMatch(capture);
+  }
   if (!capture.errorName) return genericOutcome(capture, failure);
 
-  // Selection first, and unconditionally: a capture the script cannot
-  // resolve at all is a script error whatever the failure looks like.
+  // Selection before the payload is looked at: a capture the script cannot
+  // resolve at all is a script error whatever the failure carries.
   const candidates = selectCaptureErrorAbis(capture, sources);
   if (!failure.revertData || failure.revertData === "0x") {
     return noMatch(capture);
@@ -388,9 +399,11 @@ function applyClause(
  *
  * Timing: the caller passes the clauses of one family — the refusal
  * clauses of a line that failed before sending, with `{ declared }`, or
- * its revert clauses when its transaction reverted, with `{ abi }`. A
- * clause of the other timing never matches ({@link failureTiming} decides),
- * so a mixed list is safe but resolves nothing for the wrong family.
+ * its revert clauses when its transaction reverted, with `{ abi }`. The
+ * phase is the caller's to decide, so refusal clauses take whatever they
+ * are given; revert clauses additionally refuse a failure that never
+ * reached the chain ({@link failureTiming} decides), which keeps a
+ * `DeclaredError` out of them even in a mixed list.
  *
  * Any-match: several clauses on one line are an alternation. Every flagged
  * clause reads `"true"` or `"false"` for its own match, and only a matching
