@@ -71,17 +71,26 @@ loop break
       ).some((d) => d.code === "not-batchable"),
     ).toBe(true);
   });
-  it("rejects required error captures inside a smart batch but not optional ones", async () => {
+  it("rejects revert captures inside a smart batch, required or optional", async () => {
     const required = (
       await diagnostics(`batch! (\nexec ${target} "x()" -!> Failure()\n)`)
-    ).filter((d) => d.code === "smart-batch-required-capture");
+    ).filter((d) => d.code === "revert-capture-in-smart-batch");
     expect(required).toHaveLength(1);
     expect(required[0]).toMatchObject({ severity: "error" });
     expect(required[0].message).toContain("assert @reverts!(");
+
+    const optional = (
+      await diagnostics(`batch! (\nexec ${target} "x()" -?!> $e\n)`)
+    ).filter((d) => d.code === "revert-capture-in-smart-batch");
+    expect(optional).toHaveLength(1);
+    expect(optional[0]).toMatchObject({ severity: "error" });
+    expect(optional[0].message).toContain("if @reverts!(");
+  });
+  it("accepts refusal captures inside a smart batch", async () => {
     expect(
-      (await diagnostics(`batch! (\nexec ${target} "x()" -?!> $e\n)`)).some(
-        (d) => d.code === "smart-batch-required-capture",
+      await diagnostics(
+        `batch! (\nexec ${target} "x()" -/> Failure()\nexec ${target} "y()" -?/> $e\n)`,
       ),
-    ).toBe(false);
+    ).toEqual([]);
   });
 });

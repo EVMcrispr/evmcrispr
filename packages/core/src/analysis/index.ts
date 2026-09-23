@@ -34,7 +34,6 @@ import type { ParseDiagnostic } from "../diagnostics";
 import {
   captureStructureIssues,
   runsBlockInline,
-  SMART_BATCH_REQUIRED_REVERT_CAPTURE,
 } from "../errors/captureStructure";
 import type { DeclarationLookup } from "../errors/declarations";
 import { collectLineDeclaredErrors } from "../errors/declarations";
@@ -1056,9 +1055,11 @@ class SemanticAnalyzer {
     // 7. Helpers anywhere in the args (module-agnostic resolution).
     await this.#checkHelpers(c, batchStack);
 
-    // 7a. Declared-error captures, against the union the command and its
-    // helpers declare. Runs after resolution and for every command — one
-    // that takes an abi signature can still fail through its helpers.
+    // 7a. Error captures, each family against its own source: refusals
+    // against the union the command and its helpers declare, reverts
+    // against what is legible offline. Runs after resolution and for every
+    // command — one that takes an abi signature can still refuse through
+    // its helpers.
     await this.#checkErrorCaptures(c);
 
     // 7b. Malformed hex/address literals anywhere in the args.
@@ -1067,23 +1068,6 @@ class SemanticAnalyzer {
     // 7c. Structural named-arg checks (mixed record arrays, named args in
     // inline calls) anywhere in the args/opt values.
     this.#checkNamedArgStructures(c);
-
-    // 8a. A required error capture on a line inside a smart batch: the
-    // batch compiles to one on-chain plan, so a revert aborts it whole and
-    // no inner line is left to observe it. Requiring one is an assertion
-    // instead. (Kept in step with the interpreter's own refusal.)
-    if (batchStack.some((frame) => frame.smart)) {
-      for (const capture of c.errorCaptures ?? []) {
-        if (capture.optional) continue;
-        this.#diagnostics.push(
-          diag(
-            capture,
-            SMART_BATCH_REQUIRED_REVERT_CAPTURE,
-            "smart-batch-required-capture",
-          ),
-        );
-      }
-    }
 
     // 8. Return-capture markers in nested calls.
     this.#checkReturnCaptures(c);
@@ -2046,33 +2030,73 @@ class SemanticAnalyzer {
   }
 
   /**
-   * Declared-error checks for a line's `-!>` / `-?!>` clauses. The names a
-   * clause may use are the command's declarations plus those of every
-   * helper reachable in its arguments and options — the same union the
-   * interpreter resolves against, gathered offline.
+   * Error-capture checks by timing. A refusal clause (`-/>`, `-?/>`) names
+   * an error the line itself declares: the command's declarations plus
+   * those of every helper reachable in its arguments and options — the
+   * same union the interpreter resolves against, gathered offline.
    *
-   * That union is *not* an exhaustive account of how a line can fail: a
-   * command may also revert a contract whose ABI the analyzer never sees.
-   * So an unrecognized name is at most a warning, and only when a
-   * declaration is close enough to look like the intended one. What the
-   * declarations do decide is errors: a bare name the union declares twice
-   * cannot be resolved at all, and a destructure wider than the signature
-   * a clause resolves to can only fail.
+   * That union is *not* an exhaustive account of how a line can refuse: a
+   * command may refuse for a reason it never declared. So an unrecognized
+   * refusal name is at most a warning, and only when a declaration is
+   * close enough to look like the intended one. What the declarations do
+   * decide is errors: a bare name the union declares twice cannot be
+   * resolved at all, and a destructure wider than the signature a clause
+   * resolves to can only fail.
+   *
+   * A revert clause (`-!>`, `-?!>`) resolves against the failing action's
+   * contract ABI, which the analyzer never sees, so an unknown bare name
+   * says nothing. Only what is legible offline is checked: an inline
+   * signature must be valid ABI, and a destructure must fit that
+   * signature or the builtin one a bare `Error` / `Panic` names.
+   *
+   * Finally, a bare name that clearly belongs to the other family is the
+   * wrong arrow, not an unknown error, and is reported as such.
    */
   async #checkErrorCaptures(c: CommandExpressionNode): Promise<void> {
     const captures = c.errorCaptures ?? [];
     if (captures.length === 0) return;
 
     const declared = await collectLineDeclaredErrors(c, this.#declarations);
+    const declaredNames = new Set(declared.map((entry) => entry.name));
 
     for (const capture of captures) {
       const { errorName } = capture;
       // A generic clause names no error: it matches whatever failed.
       if (!errorName) continue;
+      const refusal = capture.timing === "refusal";
+
+      // Cross-family hints. An inline signature never triggers one: it
+      // carries its own decoding, and `-/> Error(string)` is a legal
+      // refusal clause — a read that reverted while the line's arguments
+      // were evaluated fails before any send.
+      if (capture.errorParams == null) {
+        if (!refusal && declaredNames.has(errorName)) {
+          this.#diagnostics.push(
+            diag(
+              capture,
+              `"${errorName}" is a refusal declared by this line; capture it with -/> or -?/>`,
+              "refusal-under-revert-arrow",
+            ),
+          );
+          continue;
+        }
+        if (refusal && (errorName === "Error" || errorName === "Panic")) {
+          this.#diagnostics.push(
+            diag(
+              capture,
+              `"${errorName}" is a revert; capture it with -!> or -?!>`,
+              "revert-under-refusal-arrow",
+            ),
+          );
+          continue;
+        }
+      }
 
       let abis: readonly CaptureAbi[];
       try {
-        abis = selectCaptureErrorAbis(capture, { declared });
+        // One source per timing: the declared union for a refusal, the
+        // builtins (and, at runtime, the target ABI) for a revert.
+        abis = selectCaptureErrorAbis(capture, refusal ? { declared } : {});
       } catch (err) {
         // The resolver's own verdict, with its own message: an ambiguous
         // bare name, or an inline signature that is not valid ABI.
@@ -2089,9 +2113,10 @@ class SemanticAnalyzer {
       }
 
       if (abis.length === 0) {
-        // Nothing on this line declares the name and it is no builtin.
-        // Offline that is not proof of a mistake — unless a declared name
-        // is one typo away.
+        // A revert clause resolves against an ABI the analyzer never sees.
+        if (!refusal) continue;
+        // Nothing on this line declares the name. Offline that is not
+        // proof of a mistake — unless a declared name is one typo away.
         const hint = didYouMean(
           errorName,
           declared.map((entry) => entry.name),

@@ -956,19 +956,21 @@ print @x:whatever(5)`,
       "ambiguous-declared-error",
       "invalid-error-signature",
       "error-capture-destructure",
+      "refusal-under-revert-arrow",
+      "revert-under-refusal-arrow",
     ];
     const declarationCodes = (ds: ParseDiagnostic[]): string[] =>
       codes(ds).filter((c) => DECLARATION_CODES.includes(c));
 
     it("accepts a declared name, with and without a destructure", async () => {
-      expect(await semantic("load stub\nstub:risky -?!> SameToken")).to.be
+      expect(await semantic("load stub\nstub:risky -?/> SameToken")).to.be
         .empty;
-      expect(await semantic("load stub\nstub:risky -!> BelowMinimum [$min]")).to
+      expect(await semantic("load stub\nstub:risky -/> BelowMinimum [$min]")).to
         .be.empty;
     });
 
     it("warns with a did-you-mean on a near-miss name", async () => {
-      const ds = await semantic("load stub\nstub:risky -?!> BelowMinimun");
+      const ds = await semantic("load stub\nstub:risky -?/> BelowMinimun");
       const d = ds.find((x) => x.code === "unknown-declared-error");
       expect(d).to.exist;
       expect(d!.severity).to.equal("warning");
@@ -978,7 +980,16 @@ print @x:whatever(5)`,
     it("stays silent on an unknown name with no close declaration", async () => {
       // Declarations are not exhaustive: the command may raise a contract
       // error the analyzer cannot see.
-      expect(await semantic("load stub\nstub:risky -?!> Unauthorized")).to.be
+      expect(await semantic("load stub\nstub:risky -?/> Unauthorized")).to.be
+        .empty;
+    });
+
+    it("says nothing about any bare name under a revert arrow", async () => {
+      // A revert is decoded with the failing action's ABI, which the
+      // analyzer never sees: not even a near miss of a declared name is
+      // evidence of a mistake.
+      expect(await semantic("load stub\nstub:risky -!> Nope")).to.be.empty;
+      expect(await semantic("load stub\nstub:risky -!> BelowMinimun")).to.be
         .empty;
     });
 
@@ -1005,16 +1016,42 @@ print @x:whatever(5)`,
       expect(d!.message).to.match(/SameToken\(uint256\)/);
     });
 
-    it("flags a malformed inline signature", async () => {
-      const ds = await semantic("load stub\nstub:risky -?!> Weird(notatype)");
-      const d = ds.find((x) => x.code === "invalid-error-signature");
+    it("checks a revert destructure against the inline signature", async () => {
+      const ds = await semantic(
+        "load stub\nstub:risky -!> Unauthorized(address) [$a $b]",
+      );
+      const d = ds.find((x) => x.code === "error-capture-destructure");
       expect(d).to.exist;
       expect(d!.severity).to.equal("error");
+      expect(d!.message).to.match(/Unauthorized\(address\)/);
+    });
+
+    it("checks a revert destructure against a builtin signature", async () => {
+      const ds = await semantic(
+        "load stub\nstub:risky -?!> Error [$why $more]",
+      );
+      const d = ds.find((x) => x.code === "error-capture-destructure");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(d!.message).to.match(/Error\(string\)/);
+      expect(await semantic("load stub\nstub:risky -?!> Panic [$code]")).to.be
+        .empty;
+    });
+
+    it("flags a malformed inline signature under either timing", async () => {
+      for (const arrow of ["-?!>", "-?/>"]) {
+        const ds = await semantic(
+          `load stub\nstub:risky ${arrow} Weird(notatype)`,
+        );
+        const d = ds.find((x) => x.code === "invalid-error-signature");
+        expect(d, arrow).to.exist;
+        expect(d!.severity).to.equal("error");
+      }
     });
 
     it("flags a destructure wider than the declared signature", async () => {
       const ds = await semantic(
-        "load stub\nstub:risky -!> BelowMinimum [$min $extra]",
+        "load stub\nstub:risky -/> BelowMinimum [$min $extra]",
       );
       const d = ds.find((x) => x.code === "error-capture-destructure");
       expect(d).to.exist;
@@ -1025,13 +1062,13 @@ print @x:whatever(5)`,
     it("accepts trailing holes past the declared fields", async () => {
       // The runtime skips holes before bounds-checking, so a trailing `_`
       // binds nothing and costs no field.
-      expect(await semantic("load stub\nstub:risky -!> BelowMinimum [$min _]"))
+      expect(await semantic("load stub\nstub:risky -/> BelowMinimum [$min _]"))
         .to.be.empty;
-      expect(await semantic("load stub\nstub:risky -!> SameToken [_]")).to.be
+      expect(await semantic("load stub\nstub:risky -/> SameToken [_]")).to.be
         .empty;
     });
 
-    it("sees a helper's declarations under either arrow", async () => {
+    it("sees a helper's declarations under a refusal arrow", async () => {
       expect(await semantic("load stub\nset $x @stub:hfail -?/> NoExplorer")).to
         .be.empty;
       expect(
@@ -1052,7 +1089,7 @@ print @x:whatever(5)`,
         await semantic("load stub\nset $x [1 @stub:hfail] -?/> NoExplorer"),
       ).to.be.empty;
       const ds = await semantic(
-        "load stub\nstub:optone --foo @stub:hfail -?!> NoExplorre",
+        "load stub\nstub:optone --foo @stub:hfail -?/> NoExplorre",
       );
       const d = ds.find((x) => x.code === "unknown-declared-error");
       expect(d).to.exist;
@@ -1061,7 +1098,7 @@ print @x:whatever(5)`,
 
     it("flags an ambiguous bare name declared by both owners", async () => {
       const ds = await semantic(
-        "load stub\nstub:risky @stub:hfail -?!> Shared",
+        "load stub\nstub:risky @stub:hfail -?/> Shared",
       );
       const d = ds.find((x) => x.code === "ambiguous-declared-error");
       expect(d).to.exist;
@@ -1069,24 +1106,35 @@ print @x:whatever(5)`,
       expect(d!.message).to.match(/more than one signature/);
     });
 
+    it("never reads the declared union for a revert clause", async () => {
+      // The ambiguity that stops a refusal clause is irrelevant here — the
+      // name is simply on the wrong arrow.
+      const ds = await semantic(
+        "load stub\nstub:risky @stub:hfail -?!> Shared",
+      );
+      expect(declarationCodes(ds)).to.deep.equal([
+        "refusal-under-revert-arrow",
+      ]);
+    });
+
     it("accepts the inline signature that resolves an ambiguous name", async () => {
       expect(
         await semantic(
-          "load stub\nstub:risky @stub:hfail -?!> Shared(uint256) [$code]",
+          "load stub\nstub:risky @stub:hfail -?/> Shared(uint256) [$code]",
         ),
       ).to.be.empty;
-      expect(await semantic("load stub\nstub:risky @stub:hfail -?!> Shared()"))
+      expect(await semantic("load stub\nstub:risky @stub:hfail -?/> Shared()"))
         .to.be.empty;
     });
 
     it("accepts a signature declared identically by both owners", async () => {
-      expect(await semantic("load stub\nstub:risky @stub:hfail -!> Twin")).to.be
+      expect(await semantic("load stub\nstub:risky @stub:hfail -/> Twin")).to.be
         .empty;
     });
 
     it("checks helpers on a command that takes an abi signature", async () => {
       const ds = await semantic(
-        'load stub\nstub:abicall 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 "transfer(address,uint256)" @stub:hfail 1 -?!> NoExplorre',
+        'load stub\nstub:abicall 0x4F2083f5fBede34C2714aFfb3105539775f7FE64 "transfer(address,uint256)" @stub:hfail 1 -?/> NoExplorre',
       );
       const d = ds.find((x) => x.code === "unknown-declared-error");
       expect(d).to.exist;
@@ -1097,16 +1145,16 @@ print @x:whatever(5)`,
       // Unknown module, unknown command and an opaque def command each
       // leave the line's declaration set unknown, not empty.
       expect(
-        declarationCodes(await semantic("ghost:thing -?!> Whatever [$a $b]")),
+        declarationCodes(await semantic("ghost:thing -?/> Whatever [$a $b]")),
       ).to.be.empty;
       expect(
         declarationCodes(
-          await semantic("load stub\nstub:nosuch -?!> Whatever [$a $b]"),
+          await semantic("load stub\nstub:nosuch -?/> Whatever [$a $b]"),
         ),
       ).to.be.empty;
 
       const defDs = await semantic(
-        'def go "()" (\n  set $x 5\n)\ngo -!> Whatever [$a $b]',
+        'def go "()" (\n  set $x 5\n)\ngo -/> Whatever [$a $b]',
       );
       expect(codes(defDs)).to.include("capture-on-block-command");
       expect(declarationCodes(defDs)).to.be.empty;
@@ -1114,7 +1162,7 @@ print @x:whatever(5)`,
 
     it("keeps the structural checks on a declaring command", async () => {
       const ds = await semantic(
-        "load stub\nstub:risky $> $tx -!> BelowMinimum [$min]",
+        "load stub\nstub:risky $> $tx -/> BelowMinimum [$min]",
       );
       expect(codes(ds)).to.include("tx-capture-with-error-capture");
     });
@@ -1122,6 +1170,75 @@ print @x:whatever(5)`,
     it("says nothing about a generic clause", async () => {
       expect(await semantic("load stub\nstub:risky -?!> $failed")).to.be.empty;
       expect(await semantic("load stub\nstub:risky -!> [$reason]")).to.be.empty;
+      expect(await semantic("load stub\nstub:risky -?/> $refused")).to.be.empty;
+      expect(await semantic("load stub\nstub:risky -/> [$reason]")).to.be.empty;
+    });
+  });
+
+  describe("capture timing", () => {
+    it("points a declared name under a revert arrow at the refusal arrows", async () => {
+      const ds = await semantic("load stub\nstub:risky -?!> SameToken");
+      const d = ds.find((x) => x.code === "refusal-under-revert-arrow");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(d!.message).to.equal(
+        '"SameToken" is a refusal declared by this line; capture it with -/> or -?/>',
+      );
+    });
+
+    it("points a builtin name under a refusal arrow at the revert arrows", async () => {
+      for (const name of ["Error", "Panic"]) {
+        const ds = await semantic(`load stub\nstub:risky -?/> ${name}`);
+        const d = ds.find((x) => x.code === "revert-under-refusal-arrow");
+        expect(d, name).to.exist;
+        expect(d!.severity).to.equal("error");
+        expect(d!.message).to.equal(
+          `"${name}" is a revert; capture it with -!> or -?!>`,
+        );
+      }
+    });
+
+    it("leaves inline signatures out of both hints", async () => {
+      // `-/> Error(string)` is a legal refusal clause: a read that reverted
+      // while the line's arguments were evaluated fails before any send.
+      expect(await semantic("load stub\nstub:risky -?/> Error(string)")).to.be
+        .empty;
+      expect(await semantic("load stub\nstub:risky -!> SameToken()")).to.be
+        .empty;
+    });
+
+    it("rejects both required timings on one line", async () => {
+      const ds = await semantic(
+        "load stub\nstub:risky -/> SameToken -!> Failure()",
+      );
+      const d = ds.find((x) => x.code === "mixed-required-capture-timing");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(
+        await semantic("load stub\nstub:risky -?/> SameToken -!> Failure()"),
+      ).to.be.empty;
+    });
+
+    it("rejects a revert capture inside a collecting block", async () => {
+      const ds = await semantic(
+        "load stub\nbatch (\nstub:risky -?!> Failure()\n)",
+      );
+      const d = ds.find((x) => x.code === "revert-capture-in-block");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(d!.message).to.match(/capture it on the block command instead/);
+      expect(await semantic("load stub\nbatch (\nstub:risky -?/> SameToken\n)"))
+        .to.be.empty;
+    });
+
+    it("rejects a revert capture on a command that sends nothing", async () => {
+      const ds = await semantic("load stub\nset $x 1 -?!> $r");
+      const d = ds.find((x) => x.code === "revert-capture-without-transaction");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("error");
+      expect(d!.message).to.match(/sends no transaction/);
+      expect(await semantic("load stub\nset $x @stub:hfail -?/> NoExplorer")).to
+        .be.empty;
     });
   });
 });
