@@ -118,6 +118,15 @@ export const SCOPE_GUARD_MASTERCOPIES: Address[] = [
 export const GUARD_STORAGE_SLOT =
   "0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8" as const;
 
+// Module guard address storage slot (Safe >=1.5.0):
+// keccak256("module_manager.module_guard.address")
+export const MODULE_GUARD_STORAGE_SLOT =
+  "0xb104e0b93118902c651344349b610029d694cfdec91c589c91ebafbcd0289947" as const;
+
+// ERC-165 ids setGuard/setModuleGuard require (GS300/GS301 otherwise).
+export const TRANSACTION_GUARD_INTERFACE_ID = "0xe6d7a83a" as const;
+export const MODULE_GUARD_INTERFACE_ID = "0x58401ed8" as const;
+
 // EIP-3770 chain short names used by the Safe Transaction Service
 // (https://api.safe.global/tx-service/{shortName}) and the Safe web UI.
 export const CHAIN_SHORT_NAMES = new Map<number, string>([

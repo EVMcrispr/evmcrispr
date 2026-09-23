@@ -1,6 +1,6 @@
 import type { Address } from "@evmcrispr/sdk";
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
-import type { PublicClient } from "viem";
+import type { Hex, PublicClient } from "viem";
 import { getAddress, isAddressEqual, parseAbi, sliceHex } from "viem";
 import { GUARD_STORAGE_SLOT, SENTINEL } from "../addresses";
 
@@ -100,11 +100,9 @@ export const getModules = async (
 export const getGuard = async (
   client: PublicClient,
   safe: Address,
+  slot: Hex = GUARD_STORAGE_SLOT,
 ): Promise<Address> => {
-  const value = await client.getStorageAt({
-    address: safe,
-    slot: GUARD_STORAGE_SLOT,
-  });
+  const value = await client.getStorageAt({ address: safe, slot });
   return getAddress(sliceHex(value ?? `0x${"0".repeat(64)}`, 12));
 };
 

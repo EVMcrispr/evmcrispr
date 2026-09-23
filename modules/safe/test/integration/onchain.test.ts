@@ -28,6 +28,9 @@ const OWNER = getAddress("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
 // keccak256("guard_manager.guard.address")
 const GUARD_SLOT =
   "0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8";
+// keccak256("module_manager.module_guard.address")
+const MODULE_GUARD_SLOT =
+  "0xb104e0b93118902c651344349b610029d694cfdec91c589c91ebafbcd0289947";
 
 const preamble = `load safe`;
 
@@ -87,6 +90,22 @@ describeCommand("assert (safe on-chain faces)", {
         expect(call.target).to.equal(SAFE);
         expect(call.data).to.equal(
           `${selectorOf("getStorageAt(uint256,uint256)")}${GUARD_SLOT.slice(2)}${word(1n).slice(2)}`,
+        );
+        d.expectConstraint(param, "Eq", 0n);
+      },
+    },
+    {
+      name: "reads the module guard slot with @guard!(safe module:true)",
+      script: `assert @safe:guard!(${SAFE} module:true) == 0x0000000000000000000000000000000000000000 "module guard installed"`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const pick = d.core(param);
+        expect(pick.functionName).to.equal("pick");
+        expect(pick.args[1]).to.equal(2n);
+        const call = d.staticCallOf(pick.args[0] as unknown as DecodedParam);
+        expect(call.target).to.equal(SAFE);
+        expect(call.data).to.equal(
+          `${selectorOf("getStorageAt(uint256,uint256)")}${MODULE_GUARD_SLOT.slice(2)}${word(1n).slice(2)}`,
         );
         d.expectConstraint(param, "Eq", 0n);
       },

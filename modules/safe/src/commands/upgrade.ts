@@ -90,6 +90,9 @@ export default defineCommand<Safe>({
           : []),
       ].join("\n"),
     );
+    // Later commands in the block (safe:set-guard --module) check the
+    // version on chain, which still reads the old one until the block runs.
+    module.markUpgraded();
     return [
       {
         ...encodeAction(deployment.migration, `${method}()`, []),

@@ -34,6 +34,13 @@ const OWNER = "0xb411b1D939606198f6cbccD38496879d27937ff0";
 /** Never an owner: the all-ones address. */
 const STRANGER = "0x1111111111111111111111111111111111111111";
 
+/** Written into giv.eth's module-guard slot before each case (giv.eth is
+ *  v1.3.0, so the slot is otherwise empty and a wrong slot would also read
+ *  zero on both faces). keccak256("module_manager.module_guard.address"). */
+const MODULE_GUARD_SLOT =
+  "0xb104e0b93118902c651344349b610029d694cfdec91c589c91ebafbcd0289947";
+const MODULE_GUARD = "0x000000000000000000000000000000000000bEEF";
+
 const client = createPublicClient({
   chain: mainnet,
   transport: http(anvilUrl()),
@@ -54,6 +61,16 @@ describeParity("@safe", {
   chainId: mainnet.id,
   transports: getMainnetForkTransports(),
   client,
+  setup: async (c) => {
+    await c.request({
+      method: "anvil_setStorageAt",
+      params: [
+        SAFE,
+        MODULE_GUARD_SLOT,
+        `0x${MODULE_GUARD.slice(2).padStart(64, "0")}`,
+      ],
+    } as never);
+  },
   cases: [
     {
       name: "threshold of a live Safe",
@@ -91,6 +108,13 @@ describeParity("@safe", {
       name: "guard of a Safe with none set",
       run: `@safe:guard(${SAFE})`,
       compile: `@safe:guard!(${SAFE})`,
+    },
+    {
+      // A nonzero value both faces must find, in the slot next door to the
+      // (empty) transaction guard slot above.
+      name: "module guard of a Safe with one written into its slot",
+      run: `@safe:guard(${SAFE} module:true)`,
+      compile: `@safe:guard!(${SAFE} module:true)`,
     },
     {
       // The ! face reads ONE page; the plain face walks until `next` is zero.

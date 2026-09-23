@@ -22,6 +22,7 @@ import {
   type SafeSignable,
 } from "./signables";
 
+export * from "./guards";
 export * from "./hashes";
 export * from "./multisend";
 export * from "./reads";

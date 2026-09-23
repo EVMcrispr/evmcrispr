@@ -36,10 +36,10 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [safe:new](src/commands/new.md) | Deploy a new Safe v1.5.0 with the given owners, at a deterministic address that is the same on every chain for the same owners, threshold and salt (created like Safe{Wallet} creates Safes: switched to the L2 singleton on every chain but Ethereum mainnet). |
 | [safe:propose](src/commands/propose.md) | Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message signed by the wallet, or signed JSON. |
 | [safe:propose-offline](src/commands/propose-offline.md) | Create an unsigned Safe transaction, rejection or Safe message without the Safe Transaction Service and bind its JSON to a variable, for owners to sign with safe:confirm-offline. |
-| [safe:remove-guard](src/commands/remove-guard.md) | Remove the transaction guard of the Safe. |
+| [safe:remove-guard](src/commands/remove-guard.md) | Remove the transaction guard of the Safe, or with --module its module guard (Safe v1.5.0 or later). |
 | [safe:remove-owner](src/commands/remove-owner.md) | Remove an owner from the Safe, lowering the threshold if it would exceed the remaining owners. |
 | [safe:set-fallback-handler](src/commands/set-fallback-handler.md) | Set the fallback handler contract of the Safe. |
-| [safe:set-guard](src/commands/set-guard.md) | Set a transaction guard on the Safe: a contract that checks every transaction before and after execution (e.g. a Zodiac ScopeGuard). |
+| [safe:set-guard](src/commands/set-guard.md) | Set the transaction guard of the Safe, a contract that checks every owner transaction before and after execution (e.g. a Zodiac ScopeGuard), or with --module its module guard (Safe v1.5.0 or later), which checks every module transaction. |
 | [safe:swap-owner](src/commands/swap-owner.md) | Replace an owner of the Safe with a new address. |
 | [safe:upgrade](src/commands/upgrade.md) | Upgrade the Safe to v1.5.0 with Safe's SafeMigration contract (a delegatecall from the Safe), keeping its L2 or plain flavour and any custom fallback handler. |
 
@@ -48,7 +48,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | Helper | Returns | Description |
 |--------|---------|-------------|
 | [@safe:address](src/helpers/address.md) | `address` | Predict the single-owner Safe address for safe:new with a deployment salt nonce, without RPC access. The address is the same on every chain. |
-| [@safe:guard](src/helpers/guard.md) | `address` | Transaction guard address of a Safe (the zero address when no guard is set). |
+| [@safe:guard](src/helpers/guard.md) | `address` | Transaction guard address of a Safe, or with module:true its module guard (the zero address when none is set; module guards need Safe v1.5.0 or later, so it is always zero on older Safes). |
 | [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Whether an address is an owner of a Safe. |
 | [@safe:merge](src/helpers/merge.md) | `string` | Merge signatures into a Safe transaction or Safe message without network access: matching signed JSON, EOA signatures, or explicit contract signatures. Current authorization is checked by verify and execute. |
 | [@safe:modules](src/helpers/modules.md) | `array` | Enabled module addresses of a Safe. |

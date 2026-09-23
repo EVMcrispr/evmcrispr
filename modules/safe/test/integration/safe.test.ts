@@ -154,6 +154,39 @@ describe("Safe > integration", () => {
       functionName: "getThreshold",
     });
 
+  // Real v1.4.1 Safes from the canonical v1.4.1 factory on the fork.
+  const factory141: Address = "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67";
+  const l2Singleton141: Address = "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762";
+  const handler141: Address = "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99";
+  const createAbi = parseAbi([
+    "function createProxyWithNonce(address,bytes,uint256) returns (address)",
+  ]);
+  const deploy141 = async (handler: Address, salt: bigint) => {
+    const args = [
+      l2Singleton141,
+      safeInitializer([ownerA], 1n, handler),
+      salt,
+    ] as const;
+    const { result } = await client.simulateContract({
+      address: factory141,
+      abi: createAbi,
+      functionName: "createProxyWithNonce",
+      args,
+      account: ownerA,
+    });
+    await client.waitForTransactionReceipt({
+      hash: await wallets[0].writeContract({
+        address: factory141,
+        abi: createAbi,
+        functionName: "createProxyWithNonce",
+        args,
+        account: wallets[0].account!,
+        chain: gnosis,
+      }),
+    });
+    return result;
+  };
+
   beforeAll(() => {
     client = getPublicClient();
     wallets = getWalletClients();
@@ -208,6 +241,19 @@ describe("Safe > integration", () => {
     expect(await client.getCode({ address: safe })).to.not.be.undefined;
     expect(await getOwners()).to.eql([ownerA]);
     expect(await getThreshold()).to.equal(1n);
+    // Gnosis is not chain 1, so SafeToL2Setup moved it to the L2 singleton.
+    expect(
+      getAddress(
+        sliceHex(
+          (await client.getStorageAt({
+            address: safe,
+            slot: toHex(0n, { size: 32 }),
+          })) as Hex,
+          12,
+          32,
+        ),
+      ),
+    ).to.equal(SAFE_L2_SINGLETON);
   });
 
   it("executes a single-action block through execTransaction", async () => {
@@ -241,19 +287,6 @@ describe("Safe > integration", () => {
       await client.readContract({
         address: safe,
         abi: safeAbi,
-    // Gnosis is not chain 1, so SafeToL2Setup moved it to the L2 singleton.
-    expect(
-      getAddress(
-        sliceHex(
-          (await client.getStorageAt({
-            address: safe,
-            slot: toHex(0n, { size: 32 }),
-          })) as Hex,
-          12,
-          32,
-        ),
-      ),
-    ).to.equal(SAFE_L2_SINGLETON);
         functionName: "isModuleEnabled",
         args: [delay],
       }),
@@ -1268,39 +1301,6 @@ describe("Safe > integration", () => {
   });
 
   it("upgrades a v1.4.1 Safe to v1.5.0 through SafeMigration", async () => {
-    // Real v1.4.1 Safes from the canonical v1.4.1 factory on the fork.
-    const factory141: Address = "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67";
-    const l2Singleton141: Address =
-      "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762";
-    const handler141: Address = "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99";
-    const createAbi = parseAbi([
-      "function createProxyWithNonce(address,bytes,uint256) returns (address)",
-    ]);
-    const deploy141 = async (handler: Address, salt: bigint) => {
-      const args = [
-        l2Singleton141,
-        safeInitializer([ownerA], 1n, handler),
-        salt,
-      ] as const;
-      const { result } = await client.simulateContract({
-        address: factory141,
-        abi: createAbi,
-        functionName: "createProxyWithNonce",
-        args,
-        account: ownerA,
-      });
-      await client.waitForTransactionReceipt({
-        hash: await wallets[0].writeContract({
-          address: factory141,
-          abi: createAbi,
-          functionName: "createProxyWithNonce",
-          args,
-          account: wallets[0].account!,
-          chain: gnosis,
-        }),
-      });
-      return result;
-    };
     const slot = async (address: Address, s: Hex) =>
       getAddress(
         sliceHex(
@@ -1352,6 +1352,145 @@ describe("Safe > integration", () => {
     expect(kept.logs.join("\n")).to.include("migrateL2Singleton");
     expect(await version(custom)).to.equal("1.5.0");
     expect(await slot(custom, handlerSlot)).to.equal(customHandler);
+  });
+
+  describe("module guards", () => {
+    // Literal on purpose: keccak256("module_manager.module_guard.address"),
+    // not re-derived from the code under test.
+    const moduleGuardSlot: Hex =
+      "0xb104e0b93118902c651344349b610029d694cfdec91c589c91ebafbcd0289947";
+    const guardSlot: Hex =
+      "0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8";
+    // Mock guards: supportsInterface answers true for one interface id only
+    // (CALLDATALOAD(4) >> 224 == id), which is all setGuard/setModuleGuard
+    // check. No module ever executes through them in these tests.
+    const mockGuard = (id: string) =>
+      `0x600435${"60e01c"}63${id}14600052${"60206000f3"}` as Hex;
+    const moduleGuardMock: Address =
+      "0x0000000000000000000000000000000000001001";
+    const txGuardMock: Address = "0x0000000000000000000000000000000000001002";
+    const readSlot = async (address: Address, s: Hex) =>
+      getAddress(
+        sliceHex(
+          ((await client.getStorageAt({ address, slot: s })) ??
+            toHex(0n, { size: 32 })) as Hex,
+          12,
+          32,
+        ),
+      );
+    const fails = (promise: Promise<unknown>) =>
+      promise.then(
+        () => null,
+        (err) => String(err?.message),
+      );
+    let safe15: Address;
+
+    beforeAll(async () => {
+      for (const [address, id] of [
+        [moduleGuardMock, "58401ed8"],
+        [txGuardMock, "e6d7a83a"],
+      ] as const)
+        await client.request({
+          method: "anvil_setCode",
+          params: [address, mockGuard(id)],
+        } as never);
+    });
+
+    it("reads the module guard slot, not the transaction guard slot", async () => {
+      await run(`load safe\nsafe:new ${ownerA} --salt ${deploySalt + 20n}`);
+      safe15 = getAddress(
+        (
+          await run(
+            `load safe\nset $s @safe:address(${ownerA} ${deploySalt + 20n})`,
+          )
+        ).getBinding("$s", BindingsSpace.USER) as Address,
+      );
+      const marker: Address = "0x000000000000000000000000000000000000bEEF";
+      await client.request({
+        method: "anvil_setStorageAt",
+        params: [safe15, moduleGuardSlot, toHex(BigInt(marker), { size: 32 })],
+      } as never);
+      const evm = await run(
+        [
+          "load safe",
+          `set $module @safe:guard(${safe15} module:true)`,
+          `set $tx @safe:guard(${safe15})`,
+        ].join("\n"),
+      );
+      const { USER } = BindingsSpace;
+      expect(evm.getBinding("$module", USER)).to.equal(marker);
+      expect(evm.getBinding("$tx", USER)).to.equal(zeroAddress);
+      await client.request({
+        method: "anvil_setStorageAt",
+        params: [safe15, moduleGuardSlot, toHex(0n, { size: 32 })],
+      } as never);
+    });
+
+    it("sets and removes the module guard of a v1.5.0 Safe", async () => {
+      // The Safe would refuse these with GS301/GS300; the command refuses
+      // them first, and points a module guard used as a transaction guard
+      // at --module.
+      expect(
+        await fails(
+          run(
+            `load safe\nsafe:execute ${safe15} (\n  safe:set-guard ${txGuardMock} --module true\n)`,
+          ),
+        ),
+      ).to.include("is not a module guard");
+      expect(
+        await fails(
+          run(
+            `load safe\nsafe:execute ${safe15} (\n  safe:set-guard ${moduleGuardMock}\n)`,
+          ),
+        ),
+      ).to.include("It is a module guard: pass --module");
+
+      await run(
+        `load safe\nsafe:execute ${safe15} (\n  safe:set-guard ${moduleGuardMock} --module true\n)`,
+      );
+      expect(await readSlot(safe15, moduleGuardSlot)).to.equal(moduleGuardMock);
+      expect(await readSlot(safe15, guardSlot)).to.equal(zeroAddress);
+
+      await run(
+        `load safe\nsafe:execute ${safe15} (\n  safe:remove-guard --module true\n)`,
+      );
+      expect(await readSlot(safe15, moduleGuardSlot)).to.equal(zeroAddress);
+    });
+
+    it("refuses --module below v1.5.0 unless the block upgrades the Safe first", async () => {
+      const legacy = await deploy141(handler141, deploySalt + 21n);
+      expect(
+        await fails(
+          run(
+            `load safe\nsafe:execute ${legacy} (\n  safe:set-guard ${moduleGuardMock} --module true\n)`,
+          ),
+        ),
+      ).to.include("needs Safe v1.5.0 or later");
+
+      // The upgrade is only recorded for its own block: a later block that
+      // has not run yet still sees the old version.
+      serviceState.reset();
+      expect(
+        await fails(
+          run(
+            [
+              "load safe",
+              `safe:propose ${legacy} (\n  safe:upgrade\n)`,
+              `safe:propose ${legacy} (\n  safe:set-guard ${moduleGuardMock} --module true\n)`,
+            ].join("\n"),
+          ),
+        ),
+      ).to.include("needs Safe v1.5.0 or later");
+      expect(serviceState.proposals.length).to.equal(1);
+
+      const upgraded = await run(
+        `load safe\nsafe:execute ${legacy} (\n  safe:upgrade\n  safe:set-guard ${moduleGuardMock} --module true\n)`,
+      );
+      expect(upgraded.logs.join("\n")).to.include(
+        "the safe:upgrade earlier in this block moves it to v1.5.0",
+      );
+      expect(await readSlot(legacy, moduleGuardSlot)).to.equal(moduleGuardMock);
+    });
   });
 
   it("rejects delegate-exec outside a propose/exec block", async () => {
