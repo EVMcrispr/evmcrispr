@@ -181,20 +181,20 @@ describe("Std > commands > exec > error capture", () => {
 
   describe("J — Command fails before sending", () => {
     // `mint(uint256)` without its argument: exec fails while encoding.
-    it("J1: -?!> $e is true when the command refuses to run", async () => {
+    it("J1: -?/> $e is true when the command refuses to run", async () => {
       const evm = newEvm();
       const actions = await evm.interpret(
-        `exec ${contractAddress} "mint(uint256)" -?!> $e`,
+        `exec ${contractAddress} "mint(uint256)" -?/> $e`,
         actionCallback,
       );
       expect(evm.getBinding("$e", USER)).to.equal("true");
       expect(actions).to.deep.equal([]);
     });
 
-    it("J2: -?!> [$reason] receives the command's message", async () => {
+    it("J2: -?/> [$reason] receives the command's message", async () => {
       const evm = newEvm();
       await evm.interpret(
-        `exec ${contractAddress} "mint(uint256)" -?!> [$reason]`,
+        `exec ${contractAddress} "mint(uint256)" -?/> [$reason]`,
         actionCallback,
       );
       expect(String(evm.getBinding("$reason", USER))).to.include("encoding");
@@ -207,7 +207,7 @@ describe("Std > commands > exec > error capture", () => {
       const evm = newEvm();
       try {
         await evm.interpret(
-          `exec ${contractAddress} "mint(uint256)" -?!> Unauthorized() $e`,
+          `exec ${contractAddress} "mint(uint256)" -?/> Unauthorized() $e`,
           actionCallback,
         );
         throw new Error("Expected to throw");
@@ -218,13 +218,76 @@ describe("Std > commands > exec > error capture", () => {
 
       try {
         await newEvm().interpret(
-          `exec ${contractAddress} "mint(uint256)" -!> Unauthorized()`,
+          `exec ${contractAddress} "mint(uint256)" -/> Unauthorized()`,
           actionCallback,
         );
         throw new Error("Expected to throw");
       } catch (err: any) {
         expect(err.message).to.include("encoding");
       }
+    });
+
+    // The revert family only ever sees a sent transaction: a line carrying
+    // only `-?!>` / `-!>` propagates its pre-send failure untouched.
+    it("J4: a revert capture never sees the pre-send failure", async () => {
+      const evm = newEvm();
+      try {
+        await evm.interpret(
+          `exec ${contractAddress} "mint(uint256)" -?!> $e`,
+          actionCallback,
+        );
+        throw new Error("Expected to throw");
+      } catch (err: any) {
+        expect(err.message).to.include("encoding");
+      }
+      expect(evm.getBinding("$e", USER)).to.be.undefined;
+    });
+
+    it("J5: a required refusal fails before sending when the line composes", async () => {
+      const evm = newEvm();
+      try {
+        await evm.interpret(
+          `exec ${contractAddress} "mint(uint256)" 42 -/> $e`,
+          actionCallback,
+        );
+        throw new Error("Expected to throw");
+      } catch (err: any) {
+        expect(err.message).to.include(
+          "expected the line to refuse, but it succeeded",
+        );
+      }
+    });
+
+    it("J6: an optional refusal flag clears when the line composes", async () => {
+      const evm = newEvm();
+      await evm.interpret(
+        `exec ${contractAddress} "mint(uint256)" 42 -?/> $e`,
+        actionCallback,
+      );
+      expect(evm.getBinding("$e", USER)).to.equal("false");
+    });
+
+    // A view call that reverts while the arguments are evaluated is a
+    // refusal of the line — chain-shaped, but nothing was sent.
+    it("J7: a read that reverts during argument evaluation is a refusal", async () => {
+      const evm = newEvm();
+      await evm.interpret(
+        `exec ${contractAddress} "mint(uint256)" ${contractAddress}::{deny()(uint256)} -?/> $e`,
+        actionCallback,
+      );
+      expect(evm.getBinding("$e", USER)).to.equal("true");
+
+      const revert = newEvm();
+      try {
+        await revert.interpret(
+          `exec ${contractAddress} "mint(uint256)" ${contractAddress}::{deny()(uint256)} -?!> $e`,
+          actionCallback,
+        );
+        throw new Error("Expected to throw");
+      } catch (err: any) {
+        expect(err.message).to.not.include("Expected to throw");
+      }
+      expect(revert.getBinding("$e", USER)).to.be.undefined;
     });
   });
 

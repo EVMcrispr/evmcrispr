@@ -6,9 +6,10 @@ import { BindingsSpace, CommandError } from "@evmcrispr/sdk";
 import { custom } from "viem";
 import { evml, Interpreter } from "../../../src/index";
 
-// Error captures observe a failed command, whether its transaction reverts
-// or the command refuses to run in the first place (a failed preflight, an
-// invalid amount, a missing argument). These tests pin the second case.
+// A command that refuses to run in the first place (a failed preflight, an
+// invalid amount, a missing argument) is observed by the line's refusal
+// captures (`-?/>` / `-/>`); its revert captures (`-?!>` / `-!>`) only ever
+// see a sent transaction. These tests pin the refusal side.
 describe("Interpreter - error captures on command failures", () => {
   const ACCOUNT = "0x000000000000000000000000000000000000dEaD";
   const TOKEN = "0x4f4F9b8D5B4d0Dc10506e5551B0513B61fD59e75";
@@ -52,20 +53,20 @@ describe("Interpreter - error captures on command failures", () => {
     return { seen, returned, binding };
   };
 
-  it("-?!> $var is true when the command fails before sending", async () => {
-    const { seen, returned, binding } = await run(`${FAILING} -?!> $failed`);
+  it("-?/> $var is true when the command fails before sending", async () => {
+    const { seen, returned, binding } = await run(`${FAILING} -?/> $failed`);
     expect(binding("$failed")).toBe("true");
     expect(seen.length).toBe(0);
     expect(returned.length).toBe(0);
   });
 
-  it("-?!> [$reason] binds the failure message", async () => {
-    const { binding } = await run(`${FAILING} -?!> [$reason]`);
+  it("-?/> [$reason] binds the failure message", async () => {
+    const { binding } = await run(`${FAILING} -?/> [$reason]`);
     expect(String(binding("$reason"))).toMatch(/encoding|Invalid integer/);
   });
 
-  it("-!> $var accepts a command failure as the expected error", async () => {
-    const { binding } = await run(`${FAILING} -!> $failed`);
+  it("-/> $var accepts a command failure as the expected error", async () => {
+    const { binding } = await run(`${FAILING} -/> $failed`);
     expect(binding("$failed")).toBe("true");
   });
 
@@ -75,11 +76,11 @@ describe("Interpreter - error captures on command failures", () => {
   it("an unmatched named capture propagates the original failure", async () => {
     const { binding, exec } = session();
     await expect(
-      exec(`${FAILING} -?!> Unauthorized() $denied`),
+      exec(`${FAILING} -?/> Unauthorized() $denied`),
     ).rejects.toThrow(/Invalid integer value/);
     expect(binding("$denied")).toBeUndefined();
 
-    await expect(run(`${FAILING} -!> Unauthorized()`)).rejects.toThrow(
+    await expect(run(`${FAILING} -/> Unauthorized()`)).rejects.toThrow(
       /Invalid integer value/,
     );
   });
@@ -87,7 +88,7 @@ describe("Interpreter - error captures on command failures", () => {
   it("the propagated failure keeps its location and cause", async () => {
     let thrown: unknown;
     try {
-      await run(`${FAILING} -?!> Unauthorized() $denied`);
+      await run(`${FAILING} -?/> Unauthorized() $denied`);
     } catch (err) {
       thrown = err;
     }
@@ -100,10 +101,40 @@ describe("Interpreter - error captures on command failures", () => {
 
   it("the script continues after a captured failure", async () => {
     const { seen, binding } = await run(
-      `${FAILING} -?!> $failed\nset $after 1\n${WORKING}`,
+      `${FAILING} -?/> $failed\nset $after 1\n${WORKING}`,
     );
     expect(binding("$failed")).toBe("true");
     expect(binding("$after")?.toString()).toBe("1");
+    expect(seen.length).toBe(1);
+  });
+
+  // A line carrying only revert captures propagates a pre-send failure
+  // untouched: the revert family never doubles as the refusal capture.
+  it("a revert capture never sees a pre-send failure", async () => {
+    const { binding, exec } = session();
+    await expect(exec(`${FAILING} -?!> $failed`)).rejects.toThrow(
+      /Invalid integer value/,
+    );
+    expect(binding("$failed")).toBeUndefined();
+
+    const generic = session();
+    await expect(generic.exec(`${FAILING} -!> [$reason]`)).rejects.toThrow(
+      /Invalid integer value/,
+    );
+    expect(generic.binding("$reason")).toBeUndefined();
+  });
+
+  it("a required refusal on a line that composes fails before sending", async () => {
+    const { seen, exec } = session();
+    await expect(exec(`${WORKING} -/> $failed`)).rejects.toThrow(
+      "expected the line to refuse, but it succeeded",
+    );
+    expect(seen.length).toBe(0);
+  });
+
+  it("an optional refusal flag clears when the line composes and sends", async () => {
+    const { seen, binding } = await run(`${WORKING} -?/> $failed`);
+    expect(binding("$failed")).toBe("false");
     expect(seen.length).toBe(1);
   });
 

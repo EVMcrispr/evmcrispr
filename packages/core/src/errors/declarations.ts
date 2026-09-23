@@ -10,7 +10,9 @@ import {
   CommandError,
   DeclaredError,
   declaredErrorEntries,
+  isChainFailureError,
   MAX_CAUSE_DEPTH,
+  RevertError,
   selectCaptureErrorAbis,
 } from "@evmcrispr/sdk";
 
@@ -81,10 +83,13 @@ export async function collectLineDeclaredErrors(
 }
 
 /**
- * Reject a capture list the declarations cannot serve before the line
- * runs: a bare name declared with more than one signature in the union,
- * or a malformed inline signature. A same-name collision the captures do
- * not use is not an error. Throws the resolver's own message.
+ * Reject a refusal-capture list the declarations cannot serve before the
+ * line runs: a bare name declared with more than one signature in the
+ * union, or a malformed inline signature. A same-name collision the
+ * captures do not use is not an error. Throws the resolver's own message.
+ * Only refusal clauses (`-/>`, `-?/>`) resolve in the declared union, so
+ * the caller passes that family alone; a revert clause's name is judged
+ * against the failing action's ABI when the transaction fails.
  */
 export function checkCaptureNames(
   captures: readonly ErrorCaptureNode[],
@@ -96,16 +101,18 @@ export function checkCaptureNames(
 }
 
 /**
- * The declared refusal a command line may capture from a failure raised
- * while evaluating it: the `DeclaredError` itself, or one found through
- * the wrappers the interpreter adds on the way up (a helper's location
- * wrapper, an expression wrapper). The walk stops at a `CommandError`: that
- * is another command line's boundary, and its refusal belongs to that
- * line — an outer block must never turn into a catch-all for its body.
+ * The failure a command line may capture from an error raised while
+ * evaluating it, even when it travels inside a script-error wrapper: a
+ * declared refusal (the `DeclaredError` itself), or a chain failure raised
+ * before anything was sent (a read that reverted while the line's
+ * arguments were evaluated — a `RevertError`, or a viem revert). Either is
+ * found through the wrappers the interpreter adds on the way up (a
+ * helper's location wrapper, an expression wrapper). The walk stops at a
+ * `CommandError`: that is another command line's boundary, and its failure
+ * belongs to that line — an outer block must never turn into a catch-all
+ * for its body.
  */
-export function capturableDeclaredCause(
-  error: unknown,
-): DeclaredError | undefined {
+export function capturableCause(error: unknown): Error | undefined {
   const seen = new Set<unknown>();
   let current: unknown = error;
   for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
@@ -114,6 +121,8 @@ export function capturableDeclaredCause(
     seen.add(current);
     if (current instanceof DeclaredError) return current;
     if (current instanceof CommandError) return undefined;
+    if (current instanceof RevertError || isChainFailureError(current))
+      return current as Error;
     current = (current as { cause?: unknown }).cause;
   }
   return undefined;

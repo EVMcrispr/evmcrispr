@@ -27,10 +27,11 @@ import { Interpreter } from "../../../src/interpreter/Interpreter";
 import { parseScript } from "../../../src/parsers/script";
 
 // Declared errors travel from a command's or a helper's `fail` to the
-// containing command line's `-?!>` / `-!>` captures. These tests pin how
-// the interpreter gathers the declarations a line can see, which failures
-// it lets through to the resolver, and what a successful line means for
-// each capture form — in execution mode and inside collecting blocks.
+// containing command line's refusal captures (`-?/>` / `-/>`). These tests
+// pin how the interpreter gathers the declarations a line can see, which
+// failures it lets through to the resolver, what a successful line means
+// for each capture form — in execution mode and inside collecting blocks —
+// and that the revert family (`-?!>` / `-!>`) never sees a refusal.
 
 const ACCOUNT = "0x000000000000000000000000000000000000dEaD";
 const TARGET_A = "0x1111111111111111111111111111111111111111";
@@ -116,13 +117,16 @@ const wrap = defineCommand({
 });
 
 // Runs its block as a collecting context (like `safe:execute`): inner
-// commands get no action callback and the collected actions are consumed.
+// commands get no action callback, see a batch context, and the collected
+// actions are consumed.
 const collect = defineCommand({
   name: "collect",
   description: "collects a block",
   args: [{ name: "block", type: "block", description: "body" }],
   async run(_module, { block }, { interpreters }) {
-    await interpreters.interpretNode(block as BlockExpressionNode);
+    await interpreters.interpretNode(block as BlockExpressionNode, {
+      batchContext: { name: "collect", hasActions: false },
+    });
     return [];
   },
 });
@@ -161,6 +165,23 @@ const same = defineHelper({
   errors: { Same: { description: "Declared identically by a helper" } },
   async run(_module, _args, { fail }) {
     fail("Same", "same by helper");
+  },
+});
+
+// A read that reverts while the line's arguments are evaluated: chain-shaped,
+// but raised before anything is sent.
+const readRevert = defineHelper({
+  name: "readRevert",
+  args: [],
+  async run() {
+    throw new RevertError(
+      "read reverted",
+      encodeErrorResult({
+        abi: parseAbi(["error Error(string)"]),
+        errorName: "Error",
+        args: ["read reverted"],
+      }),
+    );
   },
 });
 
@@ -219,6 +240,7 @@ const Declared = defineModule(
     shared: load(shared),
     same: load(same),
     boom: load(boom),
+    readRevert: load(readRevert),
     me: load(me),
     answer: load(answer),
     "onchain!": { ...load(onchain), onchain: true },
@@ -293,7 +315,7 @@ describe("Interpreter - declared errors", () => {
   describe("helper refusals on the containing line", () => {
     it("a bare optional capture accepts a direct helper refusal and sends nothing", async () => {
       const { text, seen, returned } = await run(
-        "set $x @declared:gonnaFail -?!> Failure $f",
+        "set $x @declared:gonnaFail -?/> Failure $f",
       );
       expect(text("$f")).toBe("true");
       expect(text("$x")).toBeUndefined();
@@ -316,39 +338,39 @@ describe("Interpreter - declared errors", () => {
     ];
     for (const [where, line] of reachable) {
       it(`finds the helper's declaration in a ${where}`, async () => {
-        const { text } = await run(`${line} -?!> Failure [$a $b]`);
+        const { text } = await run(`${line} -?/> Failure [$a $b]`);
         expect(text("$a")).toBe("1");
         expect(text("$b")).toBe("2");
       });
     }
 
-    it("a bare, an inline and a generic -!> each accept the refusal", async () => {
-      const bare = await run("set $x @declared:gonnaFail -!> Failure $f");
+    it("a bare, an inline and a generic -/> each accept the refusal", async () => {
+      const bare = await run("set $x @declared:gonnaFail -/> Failure $f");
       expect(bare.text("$f")).toBe("true");
 
       const inline = await run(
-        "set $x @declared:gonnaFail -!> Failure(uint256,uint256) [$a $b]",
+        "set $x @declared:gonnaFail -/> Failure(uint256,uint256) [$a $b]",
       );
       expect(inline.text("$a")).toBe("1");
       expect(inline.text("$b")).toBe("2");
 
-      const flag = await run("set $x @declared:gonnaFail -!> $e");
+      const flag = await run("set $x @declared:gonnaFail -/> $e");
       expect(flag.text("$e")).toBe("true");
 
-      const message = await run("set $x @declared:gonnaFail -!> [$msg]");
+      const message = await run("set $x @declared:gonnaFail -/> [$msg]");
       expect(message.text("$msg")).toBe("the helper refused");
     });
 
     it("a mixed list accepts whichever side fails", async () => {
       const helper = await run(
-        'declared:refuse "x" --note @declared:gonnaFail -?!> Failure $f -!> Refused $r',
+        'declared:refuse "x" --note @declared:gonnaFail -?/> Failure $f -/> Refused $r',
       );
       expect(helper.text("$f")).toBe("true");
       expect(helper.text("$r")).toBe("false");
       expect(calls.refuse).toBe(0);
 
       const command = await run(
-        'declared:refuse "x" --note @declared:id(1) -?!> Failure $f -!> Refused $r',
+        'declared:refuse "x" --note @declared:id(1) -?/> Failure $f -/> Refused $r',
       );
       expect(command.text("$f")).toBe("false");
       expect(command.text("$r")).toBe("true");
@@ -357,36 +379,36 @@ describe("Interpreter - declared errors", () => {
 
     it("a helper signature identical to the command's is one declared error", async () => {
       const helper = await run(
-        'declared:refuse "x" --note @declared:same -?!> Same $s',
+        'declared:refuse "x" --note @declared:same -?/> Same $s',
       );
       expect(helper.text("$s")).toBe("true");
       expect(calls.refuse).toBe(0);
 
-      const command = await run('declared:refuse "same" -?!> Same $s');
+      const command = await run('declared:refuse "same" -?/> Same $s');
       expect(command.text("$s")).toBe("true");
     });
 
     it("a captured helper refusal skips the command body and keeps the target's binding", async () => {
       const { text } = await run(
-        "set $x 5\nset $x @declared:gonnaFail -?!> Failure $f",
+        "set $x 5\nset $x @declared:gonnaFail -?/> Failure $f",
       );
       expect(text("$x")).toBe("5");
       expect(text("$f")).toBe("true");
 
-      await run("declared:refuse @declared:gonnaFail -?!> Failure");
+      await run("declared:refuse @declared:gonnaFail -?/> Failure");
       expect(calls.refuse).toBe(0);
     });
 
     it("a capture may write an error field straight into the assignment target", async () => {
       const { text } = await run(
-        "set $x 5\nset $x @declared:gonnaFail -!> Failure [_ $x]",
+        "set $x 5\nset $x @declared:gonnaFail -/> Failure [_ $x]",
       );
       expect(text("$x")).toBe("2");
     });
 
-    it("a successful helper followed by the command's own refusal satisfies -!>", async () => {
+    it("a successful helper followed by the command's own refusal satisfies -/>", async () => {
       const { text } = await run(
-        'declared:refuse @declared:id("x") -!> Refused [$r]',
+        'declared:refuse @declared:id("x") -/> Refused [$r]',
       );
       expect(text("$r")).toBe("x");
       expect(calls.refuse).toBe(1);
@@ -394,7 +416,7 @@ describe("Interpreter - declared errors", () => {
 
     it("the script continues after a captured refusal", async () => {
       const { text, seen } = await run(
-        `set $x @declared:gonnaFail -?!> Failure $f\nset $after 1\ndeclared:send ${TARGET_A} ${TARGET_B}`,
+        `set $x @declared:gonnaFail -?/> Failure $f\nset $after 1\ndeclared:send ${TARGET_A} ${TARGET_B}`,
       );
       expect(text("$f")).toBe("true");
       expect(text("$after")).toBe("1");
@@ -409,7 +431,7 @@ describe("Interpreter - declared errors", () => {
     ] as const) {
       it(`optional captures clear their flags on a zero-action success ${mode}`, async () => {
         const { text } = await run(
-          "set $x @declared:id(1) -?!> Failure $f -?!> $e",
+          "set $x @declared:id(1) -?/> Failure $f -?/> $e",
           callback,
         );
         expect(text("$f")).toBe("false");
@@ -420,21 +442,34 @@ describe("Interpreter - declared errors", () => {
       it(`a required capture rejects a zero-action success ${mode}`, async () => {
         const { exec, text } = session(callback);
         await expect(
-          exec("set $x @declared:id(1) -!> Failure"),
-        ).rejects.toThrow(/expected .*fail.* but it succeeded/i);
+          exec("set $x @declared:id(1) -/> Failure"),
+        ).rejects.toThrow(/expected the line to refuse, but it succeeded/);
         expect(text("$x")).toBe("1");
       });
     }
 
+    it("a revert capture on a line that sends nothing is judged at runtime", async () => {
+      const optional = await run("set $x 1 -?!> $r");
+      expect(optional.text("$r")).toBe("false");
+      expect(optional.text("$x")).toBe("1");
+
+      const named = await run("set $x 1 -?!> Foo $r");
+      expect(named.text("$r")).toBe("false");
+
+      await expect(run("set $x 1 -!> Foo")).rejects.toThrow(
+        "expected a revert, but the line sent no transaction",
+      );
+    });
+
     it("a zero-action command refusal is captured and dispatches nothing", async () => {
-      const refused = await run('declared:refuse "x" -?!> Refused [$r]');
+      const refused = await run('declared:refuse "x" -?/> Refused [$r]');
       expect(refused.text("$r")).toBe("x");
       expect(refused.seen.length).toBe(0);
 
-      const ok = await run('declared:refuse "ok" -?!> Refused $r');
+      const ok = await run('declared:refuse "ok" -?/> Refused $r');
       expect(ok.text("$r")).toBe("false");
-      await expect(run('declared:refuse "ok" -!> Refused')).rejects.toThrow(
-        /expected .*fail.* but it succeeded/i,
+      await expect(run('declared:refuse "ok" -/> Refused')).rejects.toThrow(
+        /expected the line to refuse, but it succeeded/,
       );
     });
   });
@@ -443,7 +478,7 @@ describe("Interpreter - declared errors", () => {
     it("an unmatched named capture rethrows the helper wrapper with its cause", async () => {
       const { exec, text } = session();
       const thrown = await thrownBy(
-        exec("set $x @declared:gonnaFail -?!> Refused $r"),
+        exec("set $x @declared:gonnaFail -?/> Refused $r"),
       );
       expect(thrown).toBeInstanceOf(HelperFunctionError);
       expect((thrown as Error).message).toMatch(
@@ -455,22 +490,44 @@ describe("Interpreter - declared errors", () => {
       expect(text("$r")).toBeUndefined();
 
       const required = await thrownBy(
-        run("set $x @declared:gonnaFail -!> Refused"),
+        run("set $x @declared:gonnaFail -/> Refused"),
       );
       expect(required).toBeInstanceOf(HelperFunctionError);
       expect((required as Error).cause).toBeInstanceOf(DeclaredError);
     });
 
+    it("a revert capture never sees a declared refusal", async () => {
+      const helper = session();
+      const thrown = await thrownBy(
+        helper.exec("set $x @declared:gonnaFail -?!> Failure $f"),
+      );
+      expect(thrown).toBeInstanceOf(HelperFunctionError);
+      expect((thrown as Error).cause).toBeInstanceOf(DeclaredError);
+      expect(helper.text("$f")).toBeUndefined();
+      expect(helper.text("$x")).toBeUndefined();
+
+      const generic = session();
+      await expect(
+        generic.exec("set $x @declared:gonnaFail -?!> [$msg]"),
+      ).rejects.toThrow(/the helper refused/);
+      expect(generic.text("$msg")).toBeUndefined();
+
+      const command = await thrownBy(run('declared:refuse "x" -!> Refused'));
+      expect(command).toBeInstanceOf(CommandError);
+      expect((command as Error).message).toMatch(/refused: x/);
+      expect((command as Error).cause).toBeInstanceOf(DeclaredError);
+    });
+
     it("an unknown bare name is a mismatch, not a capture error", async () => {
       const thrown = await thrownBy(
-        run("set $x @declared:gonnaFail -?!> Nope $n"),
+        run("set $x @declared:gonnaFail -?/> Nope $n"),
       );
       expect(thrown).toBeInstanceOf(HelperFunctionError);
       expect((thrown as Error).message).toMatch(/the helper refused/);
     });
 
     it("an unmatched command refusal keeps the command wrapper and cause", async () => {
-      const thrown = await thrownBy(run('declared:refuse "x" -!> Failure'));
+      const thrown = await thrownBy(run('declared:refuse "x" -/> Failure'));
       expect(thrown).toBeInstanceOf(CommandError);
       expect((thrown as Error).message).toMatch(
         /^declared:refuse\(.*\): refused: x/,
@@ -481,24 +538,24 @@ describe("Interpreter - declared errors", () => {
     it("undeclared helper failures and script errors stay uncapturable", async () => {
       const undeclared = session();
       await expect(
-        undeclared.exec("set $x @declared:boom -?!> $e"),
+        undeclared.exec("set $x @declared:boom -?/> $e"),
       ).rejects.toThrow(/kaboom/);
       expect(undeclared.text("$e")).toBeUndefined();
 
       const variable = session();
       await expect(
-        variable.exec("set $x @declared:id($nope) -?!> $e"),
+        variable.exec("set $x @declared:id($nope) -?/> $e"),
       ).rejects.toThrow(/\$nope not defined/);
       expect(variable.text("$e")).toBeUndefined();
 
       await expect(
-        run("declared:refuse $nope -?!> Refused $r -?!> $e"),
+        run("declared:refuse $nope -?/> Refused $r -?/> $e"),
       ).rejects.toThrow(/\$nope not defined/);
     });
 
     it("control-flow signals pass through untouched", async () => {
       const { text } = await run(
-        "loop $i of [1 2 3] (\n  set $n $i\n  loop break -?!> $e\n)",
+        "loop $i of [1 2 3] (\n  set $n $i\n  loop break -?/> $e\n)",
       );
       expect(text("$n")).toBe("1");
       expect(text("$e")).toBeUndefined();
@@ -509,7 +566,7 @@ describe("Interpreter - declared errors", () => {
     it("an imported helper contributes its declarations", async () => {
       const { interpreter, text } = session();
       await interpreter.interpret(
-        "load declared [@gonnaFail]\nset $x @gonnaFail -?!> Failure $f",
+        "load declared [@gonnaFail]\nset $x @gonnaFail -?/> Failure $f",
       );
       expect(text("$f")).toBe("true");
     });
@@ -517,7 +574,7 @@ describe("Interpreter - declared errors", () => {
     it("a renamed import contributes its declarations", async () => {
       const { interpreter, text } = session();
       await interpreter.interpret(
-        "load declared [@gonnaFail>@nope]\nset $x @nope -?!> Failure [$a $b]",
+        "load declared [@gonnaFail>@nope]\nset $x @nope -?/> Failure [$a $b]",
       );
       expect(text("$a")).toBe("1");
       expect(text("$b")).toBe("2");
@@ -529,14 +586,14 @@ describe("Interpreter - declared errors", () => {
       // `@me` wrongly resolved to the module would the bare name be
       // ambiguous.
       const std = await run(
-        'declared:refuse "shared" --note @me -?!> Shared [$code]',
+        'declared:refuse "shared" --note @me -?/> Shared [$code]',
       );
       expect(std.text("$code")).toBe("7");
 
       const { interpreter } = session();
       await expect(
         interpreter.interpret(
-          'load declared [@me]\ndeclared:refuse "shared" --note @me -?!> Shared [$code]',
+          'load declared [@me]\ndeclared:refuse "shared" --note @me -?/> Shared [$code]',
         ),
       ).rejects.toThrow(/more than one signature/);
       expect(calls.refuse).toBe(1);
@@ -545,7 +602,7 @@ describe("Interpreter - declared errors", () => {
     it("a local def shadows the module helper and declares nothing", async () => {
       const { interpreter, text } = session();
       await interpreter.interpret(
-        'load declared [@gonnaFail]\ndef @mine "-> number" 1\nset $x @mine -?!> Failure $f',
+        'load declared [@gonnaFail]\ndef @mine "-> number" 1\nset $x @mine -?/> Failure $f',
       );
       expect(text("$f")).toBe("false");
       expect(text("$x")).toBe("1");
@@ -553,9 +610,9 @@ describe("Interpreter - declared errors", () => {
       const required = session();
       await expect(
         required.interpreter.interpret(
-          'load declared\ndef @gonnaFail "-> number" 1\nset $x @gonnaFail -!> Failure',
+          'load declared\ndef @gonnaFail "-> number" 1\nset $x @gonnaFail -/> Failure',
         ),
-      ).rejects.toThrow(/expected .*fail.* but it succeeded/i);
+      ).rejects.toThrow(/expected the line to refuse, but it succeeded/);
     });
 
     it("an on-chain-only face contributes no off-chain declarations", async () => {
@@ -564,7 +621,7 @@ describe("Interpreter - declared errors", () => {
       // the line runs and fails where the on-chain face is evaluated.
       const { exec } = session();
       await expect(
-        exec('declared:refuse "shared" --note @declared:onchain! -?!> Shared'),
+        exec('declared:refuse "shared" --note @declared:onchain! -?/> Shared'),
       ).rejects.toThrow(/evaluates on-chain/);
       expect(calls.refuse).toBe(0);
     });
@@ -613,7 +670,7 @@ describe("Interpreter - declared errors", () => {
     it("an ambiguous bare name used by a capture is rejected before the line runs", async () => {
       await expect(
         run(
-          'declared:refuse "shared" --note @declared:shared(false) -?!> Shared',
+          'declared:refuse "shared" --note @declared:shared(false) -?/> Shared',
         ),
       ).rejects.toThrow(/more than one signature/);
       expect(calls.shared).toBe(0);
@@ -622,12 +679,12 @@ describe("Interpreter - declared errors", () => {
 
     it("explicit signatures select either side", async () => {
       const command = await run(
-        'declared:refuse "shared" --note @declared:shared(false) -?!> Shared(uint256) [$code]',
+        'declared:refuse "shared" --note @declared:shared(false) -?/> Shared(uint256) [$code]',
       );
       expect(command.text("$code")).toBe("7");
 
       const helper = await run(
-        'declared:refuse "x" --note @declared:shared(true) -?!> Shared() $s',
+        'declared:refuse "x" --note @declared:shared(true) -?/> Shared() $s',
       );
       expect(helper.text("$s")).toBe("true");
       expect(calls.refuse).toBe(1);
@@ -635,59 +692,72 @@ describe("Interpreter - declared errors", () => {
 
     it("a collision alone does not invalidate a line that does not use the name", async () => {
       const { text } = await run(
-        'declared:refuse "x" --note @declared:shared(false) -?!> Refused [$r]',
+        'declared:refuse "x" --note @declared:shared(false) -?/> Refused [$r]',
       );
       expect(text("$r")).toBe("x");
     });
   });
 
   describe("collecting blocks", () => {
-    it("a composition-time refusal satisfies either arrow", async () => {
+    it("a composition-time refusal satisfies either refusal arrow", async () => {
       const optional = await run(
-        'declared:collect (\n  declared:refuse "x" -?!> Refused [$r]\n)',
+        'declared:collect (\n  declared:refuse "x" -?/> Refused [$r]\n)',
       );
       expect(optional.text("$r")).toBe("x");
 
       const required = await run(
-        'declared:collect (\n  declared:refuse "x" -!> Refused [$r]\n)',
+        'declared:collect (\n  declared:refuse "x" -/> Refused [$r]\n)',
       );
       expect(required.text("$r")).toBe("x");
 
       const helper = await run(
-        "declared:collect (\n  set $x @declared:gonnaFail -!> Failure [$a]\n)",
+        "declared:collect (\n  set $x @declared:gonnaFail -/> Failure [$a]\n)",
       );
       expect(helper.text("$a")).toBe("1");
     });
 
+    it("revert captures are refused before the block runs", async () => {
+      for (const arrow of ["-!>", "-?!>"]) {
+        const { exec } = session();
+        await expect(
+          exec(
+            `declared:collect (\n  declared:send ${TARGET_A} ${TARGET_B} ${arrow} Bounced $b\n)`,
+          ),
+        ).rejects.toThrow(
+          "revert captures inside a block cannot observe the outer transaction; capture it on the block command instead",
+        );
+      }
+    });
+
     it("a zero-action success clears optional flags and fails required captures", async () => {
       const { text } = await run(
-        "declared:collect (\n  set $x @declared:id(1) -?!> Failure $f\n)",
+        "declared:collect (\n  set $x @declared:id(1) -?/> Failure $f\n)",
       );
       expect(text("$f")).toBe("false");
 
       await expect(
-        run("declared:collect (\n  set $x @declared:id(1) -!> Failure\n)"),
-      ).rejects.toThrow(/expected .*fail.* but it succeeded/i);
+        run("declared:collect (\n  set $x @declared:id(1) -/> Failure\n)"),
+      ).rejects.toThrow(/expected the line to refuse, but it succeeded/);
     });
 
-    it("deferred transaction actions cannot satisfy a required capture", async () => {
-      await expect(
-        run(
-          `declared:collect (\n  declared:send ${TARGET_A} ${TARGET_B} -!> Bounced\n)`,
-        ),
-      ).rejects.toThrow(/execution context/);
-
+    it("a line that composes its actions clears optional refusal flags and fails a required one", async () => {
       const optional = await run(
-        `declared:collect (\n  declared:send ${TARGET_A} ${TARGET_B} -?!> Bounced $b\n)`,
+        `declared:collect (\n  declared:send ${TARGET_A} ${TARGET_B} -?/> Bounced $b\n)`,
       );
       expect(optional.text("$b")).toBe("false");
+
+      await expect(
+        run(
+          `declared:collect (\n  declared:send ${TARGET_A} ${TARGET_B} -/> Bounced\n)`,
+        ),
+      ).rejects.toThrow("expected the line to refuse, but it succeeded");
     });
   });
 
   describe("structural checks before evaluation", () => {
     it("rejects error captures on if/loop before running the block", async () => {
       const { exec, text } = session();
-      await expect(exec("if true (\n  set $x 1\n) -?!> $e")).rejects.toThrow(
+      await expect(exec("if true (\n  set $x 1\n) -?/> $e")).rejects.toThrow(
         /not supported on block commands/,
       );
       expect(text("$x")).toBeUndefined();
@@ -697,15 +767,24 @@ describe("Interpreter - declared errors", () => {
       const { interpreter, text } = session();
       await expect(
         interpreter.interpret(
-          'def go "$a: string" (\n  set $y $a\n)\ngo "1" -?!> $e',
+          'def go "$a: string" (\n  set $y $a\n)\ngo "1" -?/> $e',
         ),
       ).rejects.toThrow(/not supported on block commands/);
       expect(text("$y")).toBeUndefined();
     });
 
+    it("rejects a required refusal with a required revert before running", async () => {
+      await expect(
+        run('declared:refuse "x" -/> Refused -!> Bounced'),
+      ).rejects.toThrow(
+        "a line cannot both refuse before sending (-/>) and revert after (-!>); keep one required timing",
+      );
+      expect(calls.refuse).toBe(0);
+    });
+
     it("rejects tx captures combined with error captures before running", async () => {
       await expect(
-        run('declared:refuse "x" $> $tx -?!> Refused'),
+        run('declared:refuse "x" $> $tx -?/> Refused'),
       ).rejects.toThrow(/cannot be combined with error captures/);
       expect(calls.refuse).toBe(0);
     });
@@ -716,7 +795,7 @@ describe("Interpreter - declared errors", () => {
       const { exec, text } = session();
       const thrown = await thrownBy(
         exec(
-          "declared:wrap (\n  set $x @declared:gonnaFail\n) -?!> Failure $f",
+          "declared:wrap (\n  set $x @declared:gonnaFail\n) -?/> Failure $f",
         ),
       );
       expect(thrown).toBeInstanceOf(HelperFunctionError);
@@ -727,16 +806,26 @@ describe("Interpreter - declared errors", () => {
     it("an outer command does not swallow an inner command's refusal", async () => {
       const { exec, text } = session();
       const thrown = await thrownBy(
-        exec('declared:wrap (\n  declared:refuse "x"\n) -?!> Refused $r'),
+        exec('declared:wrap (\n  declared:refuse "x"\n) -?/> Refused $r'),
       );
       expect(thrown).toBeInstanceOf(CommandError);
       expect((thrown as Error).message).toMatch(/refused: x/);
       expect(text("$r")).toBeUndefined();
     });
 
+    it("an outer command does not swallow an inner line's read revert", async () => {
+      const { exec, text } = session();
+      const thrown = await thrownBy(
+        exec("declared:wrap (\n  set $x @declared:readRevert\n) -?/> $e"),
+      );
+      expect(thrown).toBeInstanceOf(HelperFunctionError);
+      expect((thrown as Error).cause).toBeInstanceOf(RevertError);
+      expect(text("$e")).toBeUndefined();
+    });
+
     it("an inner capture handles the refusal and the outer line succeeds", async () => {
       const { text } = await run(
-        "declared:wrap (\n  set $x @declared:gonnaFail -?!> Failure $f\n) -?!> $e",
+        "declared:wrap (\n  set $x @declared:gonnaFail -?/> Failure $f\n) -?/> $e",
       );
       expect(text("$f")).toBe("true");
       expect(text("$e")).toBe("false");
@@ -756,11 +845,11 @@ describe("Interpreter - declared errors", () => {
         return undefined;
       };
 
-    it("a declared error matches a revert of a later action", async () => {
+    it("an inline signature matches a revert of a later action", async () => {
       const sent: Action[] = [];
       const callback = bounce(TARGET_B, BOUNCED_ABI, 9n);
       const { text } = await run(
-        `declared:send ${TARGET_A} ${TARGET_B} -?!> Bounced [$code]`,
+        `declared:send ${TARGET_A} ${TARGET_B} -?!> Bounced(uint256) [$code]`,
         async (action) => {
           sent.push(action);
           return callback(action);
@@ -773,6 +862,82 @@ describe("Interpreter - declared errors", () => {
         TARGET_A,
         TARGET_B,
       ]);
+    });
+
+    it("a revert clause ignores the line's declarations", async () => {
+      // `declared:send` declares `Bounced(uint256)`, but a revert is decoded
+      // with the target's ABI only — and no ABI is bound here.
+      const { exec, text } = session(bounce(TARGET_B, BOUNCED_ABI, 9n));
+      await expect(
+        exec(`declared:send ${TARGET_A} ${TARGET_B} -?!> Bounced [$code]`),
+      ).rejects.toThrow(/Transaction reverted/);
+      expect(text("$code")).toBeUndefined();
+    });
+
+    it("a refusal capture never sees a revert", async () => {
+      const { exec, text } = session(bounce(TARGET_B, BOUNCED_ABI, 9n));
+      await expect(
+        exec(
+          `declared:send ${TARGET_A} ${TARGET_B} -?/> Bounced $b -?/> [$msg]`,
+        ),
+      ).rejects.toThrow(/Transaction reverted/);
+      // The line composed, so the refusal flags were cleared before the
+      // send; the revert then propagated untouched.
+      expect(text("$b")).toBe("false");
+      expect(text("$msg")).toBeUndefined();
+    });
+
+    it("a required refusal on a line that composes fails before sending", async () => {
+      const { exec, seen } = session();
+      await expect(
+        exec(`declared:send ${TARGET_A} ${TARGET_B} -/> Bounced`),
+      ).rejects.toThrow("expected the line to refuse, but it succeeded");
+      expect(seen.length).toBe(0);
+    });
+
+    it("a mixed list evaluates each family at its own time", async () => {
+      const refused = await run(
+        'declared:refuse "x" -?/> Refused $r -?!> Bounced(uint256) $b',
+      );
+      expect(refused.text("$r")).toBe("true");
+      expect(refused.text("$b")).toBe("false");
+      expect(refused.seen.length).toBe(0);
+
+      const reverted = await run(
+        `declared:send ${TARGET_A} ${TARGET_B} -?/> Bounced $r -?!> Bounced(uint256) [$code]`,
+        bounce(TARGET_B, BOUNCED_ABI, 9n),
+      );
+      expect(reverted.text("$r")).toBe("false");
+      expect(reverted.text("$code")).toBe("9");
+
+      const sent = await run(
+        `declared:send ${TARGET_A} ${TARGET_B} -?/> Bounced $r -?!> Bounced(uint256) $b`,
+      );
+      expect(sent.text("$r")).toBe("false");
+      expect(sent.text("$b")).toBe("false");
+      expect(sent.seen.length).toBe(2);
+    });
+
+    it("a read that reverts while evaluating the line is a refusal", async () => {
+      const flag = await run("set $x @declared:readRevert -?/> $e");
+      expect(flag.text("$e")).toBe("true");
+      expect(flag.text("$x")).toBeUndefined();
+
+      const message = await run("set $x @declared:readRevert -?/> [$why]");
+      expect(message.text("$why")).toBe("read reverted");
+
+      const inline = await run(
+        "set $x @declared:readRevert -/> Error(string) [$why]",
+      );
+      expect(inline.text("$why")).toBe("read reverted");
+
+      const revert = session();
+      const thrown = await thrownBy(
+        revert.exec("set $x @declared:readRevert -?!> $e"),
+      );
+      expect(thrown).toBeInstanceOf(HelperFunctionError);
+      expect((thrown as Error).cause).toBeInstanceOf(RevertError);
+      expect(revert.text("$e")).toBeUndefined();
     });
 
     it("contract metadata comes from the failing action's target", async () => {

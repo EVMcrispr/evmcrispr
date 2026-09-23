@@ -317,9 +317,29 @@ exec ${target} "g(uint256)" $v
     );
   });
 
-  it("points required error captures at assert @reverts!", async () => {
+  it("allows refusal captures and rolls a matched required one back", async () => {
+    const evm = new Interpreter(tag.registry, { account, chainId: 1 });
+    const [action] = await evm.interpret(
+      `batch! (\nexec ${target} "f() returns (uint256,bool)" -> [$x [$bad]] -/> $failed\nexec ${target} "g(uint256)" 7\n)`,
+    );
+    const plan = (action as SmartBatchAction).plan;
+    expect(plan.steps).toHaveLength(1);
+    expect(plan.captures).toHaveLength(0);
+    expect(String(evm.getBinding("$failed", BindingsSpace.USER))).toBe("true");
+
+    await expect(compile(`exec ${target} "f()" -/> $failed`)).rejects.toThrow(
+      "expected the line to refuse, but it succeeded",
+    );
+  });
+
+  it("points revert captures at @reverts!", async () => {
     await expect(compile(`exec ${target} "f()" -!> Failure()`)).rejects.toThrow(
       "revert captures cannot observe a revert inside a smart batch; assert it instead: assert @reverts!(<target>::!{<signature>} -!> Name())",
+    );
+    await expect(
+      compile(`exec ${target} "f()" -?!> Failure()`),
+    ).rejects.toThrow(
+      "revert captures cannot catch a revert inside a smart batch; branch on it instead: if @reverts!(<target>::!{<signature>} -!> Name()) ( … )",
     );
     await expect(
       compile(`exec ${target} "f()" -> [$x] $*> $txs`),

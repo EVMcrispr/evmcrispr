@@ -6,7 +6,6 @@ import type {
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
-  DeclaredError,
   DeclaredErrorEntry,
   DestructurePatternNode,
   DestructureSlot,
@@ -65,10 +64,10 @@ import { getAbiItem, isAddress, parseAbiItem } from "viem";
 import {
   captureStructureIssues,
   runsBlockInline,
-  SMART_BATCH_REQUIRED_REVERT_CAPTURE,
+  splitByTiming,
 } from "../errors/captureStructure";
 import {
-  capturableDeclaredCause,
+  capturableCause,
   checkCaptureNames,
   collectLineDeclaredErrors,
 } from "../errors/declarations";
@@ -584,13 +583,14 @@ function withInheritedOptions(
 export interface ExecutionResolversInput extends ResolutionInput {
   /** Used by `CallExpression` to look up a client. Throws if none. */
   getClient: () => Promise<PublicClient>;
-  /** Captures wrapper, fired after a command produces actions. `declared`
-   *  is the line's declared-error union when it has error captures. */
+  /** Captures wrapper, fired after a command produces actions. `revert`
+   *  is the line's revert-capture family (`-!>`, `-?!>`): the only error
+   *  captures that observe the send itself. */
   executeWithCaptures: (
     c: CommandExpressionNode,
     res: Action[] | void,
     actionCallback: ((action: Action) => Promise<unknown>) | undefined,
-    declared?: readonly DeclaredErrorEntry[],
+    revert: ErrorCaptureNode[],
   ) => Promise<Action[] | void>;
 }
 
@@ -645,20 +645,25 @@ export function makeExecutionResolveCommand(
 ): InterpretCtx["resolveCommand"] {
   const lookup = runtimeDeclarationLookup(input);
 
-  // Declared refusals that already reached a command boundary. A refusal
-  // raised inside a block is the inner line's failure: once that line's
-  // catch has seen it, no outer line may capture it — even though the
-  // wrapper it travels in (a helper's location error) is not a
-  // `CommandError`, which is the boundary `capturableDeclaredCause` stops
-  // at on its own.
-  const observed = new WeakSet<DeclaredError>();
+  // Capturable failures (declared refusals, pre-send read reverts) that
+  // already reached a command boundary. A failure raised inside a block is
+  // the inner line's: once that line's catch has seen it, no outer line
+  // may capture it — even though the wrapper it travels in (a helper's
+  // location error) is not a `CommandError`, which is the boundary
+  // `capturableCause` stops at on its own.
+  const observed = new WeakSet<Error>();
 
   return async (c, rawInterpreters, options) => {
     const actionCallback: ((a: Action) => Promise<unknown>) | undefined =
       options?.actionCallback;
     const batchContext: BatchContext | undefined = options?.batchContext;
     const interpreters = withInheritedOptions(rawInterpreters, options);
-    const errorCaptures = (c.errorCaptures ?? []) as ErrorCaptureNode[];
+    // The two capture families observe different phases of the line:
+    // refusals (`-/>`, `-?/>`) the failure of the line before anything is
+    // sent, reverts (`-!>`, `-?!>`) the outcome of its own transaction.
+    const { refusal, revert } = splitByTiming(
+      (c.errorCaptures ?? []) as ErrorCaptureNode[],
+    );
     const smart = batchContext?.smartState;
     const loopCheckpoint: {
       frame: SmartLoopFrame;
@@ -681,9 +686,6 @@ export function makeExecutionResolveCommand(
           restoreBindings: input.bindings.checkpointLocal(BindingsSpace.USER),
         }
       : undefined;
-    if (smart && errorCaptures.some((cap) => !cap.optional)) {
-      panic(c, SMART_BATCH_REQUIRED_REVERT_CAPTURE);
-    }
     if (
       smart &&
       ((c.eventCaptures?.length ?? 0) > 0 || (c.txCaptures?.length ?? 0) > 0)
@@ -721,14 +723,16 @@ export function makeExecutionResolveCommand(
       if (issue) panic(c, issue.message);
     }
 
-    // The declarations the error captures resolve against: the command's
+    // The declarations the refusal captures resolve against: the command's
     // own plus those of every helper the line evaluates. Gathered before
-    // the line runs so an ambiguous bare name is refused up front.
+    // the line runs so an ambiguous bare name is refused up front. Revert
+    // captures never read them — a revert is decoded with the failing
+    // action's ABI.
     let declared: DeclaredErrorEntry[] | undefined;
-    if (errorCaptures.length > 0) {
+    if (refusal.length > 0) {
       try {
         declared = await collectLineDeclaredErrors(c, lookup);
-        checkCaptureNames(errorCaptures, declared);
+        checkCaptureNames(refusal, declared);
       } catch (err) {
         if (err instanceof NodeError) throw err;
         panic(c, (err as Error).message, err);
@@ -736,14 +740,17 @@ export function makeExecutionResolveCommand(
     }
 
     /**
-     * Error captures observe a failed command: a reverted transaction, or
-     * the line failing before any action exists — the command refusing to
-     * run (a failed preflight, an invalid amount, a missing argument) or a
-     * helper in its arguments refusing with a declared error. The second
-     * case lands here: the failure is resolved against the captures and
-     * the command yields no actions. Ordinary script errors (NodeError)
-     * stay uncapturable; a declared refusal is let through its wrappers,
-     * and the wrapper itself is what propagates when no clause matches.
+     * Refusal captures observe the line failing before any action exists —
+     * the command refusing to run (a failed preflight, an invalid amount,
+     * a missing argument), a helper in its arguments refusing with a
+     * declared error, or a read that reverted while the arguments were
+     * evaluated. That failure lands here: it is resolved against the
+     * refusal clauses only and the command yields no actions. Ordinary
+     * script errors (NodeError) stay uncapturable; a declared refusal or a
+     * pre-send chain failure is let through its wrappers, and the wrapper
+     * itself is what propagates when no clause matches. Revert clauses
+     * never see any of this: a line carrying only `-!>` / `-?!>`
+     * propagates its pre-send failure untouched.
      */
     const captureCommandFailure = async (err: unknown): Promise<boolean> => {
       // Inside a smart batch a failed line leaves no partial plan behind:
@@ -758,21 +765,19 @@ export function makeExecutionResolveCommand(
         batchContext!.hasActions = checkpoint.hasActions;
         checkpoint.restoreBindings();
       }
-      const refusal = capturableDeclaredCause(err);
-      if (refusal) {
-        if (observed.has(refusal)) return false;
-        observed.add(refusal);
+      const cause = capturableCause(err);
+      if (cause) {
+        if (observed.has(cause)) return false;
+        observed.add(cause);
       } else if (err instanceof NodeError) {
         return false;
       }
-      if (errorCaptures.length === 0) return false;
+      if (refusal.length === 0) return false;
       try {
-        await resolveErrorCaptures(
-          err,
-          { declared },
-          errorCaptures,
-          input.bindings,
-        );
+        await resolveErrorCaptures(err, { declared }, refusal, input.bindings);
+        // The line was handled before sending: its revert clauses have
+        // nothing left to observe.
+        setBoolVarsFalse(revert, input.bindings);
       } catch (resolveErr) {
         // No clause matched: the resolver rethrows the original failure by
         // identity, and the caller reports it the way an uncaptured
@@ -806,8 +811,18 @@ export function makeExecutionResolveCommand(
       panic(c, (err as Error).message, err);
     }
     try {
+      // The line composed: a required refusal is an assertion failure
+      // before anything is sent, an optional one reads `"false"`.
+      if (refusal.length > 0) {
+        if (captureListRequiresFailure(refusal)) {
+          throw new ErrorException(
+            "expected the line to refuse, but it succeeded",
+          );
+        }
+        setBoolVarsFalse(refusal, input.bindings);
+      }
       return trackBatchActions(
-        await input.executeWithCaptures(c, res, actionCallback, declared),
+        await input.executeWithCaptures(c, res, actionCallback, revert),
       );
     } catch (err) {
       if (err instanceof NodeError || err instanceof ControlFlowSignal)
@@ -970,7 +985,7 @@ export function makeExecuteWithCaptures(
   c: CommandExpressionNode,
   res: Action[] | void,
   actionCallback: ((action: Action) => Promise<unknown>) | undefined,
-  declared?: readonly DeclaredErrorEntry[],
+  revert: ErrorCaptureNode[],
 ) => Promise<Action[] | void> {
   const { bindings, getClient, interpretNode, onActionDispatch } = input;
 
@@ -1045,11 +1060,13 @@ export function makeExecuteWithCaptures(
     return receipt;
   };
 
-  return async (c, res, actionCallback, declared) => {
-    const errorCaptures = (c.errorCaptures ?? []) as ErrorCaptureNode[];
+  // `revert` is the line's revert-capture family only (`-!>`, `-?!>`):
+  // refusal captures were settled by the command resolver before the line
+  // reached this point.
+  return async (c, res, actionCallback, revert) => {
     const hasEventCaptures =
       c.eventCaptures != null && c.eventCaptures.length > 0;
-    const hasErrorCaptures = errorCaptures.length > 0;
+    const hasErrorCaptures = revert.length > 0;
     const hasTxCaptures = c.txCaptures != null && c.txCaptures.length > 0;
 
     if (actionCallback) await stampChainId(res);
@@ -1064,16 +1081,15 @@ export function makeExecuteWithCaptures(
     }
 
     // Structural rules (tx + error captures, captures on block commands,
-    // duplicate tx captures) were checked before the command ran — see
-    // `captureStructureIssues` in the command resolver.
+    // duplicate tx captures, revert captures inside a block) were checked
+    // before the command ran — see `captureStructureIssues` in the command
+    // resolver.
     const requiresFailure =
-      hasErrorCaptures && captureListRequiresFailure(errorCaptures);
+      hasErrorCaptures && captureListRequiresFailure(revert);
 
-    // A command that completed without producing actions has an
-    // observable outcome for error captures: the line succeeded. There is
-    // no send left to wait for, so this holds inside a collecting block
-    // too — optional flags clear, a required capture is an assertion
-    // failure.
+    // A command that completed without producing actions sent nothing, so
+    // there is no revert to observe: optional flags read `"false"`, a
+    // required revert capture is an assertion failure.
     if (
       hasErrorCaptures &&
       !hasEventCaptures &&
@@ -1082,25 +1098,26 @@ export function makeExecuteWithCaptures(
     ) {
       if (requiresFailure) {
         throw new ErrorException(
-          "expected the command to fail but it succeeded",
+          "expected a revert, but the line sent no transaction",
         );
       }
-      setBoolVarsFalse(errorCaptures, bindings);
+      setBoolVarsFalse(revert, bindings);
       return res;
     }
 
     if (!actionCallback) {
-      // Inside a collecting block (safe:execute, batch, a proposal) the
-      // actions are handed to the block instead of being sent here, so a
-      // revert cannot be observed. Optional error captures then only cover
-      // the command refusing to run (handled before this point): clear
-      // their flags and let the actions through. Anything that must observe
-      // the send itself — an event or tx capture, a required error capture
-      // on deferred actions — still needs an execution context.
+      // No send context. A collecting block (safe:execute, batch, a
+      // proposal) never gets here with revert captures — the structural
+      // gate refuses them before the line runs — so this is a top-level
+      // dry run (`interpret()` without a callback), where the actions are
+      // returned instead of sent. Optional revert captures have nothing
+      // to observe: clear their flags and let the actions through. Anything
+      // that must observe the send itself — an event or tx capture, a
+      // required revert capture — still needs an execution context.
       const onlyOptionalErrors =
         !hasEventCaptures && !hasTxCaptures && !requiresFailure;
       if (onlyOptionalErrors) {
-        setBoolVarsFalse(errorCaptures, bindings);
+        setBoolVarsFalse(revert, bindings);
         return res;
       }
       throw new ErrorException(
@@ -1215,19 +1232,16 @@ export function makeExecuteWithCaptures(
           "expected transaction to revert but it succeeded",
         );
       }
-      setBoolVarsFalse(errorCaptures, bindings);
+      setBoolVarsFalse(revert, bindings);
       return [];
     }
 
     // Contract metadata belongs to the action that failed, not to the
-    // first one a multi-action command produced.
+    // first one a multi-action command produced. A revert is decoded with
+    // that ABI (plus the builtins) only — never with the line's declared
+    // errors.
     const abi = await tryLookupAbi(failure.action);
-    await resolveErrorCaptures(
-      failure.error,
-      { abi, declared },
-      errorCaptures,
-      bindings,
-    );
+    await resolveErrorCaptures(failure.error, { abi }, revert, bindings);
     return [];
   };
 }
