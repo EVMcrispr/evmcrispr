@@ -56,7 +56,7 @@ export const safeServiceHandlers = [
     `${BASE}/safes/:safe/multisig-transactions/`,
     async ({ request }) => {
       serviceState.proposals.push(await request.json());
-      return HttpResponse.json({}, { status: 201 });
+      return new HttpResponse(null, { status: 201 });
     },
   ),
   http.post(
@@ -67,7 +67,7 @@ export const safeServiceHandlers = [
         safeTxHash: String(params.hash).toLowerCase(),
         signature,
       });
-      return HttpResponse.json({}, { status: 201 });
+      return new HttpResponse(null, { status: 201 });
     },
   ),
   http.post(`${BASE}/safes/:safe/messages/`, async ({ request, params }) => {
@@ -75,7 +75,7 @@ export const safeServiceHandlers = [
       safe: params.safe,
       ...((await request.json()) as object),
     });
-    return HttpResponse.json({}, { status: 201 });
+    return new HttpResponse(null, { status: 201 });
   }),
   http.post(
     `${BASE}/messages/:hash/signatures/`,
@@ -85,7 +85,7 @@ export const safeServiceHandlers = [
         messageHash: String(params.hash).toLowerCase(),
         signature,
       });
-      return HttpResponse.json({}, { status: 201 });
+      return new HttpResponse(null, { status: 201 });
     },
   ),
   http.get(`${BASE}/messages/:hash/`, ({ params }) => {

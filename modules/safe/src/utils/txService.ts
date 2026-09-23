@@ -62,8 +62,9 @@ const serviceFetch = async (
       `Safe Transaction Service request failed (${res.status}): ${body || url}`,
     );
   }
-  if (res.status === 204) return undefined;
-  return res.json();
+  // POSTs answer 201 with an empty body.
+  const text = await res.text();
+  return text ? JSON.parse(text) : undefined;
 };
 
 /** Next free nonce: the on-chain nonce, skipping past any pending queued
