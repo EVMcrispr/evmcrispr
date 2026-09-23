@@ -138,6 +138,14 @@ describe("Safe > flows without the Safe Transaction Service", () => {
     );
   });
 
+  it("sets the execTransaction gas limit with --gas", async () => {
+    threshold = 1n;
+    const [action] = (await run(`safe:execute ${safe} ${block} --gas 1500000`))
+      .actions;
+    if (!isTransactionAction(action)) throw new Error("expected transaction");
+    expect(action.gas).toBe(1_500_000n);
+  });
+
   it("flow 3: prepares without a wallet, owners confirm in turn, anyone executes", async () => {
     const prepared = await prepare();
     expect(JSON.parse(prepared).tx.nonce).toBe("7");

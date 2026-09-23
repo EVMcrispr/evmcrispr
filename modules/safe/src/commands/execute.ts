@@ -51,6 +51,12 @@ export default defineCommand<Safe>({
       description:
         "Smart-batch storage salt for reproducible offline signing (block forms with !)",
     },
+    {
+      name: "gas",
+      type: "number",
+      description:
+        "Gas limit of the execTransaction call, for calls the RPC cannot estimate (e.g. cross-chain ones)",
+    },
   ],
   async run(module, { safe, proposal }, { opts, interpreters }) {
     const chainId = await module.getChainId();
@@ -148,6 +154,7 @@ export default defineCommand<Safe>({
           hashes.safeTxHash,
         ),
         ...(report.executorSigned ? { from: executor } : {}),
+        ...(opts.gas !== undefined ? { gas: BigInt(opts.gas) } : {}),
         executionPlan: smartPlanFor(actions),
       },
     ];

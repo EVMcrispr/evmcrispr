@@ -28,6 +28,7 @@ safe:execute <safe> <proposal>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--salt` | `bytes32` | Build time | Smart-batch storage salt for reproducible offline signing (block forms with !) |
+| `--gas` | `number` | Build time | Gas limit of the execTransaction call, for calls the RPC cannot estimate (e.g. cross-chain ones) |
 
 <!-- HAND-WRITTEN -->
 
