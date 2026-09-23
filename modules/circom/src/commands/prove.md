@@ -29,6 +29,7 @@ circom:prove <variable>
 | `--circom` | `string` | Build time | circom source (or URL) to compile and set up in-place instead of --wasm/--zkey — DEV-ONLY trusted setup, never for production proofs |
 | `--ptau` | `string` | Build time | Powers-of-tau for the in-place setup: dev (generate locally) or a ptau URL (default: auto-download a hez file sized to the circuit); only valid with --circom |
 | `--system` | `string` | Build time | Proof system for the in-place setup: groth16 (default, DEV-ONLY), plonk or fflonk (deterministic); only valid with --circom (pre-built zkeys carry their system) |
+| `--inputs` | `record \| string` | Build time | Circuit input signals: a record like [a:3 b:11] (equivalently [[a 3] [b 11]]; nest values for array signals), or a JSON object string |
 
 <!-- HAND-WRITTEN -->
 

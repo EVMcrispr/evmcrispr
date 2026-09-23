@@ -31,6 +31,16 @@ safe:propose <safe> <proposal>
 | `--nonce` | `number` | Build time | Safe nonce for a command block (defaults to the next free service nonce), or of the pending transaction to cancel |
 | `--origin` | `string` | Build time | Origin tag shown in the Safe UI |
 | `--via` | `address` | Build time | Owner Safe to sign through, when you own several owner Safes |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
+| `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
+| `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |
+| `--allow-new-modules` | `address \| array` | Build time | Modules the transaction may enable |
+| `--allow-guard-to` | `address \| string` | Build time | Transaction guard the transaction may leave the Safe with (none removes it) |
+| `--allow-module-guard-to` | `address \| string` | Build time | Module guard the transaction may leave the Safe with (none removes it) |
+| `--allow-fallback-handler-to` | `address \| string` | Build time | Fallback handler the transaction may leave the Safe with (none removes it) |
+| `--allow-gas-refund` | `bool` | Build time | Sign or execute despite a gas refund (gasPrice, gasToken or refundReceiver set) |
+| `--allow-competing` | `bool` | Build time | Sign or execute although other transactions are queued at the same nonce |
 
 <!-- HAND-WRITTEN -->
 
@@ -114,7 +124,9 @@ safe:propose $mySafe "I agree to the terms"
 Safe transaction or Safe message JSON signed with
 [safe:confirm-offline](confirm-offline.md) is posted as it is: its first owner
 signature proposes it and the rest become confirmations, so any account can
-post it without a wallet prompt.
+post it without a wallet prompt. Since someone else authored it, it is first
+reviewed like [safe:confirm](confirm.md), and a blocking finding refuses it
+until the matching `--allow-*` option names what you reviewed.
 
 ```evml novalidate
 safe:propose $mySafe $tx

@@ -27,15 +27,29 @@ safe:confirm <safe> <hash>
 |------|------|------------|-------------|
 | `--message` | `bool` | Build time | The hash is a safeMessageHash, not a safeTxHash |
 | `--via` | `address` | Build time | Owner Safe to confirm through, when you own several owner Safes |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
+| `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
+| `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |
+| `--allow-new-modules` | `address \| array` | Build time | Modules the transaction may enable |
+| `--allow-guard-to` | `address \| string` | Build time | Transaction guard the transaction may leave the Safe with (none removes it) |
+| `--allow-module-guard-to` | `address \| string` | Build time | Module guard the transaction may leave the Safe with (none removes it) |
+| `--allow-fallback-handler-to` | `address \| string` | Build time | Fallback handler the transaction may leave the Safe with (none removes it) |
+| `--allow-gas-refund` | `bool` | Build time | Sign or execute despite a gas refund (gasPrice, gasToken or refundReceiver set) |
+| `--allow-competing` | `bool` | Build time | Sign or execute although other transactions are queued at the same nonce |
 
 <!-- HAND-WRITTEN -->
 
 Fetches a transaction or message queued on the Safe Transaction Service,
 rebuilds it locally and refuses it unless it hashes back to the requested
 hash, so a compromised service cannot make you sign different data. It prints
-the hashes and warnings, lists other transactions queued at the same nonce,
-and posts your confirmation. An owner who already confirmed is told so and
-nothing is sent.
+the hashes and findings, and refuses on a blocking finding (a delegatecall to
+an unknown contract, new owners, threshold, modules, guards or fallback
+handler, a gas refund, or other transactions queued at the same nonce) until
+the matching `--allow-*` option names what you reviewed; the refusal lists
+the options to pass. See the [Safe guide](/guides/safe/#what-evmcrispr-checks-before-you-sign).
+Then it posts your confirmation. An owner who already confirmed is told so
+and nothing is sent.
 
 A 32-byte hash is read as a safeTxHash; pass `--message` for a
 safeMessageHash.

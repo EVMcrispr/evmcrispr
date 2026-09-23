@@ -28,6 +28,16 @@ safe:confirm-offline <variable> <safe> <signable>
 |------|------|------------|-------------|
 | `--message` | `bool` | Build time | The hash is a safeMessageHash, not a safeTxHash |
 | `--via` | `address` | Build time | Owner Safe to sign through, when you own several owner Safes |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
+| `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
+| `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |
+| `--allow-new-modules` | `address \| array` | Build time | Modules the transaction may enable |
+| `--allow-guard-to` | `address \| string` | Build time | Transaction guard the transaction may leave the Safe with (none removes it) |
+| `--allow-module-guard-to` | `address \| string` | Build time | Module guard the transaction may leave the Safe with (none removes it) |
+| `--allow-fallback-handler-to` | `address \| string` | Build time | Fallback handler the transaction may leave the Safe with (none removes it) |
+| `--allow-gas-refund` | `bool` | Build time | Sign or execute despite a gas refund (gasPrice, gasToken or refundReceiver set) |
+| `--allow-competing` | `bool` | Build time | Sign or execute although other transactions are queued at the same nonce |
 
 <!-- HAND-WRITTEN -->
 
@@ -37,6 +47,12 @@ on to the next owner, merge parallel signatures with
 [@safe:merge](../helpers/merge.md), and finally
 [execute](execute.md) it, or post it to the queue with
 [safe:propose](propose.md).
+
+Before your wallet prompts, it reviews the item like
+[safe:confirm](confirm.md): it prints the hashes and findings, and refuses on
+a blocking finding until the matching `--allow-*` option names what you
+reviewed. Competing transactions are only checked for a hash fetched from the
+service, since JSON does not reach it.
 
 The Safe commands are named after where their result goes: the Safe
 Transaction Service (`propose`, `confirm`), a variable holding JSON

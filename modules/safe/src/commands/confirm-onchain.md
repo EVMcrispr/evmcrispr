@@ -27,6 +27,16 @@ safe:confirm-onchain <safe> <target>
 |------|------|------------|-------------|
 | `--message` | `bool` | Build time | The hash is a safeMessageHash, not a safeTxHash |
 | `--via` | `address` | Build time | Owner Safe to confirm through, when you own several owner Safes |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
+| `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
+| `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |
+| `--allow-new-modules` | `address \| array` | Build time | Modules the transaction may enable |
+| `--allow-guard-to` | `address \| string` | Build time | Transaction guard the transaction may leave the Safe with (none removes it) |
+| `--allow-module-guard-to` | `address \| string` | Build time | Module guard the transaction may leave the Safe with (none removes it) |
+| `--allow-fallback-handler-to` | `address \| string` | Build time | Fallback handler the transaction may leave the Safe with (none removes it) |
+| `--allow-gas-refund` | `bool` | Build time | Sign or execute despite a gas refund (gasPrice, gasToken or refundReceiver set) |
+| `--allow-competing` | `bool` | Build time | Sign or execute although other transactions are queued at the same nonce |
 
 <!-- HAND-WRITTEN -->
 
@@ -36,10 +46,12 @@ off-chain signature. It costs gas but needs no Safe Transaction Service and no
 JSON exchange; the service lists it as a confirmation of queued transactions.
 It works for Safe transactions and Safe messages alike.
 
-Before confirming, the command prints the hashes and warnings. A queued hash
-is fetched from the service and must hash back to itself, and other
-transactions queued at the same nonce are listed. It refuses non-owners and
-consumed nonces, and does nothing if the owner already confirmed.
+Before confirming, the command prints the hashes and findings, and refuses on
+a blocking finding until the matching `--allow-*` option names what you
+reviewed, like [safe:confirm](confirm.md). A queued hash is fetched from the
+service and must hash back to itself, and other transactions queued at the
+same nonce block it unless `--allow-competing` is set. It refuses non-owners
+and consumed nonces, and does nothing if the owner already confirmed.
 
 ## Owner Safes
 

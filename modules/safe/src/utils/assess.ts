@@ -28,80 +28,94 @@ export interface DecodedCall {
   };
 }
 
+export type AllowFlag =
+  | "allow-delegate-call-to"
+  | "allow-new-owners"
+  | "allow-removed-owners"
+  | "allow-change-threshold-to"
+  | "allow-new-modules"
+  | "allow-guard-to"
+  | "allow-module-guard-to"
+  | "allow-fallback-handler-to"
+  | "allow-gas-refund"
+  | "allow-competing";
+
 /**
- * What lets a gated command go ahead despite a blocking finding. Anything
- * that hands power to an address names the addresses (or the threshold)
- * that were reviewed, so a transaction changed after the review is still
- * refused; the rest are plain flags.
+ * What lets a gated command go ahead despite a blocking finding, spread
+ * into the `opts` of each gated command. Anything that hands power to an
+ * address names the addresses (or the threshold) that were reviewed, so a
+ * transaction changed after the review is still refused; the rest are
+ * plain flags. Literal, so the docs generator can read it.
  */
-const ALLOW = {
-  "allow-delegate-call-to": {
-    kind: "list",
+export const ALLOW_OPTS = [
+  {
+    name: "allow-delegate-call-to",
+    type: ["address", "array"],
     description:
       "Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib",
   },
-  "allow-new-owners": {
-    kind: "list",
+  {
+    name: "allow-new-owners",
+    type: ["address", "array"],
     description: "Owners the transaction may add",
   },
-  "allow-removed-owners": {
-    kind: "list",
+  {
+    name: "allow-removed-owners",
+    type: ["address", "array"],
     description: "Owners the transaction may remove",
   },
-  "allow-change-threshold-to": {
-    kind: "number",
+  {
+    name: "allow-change-threshold-to",
+    type: "number",
     description: "Threshold the transaction may leave the Safe with",
   },
-  "allow-new-modules": {
-    kind: "list",
+  {
+    name: "allow-new-modules",
+    type: ["address", "array"],
     description: "Modules the transaction may enable",
   },
-  "allow-guard-to": {
-    kind: "slot",
+  {
+    name: "allow-guard-to",
+    type: ["address", "string"],
     description:
       "Transaction guard the transaction may leave the Safe with (none removes it)",
   },
-  "allow-module-guard-to": {
-    kind: "slot",
+  {
+    name: "allow-module-guard-to",
+    type: ["address", "string"],
     description:
       "Module guard the transaction may leave the Safe with (none removes it)",
   },
-  "allow-fallback-handler-to": {
-    kind: "slot",
+  {
+    name: "allow-fallback-handler-to",
+    type: ["address", "string"],
     description:
       "Fallback handler the transaction may leave the Safe with (none removes it)",
   },
-  "allow-gas-refund": {
-    kind: "bool",
+  {
+    name: "allow-gas-refund",
+    type: "bool",
     description:
       "Sign or execute despite a gas refund (gasPrice, gasToken or refundReceiver set)",
   },
-  "allow-competing": {
-    kind: "bool",
+  {
+    name: "allow-competing",
+    type: "bool",
     description:
       "Sign or execute although other transactions are queued at the same nonce",
   },
-} as const;
+] satisfies (OptDef & { name: AllowFlag })[];
 
-export type AllowFlag = keyof typeof ALLOW;
 /** The allow options as a command receives them. */
 export type AllowOpts = Partial<Record<AllowFlag, unknown>>;
 
-/** The allow options, as `opts` of a gated command. */
-export const ALLOW_OPTS: OptDef[] = Object.entries(ALLOW).map(
-  ([name, { kind, description }]) => ({
-    name,
-    type:
-      kind === "list"
-        ? ["address", "array"]
-        : kind === "slot"
-          ? ["address", "string"]
-          : kind === "number"
-            ? "number"
-            : "bool",
-    description,
-  }),
-);
+/** How an option names what it allows: addresses, one address or `none`,
+ *  a threshold, or nothing. */
+const kindOf = (flag: AllowFlag): "list" | "slot" | "number" | "bool" => {
+  const { type } = ALLOW_OPTS.find((o) => o.name === flag)!;
+  if (Array.isArray(type)) return type.includes("array") ? "list" : "slot";
+  return type === "number" ? "number" : "bool";
+};
 
 export interface SafeFinding {
   check:
@@ -529,7 +543,7 @@ const allowed = (allow: AllowOpts, flag: AllowFlag): Set<string> => {
  *  address or threshold it names is listed. */
 export const isAllowed = (f: SafeFinding, allow: AllowOpts = {}): boolean => {
   if (!f.allow) return false;
-  if (ALLOW[f.allow].kind === "bool") return allow[f.allow] === true;
+  if (kindOf(f.allow) === "bool") return allow[f.allow] === true;
   const set = allowed(allow, f.allow);
   return (f.values ?? []).every((v) => set.has(v.toLowerCase()));
 };
@@ -546,17 +560,17 @@ export function requiredOptions(blocking: SafeFinding[]): string[] {
     for (const v of f.values ?? [])
       if (!list.some((x) => x.toLowerCase() === v.toLowerCase()))
         list.push(
-          ALLOW[f.allow].kind === "number"
+          kindOf(f.allow) === "number"
             ? v
             : isAddressEqual(v as Address, zeroAddress) &&
-                ALLOW[f.allow].kind === "slot"
+                kindOf(f.allow) === "slot"
               ? "none"
               : getAddress(v),
         );
     values.set(f.allow, list);
   }
   return [...values].map(([flag, list]) => {
-    const kind = ALLOW[flag].kind;
+    const kind = kindOf(flag);
     const value =
       kind === "bool"
         ? "true"

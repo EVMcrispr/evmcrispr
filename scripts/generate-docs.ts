@@ -302,15 +302,19 @@ function extractOpts(
   let m: RegExpExecArray | null;
   while ((m = objRe.exec(optsBlock)) !== null) {
     const nameMatch = m[1].match(/name:\s*(?:"([^"]+)"|([A-Za-z_]\w*))/);
-    const typeMatch = m[1].match(/type:\s*"([^"]+)"/);
+    // A string type, or a union written as an array of strings.
+    const typeMatch = m[1].match(/type:\s*(?:"([^"]+)"|\[([^\]]+)\])/);
     if (nameMatch && typeMatch) {
+      const type =
+        typeMatch[1] ??
+        [...typeMatch[2].matchAll(/"([^"]+)"/g)].map((t) => t[1]);
       let optName = nameMatch[1] ?? nameMatch[2];
       if (!nameMatch[1] && optName) {
         optName = resolveConstant(content, modDir, optName, filePath);
       }
       opts.push({
         name: optName,
-        type: typeMatch[1],
+        type,
         description: extractStringProp(m[1], "description") ?? undefined,
         runtime: /\bruntime:\s*true/.test(m[1]) || undefined,
         experimental: /\bexperimental:\s*true/.test(m[1]) || undefined,
@@ -789,7 +793,7 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
     for (const opt of cmd.optDefs) {
       const chip = opt.experimental ? EXP_CHIP : "";
       lines.push(
-        `| \`--${opt.name}\`${chip} | \`${opt.type}\` | ${opt.runtime ? "Runtime in smart blocks" : "Build time"} | ${opt.description ?? ""} |`,
+        `| \`--${opt.name}\`${chip} | \`${Array.isArray(opt.type) ? opt.type.join(" \\| ") : opt.type}\` | ${opt.runtime ? "Runtime in smart blocks" : "Build time"} | ${opt.description ?? ""} |`,
       );
     }
     lines.push("");

@@ -29,8 +29,23 @@ safe:execute <safe> <proposal>
 |------|------|------------|-------------|
 | `--salt` | `bytes32` | Build time | Smart-batch storage salt for reproducible offline signing (block forms with !) |
 | `--gas` | `number` | Build time | Gas limit of the execTransaction call, for calls the RPC cannot estimate (e.g. cross-chain ones) |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
+| `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
+| `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |
+| `--allow-new-modules` | `address \| array` | Build time | Modules the transaction may enable |
+| `--allow-guard-to` | `address \| string` | Build time | Transaction guard the transaction may leave the Safe with (none removes it) |
+| `--allow-module-guard-to` | `address \| string` | Build time | Module guard the transaction may leave the Safe with (none removes it) |
+| `--allow-fallback-handler-to` | `address \| string` | Build time | Fallback handler the transaction may leave the Safe with (none removes it) |
+| `--allow-gas-refund` | `bool` | Build time | Sign or execute despite a gas refund (gasPrice, gasToken or refundReceiver set) |
+| `--allow-competing` | `bool` | Build time | Sign or execute although other transactions are queued at the same nonce |
 
 <!-- HAND-WRITTEN -->
+
+A queued safeTxHash or imported JSON was authored elsewhere, so it is
+reviewed like [safe:confirm](confirm.md) before it is sent: a blocking
+finding refuses it until the matching `--allow-*` option names what you
+reviewed. A command block you write is only warned about.
 
 ## Examples
 

@@ -20,6 +20,12 @@ eez:deploy-proxy <target>
 |------|------|------------|-------------|
 | `target` | `address` | Build time | Contract address on the other rollup |
 
+## Options
+
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--chain` | `string \| number` | Build time | Chain the target lives on (`--chain eezL2`), or a bare rollup id. Defaults to the other side of the current chain. |
+
 ## Examples
 
 ```evml
