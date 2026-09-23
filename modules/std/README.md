@@ -17,7 +17,6 @@ Config variables are set with `set` (fully qualified, including the module prefi
 |---------|-------------|
 | [assert](src/commands/assert.md) | Assert that an on-chain expression satisfies a comparison, on-chain. |
 | [batch](src/commands/batch.md) | Group multiple commands into a single transaction. |
-| [batch!](src/commands/batch!.md) | Execute an atomic smart batch with explicit on-chain values and return capture from a compatible smart account. |
 | [def](src/commands/def.md) | Define a user command, helper, on-chain helper (`def @name!`), or module (`def module <name> ( ...defs )`), or return early from a command body (`def return`). |
 | [exec](src/commands/exec.md) | Call a contract function, encoding the arguments from its signature. |
 | [exit](src/commands/exit.md) | Stop script execution immediately. |

@@ -213,6 +213,8 @@ export interface NamedArgNode extends Node {
 
 export interface BlockExpressionNode extends Node {
   type: NodeType.BlockExpression;
+  /** Explicit smart payload (`!(...)`); ordinary blocks inherit context. */
+  smart?: boolean;
   body: CommandExpressionNode[];
 }
 

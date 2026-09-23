@@ -7,6 +7,32 @@ function typeIncludes(type: ArgType, target: string): boolean {
   return Array.isArray(type) ? type.includes(target) : type === target;
 }
 
+/** Match blocks to their declared arguments, including block unions. */
+export function commandBlockArguments(
+  argDefs: readonly ArgDef[],
+  nodeArgs: readonly Node[],
+) {
+  const meta = prepareCommandArity(argDefs);
+  const arity = computeCommandArity(argDefs, nodeArgs, meta);
+  return nodeArgs
+    .filter(
+      (node): node is BlockExpressionNode =>
+        node.type === NodeType.BlockExpression,
+    )
+    .map((block) => ({
+      block,
+      definition:
+        argDefs[meta.blockDefIndices[arity.blockNodes.indexOf(block)]],
+    }));
+}
+
+export function unsupportedSmartBlockMessage(
+  command: string,
+  argument?: string,
+): string {
+  return `Command "${command}" does not accept a smart block${argument ? ` for <${argument}>` : ""}; use (...) instead.`;
+}
+
 /** Precomputed, argDef-only facts about a command's block arguments. Cache
  *  this once per command definition and pass it to `computeCommandArity` so
  *  the per-call work stays minimal. */

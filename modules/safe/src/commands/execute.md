@@ -8,6 +8,8 @@ Execute a Safe transaction on-chain from a command block, a confirmed service tr
 
 Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
 
+Accepts ordinary `(...)` and smart `!(...)` payload blocks. Smart blocks support explicit `@helper!` expressions and returned-value captures.
+
 ## Syntax
 
 ```evml

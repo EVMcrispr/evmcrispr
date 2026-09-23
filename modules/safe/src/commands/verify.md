@@ -8,6 +8,8 @@ Verify Safe transaction hashes and flag dangerous fields, using the service queu
 
 Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
 
+Accepts ordinary `(...)` and smart `!(...)` payload blocks. Smart blocks support explicit `@helper!` expressions and returned-value captures.
+
 ## Syntax
 
 ```evml
@@ -25,6 +27,7 @@ safe:verify <safe> <proposal>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
+| `--salt` | `bytes32` | Build time | Smart-block storage salt; defaults to a fresh random salt |
 | `--as` | `variable` | Build time | Bind the JSON verification report (requires --no-api) |
 | `--offline` | `bool` | Build time | Inspect an exported package without any network access |
 | `--abi` | `string` | Build time | JSON mapping target addresses to explicit ABIs for local decoding |
@@ -134,3 +137,5 @@ Supplied ABIs describe encoding and do not prove a contract's behavior.
 - [safe:propose](propose.md)
 - [safe:execute](execute.md)
 - [safe:verify-message](verify-message.md)
+
+Smart blocks use `!(...)` and require `--no-api true`. With no `--salt`, verification generates a fresh storage salt; with no `--nonce`, it uses the on-chain nonce. This reviews a newly constructed payload. Reconstructing an existing transaction requires matching salt, nonce, and all other compilation inputs; an exported transaction package preserves the exact payload without recompiling. `--offline` accepts exported packages only.

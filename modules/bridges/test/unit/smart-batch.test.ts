@@ -41,7 +41,7 @@ const compile = async (body: string) =>
         }),
       },
     }).interpret(
-      `load bridges\nbatch! (\nexec ${unknown} "seed() returns (uint256,address)" -> [$amount $recipient]\n${body}\n)`,
+      `load bridges\nbatch !(\nexec ${unknown} "seed() returns (uint256,address)" -> [$amount $recipient]\n${body}\n)`,
     )
   )[0] as SmartBatchAction;
 describe("smart bridge source calls", () => {

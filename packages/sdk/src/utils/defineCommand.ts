@@ -22,7 +22,12 @@ import {
   coerceBoolean,
   getOptValue,
 } from "./args";
-import { computeCommandArity, prepareCommandArity } from "./arity";
+import {
+  commandBlockArguments,
+  computeCommandArity,
+  prepareCommandArity,
+  unsupportedSmartBlockMessage,
+} from "./arity";
 import { createFail, normalizeDeclaredErrors } from "./declaredErrors";
 import {
   experimentalDisabledMessage,
@@ -96,7 +101,6 @@ export interface CommandConfig<
   E extends DeclaredErrors = NoDeclaredErrors,
 > {
   compile?: import("../onchain/smart-types").CommandCompile;
-  createsSmartBatchContext?: boolean;
   smartSupport?: import("../types").ICommand["smartSupport"];
   primaryCall?: number;
   name: string;
@@ -220,6 +224,16 @@ export function defineCommand<
       const arity = computeCommandArity(argDefs, c.args, arityMeta);
       const astArgs = arity.astArgs;
       const blockNodes = arity.blockNodes;
+
+      for (const { block, definition } of commandBlockArguments(
+        argDefs,
+        c.args,
+      )) {
+        if (block.smart && !definition?.supportsSmartBlock)
+          throw new ErrorException(
+            unsupportedSmartBlockMessage(config.name, definition?.name),
+          );
+      }
 
       if (arity.missingBlockName) {
         throw new ErrorException(
@@ -485,7 +499,6 @@ export function defineCommand<
     },
 
     compile: config.compile,
-    createsSmartBatchContext: config.createsSmartBatchContext,
     smartSupport: config.smartSupport,
     argDefs,
     optDefs,

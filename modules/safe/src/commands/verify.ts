@@ -50,12 +50,18 @@ export default defineCommand<Safe>({
     { name: "safe", type: "address", description: "Safe address" },
     {
       name: "proposal",
+      supportsSmartBlock: true,
       type: ["number", "bytes32", "block", "string"],
       description:
         "Nonce or hash of a queued transaction, or a command block or exported transaction JSON with --no-api",
     },
   ],
   opts: [
+    {
+      name: "salt",
+      type: "bytes32",
+      description: "Smart-block storage salt; defaults to a fresh random salt",
+    },
     {
       name: "as",
       type: "variable",
@@ -97,6 +103,11 @@ export default defineCommand<Safe>({
     },
   ],
   async run(module, { safe, proposal }, { opts, interpreters }) {
+    if (
+      opts.salt !== undefined &&
+      !(typeof proposal === "object" && proposal?.smart)
+    )
+      throw new ErrorException("--salt requires a smart block (!(...))");
     if (!opts["no-api"] && (opts.as || opts.abi))
       throw new ErrorException("--as and --abi require --no-api");
     if (!opts["no-api"] && opts.nonce !== undefined) {
@@ -147,6 +158,7 @@ export default defineCommand<Safe>({
           proposal as BlockExpressionNode,
           "safe:verify",
           interpreters,
+          { salt: opts.salt },
         );
         if (actions.length === 0) return [];
         transactions.push(

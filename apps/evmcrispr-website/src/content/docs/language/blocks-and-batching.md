@@ -28,6 +28,10 @@ A block does not change name resolution — what a command name means is
 decided by `load` import lists and `def`s alone, never by the block it
 appears in (see [Modules & Imports](modules.md)).
 
+## Smart blocks
+
+`batch`, `safe:propose`, `safe:execute`, and `safe:verify` also accept `!(...)`. The bang belongs to the block and enables execution-time values through explicit `@helper!` expressions and return capture. Other commands accept ordinary `(...)` blocks; `if`, `loop`, and user-defined command bodies inside a smart payload inherit its execution context. See [Smart batches](/guides/smart-batches/).
+
 ## Batching
 
 By default, each `exec` command produces a separate transaction. A script

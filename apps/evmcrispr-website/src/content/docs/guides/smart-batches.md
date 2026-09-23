@@ -17,7 +17,7 @@ set $safe 0x1111111111111111111111111111111111111111
 set $oldVault 0x2222222222222222222222222222222222222222
 set $newVault 0x3333333333333333333333333333333333333333
 
-safe:execute! $safe (
+safe:execute $safe !(
   vault:redeem max of $oldVault -> [$assets]
   vault:deposit $assets into $newVault
 )
@@ -31,13 +31,13 @@ The amount is determined when the transaction executes, so the script still uses
 
 | What you want to do | Command | Wallet to connect |
 | --- | --- | --- |
-| Run a batch from a smart account | `batch! (...)` | The compatible smart account itself |
-| Create a proposal for Safe owners to sign | `safe:propose! <safe> (...)` | A Safe owner wallet |
-| Execute a Safe transaction with the required signatures | `safe:execute! <safe> (...)` | A Safe owner wallet |
+| Run a batch from a smart account | `batch !(...)` | The compatible smart account itself |
+| Create a proposal for Safe owners to sign | `safe:propose <safe> !(...)` | A Safe owner wallet |
+| Execute a Safe transaction with the required signatures | `safe:execute <safe> !(...)` | A Safe owner wallet |
 
-To prepare the vault migration as a proposal, change `safe:execute!` to `safe:propose!`. To use a compatible connected smart account, replace `safe:execute! $safe (` with `batch! (`.
+To prepare the vault migration as a proposal, change `safe:execute` to `safe:propose`, keeping the `!(...)` block. To use a compatible connected smart account, replace `safe:execute $safe !(` with `batch !(`.
 
-For `batch!`, the connected account must support ERC-7579 and already have Biconomy's composability executor installed. EVMcrispr checks compatibility on the selected network before signing; it does not create accounts, install modules, or request EIP-7702 authorization. Nexus and Kernel account execution has been tested, but their WalletConnect integrations have not yet been verified.
+For `batch !(...)`, the connected account must support ERC-7579 and already have Biconomy's composability executor installed. EVMcrispr checks compatibility on the selected network before signing; it does not create accounts, install modules, or request EIP-7702 authorization. Nexus and Kernel account execution has been tested, but their WalletConnect integrations have not yet been verified.
 
 For a Safe, connect an owner wallet. Smart batches cannot currently be submitted through EVMcrispr running as a Safe App. The Safe makes the calls and spends its own funds. In a proposal, live values are resolved when the transaction executes, not when owners sign it.
 
@@ -80,7 +80,7 @@ Values read during execution can feed calls, assignments, conditions, loops and 
 load token
 set $asset 0x1111111111111111111111111111111111111111
 set $recipient 0x2222222222222222222222222222222222222222
-batch! (
+batch !(
   set $balance @balance!($asset @sender)
   if @bool!($balance > 0) (
     token:transfer $balance $asset to $recipient
@@ -101,7 +101,7 @@ load token
 set $source 0x1111111111111111111111111111111111111111
 set $asset 0x2222222222222222222222222222222222222222
 set $recipient 0x3333333333333333333333333333333333333333
-batch! (
+batch !(
   loop $amount of $source::!{amounts()(uint256[])} --max-iterations 8 (
     if @bool!($amount == 0) (
       loop continue
@@ -143,7 +143,7 @@ set $streamReceiver 0x3333333333333333333333333333333333333333
 set $recipient 0x4444444444444444444444444444444444444444
 set $asset @superfluid:underlying($superToken)
 
-safe:execute! $safe (
+safe:execute $safe !(
   superfluid:stop-stream $superToken to $streamReceiver
   superfluid:unwrap @balance!($superToken @sender) of $superToken
   token:transfer @balance!($asset @sender) $asset to $recipient

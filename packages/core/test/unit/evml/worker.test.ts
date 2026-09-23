@@ -141,7 +141,7 @@ describe("evml > worker", () => {
     await workerEvml
       .with({ account: TEST_ACCOUNT_ADDRESS })
       .script(
-        `batch! (\nexec ${TEST_ACCOUNT_ADDRESS} "f() returns (uint256)" -> [$x]\nexec ${TEST_ACCOUNT_ADDRESS} "g(uint256)" $x\nsend ${TEST_ACCOUNT_ADDRESS} --value 1\n)`,
+        `batch !(\nexec ${TEST_ACCOUNT_ADDRESS} "f() returns (uint256)" -> [$x]\nexec ${TEST_ACCOUNT_ADDRESS} "g(uint256)" $x\nsend ${TEST_ACCOUNT_ADDRESS} --value 1\n)`,
       )
       .execute(stubWallet, {
         prepareChains: false,

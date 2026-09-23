@@ -42,6 +42,7 @@ export default defineCommand<Safe>({
     { name: "safe", type: "address", description: "Safe address" },
     {
       name: "proposal",
+      supportsSmartBlock: true,
       type: ["block", "bytes32", "string"],
       description:
         "Commands, the safeTxHash of a queued transaction, or exported transaction JSON with --no-api",
@@ -72,12 +73,12 @@ export default defineCommand<Safe>({
       description: "Nonce signed for a command block (requires --no-api)",
     },
   ],
-  async run(module, { safe, proposal }, { opts, interpreters, node }) {
+  async run(module, { safe, proposal }, { opts, interpreters }) {
     if (
       opts.salt !== undefined &&
-      (!node.name.endsWith("!") || typeof proposal === "string")
+      !(typeof proposal === "object" && proposal?.smart)
     )
-      throw new ErrorException("--salt requires a smart command block");
+      throw new ErrorException("--salt requires a smart block (!(...))");
     const noApi = opts["no-api"];
     if (!noApi && (opts.signatures !== undefined || opts.nonce !== undefined)) {
       throw new ErrorException("--signatures and --nonce require --no-api");
@@ -117,7 +118,7 @@ export default defineCommand<Safe>({
             proposal as BlockExpressionNode,
             "safe:execute",
             interpreters,
-            { smart: node.name.endsWith("!"), salt: opts.salt },
+            { salt: opts.salt },
           );
       if (actions?.length === 0) return [];
       if (imported && imported.kind !== "transaction")
@@ -227,7 +228,7 @@ export default defineCommand<Safe>({
       proposal as BlockExpressionNode,
       "safe:execute",
       interpreters,
-      { smart: node.name.endsWith("!"), salt: opts.salt },
+      { salt: opts.salt },
     );
 
     if (actions.length === 0) {

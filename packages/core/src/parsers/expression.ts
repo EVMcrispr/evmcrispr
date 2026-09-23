@@ -10,9 +10,11 @@ import {
   char,
   choice,
   coroutine,
+  fail,
   lookAhead,
   possibly,
   recursiveParser,
+  regex,
 } from "arcsecond";
 import { arrayExpressionParser } from "./array";
 import { blockExpressionParser } from "./block";
@@ -34,7 +36,7 @@ import {
 
 export const EXPRESSION_PARSER_ERROR_MSG =
   'Expected a value: a literal (1e18, 0x…, "text", true), $variable, ' +
-  "@helper(...), [array] or (block)";
+  "@helper(...), [array], (block) or !(smart block)";
 
 export const argumentExpressionParser: EnclosingNodeParser<
   ArgumentExpressionNode
@@ -61,16 +63,24 @@ export const expressionParser: EnclosingNodeParser<CommandArgExpressionNode> = (
   enclosingParsers = [],
 ) =>
   recursiveParser(() =>
-    choice([
-      callExpressionParser,
-      helperFunctionParser,
-      blockExpressionParser,
-      destructurePatternParser,
-      arrayExpressionParser,
-      primaryParser(enclosingParsers),
-      variableIdentifierParser(enclosingParsers),
-      barewordParser(enclosingParsers),
-    ]).errorMap((err) =>
+    coroutine((run) => {
+      if (run(possibly(lookAhead(regex(/^!\s+\(/)))))
+        return run(
+          fail("A smart block must start with adjacent !( characters"),
+        );
+      return run(
+        choice([
+          callExpressionParser,
+          helperFunctionParser,
+          blockExpressionParser,
+          destructurePatternParser,
+          arrayExpressionParser,
+          primaryParser(enclosingParsers),
+          variableIdentifierParser(enclosingParsers),
+          barewordParser(enclosingParsers),
+        ]),
+      );
+    }).errorMap((err) =>
       buildParserError(
         err,
         "ExpressionParserError",

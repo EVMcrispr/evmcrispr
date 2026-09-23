@@ -92,7 +92,7 @@ export async function prepareSmartAccountTransaction(
   const code = await client.getCode({ address: plan.account });
   if (!code || code === "0x")
     throw new ErrorException(
-      "batch! requires an existing compatible smart account; account deployment and 7702 setup are not performed automatically",
+      "batch !(...) requires an existing compatible smart account; account deployment and 7702 setup are not performed automatically",
     );
   const actions = lowerSmartBatch(plan);
   if (!actions.length)
@@ -120,7 +120,7 @@ export async function prepareSmartAccountTransaction(
     ]);
   } catch {
     throw new ErrorException(
-      "account does not expose a compatible ERC-7579 executor route; for a Safe use safe:propose! or safe:execute! with an owner wallet",
+      "account does not expose a compatible ERC-7579 executor route; for a Safe use safe:propose <safe> !(...) or safe:execute <safe> !(...) with an owner wallet",
     );
   }
   if (!installed || !single)

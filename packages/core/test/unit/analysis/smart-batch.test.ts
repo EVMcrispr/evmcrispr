@@ -9,20 +9,20 @@ const diagnostics = async (script: string) =>
 describe("smart batch editor diagnostics", () => {
   it("accepts captured arguments, bangs, and compile-time expansion", async () => {
     const ds = await diagnostics(
-      `batch! (\ndef relay "$x: number" (\nexec ${target} "g(uint256)" $x\n)\nexec ${target} "f() returns (uint256)" -> [$amount]\nloop $i of [1 2] (\nrelay $amount\n)\nexec ${target} "g(uint256)" @calc!($amount + 1)\n)`,
+      `batch !(\ndef relay "$x: number" (\nexec ${target} "g(uint256)" $x\n)\nexec ${target} "f() returns (uint256)" -> [$amount]\nloop $i of [1 2] (\nrelay $amount\n)\nexec ${target} "g(uint256)" @calc!($amount + 1)\n)`,
     );
     expect(ds).toEqual([]);
   });
   it("rejects runtime values in build-time fields and scopes captures", async () => {
     const ds = await diagnostics(
-      `batch! (\nexec ${target} "f() returns (uint256)" -> [$amount]\nset $copy $amount\nprint $copy\n)\nexec ${target} "g(uint256)" $amount`,
+      `batch !(\nexec ${target} "f() returns (uint256)" -> [$amount]\nset $copy $amount\nprint $copy\n)\nexec ${target} "g(uint256)" $amount`,
     );
     expect(ds.some((d) => d.code === "runtime-build-time-field")).toBe(true);
     expect(ds.some((d) => d.code === "undefined-variable")).toBe(true);
   });
   it("accepts live conditions, aliases, reassignment and optional loop variables", async () => {
     expect(
-      await diagnostics(`batch! (
+      await diagnostics(`batch !(
 set $amount ${target}::!{f()(uint256)}
 set $amount @calc!($amount + 1)
 if @bool!($amount > 0) (
@@ -36,7 +36,7 @@ exec ${target} "g(uint256)" $x
 )
 )`),
     ).toEqual([]);
-    const ds = await diagnostics(`batch! (
+    const ds = await diagnostics(`batch !(
 if @bool!(${target}::!{f()(uint256)} > 0) (
 set $branch 7
 )
@@ -46,7 +46,7 @@ exec ${target} "g(uint256)" $branch
   });
   it("accepts loop exits chosen by a runtime condition", async () => {
     expect(
-      await diagnostics(`batch! (
+      await diagnostics(`batch !(
 loop $i of [1 2] (
 if @bool!(${target}::!{f()(uint256)} > 0) (
 loop continue
@@ -66,21 +66,21 @@ loop break
     expect(
       (
         await diagnostics(
-          `batch! (\nexec ${target} "g(uint256)" @balance(ETH @me)\n)`,
+          `batch !(\nexec ${target} "g(uint256)" @balance(ETH @me)\n)`,
         )
       ).some((d) => d.code === "not-batchable"),
     ).toBe(true);
   });
   it("rejects revert captures inside a smart batch, required or optional", async () => {
     const required = (
-      await diagnostics(`batch! (\nexec ${target} "x()" -!> Failure()\n)`)
+      await diagnostics(`batch !(\nexec ${target} "x()" -!> Failure()\n)`)
     ).filter((d) => d.code === "revert-capture-in-smart-batch");
     expect(required).toHaveLength(1);
     expect(required[0]).toMatchObject({ severity: "error" });
     expect(required[0].message).toContain("assert @reverts!(");
 
     const optional = (
-      await diagnostics(`batch! (\nexec ${target} "x()" -?!> $e\n)`)
+      await diagnostics(`batch !(\nexec ${target} "x()" -?!> $e\n)`)
     ).filter((d) => d.code === "revert-capture-in-smart-batch");
     expect(optional).toHaveLength(1);
     expect(optional[0]).toMatchObject({ severity: "error" });
@@ -89,7 +89,7 @@ loop break
   it("accepts refusal captures inside a smart batch", async () => {
     expect(
       await diagnostics(
-        `batch! (\nexec ${target} "x()" -/> Failure()\nexec ${target} "y()" -?/> $e\n)`,
+        `batch !(\nexec ${target} "x()" -/> Failure()\nexec ${target} "y()" -?/> $e\n)`,
       ),
     ).toEqual([]);
   });

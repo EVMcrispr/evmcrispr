@@ -168,8 +168,8 @@ bun test:unit        # Run tests
 
 ## Smart-batch command compilation
 
-Commands retain their ordinary names inside `batch!`, `safe:propose!` and
-`safe:execute!`. Classify each command with `smartSupport`: `runtime`,
+Commands retain their ordinary names inside `batch !(...)`, `safe:propose <safe> !(...)` and
+`safe:execute <safe> !(...)`. Classify each command with `smartSupport`: `runtime`,
 `static`, or `incompatible`. Static and incompatible commands need a concrete
 `reason`. Add the classification to `scripts/smart-command-inventory.json`;
 `scripts/check-smart-command-coverage.ts` checks that every command is covered.
@@ -201,3 +201,5 @@ constraint would check the next word. Add parity and runtime-field tests for
 new transaction commands and adapter routes, including rejected build-time-only
 inputs. See the [smart-batch guide](../guides/smart-batches.md) for execution
 requirements and return capture limits.
+
+For a command that can compile its own smart payload, mark the relevant block argument `supportsSmartBlock: true` and inspect `block.smart` to select its compiler. This is separate from `smartSupport`, which describes whether the command can run inside another smart payload. The framework rejects `!(...)` on other arguments before evaluating them.

@@ -6,6 +6,8 @@ Group multiple commands into a single transaction.
 
 Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
 
+Accepts ordinary `(...)` and smart `!(...)` payload blocks. Smart blocks support explicit `@helper!` expressions and returned-value captures.
+
 ## Syntax
 
 ```evml
@@ -16,7 +18,13 @@ batch <block>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `block` | `block` | Build time | Block of commands |
+| `block` | `block` | Build time | Block of commands; use !(...) for smart execution |
+
+## Options
+
+| Name | Type | Evaluation | Description |
+|------|------|------------|-------------|
+| `--salt` | `bytes32` | Build time | Smart-block output-storage salt; reuse only to reproduce the same signed plan |
 
 ## Examples
 

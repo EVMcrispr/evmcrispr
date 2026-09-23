@@ -128,8 +128,7 @@ export interface BatchContext {
   /** Smart batch: the block compiles to a single on-chain composable
    *  execution instead of a build-time action list, so compile-faced
    *  helpers evaluate on-chain, in sequence — the non-batchable gate does
-   *  not apply. Nothing sets this yet (reserved for the executeComposable
-   *  smart-batch compiler). */
+   *  not apply. */
   smart?: boolean;
   smartState?: import("../onchain/smart-types").SmartBatchState;
 }
@@ -233,7 +232,6 @@ export interface ICommand<
   E extends DeclaredErrors = DeclaredErrors,
 > {
   compile?: import("../onchain/smart-types").CommandCompile;
-  createsSmartBatchContext?: boolean;
   smartSupport?: {
     kind: "runtime" | "static" | "incompatible";
     reason?: string;

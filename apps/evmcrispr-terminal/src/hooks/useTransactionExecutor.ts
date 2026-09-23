@@ -28,7 +28,7 @@ export function makeSafeBatchedHandler(
       actions.some((action) => action.operation === 1 || action.plannedCall)
     ) {
       throw new Error(
-        "The Safe Apps SDK cannot submit smart delegatecalls. Connect an owner wallet and use safe:propose! or safe:execute!.",
+        "The Safe Apps SDK cannot submit smart delegatecalls. Connect an owner wallet and use safe:propose <safe> !(...) or safe:execute <safe> !(...).",
       );
     }
 
@@ -168,7 +168,7 @@ export function useTransactionExecutor(
                 batched: makeSafeBatchedHandler(safeConnector),
                 smartBatch: async () => {
                   throw new Error(
-                    "The Safe Apps SDK cannot submit this smart-batch route. Connect an owner wallet and use safe:propose! or safe:execute!.",
+                    "The Safe Apps SDK cannot submit this smart-batch route. Connect an owner wallet and use safe:propose <safe> !(...) or safe:execute <safe> !(...).",
                   );
                 },
               }

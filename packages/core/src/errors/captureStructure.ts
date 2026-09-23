@@ -22,7 +22,7 @@ export type CaptureContext =
   /** Inside a collecting block (`batch`, `safe:execute`, a proposal …):
    *  the line only contributes actions to the outer transaction. */
   | "collecting"
-  /** Inside a smart batch (`batch!`): the whole plan is one on-chain
+  /** Inside a smart batch (`batch !(...)`): the whole plan is one on-chain
    *  transaction, so a revert aborts it before any line can observe it. */
   | "smart";
 

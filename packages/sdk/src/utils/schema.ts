@@ -55,6 +55,8 @@ export function isBuiltinType(type: ArgType): boolean {
 }
 
 export interface ArgDef {
+  /** This block argument accepts an explicit smart payload (`!(...)`). */
+  supportsSmartBlock?: boolean;
   /** This field can be compiled from an explicit on-chain expression. */
   runtime?: boolean;
   /** Resolve a static runtime value once before this command expands into calls. */

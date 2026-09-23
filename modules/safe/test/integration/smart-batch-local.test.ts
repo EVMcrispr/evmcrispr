@@ -49,7 +49,7 @@ const compile = async (body: string, salt = "") => {
   });
   return (
     await interpreter.interpret(
-      `load safe\nsafe:execute! ${safe} --no-api true ${salt} (\n${body}\n)`,
+      `load safe\nsafe:execute ${safe} --no-api true ${salt} !(\n${body}\n)`,
     )
   )[0] as TransactionAction;
 };
@@ -268,12 +268,102 @@ describe("authenticated Safe smart batches (isolated local chain)", () => {
         transports: { 1: transport },
       });
       await i.interpret(
-        `load safe\nsafe:propose! ${safe} --no-api true --unsigned true --as $package --salt 0x${"77".repeat(32)} (\nexec ${target} "getValue() returns (uint256)" -> [$x]\nexec ${target} "setValue(uint256)" $x\n)`,
+        `load safe\nsafe:propose ${safe} --no-api true --unsigned true --as $package --salt 0x${"77".repeat(32)} !(\nexec ${target} "getValue() returns (uint256)" -> [$x]\nexec ${target} "setValue(uint256)" $x\n)`,
       );
       return i.getBinding("$package", BindingsSpace.USER);
     };
     expect(await build()).toEqual(await build());
   });
+  it("verifies the same smart payload as an exported proposal with explicit salt and nonce", async () => {
+    const body = `!(\nexec ${target} "getValue() returns (uint256)" -> [$x]\nexec ${target} "setValue(uint256)" $x\n)`;
+    const options = `--no-api true --nonce 7 --salt 0x${"88".repeat(32)}`;
+    const build = new Interpreter(tag.registry, {
+      account: owner,
+      chainId: 1,
+      transports: { 1: transport },
+    });
+    await build.interpret(
+      `load safe\nsafe:propose ${safe} ${options} --unsigned true --as $package ${body}`,
+    );
+    const pkg = build.getBinding("$package", BindingsSpace.USER) as string;
+    const review = async (input: string, opts: string) => {
+      const interpreter = new Interpreter(tag.registry, {
+        account: owner,
+        chainId: 1,
+        transports: { 1: transport },
+      });
+      expect(
+        await interpreter.interpret(
+          `load safe\nsafe:verify ${safe} ${input} ${opts} --as $review`,
+        ),
+      ).toEqual([]);
+      return JSON.parse(
+        interpreter.getBinding("$review", BindingsSpace.USER) as string,
+      );
+    };
+    const fromBlock = await review(body, options);
+    const fromPackage = await review(JSON.stringify(pkg), "--no-api true");
+    expect(fromBlock.hashes.safeTxHash).toBe(fromPackage.hashes.safeTxHash);
+    expect((await review(body, options)).hashes.safeTxHash).toBe(
+      fromBlock.hashes.safeTxHash,
+    );
+    expect(
+      (await review(JSON.stringify(pkg), "--no-api true --offline true")).hashes
+        .safeTxHash,
+    ).toBe(fromBlock.hashes.safeTxHash);
+  });
+
+  it("allows smart verification with automatic salt and nonce defaults", async () => {
+    const review = async () => {
+      const interpreter = new Interpreter(tag.registry, {
+        account: owner,
+        chainId: 1,
+        transports: { 1: transport },
+      });
+      expect(
+        await interpreter.interpret(
+          `load safe\nsafe:verify ${safe} --no-api true --as $review !(\nexec ${target} "getValue() returns (uint256)" -> [$x]\nexec ${target} "setValue(uint256)" $x\n)`,
+        ),
+      ).toEqual([]);
+      return JSON.parse(
+        interpreter.getBinding("$review", BindingsSpace.USER) as string,
+      );
+    };
+    const first = await review();
+    const second = await review();
+    expect(first.hashes.safeTxHash).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(first.hashes.safeTxHash).not.toBe(second.hashes.safeTxHash);
+  });
+
+  it("rejects salt outside smart blocks and keeps verification input restrictions", async () => {
+    const interpret = (script: string) =>
+      new Interpreter(tag.registry, {
+        account: owner,
+        chainId: 1,
+        transports: { 1: transport },
+      }).interpret(`load safe\n${script}`);
+    const salt = `--salt 0x${"99".repeat(32)}`;
+    for (const command of ["propose", "execute", "verify"]) {
+      await expect(
+        interpret(
+          `safe:${command} ${safe} --no-api true ${salt} (\nexec ${target} "setValue(uint256)" 1\n)`,
+        ),
+      ).rejects.toThrow("--salt requires a smart block");
+      await expect(
+        interpret(
+          `safe:${command} ${safe} "not a package" --no-api true ${salt}`,
+        ),
+      ).rejects.toThrow("--salt requires a smart block");
+    }
+    const body = `!(\nexec ${target} "setValue(uint256)" 1\n)`;
+    await expect(interpret(`safe:verify ${safe} ${body}`)).rejects.toThrow(
+      "requires --no-api",
+    );
+    await expect(
+      interpret(`safe:verify ${safe} --no-api true --offline true ${body}`),
+    ).rejects.toThrow("--offline requires");
+  });
+
   it("guards runtime integer narrowing before submitting the protocol call", async () => {
     const action = await compile(
       `exec ${target} "setValue(uint256)" 256\nexec ${target} "getValue() returns (uint256)" -> [$x]\nexec ${target} "setValue(uint8)" $x`,

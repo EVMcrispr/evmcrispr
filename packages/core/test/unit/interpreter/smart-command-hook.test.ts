@@ -34,7 +34,7 @@ it("passes raw AST to command compilation and captures the designated protocol c
   const context = {
     ...interpreters,
     batchContext: {
-      name: "batch!",
+      name: "batch",
       smart: true,
       smartState: state,
       hasActions: false,

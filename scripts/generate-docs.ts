@@ -83,6 +83,7 @@ const MODULES = discoverModules();
 // ── Types ────────────────────────────────────────────────────────────
 
 interface ArgDef {
+  supportsSmartBlock?: boolean;
   runtime?: boolean;
   name: string;
   type: string | string[];
@@ -436,6 +437,8 @@ function parseArgObjects(block: string): ArgDef[] {
       if (/rest:\s*true/.test(objContent)) arg.rest = true;
       if (/runtime:\s*true/.test(objContent)) arg.runtime = true;
       if (/namedOnly:\s*true/.test(objContent)) arg.namedOnly = true;
+      if (/supportsSmartBlock:\s*true/.test(objContent))
+        arg.supportsSmartBlock = true;
       const description = extractStringProp(objContent, "description");
       if (description !== null) arg.description = description;
       args.push(arg);
@@ -728,6 +731,13 @@ function generateCommandDoc(mod: ModuleInfo, cmd: CommandMeta): string {
       cmd.smartKind === "runtime"
         ? "Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time."
         : `Smart blocks: ${cmd.smartKind === "incompatible" ? "cannot be nested" : "build-time inputs only"}. ${cmd.smartReason ?? ""}`,
+    );
+    lines.push("");
+  }
+
+  if (cmd.argDefs.some((arg) => arg.supportsSmartBlock)) {
+    lines.push(
+      "Accepts ordinary `(...)` and smart `!(...)` payload blocks. Smart blocks support explicit `@helper!` expressions and returned-value captures.",
     );
     lines.push("");
   }

@@ -31,17 +31,17 @@ const compile = async (body: string, salt = "") => {
     },
   });
   return (
-    await interpreter.interpret(`batch! ${salt} (\n${body}\n)`)
+    await interpreter.interpret(`batch ${salt} !(\n${body}\n)`)
   )[0] as SmartBatchAction;
 };
 
 describe("smart batch compiler", () => {
   it("parses bangs and nested capture placeholders", () => {
     const result = parseScript(
-      `safe:execute! ${account} (\nexec ${target} "f() returns ((uint256,address),bool)" -> [[$x _] $ok]\n)`,
+      `safe:execute ${account} !(\nexec ${target} "f() returns ((uint256,address),bool)" -> [[$x _] $ok]\n)`,
     );
     expect(result.errors).toEqual([]);
-    expect(result.ast.body[0].name).toBe("execute!");
+    expect(result.ast.body[0].name).toBe("execute");
     expect((result.ast.body[0].args[1] as any).body[0].returnCapture).toEqual([
       ["x", null],
       "ok",
@@ -136,14 +136,14 @@ describe("smart batch compiler", () => {
     const interpreter = new Interpreter(tag.registry, { account, chainId: 1 });
     await expect(
       interpreter.interpret(
-        `batch! (\n${prefix})\nexec ${target} "g(uint256)" $x`,
+        `batch !(\n${prefix})\nexec ${target} "g(uint256)" $x`,
       ),
     ).rejects.toThrow();
   });
   it("reassigns destructured runtime bindings locally", async () => {
     const evm = new Interpreter(tag.registry, { account, chainId: 1 });
     const [action] = await evm.interpret(`set $x 1
-batch! (
+batch !(
 set $x ${target}::!{f()(uint256)}
 set [$x] [2]
 exec ${target} "g(uint256)" $x
@@ -190,7 +190,7 @@ loop ${control} extra
         throw new ErrorException("discard partial control flow");
       },
     });
-    const [action] = await evm.interpret(`batch! (
+    const [action] = await evm.interpret(`batch !(
 loop $i of [1] (
 if @bool!(${target}::!{f()(uint256)} > 0) (
 discard -?/> $failed
@@ -320,7 +320,7 @@ exec ${target} "g(uint256)" $v
   it("allows refusal captures and rolls a matched required one back", async () => {
     const evm = new Interpreter(tag.registry, { account, chainId: 1 });
     const [action] = await evm.interpret(
-      `batch! (\nexec ${target} "f() returns (uint256,bool)" -> [$x [$bad]] -/> $failed\nexec ${target} "g(uint256)" 7\n)`,
+      `batch !(\nexec ${target} "f() returns (uint256,bool)" -> [$x [$bad]] -/> $failed\nexec ${target} "g(uint256)" 7\n)`,
     );
     const plan = (action as SmartBatchAction).plan;
     expect(plan.steps).toHaveLength(1);

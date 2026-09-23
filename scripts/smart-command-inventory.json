@@ -312,10 +312,6 @@
   "safe/enable-module": {
     "kind": "runtime"
   },
-  "safe/execute!": {
-    "kind": "incompatible",
-    "reason": "Safe workflows open their own atomic context; they cannot be nested."
-  },
   "safe/execute": {
     "kind": "incompatible",
     "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
@@ -335,10 +331,6 @@
   "safe/new": {
     "kind": "static",
     "reason": "Owners, threshold and salt determine the predicted Safe address."
-  },
-  "safe/propose!": {
-    "kind": "incompatible",
-    "reason": "Safe workflows open their own atomic context; they cannot be nested."
   },
   "safe/propose": {
     "kind": "incompatible",
@@ -411,10 +403,6 @@
   },
   "std/assert": {
     "kind": "runtime"
-  },
-  "std/batch!": {
-    "kind": "incompatible",
-    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
   },
   "std/batch": {
     "kind": "incompatible",

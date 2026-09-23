@@ -912,6 +912,20 @@ export async function getCompletions(
           customTypes,
         );
 
+        if (
+          argDef.supportsSmartBlock &&
+          typeDrivenItems.some((item) => item.label === "( ... )")
+        ) {
+          typeDrivenItems.push({
+            label: "!( ... )",
+            insertText: "!(\n\t$0\n)",
+            kind: "field",
+            sortPriority: 0,
+            isSnippet: true,
+            detail: "Smart payload with execution-time values",
+          });
+        }
+
         const filteredHelpers = helperItems.filter((h) =>
           isReturnTypeCompatible(h.returnType, effectiveType),
         );

@@ -8,6 +8,8 @@ Propose a signed transaction to the Safe queue, or prepare and sign portable tra
 
 Smart blocks: cannot be nested. This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch.
 
+Accepts ordinary `(...)` and smart `!(...)` payload blocks. Smart blocks support explicit `@helper!` expressions and returned-value captures.
+
 ## Syntax
 
 ```evml

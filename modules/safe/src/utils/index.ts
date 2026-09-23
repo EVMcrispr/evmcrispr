@@ -43,14 +43,14 @@ export const interpretSafeBlock = async (
   block: BlockExpressionNode,
   commandName: string,
   interpreters: NodesInterpreters,
-  options: { smart?: boolean; salt?: `0x${string}` } = {},
+  options: { salt?: `0x${string}` } = {},
 ): Promise<TransactionAction[]> => {
   let actions: Action[];
   let pushed = false;
   try {
-    if (options.smart) {
+    if (block.smart) {
       const plan = await compileSmartBatch(module, block, interpreters, {
-        name: `${commandName}!`,
+        name: commandName,
         account: safe,
         route: "delegatecall",
         salt: options.salt,

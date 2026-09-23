@@ -76,7 +76,7 @@ const compile = async (account: Address, body: string) =>
       account,
       chainId: 1,
       transports: { 1: transport },
-    }).interpret(`load vault\nload token\nload contracts\nbatch! (\n${body}\n)`)
+    }).interpret(`load vault\nload token\nload contracts\nbatch !(\n${body}\n)`)
   )[0] as SmartBatchAction;
 
 beforeAll(async () => {
@@ -140,7 +140,7 @@ it("resolves packed CallsScript targets and unaligned dynamic calldata exactly o
   const ctx = defaultCompileCtx(module, {
     ...interpreters,
     batchContext: {
-      name: "batch!",
+      name: "batch",
       smart: true,
       smartState: state,
       hasActions: false,
@@ -771,7 +771,7 @@ assert @balance!(ETH $child) == 7
         transports: { 1: transport },
       });
       await interpreter.interpret(
-        `load sim\nsim:fork --using ethereumjs (\nbatch! (\nexec ${target} "setValue(uint256)" 615\nexec ${target} "caller() returns (address)" -> [$caller]\nexec ${target} "setAddress(address)" $caller\n)\nsim:expect @bool(@get(${target} "getValue()(uint256)") == 615)\nsim:expect @bool(@get(${target} "getAddress()(address)") == @sender)\n)`,
+        `load sim\nsim:fork --using ethereumjs (\nbatch !(\nexec ${target} "setValue(uint256)" 615\nexec ${target} "caller() returns (address)" -> [$caller]\nexec ${target} "setAddress(address)" $caller\n)\nsim:expect @bool(@get(${target} "getValue()(uint256)") == 615)\nsim:expect @bool(@get(${target} "getAddress()(address)") == @sender)\n)`,
       );
       expect(await readValue()).toBe(before);
     }, 30_000);

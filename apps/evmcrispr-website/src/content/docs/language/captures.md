@@ -17,7 +17,7 @@ sent. `-/>` and `-?/>` capture a refusal; `-!>` and `-?!>` capture a revert.
 | Build time, before anything is sent | `-/>` | `-?/>` |
 | On chain, after the transaction executes | `-!>` | `-?!>` |
 
-The `!` keeps the meaning it has in `@helper!`, `::!` and `batch!`: on chain.
+The `!` keeps the meaning it has in `@helper!`, `::!` and `batch !(...)`: on chain.
 The `/` strikes the arrow through — the line was cut off before it reached
 the chain. The `?` makes the failure optional either way.
 
@@ -165,7 +165,7 @@ safe:execute $safe (
 )
 ```
 
-A smart batch (`batch!`) accepts them too. There, a matched refusal rolls the
+A smart batch (`batch !(...)`) accepts them too. There, a matched refusal rolls the
 plan back to the failing line's checkpoint — the steps that line had already
 contributed are dropped, and the local bindings it wrote are restored — so the
 batch continues from a clean state.
@@ -263,7 +263,7 @@ batch (
 ) -?!> Error(string) [$reason]
 ```
 
-A smart batch (`batch!`) refuses them for the same reason, and points at the
+A smart batch (`batch !(...)`) refuses them for the same reason, and points at the
 on-chain form instead. `-!>` reports:
 
 > revert captures cannot observe a revert inside a smart batch; assert it

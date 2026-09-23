@@ -5,7 +5,14 @@ import type {
   NodeParserState,
 } from "@evmcrispr/sdk";
 import { buildParserError, NodeType } from "@evmcrispr/sdk";
-import { coroutine, getData, recursiveParser, sequenceOf } from "arcsecond";
+import {
+  char,
+  coroutine,
+  getData,
+  possibly,
+  recursiveParser,
+  sequenceOf,
+} from "arcsecond";
 import { commandExpressionParser } from "./command";
 import {
   closingCharParser,
@@ -25,6 +32,7 @@ export const blockExpressionParser: NodeParser<BlockExpressionNode> =
         const [initialState, initialIndex]: [NodeParserState, number] = run(
           getData.mapFromData(({ data, index }) => [data, index]),
         );
+        const smart = !!run(possibly(char("!")));
         run(sequenceOf([openingCharParser("("), endLine]));
 
         const scopedCommands: CommandExpressionNode[] = run(
@@ -36,14 +44,15 @@ export const blockExpressionParser: NodeParser<BlockExpressionNode> =
           }),
         );
 
-        return [scopedCommands];
+        return [scopedCommands, smart];
       }).errorMap((err) => buildParserError(err, BLOCK_PARSER_ERROR)),
       ({
         data: { line, offset },
         index,
-        result: [initialContext, [scopedCommands]],
+        result: [initialContext, [scopedCommands, smart]],
       }) => ({
         type: NodeType.BlockExpression,
+        ...(smart ? { smart: true } : {}),
         body: scopedCommands as BlockExpressionNode["body"],
         loc: createNodeLocation(initialContext, { index, line, offset }),
       }),

@@ -9,6 +9,7 @@ import {
   ErrorException,
   isTransactionAction,
 } from "@evmcrispr/sdk";
+import { compileSmartBatch } from "@evmcrispr/sdk/onchain";
 import type Std from "..";
 
 export default defineCommand<Std>({
@@ -19,10 +20,44 @@ export default defineCommand<Std>({
   },
   name: "batch",
   description: "Group multiple commands into a single transaction.",
-  args: [{ name: "block", type: "block", description: "Block of commands" }],
+  args: [
+    {
+      name: "block",
+      type: "block",
+      supportsSmartBlock: true,
+      description: "Block of commands; use !(...) for smart execution",
+    },
+  ],
+  opts: [
+    {
+      name: "salt",
+      type: "bytes32",
+      description:
+        "Smart-block output-storage salt; reuse only to reproduce the same signed plan",
+    },
+  ],
   batchable: false,
   createsBatchContext: true,
-  async run(module, { block }, { interpreters }) {
+  async run(module, { block }, { opts, interpreters }) {
+    if (opts.salt !== undefined && !block.smart)
+      throw new ErrorException("--salt requires a smart block (!(...))");
+    if (block.smart) {
+      const account = await module.getSender();
+      const plan = await compileSmartBatch(
+        module,
+        block as BlockExpressionNode,
+        interpreters,
+        {
+          name: "batch",
+          account,
+          route: "executor",
+          salt: opts.salt,
+        },
+      );
+      return plan.steps.length
+        ? [{ type: "smartBatch", chainId: plan.chainId, from: account, plan }]
+        : [];
+    }
     const { interpretNode } = interpreters;
 
     const blockActions = (await interpretNode(block as BlockExpressionNode, {

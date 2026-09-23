@@ -14,6 +14,7 @@ import type {
 } from "@evmcrispr/sdk";
 import {
   buildArgsLengthErrorMsg,
+  commandBlockArguments,
   computeCommandArity,
   errorSignature,
   experimentalDisabledMessage,
@@ -26,6 +27,7 @@ import {
   parseSignature,
   partitionHelperArgs,
   selectCaptureErrorAbis,
+  unsupportedSmartBlockMessage,
   validateArgType,
 } from "@evmcrispr/sdk";
 
@@ -45,7 +47,7 @@ import { ModuleSchemaProvider } from "./moduleSchemas";
 /** One enclosing batch context (batch / connect / forward) on the walk
  *  stack. `smart` marks a smart batch: its compile-faced reads evaluate
  *  on-chain, so the non-batchable-helper gate is lifted for helpers with
- *  a `name!` sibling. No producer sets it yet. */
+ *  a `name!` sibling. */
 interface BatchFrame {
   name: string;
   smart?: boolean;
@@ -570,6 +572,8 @@ class SemanticAnalyzer {
       // collisions, nothing else. (`def return` placement is validated by
       // the control-flow pass.)
       if (isDefCommand(c)) {
+        const cmd = await this.#resolveCommand(c);
+        if (cmd) this.#checkSmartBlocks(c, cmd);
         if (!isReturnDef(c)) this.#checkDefImportCollision(c);
         continue;
       }
@@ -651,6 +655,8 @@ class SemanticAnalyzer {
         );
         continue;
       }
+      const definitionCommand = await this.#resolveCommand(node);
+      if (definitionCommand) this.#checkSmartBlocks(node, definitionCommand);
       const defName = node.args[0];
       const key =
         defName?.type === NodeType.Bareword
@@ -1100,14 +1106,22 @@ class SemanticAnalyzer {
     slotNames(c.returnCapture ?? [], captured);
     for (const name of captured) this.#runtimeNames.add(`$${name}`);
 
-    // Recurse with the declared execution context; captures are block-scoped.
+    // The payload selects smart compilation; plain nested blocks inherit.
     const opensBatch = !!cmd?.createsBatchContext;
+    const smartBlocks = new Set(
+      commandBlockArguments(cmd?.argDefs ?? [], c.args)
+        .filter(
+          ({ block, definition }) =>
+            block.smart && definition?.supportsSmartBlock,
+        )
+        .map(({ block }) => block),
+    );
     for (const blk of this.#blocks(c)) {
       const conditional = c.name === "if" && this.#containsRuntime(c.args[0]);
       const nextStack = opensBatch
         ? [
             ...batchStack,
-            { name: this.#batchName(c), smart: cmd?.createsSmartBatchContext },
+            { name: this.#batchName(c), smart: smartBlocks.has(blk) },
           ]
         : conditional
           ? [...batchStack, { name: c.name, smart: true, conditional: true }]
@@ -1118,7 +1132,7 @@ class SemanticAnalyzer {
       if (c.name === "if" && this.#containsRuntime(c.args[0])) {
         this.#runtimeNames = beforeRuntime;
         this.#definedSoFar = beforeDefined;
-      } else if (cmd?.createsSmartBatchContext) {
+      } else if (smartBlocks.has(blk)) {
         for (const name of this.#runtimeNames)
           if (!beforeRuntime.has(name) && !beforeDefined.has(name))
             this.#definedSoFar.delete(name);
@@ -1139,8 +1153,28 @@ class SemanticAnalyzer {
     }
   }
 
+  #checkSmartBlocks(c: CommandExpressionNode, cmd: ICommand): void {
+    for (const { block, definition } of commandBlockArguments(
+      cmd.argDefs,
+      c.args,
+    )) {
+      if (block.smart && !definition?.supportsSmartBlock)
+        this.#diagnostics.push(
+          diag(
+            block,
+            unsupportedSmartBlockMessage(
+              this.#displayName(c),
+              definition?.name,
+            ),
+            "unsupported-smart-block",
+          ),
+        );
+    }
+  }
+
   #checkArity(c: CommandExpressionNode, cmd: ICommand): void {
     const arity = computeCommandArity(cmd.argDefs, c.args);
+    this.#checkSmartBlocks(c, cmd);
     if (arity.missingBlockName) {
       this.#diagnostics.push(
         diag(

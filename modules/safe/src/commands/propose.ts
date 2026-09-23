@@ -46,6 +46,7 @@ export default defineCommand<Safe>({
     { name: "safe", type: "address", description: "Safe address" },
     {
       name: "block",
+      supportsSmartBlock: true,
       type: ["block", "string"],
       description:
         "Commands composing the transaction, or exported transaction JSON with --no-api",
@@ -88,12 +89,9 @@ export default defineCommand<Safe>({
       description: "Origin tag shown in the Safe UI",
     },
   ],
-  async run(module, { safe, block }, { opts, interpreters, node }) {
-    if (
-      opts.salt !== undefined &&
-      (!node.name.endsWith("!") || typeof block === "string")
-    )
-      throw new ErrorException("--salt requires a smart command block");
+  async run(module, { safe, block }, { opts, interpreters }) {
+    if (opts.salt !== undefined && !(typeof block === "object" && block?.smart))
+      throw new ErrorException("--salt requires a smart block (!(...))");
     const noApi = opts["no-api"];
     if (noApi && !opts.unsigned && interpreters.simulation)
       throw new ErrorException(
@@ -124,7 +122,7 @@ export default defineCommand<Safe>({
             block as BlockExpressionNode,
             "safe:propose",
             interpreters,
-            { smart: node.name.endsWith("!"), salt: opts.salt },
+            { salt: opts.salt },
           );
 
     if (actions?.length === 0) {

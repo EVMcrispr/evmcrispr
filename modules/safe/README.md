@@ -27,13 +27,11 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [safe:disable-module](src/commands/disable-module.md) | Disable a module on the Safe. |
 | [safe:enable-module](src/commands/enable-module.md) | Enable a module on the Safe, allowing it to execute transactions without owner signatures (e.g. a Zodiac module). |
 | [safe:execute](src/commands/execute.md) | Execute a Safe transaction on-chain from a command block, a confirmed service transaction hash, or locally signed transaction JSON with --no-api. |
-| [safe:execute!](src/commands/execute!.md) | Execute a Safe smart batch with explicit on-chain expressions and typed return capture. |
 | [safe:install-delay](src/commands/install-delay.md) | Deploy a Zodiac Delay modifier (timelock) owned by the Safe and enable it as a module. |
 | [safe:install-roles](src/commands/install-roles.md) | Deploy a Zodiac Roles modifier (fine-grained permissions) owned by the Safe and enable it as a module. |
 | [safe:install-scope-guard](src/commands/install-scope-guard.md) | Deploy a Zodiac ScopeGuard owned by the Safe and set it as the transaction guard of the Safe, limiting which targets and functions owners can call. |
 | [safe:new](src/commands/new.md) | Deploy a new Safe (v1.4.1 L2 singleton) with the given owners, at a deterministic address. |
 | [safe:propose](src/commands/propose.md) | Propose a signed transaction to the Safe queue, or prepare and sign portable transaction JSON with --no-api. |
-| [safe:propose!](src/commands/propose!.md) | Propose a Safe smart batch with explicit on-chain expressions and typed return capture. |
 | [safe:remove-guard](src/commands/remove-guard.md) | Remove the transaction guard of the Safe. |
 | [safe:remove-owner](src/commands/remove-owner.md) | Remove an owner from the Safe, lowering the threshold if it would exceed the remaining owners. |
 | [safe:set-fallback-handler](src/commands/set-fallback-handler.md) | Set the fallback handler contract of the Safe. |

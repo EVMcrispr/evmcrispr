@@ -36,7 +36,7 @@ const compile = async (body: string, chainId = 1) =>
           },
         }),
       },
-    }).interpret(`load swaps\nbatch! (\n${body}\n)`)
+    }).interpret(`load swaps\nbatch !(\n${body}\n)`)
   )[0] as SmartBatchAction;
 describe("smart swap builders", () => {
   for (const venue of [

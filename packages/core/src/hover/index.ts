@@ -214,9 +214,9 @@ function formatCommandHover(
     .map((field) => `\`${field.name}\``);
   if (runtime.length)
     result += `\n\nRuntime fields in smart blocks: ${runtime.join(", ")}. Other fields are build-time values.`;
-  if (command.createsSmartBatchContext)
+  if (command.argDefs.some((arg) => arg.supportsSmartBlock))
     result +=
-      "\n\nUse explicit @helper! expressions and -> [$result] capture inside this block.";
+      "\n\nAccepts (...) or !(...). Use explicit @helper! expressions and -> [$result] capture inside smart blocks.";
   if (command.smartSupport?.reason)
     result += `\n\nSmart batches: ${command.smartSupport.reason}`;
   const errors = formatDeclaredErrorsSection(command.errors);
