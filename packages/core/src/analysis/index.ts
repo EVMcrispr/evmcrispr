@@ -2080,6 +2080,8 @@ class SemanticAnalyzer {
           );
           continue;
         }
+        // A module may not declare `Error` or `Panic` (the SDK reserves
+        // them), so a refusal clause naming one is always the wrong arrow.
         if (refusal && (errorName === "Error" || errorName === "Panic")) {
           this.#diagnostics.push(
             diag(
