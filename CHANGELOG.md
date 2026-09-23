@@ -4,9 +4,48 @@
 
 ### Smart block syntax
 
-Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:execute`, and `safe:verify`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.
+Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:propose-offline`, and `safe:execute`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.
 
-`safe:verify <safe> !(...) --no-api true` now compiles smart payloads for review. Salt and nonce remain optional; use matching `--salt`, `--nonce`, and other compilation inputs to reconstruct a transaction, or verify its exported package directly.
+`safe:propose-offline $tx <safe> !(...)` compiles smart payloads into Safe transaction JSON for review with `@safe:verify`. Salt and nonce remain optional; use matching `--salt`, `--nonce`, and other compilation inputs to reconstruct a transaction, or keep its JSON.
+
+### Safe: commands named after where the result goes
+
+The experimental `safe` module has one command per step and destination. The command name says where the result goes: the Safe Transaction Service (`propose`, `confirm`), a variable holding JSON (`propose-offline`, `confirm-offline`), or the chain (`confirm-onchain`, `execute`). The argument says what it acts on:
+- a command block, or `cancel` for a rejection;
+- a quoted message;
+- a nonce, or a 32-byte hash (`--message` for a safeMessageHash);
+- Safe transaction or Safe message JSON.
+
+Exported JSON is now called a Safe transaction or Safe message (formerly "package"); its format is unchanged, so JSON exported earlier still imports.
+
+- `safe:confirm <safe> <hash>` confirms a transaction or message queued on the service. `safe:confirm-offline $var <safe> <json | hash>` adds your signature to JSON, or exports a queued item with its confirmations. `safe:confirm-onchain` (formerly `approve-hash`) confirms with `approveHash`.
+- `safe:propose` also posts signed JSON (its first owner signature proposes, the rest become confirmations, no wallet prompt) and queues Safe messages. It refuses consumed nonces.
+- `safe:propose $safe cancel --nonce 42` and `safe:propose-offline $r $safe cancel --nonce 42` create the rejection the Safe web app uses: a zero-value call to the Safe itself.
+- Safe messages (EIP-191 text or EIP-712 typed data) work on the service and as JSON. `@safe:signature` returns the packed owner signatures, e.g. the EIP-1271 signature a dapp asks for.
+- `@safe:verify(<safe> <nonce | hash | json> message: abi: no-rpc:)` returns the review as JSON: integrity-checked hashes, decoded calls, warnings, signature checks, readiness, and competing transactions at the same nonce. A nonce with several queued transactions is an error listing them.
+- Owner Safes are seamless: `confirm`, `confirm-offline`, `confirm-onchain` and `propose` find how your wallet owns the Safe — directly or through owner Safes up to three levels deep (`--via` picks among several). An owner Safe you complete alone signs off-chain (EIP-1271, no gas) or sends `approveHash` in one transaction; one that needs more signatures gets its `approveHash` proposed in its own queue, as in Safe{Wallet}. Offline, each of its owners adds a signature under it in the JSON until its threshold is met, and `@safe:verify` shows the progress.
+- Contract signatures follow the parent Safe's version: Safe >=1.5.0 checks owner Safes with the hash through `isValidSignature(bytes32,bytes)`, older Safes with the preimage through the legacy `isValidSignature(bytes,bytes)`. Previously every Safe used the legacy form, so owner-Safe signatures for Safe 1.5.0 were rejected.
+- `safe:execute <hash>` packs the service's confirmations like JSON signatures, so contract signatures from owner Safes execute correctly.
+- `safe:confirm-onchain` also confirms Safe messages (`approveHash` of the safeMessageHash).
+
+**Breaking changes (experimental `safe` module):**
+
+| Before | After |
+|---|---|
+| `safe:propose $safe (...) --no-api true --unsigned true --as $tx` | `safe:propose-offline $tx $safe (...)` |
+| `safe:propose $safe $tx --no-api true` | `safe:confirm-offline $tx $safe $tx` |
+| `safe:execute $safe $tx --no-api true` | `safe:execute $safe $tx` |
+| `safe:execute $safe (...) --no-api true --nonce 7 --signatures [...]` | `safe:propose-offline` the block, `@safe:merge` the signatures, then `safe:execute $safe $tx` |
+| `safe:verify $safe <nonce \| hash \| $tx>` (`--as`, `--abi`, `--offline`) | `print @safe:verify($safe <nonce \| hash \| $tx>)` (`abi:`, `no-rpc:`) |
+| `safe:verify $safe (...)` | `safe:propose-offline` the block, then `@safe:verify` |
+| `safe:verify ... --nested-safe $owner` | `safe:propose $owner (safe:confirm-onchain $safe <hash>)` prints the owner Safe's hashes |
+| `safe:verify-message $safe "text"`, `@safe:messageHash` | `safe:propose-offline $msg $safe "text"`, then `@safe:verify($safe $msg)` |
+| `safe:verify-message ... --format bytes` (nested owners) | `safe:confirm-offline $tx $safe $tx` from an owner of the owner Safe |
+| `safe:approve-hash $safe <hash \| $tx>` | `safe:confirm-onchain $safe <hash \| $tx>` |
+| `safe:approve-hash $safe (...)` | `safe:propose-offline` the block, then `safe:confirm-onchain` |
+| report field `package` | `safeTransaction` / `safeMessage` |
+| `@safe:merge(package ...)` argument name | `@safe:merge(base ...)` |
+| `SafePackage`, `parseSafePackage`, `transactionPackage`, … in `@evmcrispr/module-safe/transactions` | `SafeSignable`, `parseSafeSignable`, `transactionSignable`, … |
 
 ### Deterministic Safe addresses
 

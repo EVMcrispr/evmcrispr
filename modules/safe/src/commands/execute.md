@@ -2,7 +2,7 @@
 title: "safe:execute"
 ---
 
-Execute a Safe transaction on-chain from a command block, a confirmed service transaction hash, or locally signed transaction JSON with --no-api.
+Execute a Safe transaction on-chain from a command block, the safeTxHash of a confirmed queued transaction, or signed Safe transaction JSON.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -21,23 +21,22 @@ safe:execute <safe> <proposal>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `safe` | `address` | Build time | Safe address |
-| `proposal` | `block \| bytes32 \| string` | Build time | Commands, the safeTxHash of a queued transaction, or exported transaction JSON with --no-api |
+| `proposal` | `block \| bytes32 \| string` | Build time | Commands, the safeTxHash of a queued transaction, or Safe transaction JSON |
 
 ## Options
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--salt` | `bytes32` | Build time | Smart-batch storage salt for reproducible offline signing (block forms with !) |
-| `--no-api` | `bool` | Build time | Execute a block or exported transaction JSON without contacting the Safe Transaction Service |
-| `--signatures` | `array` | Build time | EIP-712 owner signatures to add locally (requires --no-api; blocks also require --nonce) |
-| `--nonce` | `number` | Build time | Nonce signed for a command block (requires --no-api) |
 
 <!-- HAND-WRITTEN -->
 
 ## Examples
 
-Execute directly when the connected account is an owner of a 1-threshold Safe
-(the owner pre-validated signature is used, no off-chain queue involved):
+Execute a block directly. The connected owner's own approval counts, since the
+Safe accepts the sender of `execTransaction` as that owner's approval, so a
+threshold-one Safe needs nothing else. On-chain approvals from other owners
+([safe:confirm-onchain](confirm-onchain.md)) count as well:
 
 ```evml
 load safe
@@ -51,8 +50,10 @@ safe:execute $mySafe (
 )
 ```
 
-Execute a queued transaction that has collected enough confirmations on the
-Safe Transaction Service, by its safeTxHash:
+Execute a queued transaction by its safeTxHash once it has enough
+confirmations on the Safe Transaction Service. An owner executing it can
+supply the last missing confirmation. If other transactions are queued at the
+same nonce, the command lists them before sending:
 
 ```evml
 load safe
@@ -61,13 +62,13 @@ set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
 safe:execute $mySafe 0x2c9c1f8f2a816f9ffe3ee902e08c02e01e9060e353fa892ee7d1cf27454935cb
 ```
 
-## Without the Safe API
+## Signed Safe transactions
 
-After collecting owner signatures with [safe:propose](propose.md), place the
-complete exported JSON in the string variable `$tx` and execute it directly:
+Execute Safe transaction JSON signed with
+[safe:confirm-offline](confirm-offline.md):
 
 ```evml novalidate
-safe:execute $mySafe $tx --no-api true
+safe:execute $mySafe $tx
 ```
 
 The executor can be any account. The command checks the chain, Safe address,
@@ -75,30 +76,21 @@ transaction hash, current on-chain nonce, owner membership, and threshold.
 It recovers and sorts the signers, deduplicates identical signatures, and rejects conflicts or invalid authorization.
 RPC access is required, but the Safe Transaction Service is never contacted.
 This path accepts EIP-712 EOA signatures and contract-owner signatures, including
-nested Safes. It also discovers current on-chain `approveHash` approvals. These
-checks use Safe's legacy `isValidSignature(bytes,bytes)` contract-signature
-interface. A modern bytes32-only EIP-1271 contract is not sufficient.
+nested Safes. It also discovers current on-chain confirmations
+([safe:confirm-onchain](confirm-onchain.md)). These checks use Safe's legacy
+`isValidSignature(bytes,bytes)` contract-signature interface. A modern
+bytes32-only EIP-1271 contract is not sufficient.
 
 The shared executor checks Safe outcome events: `ExecutionFailure` is an error
 even when the outer transaction receipt succeeded.
 
-Alternatively, supply individual signatures as an array for an identical
-command block. The explicit nonce must be the nonce all owners signed:
-
-```evml novalidate
-safe:execute $mySafe (
-  safe:change-threshold 2
-) --no-api true --nonce 42 --signatures [$signatureA $signatureB]
-```
-
-`--signatures` may also add signatures to imported JSON. A nonce override on
-imported JSON is rejected. A hash alone cannot be executed with `--no-api true`
-because the hash does not contain the transaction data or signatures.
-
-Direct block execution for a threshold-one Safe already avoids the API and
-continues to work with or without `--no-api true`.
+Only a safeTxHash contacts the service. A command block is built at the
+current on-chain nonce and authorized by on-chain confirmations and the
+executor itself; to add off-chain signatures, prepare it with
+[safe:propose-offline](propose-offline.md) and merge them into the JSON.
 
 ## See Also
 
-- [safe:propose](propose.md)
-- [safe:verify](verify.md)
+- [safe:confirm-offline](confirm-offline.md)
+- [safe:confirm-onchain](confirm-onchain.md)
+- [@safe:verify](../helpers/verify.md)

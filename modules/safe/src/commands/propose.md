@@ -2,7 +2,7 @@
 title: "safe:propose"
 ---
 
-Propose a signed transaction to the Safe queue, or prepare and sign portable transaction JSON with --no-api.
+Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message signed by the wallet, or signed JSON.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -13,7 +13,7 @@ Accepts ordinary `(...)` and smart `!(...)` payload blocks. Smart blocks support
 ## Syntax
 
 ```evml
-safe:propose <safe> <block>
+safe:propose <safe> <proposal>
 ```
 
 ## Arguments
@@ -21,24 +21,34 @@ safe:propose <safe> <block>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `safe` | `address` | Build time | Safe address |
-| `block` | `block \| string` | Build time | Commands composing the transaction, or exported transaction JSON with --no-api |
+| `proposal` | `block \| string` | Build time | Commands composing the transaction, `cancel` (with --nonce) to reject a pending one, a message (text or EIP-712 typed data), or signed Safe transaction or Safe message JSON |
 
 ## Options
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--salt` | `bytes32` | Build time | Smart-batch storage salt for reproducible offline signing (block forms with !) |
-| `--as` | `variable` | Build time | Bind the exported package to a variable (requires --no-api) |
-| `--no-api` | `bool` | Build time | Export transaction JSON and collect signatures locally without contacting the Safe Transaction Service |
-| `--unsigned` | `bool` | Build time | Prepare transaction JSON without a wallet signature (requires --no-api) |
-| `--nonce` | `number` | Build time | Safe nonce override for a block (defaults to the next free service nonce, or the on-chain nonce with --no-api) |
+| `--nonce` | `number` | Build time | Safe nonce for a command block (defaults to the next free service nonce), or of the pending transaction to cancel |
 | `--origin` | `string` | Build time | Origin tag shown in the Safe UI |
+| `--via` | `address` | Build time | Owner Safe to sign through, when you own several owner Safes |
 
 <!-- HAND-WRITTEN -->
 
+Queues a new Safe transaction or Safe message on the Safe Transaction Service
+so the other owners can confirm it, here with [safe:confirm](confirm.md) or in
+the Safe web app. The service needs one owner signature, so a new
+transaction or message is signed by the connected wallet: an owner, a
+registered delegate, or the owner of an owner Safe it completes alone
+(`--via` picks among several). The hashes are printed before the wallet prompt.
+
+The Safe commands are named after where their result goes: the Safe
+Transaction Service (`propose`, `confirm`), a variable holding JSON
+(`propose-offline`, `confirm-offline`), or the chain (`confirm-onchain`,
+`execute`). See the [Safe guide](/guides/safe/) for the complete flows.
+
 ## Examples
 
-Propose a token transfer to the Safe queue:
+Propose a token transfer:
 
 ```evml
 load safe
@@ -64,71 +74,55 @@ safe:propose $mySafe (
 ) --origin "My app"
 ```
 
-The connected account must be an owner (or registered delegate) of the Safe;
-it signs the EIP-712 SafeTx hash and the proposal appears in the Safe web UI
-queue for the remaining confirmations. Set `$safe:apiKey` to lift the
-anonymous rate limits of the Safe Transaction Service, or `$safe:serviceUrl`
-to target a self-hosted service.
+The nonce of a block defaults to the next free nonce: the on-chain nonce,
+skipping past trusted queued proposals. A consumed nonce is refused, and other
+transactions already queued at an explicit `--nonce` are listed.
 
-## Without the Safe API
+## Cancel a pending transaction
 
-Use `--no-api true` to print portable JSON instead of posting to the queue.
-RPC access is still required. The nonce defaults to the Safe's current on-chain
-nonce; use `--nonce` when coordinating a future transaction. Pending service
-proposals are not consulted. Safe >=1.3.0 is supported; service delegates are not Safe owners.
-
-Prepare a transaction without requesting a wallet signature:
+`cancel` in place of the block proposes a rejection: a zero-value call from
+the Safe to itself at the pending transaction's nonce, which is how the Safe
+web app rejects one. Once it is confirmed and executed, the pending
+transaction can never run.
 
 ```evml
 load safe
+
 set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
-
-safe:propose $mySafe (
-  safe:change-threshold 2
-) --no-api true --unsigned true --as $tx
+safe:propose $mySafe cancel --nonce 42
 ```
 
-The final log line is JSON containing `chainId`, `safe`, `tx`, `safeTxHash`, and
-`signatures`, `version: 1`, and `kind: "transaction"`. Numeric transaction fields are decimal strings to preserve exact
-values. Copy the complete JSON into a string variable `$tx` on each owner's
-machine, then run:
+`--nonce` is required. A quoted `"cancel"` is a text message instead.
+
+## Messages
+
+A quoted string proposes an off-chain Safe message (EIP-191 text), and EIP-712
+typed-data JSON proposes a typed message. Owners confirm it with
+`safe:confirm <safe> <safeMessageHash> --message`, and
+[@safe:signature](../helpers/signature.md) returns the signature a dapp asks
+for:
+
+```evml
+load safe
+
+set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
+safe:propose $mySafe "I agree to the terms"
+```
+
+## Posting signed JSON
+
+Safe transaction or Safe message JSON signed with
+[safe:confirm-offline](confirm-offline.md) is posted as it is: its first owner
+signature proposes it and the rest become confirmations, so any account can
+post it without a wallet prompt.
 
 ```evml novalidate
-safe:verify $mySafe $tx --no-api true
-safe:propose $mySafe $tx --no-api true
+safe:propose $mySafe $tx
 ```
 
-Each call to `propose` prints new JSON with that owner's signature appended.
-Pass this updated JSON to the next owner, and finally to `safe:execute`.
-Omit `--unsigned true` on the initial block to prepare and sign in one step.
-Imported payloads and EOA signatures are checked; current authorization is checked by verify and execute. Imported nonces cannot be overridden.
-`--origin` applies only to service proposals and cannot be combined with
-`--no-api true`.
+Owner Safe signatures are posted once complete; those still collecting are
+kept out with a warning, and [safe:confirm-offline](confirm-offline.md)
+continues them in the JSON.
 
-The hashes printed by `verify` establish consistency, not trust in the payload:
-review the target, calldata, value, and nonce before signing. Share the exported
-payload rather than rebuilding a block whose helper reads might have changed.
-
-This workflow follows the prepare/sign/execute separation in the
-[Agglayer Safe multisig tools](https://github.com/agglayer/agglayer-contracts/tree/main/tools/safeMultisig).
-
-## Composing with shared commands
-
-Use `--as $tx` to bind the package instead of copying it from logs. Owners can
-review, sign, and merge independently:
-
-```evml novalidate
-load http
-safe:verify $mySafe $tx --no-api true --as $review
-sign $signature --typed @http:json($review typedData)
-set $signed @safe:merge($tx $signature)
-print $signed
-```
-
-`--as` requires `--no-api true`. Contract owners use signed Safe message
-packages or explicit contract-signature records with `@safe:merge`.
-
-## See Also
-
-- [safe:execute](execute.md)
-- [safe:verify](verify.md)
+Set `$safe:apiKey` to lift the anonymous rate limits of the Safe Transaction
+Service, or `$safe:serviceUrl` to target a self-hosted service.
