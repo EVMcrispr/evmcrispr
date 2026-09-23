@@ -2,7 +2,7 @@ import type { Address } from "@evmcrispr/sdk";
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
 import { isAddressEqual, type PublicClient } from "viem";
 import type Safe from "..";
-import { CHAIN_SHORT_NAMES } from "../addresses";
+import { CHAIN_SHORT_NAMES, TX_SERVICE_SLUGS } from "../addresses";
 import { getSafeNonce } from "./reads";
 import type { SafeTx } from "./safeTx";
 import {
@@ -29,7 +29,8 @@ export const getChainShortName = (chainId: number): string => {
 const getServiceBaseUrl = (module: Safe, chainId: number): string => {
   const custom = module.getConfigBinding("serviceUrl");
   if (custom) return String(custom).replace(/\/$/, "");
-  return `https://api.safe.global/tx-service/${getChainShortName(chainId)}`;
+  const slug = TX_SERVICE_SLUGS.get(chainId) ?? getChainShortName(chainId);
+  return `https://api.safe.global/tx-service/${slug}`;
 };
 
 const getServiceHeaders = (module: Safe): Record<string, string> => {

@@ -138,8 +138,9 @@ export const FALLBACK_HANDLER_STORAGE_SLOT =
 export const TRANSACTION_GUARD_INTERFACE_ID = "0xe6d7a83a" as const;
 export const MODULE_GUARD_INTERFACE_ID = "0x58401ed8" as const;
 
-// EIP-3770 chain short names used by the Safe Transaction Service
-// (https://api.safe.global/tx-service/{shortName}) and the Safe web UI.
+// EIP-3770 chain short names used by the Safe web UI and, unless
+// TX_SERVICE_SLUGS overrides them, the Safe Transaction Service path
+// (https://api.safe.global/tx-service/{shortName}).
 export const CHAIN_SHORT_NAMES = new Map<number, string>([
   [1, "eth"],
   [10, "oeth"],
@@ -149,7 +150,6 @@ export const CHAIN_SHORT_NAMES = new Map<number, string>([
   [137, "matic"],
   [146, "sonic"],
   [324, "zksync"],
-  [1101, "zkevm"],
   [5000, "mantle"],
   [8453, "base"],
   [42161, "arb1"],
@@ -160,3 +160,7 @@ export const CHAIN_SHORT_NAMES = new Map<number, string>([
   [11155111, "sep"],
   [84532, "basesep"],
 ]);
+
+// Transaction Service paths that diverge from the EIP-3770 short name
+// (per safe-config.safe.global/api/v1/chains/{id}/ transactionService).
+export const TX_SERVICE_SLUGS = new Map<number, string>([[137, "pol"]]);
