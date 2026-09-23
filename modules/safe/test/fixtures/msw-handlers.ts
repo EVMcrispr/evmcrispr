@@ -87,11 +87,22 @@ export const safeServiceHandlers = [
       if (url.searchParams.get("executed") === "false") {
         results = results.filter((t) => !t.isExecuted);
       }
-      if (url.searchParams.get("ordering") === "-nonce") {
-        results.sort((a, b) => Number(b.nonce) - Number(a.nonce));
+      const gte = url.searchParams.get("nonce__gte");
+      if (gte !== null) {
+        results = results.filter((t) => BigInt(t.nonce) >= BigInt(gte));
       }
+      const ordering = url.searchParams.get("ordering");
+      if (ordering === "-nonce") {
+        results.sort((a, b) => Number(b.nonce) - Number(a.nonce));
+      } else if (ordering === "nonce") {
+        results.sort((a, b) => Number(a.nonce) - Number(b.nonce));
+      }
+      const offset = Number(url.searchParams.get("offset") ?? 0);
       const limit = url.searchParams.get("limit");
-      if (limit) results = results.slice(0, Number(limit));
+      results = results.slice(
+        offset,
+        limit ? offset + Number(limit) : undefined,
+      );
       return HttpResponse.json({ count: results.length, results });
     },
   ),

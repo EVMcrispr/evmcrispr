@@ -194,6 +194,29 @@ export const getServiceTransactionsByNonce = async (
   return res?.results ?? [];
 };
 
+/** Trusted transactions pending on the service that can still execute:
+ *  not executed, at `fromNonce` or later (a used nonce never executes), in
+ *  nonce order. Walks every page. */
+export const getQueuedTransactions = async (
+  module: Safe,
+  chainId: number,
+  safe: Address,
+  fromNonce: bigint,
+): Promise<ServiceTransaction[]> => {
+  const limit = 100;
+  const queued: ServiceTransaction[] = [];
+  for (let offset = 0; ; offset += limit) {
+    const res = await serviceFetch(
+      module,
+      chainId,
+      `/api/v1/safes/${getAddress(safe)}/multisig-transactions/?executed=false&trusted=true&nonce__gte=${fromNonce}&ordering=nonce&limit=${limit}&offset=${offset}`,
+    );
+    const page: ServiceTransaction[] = res?.results ?? [];
+    queued.push(...page);
+    if (!res?.next || page.length < limit) return queued;
+  }
+};
+
 /** The safeTxHashes of other trusted transactions queued at `nonce`: only
  *  one of them can ever execute. `undefined` when the service could not be
  *  asked. */

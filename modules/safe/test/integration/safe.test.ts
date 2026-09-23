@@ -1214,6 +1214,41 @@ describe("Safe > integration", () => {
     ).to.include("safe:execute refused");
   });
 
+  it("lists the trusted transactions that can still execute", async () => {
+    serviceState.reset();
+    const single = (
+      await run(`load safe\nsafe:new ${ownerA} --salt ${deploySalt + 35n}`)
+    ).logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+    // Consume nonce 0.
+    await run(`load safe\nsafe:execute ${single} cancel`);
+    const hash = (n: number) => `0x${n.toString(16).padStart(64, "0")}`;
+    const seed = (n: number, nonce: number, extra: object = {}) =>
+      serviceState.transactions.set(hash(n), {
+        safe: single,
+        nonce: String(nonce),
+        safeTxHash: hash(n),
+        isExecuted: false,
+        ...extra,
+      });
+    seed(1, 0); // at a used nonce: can never execute
+    seed(2, 2);
+    seed(3, 1);
+    seed(4, 1, { trusted: false });
+    seed(5, 1, { isExecuted: true });
+    seed(6, 1);
+
+    const queue = async (args: string) =>
+      (await run(`load safe\nset $q @safe:queue(${args})`)).getBinding(
+        "$q",
+        BindingsSpace.USER,
+      );
+    expect(await queue(single)).to.eql([hash(3), hash(6), hash(2)]);
+    expect(await queue(`${single} nonce:1`)).to.eql([hash(3), hash(6)]);
+    expect(await queue(`${single} nonce:0`)).to.eql([]);
+  });
+
   it("lets a delegate propose with no confirmation", async () => {
     serviceState.reset();
     const pair = await deployTwoOfTwo(deploySalt + 34n);
