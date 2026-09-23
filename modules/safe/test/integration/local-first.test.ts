@@ -36,7 +36,6 @@ import {
   reviewSafeSignable,
   signableHashes,
   signableTypedData,
-  signingBytes,
   transactionSignable,
 } from "../../src/utils/signables";
 

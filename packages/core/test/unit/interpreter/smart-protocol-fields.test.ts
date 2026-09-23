@@ -38,6 +38,8 @@ const answers: [string, string, unknown[]][] = [
   ["VERSION()", "string", ["1.4.1"]],
   ["groupCounter()", "uint256", [7n]],
   ["rentPrice(string[],uint256)", "uint256", [1n]],
+  // safe:set-guard checks the guard's ERC-165 interface before encoding.
+  ["supportsInterface(bytes4)", "bool", [true]],
 ];
 const transport = custom({
   request: async ({ method, params }) => {

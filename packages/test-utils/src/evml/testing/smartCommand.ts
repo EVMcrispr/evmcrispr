@@ -164,13 +164,18 @@ export async function checkSmartCommandFields(
         field.type === "expression" ||
         field.nodes[i].type === NodeType.HelperFunctionExpression
       ) {
+        // An on-chain `!` fixture compiles, keeping what only its compile
+        // face knows (e.g. @abi.encodeCall!'s fixed selector).
+        const compiles =
+          field.type === "expression" ||
+          (field.nodes[i] as { name?: string }).name?.endsWith("!");
         const std = test.evm.getModule("std")!;
         std.helpers["smart-fixture!"] = defineHelper({
           name: "smart-fixture",
           args: [{ name: "value", type: "expression" }],
           returnType: "any",
           async compile(ctx, node) {
-            if (field.type === "expression") {
+            if (compiles) {
               if (node.args[0].type === NodeType.CallExpression) {
                 const { param, terminal } = await compileCallValue(
                   ctx,

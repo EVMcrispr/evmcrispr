@@ -9,6 +9,14 @@ const from = "0x8790B75CF2bd36A2502a3e48A24338D8288f2F15";
 describeCommand("send", {
   describeName:
     "Std > commands > send [to] [--data <data>] [--value <value>] [opts...]",
+  // Runtime calldata needs a fixed selector, which only @abi.encodeCall!
+  // with a live argument carries.
+  smartCases: [
+    {
+      name: "runtime calldata",
+      script: `send ${target} --data @abi.encodeCall!("transfer(address,uint256)" ${target} ${target}::!{totalSupply()(uint256)}) --value 1e18`,
+    },
+  ],
   cases: [
     {
       name: "should return a call action with --data",
