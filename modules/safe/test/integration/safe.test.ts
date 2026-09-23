@@ -13,7 +13,7 @@ import {
   getWalletClients,
 } from "@evmcrispr/test-utils";
 import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
-import type { PublicClient, WalletClient } from "viem";
+import type { Hex, PublicClient, WalletClient } from "viem";
 import {
   concatHex,
   encodeFunctionData,
@@ -33,6 +33,7 @@ import {
 import type { SafeTx } from "../../src/utils";
 import {
   encodeSetUp,
+  getSafeTxHashes,
   getSafeTxTypedData,
   pickDeployedMastercopy,
   predictZodiacModuleAddress,
@@ -83,10 +84,9 @@ describe("Safe > integration", () => {
 
     const actionCallback = async (action: Action) => {
       if (isTransactionAction(action)) {
+        const from = action.from ?? account ?? ownerA;
         const wallet = wallets.find(
-          (w) =>
-            !action.from ||
-            w.account!.address.toLowerCase() === action.from.toLowerCase(),
+          (w) => w.account!.address.toLowerCase() === from.toLowerCase(),
         )!;
         const hash = await wallet.sendTransaction({
           account: wallet.account!,
@@ -105,6 +105,16 @@ describe("Safe > integration", () => {
           (w) => w.account!.address.toLowerCase() === signer.toLowerCase(),
         )!;
         const m = typedData.message;
+        if (typedData.primaryType === "SafeMessage")
+          return (wallet.account as any).signTypedData({
+            domain: {
+              chainId: BigInt(typedData.domain.chainId),
+              verifyingContract: typedData.domain.verifyingContract,
+            },
+            types: { SafeMessage: typedData.types.SafeMessage },
+            primaryType: "SafeMessage",
+            message: m,
+          });
         return (wallet.account as any).signTypedData({
           domain: {
             chainId: BigInt(typedData.domain.chainId),
@@ -362,7 +372,9 @@ describe("Safe > integration", () => {
       () => null,
       (err) => err,
     );
-    expect(String(execError?.message)).to.include("use safe:propose");
+    expect(String(execError?.message)).to.include(
+      "safe:confirm or safe:confirm-offline",
+    );
 
     // ...then queue a changeThreshold(1) on the mocked service, confirmed
     // by both owners, and execute it by hash.
@@ -509,51 +521,84 @@ describe("Safe > integration", () => {
     return { tx, safeTxHash, nonce };
   };
 
-  const grabHash = (log: string, label: string) =>
-    log.match(new RegExp(`${label}\\s+(0x[0-9a-fA-F]{64})`))?.[1];
+  const verify = async (target: string, extra = "") => {
+    const evm = await run(
+      `load safe\nset $r @safe:verify(${safe} ${target}${extra})`,
+    );
+    return JSON.parse(evm.getBinding("$r", BindingsSpace.USER) as string);
+  };
 
   it("verifies a queued transaction by nonce and by hash", async () => {
     serviceState.reset();
     const { safeTxHash, nonce } = await seedQueuedTx();
 
-    const byNonce = await run(`load safe\nsafe:verify ${safe} ${nonce}`);
-    const log = byNonce.logs.find((l) => l.includes("safeTxHash:"))!;
-
+    const byNonce = await verify(String(nonce));
     const domainSeparator = await client.readContract({
       address: safe,
       abi: safeAbi,
       functionName: "domainSeparator",
     });
-    expect(grabHash(log, "Domain hash:")).to.equal(domainSeparator);
-    expect(grabHash(log, "safeTxHash:")).to.equal(safeTxHash);
-    // The printed hashes recompose into the safeTxHash per EIP-712.
+    expect(byNonce.hashes.domainHash).to.equal(domainSeparator);
+    expect(byNonce.hashes.safeTxHash).to.equal(safeTxHash);
+    // The reported hashes recompose into the safeTxHash per EIP-712.
     expect(
       keccak256(
         concatHex([
           "0x1901",
-          grabHash(log, "Domain hash:") as `0x${string}`,
-          grabHash(log, "Message hash:") as `0x${string}`,
+          byNonce.hashes.domainHash,
+          byNonce.hashes.messageHash,
         ]),
       ),
     ).to.equal(safeTxHash);
-    expect(log).to.not.include("WARNING");
+    expect(byNonce.warnings).to.eql([]);
+    expect(byNonce.competing).to.eql([]);
 
-    const byHash = await run(`load safe\nsafe:verify ${safe} ${safeTxHash}`);
-    expect(
-      grabHash(
-        byHash.logs.find((l) => l.includes("safeTxHash:"))!,
-        "safeTxHash:",
-      ),
-    ).to.equal(safeTxHash);
+    const byHash = await verify(safeTxHash);
+    expect(byHash.hashes.safeTxHash).to.equal(safeTxHash);
+  });
+
+  it("warns about other trusted transactions queued at the same nonce", async () => {
+    serviceState.reset();
+    const { safeTxHash, nonce } = await seedQueuedTx();
+    const threshold = (n: bigint) =>
+      encodeFunctionData({
+        abi: safeAbi,
+        functionName: "changeThreshold",
+        args: [n],
+      });
+    const { safeTxHash: rival } = await seedQueuedTx({ data: threshold(1n) });
+    const { safeTxHash: spam } = await seedQueuedTx({ data: threshold(3n) });
+    // Anyone can push an unsigned proposal: it must not count.
+    serviceState.transactions.get(spam.toLowerCase()).trusted = false;
+
+    const report = await verify(safeTxHash);
+    expect(report.competing).to.eql([rival]);
+    // A nonce names one transaction; with rivals queued it is ambiguous.
+    const ambiguous = await verify(String(nonce)).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(ambiguous?.message)).to.include(
+      `2 transactions are queued at nonce ${nonce}`,
+    );
+    expect(String(ambiguous?.message)).to.include(rival);
+
+    // Proposing over an occupied nonce says what it competes with.
+    const proposed = (
+      await run(
+        `load safe\nsafe:propose ${safe} (\n  exec ${safe} changeThreshold(uint256) 1\n) --nonce ${nonce}`,
+      )
+    ).logs.join("\n");
+    expect(proposed).to.include(`queued at nonce ${nonce}`);
+    expect(proposed).to.include(safeTxHash);
   });
 
   it("warns about untrusted delegatecalls", async () => {
     serviceState.reset();
     const { nonce } = await seedQueuedTx({ operation: 1 });
 
-    const evm = await run(`load safe\nsafe:verify ${safe} ${nonce}`);
-    expect(evm.logs.join("\n")).to.include("DELEGATECALL");
-    expect(evm.logs.join("\n")).to.include("WARNING");
+    const report = await verify(String(nonce));
+    expect(report.warnings.join("\n")).to.include("DELEGATECALL");
   });
 
   it("rejects service data that does not hash to the reported safeTxHash", async () => {
@@ -587,9 +632,7 @@ describe("Safe > integration", () => {
       honestHash,
     );
 
-    const verifyError = await run(
-      `load safe\nsafe:verify ${safe} ${nonce}`,
-    ).then(
+    const verifyError = await verify(String(nonce)).then(
       () => null,
       (err) => err,
     );
@@ -601,71 +644,7 @@ describe("Safe > integration", () => {
       () => null,
       (err) => err,
     );
-    expect(String(execError?.message)).to.include(
-      "refusing to execute possibly tampered data",
-    );
-  });
-
-  it("prints the nested Safe approveHash transaction hashes", async () => {
-    serviceState.reset();
-
-    // A second Safe that acts as a signer of the first one.
-    const deployer = await run(
-      `load safe\nsafe:new ${ownerB} --salt ${deploySalt + 1n}`,
-    );
-    const nestedSafe = deployer.logs
-      .find((l) => l.includes("Deploying new Safe at"))!
-      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
-
-    const { safeTxHash, nonce } = await seedQueuedTx();
-    const evm = await run(
-      `load safe\nsafe:verify ${safe} ${nonce} --nested-safe ${nestedSafe}`,
-    );
-
-    const nestedLog = evm.logs.find((l) =>
-      l.includes("Nested Safe approveHash transaction"),
-    )!;
-    const expectedNestedHash = await client.readContract({
-      address: nestedSafe,
-      abi: safeAbi,
-      functionName: "getTransactionHash",
-      args: [
-        safe,
-        0n,
-        encodeFunctionData({
-          abi: safeAbi,
-          functionName: "approveHash",
-          args: [safeTxHash],
-        }),
-        0,
-        0n,
-        0n,
-        0n,
-        zeroAddress,
-        zeroAddress,
-        0n,
-      ],
-    });
-    expect(grabHash(nestedLog, "safeTxHash:")).to.equal(expectedNestedHash);
-  });
-
-  it("computes off-chain Safe message hashes matching the fallback handler", async () => {
-    const evm = await run(
-      `load safe\nsafe:verify-message ${safe} "hello safe"`,
-    );
-    const onChain = await client.readContract({
-      address: safe,
-      abi: safeAbi,
-      functionName: "getMessageHash",
-      args: [hashMessage("hello safe")],
-    });
-    const log = evm.logs.find((l) => l.includes("SafeMessage hash:"))!;
-    expect(grabHash(log, "SafeMessage hash:")).to.equal(onChain);
-
-    const helper = await run(
-      `load safe\nset $hash @safe:messageHash("hello safe" ${safe})`,
-    );
-    expect(helper.getBinding("$hash", BindingsSpace.USER)).to.equal(onChain);
+    expect(String(execError?.message)).to.include("safeTxHash mismatch");
   });
 
   it("collects portable owner signatures and executes a two-owner Safe without the service", async () => {
@@ -678,15 +657,21 @@ describe("Safe > integration", () => {
       .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
     const jsonFrom = (result: { logs: string[] }) =>
       result.logs.find((l) => l.startsWith('{"chainId"'))!;
+    const prepared = jsonFrom(
+      await run(
+        `load safe\nsafe:propose-offline $tx ${localSafe} (\n  safe:change-threshold 1\n)`,
+        ownerC,
+      ),
+    );
     const first = jsonFrom(
       await run(
-        `load safe\nsafe:propose ${localSafe} (\n  safe:change-threshold 1\n) --no-api true`,
+        `load safe\nsafe:confirm-offline $tx ${localSafe} ${JSON.stringify(prepared)}`,
         ownerA,
       ),
     );
     const second = jsonFrom(
       await run(
-        `load safe\nsafe:propose ${localSafe} ${JSON.stringify(first)} --no-api true`,
+        `load safe\nsafe:confirm-offline $tx ${localSafe} ${JSON.stringify(first)}`,
         ownerB,
       ),
     );
@@ -711,12 +696,34 @@ describe("Safe > integration", () => {
     });
     expect(exported.safeTxHash).to.equal(onChainHash);
     const verified = await run(
-      `load safe\nsafe:verify ${localSafe} ${JSON.stringify(second)} --no-api true`,
+      `load safe\nset $r @safe:verify(${localSafe} ${JSON.stringify(second)})`,
     );
-    expect(verified.logs.join("\n")).to.include(onChainHash);
+    const report = JSON.parse(
+      verified.getBinding("$r", BindingsSpace.USER) as string,
+    );
+    expect(report.hashes.safeTxHash).to.equal(onChainHash);
+    expect(report.readiness).to.equal("ready");
+    expect(serviceState.proposals).to.have.lengthOf(0);
+    // Anyone can post locally signed JSON to the queue: the first owner
+    // signature proposes, the rest become confirmations — no wallet prompt.
     await run(
-      `load safe\nsafe:execute ${localSafe} ${JSON.stringify(second)} --no-api true`,
+      `load safe\nsafe:propose ${localSafe} ${JSON.stringify(second)}`,
+      ownerD,
     );
+    expect(serviceState.proposals).to.have.length(1);
+    expect(serviceState.proposals[0].contractTransactionHash).to.equal(
+      onChainHash,
+    );
+    expect([ownerA, ownerB]).to.include(serviceState.proposals[0].sender);
+    expect(serviceState.confirmations).to.eql([
+      {
+        safeTxHash: onChainHash.toLowerCase(),
+        signature: exported.signatures.find(
+          (sig: string) => sig !== serviceState.proposals[0].signature,
+        ),
+      },
+    ]);
+    await run(`load safe\nsafe:execute ${localSafe} ${JSON.stringify(second)}`);
     expect(
       await client.readContract({
         address: localSafe,
@@ -731,7 +738,511 @@ describe("Safe > integration", () => {
         functionName: "nonce",
       }),
     ).to.equal(1n);
+    // Execution never touched the service: only the explicit propose did.
+    expect(serviceState.proposals).to.have.lengthOf(1);
+  });
+
+  const deployTwoOfTwo = async (salt: bigint) => {
+    const deployed = await run(
+      `load safe\nsafe:new ${ownerA} ${ownerB} --threshold 2 --salt ${salt}`,
+    );
+    return deployed.logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+  };
+  const thresholdOf = (address: Address) =>
+    client.readContract({
+      address,
+      abi: safeAbi,
+      functionName: "getThreshold",
+    });
+
+  it("lets the executing owner complete the last confirmation of a queued transaction", async () => {
+    serviceState.reset();
+    const localSafe = await deployTwoOfTwo(deploySalt + 3n);
+    const tx: SafeTx = {
+      to: localSafe,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: safeAbi,
+        functionName: "changeThreshold",
+        args: [1n],
+      }),
+      operation: 0,
+      safeTxGas: 0n,
+      baseGas: 0n,
+      gasPrice: 0n,
+      gasToken: zeroAddress,
+      refundReceiver: zeroAddress,
+      nonce: 0n,
+    };
+    const typedData = getSafeTxTypedData(gnosis.id, localSafe, tx);
+    const safeTxHash = await client.readContract({
+      address: localSafe,
+      abi: safeAbi,
+      functionName: "getTransactionHash",
+      args: [
+        tx.to,
+        tx.value,
+        tx.data,
+        tx.operation,
+        0n,
+        0n,
+        0n,
+        zeroAddress,
+        zeroAddress,
+        0n,
+      ],
+    });
+    serviceState.transactions.set(safeTxHash.toLowerCase(), {
+      safe: localSafe,
+      to: tx.to,
+      value: "0",
+      data: tx.data,
+      operation: 0,
+      safeTxGas: "0",
+      baseGas: "0",
+      gasPrice: "0",
+      gasToken: zeroAddress,
+      refundReceiver: zeroAddress,
+      nonce: "0",
+      safeTxHash,
+      confirmationsRequired: 2,
+      isExecuted: false,
+      confirmations: [
+        {
+          owner: ownerB,
+          signature: await (wallets[1].account as any).signTypedData({
+            domain: typedData.domain,
+            types: { SafeTx: typedData.types.SafeTx },
+            primaryType: "SafeTx",
+            message: typedData.message,
+          }),
+        },
+      ],
+    });
+
+    // A non-owner cannot fill the gap...
+    const error = await run(
+      `load safe\nsafe:execute ${localSafe} ${safeTxHash}`,
+      ownerC,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(error?.message)).to.include(
+      "1 of 2 required owner signatures",
+    );
+
+    // ...but owner A approves by sending execTransaction itself.
+    await run(`load safe\nsafe:execute ${localSafe} ${safeTxHash}`, ownerA);
+    expect(await thresholdOf(localSafe)).to.equal(1n);
+  });
+
+  it("flow 4: executes with on-chain confirmations only, never touching the service", async () => {
+    serviceState.reset();
+    const localSafe = await deployTwoOfTwo(deploySalt + 4n);
+    const block = `(\n  safe:change-threshold 1\n)`;
+    const prepare = `safe:propose-offline $tx ${localSafe} ${block}`;
+
+    // Owner B confirms on-chain; a second confirmation is a no-op.
+    await run(
+      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx`,
+      ownerB,
+    );
+    const again = await run(
+      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx`,
+      ownerB,
+    );
+    expect(again.logs.join("\n")).to.include("already confirmed");
+
+    // A non-owner can neither approve nor complete the threshold.
+    const notOwner = await run(
+      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx`,
+      ownerC,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(notOwner?.message)).to.include("is not an owner");
+    const short = await run(
+      `load safe\nsafe:execute ${localSafe} ${block}`,
+      ownerC,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(short?.message)).to.include("1 of 2");
+
+    // Owner A executes: B's approval plus A's own pre-validated signature.
+    await run(`load safe\nsafe:execute ${localSafe} ${block}`, ownerA);
+    expect(await thresholdOf(localSafe)).to.equal(1n);
     expect(serviceState.proposals).to.have.lengthOf(0);
+  });
+
+  it("flow 6: an owner Safe confirms on-chain, queued or executed directly", async () => {
+    const ownerSafeLogs = await run(
+      `load safe\nsafe:new ${ownerA} --salt ${deploySalt + 5n}`,
+    );
+    const ownerSafe = ownerSafeLogs.logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+    const parentLogs = await run(
+      `load safe\nsafe:new ${ownerB} ${ownerSafe} --threshold 2 --salt ${deploySalt + 6n}`,
+    );
+    const parent = parentLogs.logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+    const block = `(\n  safe:change-threshold 1\n)`;
+
+    const prepare = `safe:propose-offline $tx ${parent} ${block}`;
+
+    // Flow 6a: the owner Safe's confirmation, queued on its own service queue.
+    serviceState.reset();
+    const queued = await run(
+      `load safe\n${prepare}\nsafe:propose ${ownerSafe} (\n  safe:confirm-onchain ${parent} $tx\n)`,
+      ownerA,
+    );
+    const parentTx = JSON.parse(
+      queued.getBinding("$tx", BindingsSpace.USER) as string,
+    );
+    expect(serviceState.proposals).to.have.lengthOf(1);
+    expect(serviceState.proposals[0].safe).to.equal(ownerSafe);
+    expect(serviceState.proposals[0].to).to.equal(parent);
+    expect(serviceState.proposals[0].data).to.equal(
+      encodeFunctionData({
+        abi: safeAbi,
+        functionName: "approveHash",
+        args: [parentTx.safeTxHash],
+      }),
+    );
+
+    // Flow 6b: ownerA confirms on-chain without naming the owner Safe: the
+    // 1-of-1 owner Safe executes approveHash in one transaction.
+    await run(
+      `load safe\n${prepare}\nsafe:confirm-onchain ${parent} $tx`,
+      ownerA,
+    );
+    await run(`load safe\nsafe:execute ${parent} ${block}`, ownerB);
+    expect(await thresholdOf(parent)).to.equal(1n);
+  });
+
+  it("flow 2/5/9: confirms on the service, exports to JSON, and cancels", async () => {
+    serviceState.reset();
+    const localSafe = await deployTwoOfTwo(deploySalt + 7n);
+    const tx: SafeTx = {
+      to: localSafe,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: safeAbi,
+        functionName: "changeThreshold",
+        args: [1n],
+      }),
+      operation: 0,
+      safeTxGas: 0n,
+      baseGas: 0n,
+      gasPrice: 0n,
+      gasToken: zeroAddress,
+      refundReceiver: zeroAddress,
+      nonce: 0n,
+    };
+    const safeTxHash = getSafeTxHashes(gnosis.id, localSafe, tx).safeTxHash;
+    const queued = {
+      safe: localSafe,
+      to: tx.to,
+      value: "0",
+      data: tx.data,
+      operation: 0,
+      safeTxGas: "0",
+      baseGas: "0",
+      gasPrice: "0",
+      gasToken: zeroAddress,
+      refundReceiver: zeroAddress,
+      nonce: "0",
+      safeTxHash,
+      confirmationsRequired: 2,
+      isExecuted: false,
+      confirmations: [] as { owner: Address; signature: string }[],
+    };
+    serviceState.transactions.set(safeTxHash.toLowerCase(), queued);
+
+    // Flow 2: owner B confirms on the service.
+    await run(`load safe\nsafe:confirm ${localSafe} ${safeTxHash}`, ownerB);
+    expect(serviceState.confirmations).to.have.lengthOf(1);
+    queued.confirmations.push({
+      owner: ownerB,
+      signature: serviceState.confirmations[0].signature,
+    });
+    const again = await run(
+      `load safe\nsafe:confirm ${localSafe} ${safeTxHash}`,
+      ownerB,
+    );
+    expect(again.logs.join("\n")).to.include("already confirmed");
+    const notOwner = await run(
+      `load safe\nsafe:confirm ${localSafe} ${safeTxHash}`,
+      ownerC,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(notOwner?.message)).to.include("is not an owner");
+
+    // Flow 9: a rejection at the same nonce lists what it competes with.
+    const cancelled = await run(
+      `load safe\nsafe:propose ${localSafe} cancel --nonce 0`,
+      ownerA,
+    );
+    expect(cancelled.logs.join("\n")).to.include(safeTxHash);
+    expect(serviceState.proposals).to.have.lengthOf(1);
+    expect(serviceState.proposals[0]).to.include({
+      to: localSafe,
+      value: "0",
+      data: null,
+      nonce: "0",
+    });
+
+    // Flow 5: owner A exports the queued transaction with B's confirmation
+    // plus its own signature, and anyone executes the JSON.
+    const exported = await run(
+      `load safe\nsafe:confirm-offline $tx ${localSafe} ${safeTxHash}\nsafe:execute ${localSafe} $tx`,
+      ownerA,
+    );
+    expect(
+      JSON.parse(exported.getBinding("$tx", BindingsSpace.USER) as string)
+        .signatures,
+    ).to.have.lengthOf(2);
+    expect(await thresholdOf(localSafe)).to.equal(1n);
+  });
+
+  it("flow 8: signs a Safe message on the service and checks it on-chain", async () => {
+    serviceState.reset();
+    const localSafe = await deployTwoOfTwo(deploySalt + 8n);
+    await run(`load safe\nsafe:propose ${localSafe} "hello safe"`, ownerA);
+    expect(serviceState.messageProposals).to.have.lengthOf(1);
+    const proposal = serviceState.messageProposals[0];
+    expect(proposal.message).to.equal("hello safe");
+
+    const messageHash = await client.readContract({
+      address: localSafe,
+      abi: safeAbi,
+      functionName: "getMessageHash",
+      args: [hashMessage("hello safe")],
+    });
+    const stored = {
+      safe: localSafe,
+      messageHash,
+      message: "hello safe",
+      confirmations: [{ owner: ownerA, signature: proposal.signature }],
+    };
+    serviceState.messages.set(messageHash.toLowerCase(), stored);
+
+    // Without --message a hash is a safeTxHash.
+    const asTx = await run(
+      `load safe\nsafe:confirm ${localSafe} ${messageHash}`,
+      ownerB,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(asTx?.message)).to.include("not found");
+
+    await run(
+      `load safe\nsafe:confirm ${localSafe} ${messageHash} --message true`,
+      ownerB,
+    );
+    expect(serviceState.messageSignatures).to.have.lengthOf(1);
+    stored.confirmations.push({
+      owner: ownerB,
+      signature: serviceState.messageSignatures[0].signature,
+    });
+
+    const evm = await run(
+      `load safe\nset $sig @safe:signature(${localSafe} ${messageHash} message:true)`,
+    );
+    const signature = evm.getBinding("$sig", BindingsSpace.USER) as Hex;
+    // The Safe's fallback handler accepts it as an EIP-1271 signature.
+    expect(
+      await client.readContract({
+        address: localSafe,
+        abi: parseAbi([
+          "function isValidSignature(bytes32,bytes) view returns (bytes4)",
+        ]),
+        functionName: "isValidSignature",
+        args: [hashMessage("hello safe"), signature],
+      }),
+    ).to.equal("0x1626ba7e");
+
+    // Service content that does not hash to the requested hash is refused.
+    stored.message = "goodbye safe";
+    const tampered = await run(
+      `load safe\nsafe:confirm ${localSafe} ${messageHash} --message true`,
+      ownerB,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(tampered?.message)).to.include("safeMessageHash mismatch");
+  });
+
+  // An owner Safe B (owned by ownerA) and a 2-of-2 parent owned by B and
+  // ownerB; B needs `bThreshold` signatures (ownerA, plus ownerC when 2).
+  const deployNested = async (salt: bigint, bThreshold = 1n) => {
+    const bOwners = bThreshold === 1n ? `${ownerA}` : `${ownerA} ${ownerC}`;
+    const b = (
+      await run(
+        `load safe\nsafe:new ${bOwners} --threshold ${bThreshold} --salt ${salt}`,
+      )
+    ).logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+    const parent = (
+      await run(
+        `load safe\nsafe:new ${b} ${ownerB} --threshold 2 --salt ${salt + 100n}`,
+      )
+    ).logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+    return { b, parent };
+  };
+
+  it("flow 6: an owner of an owner Safe signs offline with the same commands", async () => {
+    serviceState.reset();
+    const { b, parent } = await deployNested(deploySalt + 9n);
+    const block = `(\n  safe:change-threshold 1\n)`;
+    const script = [
+      "load safe",
+      `safe:propose-offline $tx ${parent} ${block}`,
+      `safe:confirm-offline $tx ${parent} $tx`,
+    ].join("\n");
+    // ownerA does not own the parent: it signs through owner Safe B.
+    const viaB = await run(script, ownerA);
+    const tx = viaB.getBinding("$tx", BindingsSpace.USER) as string;
+    expect(JSON.parse(tx).signatures[0]).to.include({ owner: b });
+    const report = JSON.parse(
+      (
+        await run(
+          `load safe\nset $r @safe:verify(${parent} ${JSON.stringify(tx)})`,
+        )
+      ).getBinding("$r", BindingsSpace.USER) as string,
+    );
+    // The parent's own EIP-1271 check accepts B's signature.
+    expect(report.signatures).to.deep.include({
+      owner: b,
+      type: "contract",
+      status: "valid",
+      progress: "1 of 1",
+    });
+    await run(
+      `load safe\nsafe:confirm-offline $tx ${parent} ${JSON.stringify(tx)}\nsafe:execute ${parent} $tx`,
+      ownerB,
+    );
+    expect(await thresholdOf(parent)).to.equal(1n);
+    expect(serviceState.proposals).to.have.lengthOf(0);
+  });
+
+  it("flow 6: confirms a queued transaction through an owner Safe on the service", async () => {
+    serviceState.reset();
+    const { b, parent } = await deployNested(deploySalt + 10n);
+    const tx: SafeTx = {
+      to: parent,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: safeAbi,
+        functionName: "changeThreshold",
+        args: [1n],
+      }),
+      operation: 0,
+      safeTxGas: 0n,
+      baseGas: 0n,
+      gasPrice: 0n,
+      gasToken: zeroAddress,
+      refundReceiver: zeroAddress,
+      nonce: 0n,
+    };
+    const safeTxHash = getSafeTxHashes(gnosis.id, parent, tx).safeTxHash;
+    const queued = {
+      safe: parent,
+      to: tx.to,
+      value: "0",
+      data: tx.data,
+      operation: 0,
+      safeTxGas: "0",
+      baseGas: "0",
+      gasPrice: "0",
+      gasToken: zeroAddress,
+      refundReceiver: zeroAddress,
+      nonce: "0",
+      safeTxHash,
+      confirmationsRequired: 2,
+      isExecuted: false,
+      confirmations: [] as { owner: Address; signature: string }[],
+    };
+    serviceState.transactions.set(safeTxHash.toLowerCase(), queued);
+
+    // B needs only ownerA: an off-chain contract signature, no gas.
+    await run(`load safe\nsafe:confirm ${parent} ${safeTxHash}`, ownerA);
+    expect(serviceState.confirmations).to.have.lengthOf(1);
+    expect(serviceState.proposals).to.have.lengthOf(0);
+    queued.confirmations.push({
+      owner: b,
+      signature: serviceState.confirmations[0].signature,
+    });
+    const again = await run(
+      `load safe\nsafe:confirm ${parent} ${safeTxHash}`,
+      ownerA,
+    );
+    expect(again.logs.join("\n")).to.include("already confirmed");
+
+    // ownerB executes: B's contract signature plus its own approval.
+    await run(`load safe\nsafe:execute ${parent} ${safeTxHash}`, ownerB);
+    expect(await thresholdOf(parent)).to.equal(1n);
+  });
+
+  it("flow 6: queues an owner Safe's on-chain confirmation when it needs more signatures", async () => {
+    serviceState.reset();
+    const { b, parent } = await deployNested(deploySalt + 11n, 2n);
+    const prepared = (
+      await run(
+        `load safe\nsafe:propose-offline $tx ${parent} (\n  safe:change-threshold 1\n)`,
+      )
+    ).getBinding("$tx", BindingsSpace.USER) as string;
+    const { safeTxHash } = JSON.parse(prepared);
+    // The parent transaction is queued on the service, unconfirmed.
+    const { tx } = JSON.parse(prepared);
+    serviceState.transactions.set(safeTxHash.toLowerCase(), {
+      ...tx,
+      safe: parent,
+      safeTxHash,
+      confirmationsRequired: 2,
+      isExecuted: false,
+      confirmations: [],
+    });
+
+    // B needs ownerA and ownerC: ownerA proposes B's approveHash in B's queue.
+    const confirmed = await run(
+      `load safe\nsafe:confirm ${parent} ${safeTxHash}`,
+      ownerA,
+    );
+    expect(confirmed.logs.join("\n")).to.include(`Owner Safe ${b} needs 2`);
+    expect(serviceState.proposals).to.have.lengthOf(1);
+    expect(serviceState.proposals[0]).to.include({ safe: b, to: parent });
+    expect(serviceState.proposals[0].data).to.equal(
+      encodeFunctionData({
+        abi: safeAbi,
+        functionName: "approveHash",
+        args: [safeTxHash],
+      }),
+    );
+    const onchain = await run(
+      `load safe\nsafe:confirm-onchain ${parent} ${safeTxHash}`,
+      ownerA,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(onchain?.message)).to.include(
+      "needs more signatures than yours",
+    );
   });
 
   it("rejects delegate-exec outside a propose/exec block", async () => {

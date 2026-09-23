@@ -71,14 +71,14 @@ export const importSafeTransaction = (
     parsed = JSON.parse(json);
   } catch {
     throw new ErrorException(
-      "--no-api requires a command block or exported Safe transaction JSON; a hash or nonce alone cannot recover transaction data without the service",
+      "expected Safe transaction JSON; a hash or nonce alone cannot recover transaction data without the Safe Transaction Service",
     );
   }
   const data = record(parsed);
   if (data.version !== undefined && data.version !== 1)
-    throw new ErrorException("unsupported Safe package version");
+    throw new ErrorException("unsupported Safe transaction JSON version");
   if (data.kind !== undefined && data.kind !== "transaction")
-    throw new ErrorException("expected a Safe transaction package");
+    throw new ErrorException("expected a Safe transaction, got a Safe message");
   if (safeUint(data.chainId, "chainId") !== BigInt(chainId)) {
     throw new ErrorException(
       "Safe transaction chainId does not match the connected chain",
@@ -135,7 +135,7 @@ export const normalizeSafeSignature = (value: unknown): Hex => {
   const v = Number.parseInt(value.slice(-2), 16);
   if (![0, 1, 27, 28].includes(v)) {
     throw new ErrorException(
-      "only EIP-712 EOA signatures are supported without the Safe API",
+      "expected an EIP-712 EOA signature (v 27 or 28); pass contract signatures as {type: contract, owner, signature}",
     );
   }
   return `${value.slice(0, -2)}${(v < 2 ? v + 27 : v).toString(16)}` as Hex;

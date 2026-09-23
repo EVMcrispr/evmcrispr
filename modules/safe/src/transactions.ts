@@ -9,9 +9,9 @@ export {
 } from "./utils/deployment";
 export { encodeMultiSendCall } from "./utils/multisend";
 export { stringifySafeTransaction } from "./utils/offline";
-export * from "./utils/packages";
 export {
   buildSafeTx,
   encodeExecTransaction,
   preValidatedSignature,
 } from "./utils/safeTx";
+export * from "./utils/signables";

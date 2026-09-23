@@ -5,9 +5,19 @@ import { HttpResponse, http } from "@evmcrispr/test-utils/msw/server";
  *  `safe:execute <hash>` are seeded into `transactions`. */
 export const serviceState = {
   proposals: [] as any[],
+  confirmations: [] as { safeTxHash: string; signature: string }[],
+  /** Safe messages POSTed by `safe:propose`, as the service stores them:
+   *  keyed by the lowercase safeMessageHash the test computes. */
+  messageProposals: [] as any[],
+  messageSignatures: [] as { messageHash: string; signature: string }[],
+  messages: new Map<string, any>(),
   transactions: new Map<string, any>(),
   reset() {
     this.proposals = [];
+    this.confirmations = [];
+    this.messageProposals = [];
+    this.messageSignatures = [];
+    this.messages.clear();
     this.transactions.clear();
   },
 };
@@ -27,6 +37,10 @@ export const safeServiceHandlers = [
       if (nonce !== null) {
         results = results.filter((t) => String(t.nonce) === nonce);
       }
+      // Like the real service, only unsigned pushes are untrusted.
+      if (url.searchParams.get("trusted") === "true") {
+        results = results.filter((t) => t.trusted !== false);
+      }
       if (url.searchParams.get("executed") === "false") {
         results = results.filter((t) => !t.isExecuted);
       }
@@ -45,6 +59,43 @@ export const safeServiceHandlers = [
       return HttpResponse.json({}, { status: 201 });
     },
   ),
+  http.post(
+    `${BASE}/multisig-transactions/:hash/confirmations/`,
+    async ({ request, params }) => {
+      const { signature } = (await request.json()) as { signature: string };
+      serviceState.confirmations.push({
+        safeTxHash: String(params.hash).toLowerCase(),
+        signature,
+      });
+      return HttpResponse.json({}, { status: 201 });
+    },
+  ),
+  http.post(`${BASE}/safes/:safe/messages/`, async ({ request, params }) => {
+    serviceState.messageProposals.push({
+      safe: params.safe,
+      ...((await request.json()) as object),
+    });
+    return HttpResponse.json({}, { status: 201 });
+  }),
+  http.post(
+    `${BASE}/messages/:hash/signatures/`,
+    async ({ request, params }) => {
+      const { signature } = (await request.json()) as { signature: string };
+      serviceState.messageSignatures.push({
+        messageHash: String(params.hash).toLowerCase(),
+        signature,
+      });
+      return HttpResponse.json({}, { status: 201 });
+    },
+  ),
+  http.get(`${BASE}/messages/:hash/`, ({ params }) => {
+    const message = serviceState.messages.get(
+      String(params.hash).toLowerCase(),
+    );
+    if (!message)
+      return HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    return HttpResponse.json(message);
+  }),
   http.get(`${BASE}/multisig-transactions/:hash/`, ({ params }) => {
     const tx = serviceState.transactions.get(String(params.hash).toLowerCase());
     if (!tx) {

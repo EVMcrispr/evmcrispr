@@ -301,6 +301,18 @@
   "safe/change-threshold": {
     "kind": "runtime"
   },
+  "safe/confirm-offline": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
+  "safe/confirm-onchain": {
+    "kind": "incompatible",
+    "reason": "This command reads the Safe and the transaction service while building, so it cannot be compiled into an atomic batch."
+  },
+  "safe/confirm": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
   "safe/delegate-exec": {
     "kind": "static",
     "reason": "Only exact static delegatecalls are supported; the composability executor cannot represent dynamic delegatecalls."
@@ -332,6 +344,10 @@
     "kind": "static",
     "reason": "Owners, threshold and salt determine the predicted Safe address."
   },
+  "safe/propose-offline": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
   "safe/propose": {
     "kind": "incompatible",
     "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
@@ -351,14 +367,6 @@
   },
   "safe/swap-owner": {
     "kind": "runtime"
-  },
-  "safe/verify-message": {
-    "kind": "incompatible",
-    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
-  },
-  "safe/verify": {
-    "kind": "incompatible",
-    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
   },
   "semaphore/add-member": {
     "kind": "runtime"

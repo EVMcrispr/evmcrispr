@@ -10,8 +10,8 @@ import { privateKeyToAccount } from "viem/accounts";
 import Http from "../../../../modules/http/src";
 import Safe from "../../../../modules/safe/src";
 import { stringifySafeTransaction } from "../../../../modules/safe/src/utils/offline";
-import { transactionPackage } from "../../../../modules/safe/src/utils/packages";
 import { buildSafeTx } from "../../../../modules/safe/src/utils/safeTx";
+import { transactionSignable } from "../../../../modules/safe/src/utils/signables";
 import { downloadOutput } from "../../src/utils/download-output";
 
 describe("explicit input and printed output", () => {
@@ -19,8 +19,8 @@ describe("explicit input and printed output", () => {
     const directory = await mkdtemp(join(tmpdir(), "evml-file-hosts-"));
     const account = privateKeyToAccount(toHex(1n, { size: 32 }));
     const safe = "0x1111111111111111111111111111111111111111";
-    const pkg = stringifySafeTransaction(
-      transactionPackage(
+    const tx = stringifySafeTransaction(
+      transactionSignable(
         1,
         safe,
         buildSafeTx([{ to: safe, value: 9007199254740993n }], 0n),
@@ -39,7 +39,7 @@ describe("explicit input and printed output", () => {
     const source = `load http [@fetch]
 load safe
 set $tx @fetch(stdin:)
-safe:verify ${safe} $tx --no-api true --offline true --as $review
+set $review @safe:verify(${safe} $tx no-rpc:true)
 sign $sig --typed @http:json($review typedData)
 set $signed @safe:merge($tx $sig)
 print $signed
@@ -69,7 +69,7 @@ print $signed
       const logs: string[] = [];
       await tag
         .with({
-          stdin: pkg,
+          stdin: tx,
           onLog: (s) => logs.push(s),
           onOutput: (s) => {
             output += `${s}\n`;
@@ -108,7 +108,7 @@ print $signed
           },
         },
       );
-      cli.stdin.write(pkg);
+      cli.stdin.write(tx);
       cli.stdin.end();
       const [stdout, stderr, exit] = await Promise.all([
         Bun.readableStreamToText(cli.stdout),

@@ -60,7 +60,9 @@ export const getSafeTxHashes = (
   };
 };
 
-const looksLikeTypedData = (value: unknown): value is Record<string, any> =>
+export const looksLikeTypedData = (
+  value: unknown,
+): value is Record<string, any> =>
   typeof value === "object" &&
   value !== null &&
   "types" in value &&

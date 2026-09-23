@@ -25,16 +25,16 @@ import {
 import { mnemonicToAccount } from "viem/accounts";
 import { anvil } from "viem/chains";
 import { stringifySafeTransaction } from "../../src/utils/offline";
-import {
-  mergeSafePackages,
-  messagePackage,
-  packageHashes,
-  packageTypedData,
-  reviewSafePackage,
-  signingBytes,
-  transactionPackage,
-} from "../../src/utils/packages";
 import { buildSafeTx, encodeExecTransaction } from "../../src/utils/safeTx";
+import {
+  mergeSafeSignables,
+  messageSignable,
+  reviewSafeSignable,
+  signableHashes,
+  signableTypedData,
+  signingBytes,
+  transactionSignable,
+} from "../../src/utils/signables";
 
 const accounts = [0, 1, 2].map((addressIndex) =>
   mnemonicToAccount(
@@ -148,34 +148,33 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
         1n,
       );
       const parent = await makeSafe([child, accounts[1].address], 2n);
-      const pkg = transactionPackage(
+      const signable = transactionSignable(
         anvil.id,
         parent,
         buildSafeTx([{ to: accounts[2].address }], 0n),
       );
-      const childMessage = messagePackage(
+      const childMessage = messageSignable(
         anvil.id,
         child,
-        signingBytes(pkg),
-        "bytes",
+        signingBytes(signable),
       );
-      const childSigned = await mergeSafePackages(childMessage, [
-        await accounts[0].signTypedData(packageTypedData(childMessage)),
+      const childSigned = await mergeSafeSignables(childMessage, [
+        await accounts[0].signTypedData(signableTypedData(childMessage)),
       ]);
-      const signed = await mergeSafePackages(pkg, [
+      const signed = await mergeSafeSignables(signable, [
         childSigned,
-        await accounts[1].signTypedData(packageTypedData(pkg)),
+        await accounts[1].signTypedData(signableTypedData(signable)),
       ]);
       const fetch = spyOn(globalThis, "fetch");
-      const report = await reviewSafePackage(signed, client);
+      const report = await reviewSafeSignable(signed, client);
       expect(report.ready).toBe(true);
       await evml
         .with({ chainId: anvil.id, transports: { [anvil.id]: http(url) } })
         .script(
-          `load safe\nsafe:execute ${parent} ${JSON.stringify(stringifySafeTransaction(signed))} --no-api true`,
+          `load safe\nsafe:execute ${parent} ${JSON.stringify(stringifySafeTransaction(signed))}`,
         )
         .execute(wallets[2], { prepareChains: false });
-      expect((await reviewSafePackage(signed, client)).readiness).toBe(
+      expect((await reviewSafeSignable(signed, client)).readiness).toBe(
         "nonce-consumed",
       );
       for (const [request] of fetch.mock.calls)
@@ -185,25 +184,24 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
       fetch.mockRestore();
 
       // Raising the child threshold invalidates the previously sufficient child signature.
-      const pending = transactionPackage(
+      const pending = transactionSignable(
         anvil.id,
         parent,
         buildSafeTx([{ to: accounts[2].address }], 1n),
       );
-      const pendingMessage = messagePackage(
+      const pendingMessage = messageSignable(
         anvil.id,
         child,
         signingBytes(pending),
-        "bytes",
       );
-      const pendingChild = await mergeSafePackages(pendingMessage, [
-        await accounts[0].signTypedData(packageTypedData(pendingMessage)),
+      const pendingChild = await mergeSafeSignables(pendingMessage, [
+        await accounts[0].signTypedData(signableTypedData(pendingMessage)),
       ]);
-      const pendingSigned = await mergeSafePackages(pending, [
+      const pendingSigned = await mergeSafeSignables(pending, [
         pendingChild,
-        await accounts[1].signTypedData(packageTypedData(pending)),
+        await accounts[1].signTypedData(signableTypedData(pending)),
       ]);
-      const change = transactionPackage(
+      const change = transactionSignable(
         anvil.id,
         child,
         buildSafeTx(
@@ -220,10 +218,10 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
           0n,
         ),
       );
-      const changeSigned = await mergeSafePackages(change, [
-        await accounts[0].signTypedData(packageTypedData(change)),
+      const changeSigned = await mergeSafeSignables(change, [
+        await accounts[0].signTypedData(signableTypedData(change)),
       ]);
-      const changeReport = await reviewSafePackage(changeSigned, client);
+      const changeReport = await reviewSafeSignable(changeSigned, client);
       await send(
         child,
         encodeExecTransaction(
@@ -232,15 +230,25 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
           changeReport.packedSignatures,
         ).data!,
       );
-      expect((await reviewSafePackage(pendingSigned, client)).readiness).toBe(
-        "invalid-signatures",
-      );
+      // The child's one signature no longer meets its threshold: the child
+      // Safe's approval is incomplete until another child owner signs.
+      const stale = await reviewSafeSignable(pendingSigned, client);
+      expect(stale.readiness).toBe("insufficient-signatures");
+      expect(
+        stale.signatures.find(
+          (c) => c.owner.toLowerCase() === child.toLowerCase(),
+        ),
+      ).toMatchObject({
+        type: "contract",
+        status: "incomplete",
+        progress: "1 of 2",
+      });
 
       const approvalsSafe = await makeSafe(
         [accounts[0].address, accounts[1].address],
         2n,
       );
-      const approved = transactionPackage(
+      const approved = transactionSignable(
         anvil.id,
         approvalsSafe,
         buildSafeTx([{ to: accounts[2].address }], 0n),
@@ -250,13 +258,13 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
         encodeFunctionData({
           abi,
           functionName: "approveHash",
-          args: [packageHashes(approved).finalHash],
+          args: [signableHashes(approved).finalHash],
         }),
       );
-      const approvedSigned = await mergeSafePackages(approved, [
-        await accounts[1].signTypedData(packageTypedData(approved)),
+      const approvedSigned = await mergeSafeSignables(approved, [
+        await accounts[1].signTypedData(signableTypedData(approved)),
       ]);
-      expect((await reviewSafePackage(approvedSigned, client)).ready).toBe(
+      expect((await reviewSafeSignable(approvedSigned, client)).ready).toBe(
         true,
       );
       const tag = evml.with({
@@ -265,10 +273,10 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
       });
       await tag
         .script(
-          `load safe\nsafe:execute ${approvalsSafe} ${JSON.stringify(stringifySafeTransaction(approvedSigned))} --no-api true`,
+          `load safe\nsafe:execute ${approvalsSafe} ${JSON.stringify(stringifySafeTransaction(approvedSigned))}`,
         )
         .execute(wallets[2], { prepareChains: false });
-      expect((await reviewSafePackage(approvedSigned, client)).readiness).toBe(
+      expect((await reviewSafeSignable(approvedSigned, client)).readiness).toBe(
         "nonce-consumed",
       );
 
@@ -289,28 +297,28 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
         ),
         safeTxGas: 100000n,
       };
-      const failed = transactionPackage(anvil.id, approvalsSafe, failedTx);
-      const failedSigned = await mergeSafePackages(
+      const failed = transactionSignable(anvil.id, approvalsSafe, failedTx);
+      const failedSigned = await mergeSafeSignables(
         failed,
         await Promise.all(
           accounts
             .slice(0, 2)
-            .map((a) => a.signTypedData(packageTypedData(failed))),
+            .map((a) => a.signTypedData(signableTypedData(failed))),
         ),
       );
       await expect(
         tag
           .script(
-            `load safe\nsafe:execute ${approvalsSafe} ${JSON.stringify(stringifySafeTransaction(failedSigned))} --no-api true`,
+            `load safe\nsafe:execute ${approvalsSafe} ${JSON.stringify(stringifySafeTransaction(failedSigned))}`,
           )
           .execute(wallets[2], { prepareChains: false }),
       ).rejects.toThrow("ExecutionFailure");
-      const original = transactionPackage(
+      const original = transactionSignable(
         anvil.id,
         approvalsSafe,
         buildSafeTx([{ to: accounts[2].address }], 2n),
       );
-      const replacement = transactionPackage(
+      const replacement = transactionSignable(
         anvil.id,
         approvalsSafe,
         buildSafeTx([{ to: approvalsSafe }], 2n),
@@ -320,7 +328,7 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
         encodeFunctionData({
           abi,
           functionName: "approveHash",
-          args: [packageHashes(replacement).finalHash],
+          args: [signableHashes(replacement).finalHash],
         }),
         1,
       );
@@ -328,7 +336,7 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
       try {
         const output = join(directory, "signed.json");
         const outputFile = await open(output, "w");
-        const source = `load safe\nload http\nsafe:propose ${approvalsSafe} (\n  send ${approvalsSafe} --value 0\n) --nonce 2 --no-api true --unsigned true --as $tx\nsafe:verify ${approvalsSafe} $tx --no-api true --as $review\nsign $sig --typed @http:json($review typedData)\nset $signed @safe:merge($tx $sig)\nprint $signed\nsafe:execute ${approvalsSafe} $signed --no-api true\n`;
+        const source = `load safe\nload http\nsafe:propose-offline $tx ${approvalsSafe} (\n  send ${approvalsSafe} --value 0\n) --nonce 2\nset $review @safe:verify(${approvalsSafe} $tx)\nsign $sig --typed @http:json($review typedData)\nset $signed @safe:merge($tx $sig)\nprint $signed\nsafe:execute ${approvalsSafe} $signed\n`;
         const result = await new Promise<{
           code: number | null;
           stderr: string;
@@ -368,9 +376,9 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
         expect(result.stderr).toContain("EIP-712 signing payload");
         expect(result.code).toBe(0);
         expect(JSON.parse(await readFile(output, "utf8")).safeTxHash).toBe(
-          packageHashes(replacement).finalHash,
+          signableHashes(replacement).finalHash,
         );
-        expect((await reviewSafePackage(original, client)).readiness).toBe(
+        expect((await reviewSafeSignable(original, client)).readiness).toBe(
           "nonce-consumed",
         );
       } finally {
