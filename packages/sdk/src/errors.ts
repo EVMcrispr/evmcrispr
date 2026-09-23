@@ -248,10 +248,20 @@ const CHAIN_FAILURE_NAMES = new Set([
  */
 export function isChainFailure(err: unknown): boolean {
   for (let e: unknown = err, depth = 0; e && depth < 10; depth++) {
-    if (e instanceof Error && CHAIN_FAILURE_NAMES.has(e.name)) return true;
+    if (isChainFailureError(e)) return true;
     e = (e as { cause?: unknown }).cause;
   }
   return false;
+}
+
+/**
+ * Whether this one error — not any of its causes — is a chain failure. For
+ * a caller that walks a cause chain with its own boundary rules (the
+ * interpreter stops at a command boundary) and needs to judge each link
+ * on its own; `isChainFailure` is the whole-chain form.
+ */
+export function isChainFailureError(err: unknown): boolean {
+  return err instanceof Error && CHAIN_FAILURE_NAMES.has(err.name);
 }
 
 /**

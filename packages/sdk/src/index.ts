@@ -16,6 +16,7 @@ export {
   ExpressionError,
   HelperFunctionError,
   isChainFailure,
+  isChainFailureError,
   NodeError,
   ReturnSignal,
   RevertError,
