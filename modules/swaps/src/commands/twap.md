@@ -41,7 +41,7 @@ swaps:twap <variable> <amount> <tokenIn> <to> <tokenOut>
 
 ## Errors
 
-Failures this command declares. Capture them by name with `-?!>` or `-!>` — see [Event & Error Captures](/language/captures/).
+Failures this command declares. Capture them by name with the refusal arrows `-?/>` or `-/>` — see [Refusal captures](/language/captures/#refusal-captures).
 
 | Error | Description |
 |-------|-------------|
@@ -105,7 +105,7 @@ set $tokens @token:holdings($safe)
 
 safe:execute $safe (
   loop $token of $tokens (
-    swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?!> SameToken -?!> BelowMinimum -?!> NoBalance -?!> Unfunded -?!> NoQuote
+    swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?/> SameToken -?/> BelowMinimum -?/> NoBalance -?/> Unfunded -?/> NoQuote
   )
 )
 ```
@@ -114,7 +114,7 @@ A refusal carries its fields, so a script can read the limit it missed:
 
 ```evml
 load swaps
-swaps:twap $order 12e18 @token(WXDAI) to @token(GNO) --parts 3 --every 3600 --price-protection 1 -?!> BelowMinimum [$minimum]
+swaps:twap $order 12e18 @token(WXDAI) to @token(GNO) --parts 3 --every 3600 --price-protection 1 -?/> BelowMinimum [$minimum]
 ```
 
 Parts are sell orders and cannot be partially filled.
@@ -138,7 +138,7 @@ declines to quote a token or an order — `NoLiquidity`, `InsufficientLiquidity`
 An unknown code, a server error, a timeout, a malformed response, an
 unavailable valuation, a temporarily suspended token and a quote that does not
 verify or does not match the requested order are **not** declared: they stop
-the script even under a `-?!> NoQuote` capture.
+the script even under a `-?/> NoQuote` capture.
 
 ```evml
 load swaps

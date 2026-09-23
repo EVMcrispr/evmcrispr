@@ -58,9 +58,9 @@ exec 0xd0e81E3EE863318D0121501ff48C6C3e3Fd6cbc7 "addBatches(bytes32[],bytes)" [0
 
 <!-- HAND-WRITTEN -->
 
-## Error Captures
+## Revert Captures
 
-Error captures (`-!>` / `-?!>`) catch transaction reverts and decode the error data into variables. Three forms are available after the error name: nothing (assertion only), destructure (`[...]`), or a boolean variable (`$var`).
+Revert captures (`-!>` / `-?!>`) catch transaction reverts and decode the error data into variables. Three forms are available after the error name: nothing (assertion only), destructure (`[...]`), or a boolean variable (`$var`). A failure raised before the transaction is sent — an argument that will not encode, a read that reverts in an inline call — is a refusal of the line and is caught with `-/>` / `-?/>` instead; a revert capture lets it through untouched.
 
 ```evml
 set $c 0x44fA8E6f47987339850636F88629646662444217
@@ -89,7 +89,8 @@ exec $c "maybeRevert()" -?!> Unauthorized() $e  # $e = "false" if tx succeeds or
 - `-!>` expects the transaction to revert; throws if it succeeds
 - `-?!>` captures the error if the tx reverts; silently continues if it succeeds
 - With a boolean variable (`$e`), `-?!>` sets `$e = "false"` on success or mismatched error; `-!>` always sets `$e = "true"` (throws otherwise)
-- Supported error types: custom named errors, `Error(string)` (require/revert), `Panic(uint256)` (assert), and empty reverts
+- Supported error types: custom named errors from the target's ABI, `Error(string)` (require/revert), `Panic(uint256)` (assert), and empty reverts
+- Use `-/>` / `-?/>` for a failure raised before the send; see [Captures](/language/captures/)
 
 ## Notes
 
@@ -98,7 +99,7 @@ exec $c "maybeRevert()" -?!> Unauthorized() $e  # $e = "false" if tx succeeds or
 - Use `--value` to send ETH with the call
 - Use `--from` to impersonate a sender (requires simulation mode)
 - Event captures (`->`) execute the transaction immediately and store decoded log values in variables
-- Error captures (`-!>` / `-?!>`) catch and decode transaction reverts
+- Revert captures (`-!>` / `-?!>`) catch and decode transaction reverts; refusal captures (`-/>` / `-?/>`) catch a failure raised before the send
 
 ## See Also
 

@@ -43,9 +43,9 @@ send 0x44fA8E6f47987339850636F88629646662444217 --value 1e18
 
 <!-- HAND-WRITTEN -->
 
-## Error Captures
+## Revert Captures
 
-Like `exec`, `send` supports error captures (`-!>` / `-?!>`):
+Like `exec`, `send` supports revert captures (`-!>` / `-?!>`) on the transaction it sends, and refusal captures (`-/>` / `-?/>`) on a failure raised before the send:
 
 ```evml
 set $contract 0x44fA8E6f47987339850636F88629646662444217

@@ -30,9 +30,9 @@ batch (
 
 <!-- HAND-WRITTEN -->
 
-## Error Captures on Batches
+## Revert Captures on Batches
 
-Error captures on a batch catch the combined transaction revert:
+Revert captures on a batch catch the combined transaction revert. They belong on the batch command: the transaction is sent after the block is composed, so `-!>` / `-?!>` inside the block are refused. A line inside the block captures its own build-time refusal with `-/>` / `-?/>`.
 
 ```evml
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
@@ -58,7 +58,7 @@ batch (
   (EIP-5792 `wallet_sendCalls` for EOAs, batched Safe transaction for Safes)
 - If any command in the batch reverts, the entire batch reverts
 - Event captures (`->`) on a batch apply to the combined transaction receipt
-- Error captures (`-!>` / `-?!>`) on a batch catch the combined transaction revert
+- Revert captures (`-!>` / `-?!>`) on a batch catch the combined transaction revert
 - Inside a `sim:fork` block, the batch is simulated as an EIP-7702 transaction:
   a delegation to MetaMask's EIP7702StatelessDeleGator is installed on the
   sender EOA (if not already delegated) and the calls execute atomically

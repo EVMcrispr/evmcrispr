@@ -91,11 +91,11 @@ batch (
 ) $> $tx
 ```
 
-## Error Captures on Batches
+## Revert Captures on Batches
 
-You can capture revert errors from the entire batch. All three forms from
-[Event & Error Captures](captures.md) work: assertion only, destructure, or
-boolean variable.
+You can capture the revert of the batch's combined transaction with `-!>` /
+`-?!>`. All three forms from [Captures](captures.md) work: assertion only,
+destructure, or boolean variable.
 
 ```evml
 set $token 0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb
@@ -115,6 +115,12 @@ batch (
   exec $token "transfer(address,uint256)" @me 100e18
 ) -?!> Unauthorized() $reverted
 ```
+
+A revert capture belongs on the batch command, not on a line inside it: the
+combined transaction is sent after the block is composed, so an inner line
+cannot observe its revert and the script stops before the block runs. A line
+inside the block can still capture its own build-time refusal with `-/>` /
+`-?/>` — see [Refusal captures](captures.md#refusal-captures).
 
 ## Nested Batching
 

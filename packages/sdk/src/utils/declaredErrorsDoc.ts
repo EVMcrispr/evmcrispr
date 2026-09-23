@@ -20,6 +20,13 @@ import { errorSignature } from "./error-signatures";
 /** Page the `## Errors` section links to for the capture syntax. */
 export const CAPTURES_PAGE = "/language/captures/";
 
+/**
+ * Anchor of that page's refusal-capture section — a declared error is a
+ * build-time refusal, so it is captured with `-/>` / `-?/>`, never with the
+ * revert arrows.
+ */
+export const REFUSALS_SECTION = `${CAPTURES_PAGE}#refusal-captures`;
+
 export type DeclaredErrorOwner = "command" | "helper";
 
 /**
@@ -69,8 +76,8 @@ export function renderDeclaredErrorsSection(
   const lines: string[] = ["## Errors", ""];
   lines.push(
     owner === "helper"
-      ? `Failures this helper declares. It raises them while a command line evaluates its arguments, so the command line captures them with \`-?!>\` or \`-!>\` — see [Event & Error Captures](${CAPTURES_PAGE}).`
-      : `Failures this command declares. Capture them by name with \`-?!>\` or \`-!>\` — see [Event & Error Captures](${CAPTURES_PAGE}).`,
+      ? `Failures this helper declares. It raises them while a command line evaluates its arguments, so the command line captures them with the refusal arrows \`-?/>\` or \`-/>\` — see [Refusal captures](${REFUSALS_SECTION}).`
+      : `Failures this command declares. Capture them by name with the refusal arrows \`-?/>\` or \`-/>\` — see [Refusal captures](${REFUSALS_SECTION}).`,
   );
   lines.push("");
   lines.push("| Error | Description |");

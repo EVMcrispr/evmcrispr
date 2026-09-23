@@ -26,7 +26,7 @@ Addresses of the ERC-20 tokens an account holds with a nonzero balance, as index
 
 ## Errors
 
-Failures this helper declares. It raises them while a command line evaluates its arguments, so the command line captures them with `-?!>` or `-!>` — see [Event & Error Captures](/language/captures/).
+Failures this helper declares. It raises them while a command line evaluates its arguments, so the command line captures them with the refusal arrows `-?/>` or `-/>` — see [Refusal captures](/language/captures/#refusal-captures).
 
 | Error | Description |
 |-------|-------------|
@@ -69,7 +69,7 @@ load swaps
 set $usdc @token(USDC)
 
 loop $token of @token:holdings(@me) (
-  swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?!> SameToken -?!> BelowMinimum -?!> NoBalance -?!> Unfunded -?!> NoQuote
+  swaps:twap $order max $token to $usdc --parts 4 --every 1800 --price-protection 1 -?/> SameToken -?/> BelowMinimum -?/> NoBalance -?/> Unfunded -?/> NoQuote
 )
 ```
 
@@ -86,7 +86,7 @@ evaluates it captures that refusal by name:
 load token
 
 set $tokens [0x1111111111111111111111111111111111111111]
-set $tokens @token:holdings(@me) -?!> NoExplorer $unsupported
+set $tokens @token:holdings(@me) -?/> NoExplorer $unsupported
 ```
 
 A captured refusal gives the line no value: the `set` does not happen, so
@@ -96,13 +96,13 @@ the list, the empty one included: an account holding no ERC-20 is an answer,
 not a refusal. Decide what an unsupported chain should mean before capturing
 it; a loop that keeps going over a stale list is rarely what you meant.
 
-`-!>` requires the refusal instead of permitting it, and its field says
+`-/>` requires the refusal instead of permitting it, and its field says
 which chain was asked:
 
 ```evml
 load token
 
-set $tokens @token:holdings(@me bsc) -!> NoExplorer [$chain]
+set $tokens @token:holdings(@me bsc) -/> NoExplorer [$chain]
 ```
 
 `NoExplorer` means only that: the chain has no explorer to ask. An explorer
