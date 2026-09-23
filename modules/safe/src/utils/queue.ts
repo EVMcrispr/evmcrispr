@@ -4,17 +4,28 @@ import type {
   Node,
   NodesInterpreters,
 } from "@evmcrispr/sdk";
-import { ErrorException, encodeAction, NodeType } from "@evmcrispr/sdk";
+import {
+  ErrorException,
+  ErrorNotFound,
+  encodeAction,
+  NodeType,
+} from "@evmcrispr/sdk";
 import type { SmartBatchPlan } from "@evmcrispr/sdk/onchain";
 import { type Hex, isAddressEqual } from "viem";
 import type Safe from "..";
 import { safeDeployment } from "../addresses";
 import { resolveOwnerPath, signsAlone, signThrough } from "./nested";
 import { safeUint } from "./offline";
-import { assertSafeVersion, getSafeNonce, getThreshold } from "./reads";
-import { buildSafeTx } from "./safeTx";
-import { logSafeSignable } from "./sign";
 import {
+  assertSafeVersion,
+  getOwners,
+  getSafeNonce,
+  getThreshold,
+} from "./reads";
+import { buildSafeTx } from "./safeTx";
+import { logSafeSignable, requestSafeSignature } from "./sign";
+import {
+  expectKind,
   kindLabel,
   reviewSafeSignable,
   type SafeSignable,
@@ -23,8 +34,10 @@ import {
   transactionSignable,
 } from "./signables";
 import {
+  activeDelegations,
   confirmMessage,
   confirmTransaction,
+  fetchQueuedSignable,
   getNextNonce,
   getQueueLink,
   proposeMessage,
@@ -71,11 +84,47 @@ const itemHash = (signable: SafeSignable) =>
     ? signable.safeTxHash
     : signable.safeMessageHash;
 
+/** Who the connected wallet proposes as: an owner, directly or through an
+ *  owner Safe (whose signature the service records as a confirmation), or
+ *  a delegate of an owner (whose signature it does not). */
+export type Proposer =
+  | { kind: "owner"; path: Address[] }
+  | { kind: "delegate"; delegator: Address };
+
+export async function resolveProposer(
+  module: Safe,
+  safe: Address,
+  via?: Address,
+): Promise<Proposer> {
+  const account = await module.getConnectedAccount(true);
+  try {
+    return {
+      kind: "owner",
+      path: await resolveOwnerPath(module, safe, account, via),
+    };
+  } catch (e) {
+    if (via) throw e;
+  }
+  const [delegation] = await activeDelegations(
+    module,
+    await module.getChainId(),
+    safe,
+    await getOwners(await module.getClient(), safe),
+    account,
+  );
+  if (!delegation)
+    throw new ErrorException(
+      `${account} is neither an owner of Safe ${safe}, directly or through owner Safes, nor a delegate of one of its owners; an owner can add it with safe:delegate ${safe} ${account}`,
+    );
+  return { kind: "delegate", delegator: delegation.delegator };
+}
+
 /** Queue a Safe transaction or Safe message on the Safe Transaction Service.
  *  The owner signatures it carries are posted — EIP-712 ones, and owner Safe
  *  signatures once complete — the first proposing it and the rest becoming
- *  confirmations. Without any, the connected wallet signs, directly or
- *  through an owner Safe it completes alone. */
+ *  confirmations. Without any, the connected wallet signs: as an owner,
+ *  directly or through an owner Safe it completes alone, which confirms it;
+ *  or as a delegate, which the service shows but never counts. */
 export async function postToService(
   module: Safe,
   interpreters: NodesInterpreters,
@@ -85,11 +134,13 @@ export async function postToService(
     origin,
     executionPlan,
     via,
+    proposedBy,
   }: {
     commandName: string;
     origin: string;
     executionPlan?: SmartBatchPlan;
     via?: Address;
+    proposedBy?: Proposer;
   },
 ): Promise<void> {
   const { chainId, safe } = signable;
@@ -114,13 +165,42 @@ export async function postToService(
       else pending++;
     }
   }
-  if (postable.length === 0) {
-    const path = await resolveOwnerPath(
+  if (postable.length === 0 && proposedBy?.kind === "delegate") {
+    if (signable.kind !== "transaction")
+      throw new ErrorException(
+        "a delegate cannot propose a Safe message: the service takes messages signed by an owner only",
+      );
+    const account = await module.getConnectedAccount(true);
+    const { signature } = await requestSafeSignature(
       module,
-      safe,
-      await module.getConnectedAccount(true),
-      via,
+      interpreters,
+      signable,
+      commandName,
+      executionPlan,
     );
+    await proposeTransaction(module, chainId, {
+      safe,
+      tx: signable.tx,
+      safeTxHash: signable.safeTxHash,
+      sender: account,
+      signature,
+      origin,
+    });
+    module.context.log(
+      `Proposed Safe transaction ${signable.safeTxHash} (nonce ${signable.tx.nonce}) as delegate of ${proposedBy.delegator}, with no confirmation: ${getQueueLink(chainId, safe)}`,
+    );
+    return;
+  }
+  if (postable.length === 0) {
+    const path =
+      proposedBy?.kind === "owner"
+        ? proposedBy.path
+        : await resolveOwnerPath(
+            module,
+            safe,
+            await module.getConnectedAccount(true),
+            via,
+          );
     if (!(await signsAlone(client, path)))
       throw new ErrorException(
         `owner Safe ${path[1]} needs more signatures than yours, so it cannot propose alone: prepare the item with safe:propose-offline, collect the signatures with safe:confirm-offline, then post it with safe:propose`,
@@ -260,4 +340,40 @@ export async function rejectionSignable(
     safe,
     buildSafeTx(rejectionActions(safe), at, safeDeployment(chainId)),
   );
+}
+
+/** A rejection to execute at `nonce` (by default the on-chain nonce, the
+ *  only one that can execute). An owner executing it for a Safe its approval
+ *  completes needs nothing else; otherwise it carries the confirmations it
+ *  collected on the Safe Transaction Service. */
+export async function executableRejection(
+  module: Safe,
+  safe: Address,
+  nonce: unknown,
+  executor: Address,
+): Promise<SafeSignable> {
+  const client = await module.getClient();
+  const current = await getSafeNonce(client, safe);
+  const rejection = await rejectionSignable(module, safe, nonce ?? current);
+  expectKind(rejection, "transaction");
+  const at = rejection.tx.nonce;
+  if (at > current)
+    throw new ErrorException(
+      `a rejection executes at the current on-chain nonce ${current}; nonce ${at} still waits on ${at - current} earlier transaction${at - current === 1n ? "" : "s"}`,
+    );
+  if ((await reviewSafeSignable(rejection, client, {}, executor)).ready)
+    return rejection;
+  try {
+    return (
+      await fetchQueuedSignable(module, rejection.chainId, safe, {
+        kind: "txHash",
+        hash: rejection.safeTxHash,
+      })
+    ).signable;
+  } catch (e) {
+    if (!(e instanceof ErrorNotFound)) throw e;
+    throw new ErrorException(
+      `the rejection at nonce ${at} needs ${await getThreshold(client, safe)} owner signatures and is not queued on the Safe Transaction Service: propose it with safe:propose ${safe} cancel --nonce ${at}, and execute it once the owners confirm it`,
+    );
+  }
 }

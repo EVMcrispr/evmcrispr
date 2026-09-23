@@ -13,11 +13,10 @@ import {
   smartPlanFor,
 } from "../utils";
 import { ALLOW_OPTS } from "../utils/assess";
-import { gateSignable } from "../utils/gate";
-import { logSafeSignable } from "../utils/sign";
+import { executorCompletes, gateSignable } from "../utils/gate";
+import { executableRejection, isCancelKeyword } from "../utils/queue";
 import {
   expectKind,
-  reviewSafeSignable,
   type SafeSignable,
   transactionSignable,
 } from "../utils/signables";
@@ -30,7 +29,7 @@ export default defineCommand<Safe>({
   },
   name: "execute",
   description:
-    "Execute a Safe transaction on-chain from a command block, the safeTxHash of a confirmed queued transaction, or signed Safe transaction JSON.",
+    "Execute a Safe transaction on-chain from a command block, cancel (a rejection of the pending transaction), the safeTxHash of a confirmed queued transaction, or signed Safe transaction JSON.",
   batchable: false,
   createsBatchContext: true,
   args: [
@@ -40,7 +39,7 @@ export default defineCommand<Safe>({
       supportsSmartBlock: true,
       type: ["block", "bytes32", "string"],
       description:
-        "Commands, the safeTxHash of a queued transaction, or Safe transaction JSON",
+        "Commands, `cancel` to reject the pending transaction, the safeTxHash of a queued transaction, or Safe transaction JSON",
     },
   ],
   opts: [
@@ -51,6 +50,12 @@ export default defineCommand<Safe>({
         "Smart-batch storage salt for reproducible offline signing (block forms with !)",
     },
     {
+      name: "nonce",
+      type: "number",
+      description:
+        "Nonce of the pending transaction to cancel (defaults to the on-chain nonce, the only one that can execute)",
+    },
+    {
       name: "gas",
       type: "number",
       description:
@@ -58,17 +63,25 @@ export default defineCommand<Safe>({
     },
     ...ALLOW_OPTS,
   ],
-  async run(module, { safe, proposal }, { opts, interpreters }) {
+  async run(module, { safe, proposal }, { opts, interpreters, node }) {
     const chainId = await module.getChainId();
-    const input = classifySafeInput(proposal, { chainId, safe });
-    if (input.kind === "signable" && input.signable.kind === "message")
+    const cancel = isCancelKeyword(node.args[1]);
+    if (!cancel && opts.nonce !== undefined)
+      throw new ErrorException(
+        "--nonce only applies to cancel: a command block runs at the on-chain nonce, and a queued transaction or Safe transaction JSON fixes its own",
+      );
+    const input = cancel
+      ? undefined
+      : classifySafeInput(proposal, { chainId, safe });
+    if (input?.kind === "signable" && input.signable.kind === "message")
       throw new ErrorException(
         "a Safe message is not executed; read its signature with @safe:signature",
       );
-    acceptSafeInput(input, ["block", "txHash", "signable"], "safe:execute");
+    if (input)
+      acceptSafeInput(input, ["block", "txHash", "signable"], "safe:execute");
     if (
       opts.salt !== undefined &&
-      !(input.kind === "block" && input.block.smart)
+      !(input?.kind === "block" && input.block.smart)
     )
       throw new ErrorException("--salt requires a smart block (!(...))");
     const client = await module.getClient();
@@ -78,7 +91,7 @@ export default defineCommand<Safe>({
     // owner confirmations (EIP-712 and owner Safe signatures). From here on
     // it is authorized exactly like Safe transaction JSON.
     let queued: SafeSignable | undefined;
-    if (input.kind === "txHash") {
+    if (input?.kind === "txHash") {
       await assertSafeVersion(client, safe);
       const { signable, serviceTx } = await fetchQueuedSignable(
         module,
@@ -96,14 +109,15 @@ export default defineCommand<Safe>({
 
     // Authorization comes from the signatures, on-chain approveHash
     // approvals, and the executor itself when it is an owner. A command block
-    // is built at the current on-chain nonce; only a safeTxHash contacts the
-    // Safe Transaction Service.
+    // is built at the current on-chain nonce; only a safeTxHash, or a
+    // rejection the executor cannot authorize alone, contacts the Safe
+    // Transaction Service.
     await assertSafeVersion(client, safe);
     const imported =
-      queued ?? (input.kind === "signable" ? input.signable : undefined);
+      queued ?? (input?.kind === "signable" ? input.signable : undefined);
     if (imported) expectKind(imported, "transaction");
     const actions =
-      input.kind === "block"
+      input?.kind === "block"
         ? await interpretSafeBlock(
             module,
             safe,
@@ -114,34 +128,37 @@ export default defineCommand<Safe>({
           )
         : undefined;
     if (actions?.length === 0) return [];
-    const tx =
-      imported?.tx ??
-      buildSafeTx(
-        actions!,
-        await getSafeNonce(client, safe),
-        safeDeployment(chainId),
-      );
     const executor = await module.getConnectedAccount(true);
-    const signable = imported ?? transactionSignable(chainId, safe, tx);
+    const signable = cancel
+      ? await executableRejection(module, safe, opts.nonce, executor)
+      : (imported ??
+        transactionSignable(
+          chainId,
+          safe,
+          buildSafeTx(
+            actions!,
+            await getSafeNonce(client, safe),
+            safeDeployment(chainId),
+          ),
+        ));
     expectKind(signable, "transaction");
-    // A queued or imported transaction was authored elsewhere: it is
-    // reviewed, and refused on blocking findings, before it is sent.
-    const report = imported
-      ? await gateSignable(module, signable, opts, "safe:execute", {
-          competing: input.kind === "txHash",
-          executor,
-        })
-      : await reviewSafeSignable(signable, client, {}, executor);
+    // The executor's own approval makes executing the act that authorizes
+    // the transaction: it is reviewed then, and refused on blocking
+    // findings, whoever wrote it.
+    const report = await gateSignable(module, signable, opts, "safe:execute", {
+      competing: cancel || input?.kind === "txHash",
+      executor,
+      enforce: executorCompletes,
+    });
     if (!report.ready)
       throw new ErrorException(
         `Safe transaction is not ready: ${report.readiness} (current on-chain nonce ${report.chain.nonce}; ${report.signatures.filter((s) => s.status === "valid").length} of ${report.chain.threshold} required owner signatures)${report.readiness === "insufficient-signatures" ? "; collect signatures with safe:confirm or safe:confirm-offline, or on-chain confirmations with safe:confirm-onchain" : ""}`,
       );
-    if (!imported) logSafeSignable(module, signable);
     return [
       {
         ...encodeExecTransaction(
           safe,
-          tx,
+          signable.tx,
           report.packedSignatures,
           signable.safeTxHash,
         ),

@@ -1,7 +1,13 @@
 import type { Address, NodesInterpreters } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
 import type { SmartBatchPlan } from "@evmcrispr/sdk/onchain";
-import { type Hex, isAddressEqual, recoverAddress } from "viem";
+import {
+  type Hex,
+  hashTypedData,
+  isAddressEqual,
+  recoverAddress,
+  type TypedDataDefinition,
+} from "viem";
 import type Safe from "..";
 import { safeDeployment } from "../addresses";
 import {
@@ -21,8 +27,8 @@ import {
 
 /** Print what is about to be signed or sent, so signers can compare the
  *  hashes with their hardware wallet display, with its findings: by default
- *  the content checks, as warnings; a gated command passes its own findings
- *  and `enforced`. */
+ *  the notices of the content checks; a gated command passes its own
+ *  findings and `enforced`. */
 export function logSafeSignable(
   module: Safe,
   signable: SafeSignable,
@@ -105,4 +111,41 @@ export async function requestSafeSignature(
       "wallet signature does not match the connected account",
     );
   return { owner, signature };
+}
+
+/** Ask the connected wallet for its EIP-712 signature over other typed data
+ *  (a Safe Transaction Service delegate registration). */
+export async function requestTypedDataSignature(
+  module: Safe,
+  interpreters: NodesInterpreters,
+  typedData: {
+    types: Record<string, { name: string; type: string }[]>;
+    primaryType: string;
+    domain: Record<string, unknown>;
+    message: Record<string, unknown>;
+  },
+  commandName: string,
+): Promise<{ signer: Address; signature: Hex }> {
+  const { actionCallback } = interpreters;
+  if (!actionCallback)
+    throw new ErrorException(
+      `${commandName} requires an execution context with wallet access`,
+    );
+  const signer = await module.getConnectedAccount(true);
+  const signature = normalizeSafeSignature(
+    await actionCallback({
+      type: "wallet",
+      method: "eth_signTypedData_v4",
+      params: [signer, JSON.stringify(typedData)],
+    }),
+  );
+  const recovered = await recoverAddress({
+    hash: hashTypedData(typedData as unknown as TypedDataDefinition),
+    signature,
+  });
+  if (!isAddressEqual(recovered, signer))
+    throw new ErrorException(
+      "wallet signature does not match the connected account",
+    );
+  return { signer, signature };
 }

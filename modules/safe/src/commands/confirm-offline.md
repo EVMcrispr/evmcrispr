@@ -28,7 +28,7 @@ safe:confirm-offline <variable> <safe> <signable>
 |------|------|------------|-------------|
 | `--message` | `bool` | Build time | The hash is a safeMessageHash, not a safeTxHash |
 | `--via` | `address` | Build time | Owner Safe to sign through, when you own several owner Safes |
-| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration, SignMessageLib and fully decoded MultiSend or ERC-8211 batches |
 | `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
 | `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
 | `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |

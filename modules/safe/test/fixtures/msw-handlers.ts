@@ -12,7 +12,12 @@ export const serviceState = {
   messageSignatures: [] as { messageHash: string; signature: string }[],
   messages: new Map<string, any>(),
   transactions: new Map<string, any>(),
+  /** Delegates of the v2 delegates endpoint, as the service lists them. */
+  delegates: [] as any[],
+  delegateRemovals: [] as any[],
   reset() {
+    this.delegates = [];
+    this.delegateRemovals = [];
     this.proposals = [];
     this.confirmations = [];
     this.messageProposals = [];
@@ -25,7 +30,45 @@ export const serviceState = {
 // Anvil forks gnosis (chain id 100 -> "gno")
 const BASE = "https://api.safe.global/tx-service/gno/api/v1";
 
+const BASE_V2 = "https://api.safe.global/tx-service/gno/api/v2";
+
 export const safeServiceHandlers = [
+  http.get(`${BASE_V2}/delegates/`, ({ request }) => {
+    const url = new URL(request.url);
+    const results = serviceState.delegates.filter((d) =>
+      ["safe", "delegate", "delegator"].every((key) => {
+        const want = url.searchParams.get(key);
+        return !want || String(d[key]).toLowerCase() === want.toLowerCase();
+      }),
+    );
+    return HttpResponse.json({ count: results.length, results });
+  }),
+  http.post(`${BASE_V2}/delegates/`, async ({ request }) => {
+    const body: any = await request.json();
+    serviceState.delegates.push(body);
+    return HttpResponse.json(body, { status: 201 });
+  }),
+  http.delete(
+    `${BASE_V2}/delegates/:delegate/`,
+    async ({ request, params }) => {
+      const body: any = await request.json();
+      serviceState.delegateRemovals.push({
+        ...body,
+        delegate: params.delegate,
+      });
+      serviceState.delegates = serviceState.delegates.filter(
+        (d) =>
+          !(
+            String(d.delegate).toLowerCase() ===
+              String(params.delegate).toLowerCase() &&
+            String(d.delegator).toLowerCase() ===
+              body.delegator.toLowerCase() &&
+            (d.safe ?? null) === (body.safe ?? null)
+          ),
+      );
+      return new HttpResponse(null, { status: 204 });
+    },
+  ),
   http.get(
     `${BASE}/safes/:safe/multisig-transactions/`,
     ({ request, params }) => {

@@ -1,5 +1,6 @@
 import type { Address, OptDef } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
+import { COMPOSABLE_EXECUTOR_ADDRESS } from "@evmcrispr/sdk/onchain";
 import {
   decodeFunctionData,
   getAddress,
@@ -13,7 +14,8 @@ import type { SafeDeployment } from "../addresses";
 import type { SafeTx } from "./safeTx";
 
 /** A call of a Safe transaction as the review decodes it: the transaction
- *  itself, and the calls of a MultiSend it delegatecalls. */
+ *  itself, and the calls of a MultiSend or ERC-8211 executor it
+ *  delegatecalls. */
 export interface DecodedCall {
   to: Address;
   value: bigint;
@@ -52,7 +54,7 @@ export const ALLOW_OPTS = [
     name: "allow-delegate-call-to",
     type: ["address", "array"],
     description:
-      "Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib",
+      "Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration, SignMessageLib and fully decoded MultiSend or ERC-8211 batches",
   },
   {
     name: "allow-new-owners",
@@ -268,17 +270,20 @@ export function assessSafeTx(
 
   const walk = (call: DecodedCall, path: string) => {
     if (call.operation === 1) {
-      const multiSend =
-        isAddressEqual(call.to, deployment.multiSend) &&
-        call.decoded.status === "decoded";
-      if (!multiSend && !includes(trusted, call.to))
+      // MultiSend and the ERC-8211 executor are trusted only while every
+      // call they make is decoded, so that each one is checked here.
+      const batcher =
+        [deployment.multiSend, COMPOSABLE_EXECUTOR_ADDRESS].some((a) =>
+          isAddressEqual(call.to, a),
+        ) && call.decoded.status === "decoded";
+      if (!batcher && !includes(trusted, call.to))
         findings.push({
           check: "delegatecall",
           severity: "block",
           allow: "allow-delegate-call-to",
           values: [call.to],
           path,
-          message: `DELEGATECALL to ${call.to}, which is not MultiSendCallOnly, SafeMigration or SignMessageLib: a delegatecall runs its code as the Safe and can take it over`,
+          message: `DELEGATECALL to ${call.to}, which is not MultiSendCallOnly, SafeMigration, SignMessageLib or a fully decoded MultiSend or ERC-8211 executor batch${call.decoded.reason ? ` (${call.decoded.reason})` : ""}: a delegatecall runs its code as the Safe and can take it over`,
         });
       if (isAddressEqual(call.to, deployment.migration)) {
         // SafeMigration's targets are immutables of the trusted deployment.
@@ -582,19 +587,20 @@ export function requiredOptions(blocking: SafeFinding[]): string[] {
 }
 
 /** The lines findings add to the hashes log. Unless `enforced`, blocking
- *  findings are warnings: the transaction is being authored, not reviewed. */
+ *  findings are left out: another command's signature authorizes the
+ *  transaction, and that command is the one that refuses it. */
 export const formatFindings = (
   findings: SafeFinding[],
   allow: AllowOpts = {},
   enforced = true,
 ): string[] =>
-  findings.map((f) => {
+  findings.flatMap((f) => {
     const where = f.path ? `${f.path}: ` : "";
-    if (f.severity === "notice") return `  ⓘ NOTICE: ${where}${f.message}`;
-    if (!enforced) return `  ⚠️ WARNING: ${where}${f.message}`;
+    if (f.severity === "notice") return [`  ⓘ NOTICE: ${where}${f.message}`];
+    if (!enforced) return [];
     if (isAllowed(f, allow))
-      return `  ⚠️ ALLOWED (--${f.allow}): ${where}${f.message}`;
-    return `  ⛔ BLOCKED: ${where}${f.message}`;
+      return [`  ⚠️ ALLOWED (--${f.allow}): ${where}${f.message}`];
+    return [`  ⛔ BLOCKED: ${where}${f.message}`];
   });
 
 /**

@@ -15,7 +15,6 @@ export default class Safe extends defineModule(
    *  enclosing `safe:propose` / `safe:execute` block, if any, and whether
    *  a `safe:upgrade` earlier in that block will move it to v1.5.0. */
   #safeStack: { safe: Address; upgraded: boolean }[];
-
   constructor(context: ModuleContext) {
     super(context);
 

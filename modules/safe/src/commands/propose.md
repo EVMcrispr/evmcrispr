@@ -2,7 +2,7 @@
 title: "safe:propose"
 ---
 
-Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message signed by the wallet, or signed JSON.
+Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message, signed by the wallet as an owner (its confirmation) or a delegate, or signed JSON.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -31,7 +31,7 @@ safe:propose <safe> <proposal>
 | `--nonce` | `number` | Build time | Safe nonce for a command block (defaults to the next free service nonce), or of the pending transaction to cancel |
 | `--origin` | `string` | Build time | Origin tag shown in the Safe UI |
 | `--via` | `address` | Build time | Owner Safe to sign through, when you own several owner Safes |
-| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration, SignMessageLib and fully decoded MultiSend or ERC-8211 batches |
 | `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
 | `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
 | `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |
@@ -45,11 +45,22 @@ safe:propose <safe> <proposal>
 <!-- HAND-WRITTEN -->
 
 Queues a new Safe transaction or Safe message on the Safe Transaction Service
-so the other owners can confirm it, here with [safe:confirm](confirm.md) or in
-the Safe web app. The service needs one owner signature, so a new
-transaction or message is signed by the connected wallet: an owner, a
-registered delegate, or the owner of an owner Safe it completes alone
-(`--via` picks among several). The hashes are printed before the wallet prompt.
+so the other owners can confirm it, here with [safe:confirm](confirm.md) or
+in the Safe web app. The service needs a signature, so the connected wallet
+signs it, and it is reviewed like [safe:confirm](confirm.md) before the
+wallet prompt: a blocking finding refuses it until the matching `--allow-*`
+option names what you reviewed.
+
+- As an owner, directly or through an owner Safe it completes alone (`--via`
+  picks among several), its signature is the proposal's first confirmation.
+- As a delegate, added by an owner with [safe:delegate](delegate.md), it
+  signs a transaction as the proposer: the Safe web app shows it, but the
+  service never counts it as a confirmation. A delegate cannot propose a
+  Safe message.
+
+On a 1-of-1 Safe, an owner's proposal is already fully confirmed, so its
+[safe:execute](execute.md) is not reviewed again; `safe:execute` with the
+block proposes, confirms and executes in one step.
 
 The Safe commands are named after where their result goes: the Safe
 Transaction Service (`propose`, `confirm`), a variable holding JSON
@@ -85,8 +96,9 @@ safe:propose $mySafe (
 ```
 
 The nonce of a block defaults to the next free nonce: the on-chain nonce,
-skipping past trusted queued proposals. A consumed nonce is refused, and other
-transactions already queued at an explicit `--nonce` are listed.
+skipping past trusted queued proposals. A consumed nonce is refused, and an
+proposal over transactions already queued at an explicit `--nonce`
+needs `--allow-competing true`, since only one of them can execute.
 
 ## Cancel a pending transaction
 
@@ -124,9 +136,8 @@ safe:propose $mySafe "I agree to the terms"
 Safe transaction or Safe message JSON signed with
 [safe:confirm-offline](confirm-offline.md) is posted as it is: its first owner
 signature proposes it and the rest become confirmations, so any account can
-post it without a wallet prompt. Since someone else authored it, it is first
-reviewed like [safe:confirm](confirm.md), and a blocking finding refuses it
-until the matching `--allow-*` option names what you reviewed.
+post it without a wallet prompt. Posting adds no signature: its signers were
+reviewed by [safe:confirm-offline](confirm-offline.md) when they signed.
 
 ```evml novalidate
 safe:propose $mySafe $tx

@@ -1,6 +1,6 @@
 import type { Address } from "@evmcrispr/sdk";
 import { ErrorException, ErrorNotFound } from "@evmcrispr/sdk";
-import { isAddressEqual, type PublicClient } from "viem";
+import { getAddress, isAddressEqual, type PublicClient } from "viem";
 import type Safe from "..";
 import { CHAIN_SHORT_NAMES, TX_SERVICE_SLUGS } from "../addresses";
 import { getSafeNonce } from "./reads";
@@ -81,7 +81,7 @@ export const getNextNonce = async (
     const queue = await serviceFetch(
       module,
       chainId,
-      `/api/v1/safes/${safe}/multisig-transactions/?executed=false&trusted=true&limit=1&ordering=-nonce`,
+      `/api/v1/safes/${getAddress(safe)}/multisig-transactions/?executed=false&trusted=true&limit=1&ordering=-nonce`,
     );
     const maxQueued = queue?.results?.[0]?.nonce;
     if (maxQueued !== undefined && maxQueued !== null) {
@@ -100,6 +100,8 @@ export interface ProposalPayload {
   tx: SafeTx;
   safeTxHash: `0x${string}`;
   sender: Address;
+  /** An owner's signature, which the service records as its confirmation,
+   *  or a delegate's, which it does not. */
   signature: `0x${string}`;
   origin: string;
 }
@@ -109,26 +111,27 @@ export const proposeTransaction = async (
   chainId: number,
   { safe, tx, safeTxHash, sender, signature, origin }: ProposalPayload,
 ): Promise<void> => {
+  // The service refuses addresses that are not EIP-55 checksummed.
   await serviceFetch(
     module,
     chainId,
-    `/api/v1/safes/${safe}/multisig-transactions/`,
+    `/api/v1/safes/${getAddress(safe)}/multisig-transactions/`,
     {
       method: "POST",
       body: JSON.stringify({
-        safe,
-        to: tx.to,
+        safe: getAddress(safe),
+        to: getAddress(tx.to),
         value: tx.value.toString(),
         data: tx.data === "0x" ? null : tx.data,
         operation: tx.operation,
         safeTxGas: tx.safeTxGas.toString(),
         baseGas: tx.baseGas.toString(),
         gasPrice: tx.gasPrice.toString(),
-        gasToken: tx.gasToken,
-        refundReceiver: tx.refundReceiver,
+        gasToken: getAddress(tx.gasToken),
+        refundReceiver: getAddress(tx.refundReceiver),
         nonce: tx.nonce.toString(),
         contractTransactionHash: safeTxHash,
-        sender,
+        sender: getAddress(sender),
         signature,
         origin,
       }),
@@ -186,7 +189,7 @@ export const getServiceTransactionsByNonce = async (
   const res = await serviceFetch(
     module,
     chainId,
-    `/api/v1/safes/${safe}/multisig-transactions/?nonce=${nonce}&trusted=true`,
+    `/api/v1/safes/${getAddress(safe)}/multisig-transactions/?nonce=${nonce}&trusted=true`,
   );
   return res?.results ?? [];
 };
@@ -246,10 +249,19 @@ export const proposeMessage = async (
   signature: `0x${string}`,
   origin?: string,
 ): Promise<void> => {
-  await serviceFetch(module, chainId, `/api/v1/safes/${safe}/messages/`, {
-    method: "POST",
-    body: JSON.stringify({ message, signature, ...(origin ? { origin } : {}) }),
-  });
+  await serviceFetch(
+    module,
+    chainId,
+    `/api/v1/safes/${getAddress(safe)}/messages/`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        message,
+        signature,
+        ...(origin ? { origin } : {}),
+      }),
+    },
+  );
 };
 
 export const getServiceMessage = async (
@@ -372,3 +384,112 @@ export const getQueueLink = (chainId: number, safe: Address): string =>
   `https://app.safe.global/transactions/queue?safe=${getChainShortName(
     chainId,
   )}:${safe}`;
+
+export interface ServiceDelegate {
+  /** `null`: valid for every Safe of the delegator. */
+  safe: Address | null;
+  delegate: Address;
+  delegator: Address;
+  label: string;
+  expiryDate: string | null;
+}
+
+export const getDelegates = async (
+  module: Safe,
+  chainId: number,
+  query: { safe?: Address; delegate?: Address; delegator?: Address },
+): Promise<ServiceDelegate[]> => {
+  const params = new URLSearchParams(
+    Object.entries(query)
+      .filter(([, v]) => v)
+      .map(([k, v]) => [k, getAddress(v as Address)]),
+  );
+  const res = await serviceFetch(
+    module,
+    chainId,
+    `/api/v2/delegates/?${params}`,
+  );
+  return res?.results ?? [];
+};
+
+/** The delegates `owners` registered for `safe` (or for all their Safes)
+ *  that have not expired: the accounts the service lets propose. */
+export const activeDelegations = async (
+  module: Safe,
+  chainId: number,
+  safe: Address,
+  owners: Address[],
+  delegate: Address,
+): Promise<ServiceDelegate[]> =>
+  (await getDelegates(module, chainId, { delegate })).filter(
+    (d) =>
+      (d.safe === null || isAddressEqual(d.safe, safe)) &&
+      owners.some((o) => isAddressEqual(o, d.delegator)) &&
+      (d.expiryDate === null || Date.parse(d.expiryDate) > Date.now()),
+  );
+
+/** What a delegator (or, to remove, the delegate) signs to add or remove a
+ *  delegate: the delegate address and the current hour. */
+export const delegateTypedData = (chainId: number, delegate: Address) => ({
+  types: {
+    EIP712Domain: [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+    ],
+    Delegate: [
+      { name: "delegateAddress", type: "address" },
+      { name: "totp", type: "uint256" },
+    ],
+  },
+  primaryType: "Delegate",
+  domain: { name: "Safe Transaction Service", version: "1.0", chainId },
+  message: {
+    delegateAddress: getAddress(delegate),
+    totp: Math.floor(Date.now() / 1000 / 3600),
+  },
+});
+
+export const addDelegate = async (
+  module: Safe,
+  chainId: number,
+  body: {
+    safe: Address | null;
+    delegate: Address;
+    delegator: Address;
+    signature: `0x${string}`;
+    label: string;
+    expiryDate: string | null;
+  },
+): Promise<void> => {
+  await serviceFetch(module, chainId, "/api/v2/delegates/", {
+    method: "POST",
+    body: JSON.stringify({
+      ...body,
+      safe: body.safe && getAddress(body.safe),
+      delegate: getAddress(body.delegate),
+      delegator: getAddress(body.delegator),
+    }),
+  });
+};
+
+export const removeDelegate = async (
+  module: Safe,
+  chainId: number,
+  delegate: Address,
+  body: { safe: Address | null; delegator: Address; signature: `0x${string}` },
+): Promise<void> => {
+  await serviceFetch(
+    module,
+    chainId,
+    `/api/v2/delegates/${getAddress(delegate)}/`,
+    {
+      method: "DELETE",
+      body: JSON.stringify({
+        ...body,
+        safe: body.safe && getAddress(body.safe),
+        delegator: getAddress(body.delegator),
+      }),
+    },
+  );
+};

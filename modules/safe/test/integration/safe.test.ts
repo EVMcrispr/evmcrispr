@@ -106,6 +106,13 @@ describe("Safe > integration", () => {
           (w) => w.account!.address.toLowerCase() === signer.toLowerCase(),
         )!;
         const m = typedData.message;
+        if (typedData.primaryType === "Delegate")
+          return (wallet.account as any).signTypedData({
+            domain: typedData.domain,
+            types: { Delegate: typedData.types.Delegate },
+            primaryType: "Delegate",
+            message: { ...m, totp: BigInt(m.totp) },
+          });
         if (typedData.primaryType === "SafeMessage")
           return (wallet.account as any).signTypedData({
             domain: {
@@ -258,7 +265,7 @@ describe("Safe > integration", () => {
 
   it("executes a single-action block through execTransaction", async () => {
     await run(
-      `load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerB}\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerB}\n) --allow-new-owners ${ownerB}`,
     );
 
     expect(await getOwners()).to.eql([ownerB, ownerA]);
@@ -278,7 +285,7 @@ describe("Safe > integration", () => {
     delay = predictZodiacModuleAddress(mastercopy, initializer, 0n);
 
     await run(
-      `load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerC}\n  safe:install-delay 3600\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:add-owner ${ownerC}\n  safe:install-delay 3600\n) --allow-new-owners ${ownerC} --allow-new-modules ${delay}`,
     );
 
     expect(await getOwners()).to.eql([ownerC, ownerB, ownerA]);
@@ -302,7 +309,7 @@ describe("Safe > integration", () => {
 
   it("swaps an owner", async () => {
     await run(
-      `load safe\nsafe:execute ${safe} (\n  safe:swap-owner ${ownerC} for ${ownerD}\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:swap-owner ${ownerC} for ${ownerD}\n) --allow-new-owners ${ownerD} --allow-removed-owners ${ownerC}`,
     );
 
     expect(await getOwners()).to.eql([ownerD, ownerB, ownerA]);
@@ -310,7 +317,7 @@ describe("Safe > integration", () => {
 
   it("removes an owner", async () => {
     await run(
-      `load safe\nsafe:execute ${safe} (\n  safe:remove-owner ${ownerD}\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:remove-owner ${ownerD}\n) --allow-removed-owners ${ownerD}`,
     );
 
     expect(await getOwners()).to.eql([ownerB, ownerA]);
@@ -357,7 +364,7 @@ describe("Safe > integration", () => {
     serviceState.reset();
 
     const evm = await run(
-      `load safe\nsafe:propose ${safe} (\n  exec ${safe} changeThreshold(uint256) 2\n)`,
+      `load safe\nsafe:propose ${safe} (\n  exec ${safe} changeThreshold(uint256) 2\n) --allow-change-threshold-to 2`,
     );
 
     expect(serviceState.proposals.length).to.equal(1);
@@ -399,11 +406,10 @@ describe("Safe > integration", () => {
     expect(proposal.contractTransactionHash).to.equal(expectedHash);
     expect(proposal.sender).to.equal(ownerA);
     expect(proposal.origin).to.equal("evmcrispr");
-    // 65-byte ECDSA signature
+    // The owner's 65-byte ECDSA signature: its confirmation.
     expect(proposal.signature.length).to.equal(2 + 65 * 2);
 
-    // The hashes were printed before the signature request so the signer
-    // could cross-check them against the wallet display.
+    // The hashes are printed, so owners can cross-check them when confirming.
     const hashLog = evm.logs.find((l) => l.includes("safeTxHash:"));
     const domainSeparator = await client.readContract({
       address: safe,
@@ -417,7 +423,7 @@ describe("Safe > integration", () => {
   it("executes a fully-confirmed queued transaction by hash", async () => {
     // Raise the threshold to 2 so direct block execution is rejected...
     await run(
-      `load safe\nsafe:execute ${safe} (\n  safe:change-threshold 2\n)`,
+      `load safe\nsafe:execute ${safe} (\n  safe:change-threshold 2\n) --allow-change-threshold-to 2`,
     );
     expect(await getThreshold()).to.equal(2n);
 
@@ -650,14 +656,17 @@ describe("Safe > integration", () => {
     );
     expect(String(ambiguous?.message)).to.include(rival);
 
-    // Proposing over an occupied nonce says what it competes with.
-    const proposed = (
-      await run(
-        `load safe\nsafe:propose ${safe} (\n  exec ${safe} changeThreshold(uint256) 1\n) --nonce ${nonce}`,
-      )
-    ).logs.join("\n");
-    expect(proposed).to.include(`queued at nonce ${nonce}`);
-    expect(proposed).to.include(safeTxHash);
+    // An owner's proposal is its confirmation: over an occupied nonce it is
+    // refused until --allow-competing names the rivals as reviewed.
+    const propose = `load safe\nsafe:propose ${safe} (\n  exec ${safe} changeThreshold(uint256) 1\n) --nonce ${nonce} --allow-change-threshold-to 1`;
+    const refused = await run(propose).then(
+      () => "",
+      (err) => String(err?.message),
+    );
+    expect(refused).to.include(`queued at nonce ${nonce}`);
+    expect(refused).to.include("--allow-competing true");
+    await run(`${propose} --allow-competing true`);
+    expect(serviceState.proposals.at(-1).nonce).to.equal(String(nonce));
   });
 
   it("refuses to confirm untrusted delegatecalls unless the target is allowed", async () => {
@@ -787,7 +796,7 @@ describe("Safe > integration", () => {
     // Anyone can post locally signed JSON to the queue: the first owner
     // signature proposes, the rest become confirmations — no wallet prompt.
     await run(
-      `load safe\nsafe:propose ${localSafe} ${JSON.stringify(second)} --allow-change-threshold-to 1`,
+      `load safe\nsafe:propose ${localSafe} ${JSON.stringify(second)}`,
       ownerD,
     );
     expect(serviceState.proposals).to.have.length(1);
@@ -960,7 +969,10 @@ describe("Safe > integration", () => {
     expect(String(short?.message)).to.include("1 of 2");
 
     // Owner A executes: B's approval plus A's own pre-validated signature.
-    await run(`load safe\nsafe:execute ${localSafe} ${block}`, ownerA);
+    await run(
+      `load safe\nsafe:execute ${localSafe} ${block} --allow-change-threshold-to 1`,
+      ownerA,
+    );
     expect(await thresholdOf(localSafe)).to.equal(1n);
     expect(serviceState.proposals).to.have.lengthOf(0);
   });
@@ -1008,7 +1020,10 @@ describe("Safe > integration", () => {
       `load safe\n${prepare}\nsafe:confirm-onchain ${parent} $tx --allow-change-threshold-to 1`,
       ownerA,
     );
-    await run(`load safe\nsafe:execute ${parent} ${block}`, ownerB);
+    await run(
+      `load safe\nsafe:execute ${parent} ${block} --allow-change-threshold-to 1`,
+      ownerB,
+    );
     expect(await thresholdOf(parent)).to.equal(1n);
   });
 
@@ -1100,6 +1115,148 @@ describe("Safe > integration", () => {
         .signatures,
     ).to.have.lengthOf(2);
     expect(await thresholdOf(localSafe)).to.equal(1n);
+  });
+
+  const deployOneOfOne = async (salt: bigint) => {
+    const deployed = await run(`load safe\nsafe:new ${ownerA} --salt ${salt}`);
+    return deployed.logs
+      .find((l) => l.includes("Deploying new Safe at"))!
+      .match(/0x[0-9a-fA-F]{40}/)![0] as Address;
+  };
+  const nonceOf = (address: Address) =>
+    client.readContract({ address, abi: safeAbi, functionName: "nonce" });
+  /** Put a posted proposal in the mock service's queue, as the service does. */
+  const queue = (proposal: any, confirmationsRequired: number) => {
+    const queued = {
+      ...proposal,
+      safeTxHash: proposal.contractTransactionHash,
+      trusted: !!proposal.signature,
+      confirmationsRequired,
+      isExecuted: false,
+      confirmations: [] as { owner: Address; signature: string }[],
+    };
+    serviceState.transactions.set(queued.safeTxHash.toLowerCase(), queued);
+    return queued;
+  };
+  const failure = (p: Promise<unknown>) =>
+    p.then(
+      () => "",
+      (err) => String(err?.message),
+    );
+
+  it("executes a rejection with cancel, alone or with the service confirmations", async () => {
+    serviceState.reset();
+    const single = await deployOneOfOne(deploySalt + 30n);
+    expect(
+      await failure(run(`load safe\nsafe:execute ${single} cancel --nonce 1`)),
+    ).to.include("executes at the current on-chain nonce 0");
+    expect(
+      await failure(
+        run(
+          `load safe\nsafe:execute ${single} (\n  safe:change-threshold 1\n) --nonce 0`,
+        ),
+      ),
+    ).to.include("--nonce only applies to cancel");
+
+    // A 1-of-1 owner rejects the pending nonce on its own.
+    await run(`load safe\nsafe:execute ${single} cancel`);
+    expect(await nonceOf(single)).to.equal(1n);
+    await run(`load safe\nsafe:execute ${single} cancel --nonce 1`);
+    expect(await nonceOf(single)).to.equal(2n);
+    expect(serviceState.proposals).to.have.lengthOf(0);
+
+    // A 2-of-2 rejection needs the queued one's confirmations.
+    const pair = await deployTwoOfTwo(deploySalt + 31n);
+    expect(
+      await failure(run(`load safe\nsafe:execute ${pair} cancel`, ownerB)),
+    ).to.include(`propose it with safe:propose ${pair} cancel --nonce 0`);
+    // Owner A's proposal is its confirmation; B's execution completes it.
+    await run(`load safe\nsafe:propose ${pair} cancel --nonce 0`, ownerA);
+    const queued = queue(serviceState.proposals[0], 2);
+    queued.confirmations.push({
+      owner: ownerA,
+      signature: serviceState.proposals[0].signature,
+    });
+    await run(`load safe\nsafe:execute ${pair} cancel`, ownerB);
+    expect(await nonceOf(pair)).to.equal(1n);
+  });
+
+  it("reviews every signature that counts toward the threshold", async () => {
+    serviceState.reset();
+    const single = await deployOneOfOne(deploySalt + 32n);
+    const block = `(\n  safe:add-owner ${ownerB}\n)`;
+    // An owner's proposal is its confirmation, so it is reviewed...
+    const refused = await failure(
+      run(`load safe\nsafe:propose ${single} ${block}`),
+    );
+    expect(refused).to.include("safe:propose refused");
+    expect(refused).to.include(`--allow-new-owners ${ownerB}`);
+    const allowed = await run(
+      `load safe\nsafe:propose ${single} ${block} --allow-new-owners ${ownerB}`,
+    );
+    expect(allowed.logs.join("\n")).to.include("ALLOWED (--allow-new-owners)");
+    const queued = queue(serviceState.proposals[0], 1);
+    queued.confirmations.push({
+      owner: ownerA,
+      signature: serviceState.proposals[0].signature,
+    });
+    // ...and on a 1-of-1 Safe it completes it: executing adds no approval,
+    // so it is not reviewed again.
+    await run(`load safe\nsafe:execute ${single} ${queued.safeTxHash}`);
+    expect(await nonceOf(single)).to.equal(1n);
+    // Executing a block is the owner's approval: reviewed.
+    expect(
+      await failure(
+        run(
+          `load safe\nsafe:execute ${single} (\n  safe:add-owner ${ownerC}\n)`,
+        ),
+      ),
+    ).to.include("safe:execute refused");
+  });
+
+  it("lets a delegate propose with no confirmation", async () => {
+    serviceState.reset();
+    const pair = await deployTwoOfTwo(deploySalt + 34n);
+    const block = `(\n  safe:change-threshold 1\n)`;
+    expect(
+      await failure(run(`load safe\nsafe:propose ${pair} ${block}`, ownerC)),
+    ).to.include(`an owner can add it with safe:delegate ${pair} ${ownerC}`);
+    expect(
+      await failure(run(`load safe\nsafe:delegate ${pair} ${ownerB}`)),
+    ).to.include("a delegate must be another account");
+
+    await run(
+      `load safe\nsafe:delegate ${pair} ${ownerC} --label bot --expires @date(now +1d)`,
+    );
+    expect(serviceState.delegates).to.have.lengthOf(1);
+    expect(serviceState.delegates[0]).to.include({
+      safe: pair,
+      delegate: ownerC,
+      delegator: ownerA,
+      label: "bot",
+    });
+    const listed = await run(`load safe\nset $d @safe:delegates(${pair})`);
+    expect(listed.getBinding("$d", BindingsSpace.USER)).to.eql([ownerC]);
+
+    // A delegate's proposal is reviewed like an owner's.
+    expect(
+      await failure(run(`load safe\nsafe:propose ${pair} ${block}`, ownerC)),
+    ).to.include("safe:propose refused");
+    await run(
+      `load safe\nsafe:propose ${pair} ${block} --allow-change-threshold-to 1`,
+      ownerC,
+    );
+    const [proposal] = serviceState.proposals;
+    expect(proposal.sender).to.equal(ownerC);
+    expect(proposal.signature).to.have.length(2 + 65 * 2);
+
+    // The delegate can remove itself.
+    await run(`load safe\nsafe:undelegate ${pair} ${ownerC}`, ownerC);
+    expect(serviceState.delegates).to.have.lengthOf(0);
+    expect(serviceState.delegateRemovals[0]).to.include({
+      safe: pair,
+      delegator: ownerA,
+    });
   });
 
   it("flow 8: signs a Safe message on the service and checks it on-chain", async () => {
@@ -1372,7 +1529,7 @@ describe("Safe > integration", () => {
     );
     // The upgraded Safe keeps working, and a second upgrade is a no-op.
     await run(
-      `load safe\nsafe:execute ${official} (\n  safe:add-owner ${ownerB} --threshold 1\n)`,
+      `load safe\nsafe:execute ${official} (\n  safe:add-owner ${ownerB} --threshold 1\n) --allow-new-owners ${ownerB}`,
       ownerA,
     );
     const again = await run(
@@ -1485,13 +1642,13 @@ describe("Safe > integration", () => {
       ).to.include("It is a module guard: pass --module");
 
       await run(
-        `load safe\nsafe:execute ${safe15} (\n  safe:set-guard ${moduleGuardMock} --module true\n)`,
+        `load safe\nsafe:execute ${safe15} (\n  safe:set-guard ${moduleGuardMock} --module true\n) --allow-module-guard-to ${moduleGuardMock}`,
       );
       expect(await readSlot(safe15, moduleGuardSlot)).to.equal(moduleGuardMock);
       expect(await readSlot(safe15, guardSlot)).to.equal(zeroAddress);
 
       await run(
-        `load safe\nsafe:execute ${safe15} (\n  safe:remove-guard --module true\n)`,
+        `load safe\nsafe:execute ${safe15} (\n  safe:remove-guard --module true\n) --allow-module-guard-to none`,
       );
       expect(await readSlot(safe15, moduleGuardSlot)).to.equal(zeroAddress);
     });
@@ -1523,7 +1680,7 @@ describe("Safe > integration", () => {
       expect(serviceState.proposals.length).to.equal(1);
 
       const upgraded = await run(
-        `load safe\nsafe:execute ${legacy} (\n  safe:upgrade\n  safe:set-guard ${moduleGuardMock} --module true\n)`,
+        `load safe\nsafe:execute ${legacy} (\n  safe:upgrade\n  safe:set-guard ${moduleGuardMock} --module true\n) --allow-module-guard-to ${moduleGuardMock}`,
       );
       expect(upgraded.logs.join("\n")).to.include(
         "the safe:upgrade earlier in this block moves it to v1.5.0",

@@ -11,22 +11,20 @@ import {
   interpretSafeBlock,
   smartPlanFor,
 } from "../utils";
-import { ALLOW_OPTS, assessCompeting, assessSafeTx } from "../utils/assess";
+import { ALLOW_OPTS } from "../utils/assess";
 import { gateSignable } from "../utils/gate";
 import { safeUint } from "../utils/offline";
 import {
   isCancelKeyword,
   postToService,
   rejectionSignable,
+  resolveProposer,
 } from "../utils/queue";
-import { logSafeSignable } from "../utils/sign";
 import {
   contentMessageSignable,
-  decodeSafeTxCalls,
   type SafeSignable,
   transactionSignable,
 } from "../utils/signables";
-import { competingTransactions } from "../utils/txService";
 
 export default defineCommand<Safe>({
   smartSupport: {
@@ -36,7 +34,7 @@ export default defineCommand<Safe>({
   },
   name: "propose",
   description:
-    "Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message signed by the wallet, or signed JSON.",
+    "Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message, signed by the wallet as an owner (its confirmation) or a delegate, or signed JSON.",
   batchable: false,
   createsBatchContext: true,
   args: [
@@ -77,28 +75,19 @@ export default defineCommand<Safe>({
   ],
   async run(module, { safe, proposal }, { opts, interpreters, node }) {
     const chainId = await module.getChainId();
+    // The wallet's signature proposes it: an owner's is its confirmation,
+    // a delegate's vouches for it in the Safe web app. Both are reviewed.
     if (isCancelKeyword(node.args[1])) {
       const rejection = await rejectionSignable(module, safe, opts.nonce);
-      logSafeSignable(module, rejection, {
-        findings:
-          rejection.kind === "transaction"
-            ? assessCompeting(
-                safe,
-                rejection.tx,
-                await competingTransactions(
-                  module,
-                  chainId,
-                  safe,
-                  rejection.tx.nonce,
-                  rejection.safeTxHash,
-                ),
-              )
-            : [],
+      const proposedBy = await resolveProposer(module, safe, opts.via);
+      await gateSignable(module, rejection, opts, "safe:propose", {
+        competing: true,
       });
       await postToService(module, interpreters, rejection, {
         commandName: "safe:propose",
         origin: opts.origin ?? "evmcrispr",
         via: opts.via,
+        proposedBy,
       });
       return [];
     }
@@ -159,42 +148,22 @@ export default defineCommand<Safe>({
           `Safe nonce ${signable.tx.nonce} is already consumed (current on-chain nonce ${chainNonce})`,
         );
     }
-    // Imported JSON was authored elsewhere: review it like a confirmation.
-    if (input.kind === "signable")
-      await gateSignable(module, signable, opts, "safe:propose", {
-        competing: signable.kind === "transaction",
-      });
-    else if (signable.kind === "transaction" && opts.nonce !== undefined)
-      // An explicit nonce may land on already-queued proposals: say so
-      // before the wallet prompt, since only one can ever execute.
-      logSafeSignable(module, signable, {
-        findings: [
-          ...assessSafeTx(
-            safe,
-            signable.tx,
-            decodeSafeTxCalls(signable),
-            safeDeployment(chainId),
-          ),
-          ...assessCompeting(
-            safe,
-            signable.tx,
-            await competingTransactions(
-              module,
-              chainId,
-              safe,
-              signable.tx.nonce,
-              signable.safeTxHash,
-            ),
-          ),
-        ],
-      });
-    else logSafeSignable(module, signable);
-
+    // JSON that already carries signatures is posted as it is: posting adds
+    // none, and its signers were reviewed when they signed. Otherwise the
+    // wallet signs, as an owner or a delegate, and is reviewed.
+    const proposedBy = signable.signatures.length
+      ? undefined
+      : await resolveProposer(module, safe, opts.via);
+    await gateSignable(module, signable, opts, "safe:propose", {
+      competing: signable.kind === "transaction",
+      enforce: proposedBy !== undefined,
+    });
     await postToService(module, interpreters, signable, {
       commandName: "safe:propose",
       origin: opts.origin ?? "evmcrispr",
       executionPlan: smartPlanFor(actions),
       via: opts.via,
+      proposedBy,
     });
     return [];
   },

@@ -2,7 +2,7 @@
 title: "safe:execute"
 ---
 
-Execute a Safe transaction on-chain from a command block, the safeTxHash of a confirmed queued transaction, or signed Safe transaction JSON.
+Execute a Safe transaction on-chain from a command block, cancel (a rejection of the pending transaction), the safeTxHash of a confirmed queued transaction, or signed Safe transaction JSON.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -21,15 +21,16 @@ safe:execute <safe> <proposal>
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `safe` | `address` | Build time | Safe address |
-| `proposal` | `block \| bytes32 \| string` | Build time | Commands, the safeTxHash of a queued transaction, or Safe transaction JSON |
+| `proposal` | `block \| bytes32 \| string` | Build time | Commands, `cancel` to reject the pending transaction, the safeTxHash of a queued transaction, or Safe transaction JSON |
 
 ## Options
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--salt` | `bytes32` | Build time | Smart-batch storage salt for reproducible offline signing (block forms with !) |
+| `--nonce` | `number` | Build time | Nonce of the pending transaction to cancel (defaults to the on-chain nonce, the only one that can execute) |
 | `--gas` | `number` | Build time | Gas limit of the execTransaction call, for calls the RPC cannot estimate (e.g. cross-chain ones) |
-| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration and SignMessageLib |
+| `--allow-delegate-call-to` | `address \| array` | Build time | Contracts the transaction may delegatecall besides MultiSendCallOnly, SafeMigration, SignMessageLib and fully decoded MultiSend or ERC-8211 batches |
 | `--allow-new-owners` | `address \| array` | Build time | Owners the transaction may add |
 | `--allow-removed-owners` | `address \| array` | Build time | Owners the transaction may remove |
 | `--allow-change-threshold-to` | `number` | Build time | Threshold the transaction may leave the Safe with |
@@ -42,10 +43,12 @@ safe:execute <safe> <proposal>
 
 <!-- HAND-WRITTEN -->
 
-A queued safeTxHash or imported JSON was authored elsewhere, so it is
-reviewed like [safe:confirm](confirm.md) before it is sent: a blocking
-finding refuses it until the matching `--allow-*` option names what you
-reviewed. A command block you write is only warned about.
+When the executing owner's own approval is one of the signatures the
+execution counts, executing is what authorizes the transaction, so it is
+reviewed like [safe:confirm](confirm.md) before it is sent, whoever wrote it:
+a blocking finding refuses it until the matching `--allow-*` option names what
+you reviewed. A transaction that is already fully signed is not reviewed
+again; its signers were.
 
 ## Examples
 
@@ -63,7 +66,22 @@ set $receiver 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
 safe:execute $mySafe (
   exec @token(DAI) transfer(address,uint256) $receiver 100e18
   safe:change-threshold 2
-)
+) --allow-change-threshold-to 2
+```
+
+## Cancel a pending transaction
+
+`cancel` in place of the block executes a rejection: a zero-value call from
+the Safe to itself at the on-chain nonce, the only nonce that can execute
+(`--nonce` may name it). An owner of a 1-of-1 Safe needs nothing else;
+otherwise the rejection's confirmations are read from the Safe Transaction
+Service, where [safe:propose](propose.md) queued it:
+
+```evml
+load safe
+
+set $mySafe 0x5afe3855358e112b5647b952709e6165e1c1eeee
+safe:execute $mySafe cancel
 ```
 
 Execute a queued transaction by its safeTxHash once it has enough

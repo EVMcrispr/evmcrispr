@@ -26,21 +26,23 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [safe:confirm](src/commands/confirm.md) | Confirm a Safe transaction or Safe message queued on the Safe Transaction Service, as an owner or through an owner Safe. |
 | [safe:confirm-offline](src/commands/confirm-offline.md) | Sign a Safe transaction or Safe message as an owner, or through an owner Safe, and bind the signed JSON to a variable without posting it to the Safe Transaction Service. |
 | [safe:confirm-onchain](src/commands/confirm-onchain.md) | Confirm a Safe transaction or Safe message on-chain with approveHash, as an owner or through an owner Safe you complete alone, instead of signing it off-chain. |
+| [safe:delegate](src/commands/delegate.md) | Let an account propose Safe transactions on the Safe Transaction Service on behalf of the connected owner, without confirming them. |
 | [safe:delegate-exec](src/commands/delegate-exec.md) | Call a contract function via DELEGATECALL from the Safe. The code runs in the storage context of the Safe — only use audited libraries you trust. |
 | [safe:disable-module](src/commands/disable-module.md) | Disable a module on the Safe. |
 | [safe:enable-module](src/commands/enable-module.md) | Enable a module on the Safe, allowing it to execute transactions without owner signatures (e.g. a Zodiac module). |
-| [safe:execute](src/commands/execute.md) | Execute a Safe transaction on-chain from a command block, the safeTxHash of a confirmed queued transaction, or signed Safe transaction JSON. |
+| [safe:execute](src/commands/execute.md) | Execute a Safe transaction on-chain from a command block, cancel (a rejection of the pending transaction), the safeTxHash of a confirmed queued transaction, or signed Safe transaction JSON. |
 | [safe:install-delay](src/commands/install-delay.md) | Deploy a Zodiac Delay modifier (timelock) owned by the Safe and enable it as a module. |
 | [safe:install-roles](src/commands/install-roles.md) | Deploy a Zodiac Roles modifier (fine-grained permissions) owned by the Safe and enable it as a module. |
 | [safe:install-scope-guard](src/commands/install-scope-guard.md) | Deploy a Zodiac ScopeGuard owned by the Safe and set it as the transaction guard of the Safe, limiting which targets and functions owners can call. |
 | [safe:new](src/commands/new.md) | Deploy a new Safe v1.5.0 with the given owners, at a deterministic address that is the same on every chain for the same owners, threshold and salt (created like Safe{Wallet} creates Safes: switched to the L2 singleton on every chain but Ethereum mainnet). |
-| [safe:propose](src/commands/propose.md) | Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message signed by the wallet, or signed JSON. |
+| [safe:propose](src/commands/propose.md) | Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message, signed by the wallet as an owner (its confirmation) or a delegate, or signed JSON. |
 | [safe:propose-offline](src/commands/propose-offline.md) | Create an unsigned Safe transaction, rejection or Safe message without the Safe Transaction Service and bind its JSON to a variable, for owners to sign with safe:confirm-offline. |
 | [safe:remove-guard](src/commands/remove-guard.md) | Remove the transaction guard of the Safe, or with --module its module guard (Safe v1.5.0 or later). |
 | [safe:remove-owner](src/commands/remove-owner.md) | Remove an owner from the Safe, lowering the threshold if it would exceed the remaining owners. |
 | [safe:set-fallback-handler](src/commands/set-fallback-handler.md) | Set the fallback handler contract of the Safe. |
 | [safe:set-guard](src/commands/set-guard.md) | Set the transaction guard of the Safe, a contract that checks every owner transaction before and after execution (e.g. a Zodiac ScopeGuard), or with --module its module guard (Safe v1.5.0 or later), which checks every module transaction. |
 | [safe:swap-owner](src/commands/swap-owner.md) | Replace an owner of the Safe with a new address. |
+| [safe:undelegate](src/commands/undelegate.md) | Remove a delegate of the Safe Transaction Service, as the owner who added it or as the delegate itself. |
 | [safe:upgrade](src/commands/upgrade.md) | Upgrade the Safe to v1.5.0 with Safe's SafeMigration contract (a delegatecall from the Safe), keeping its L2 or plain flavour and any custom fallback handler. |
 
 ## Helpers
@@ -48,6 +50,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | Helper | Returns | Description |
 |--------|---------|-------------|
 | [@safe:address](src/helpers/address.md) | `address` | Predict the single-owner Safe address for safe:new with a deployment salt nonce, without RPC access. The address is the same on every chain. |
+| [@safe:delegates](src/helpers/delegates.md) | `array` | Accounts the Safe Transaction Service lets propose transactions of a Safe on behalf of its owners, without confirming them. |
 | [@safe:guard](src/helpers/guard.md) | `address` | Transaction guard address of a Safe, or with module:true its module guard (the zero address when none is set; module guards need Safe v1.5.0 or later, so it is always zero on older Safes). |
 | [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Whether an address is an owner of a Safe. |
 | [@safe:merge](src/helpers/merge.md) | `string` | Merge signatures into a Safe transaction or Safe message without network access: matching signed JSON, EOA signatures, or explicit contract signatures. Current authorization is checked by verify and execute. |

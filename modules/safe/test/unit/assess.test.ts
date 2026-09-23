@@ -1,5 +1,19 @@
 import { describe, it } from "bun:test";
 import type { TransactionAction } from "@evmcrispr/sdk";
+import {
+  balanceParam,
+  COMPOSABLE_EXECUTOR_ADDRESS,
+  CORE_ADDRESS,
+  type ComposableExecution,
+  encodeComposable,
+  encodeCond,
+  type InputParam,
+  PARAM_TYPE,
+  rawParam,
+  staticCallParam,
+  targetParam,
+  wordParam,
+} from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
 import { encodeFunctionData, toFunctionSelector, zeroAddress } from "viem";
 import { CANONICAL_DEPLOYMENT as D } from "../../src/addresses";
@@ -329,5 +343,99 @@ describe("Safe > utils > assess", () => {
       signableOf(txOf([self("changeThreshold", [1n])])),
     );
     expect(report.findings.map((f) => f.check)).to.eql(["threshold"]);
+  });
+
+  describe("ERC-8211 executor batches", () => {
+    const call = (
+      target: InputParam,
+      data: `0x${string}`,
+      args: InputParam[] = [rawParam(`0x${data.slice(10)}`)],
+    ): ComposableExecution => ({
+      functionSig: data.slice(0, 10) as `0x${string}`,
+      inputParams: [
+        { ...target, paramType: PARAM_TYPE.Target },
+        { ...wordParam(0n), paramType: PARAM_TYPE.Value },
+        ...args,
+      ],
+      outputParams: [],
+    });
+    const smart = (executions: ComposableExecution[]) =>
+      txOf([
+        {
+          to: COMPOSABLE_EXECUTOR_ADDRESS,
+          data: encodeComposable(executions, "delegatecall"),
+          operation: 1,
+        },
+      ]);
+    const addOwner = self("addOwnerWithThreshold", [C, 2n]).data!;
+    const when = (param: InputParam, fallback: `0x${string}`) =>
+      staticCallParam(
+        CORE_ADDRESS,
+        encodeCond(wordParam(1n), param, rawParam(fallback)),
+      );
+
+    it("checks every call the executor makes instead of refusing it", () => {
+      const tx = smart([
+        call(targetParam(TOKEN), "0xa9059cbb"),
+        call(targetParam(SAFE), addOwner),
+      ]);
+      // The token call is listed undecoded; nothing refuses the executor.
+      expect(checks(tx)).to.eql(["unverified-call", "new-owners"]);
+      expect(blocked(tx, { "allow-new-owners": C })).to.eql([]);
+      const [executor] = decodeSafeTxCalls(signableOf(tx));
+      expect(executor.decoded.source).to.equal("erc-8211");
+      expect(executor.decoded.calls![1].decoded.signature).to.equal(
+        "addOwnerWithThreshold(address,uint256)",
+      );
+    });
+
+    it("sees through runtime conditions with an empty fallback", () => {
+      const tx = smart([
+        call(when(targetParam(SAFE), `0x${"00".repeat(32)}`), addOwner, [
+          when(rawParam(`0x${addOwner.slice(10)}`), "0x"),
+        ]),
+      ]);
+      expect(checks(tx)).to.eql(["new-owners"]);
+      const [executor] = decodeSafeTxCalls(signableOf(tx));
+      expect(executor.decoded.calls![0].decoded.conditional).to.be.true;
+      // A fallback that names another target is not a condition.
+      expect(
+        blocked(
+          smart([
+            call(
+              when(targetParam(TOKEN), `0x${SAFE.slice(2).padStart(64, "0")}`),
+              "0xa9059cbb",
+            ),
+          ]),
+        ),
+      ).to.eql(["delegatecall"]);
+    });
+
+    it("keeps runtime arguments to other contracts, but not to the Safe", () => {
+      const runtimeArg = [balanceParam(TOKEN, SAFE)];
+      const transferAll = smart([
+        call(targetParam(TOKEN), "0x2e1a7d4d", runtimeArg),
+      ]);
+      expect(blocked(transferAll)).to.eql([]);
+      expect(checks(transferAll)).to.eql(["unverified-call"]);
+      const [executor] = decodeSafeTxCalls(signableOf(transferAll));
+      expect(executor.decoded.calls![0].decoded.runtime).to.eql(["data"]);
+
+      const toSafe = smart([call(targetParam(SAFE), "0x694e80c3", runtimeArg)]);
+      expect(blocked(toSafe)).to.eql(["delegatecall"]);
+      expect(assess(toSafe)[0].message).to.include(
+        "a call to the Safe itself with arguments resolved at execution time",
+      );
+    });
+
+    it("refuses a call target resolved at execution time", () => {
+      const tx = smart([
+        call(staticCallParam(TOKEN, "0x12345678"), "0xa9059cbb"),
+      ]);
+      expect(blocked(tx)).to.eql(["delegatecall"]);
+      expect(assess(tx)[0].message).to.include(
+        "a call target resolved at execution time",
+      );
+    });
   });
 });

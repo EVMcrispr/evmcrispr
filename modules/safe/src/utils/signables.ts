@@ -5,6 +5,10 @@ import {
   type Module,
 } from "@evmcrispr/sdk";
 import {
+  COMPOSABLE_EXECUTOR_ADDRESS,
+  SMART_EXECUTOR_CODE_HASH,
+} from "@evmcrispr/sdk/onchain";
+import {
   type Abi,
   type Address,
   concatHex,
@@ -42,6 +46,7 @@ import {
   type SafeState,
   transferLabel,
 } from "./assess";
+import { decodeComposableCalls } from "./composable";
 import {
   getSafeTxHashes,
   looksLikeTypedData,
@@ -640,6 +645,31 @@ export function decodeSafeTxCalls(
     if (
       depth < 8 &&
       operation === 1 &&
+      isAddressEqual(to, COMPOSABLE_EXECUTOR_ADDRESS)
+    ) {
+      try {
+        const calls = decodeComposableCalls(signable.safe, data).map((c) => {
+          const call = decodeCall(c.to, c.value, c.data, 0, depth + 1);
+          if (c.runtime.includes("data") && call.decoded.status !== "decoded")
+            call.decoded.reason =
+              "its arguments are resolved at execution time";
+          if (c.runtime.length) call.decoded.runtime = c.runtime;
+          if (c.conditional) call.decoded.conditional = true;
+          return call;
+        });
+        decoded = {
+          status: "decoded",
+          source: "erc-8211",
+          signature: "executeComposableDelegateCall(ComposableExecution[])",
+          calls,
+        };
+      } catch (e) {
+        decoded = { status: "unverified", reason: (e as Error).message };
+      }
+    }
+    if (
+      depth < 8 &&
+      operation === 1 &&
       [deployment.multiSend, deployment.multiSendCallOnly].some(
         (a) => a.toLowerCase() === to.toLowerCase(),
       )
@@ -844,6 +874,31 @@ export async function reviewSafeSignable(
   }
   const decodedCalls =
     signable.kind === "transaction" ? decodeSafeTxCalls(signable, abis) : [];
+  // The executor's calls are only as trustworthy as its code: anything else
+  // at its address stays an unverified delegatecall.
+  const executorCalls: DecodedCall[] = [];
+  const findExecutor = (calls: DecodedCall[]) => {
+    for (const c of calls) {
+      if (
+        c.operation === 1 &&
+        isAddressEqual(c.to, COMPOSABLE_EXECUTOR_ADDRESS) &&
+        c.decoded.status === "decoded"
+      )
+        executorCalls.push(c);
+      findExecutor(c.decoded.calls ?? []);
+    }
+  };
+  findExecutor(decodedCalls);
+  if (client && executorCalls.length) {
+    const code = await client.getCode({ address: COMPOSABLE_EXECUTOR_ADDRESS });
+    if (!code || keccak256(code) !== SMART_EXECUTOR_CODE_HASH)
+      for (const c of executorCalls)
+        c.decoded = {
+          status: "unverified",
+          reason:
+            "the code at the ERC-8211 executor address is not the known executor",
+        };
+  }
   const state = { readiness, chain, signatures: checks };
   const findings = [
     ...(signable.kind === "transaction"
