@@ -179,7 +179,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
     await exec(
       [
         `set $tokens [${WXDAI}]`,
-        `set $tokens @token:holdings(${HOLDER} bsc) -?!> NoExplorer $missing`,
+        `set $tokens @token:holdings(${HOLDER} bsc) -?/> NoExplorer $missing`,
       ].join("\n"),
     );
     expect(text("$missing")).to.equal("true");
@@ -192,7 +192,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
     await exec(
       [
         `set $tokens [${SOME_ADDRESS}]`,
-        `set $tokens @token:holdings(${HOLDER}) -?!> NoExplorer $missing`,
+        `set $tokens @token:holdings(${HOLDER}) -?/> NoExplorer $missing`,
       ].join("\n"),
     );
     expect(text("$missing")).to.equal("false");
@@ -204,7 +204,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
     await exec(
       [
         `set $tokens [${SOME_ADDRESS}]`,
-        `set $tokens @token:holdings(${EMPTY}) -?!> NoExplorer`,
+        `set $tokens @token:holdings(${EMPTY}) -?/> NoExplorer`,
       ].join("\n"),
     );
     expect(value("$tokens")).to.deep.equal([]);
@@ -213,7 +213,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
   it("binds the chain id of a required refusal", async () => {
     const { exec, text, value } = session();
     await exec(
-      `set $tokens @token:holdings(${HOLDER} bsc) -!> NoExplorer [$chain]`,
+      `set $tokens @token:holdings(${HOLDER} bsc) -/> NoExplorer [$chain]`,
     );
     expect(text("$chain")).to.equal("56");
     expect(value("$tokens")).to.be.undefined;
@@ -222,7 +222,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
   it("fails a required capture when the lookup succeeds", async () => {
     const { exec } = session();
     const thrown = await thrownBy(
-      exec(`set $tokens @token:holdings(${HOLDER}) -!> NoExplorer`),
+      exec(`set $tokens @token:holdings(${HOLDER}) -/> NoExplorer`),
     );
     expect(thrown.message).to.match(/succeeded/i);
   });
@@ -239,7 +239,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
         exec(
           [
             `set $tokens [${WXDAI}]`,
-            `set $tokens @token:holdings(${address}) -?!> NoExplorer $missing`,
+            `set $tokens @token:holdings(${address}) -?/> NoExplorer $missing`,
           ].join("\n"),
         ),
       );
@@ -252,7 +252,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
   it("lets an unrelated failure of the same line through", async () => {
     const { exec, text } = session();
     const thrown = await thrownBy(
-      exec("set $tokens @token:holdings($nobody) -?!> NoExplorer $missing"),
+      exec("set $tokens @token:holdings($nobody) -?/> NoExplorer $missing"),
     );
     expect(thrown.message).to.match(/\$nobody/);
     expect(text("$missing")).to.be.undefined;
@@ -261,7 +261,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
   it("lets an explorer outage through a generic capture too", async () => {
     const { exec } = session();
     const thrown = await thrownBy(
-      exec(`set $tokens @token:holdings(${SERVER_ERROR}) -?!> $failed`),
+      exec(`set $tokens @token:holdings(${SERVER_ERROR}) -?/> $failed`),
     );
     expect(thrown.message).to.match(/answered 500/);
   });

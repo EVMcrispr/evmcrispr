@@ -675,7 +675,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     );
   });
 
-  it("lets -?!> skip an order the command refuses and pass a prepared one through", async () => {
+  it("lets -?/> skip an order the command refuses and pass a prepared one through", async () => {
     // Below --parts base units: the command fails before any action exists.
     const tooSmall = script().replace(total.toString(), "2");
     await expectDeclaredFailure(
@@ -685,7 +685,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
       /at least --parts base units/,
     );
     // A clause carries either a destructure or a flag, so pin both in turn.
-    const refused = await run(`${tooSmall} -?!> Unfunded [$parts]`, false);
+    const refused = await run(`${tooSmall} -?/> Unfunded [$parts]`, false);
     expect(refused.actions).toEqual([]);
     expect(
       refused.interpreter.bindingsManager.getBindingValue(
@@ -693,7 +693,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
         BindingsSpace.USER,
       ),
     ).toBe("3");
-    const flagged = await run(`${tooSmall} -?!> Unfunded $skipped`, false);
+    const flagged = await run(`${tooSmall} -?/> Unfunded $skipped`, false);
     expect(flagged.actions).toEqual([]);
     expect(
       flagged.interpreter.bindingsManager.getBindingValue(
@@ -704,7 +704,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     // A valid order inside a collecting block (no send context) is handed
     // through untouched and the flag reads false.
     const prepared = await run(
-      `${script("$order", "-?!> Unfunded $skipped")}`,
+      `${script("$order", "-?/> Unfunded $skipped")}`,
       false,
     );
     expect(prepared.actions.length).toBeGreaterThan(0);

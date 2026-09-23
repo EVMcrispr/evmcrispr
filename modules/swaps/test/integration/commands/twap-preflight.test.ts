@@ -134,7 +134,7 @@ describe("TWAP > creation preflight", () => {
       /1 USDC-equivalent minimum/,
     );
     // The field is what the script destructures, in USDC base units.
-    const { interpreter } = await run(`${small} -?!> BelowMinimum [$minimum]`);
+    const { interpreter } = await run(`${small} -?/> BelowMinimum [$minimum]`);
     expect(
       interpreter.bindingsManager.getBindingValue(
         "$minimum",
@@ -162,7 +162,7 @@ describe("TWAP > creation preflight", () => {
       /UnsupportedToken/,
     );
     const { interpreter, actions } = await run(
-      `${source("--min 1")} -?!> NoQuote $skipped`,
+      `${source("--min 1")} -?/> NoQuote $skipped`,
     );
     expect(actions).toEqual([]);
     expect(
@@ -174,7 +174,7 @@ describe("TWAP > creation preflight", () => {
   }, 120000);
 
   it("lets a failing quote service through a named capture", async () => {
-    const captured = `${source("--min 1")} -?!> NoQuote -?!> BelowMinimum -?!> SameToken`;
+    const captured = `${source("--min 1")} -?/> NoQuote -?/> BelowMinimum -?/> SameToken`;
     for (const [what, response] of [
       [
         "an upstream outage",
