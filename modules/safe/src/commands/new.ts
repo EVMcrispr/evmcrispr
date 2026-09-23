@@ -6,9 +6,10 @@ import { toBigInt } from "../utils";
 import {
   encodeSafeDeployment,
   predictSafeAddress,
-  safeFactoryAbi,
+  SAFE_PROXY_CREATION_CODE,
   safeInitializer,
 } from "../utils/deployment";
+import { safeUint } from "../utils/offline";
 
 export default defineCommand<Safe>({
   smartSupport: {
@@ -50,22 +51,16 @@ export default defineCommand<Safe>({
         `threshold must be between 1 and ${owners.length} (the number of owners)`,
       );
     }
-    const saltNonce = opts.salt !== undefined ? toBigInt(opts.salt) : 0n;
+    const saltNonce = safeUint(opts.salt ?? 0n, "salt nonce");
     const deployment = safeDeployment(await module.getChainId());
     const initializer = safeInitializer(
       owners as Address[],
       threshold,
       deployment.fallbackHandler,
     );
-    const client = await module.getClient();
-    const creationCode = await client.readContract({
-      address: deployment.proxyFactory,
-      abi: safeFactoryAbi,
-      functionName: "proxyCreationCode",
-    });
     const predicted = predictSafeAddress(
       deployment,
-      creationCode,
+      SAFE_PROXY_CREATION_CODE,
       initializer,
       saltNonce,
     );

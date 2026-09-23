@@ -44,6 +44,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Helper | Returns | Description |
 |--------|---------|-------------|
+| [@safe:address](src/helpers/address.md) | `address` | Predict the single-owner Safe address for safe:new with a deployment salt nonce, without RPC access. |
 | [@safe:guard](src/helpers/guard.md) | `address` | Transaction guard address of a Safe (the zero address when no guard is set). |
 | [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Whether an address is an owner of a Safe. |
 | [@safe:merge](src/helpers/merge.md) | `string` | Merge matching Safe packages, EOA signatures, or explicit contract signatures without network access. Current authorization is checked by verify and execute. |

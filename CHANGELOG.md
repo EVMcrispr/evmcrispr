@@ -8,6 +8,11 @@ Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:execute`, and `s
 
 `safe:verify <safe> !(...) --no-api true` now compiles smart payloads for review. Salt and nonce remain optional; use matching `--salt`, `--nonce`, and other compilation inputs to reconstruct a transaction, or verify its exported package directly.
 
+### Deterministic Safe addresses
+
+- `@safe:address(owner salt)` predicts the single-owner Safe deployed by `safe:new owner --salt salt`, with salt defaulting to 0. Both use the selected chain's Safe 1.4.1 deployment profile and predict without RPC access.
+- The helper identifies the initial deployment configuration; it does not check deployment or current ownership. Safe ownership and threshold remain configurable.
+
 ### `@sender`: who the calls come from
 
 - New std helper `@sender`: the account the current calls are sent from. It is `@me` (the connected wallet) at the top level and, inside a block that executes as another account, that account: the Safe in `safe:propose`/`safe:execute`, the last forwarder in aragonos `forward`, the DAO in aragonosx `propose`, the governor's timelock (or the governor) in `governor:propose`/`queue`/`execute`/`cancel` and the timelock in `governor:timelock-schedule`/`timelock-execute`. `batch` stamps it as the batch sender. `@me` never changes meaning.
