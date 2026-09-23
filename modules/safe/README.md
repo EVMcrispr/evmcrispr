@@ -41,6 +41,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [safe:set-fallback-handler](src/commands/set-fallback-handler.md) | Set the fallback handler contract of the Safe. |
 | [safe:set-guard](src/commands/set-guard.md) | Set a transaction guard on the Safe: a contract that checks every transaction before and after execution (e.g. a Zodiac ScopeGuard). |
 | [safe:swap-owner](src/commands/swap-owner.md) | Replace an owner of the Safe with a new address. |
+| [safe:upgrade](src/commands/upgrade.md) | Upgrade the Safe to v1.5.0 with Safe's SafeMigration contract (a delegatecall from the Safe), keeping its L2 or plain flavour and any custom fallback handler. |
 
 ## Helpers
 

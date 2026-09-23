@@ -362,6 +362,25 @@ Safe blocks cannot be nested inside each other, so an owner Safe's on-chain
 confirmation is always a transaction of its own. Inside an owner Safe's
 block, `safe:confirm-onchain $safe $tx` confirms as that Safe.
 
+## Upgrade a Safe
+
+New Safes from `safe:new` use Safe v1.5.0. An older Safe (v1.3.0 or later)
+moves to v1.5.0 with [`safe:upgrade`](/reference/safe/commands/upgrade/), a
+delegatecall to Safe's own `SafeMigration` contract. It is a transaction of
+the Safe like any other, so it goes through the usual flow:
+
+```evml
+load safe
+
+set $safe 0x1111111111111111111111111111111111111111
+safe:propose $safe (
+  safe:upgrade
+) --origin "Update Safe to v1.5.0"
+```
+
+It keeps the Safe's L2 or plain flavour and any custom fallback handler, and
+does nothing on a Safe that is already on v1.5.0.
+
 ## Run a TWAP order from a Safe
 
 The `swaps` module's [`swaps:twap`](/reference/swaps/commands/twap/) splits a

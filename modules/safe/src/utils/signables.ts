@@ -16,6 +16,7 @@ import {
   hashStruct,
   hashTypedData,
   isAddress,
+  isAddressEqual,
   keccak256,
   type PublicClient,
   padHex,
@@ -24,6 +25,7 @@ import {
   size,
   sliceHex,
   type TypedDataDefinition,
+  toFunctionSelector,
   toHex,
 } from "viem";
 import { safeDeployment } from "../addresses";
@@ -511,6 +513,12 @@ export async function mergeSafeSignables(
   );
   return signable;
 }
+const MIGRATION_METHODS = [
+  "migrateSingleton",
+  "migrateWithFallbackHandler",
+  "migrateL2Singleton",
+  "migrateL2WithFallbackHandler",
+];
 const validationAbi = parseAbi([
   "function approvedHashes(address,bytes32) view returns (uint256)",
 ]);
@@ -715,6 +723,17 @@ export async function reviewSafeSignable(
       }
     }
     const deployment = safeDeployment(signable.chainId);
+    if (operation === 1 && isAddressEqual(to, deployment.migration)) {
+      const method = MIGRATION_METHODS.find(
+        (m) => toFunctionSelector(`${m}()`) === data,
+      );
+      if (method)
+        decoded = {
+          status: "decoded",
+          source: "safe-migration",
+          signature: `${method}()`,
+        };
+    }
     if (
       depth < 8 &&
       operation === 1 &&

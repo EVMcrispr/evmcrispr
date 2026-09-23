@@ -1246,6 +1246,93 @@ describe("Safe > integration", () => {
     );
   });
 
+  it("upgrades a v1.4.1 Safe to v1.5.0 through SafeMigration", async () => {
+    // Real v1.4.1 Safes from the canonical v1.4.1 factory on the fork.
+    const factory141: Address = "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67";
+    const l2Singleton141: Address =
+      "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762";
+    const handler141: Address = "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99";
+    const createAbi = parseAbi([
+      "function createProxyWithNonce(address,bytes,uint256) returns (address)",
+    ]);
+    const deploy141 = async (handler: Address, salt: bigint) => {
+      const args = [
+        l2Singleton141,
+        safeInitializer([ownerA], 1n, handler),
+        salt,
+      ] as const;
+      const { result } = await client.simulateContract({
+        address: factory141,
+        abi: createAbi,
+        functionName: "createProxyWithNonce",
+        args,
+        account: ownerA,
+      });
+      await client.waitForTransactionReceipt({
+        hash: await wallets[0].writeContract({
+          address: factory141,
+          abi: createAbi,
+          functionName: "createProxyWithNonce",
+          args,
+          account: wallets[0].account!,
+          chain: gnosis,
+        }),
+      });
+      return result;
+    };
+    const slot = async (address: Address, s: Hex) =>
+      getAddress(
+        sliceHex(
+          (await client.getStorageAt({ address, slot: s })) as Hex,
+          12,
+          32,
+        ),
+      );
+    const handlerSlot = keccak256(toHex("fallback_manager.handler.address"));
+    const version = (address: Address) =>
+      client.readContract({
+        address,
+        abi: parseAbi(["function VERSION() view returns (string)"]),
+        functionName: "VERSION",
+      });
+
+    const official = await deploy141(handler141, deploySalt + 12n);
+    expect(await version(official)).to.equal("1.4.1");
+    const upgraded = await run(
+      `load safe\nsafe:execute ${official} (\n  safe:upgrade\n)`,
+      ownerA,
+    );
+    expect(upgraded.logs.join("\n")).to.include("migrateL2WithFallbackHandler");
+    expect(await version(official)).to.equal("1.5.0");
+    expect(await slot(official, toHex(0n, { size: 32 }))).to.equal(
+      SAFE_L2_SINGLETON,
+    );
+    expect(await slot(official, handlerSlot)).to.equal(
+      COMPATIBILITY_FALLBACK_HANDLER,
+    );
+    // The upgraded Safe keeps working, and a second upgrade is a no-op.
+    await run(
+      `load safe\nsafe:execute ${official} (\n  safe:add-owner ${ownerB} --threshold 1\n)`,
+      ownerA,
+    );
+    const again = await run(
+      `load safe\nsafe:execute ${official} (\n  safe:upgrade\n)`,
+      ownerA,
+    );
+    expect(again.logs.join("\n")).to.include("already on v1.5.0");
+
+    // A custom fallback handler is the owners' choice and stays.
+    const customHandler: Address = "0x000000000000000000000000000000000000dEaD";
+    const custom = await deploy141(customHandler, deploySalt + 13n);
+    const kept = await run(
+      `load safe\nsafe:execute ${custom} (\n  safe:upgrade\n)`,
+      ownerA,
+    );
+    expect(kept.logs.join("\n")).to.include("migrateL2Singleton");
+    expect(await version(custom)).to.equal("1.5.0");
+    expect(await slot(custom, handlerSlot)).to.equal(customHandler);
+  });
+
   it("rejects delegate-exec outside a propose/exec block", async () => {
     const error = await run(
       `load safe\nsafe:delegate-exec ${safe} something(uint256) 1`,

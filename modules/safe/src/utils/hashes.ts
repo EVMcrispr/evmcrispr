@@ -131,10 +131,11 @@ export const collectSafeTxWarnings = (
   const warnings: string[] = [];
   const trustedDelegate =
     isAddressEqual(tx.to, deployment.multiSend) ||
-    isAddressEqual(tx.to, deployment.multiSendCallOnly);
+    isAddressEqual(tx.to, deployment.multiSendCallOnly) ||
+    isAddressEqual(tx.to, deployment.migration);
   if (tx.operation === 1 && !trustedDelegate) {
     warnings.push(
-      `this transaction DELEGATECALLs ${tx.to}, which is not a known MultiSend contract; a delegatecall can take over the Safe — do not sign unless you fully trust that contract`,
+      `this transaction DELEGATECALLs ${tx.to}, which is not a known MultiSend or SafeMigration contract; a delegatecall can take over the Safe — do not sign unless you fully trust that contract`,
     );
   }
   const customGasToken = !isAddressEqual(tx.gasToken, zeroAddress);

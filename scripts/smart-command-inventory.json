@@ -368,6 +368,10 @@
   "safe/swap-owner": {
     "kind": "runtime"
   },
+  "safe/upgrade": {
+    "kind": "static",
+    "reason": "The Safe's current singleton and fallback handler select the migration function at build time."
+  },
   "semaphore/add-member": {
     "kind": "runtime"
   },
