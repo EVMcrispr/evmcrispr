@@ -17,15 +17,18 @@ import type { Hex, PublicClient, WalletClient } from "viem";
 import {
   concatHex,
   encodeFunctionData,
+  getAddress,
   getContractAddress,
   hashMessage,
   keccak256,
   parseAbi,
+  sliceHex,
   toHex,
   zeroAddress,
 } from "viem";
 import { gnosis } from "viem/chains";
 import {
+  COMPATIBILITY_FALLBACK_HANDLER,
   DELAY_MASTERCOPIES,
   SAFE_L2_SINGLETON,
   SAFE_PROXY_FACTORY,
@@ -38,6 +41,7 @@ import {
   pickDeployedMastercopy,
   predictZodiacModuleAddress,
 } from "../../src/utils";
+import { safeInitializer } from "../../src/utils/deployment";
 import { serviceState } from "../fixtures/msw-handlers";
 
 const factoryAbi = parseAbi([
@@ -58,9 +62,6 @@ const safeAbi = parseAbi([
 ]);
 
 const delayAbi = parseAbi(["function txCooldown() view returns (uint256)"]);
-
-const COMPATIBILITY_FALLBACK_HANDLER =
-  "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99";
 
 describe("Safe > integration", () => {
   let client: PublicClient;

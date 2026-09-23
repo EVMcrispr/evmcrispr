@@ -47,9 +47,14 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
 | `@safe:merge(package ...)` argument name | `@safe:merge(base ...)` |
 | `SafePackage`, `parseSafePackage`, `transactionPackage`, … in `@evmcrispr/module-safe/transactions` | `SafeSignable`, `parseSafeSignable`, `transactionSignable`, … |
 
+### Safe v1.5.0
+
+- The safe module uses Safe v1.5.0: `safe:new` deploys the v1.5.0 L2 singleton with the v1.5.0 proxy factory, CompatibilityFallbackHandler and MultiSend contracts, and `@safe:address` predicts with the v1.5.0 proxy creation code, so predicted addresses differ from before. TWAP execution Safes of the swaps module use v1.5.0 too.
+- The zero-salt CREATE2 deployment used on chains without Safe's canonical factory (the EEZ devnet) now holds the v1.5.0 contracts, plus the plain singleton and SafeMigration, at new addresses; redeploy it with `DEPLOYER_KEY=… bun modules/safe/scripts/deploy-create2.ts <rpc…>` (`--print` lists them).
+
 ### Deterministic Safe addresses
 
-- `@safe:address(owner salt)` predicts the single-owner Safe deployed by `safe:new owner --salt salt`, with salt defaulting to 0. Both use the selected chain's Safe 1.4.1 deployment profile and predict without RPC access.
+- `@safe:address(owner salt)` predicts the single-owner Safe deployed by `safe:new owner --salt salt`, with salt defaulting to 0. Both use the selected chain's Safe deployment profile and predict without RPC access.
 - The helper identifies the initial deployment configuration; it does not check deployment or current ownership. Safe ownership and threshold remain configurable.
 
 ### `@sender`: who the calls come from

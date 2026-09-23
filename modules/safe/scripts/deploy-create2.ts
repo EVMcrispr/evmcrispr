@@ -1,5 +1,5 @@
 /**
- * Deploy the Safe v1.4.1 contracts the module relies on to a chain that has
+ * Deploy the Safe v1.5.0 contracts the module relies on to a chain that has
  * none — a devnet, a fresh rollup — through the Arachnid CREATE2 deployer.
  *
  * Safe's canonical addresses come from the Safe Singleton Factory, which
@@ -14,17 +14,21 @@
  * re-running after a devnet reset only sends what is missing.
  *
  *   DEPLOYER_KEY=0x… bun scripts/deploy-create2.ts <rpc-url> [<rpc-url>…]
+ *   bun scripts/deploy-create2.ts --print   # the predicted addresses
  */
-import CompatibilityFallbackHandler from "@safe-global/safe-contracts/build/artifacts/contracts/handler/CompatibilityFallbackHandler.sol/CompatibilityFallbackHandler.json";
-import MultiSend from "@safe-global/safe-contracts/build/artifacts/contracts/libraries/MultiSend.sol/MultiSend.json";
-import MultiSendCallOnly from "@safe-global/safe-contracts/build/artifacts/contracts/libraries/MultiSendCallOnly.sol/MultiSendCallOnly.json";
-import SafeProxyFactory from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json";
-import SafeL2 from "@safe-global/safe-contracts/build/artifacts/contracts/SafeL2.sol/SafeL2.json";
+import CompatibilityFallbackHandler from "@safe-global/safe-smart-account/build/artifacts/contracts/handler/CompatibilityFallbackHandler.sol/CompatibilityFallbackHandler.json";
+import MultiSend from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/MultiSend.sol/MultiSend.json";
+import MultiSendCallOnly from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/MultiSendCallOnly.sol/MultiSendCallOnly.json";
+import SafeMigration from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/SafeMigration.sol/SafeMigration.json";
+import SafeProxyFactory from "@safe-global/safe-smart-account/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json";
+import Safe from "@safe-global/safe-smart-account/build/artifacts/contracts/Safe.sol/Safe.json";
+import SafeL2 from "@safe-global/safe-smart-account/build/artifacts/contracts/SafeL2.sol/SafeL2.json";
 import type { Address, Hex } from "viem";
 import {
   concatHex,
   createPublicClient,
   createWalletClient,
+  encodeAbiParameters,
   getCreate2Address,
   http,
   keccak256,
@@ -35,19 +39,41 @@ import { privateKeyToAccount } from "viem/accounts";
 const ARACHNID_CREATE2: Address = "0x4e59b44847b379578588920ca78fbf26c0b4956c";
 const SALT: Hex = padHex("0x0", { size: 32 });
 
-const CONTRACTS: { name: string; bytecode: Hex }[] = [
-  { name: "SafeL2", bytecode: SafeL2.bytecode as Hex },
-  { name: "SafeProxyFactory", bytecode: SafeProxyFactory.bytecode as Hex },
-  {
-    name: "CompatibilityFallbackHandler",
-    bytecode: CompatibilityFallbackHandler.bytecode as Hex,
-  },
-  { name: "MultiSend", bytecode: MultiSend.bytecode as Hex },
-  { name: "MultiSendCallOnly", bytecode: MultiSendCallOnly.bytecode as Hex },
-];
-
 export const predicted = (bytecode: Hex): Address =>
   getCreate2Address({ from: ARACHNID_CREATE2, salt: SALT, bytecode });
+
+const singleton = Safe.bytecode as Hex;
+const l2Singleton = SafeL2.bytecode as Hex;
+const fallbackHandler = CompatibilityFallbackHandler.bytecode as Hex;
+
+// Ordered: SafeMigration's constructor requires the singletons and the
+// fallback handler to have code already.
+const CONTRACTS: { name: string; bytecode: Hex }[] = [
+  { name: "Safe", bytecode: singleton },
+  { name: "SafeL2", bytecode: l2Singleton },
+  { name: "SafeProxyFactory", bytecode: SafeProxyFactory.bytecode as Hex },
+  { name: "CompatibilityFallbackHandler", bytecode: fallbackHandler },
+  { name: "MultiSend", bytecode: MultiSend.bytecode as Hex },
+  { name: "MultiSendCallOnly", bytecode: MultiSendCallOnly.bytecode as Hex },
+  {
+    name: "SafeMigration",
+    bytecode: concatHex([
+      SafeMigration.bytecode as Hex,
+      encodeAbiParameters(
+        [{ type: "address" }, { type: "address" }, { type: "address" }],
+        [
+          predicted(singleton),
+          predicted(l2Singleton),
+          predicted(fallbackHandler),
+        ],
+      ),
+    ]),
+  },
+];
+
+/** The predicted address table, for `src/addresses.ts`. */
+export const predictedAddresses = () =>
+  Object.fromEntries(CONTRACTS.map((c) => [c.name, predicted(c.bytecode)]));
 
 async function deployAll(rpcUrl: string, key: Hex): Promise<void> {
   const account = privateKeyToAccount(key);
@@ -100,6 +126,10 @@ async function deployAll(rpcUrl: string, key: Hex): Promise<void> {
 if (import.meta.main) {
   const rpcs = process.argv.slice(2);
   const key = process.env.DEPLOYER_KEY as Hex | undefined;
+  if (rpcs[0] === "--print") {
+    console.log(predictedAddresses());
+    process.exit(0);
+  }
   if (rpcs.length === 0 || !key) {
     console.error(
       "usage: DEPLOYER_KEY=0x… bun scripts/deploy-create2.ts <rpc-url> [<rpc-url>…]",

@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { createServer } from "node:net";
 import { createEvml, Interpreter } from "@evmcrispr/core";
 import { encodeAction, type TransactionAction } from "@evmcrispr/sdk";
-import Factory from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json";
-import Singleton from "@safe-global/safe-contracts/build/artifacts/contracts/SafeL2.sol/SafeL2.json";
+import Factory from "@safe-global/safe-smart-account/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json";
+import Singleton from "@safe-global/safe-smart-account/build/artifacts/contracts/SafeL2.sol/SafeL2.json";
 import {
   type Address,
   createPublicClient,

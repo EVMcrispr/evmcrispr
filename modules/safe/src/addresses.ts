@@ -1,48 +1,58 @@
 import type { Address } from "viem";
 
-// Canonical Safe v1.4.1 deployments (same address on all supported chains).
+// Canonical Safe v1.5.0 deployments (same address on all supported chains).
 // See https://github.com/safe-global/safe-deployments
 export const SAFE_PROXY_FACTORY: Address =
-  "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67";
+  "0x14F2982D601c9458F93bd70B218933A6f8165e7b";
 export const SAFE_L2_SINGLETON: Address =
-  "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762";
+  "0xEdd160fEBBD92E350D4D398fb636302fccd67C7e";
 export const SAFE_SINGLETON: Address =
-  "0x41675C099F32341bf84BFc5382aF534df5C7461a";
+  "0xFf51A5898e281Db6DfC7855790607438dF2ca44b";
 export const COMPATIBILITY_FALLBACK_HANDLER: Address =
-  "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99";
-export const MULTISEND: Address = "0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526";
+  "0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4";
+export const MULTISEND: Address = "0x218543288004CD07832472D464648173c77D7eB7";
 export const MULTISEND_CALL_ONLY: Address =
-  "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
+  "0xA83c336B20401Af773B6219BA5027174338D1836";
+/** SafeMigration: delegatecalled by a Safe >=1.3.0 to move it to v1.5.0. */
+export const SAFE_MIGRATION: Address =
+  "0x6439e7ABD8Bb915A5263094784C5CF561c4172AC";
 
 export const SENTINEL: Address = "0x0000000000000000000000000000000000000001";
 
-/** The Safe v1.4.1 contracts the module relies on, on one chain. */
+/** The Safe v1.5.0 contracts the module relies on, on one chain. */
 export interface SafeDeployment {
   proxyFactory: Address;
+  singleton: Address;
   l2Singleton: Address;
   fallbackHandler: Address;
   multiSend: Address;
   multiSendCallOnly: Address;
+  migration: Address;
 }
 
 /** Safe's own deployment, through the Safe Singleton Factory. */
 export const CANONICAL_DEPLOYMENT: SafeDeployment = {
   proxyFactory: SAFE_PROXY_FACTORY,
+  singleton: SAFE_SINGLETON,
   l2Singleton: SAFE_L2_SINGLETON,
   fallbackHandler: COMPATIBILITY_FALLBACK_HANDLER,
   multiSend: MULTISEND,
   multiSendCallOnly: MULTISEND_CALL_ONLY,
+  migration: SAFE_MIGRATION,
 };
 
-/** The same v1.4.1 creation bytecode, deployed with a zero salt through the
+/** The same v1.5.0 creation bytecode, deployed with a zero salt through the
  *  Arachnid CREATE2 deployer (`scripts/deploy-create2.ts`) on chains the
- *  Safe Singleton Factory never reached. Identical on every such chain. */
+ *  Safe Singleton Factory never reached. Identical on every such chain;
+ *  `bun scripts/deploy-create2.ts --print` recomputes it. */
 export const CREATE2_DEPLOYMENT: SafeDeployment = {
-  proxyFactory: "0xd9d2Ba03a7754250FDD71333F444636471CACBC4",
-  l2Singleton: "0x76667330c237Fb40f28d74563cdAAae4b06C23Ec",
-  fallbackHandler: "0xcB4a8d3609A7CCa2D9c063a742f75c899BF2f7b5",
-  multiSend: "0x7B21BBDBdE8D01Df591fdc2dc0bE9956Dde1e16C",
-  multiSendCallOnly: "0x32228dDEA8b9A2bd7f2d71A958fF241D79ca5eEC",
+  proxyFactory: "0x34aeE8688B23516f9cD8F145D52D5a13080028D2",
+  singleton: "0x59CAB03C911eF5Ab4590Bb6c4F00B768C10F09D8",
+  l2Singleton: "0x13C1aa76867b98E21c443e5d461f07925C3c2163",
+  fallbackHandler: "0x4Ce17b2E86bD577e5c0eC112C3fB96A621C7C0fc",
+  multiSend: "0x4faF5C1F98B09F1494bDaf93c85E2A05FbC1e1Bd",
+  multiSendCallOnly: "0x756E377D1dcDC33bD973216E64D32bec6aB4b569",
+  migration: "0x8feA00BF4b60e9E1912F4D613954d8E3452A8ae9",
 };
 
 /** Chains without the canonical deployment. */
@@ -54,6 +64,28 @@ const DEPLOYMENTS: Record<number, SafeDeployment> = {
 /** The Safe contracts to use on `chainId`: canonical unless listed above. */
 export const safeDeployment = (chainId: number): SafeDeployment =>
   DEPLOYMENTS[chainId] ?? CANONICAL_DEPLOYMENT;
+
+/** Official L2 singletons of every supported version, canonical and
+ *  eip155/CREATE2 variants: a Safe on one of them upgrades to the v1.5.0 L2
+ *  singleton, any other to the plain one (as Safe{Wallet} decides). */
+export const KNOWN_L2_SINGLETONS: Address[] = [
+  "0x3E5c63644E683549055b9Be8653de26E0B4CD36E", // 1.3.0
+  "0xfb1bffC9d739B8D520DaF37dF666da4C687191EA", // 1.3.0 eip155
+  "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762", // 1.4.1
+  "0x76667330c237Fb40f28d74563cdAAae4b06C23Ec", // 1.4.1 CREATE2 (EEZ)
+  SAFE_L2_SINGLETON,
+  CREATE2_DEPLOYMENT.l2Singleton,
+];
+/** Official CompatibilityFallbackHandlers: an upgrade replaces one of them
+ *  (or none) with the v1.5.0 handler, and keeps any custom handler. */
+export const KNOWN_FALLBACK_HANDLERS: Address[] = [
+  "0xf48f2B2d2a534e402487b3ee7C18c33Aec0Fe5e4", // 1.3.0
+  "0x017062a1dE2FE6b99BE3d9d37841FeD19F573804", // 1.3.0 eip155
+  "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99", // 1.4.1
+  "0xcB4a8d3609A7CCa2D9c063a742f75c899BF2f7b5", // 1.4.1 CREATE2 (EEZ)
+  COMPATIBILITY_FALLBACK_HANDLER,
+  CREATE2_DEPLOYMENT.fallbackHandler,
+];
 
 // Zodiac (gnosisguild) canonical deployments.
 // See https://github.com/gnosisguild/zodiac/blob/master/src/contracts.ts

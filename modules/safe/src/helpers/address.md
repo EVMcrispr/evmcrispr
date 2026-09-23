@@ -51,7 +51,7 @@ routed block, `@sender` supplies that block's execution account.
 ## Deployment configuration
 
 This helper predicts `safe:new owner --salt salt` with one owner and
-threshold 1. It uses the same Safe 1.4.1 L2 singleton, factory,
+threshold 1. It uses the same Safe 1.5.0 L2 singleton, factory,
 compatibility fallback handler, and proxy creation code as the command.
 It does not predict deployments with multiple owners or another threshold.
 

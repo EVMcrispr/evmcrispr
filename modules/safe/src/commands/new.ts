@@ -18,7 +18,7 @@ export default defineCommand<Safe>({
   },
   name: "new",
   description:
-    "Deploy a new Safe (v1.4.1 L2 singleton) with the given owners, at a deterministic address.",
+    "Deploy a new Safe (v1.5.0 L2 singleton) with the given owners, at a deterministic address.",
   args: [
     {
       name: "owners",

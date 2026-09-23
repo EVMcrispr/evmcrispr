@@ -200,7 +200,7 @@ registers the order. Bought tokens go directly to `--to` or the controller.
 The source wallet's fallback handler is not changed. Only ERC-20 tokens are
 supported; use wrapped native tokens.
 
-Execution Safes use the canonical Safe v1.4.1 L2 singleton. Their fallback
+Execution Safes use the canonical Safe v1.5.0 L2 singleton. Their fallback
 handler is CoW's ExtensibleFallbackHandler, with the CoW settlement domain
 delegated to ComposableCoW. The TWAP command reads quotes and service data but
 does not sign or submit child orders: it returns ordinary transaction actions,

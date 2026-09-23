@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createEvml, Interpreter } from "@evmcrispr/core";
-import SafeProxy from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json";
+import SafeProxy from "@safe-global/safe-smart-account/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json";
 import {
   custom,
   decodeFunctionData,
@@ -41,7 +41,7 @@ async function compile(script: string, chainId = 1) {
 }
 
 describe("Safe address prediction", () => {
-  it("pins the actual Safe 1.4.1 proxy creation code", () => {
+  it("pins the actual Safe 1.5.0 proxy creation code", () => {
     expect(SAFE_PROXY_CREATION_CODE).toBe(SafeProxy.bytecode as Hex);
   });
 

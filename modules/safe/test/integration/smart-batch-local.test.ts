@@ -7,9 +7,9 @@ import {
   COMPOSABLE_EXECUTOR_ADDRESS,
   COMPOSABLE_STORAGE_ADDRESS,
 } from "@evmcrispr/sdk/onchain";
-import MultiSendArtifact from "@safe-global/safe-contracts/build/artifacts/contracts/libraries/MultiSend.sol/MultiSend.json";
-import ProxyArtifact from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json";
-import SafeArtifact from "@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json";
+import MultiSendArtifact from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/MultiSend.sol/MultiSend.json";
+import ProxyArtifact from "@safe-global/safe-smart-account/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json";
+import SafeArtifact from "@safe-global/safe-smart-account/build/artifacts/contracts/Safe.sol/Safe.json";
 import {
   type Address,
   createPublicClient,

@@ -219,7 +219,7 @@ describe("TWAP > creation preflight", () => {
       await run(`swaps:twap-cancel ${arg}\nswaps:twap-recover ${arg}`, true);
       server.use(
         http.post("https://programmatic-orders.cow.fi/graphql", async () => {
-          // Safe v1.4.1 stores nonce in slot 5. Mutate only the local fork.
+          // Safe v1.5.0 stores nonce in slot 5. Mutate only the local fork.
           await client.request({
             method: "anvil_setStorageAt" as any,
             params: [

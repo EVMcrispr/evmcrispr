@@ -33,7 +33,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [safe:install-delay](src/commands/install-delay.md) | Deploy a Zodiac Delay modifier (timelock) owned by the Safe and enable it as a module. |
 | [safe:install-roles](src/commands/install-roles.md) | Deploy a Zodiac Roles modifier (fine-grained permissions) owned by the Safe and enable it as a module. |
 | [safe:install-scope-guard](src/commands/install-scope-guard.md) | Deploy a Zodiac ScopeGuard owned by the Safe and set it as the transaction guard of the Safe, limiting which targets and functions owners can call. |
-| [safe:new](src/commands/new.md) | Deploy a new Safe (v1.4.1 L2 singleton) with the given owners, at a deterministic address. |
+| [safe:new](src/commands/new.md) | Deploy a new Safe (v1.5.0 L2 singleton) with the given owners, at a deterministic address. |
 | [safe:propose](src/commands/propose.md) | Queue a Safe transaction, rejection or Safe message on the Safe Transaction Service: a command block, cancel or a message signed by the wallet, or signed JSON. |
 | [safe:propose-offline](src/commands/propose-offline.md) | Create an unsigned Safe transaction, rejection or Safe message without the Safe Transaction Service and bind its JSON to a variable, for owners to sign with safe:confirm-offline. |
 | [safe:remove-guard](src/commands/remove-guard.md) | Remove the transaction guard of the Safe. |

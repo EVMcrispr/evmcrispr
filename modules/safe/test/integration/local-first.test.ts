@@ -8,6 +8,9 @@ import { evml } from "@evmcrispr/core";
 import Handler141 from "@safe-global/safe-contracts/build/artifacts/contracts/handler/CompatibilityFallbackHandler.sol/CompatibilityFallbackHandler.json";
 import Proxy141 from "@safe-global/safe-contracts/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json";
 import Safe141 from "@safe-global/safe-contracts/build/artifacts/contracts/Safe.sol/Safe.json";
+import Handler150 from "@safe-global/safe-smart-account/build/artifacts/contracts/handler/CompatibilityFallbackHandler.sol/CompatibilityFallbackHandler.json";
+import Proxy150 from "@safe-global/safe-smart-account/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json";
+import Safe150 from "@safe-global/safe-smart-account/build/artifacts/contracts/Safe.sol/Safe.json";
 import Safe130 from "safe-contracts-v1.3/build/artifacts/contracts/GnosisSafe.sol/GnosisSafe.json";
 import Handler130 from "safe-contracts-v1.3/build/artifacts/contracts/handler/CompatibilityFallbackHandler.sol/CompatibilityFallbackHandler.json";
 import Proxy130 from "safe-contracts-v1.3/build/artifacts/contracts/proxies/GnosisSafeProxy.sol/GnosisSafeProxy.json";
@@ -29,6 +32,7 @@ import { buildSafeTx, encodeExecTransaction } from "../../src/utils/safeTx";
 import {
   mergeSafeSignables,
   messageSignable,
+  nestedPayload,
   reviewSafeSignable,
   signableHashes,
   signableTypedData,
@@ -117,6 +121,7 @@ async function send(to: Address, data: Hex, signer = 0) {
 for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
   ["1.3.0", Safe130, Proxy130, Handler130],
   ["1.4.1", Safe141, Proxy141, Handler141],
+  ["1.5.0", Safe150, Proxy150, Handler150],
 ] as const) {
   describe(`Safe ${version} local-first contracts`, () => {
     it("executes nested + EOA signatures, approvals and nonce replacements; rejects stale nested authorization and inner failures", async () => {
@@ -156,7 +161,7 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
       const childMessage = messageSignable(
         anvil.id,
         child,
-        signingBytes(signable),
+        nestedPayload(signable, version),
       );
       const childSigned = await mergeSafeSignables(childMessage, [
         await accounts[0].signTypedData(signableTypedData(childMessage)),
@@ -192,7 +197,7 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
       const pendingMessage = messageSignable(
         anvil.id,
         child,
-        signingBytes(pending),
+        nestedPayload(pending, version),
       );
       const pendingChild = await mergeSafeSignables(pendingMessage, [
         await accounts[0].signTypedData(signableTypedData(pendingMessage)),
