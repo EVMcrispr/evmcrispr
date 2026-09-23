@@ -730,10 +730,16 @@ export function makeExecutionResolveCommand(
     // captures never read them — a revert is decoded with the failing
     // action's ABI.
     let declared: DeclaredErrorEntry[] | undefined;
-    if (refusal.length > 0) {
+    if (refusal.length > 0 || revert.length > 0) {
       try {
-        declared = await collectLineDeclaredErrors(c, lookup);
-        checkCaptureNames(refusal, declared);
+        if (refusal.length > 0) {
+          declared = await collectLineDeclaredErrors(c, lookup);
+          checkCaptureNames(refusal, declared);
+        }
+        // A revert clause reads no declarations, but a malformed inline
+        // signature is a script error whatever the source — reject it
+        // before the line runs instead of once a transaction fails.
+        if (revert.length > 0) checkCaptureNames(revert, []);
       } catch (err) {
         if (err instanceof NodeError) throw err;
         panic(c, (err as Error).message, err);

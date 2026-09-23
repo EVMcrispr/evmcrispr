@@ -138,6 +138,23 @@ describe("Interpreter - error captures on command failures", () => {
     expect(seen.length).toBe(1);
   });
 
+  // A revert clause's bare name resolves against the failing action's ABI,
+  // but its inline signature is checked before the line runs — a malformed
+  // one is a script error, not something a successful line hides.
+  it("a malformed inline signature on a revert capture is rejected up front", async () => {
+    const { seen, exec } = session();
+    await expect(exec(`${WORKING} -?!> Weird(notatype) $e`)).rejects.toThrow(
+      /invalid inline error signature/,
+    );
+    expect(seen.length).toBe(0);
+
+    const required = session();
+    await expect(
+      required.exec(`${WORKING} -!> Weird(notatype) $e`),
+    ).rejects.toThrow(/invalid inline error signature/);
+    expect(required.seen.length).toBe(0);
+  });
+
   it("an optional capture without a send context passes the actions through", async () => {
     const { returned, binding } = await run(`${WORKING} -?!> $failed`, false);
     expect(binding("$failed")).toBe("false");

@@ -81,13 +81,15 @@ export async function collectLineDeclaredErrors(
 }
 
 /**
- * Reject a refusal-capture list the declarations cannot serve before the
- * line runs: a bare name declared with more than one signature in the
- * union, or a malformed inline signature. A same-name collision the
- * captures do not use is not an error. Throws the resolver's own message.
- * Only refusal clauses (`-/>`, `-?/>`) resolve in the declared union, so
- * the caller passes that family alone; a revert clause's name is judged
- * against the failing action's ABI when the transaction fails.
+ * Reject a capture list that cannot work before the line runs: a bare
+ * name declared with more than one signature in the union, or a malformed
+ * inline signature. A same-name collision the captures do not use is not
+ * an error. Throws the resolver's own message. Only refusal clauses
+ * (`-/>`, `-?/>`) resolve in the declared union, so the caller passes
+ * that family alone with the declarations; a revert clause's bare name is
+ * judged against the failing action's ABI when the transaction fails, so
+ * it is passed with an empty union and only its inline signature, if any,
+ * is checked here.
  */
 export function checkCaptureNames(
   captures: readonly ErrorCaptureNode[],
