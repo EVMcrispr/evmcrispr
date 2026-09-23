@@ -252,7 +252,7 @@ interface ClauseOutcome {
 /** The failure, decoded once for every clause. */
 interface Failure {
   readonly error: unknown;
-  /** When it happened — only clauses of that timing may see it. */
+  /** When it happened — the shape verdict the revert family checks. */
   readonly timing: ErrorCaptureNode["timing"];
   readonly revertData: `0x${string}` | undefined;
   /** The raise-site refusal, found anywhere in the cause chain. */

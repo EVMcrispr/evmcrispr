@@ -55,10 +55,13 @@ does, so the destructure works identically, and `_` skips a field:
 swaps:twap $order max $gno to $usdc --parts 4 --every 1800 --min 1 -?/> BelowMinimum [$minimum]
 ```
 
-A name after a refusal arrow is resolved **only** against the declarations of
-the line: the command's own, then those of every helper reachable in its
-arguments and options. A contract's custom error never answers to a refusal
-arrow, and a declared name never answers to a revert arrow.
+A **bare** name after a refusal arrow is resolved **only** against the
+declarations of the line: the command's own, then those of every helper
+reachable in its arguments and options. A contract's custom error never
+answers to a bare name there, and a declared name never answers to a bare
+name after a revert arrow. An inline signature skips the lookup on either
+side, so `-?/> Unauthorized(address)` does decode a chain-shaped refusal —
+the revert of an inline `::{…}` read, for instance.
 
 Declarations list a module's **supported refusals, not every possible
 exception**. A declaring command can still fail in undeclared ways — invalid
@@ -210,10 +213,11 @@ target ABI plus the two Solidity builtins:
 - **Custom named errors**: `revert CustomError(arg1, arg2)`
 - **Error(string)**: `require(cond, "msg")` / `revert("msg")`
 - **Panic(uint256)**: `assert(cond)` failures
-- **Empty reverts**: pre-0.4.22 `revert()` with no data
 
-The generic form takes any revert and decodes it as usual: an `Error(string)`
-reason, a `Panic(uint256)` code, or the raw custom-error bytes.
+The generic form (no error name) takes **any** revert and decodes it as usual:
+an `Error(string)` reason, a `Panic(uint256)` code, or the raw custom-error
+bytes. It is also the only clause an empty revert — pre-0.4.22 `revert()`,
+with no data to decode — can match, since there is no name to resolve.
 
 A declared name is not in that source. If the line's command or one of its
 helpers declares an error with the same name, spelling it bare after a revert
@@ -235,6 +239,13 @@ you run it.
 **A pre-send failure is not swallowed by a revert arrow.** A line carrying
 only `-!>` / `-?!>` that refuses before sending propagates that refusal
 untouched, with its own message and location, and the revert flags stay unset.
+
+**A revert capture observes only the actions the command returns.** A few
+commands dispatch a transaction from inside their body — `giveth:donate`,
+`token:permit`, `safe:propose`, `std:sign` — so a revert there surfaces while
+the line is still running and counts as a refusal of the line. Catch it with a
+generic `-?/> $e`, or with an inline signature after a refusal arrow, not with
+a revert capture.
 
 ### Reverts cannot be caught inside a block
 
@@ -381,6 +392,7 @@ anything about it:
 ```evml
 load receipts
 exec @token(DAI) "transfer(address,uint256)" @me 1e18 $> $tx
+print @receipts:tx($tx)
 print @receipts:tx.fee($tx)
 ```
 

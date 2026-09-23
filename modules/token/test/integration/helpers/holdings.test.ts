@@ -266,7 +266,7 @@ describe("Token > @token:holdings > NoExplorer captures", () => {
     expect(thrown.message).to.match(/answered 500/);
   });
 
-  it("accepts the refusal inside a collecting block, with either arrow", async () => {
+  it("accepts the refusal inside a collecting block, with either refusal arrow", async () => {
     const optional = session();
     await optional.exec(
       [

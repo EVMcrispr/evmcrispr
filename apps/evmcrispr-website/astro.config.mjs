@@ -406,7 +406,7 @@ export default defineConfig({
             docItem("ABI Signatures", "language/abi-signatures"),
             docItem("Control Flow", "language/control-flow"),
             docItem("Blocks & Batching", "language/blocks-and-batching"),
-            docItem("Event & Error Captures", "language/captures"),
+            docItem("Captures", "language/captures"),
             docItem("Modules & Imports", "language/modules"),
           ].filter(Boolean),
         },

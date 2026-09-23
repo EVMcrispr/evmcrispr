@@ -61,5 +61,5 @@ print "Address:" $registry::{resolver(bytes32)(address) $node}::{addr(bytes32)(a
 
 ## Next Steps
 
-- [Event & Error Captures](captures.md) — decode events and reverts from calls
+- [Captures](captures.md) — decode events, reverts and refusals from a line
 - [Syntax](syntax.md) — commands, helpers, and options
