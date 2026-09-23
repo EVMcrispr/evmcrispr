@@ -10,9 +10,7 @@ import {
   CommandError,
   DeclaredError,
   declaredErrorEntries,
-  isChainFailureError,
   MAX_CAUSE_DEPTH,
-  RevertError,
   selectCaptureErrorAbis,
 } from "@evmcrispr/sdk";
 
@@ -101,18 +99,19 @@ export function checkCaptureNames(
 }
 
 /**
- * The failure a command line may capture from an error raised while
- * evaluating it, even when it travels inside a script-error wrapper: a
- * declared refusal (the `DeclaredError` itself), or a chain failure raised
- * before anything was sent (a read that reverted while the line's
- * arguments were evaluated — a `RevertError`, or a viem revert). Either is
- * found through the wrappers the interpreter adds on the way up (a
- * helper's location wrapper, an expression wrapper). The walk stops at a
- * `CommandError`: that is another command line's boundary, and its failure
- * belongs to that line — an outer block must never turn into a catch-all
- * for its body.
+ * The declared refusal a command line may capture from a failure raised
+ * while evaluating it: the `DeclaredError` itself, or one found through
+ * the wrappers the interpreter adds on the way up (a helper's location
+ * wrapper, an expression wrapper). Only a declared refusal is let through
+ * a script-error wrapper: an undeclared helper failure — a read that
+ * reverted inside the helper included — is not part of the helper's
+ * contract and stays uncapturable. The walk stops at a `CommandError`: that
+ * is another command line's boundary, and its refusal belongs to that
+ * line — an outer block must never turn into a catch-all for its body.
  */
-export function capturableCause(error: unknown): Error | undefined {
+export function capturableDeclaredCause(
+  error: unknown,
+): DeclaredError | undefined {
   const seen = new Set<unknown>();
   let current: unknown = error;
   for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
@@ -121,8 +120,6 @@ export function capturableCause(error: unknown): Error | undefined {
     seen.add(current);
     if (current instanceof DeclaredError) return current;
     if (current instanceof CommandError) return undefined;
-    if (current instanceof RevertError || isChainFailureError(current))
-      return current as Error;
     current = (current as { cause?: unknown }).cause;
   }
   return undefined;

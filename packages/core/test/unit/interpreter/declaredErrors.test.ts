@@ -168,8 +168,7 @@ const same = defineHelper({
   },
 });
 
-// A read that reverts while the line's arguments are evaluated: chain-shaped,
-// but raised before anything is sent.
+// A helper whose read reverts: undeclared, so not part of its contract.
 const readRevert = defineHelper({
   name: "readRevert",
   args: [],
@@ -813,16 +812,6 @@ describe("Interpreter - declared errors", () => {
       expect(text("$r")).toBeUndefined();
     });
 
-    it("an outer command does not swallow an inner line's read revert", async () => {
-      const { exec, text } = session();
-      const thrown = await thrownBy(
-        exec("declared:wrap (\n  set $x @declared:readRevert\n) -?/> $e"),
-      );
-      expect(thrown).toBeInstanceOf(HelperFunctionError);
-      expect((thrown as Error).cause).toBeInstanceOf(RevertError);
-      expect(text("$e")).toBeUndefined();
-    });
-
     it("an inner capture handles the refusal and the outer line succeeds", async () => {
       const { text } = await run(
         "declared:wrap (\n  set $x @declared:gonnaFail -?/> Failure $f\n) -?/> $e",
@@ -918,26 +907,26 @@ describe("Interpreter - declared errors", () => {
       expect(sent.seen.length).toBe(2);
     });
 
-    it("a read that reverts while evaluating the line is a refusal", async () => {
-      const flag = await run("set $x @declared:readRevert -?/> $e");
-      expect(flag.text("$e")).toBe("true");
-      expect(flag.text("$x")).toBeUndefined();
+    it("a helper's undeclared read revert stays uncapturable", async () => {
+      // Only what a helper declares is part of its contract: a revert (or a
+      // call into an address with no code) inside it is a script error,
+      // whichever family the line captures.
+      for (const arrow of ["-?/>", "-?!>"]) {
+        const { exec, text } = session();
+        const thrown = await thrownBy(
+          exec(`set $x @declared:readRevert ${arrow} $e`),
+        );
+        expect(thrown).toBeInstanceOf(HelperFunctionError);
+        expect((thrown as Error).cause).toBeInstanceOf(RevertError);
+        expect(text("$e")).toBeUndefined();
+        expect(text("$x")).toBeUndefined();
+      }
 
-      const message = await run("set $x @declared:readRevert -?/> [$why]");
-      expect(message.text("$why")).toBe("read reverted");
-
-      const inline = await run(
-        "set $x @declared:readRevert -/> Error(string) [$why]",
-      );
-      expect(inline.text("$why")).toBe("read reverted");
-
-      const revert = session();
-      const thrown = await thrownBy(
-        revert.exec("set $x @declared:readRevert -?!> $e"),
-      );
-      expect(thrown).toBeInstanceOf(HelperFunctionError);
-      expect((thrown as Error).cause).toBeInstanceOf(RevertError);
-      expect(revert.text("$e")).toBeUndefined();
+      const inline = session();
+      await expect(
+        inline.exec("set $x @declared:readRevert -?/> Error(string) [$why]"),
+      ).rejects.toThrow(/read reverted/);
+      expect(inline.text("$why")).toBeUndefined();
     });
 
     it("contract metadata comes from the failing action's target", async () => {

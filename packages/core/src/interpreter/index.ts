@@ -6,6 +6,7 @@ import type {
   BlockExpressionNode,
   CallExpressionNode,
   CommandExpressionNode,
+  DeclaredError,
   DeclaredErrorEntry,
   DestructurePatternNode,
   DestructureSlot,
@@ -67,7 +68,7 @@ import {
   splitByTiming,
 } from "../errors/captureStructure";
 import {
-  capturableCause,
+  capturableDeclaredCause,
   checkCaptureNames,
   collectLineDeclaredErrors,
 } from "../errors/declarations";
@@ -645,13 +646,13 @@ export function makeExecutionResolveCommand(
 ): InterpretCtx["resolveCommand"] {
   const lookup = runtimeDeclarationLookup(input);
 
-  // Capturable failures (declared refusals, pre-send read reverts) that
-  // already reached a command boundary. A failure raised inside a block is
-  // the inner line's: once that line's catch has seen it, no outer line
-  // may capture it — even though the wrapper it travels in (a helper's
-  // location error) is not a `CommandError`, which is the boundary
-  // `capturableCause` stops at on its own.
-  const observed = new WeakSet<Error>();
+  // Declared refusals that already reached a command boundary. A refusal
+  // raised inside a block is the inner line's failure: once that line's
+  // catch has seen it, no outer line may capture it — even though the
+  // wrapper it travels in (a helper's location error) is not a
+  // `CommandError`, which is the boundary `capturableDeclaredCause` stops
+  // at on its own.
+  const observed = new WeakSet<DeclaredError>();
 
   return async (c, rawInterpreters, options) => {
     const actionCallback: ((a: Action) => Promise<unknown>) | undefined =
@@ -743,14 +744,14 @@ export function makeExecutionResolveCommand(
      * Refusal captures observe the line failing before any action exists —
      * the command refusing to run (a failed preflight, an invalid amount,
      * a missing argument), a helper in its arguments refusing with a
-     * declared error, or a read that reverted while the arguments were
-     * evaluated. That failure lands here: it is resolved against the
+     * declared error, or an inline call that reverted while the arguments
+     * were evaluated. That failure lands here: it is resolved against the
      * refusal clauses only and the command yields no actions. Ordinary
-     * script errors (NodeError) stay uncapturable; a declared refusal or a
-     * pre-send chain failure is let through its wrappers, and the wrapper
-     * itself is what propagates when no clause matches. Revert clauses
-     * never see any of this: a line carrying only `-!>` / `-?!>`
-     * propagates its pre-send failure untouched.
+     * script errors (NodeError) stay uncapturable — an undeclared helper
+     * failure among them; only a declared refusal is let through its
+     * wrappers, and the wrapper itself is what propagates when no clause
+     * matches. Revert clauses never see any of this: a line carrying only
+     * `-!>` / `-?!>` propagates its pre-send failure untouched.
      */
     const captureCommandFailure = async (err: unknown): Promise<boolean> => {
       // Inside a smart batch a failed line leaves no partial plan behind:
@@ -765,10 +766,10 @@ export function makeExecutionResolveCommand(
         batchContext!.hasActions = checkpoint.hasActions;
         checkpoint.restoreBindings();
       }
-      const cause = capturableCause(err);
-      if (cause) {
-        if (observed.has(cause)) return false;
-        observed.add(cause);
+      const refused = capturableDeclaredCause(err);
+      if (refused) {
+        if (observed.has(refused)) return false;
+        observed.add(refused);
       } else if (err instanceof NodeError) {
         return false;
       }
