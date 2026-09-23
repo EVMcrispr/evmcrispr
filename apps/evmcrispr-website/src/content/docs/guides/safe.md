@@ -35,10 +35,14 @@ acts on:
 The argument is a command block for a new transaction, `cancel` for a
 rejection, a quoted string for a message, or a nonce or 32-byte hash for
 something queued on the service (`--message` when the hash is a
-safeMessageHash). Reviewing sends nothing, so it is a helper:
-[`@safe:verify`](/reference/safe/helpers/verify/). Each step also has an
-`-offline` form that puts Safe transaction JSON in a variable instead; those
-are covered in [Offline Safe transactions](/guides/offline-safe/).
+safeMessageHash). There is no separate review step: every command that signs
+or sends something someone else authored
+[reviews it first](#what-evmcrispr-checks-before-you-sign) and refuses it on
+a blocking finding. To see the same review without signing, use the
+[`@safe:verify`](/reference/safe/helpers/verify/) helper. Propose and confirm
+also have an `-offline` form that puts Safe transaction JSON in a variable
+instead; those are covered in
+[Offline Safe transactions](/guides/offline-safe/).
 
 ## User flows
 
@@ -50,12 +54,12 @@ on the service can be confirmed on-chain, or
 | # | Flow | Commands | Section |
 |---|---|---|---|
 | 1 | Solo, or the executor plus on-chain confirmations meet the threshold | `execute <block>` | [Execute directly](#execute-directly-from-a-safe) |
-| 2 | Team on the Safe Transaction Service | `propose <block>` → `@safe:verify` → `confirm <hash>` → `execute <hash>` | [Transaction Service](#work-with-the-safe-transaction-service) |
+| 2 | Team on the Safe Transaction Service | `propose <block>` → `confirm <hash>` → `execute <hash>` | [Transaction Service](#work-with-the-safe-transaction-service) |
 | 3 | On-chain confirmations of a queued transaction | `confirm-onchain <hash>` (each owner) → `execute <hash>` | [Confirm on-chain](#confirm-on-chain-instead-of-signing) |
 | 4 | A Safe that owns another Safe | The same commands as a direct owner | [Nested Safes](#nested-safes) |
 | 5 | Signing a message on the service | `propose "text"` → `confirm <hash> --message true` → `@safe:signature` | [Sign messages](#sign-messages) |
 | 6 | Cancelling a pending transaction | `propose cancel --nonce <n>`, then flow 2 or 3 | [Cancel](#cancel-a-pending-transaction) |
-| 7 | Review only | `@safe:verify(<nonce \| hash>)` | [Check the hashes](#check-the-hashes-before-you-sign) |
+| 7 | Review without signing | `@safe:verify(<nonce \| hash>)` | [Checks before you sign](#what-evmcrispr-checks-before-you-sign) |
 
 Every command in the table takes the Safe as its first argument
 (`safe:confirm $safe $safeTxHash`), which the table leaves out. Configuring
@@ -124,9 +128,12 @@ load safe
 set $safe 0x1111111111111111111111111111111111111111
 set $safeTxHash 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
-print @safe:verify($safe $safeTxHash)
 safe:confirm $safe $safeTxHash
 ```
+
+Before your wallet prompts, `safe:confirm` prints the hashes your device
+will show and refuses the transaction if it finds anything risky; see
+[what EVMcrispr checks before you sign](#what-evmcrispr-checks-before-you-sign).
 
 Once it has enough confirmations, anyone executes it. An owner who executes
 supplies the last missing confirmation by sending it:
@@ -149,18 +156,97 @@ automation, `set $safe:apiKey <key>` raises the limit. `set $safe:serviceUrl
 <url>` targets a self-hosted service, but self-hosted instances can lag
 behind the official one, so prefer the default when you can.
 
-## Check the hashes before you sign
+## What EVMcrispr checks before you sign
 
 A hardware wallet cannot show what a Safe transaction does. It shows the
 EIP-712 **domain hash** and **message hash**, and some models also show the
 final **safeTxHash**. Signing blindly means trusting whatever the Safe web
 app and the Transaction Service sent to your device.
-[`@safe:verify`](/reference/safe/helpers/verify/) fetches the queued
-transaction, recomputes all three hashes locally from its raw fields, and
-refuses a transaction whose service-reported hash does not match. It is a
-port of [safe-tx-hashes-util](https://github.com/pcaversaccio/safe-tx-hashes-util).
 
-Look up the queued transaction by nonce, or by safeTxHash:
+Every command that acts on a transaction or message someone else authored
+reviews it before your wallet prompts: `safe:confirm`, `safe:confirm-onchain`
+and `safe:confirm-offline`, `safe:execute` on a queued hash or JSON, and
+`safe:propose` on JSON. The review is a port of
+[safe-tx-hashes-util](https://github.com/pcaversaccio/safe-tx-hashes-util):
+
+1. A transaction fetched from the service is rebuilt from its raw fields and
+   refused unless it hashes back to the requested safeTxHash, so a
+   compromised service cannot swap what you sign.
+2. The domain hash, message hash and safeTxHash are recomputed locally and
+   printed. Compare each one with what your wallet displays **before**
+   confirming on the device, and reject the signature if any differs.
+3. Every call is checked, including each call inside a MultiSend, and the
+   findings are printed under the hashes.
+
+A **blocking** finding refuses the command. An option lifts it once you have
+checked that the transaction really should do this. A change that hands
+power to someone must name the addresses, or the threshold, you reviewed.
+The transaction is refused when it does anything else, including a change
+made after your review.
+
+| Finding | Option |
+|---|---|
+| A delegatecall to anything other than MultiSendCallOnly, SafeMigration or SignMessageLib. A delegatecall runs its code as the Safe and can take it over. MultiSend itself is trusted only while every call inside it passes this check. | `--allow-delegate-call-to <address \| [addresses]>` |
+| Owners added | `--allow-new-owners <address \| [addresses]>` |
+| Owners removed | `--allow-removed-owners <address \| [addresses]>` |
+| A new threshold | `--allow-change-threshold-to <number>` |
+| Modules enabled. A module can move anything without owner signatures. | `--allow-new-modules <address \| [addresses]>` |
+| A new transaction guard | `--allow-guard-to <address \| none>` |
+| A new module guard | `--allow-module-guard-to <address \| none>` |
+| A new fallback handler. It answers calls the Safe does not implement, including signature checks. | `--allow-fallback-handler-to <address \| none>` |
+| A gas refund: a non-zero gas price, a custom gas token or a custom refund receiver, which pay the executor out of the Safe | `--allow-gas-refund true` |
+| Other trusted transactions queued at the same nonce on the service, since only one of them can ever execute. A rejection is expected to compete, so it is not blocked. | `--allow-competing true` |
+
+Owners, threshold, guards and the fallback handler are judged by what the
+transaction leaves them as, compared with the Safe now. Setting the current
+threshold again needs no option, and neither does an owner added and removed
+in the same batch. Adding an owner at the current threshold needs only
+`--allow-new-owners`. `none` stands for the zero address, which removes a
+guard or handler. Addresses you list that the transaction does not touch are
+ignored.
+
+You do not have to work the options out. The error lists every blocking
+finding and ends with the options to paste:
+
+```text
+safe:confirm refused:
+- calls[0]: adds owner 0x3333333333333333333333333333333333333333
+- calls[0]: changes the threshold from 2 to 3 (of 3 owners)
+Review it with @safe:verify; if intended, pass --allow-new-owners 0x3333333333333333333333333333333333333333 --allow-change-threshold-to 3
+```
+
+```evml
+load safe
+
+set $safe 0x1111111111111111111111111111111111111111
+set $newOwner 0x3333333333333333333333333333333333333333
+safe:confirm $safe 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --allow-new-owners $newOwner --allow-change-threshold-to 3
+```
+
+A transaction whose nonce is already used can never execute, and is refused
+with no option to lift it. Other findings are notices that do not stop the
+command: an upgrade through SafeMigration, a module disabled, a nonce ahead
+of the on-chain nonce, calldata that could not be decoded, and signatures
+that are invalid or not from an owner. When you run
+a block you wrote yourself with `safe:propose` or `safe:execute`, the same
+findings are printed as warnings instead, since you are authoring the
+transaction rather than reviewing it.
+
+Hashes show that the data on the device is the same data that was checked.
+They do not show that the data is what you intended. Also review the target
+addresses, values and decoded calls. Calldata is decoded only for the Safe's
+own management functions and MultiSend; there are no explorer or
+selector-registry lookups.
+
+### Review without signing
+
+[`@safe:verify`](/reference/safe/helpers/verify/) runs the same review
+without a wallet and returns it as JSON: hashes, decoded calls, findings,
+signatures, readiness, and a `verdict` of `pass` or `blocked`, with the
+options a signing command would need under `requires`. Use it to inspect a
+transaction before anyone signs, or to decode calldata of other contracts
+with `abi:`, a JSON object that maps addresses to ABI arrays. Look up a
+queued transaction by nonce, or by safeTxHash:
 
 ```evml
 load safe
@@ -169,26 +255,9 @@ set $safe 0x1111111111111111111111111111111111111111
 print @safe:verify($safe 42)
 ```
 
-Compare each hash in the report with what your wallet displays **before**
-confirming on the device. If any of them differs, reject the signature. The
-commands that sign or send (`confirm`, `confirm-onchain`, `execute`) print
-the same hashes and warnings before they act.
-
-Several transactions can be queued at one nonce, and only one of them can
-ever execute. A nonce with several queued transactions is an error that
-lists them, and a safeTxHash report lists the others under `competing`. The
-report also warns about fields that are the usual attack vectors:
-
-- delegatecalls to anything other than the canonical MultiSend contract
-- a custom gas token or refund receiver
-- a non-zero gas price, which pays the executor out of the Safe
-
-Hashes show that the data on the device is the same data you verified. They
-do not show that the data is what you intended. Also review the target
-addresses, value, and decoded calls in the report. Calldata is decoded only
-for MultiSend and for targets you describe with `abi:`, a JSON object that
-maps addresses to ABI arrays; there are no explorer or selector-registry
-lookups.
+Several transactions can be queued at one nonce. A nonce with several queued
+transactions is an error that lists them, and a safeTxHash report lists the
+others under `competing`.
 
 ## Confirm on-chain instead of signing
 
@@ -318,7 +387,11 @@ safe:propose $safe (
 ```
 
 It keeps the Safe's L2 or plain flavour and any custom fallback handler, and
-does nothing on a Safe that is already on v1.5.0.
+does nothing on a Safe that is already on v1.5.0. SafeMigration can only
+move a Safe to the canonical v1.5.0 singleton and fallback handler, which
+are fixed when it is deployed. The upgrade is therefore a
+[notice](#what-evmcrispr-checks-before-you-sign), and the other owners
+confirm it with no option.
 
 ## Set a guard
 
@@ -356,6 +429,12 @@ the matching guard interface, which the Safe would otherwise refuse with
 a `safe:upgrade` earlier in the same block upgrades it first. A guard
 deployed earlier in the same block has no code yet, so it is logged and not
 checked.
+
+A guard change is a [blocking finding](#what-evmcrispr-checks-before-you-sign):
+owners confirm it with the guard it sets, here
+`--allow-module-guard-to $moduleGuard`, or `--allow-guard-to` for the
+transaction guard. The two are separate, so allowing one never allows a
+change to the other.
 
 A transaction guard that reverts on everything also blocks the transaction
 that would remove it. Test a new guard on a fork with
@@ -402,8 +481,8 @@ The transaction moves the sell amount into a dedicated 1-of-1 execution Safe
 owned by your Safe. It then approves CoW's relayer and registers the
 conditional order. CoW's watchtower submits each part when its time comes.
 Your Safe's fallback handler and modules are not changed. The same command
-works with `safe:execute`, and the proposal can be reviewed with
-`@safe:verify` like any other queued transaction.
+works with `safe:execute`, and the proposal is reviewed when owners confirm
+it, like any other queued transaction.
 
 `$order` is a JSON reference with the chain, controller, execution account,
 and order parameters. Save the printed string: every later command needs it.

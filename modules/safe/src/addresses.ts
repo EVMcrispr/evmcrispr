@@ -16,6 +16,9 @@ export const MULTISEND_CALL_ONLY: Address =
 /** SafeMigration: delegatecalled by a Safe >=1.3.0 to move it to v1.5.0. */
 export const SAFE_MIGRATION: Address =
   "0x6439e7ABD8Bb915A5263094784C5CF561c4172AC";
+/** SignMessageLib: delegatecalled to sign a Safe message on-chain. */
+export const SIGN_MESSAGE_LIB: Address =
+  "0x4FfeF8222648872B3dE295Ba1e49110E61f5b5aa";
 /** SafeToL2Setup: delegatecalled from setup() to switch a new Safe to the L2
  *  singleton on every chain but Ethereum mainnet, so it can be created with
  *  the plain singleton, at the same address, everywhere. */
@@ -33,6 +36,7 @@ export interface SafeDeployment {
   multiSend: Address;
   multiSendCallOnly: Address;
   migration: Address;
+  signMessageLib: Address;
   toL2Setup: Address;
 }
 
@@ -45,6 +49,7 @@ export const CANONICAL_DEPLOYMENT: SafeDeployment = {
   multiSend: MULTISEND,
   multiSendCallOnly: MULTISEND_CALL_ONLY,
   migration: SAFE_MIGRATION,
+  signMessageLib: SIGN_MESSAGE_LIB,
   toL2Setup: SAFE_TO_L2_SETUP,
 };
 
@@ -60,6 +65,7 @@ export const CREATE2_DEPLOYMENT: SafeDeployment = {
   multiSend: "0x4faF5C1F98B09F1494bDaf93c85E2A05FbC1e1Bd",
   multiSendCallOnly: "0x756E377D1dcDC33bD973216E64D32bec6aB4b569",
   migration: "0x8feA00BF4b60e9E1912F4D613954d8E3452A8ae9",
+  signMessageLib: "0xb4c16b269704AD808Ee0CE09f0bAC4B8917aE8f4",
   toL2Setup: "0xE750f5d88E935bd6fc6c1fEb906A15C5e7476083",
 };
 
@@ -122,6 +128,11 @@ export const GUARD_STORAGE_SLOT =
 // keccak256("module_manager.module_guard.address")
 export const MODULE_GUARD_STORAGE_SLOT =
   "0xb104e0b93118902c651344349b610029d694cfdec91c589c91ebafbcd0289947" as const;
+
+// Fallback handler address storage slot:
+// keccak256("fallback_manager.handler.address")
+export const FALLBACK_HANDLER_STORAGE_SLOT =
+  "0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5" as const;
 
 // ERC-165 ids setGuard/setModuleGuard require (GS300/GS301 otherwise).
 export const TRANSACTION_GUARD_INTERFACE_ID = "0xe6d7a83a" as const;

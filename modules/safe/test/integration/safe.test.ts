@@ -504,7 +504,9 @@ describe("Safe > integration", () => {
       ],
     });
 
-    await run(`load safe\nsafe:execute ${safe} ${safeTxHash}`);
+    await run(
+      `load safe\nsafe:execute ${safe} ${safeTxHash} --allow-change-threshold-to 1`,
+    );
 
     expect(await getThreshold()).to.equal(1n);
   });
@@ -605,7 +607,13 @@ describe("Safe > integration", () => {
         ]),
       ),
     ).to.equal(safeTxHash);
-    expect(byNonce.warnings).to.eql([]);
+    // The fixture changes the threshold: safe:confirm would demand the flag.
+    // The fixture raises the threshold: safe:confirm would demand it.
+    expect(byNonce.findings.map((f: { check: string }) => f.check)).to.eql([
+      "threshold",
+    ]);
+    expect(byNonce.verdict).to.equal("blocked");
+    expect(byNonce.requires).to.eql(["--allow-change-threshold-to 2"]);
     expect(byNonce.competing).to.eql([]);
 
     const byHash = await verify(safeTxHash);
@@ -628,6 +636,10 @@ describe("Safe > integration", () => {
 
     const report = await verify(safeTxHash);
     expect(report.competing).to.eql([rival]);
+    expect(report.requires).to.eql([
+      "--allow-change-threshold-to 2",
+      "--allow-competing true",
+    ]);
     // A nonce names one transaction; with rivals queued it is ambiguous.
     const ambiguous = await verify(String(nonce)).then(
       () => null,
@@ -648,12 +660,25 @@ describe("Safe > integration", () => {
     expect(proposed).to.include(safeTxHash);
   });
 
-  it("warns about untrusted delegatecalls", async () => {
+  it("refuses to confirm untrusted delegatecalls unless the target is allowed", async () => {
     serviceState.reset();
-    const { nonce } = await seedQueuedTx({ operation: 1 });
+    const { nonce, safeTxHash } = await seedQueuedTx({ operation: 1 });
 
     const report = await verify(String(nonce));
-    expect(report.warnings.join("\n")).to.include("DELEGATECALL");
+    expect(report.findings[0]).to.deep.include({
+      check: "delegatecall",
+      allow: "allow-delegate-call-to",
+    });
+    const refused = await run(
+      `load safe\nsafe:confirm ${safe} ${safeTxHash}`,
+    ).then(
+      () => null,
+      (err) => err,
+    );
+    expect(String(refused?.message)).to.include("safe:confirm refused");
+    expect(String(refused?.message)).to.include(
+      `--allow-delegate-call-to ${safe}`,
+    );
   });
 
   it("rejects service data that does not hash to the reported safeTxHash", async () => {
@@ -720,13 +745,13 @@ describe("Safe > integration", () => {
     );
     const first = jsonFrom(
       await run(
-        `load safe\nsafe:confirm-offline $tx ${localSafe} ${JSON.stringify(prepared)}`,
+        `load safe\nsafe:confirm-offline $tx ${localSafe} ${JSON.stringify(prepared)} --allow-change-threshold-to 1`,
         ownerA,
       ),
     );
     const second = jsonFrom(
       await run(
-        `load safe\nsafe:confirm-offline $tx ${localSafe} ${JSON.stringify(first)}`,
+        `load safe\nsafe:confirm-offline $tx ${localSafe} ${JSON.stringify(first)} --allow-change-threshold-to 1`,
         ownerB,
       ),
     );
@@ -762,7 +787,7 @@ describe("Safe > integration", () => {
     // Anyone can post locally signed JSON to the queue: the first owner
     // signature proposes, the rest become confirmations — no wallet prompt.
     await run(
-      `load safe\nsafe:propose ${localSafe} ${JSON.stringify(second)}`,
+      `load safe\nsafe:propose ${localSafe} ${JSON.stringify(second)} --allow-change-threshold-to 1`,
       ownerD,
     );
     expect(serviceState.proposals).to.have.length(1);
@@ -778,7 +803,9 @@ describe("Safe > integration", () => {
         ),
       },
     ]);
-    await run(`load safe\nsafe:execute ${localSafe} ${JSON.stringify(second)}`);
+    await run(
+      `load safe\nsafe:execute ${localSafe} ${JSON.stringify(second)} --allow-change-threshold-to 1`,
+    );
     expect(
       await client.readContract({
         address: localSafe,
@@ -879,7 +906,7 @@ describe("Safe > integration", () => {
 
     // A non-owner cannot fill the gap...
     const error = await run(
-      `load safe\nsafe:execute ${localSafe} ${safeTxHash}`,
+      `load safe\nsafe:execute ${localSafe} ${safeTxHash} --allow-change-threshold-to 1`,
       ownerC,
     ).then(
       () => null,
@@ -890,7 +917,10 @@ describe("Safe > integration", () => {
     );
 
     // ...but owner A approves by sending execTransaction itself.
-    await run(`load safe\nsafe:execute ${localSafe} ${safeTxHash}`, ownerA);
+    await run(
+      `load safe\nsafe:execute ${localSafe} ${safeTxHash} --allow-change-threshold-to 1`,
+      ownerA,
+    );
     expect(await thresholdOf(localSafe)).to.equal(1n);
   });
 
@@ -902,18 +932,18 @@ describe("Safe > integration", () => {
 
     // Owner B confirms on-chain; a second confirmation is a no-op.
     await run(
-      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx`,
+      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx --allow-change-threshold-to 1`,
       ownerB,
     );
     const again = await run(
-      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx`,
+      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx --allow-change-threshold-to 1`,
       ownerB,
     );
     expect(again.logs.join("\n")).to.include("already confirmed");
 
     // A non-owner can neither approve nor complete the threshold.
     const notOwner = await run(
-      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx`,
+      `load safe\n${prepare}\nsafe:confirm-onchain ${localSafe} $tx --allow-change-threshold-to 1`,
       ownerC,
     ).then(
       () => null,
@@ -955,7 +985,7 @@ describe("Safe > integration", () => {
     // Flow 6a: the owner Safe's confirmation, queued on its own service queue.
     serviceState.reset();
     const queued = await run(
-      `load safe\n${prepare}\nsafe:propose ${ownerSafe} (\n  safe:confirm-onchain ${parent} $tx\n)`,
+      `load safe\n${prepare}\nsafe:propose ${ownerSafe} (\n  safe:confirm-onchain ${parent} $tx --allow-change-threshold-to 1\n)`,
       ownerA,
     );
     const parentTx = JSON.parse(
@@ -975,7 +1005,7 @@ describe("Safe > integration", () => {
     // Flow 6b: ownerA confirms on-chain without naming the owner Safe: the
     // 1-of-1 owner Safe executes approveHash in one transaction.
     await run(
-      `load safe\n${prepare}\nsafe:confirm-onchain ${parent} $tx`,
+      `load safe\n${prepare}\nsafe:confirm-onchain ${parent} $tx --allow-change-threshold-to 1`,
       ownerA,
     );
     await run(`load safe\nsafe:execute ${parent} ${block}`, ownerB);
@@ -1022,19 +1052,22 @@ describe("Safe > integration", () => {
     serviceState.transactions.set(safeTxHash.toLowerCase(), queued);
 
     // Flow 2: owner B confirms on the service.
-    await run(`load safe\nsafe:confirm ${localSafe} ${safeTxHash}`, ownerB);
+    await run(
+      `load safe\nsafe:confirm ${localSafe} ${safeTxHash} --allow-change-threshold-to 1`,
+      ownerB,
+    );
     expect(serviceState.confirmations).to.have.lengthOf(1);
     queued.confirmations.push({
       owner: ownerB,
       signature: serviceState.confirmations[0].signature,
     });
     const again = await run(
-      `load safe\nsafe:confirm ${localSafe} ${safeTxHash}`,
+      `load safe\nsafe:confirm ${localSafe} ${safeTxHash} --allow-change-threshold-to 1`,
       ownerB,
     );
     expect(again.logs.join("\n")).to.include("already confirmed");
     const notOwner = await run(
-      `load safe\nsafe:confirm ${localSafe} ${safeTxHash}`,
+      `load safe\nsafe:confirm ${localSafe} ${safeTxHash} --allow-change-threshold-to 1`,
       ownerC,
     ).then(
       () => null,
@@ -1059,7 +1092,7 @@ describe("Safe > integration", () => {
     // Flow 5: owner A exports the queued transaction with B's confirmation
     // plus its own signature, and anyone executes the JSON.
     const exported = await run(
-      `load safe\nsafe:confirm-offline $tx ${localSafe} ${safeTxHash}\nsafe:execute ${localSafe} $tx`,
+      `load safe\nsafe:confirm-offline $tx ${localSafe} ${safeTxHash} --allow-change-threshold-to 1\nsafe:execute ${localSafe} $tx --allow-change-threshold-to 1`,
       ownerA,
     );
     expect(
@@ -1167,7 +1200,7 @@ describe("Safe > integration", () => {
     const script = [
       "load safe",
       `safe:propose-offline $tx ${parent} ${block}`,
-      `safe:confirm-offline $tx ${parent} $tx`,
+      `safe:confirm-offline $tx ${parent} $tx --allow-change-threshold-to 1`,
     ].join("\n");
     // ownerA does not own the parent: it signs through owner Safe B.
     const viaB = await run(script, ownerA);
@@ -1188,7 +1221,7 @@ describe("Safe > integration", () => {
       progress: "1 of 1",
     });
     await run(
-      `load safe\nsafe:confirm-offline $tx ${parent} ${JSON.stringify(tx)}\nsafe:execute ${parent} $tx`,
+      `load safe\nsafe:confirm-offline $tx ${parent} ${JSON.stringify(tx)} --allow-change-threshold-to 1\nsafe:execute ${parent} $tx --allow-change-threshold-to 1`,
       ownerB,
     );
     expect(await thresholdOf(parent)).to.equal(1n);
@@ -1235,7 +1268,10 @@ describe("Safe > integration", () => {
     serviceState.transactions.set(safeTxHash.toLowerCase(), queued);
 
     // B needs only ownerA: an off-chain contract signature, no gas.
-    await run(`load safe\nsafe:confirm ${parent} ${safeTxHash}`, ownerA);
+    await run(
+      `load safe\nsafe:confirm ${parent} ${safeTxHash} --allow-change-threshold-to 1`,
+      ownerA,
+    );
     expect(serviceState.confirmations).to.have.lengthOf(1);
     expect(serviceState.proposals).to.have.lengthOf(0);
     queued.confirmations.push({
@@ -1243,13 +1279,16 @@ describe("Safe > integration", () => {
       signature: serviceState.confirmations[0].signature,
     });
     const again = await run(
-      `load safe\nsafe:confirm ${parent} ${safeTxHash}`,
+      `load safe\nsafe:confirm ${parent} ${safeTxHash} --allow-change-threshold-to 1`,
       ownerA,
     );
     expect(again.logs.join("\n")).to.include("already confirmed");
 
     // ownerB executes: B's contract signature plus its own approval.
-    await run(`load safe\nsafe:execute ${parent} ${safeTxHash}`, ownerB);
+    await run(
+      `load safe\nsafe:execute ${parent} ${safeTxHash} --allow-change-threshold-to 1`,
+      ownerB,
+    );
     expect(await thresholdOf(parent)).to.equal(1n);
   });
 
@@ -1275,7 +1314,7 @@ describe("Safe > integration", () => {
 
     // B needs ownerA and ownerC: ownerA proposes B's approveHash in B's queue.
     const confirmed = await run(
-      `load safe\nsafe:confirm ${parent} ${safeTxHash}`,
+      `load safe\nsafe:confirm ${parent} ${safeTxHash} --allow-change-threshold-to 1`,
       ownerA,
     );
     expect(confirmed.logs.join("\n")).to.include(`Owner Safe ${b} needs 2`);
@@ -1289,7 +1328,7 @@ describe("Safe > integration", () => {
       }),
     );
     const onchain = await run(
-      `load safe\nsafe:confirm-onchain ${parent} ${safeTxHash}`,
+      `load safe\nsafe:confirm-onchain ${parent} ${safeTxHash} --allow-change-threshold-to 1`,
       ownerA,
     ).then(
       () => null,

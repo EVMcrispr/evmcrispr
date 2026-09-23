@@ -5,20 +5,33 @@ import { type Hex, isAddressEqual, recoverAddress } from "viem";
 import type Safe from "..";
 import { safeDeployment } from "../addresses";
 import {
-  collectSafeTxWarnings,
-  formatSafeTxHashesLog,
-  getSafeTxHashes,
-} from "./hashes";
+  type AllowOpts,
+  assessSafeTx,
+  formatFindings,
+  type SafeFinding,
+} from "./assess";
+import { formatSafeTxHashesLog, getSafeTxHashes } from "./hashes";
 import { normalizeSafeSignature, stringifySafeTransaction } from "./offline";
 import {
+  decodeSafeTxCalls,
   type SafeSignable,
   signableHashes,
   signableTypedData,
 } from "./signables";
 
 /** Print what is about to be signed or sent, so signers can compare the
- *  hashes with their hardware wallet display. */
-export function logSafeSignable(module: Safe, signable: SafeSignable): void {
+ *  hashes with their hardware wallet display, with its findings: by default
+ *  the content checks, as warnings; a gated command passes its own findings
+ *  and `enforced`. */
+export function logSafeSignable(
+  module: Safe,
+  signable: SafeSignable,
+  {
+    findings,
+    allow,
+    enforced = false,
+  }: { findings?: SafeFinding[]; allow?: AllowOpts; enforced?: boolean } = {},
+): void {
   if (signable.kind === "transaction") {
     module.context.log(
       formatSafeTxHashesLog(
@@ -26,7 +39,17 @@ export function logSafeSignable(module: Safe, signable: SafeSignable): void {
         signable.chainId,
         signable.tx,
         getSafeTxHashes(signable.chainId, signable.safe, signable.tx),
-        collectSafeTxWarnings(signable.tx, safeDeployment(signable.chainId)),
+        formatFindings(
+          findings ??
+            assessSafeTx(
+              signable.safe,
+              signable.tx,
+              decodeSafeTxCalls(signable),
+              safeDeployment(signable.chainId),
+            ),
+          allow,
+          enforced,
+        ),
       ),
     );
     return;
@@ -45,6 +68,7 @@ export function logSafeSignable(module: Safe, signable: SafeSignable): void {
       `  Domain hash:      ${hashes.domainHash}`,
       `  Message hash:     ${hashes.messageHash}`,
       `  SafeMessage hash: ${hashes.finalHash}`,
+      ...formatFindings(findings ?? [], allow, enforced),
     ].join("\n"),
   );
 }

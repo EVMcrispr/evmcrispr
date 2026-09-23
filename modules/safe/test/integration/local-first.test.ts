@@ -313,7 +313,7 @@ for (const [version, singletonArtifact, proxyArtifact, handlerArtifact] of [
       await expect(
         tag
           .script(
-            `load safe\nsafe:execute ${approvalsSafe} ${JSON.stringify(stringifySafeTransaction(failedSigned))}`,
+            `load safe\nsafe:execute ${approvalsSafe} ${JSON.stringify(stringifySafeTransaction(failedSigned))} --allow-change-threshold-to 0`,
           )
           .execute(wallets[2], { prepareChains: false }),
       ).rejects.toThrow("ExecutionFailure");

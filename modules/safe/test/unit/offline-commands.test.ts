@@ -21,6 +21,7 @@ import {
 } from "../../src/utils/offline";
 import { safeAbi } from "../../src/utils/reads";
 import { getSafeTxTypedData, hashSafeTx } from "../../src/utils/safeTx";
+import { parseSafeSignable, signingBytes } from "../../src/utils/signables";
 
 evml.use({ name: "safe", load: () => import("../../src/index") });
 evml.use({ name: "http", load: () => import("../../../http/src") });
@@ -43,6 +44,7 @@ let fetchSpy: ReturnType<typeof spyOn<typeof globalThis, "fetch">>;
 const transport = custom({
   async request({ method, params }) {
     if (method === "eth_chainId") return toHex(chainId);
+    if (method === "eth_getStorageAt") return `0x${"0".repeat(64)}`;
     if (method === "eth_getCode") {
       const [address] = params as [string];
       return ownerSafes.has(address.toLowerCase()) ||
@@ -98,7 +100,8 @@ const run = async (script: string, signer = 0, wallet = true) => {
 const execAbi = parseAbi([
   "function execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)",
 ]);
-const block = `(\n  exec ${safe} changeThreshold(uint256) 1\n)`;
+const target = "0x3333333333333333333333333333333333333333";
+const block = `(\n  exec ${target} ping()\n)`;
 /** Flow 3, step 1: anyone prepares, no wallet. */
 const prepare = async () =>
   (await run(`safe:propose-offline $tx ${safe} ${block}`, 0, false)).binding(
@@ -251,15 +254,7 @@ describe("Safe > flows without the Safe Transaction Service", () => {
     });
     const prepared = await prepare();
     const signed = JSON.parse(await confirmOffline(prepared, 2));
-    const payload = JSON.parse(
-      (
-        await run(
-          `set $r @safe:verify(${safe} ${JSON.stringify(prepared)} no-rpc:true)`,
-          0,
-          false,
-        )
-      ).binding("$r"),
-    ).signingBytes;
+    const payload = signingBytes(parseSafeSignable(prepared));
     // Owner 2's signature sits under owner Safe B, over B's SafeMessage of
     // the parent's payload (Safe 1.4.1: the preimage).
     expect(signed.signatures).toEqual([
@@ -425,9 +420,10 @@ describe("Safe > flows without the Safe Transaction Service", () => {
       ).binding("$r"),
     );
     expect(report.readiness).toBe("unchecked");
-    expect(report.safeTransaction.safeTxHash).toBe(
-      JSON.parse(prepared).safeTxHash,
-    );
+    expect(report.hashes.safeTxHash).toBe(JSON.parse(prepared).safeTxHash);
+    // Each fact once: the typed data carries the transaction.
+    expect(Object.keys(report)).not.toContain("safeTransaction");
+    expect(report.typedData.message.nonce).toBe(JSON.parse(prepared).tx.nonce);
   });
 
   it("rejects config variables and non-variable output destinations", async () => {
@@ -469,6 +465,53 @@ describe("Safe > flows without the Safe Transaction Service", () => {
       [`safe:propose-offline $x ${safe} '{"a":1}'`, "unrecognized JSON"],
     ])
       await expect(run(script)).rejects.toThrow(message);
+  });
+
+  it("refuses to sign or execute risky transactions unless the reviewed values are allowed", async () => {
+    const newOwner = accounts[2].address;
+    // Authored in the script, propose-offline only warns.
+    const risky = JSON.parse(
+      (
+        await run(
+          `safe:propose-offline $tx ${safe} (\n  exec ${safe} addOwnerWithThreshold(address,uint256) ${newOwner} 3\n  exec ${target} ping()\n)`,
+          0,
+          false,
+        )
+      ).binding("$tx"),
+    );
+    const json = JSON.stringify(JSON.stringify(risky));
+    const needed = `--allow-new-owners ${newOwner} --allow-change-threshold-to 3`;
+    // Reviewing someone else's transaction is gated.
+    for (const command of [
+      `safe:confirm-offline $out ${safe} ${json}`,
+      `safe:confirm-onchain ${safe} ${json}`,
+      `safe:execute ${safe} ${json}`,
+      // Allowing other values than the transaction's is no allowance.
+      `safe:confirm-offline $out ${safe} ${json} --allow-new-owners ${target} --allow-change-threshold-to 3`,
+    ])
+      await expect(run(command)).rejects.toThrow(
+        `calls[0].calls[0]: adds owner ${newOwner}`,
+      );
+    await expect(
+      run(`safe:confirm-offline $out ${safe} ${json}`),
+    ).rejects.toThrow(`if intended, pass ${needed}`);
+    const signed = await run(
+      `safe:confirm-offline $out ${safe} ${json} --allow-new-owners [${newOwner}] --allow-change-threshold-to 3`,
+    );
+    expect(signed.logs.join("\n")).toContain(
+      "ALLOWED (--allow-change-threshold-to)",
+    );
+    // The verification report reaches the same verdict.
+    const report = JSON.parse(
+      (await run(`set $r @safe:verify(${safe} ${json})`, 0, false)).binding(
+        "$r",
+      ),
+    );
+    expect(report.verdict).toBe("blocked");
+    expect(report.requires).toEqual([
+      `--allow-new-owners ${newOwner}`,
+      "--allow-change-threshold-to 3",
+    ]);
   });
 
   it("rejects insufficient signatures, a stale nonce, non-owners, and legacy Safes", async () => {

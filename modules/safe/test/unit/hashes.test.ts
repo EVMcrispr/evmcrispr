@@ -9,12 +9,7 @@ import {
   parseAbiParameters,
   zeroAddress,
 } from "viem";
-import { MULTISEND, MULTISEND_CALL_ONLY } from "../../src/addresses";
-import {
-  collectSafeTxWarnings,
-  getSafeMessageHashes,
-  getSafeTxHashes,
-} from "../../src/utils/hashes";
+import { getSafeMessageHashes, getSafeTxHashes } from "../../src/utils/hashes";
 import type { SafeTx } from "../../src/utils/safeTx";
 import { hashSafeTx } from "../../src/utils/safeTx";
 
@@ -146,50 +141,6 @@ describe("Safe > utils > hashes", () => {
     );
     expect(() => getSafeMessageHashes(100, SAFE, '{"types":{}}')).to.throw(
       "`types` and `message`",
-    );
-  });
-
-  it("collects no warnings for a plain call", () => {
-    expect(collectSafeTxWarnings(baseTx)).to.eql([]);
-  });
-
-  it("does not warn on delegatecalls to the canonical MultiSends", () => {
-    expect(
-      collectSafeTxWarnings({ ...baseTx, to: MULTISEND, operation: 1 }),
-    ).to.eql([]);
-    expect(
-      collectSafeTxWarnings({
-        ...baseTx,
-        to: MULTISEND_CALL_ONLY,
-        operation: 1,
-      }),
-    ).to.eql([]);
-  });
-
-  it("warns on untrusted delegatecalls", () => {
-    const warnings = collectSafeTxWarnings({ ...baseTx, operation: 1 });
-    expect(warnings.length).to.equal(1);
-    expect(warnings[0]).to.include("DELEGATECALL");
-  });
-
-  it("warns on custom gasToken, refundReceiver and gasPrice", () => {
-    const token = "0x3333333333333333333333333333333333333333" as const;
-    const receiver = "0x4444444444444444444444444444444444444444" as const;
-    expect(collectSafeTxWarnings({ ...baseTx, gasToken: token })[0]).to.include(
-      "custom gas token",
-    );
-    expect(
-      collectSafeTxWarnings({ ...baseTx, refundReceiver: receiver })[0],
-    ).to.include("custom receiver");
-    const combined = collectSafeTxWarnings({
-      ...baseTx,
-      gasToken: token,
-      refundReceiver: receiver,
-    });
-    expect(combined.length).to.equal(1);
-    expect(combined[0]).to.include("hidden value extraction");
-    expect(collectSafeTxWarnings({ ...baseTx, gasPrice: 5n })[0]).to.include(
-      "non-zero gasPrice",
     );
   });
 });

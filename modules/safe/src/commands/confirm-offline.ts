@@ -6,9 +6,10 @@ import {
   classifySafeInput,
   fetchQueuedSignable,
 } from "../utils";
+import { ALLOW_OPTS } from "../utils/assess";
+import { gateSignable } from "../utils/gate";
 import { walletSignSafeSignable } from "../utils/nested";
 import { stringifySafeTransaction } from "../utils/offline";
-import { logSafeSignable } from "../utils/sign";
 import { bindSafeOutput, kindLabel } from "../utils/signables";
 
 export default defineCommand<Safe>({
@@ -47,6 +48,7 @@ export default defineCommand<Safe>({
       description:
         "Owner Safe to sign through, when you own several owner Safes",
     },
+    ...ALLOW_OPTS,
   ],
   async run(module, { variable, safe, signable: arg }, { opts, interpreters }) {
     const chainId = await module.getChainId();
@@ -65,7 +67,10 @@ export default defineCommand<Safe>({
       input.kind === "signable"
         ? input.signable
         : (await fetchQueuedSignable(module, chainId, safe, input)).signable;
-    logSafeSignable(module, signable);
+    // Competing transactions are only known to the service.
+    await gateSignable(module, signable, opts, "safe:confirm-offline", {
+      competing: input.kind === "txHash",
+    });
     const signed = await walletSignSafeSignable(
       module,
       interpreters,

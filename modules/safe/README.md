@@ -56,5 +56,5 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@safe:owners](src/helpers/owners.md) | `array` | Owner addresses of a Safe. |
 | [@safe:signature](src/helpers/signature.md) | `bytes` | Packed owner signatures of a Safe transaction or Safe message once enough owners have signed, e.g. the EIP-1271 signature a dapp asks for. |
 | [@safe:threshold](src/helpers/threshold.md) | `number` | Signature threshold of a Safe. |
-| [@safe:verify](src/helpers/verify.md) | `string` | Verification report of a Safe transaction or Safe message as JSON: integrity-checked hashes, decoded calls, warnings, owner signature checks, on-chain approvals, readiness and competing transactions. |
+| [@safe:verify](src/helpers/verify.md) | `string` | Verification report of a Safe transaction or Safe message as JSON: integrity-checked hashes, decoded calls, findings, owner signature checks, on-chain approvals, readiness and competing transactions, with the verdict safe:confirm and safe:execute would reach. |
 

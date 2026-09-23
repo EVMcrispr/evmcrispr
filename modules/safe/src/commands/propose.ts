@@ -10,8 +10,9 @@ import {
   getSafeNonce,
   interpretSafeBlock,
   smartPlanFor,
-  warnCompetingTransactions,
 } from "../utils";
+import { ALLOW_OPTS, assessCompeting, assessSafeTx } from "../utils/assess";
+import { gateSignable } from "../utils/gate";
 import { safeUint } from "../utils/offline";
 import {
   isCancelKeyword,
@@ -21,9 +22,11 @@ import {
 import { logSafeSignable } from "../utils/sign";
 import {
   contentMessageSignable,
+  decodeSafeTxCalls,
   type SafeSignable,
   transactionSignable,
 } from "../utils/signables";
+import { competingTransactions } from "../utils/txService";
 
 export default defineCommand<Safe>({
   smartSupport: {
@@ -70,20 +73,28 @@ export default defineCommand<Safe>({
       description:
         "Owner Safe to sign through, when you own several owner Safes",
     },
+    ...ALLOW_OPTS,
   ],
   async run(module, { safe, proposal }, { opts, interpreters, node }) {
     const chainId = await module.getChainId();
     if (isCancelKeyword(node.args[1])) {
       const rejection = await rejectionSignable(module, safe, opts.nonce);
-      if (rejection.kind === "transaction")
-        await warnCompetingTransactions(
-          module,
-          chainId,
-          safe,
-          rejection.tx.nonce,
-          rejection.safeTxHash,
-        );
-      logSafeSignable(module, rejection);
+      logSafeSignable(module, rejection, {
+        findings:
+          rejection.kind === "transaction"
+            ? assessCompeting(
+                safe,
+                rejection.tx,
+                await competingTransactions(
+                  module,
+                  chainId,
+                  safe,
+                  rejection.tx.nonce,
+                  rejection.safeTxHash,
+                ),
+              )
+            : [],
+      });
       await postToService(module, interpreters, rejection, {
         commandName: "safe:propose",
         origin: opts.origin ?? "evmcrispr",
@@ -147,18 +158,37 @@ export default defineCommand<Safe>({
         throw new ErrorException(
           `Safe nonce ${signable.tx.nonce} is already consumed (current on-chain nonce ${chainNonce})`,
         );
-      // An explicit or imported nonce may land on already-queued proposals:
-      // say so before the wallet prompt, since only one can ever execute.
-      if (opts.nonce !== undefined || input.kind === "signable")
-        await warnCompetingTransactions(
-          module,
-          chainId,
-          safe,
-          signable.tx.nonce,
-          signable.safeTxHash,
-        );
     }
-    logSafeSignable(module, signable);
+    // Imported JSON was authored elsewhere: review it like a confirmation.
+    if (input.kind === "signable")
+      await gateSignable(module, signable, opts, "safe:propose", {
+        competing: signable.kind === "transaction",
+      });
+    else if (signable.kind === "transaction" && opts.nonce !== undefined)
+      // An explicit nonce may land on already-queued proposals: say so
+      // before the wallet prompt, since only one can ever execute.
+      logSafeSignable(module, signable, {
+        findings: [
+          ...assessSafeTx(
+            safe,
+            signable.tx,
+            decodeSafeTxCalls(signable),
+            safeDeployment(chainId),
+          ),
+          ...assessCompeting(
+            safe,
+            signable.tx,
+            await competingTransactions(
+              module,
+              chainId,
+              safe,
+              signable.tx.nonce,
+              signable.safeTxHash,
+            ),
+          ),
+        ],
+      });
+    else logSafeSignable(module, signable);
 
     await postToService(module, interpreters, signable, {
       commandName: "safe:propose",

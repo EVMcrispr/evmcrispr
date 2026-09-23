@@ -2,7 +2,7 @@
 title: "@safe:verify"
 ---
 
-Verification report of a Safe transaction or Safe message as JSON: integrity-checked hashes, decoded calls, warnings, owner signature checks, on-chain approvals, readiness and competing transactions.
+Verification report of a Safe transaction or Safe message as JSON: integrity-checked hashes, decoded calls, findings, owner signature checks, on-chain approvals, readiness and competing transactions, with the verdict safe:confirm and safe:execute would reach.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -34,28 +34,43 @@ nonce shared by several queued transactions is an error listing their hashes.
 
 Fields:
 
-- `safeTransaction` or `safeMessage`: the normalized item, with its signatures
-- `typedData`: the EIP-712 typed data owners sign
-- `signingBytes`: the exact bytes an owner Safe signs as a nested owner
-- `hashes`: domain, message and final hashes — compare them with your
-  hardware wallet display
-- `decodedCalls`: calldata decoded with `abi:` and the MultiSend layout; no
-  explorer, selector-registry or ENS lookups, unknown calldata stays
-  `unverified`
-- `warnings`: delegatecalls to anything but MultiSend, custom gas tokens or
-  refund receivers, non-zero gas prices
+Each fact appears once:
+
+- `kind`: `transaction` or `message`, and for a message its `content` (text
+  or EIP-712 typed data)
+- `typedData`: the EIP-712 typed data owners sign. Its `domain` names the
+  Safe and chain, and its `message` holds the transaction's fields; pass it
+  to `sign --typed` to sign with an external signer
+- `hashes`: `domainHash`, `messageHash` and `safeTxHash` (or
+  `safeMessageHash`) — compare them with your hardware wallet display
+- `decodedCalls`: the call tree, decoded with `abi:`, the Safe's own
+  management functions, SafeMigration and the MultiSend layout, with
+  arguments by name. No explorer, selector-registry or ENS lookups: unknown
+  calldata stays `unverified`, and only then is its `data` shown
+- `findings`: each check that fired, its severity (`block` or `notice`), the
+  `--allow-*` option that lifts it and the `values` (addresses or threshold)
+  that option must name: delegatecalls to unknown contracts, owners added or
+  removed, the new threshold, modules enabled, the transaction guard, module
+  guard and fallback handler it sets, gas refunds and competing
+  transactions; notices for SafeMigration upgrades, modules disabled, and
+  nonce or signature problems. Owners, threshold, guards and the handler are
+  compared with the Safe's current state (call by call with `no-rpc:true`)
+- `verdict` (`pass` or `blocked`) and `requires`: what `safe:confirm`,
+  `safe:confirm-onchain`, `safe:confirm-offline` and `safe:execute` would
+  decide, and the options they would need, ready to paste (e.g.
+  `--allow-new-owners 0x… --allow-change-threshold-to 3`)
 - `signatures`: each signer's owner, type and status, plus on-chain
   confirmations. An owner Safe's signature still being collected is
   `incomplete` and shows its `progress` (e.g. `1 of 2`)
-- `packedSignatures`, `chain`, `ready`, `readiness` (`ready`,
+- `packedSignatures`, `chain`, `readiness` (`ready`,
   `insufficient-signatures`, `invalid-signatures`, `future-nonce`,
-  `nonce-consumed`)
+  `nonce-consumed`, or `unchecked` without RPC)
 - `competing`: other safeTxHashes queued at the same nonce — only one can
   execute
 - `skippedConfirmations`: service confirmations that are not EIP-712 owner
   signatures and were not counted
 
-`ready` means the nonce and signatures suffice; it does not guarantee
+A `readiness` of `ready` means the nonce and signatures suffice; it does not guarantee
 execution, funding, or acceptance by a guard. With `no-rpc:true` (JSON only)
 nothing is read from the network: authorization and chain state stay
 `unchecked`. Supplied ABIs describe encoding and do not prove a contract's

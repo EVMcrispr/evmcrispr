@@ -189,32 +189,29 @@ export const getServiceTransactionsByNonce = async (
   return res?.results ?? [];
 };
 
-/** Warn when other queued transactions compete for `nonce`: only one of them
- *  can ever execute, so signing or executing one silently drops the rest. */
-export const warnCompetingTransactions = async (
+/** The safeTxHashes of other trusted transactions queued at `nonce`: only
+ *  one of them can ever execute. `undefined` when the service could not be
+ *  asked. */
+export const competingTransactions = async (
   module: Safe,
   chainId: number,
   safe: Address,
   nonce: bigint,
   safeTxHash?: string,
-): Promise<void> => {
+): Promise<string[] | undefined> => {
   let queued: ServiceTransaction[];
   try {
     queued = await getServiceTransactionsByNonce(module, chainId, safe, nonce);
   } catch {
-    module.context.log(
-      `⚠️ WARNING: could not check the Safe Transaction Service for other transactions queued at nonce ${nonce}`,
-    );
-    return;
+    return undefined;
   }
-  const others = queued.filter(
-    (t) =>
-      !t.isExecuted && t.safeTxHash.toLowerCase() !== safeTxHash?.toLowerCase(),
-  );
-  if (others.length === 0) return;
-  module.context.log(
-    `⚠️ WARNING: ${others.length} other transaction${others.length === 1 ? " is" : "s are"} queued at nonce ${nonce} — only one can execute:\n${others.map((t) => `  ${t.safeTxHash}`).join("\n")}`,
-  );
+  return queued
+    .filter(
+      (t) =>
+        !t.isExecuted &&
+        t.safeTxHash.toLowerCase() !== safeTxHash?.toLowerCase(),
+    )
+    .map((t) => t.safeTxHash);
 };
 
 export const serviceTxToSafeTx = (serviceTx: ServiceTransaction): SafeTx => ({

@@ -13,8 +13,9 @@ import {
   getThreshold,
   preValidatedSignature,
   safeAbi,
-  warnCompetingTransactions,
 } from "../utils";
+import { ALLOW_OPTS } from "../utils/assess";
+import { gateSignable } from "../utils/gate";
 import { resolveOwnerPath, signsAlone, signThrough } from "../utils/nested";
 import { logSafeSignable } from "../utils/sign";
 import {
@@ -54,6 +55,7 @@ export default defineCommand<Safe>({
       description:
         "Owner Safe to confirm through, when you own several owner Safes",
     },
+    ...ALLOW_OPTS,
   ],
   async run(module, { safe, target }, { opts, interpreters }) {
     const chainId = await module.getChainId();
@@ -75,24 +77,11 @@ export default defineCommand<Safe>({
       input.kind === "signable"
         ? input.signable
         : (await fetchQueuedSignable(module, chainId, safe, input)).signable;
-    if (input.kind === "txHash" && signable.kind === "transaction")
-      await warnCompetingTransactions(
-        module,
-        chainId,
-        safe,
-        signable.tx.nonce,
-        signable.safeTxHash,
-      );
-    logSafeSignable(module, signable);
+    // The review refuses a consumed nonce along with the other checks.
+    await gateSignable(module, signable, opts, "safe:confirm-onchain", {
+      competing: input.kind === "txHash",
+    });
     const hash = signableHashes(signable).finalHash;
-
-    if (signable.kind === "transaction") {
-      const current = await getSafeNonce(client, safe);
-      if (signable.tx.nonce < current)
-        throw new ErrorException(
-          `Safe transaction nonce ${signable.tx.nonce} was already consumed (current on-chain nonce ${current})`,
-        );
-    }
 
     // approveHash counts for whoever sends it: the connected account, or an
     // enclosing Safe's block — directly or through an owner Safe.

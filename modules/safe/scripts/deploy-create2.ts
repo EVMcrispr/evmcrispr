@@ -21,6 +21,7 @@ import MultiSend from "@safe-global/safe-smart-account/build/artifacts/contracts
 import MultiSendCallOnly from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/MultiSendCallOnly.sol/MultiSendCallOnly.json";
 import SafeMigration from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/SafeMigration.sol/SafeMigration.json";
 import SafeToL2Setup from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/SafeToL2Setup.sol/SafeToL2Setup.json";
+import SignMessageLib from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/SignMessageLib.sol/SignMessageLib.json";
 import SafeProxyFactory from "@safe-global/safe-smart-account/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json";
 import Safe from "@safe-global/safe-smart-account/build/artifacts/contracts/Safe.sol/Safe.json";
 import SafeL2 from "@safe-global/safe-smart-account/build/artifacts/contracts/SafeL2.sol/SafeL2.json";
@@ -57,6 +58,7 @@ const CONTRACTS: { name: string; bytecode: Hex }[] = [
   { name: "MultiSend", bytecode: MultiSend.bytecode as Hex },
   { name: "MultiSendCallOnly", bytecode: MultiSendCallOnly.bytecode as Hex },
   { name: "SafeToL2Setup", bytecode: SafeToL2Setup.bytecode as Hex },
+  { name: "SignMessageLib", bytecode: SignMessageLib.bytecode as Hex },
   {
     name: "SafeMigration",
     bytecode: concatHex([

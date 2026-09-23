@@ -28,9 +28,21 @@ import {
   toFunctionSelector,
   toHex,
 } from "viem";
-import { safeDeployment } from "../addresses";
 import {
-  collectSafeTxWarnings,
+  FALLBACK_HANDLER_STORAGE_SLOT,
+  GUARD_STORAGE_SLOT,
+  MODULE_GUARD_STORAGE_SLOT,
+  safeDeployment,
+} from "../addresses";
+import {
+  assessReviewState,
+  assessSafeTx,
+  type DecodedCall,
+  SAFE_SELF_ABI,
+  type SafeState,
+  transferLabel,
+} from "./assess";
+import {
   getSafeTxHashes,
   looksLikeTypedData,
   SAFE_MESSAGE_TYPE,
@@ -44,6 +56,7 @@ import {
 } from "./offline";
 import {
   assertSafeVersion,
+  getGuard,
   getOwners,
   getSafeNonce,
   getThreshold,
@@ -565,6 +578,121 @@ export async function isValidContractSignature(
     return false;
   }
 }
+/** A Safe transaction's calls, decoded locally: with the supplied ABIs, the
+ *  Safe's own management functions, SafeMigration and the MultiSend layout.
+ *  No explorer or selector-registry lookups; the rest stays `unverified`. */
+export function decodeSafeTxCalls(
+  signable: Extract<SafeSignable, { kind: "transaction" }>,
+  abis: Record<string, Abi> = {},
+): DecodedCall[] {
+  function decodeCall(
+    to: Address,
+    value: bigint,
+    data: Hex,
+    operation: number,
+    depth = 0,
+  ): DecodedCall {
+    const abi = Object.entries(abis).find(
+      ([a]) => a.toLowerCase() === to.toLowerCase(),
+    )?.[1];
+    let decoded: DecodedCall["decoded"] =
+      data === "0x"
+        ? {
+            status: "transfer",
+            label: transferLabel(signable.safe, to, value, depth === 0),
+          }
+        : { status: "unverified" };
+    if (abi) {
+      try {
+        decoded = {
+          status: "decoded",
+          source: "supplied-abi",
+          ...decodeLocalCall(abi, data),
+        };
+      } catch (e) {
+        decoded = { status: "unverified", reason: (e as Error).message };
+      }
+    } else if (
+      data !== "0x" &&
+      operation === 0 &&
+      isAddressEqual(to, signable.safe)
+    ) {
+      try {
+        decoded = {
+          status: "decoded",
+          source: "safe",
+          ...decodeLocalCall(SAFE_SELF_ABI, data),
+        };
+      } catch {}
+    }
+    const deployment = safeDeployment(signable.chainId);
+    if (operation === 1 && isAddressEqual(to, deployment.migration)) {
+      const method = MIGRATION_METHODS.find(
+        (m) => toFunctionSelector(`${m}()`) === data,
+      );
+      if (method)
+        decoded = {
+          status: "decoded",
+          source: "safe-migration",
+          signature: `${method}()`,
+        };
+    }
+    if (
+      depth < 8 &&
+      operation === 1 &&
+      [deployment.multiSend, deployment.multiSendCallOnly].some(
+        (a) => a.toLowerCase() === to.toLowerCase(),
+      )
+    ) {
+      try {
+        const {
+          args: [packed],
+        } = decodeFunctionData({
+          abi: parseAbi(["function multiSend(bytes transactions)"]),
+          data,
+        });
+        const calls: DecodedCall[] = [];
+        let offset = 0;
+        while (offset < size(packed)) {
+          if (size(packed) - offset < 85)
+            throw new Error("truncated MultiSend entry");
+          const op = Number(BigInt(sliceHex(packed, offset, offset + 1)));
+          const target = getAddress(sliceHex(packed, offset + 1, offset + 21));
+          const amount = BigInt(sliceHex(packed, offset + 21, offset + 53));
+          const length = BigInt(sliceHex(packed, offset + 53, offset + 85));
+          if (op > 1 || length > BigInt(size(packed) - offset - 85))
+            throw new Error("invalid MultiSend entry");
+          calls.push(
+            decodeCall(
+              target,
+              amount,
+              // sliceHex refuses an empty slice at the very end.
+              length === 0n
+                ? "0x"
+                : sliceHex(packed, offset + 85, offset + 85 + Number(length)),
+              op,
+              depth + 1,
+            ),
+          );
+          offset += 85 + Number(length);
+        }
+        decoded = { status: "decoded", signature: "multiSend(bytes)", calls };
+      } catch (e) {
+        decoded = { status: "unverified", reason: (e as Error).message };
+      }
+    }
+    return { to, value, data, operation, decoded };
+  }
+  return [
+    decodeCall(
+      signable.tx.to,
+      signable.tx.value,
+      signable.tx.data,
+      signable.tx.operation,
+    ),
+  ];
+}
+
 export async function reviewSafeSignable(
   input: SafeSignable | string,
   client?: PublicClient,
@@ -600,6 +728,7 @@ export async function reviewSafeSignable(
   let readiness = "unchecked";
   let packedSignatures = packSignableSigners(packed);
   let executorSigned = false;
+  let safeState: SafeState | undefined;
   if (client) {
     const version = await assertSafeVersion(client, signable.safe);
     const [owners, threshold, nonce] = await Promise.all([
@@ -609,6 +738,22 @@ export async function reviewSafeSignable(
         ? getSafeNonce(client, signable.safe)
         : undefined,
     ]);
+    if (signable.kind === "transaction") {
+      const [guard, moduleGuard, fallbackHandler] = await Promise.all(
+        [
+          GUARD_STORAGE_SLOT,
+          MODULE_GUARD_STORAGE_SLOT,
+          FALLBACK_HANDLER_STORAGE_SLOT,
+        ].map((slot) => getGuard(client, signable.safe, slot)),
+      );
+      safeState = {
+        owners,
+        threshold,
+        guard,
+        "module-guard": moduleGuard,
+        "fallback-handler": fallbackHandler,
+      };
+    }
     chain = {
       status: "verified",
       version,
@@ -697,95 +842,21 @@ export async function reviewSafeSignable(
     packedSignatures = packSignableSigners(used);
     executorSigned = !!executorApproval && used.includes(executorApproval);
   }
-  const decodedCalls: unknown[] = [];
-  function decodeCall(
-    to: Address,
-    value: bigint,
-    data: Hex,
-    operation: number,
-    depth = 0,
-  ): unknown {
-    const abi = Object.entries(abis).find(
-      ([a]) => a.toLowerCase() === to.toLowerCase(),
-    )?.[1];
-    let decoded: unknown = {
-      status: data === "0x" ? "transfer" : "unverified",
-    };
-    if (abi) {
-      try {
-        decoded = {
-          status: "decoded",
-          source: "supplied-abi",
-          ...decodeLocalCall(abi, data),
-        };
-      } catch (e) {
-        decoded = { status: "unverified", reason: (e as Error).message };
-      }
-    }
-    const deployment = safeDeployment(signable.chainId);
-    if (operation === 1 && isAddressEqual(to, deployment.migration)) {
-      const method = MIGRATION_METHODS.find(
-        (m) => toFunctionSelector(`${m}()`) === data,
-      );
-      if (method)
-        decoded = {
-          status: "decoded",
-          source: "safe-migration",
-          signature: `${method}()`,
-        };
-    }
-    if (
-      depth < 8 &&
-      operation === 1 &&
-      [deployment.multiSend, deployment.multiSendCallOnly].some(
-        (a) => a.toLowerCase() === to.toLowerCase(),
-      )
-    ) {
-      try {
-        const {
-          args: [packed],
-        } = decodeFunctionData({
-          abi: parseAbi(["function multiSend(bytes transactions)"]),
-          data,
-        });
-        const calls: unknown[] = [];
-        let offset = 0;
-        while (offset < size(packed)) {
-          if (size(packed) - offset < 85)
-            throw new Error("truncated MultiSend entry");
-          const op = Number(BigInt(sliceHex(packed, offset, offset + 1)));
-          const target = getAddress(sliceHex(packed, offset + 1, offset + 21));
-          const amount = BigInt(sliceHex(packed, offset + 21, offset + 53));
-          const length = BigInt(sliceHex(packed, offset + 53, offset + 85));
-          if (op > 1 || length > BigInt(size(packed) - offset - 85))
-            throw new Error("invalid MultiSend entry");
-          calls.push(
-            decodeCall(
-              target,
-              amount,
-              sliceHex(packed, offset + 85, offset + 85 + Number(length)),
-              op,
-              depth + 1,
-            ),
-          );
-          offset += 85 + Number(length);
-        }
-        decoded = { status: "decoded", signature: "multiSend(bytes)", calls };
-      } catch (e) {
-        decoded = { status: "unverified", reason: (e as Error).message };
-      }
-    }
-    return { to, value, data, operation, decoded };
-  }
-  if (signable.kind === "transaction")
-    decodedCalls.push(
-      decodeCall(
-        signable.tx.to,
-        signable.tx.value,
-        signable.tx.data,
-        signable.tx.operation,
-      ),
-    );
+  const decodedCalls =
+    signable.kind === "transaction" ? decodeSafeTxCalls(signable, abis) : [];
+  const state = { readiness, chain, signatures: checks };
+  const findings = [
+    ...(signable.kind === "transaction"
+      ? assessSafeTx(
+          signable.safe,
+          signable.tx,
+          decodedCalls,
+          safeDeployment(signable.chainId),
+          safeState,
+        )
+      : []),
+    ...assessReviewState(state),
+  ];
   return {
     [signable.kind === "message" ? "safeMessage" : "safeTransaction"]: signable,
     typedData: signableTypedData(signable),
@@ -799,9 +870,6 @@ export async function reviewSafeSignable(
     chain,
     ready,
     readiness,
-    warnings:
-      signable.kind === "transaction"
-        ? collectSafeTxWarnings(signable.tx, safeDeployment(signable.chainId))
-        : [],
+    findings,
   };
 }

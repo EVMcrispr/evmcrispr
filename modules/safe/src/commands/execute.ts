@@ -6,16 +6,15 @@ import {
   assertSafeVersion,
   buildSafeTx,
   classifySafeInput,
-  collectSafeTxWarnings,
   encodeExecTransaction,
   fetchQueuedSignable,
-  formatSafeTxHashesLog,
   getSafeNonce,
-  getSafeTxHashes,
   interpretSafeBlock,
   smartPlanFor,
-  warnCompetingTransactions,
 } from "../utils";
+import { ALLOW_OPTS } from "../utils/assess";
+import { gateSignable } from "../utils/gate";
+import { logSafeSignable } from "../utils/sign";
 import {
   expectKind,
   reviewSafeSignable,
@@ -57,6 +56,7 @@ export default defineCommand<Safe>({
       description:
         "Gas limit of the execTransaction call, for calls the RPC cannot estimate (e.g. cross-chain ones)",
     },
+    ...ALLOW_OPTS,
   ],
   async run(module, { safe, proposal }, { opts, interpreters }) {
     const chainId = await module.getChainId();
@@ -91,13 +91,6 @@ export default defineCommand<Safe>({
           `Safe transaction ${input.hash} has already been executed`,
         );
       expectKind(signable, "transaction");
-      await warnCompetingTransactions(
-        module,
-        chainId,
-        safe,
-        signable.tx.nonce,
-        signable.safeTxHash,
-      );
       queued = signable;
     }
 
@@ -130,28 +123,27 @@ export default defineCommand<Safe>({
       );
     const executor = await module.getConnectedAccount(true);
     const signable = imported ?? transactionSignable(chainId, safe, tx);
-    const report = await reviewSafeSignable(signable, client, {}, executor);
+    expectKind(signable, "transaction");
+    // A queued or imported transaction was authored elsewhere: it is
+    // reviewed, and refused on blocking findings, before it is sent.
+    const report = imported
+      ? await gateSignable(module, signable, opts, "safe:execute", {
+          competing: input.kind === "txHash",
+          executor,
+        })
+      : await reviewSafeSignable(signable, client, {}, executor);
     if (!report.ready)
       throw new ErrorException(
         `Safe transaction is not ready: ${report.readiness} (current on-chain nonce ${report.chain.nonce}; ${report.signatures.filter((s) => s.status === "valid").length} of ${report.chain.threshold} required owner signatures)${report.readiness === "insufficient-signatures" ? "; collect signatures with safe:confirm or safe:confirm-offline, or on-chain confirmations with safe:confirm-onchain" : ""}`,
       );
-    const hashes = getSafeTxHashes(chainId, safe, tx);
-    module.context.log(
-      formatSafeTxHashesLog(
-        safe,
-        chainId,
-        tx,
-        hashes,
-        collectSafeTxWarnings(tx, safeDeployment(chainId)),
-      ),
-    );
+    if (!imported) logSafeSignable(module, signable);
     return [
       {
         ...encodeExecTransaction(
           safe,
           tx,
           report.packedSignatures,
-          hashes.safeTxHash,
+          signable.safeTxHash,
         ),
         ...(report.executorSigned ? { from: executor } : {}),
         ...(opts.gas !== undefined ? { gas: BigInt(opts.gas) } : {}),

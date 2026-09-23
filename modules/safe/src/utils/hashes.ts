@@ -6,11 +6,8 @@ import {
   hashMessage,
   hashStruct,
   hashTypedData,
-  isAddressEqual,
   keccak256,
-  zeroAddress,
 } from "viem";
-import { CANONICAL_DEPLOYMENT, type SafeDeployment } from "../addresses";
 import type { SafeTx } from "./safeTx";
 import { getSafeDomain, SAFE_DOMAIN_TYPE, SAFE_TX_TYPE } from "./safeTx";
 
@@ -120,47 +117,6 @@ export const getSafeMessageHashes = (
   };
 };
 
-/**
- * Red flags a signer should review before approving, ported from
- * pcaversaccio/safe-tx-hashes-util.
- */
-export const collectSafeTxWarnings = (
-  tx: SafeTx,
-  deployment: SafeDeployment = CANONICAL_DEPLOYMENT,
-): string[] => {
-  const warnings: string[] = [];
-  const trustedDelegate =
-    isAddressEqual(tx.to, deployment.multiSend) ||
-    isAddressEqual(tx.to, deployment.multiSendCallOnly) ||
-    isAddressEqual(tx.to, deployment.migration);
-  if (tx.operation === 1 && !trustedDelegate) {
-    warnings.push(
-      `this transaction DELEGATECALLs ${tx.to}, which is not a known MultiSend or SafeMigration contract; a delegatecall can take over the Safe — do not sign unless you fully trust that contract`,
-    );
-  }
-  const customGasToken = !isAddressEqual(tx.gasToken, zeroAddress);
-  const customRefundReceiver = !isAddressEqual(tx.refundReceiver, zeroAddress);
-  if (customGasToken && customRefundReceiver) {
-    warnings.push(
-      `this transaction pays a gas refund in a custom token (${tx.gasToken}) to a custom receiver (${tx.refundReceiver}) — a known pattern for hidden value extraction; verify gasPrice and baseGas carefully`,
-    );
-  } else if (customGasToken) {
-    warnings.push(
-      `this transaction uses a custom gas token (${tx.gasToken}) for refunds`,
-    );
-  } else if (customRefundReceiver) {
-    warnings.push(
-      `this transaction sends the gas refund to a custom receiver (${tx.refundReceiver})`,
-    );
-  }
-  if (tx.gasPrice > 0n) {
-    warnings.push(
-      `this transaction has a non-zero gasPrice (${tx.gasPrice}): the Safe will pay a refund to the executor when it runs`,
-    );
-  }
-  return warnings;
-};
-
 const truncateData = (data: `0x${string}`): string => {
   const bytes = (data.length - 2) / 2;
   return data.length > 202
@@ -177,7 +133,7 @@ export const formatSafeTxHashesLog = (
   chainId: number,
   tx: SafeTx,
   hashes: SafeTxHashes,
-  warnings: string[],
+  findingLines: string[] = [],
 ): string => {
   const lines = [
     `Safe transaction (safe ${safe}, chain ${chainId}, nonce ${tx.nonce})`,
@@ -194,7 +150,7 @@ export const formatSafeTxHashesLog = (
     `  Domain hash:     ${hashes.domainHash}`,
     `  Message hash:    ${hashes.messageHash}`,
     `  safeTxHash:      ${hashes.safeTxHash}`,
-    ...warnings.map((w) => `  ⚠️ WARNING: ${w}`),
+    ...findingLines,
   ];
   return lines.join("\n");
 };

@@ -191,6 +191,7 @@ describe("Safe signables", () => {
       threshold = 2n,
       version = "1.3.0";
     const client = {
+      getStorageAt: async () => `0x${"0".repeat(64)}`,
       readContract: async (r: any) => {
         if (r.functionName === "isValidSignature") {
           // Below 1.5.0 owner Safes get the preimage; from 1.5.0 the hash.

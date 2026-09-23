@@ -7,11 +7,11 @@ import {
   classifySafeInput,
   fetchQueuedSignable,
   safeAbi,
-  warnCompetingTransactions,
 } from "../utils";
+import { ALLOW_OPTS } from "../utils/assess";
+import { gateSignable } from "../utils/gate";
 import { resolveOwnerPath } from "../utils/nested";
 import { confirmThroughPath } from "../utils/queue";
-import { logSafeSignable } from "../utils/sign";
 import { kindLabel, signableHashes, signableSigners } from "../utils/signables";
 
 export default defineCommand<Safe>({
@@ -44,6 +44,7 @@ export default defineCommand<Safe>({
       description:
         "Owner Safe to confirm through, when you own several owner Safes",
     },
+    ...ALLOW_OPTS,
   ],
   async run(module, { safe, hash }, { opts, interpreters }) {
     const chainId = await module.getChainId();
@@ -65,15 +66,9 @@ export default defineCommand<Safe>({
       throw new ErrorException(
         `Safe transaction ${input.hash} has already been executed`,
       );
-    if (signable.kind === "transaction")
-      await warnCompetingTransactions(
-        module,
-        chainId,
-        safe,
-        signable.tx.nonce,
-        signable.safeTxHash,
-      );
-    logSafeSignable(module, signable);
+    await gateSignable(module, signable, opts, "safe:confirm", {
+      competing: true,
+    });
     const path = await resolveOwnerPath(
       module,
       safe,

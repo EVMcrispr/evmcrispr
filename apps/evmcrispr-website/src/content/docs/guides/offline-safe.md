@@ -24,12 +24,16 @@ placeholders. Each code block is a separate script, unless stated otherwise.
 | Step | Command | Result |
 |---|---|---|
 | Propose | [`safe:propose-offline $tx <safe> <block \| cancel \| "message">`](/reference/safe/commands/propose-offline/) | Unsigned JSON in `$tx`. No wallet needed. |
-| Review | [`@safe:verify(<safe> $tx)`](/reference/safe/helpers/verify/) | The hashes, decoded calls, authorization and warnings, as JSON. |
-| Confirm | [`safe:confirm-offline $tx <safe> <$tx \| safeTxHash>`](/reference/safe/commands/confirm-offline/) | The JSON with your signature added. |
+| Confirm | [`safe:confirm-offline $tx <safe> <$tx \| safeTxHash>`](/reference/safe/commands/confirm-offline/) | The JSON with your signature added, after reviewing it. |
 | Combine | [`@safe:merge($a $b …)`](/reference/safe/helpers/merge/) | One JSON with the signatures of copies signed in parallel. |
 | Confirm on-chain | [`safe:confirm-onchain <safe> $tx`](/reference/safe/commands/confirm-onchain/) | An `approveHash` transaction; nothing to exchange. |
 | Execute | [`safe:execute <safe> $tx`](/reference/safe/commands/execute/) | The transaction, executed. |
 | Hand to a dapp | [`@safe:signature(<safe> $msg)`](/reference/safe/helpers/signature/) | The packed owner signatures of a Safe message. |
+
+[`@safe:verify(<safe> $tx)`](/reference/safe/helpers/verify/) is not a step
+of its own. It works on JSON as well as on queued transactions, and returns
+the review that the confirm and execute commands already run, without
+signing anything.
 
 ## User flows
 
@@ -41,7 +45,7 @@ placeholders. Each code block is a separate script, unless stated otherwise.
 | 4 | Owner Safes | `confirm-offline`, run by each owner of the owner Safe | [Owner Safes](#owner-safes) |
 | 5 | Signing a message for a dapp | `propose-offline $msg "text"` → `confirm-offline $msg $msg` → `@safe:signature` | [Sign messages](#sign-messages-offline) |
 | 6 | Cancelling a pending transaction | `propose-offline $r cancel --nonce <n>`, then flow 1 or 2 | [Cancel](#cancel-offline) |
-| 7 | Air-gapped review | `@safe:verify($safe $tx no-rpc:true)` | [Review and sign](#review-and-sign) |
+| 7 | Air-gapped review | `@safe:verify($safe $tx no-rpc:true)` | [Review without signing](#review-without-signing) |
 
 ## Prepare a Safe transaction
 
@@ -96,8 +100,8 @@ Simulation uses the same supplied input.
 
 ## Review and sign
 
-Each owner loads the Safe transaction into `$tx`, reviews it, and adds a
-signature with `safe:confirm-offline`. Save this as `sign.evml`:
+Each owner loads the Safe transaction into `$tx` and adds a signature with
+`safe:confirm-offline`. Save this as `sign.evml`:
 
 ```evml
 load safe
@@ -106,15 +110,27 @@ load http [@fetch]
 set $safe 0x1111111111111111111111111111111111111111
 set $tx @fetch(stdin:)
 
-print @safe:verify($safe $tx)
 safe:confirm-offline $tx $safe $tx
 print $tx
 ```
 
-Compare the hashes in the report with what your wallet displays before
-confirming on the device; the
-[Safe guide](/guides/safe/#check-the-hashes-before-you-sign) explains what
-each one means. From the CLI, sign with an external signing provider:
+`safe:confirm-offline` reviews the JSON before your wallet prompts, the same
+way `safe:confirm` reviews a queued transaction. It recomputes the domain
+hash, message hash and safeTxHash from the JSON and prints them: compare
+them with what your wallet displays before confirming on the device. It also
+checks every call, and refuses on a blocking finding, such as a delegatecall
+to an unknown contract, a gas refund, or a change of owners, threshold,
+modules, guards or the fallback handler. It goes ahead only once you name
+what you reviewed. The refusal ends with the options to paste, for example
+`--allow-new-owners 0x3333333333333333333333333333333333333333 --allow-change-threshold-to 3`.
+Because the options name the new owners, threshold, guards and targets,
+they do not cover a JSON file that was changed after you reviewed it. The
+[Safe guide](/guides/safe/#what-evmcrispr-checks-before-you-sign) lists the
+findings and their options. The other transactions queued at the same nonce
+are only known to the Safe Transaction Service, so they are checked when
+you export a queued transaction by its safeTxHash, not for JSON.
+
+From the CLI, sign with an external signing provider:
 
 ```sh
 cat transaction.json | evmcrispr --experimental run sign.evml --wallet-rpc http://127.0.0.1:8545 --account 0x1111111111111111111111111111111111111111 > signed.json
@@ -125,10 +141,31 @@ connected wallet instead. RPC reads use the `EVMCRISPR_RPC_URL` and per-chain
 settings in the CLI, and the chain configuration in the terminal.
 
 Owners can sign one after another, each passing on the JSON they received
-plus their signature, or in parallel from the same unsigned file. For a
-strictly air-gapped review, pass `no-rpc:true` to `@safe:verify`. It makes no
-network calls; ownership, threshold, and nonce are then reported as
-unchecked.
+plus their signature, or in parallel from the same unsigned file.
+
+### Review without signing
+
+To inspect the JSON before anyone signs, for example on a machine without a
+wallet, [`@safe:verify`](/reference/safe/helpers/verify/) returns the same
+review as JSON: hashes, decoded calls, findings, signatures, readiness, and
+a `verdict` with the options a signing command would need under
+`requires`:
+
+```evml
+load safe
+load http [@fetch]
+
+set $safe 0x1111111111111111111111111111111111111111
+set $tx @fetch(stdin:)
+
+print @safe:verify($safe $tx)
+```
+
+For a strictly air-gapped review, pass `no-rpc:true`. It makes no network
+calls; ownership, threshold, and nonce are then reported as unchecked.
+Without the Safe's current state, owner, threshold, guard and handler
+changes are reported call by call, not by what they leave the Safe as, so
+`requires` can list a threshold or guard that is already set.
 
 ## Combine and execute
 
@@ -185,7 +222,8 @@ execute a rejection at the same nonce.
 Signed JSON can be handed to the Safe web app at any point.
 `safe:propose $safe $tx` posts it: its first owner signature proposes it and
 the rest become confirmations, with no wallet prompt, so a non-owner can post
-owner-signed JSON. In the other direction,
+owner-signed JSON. It reviews the JSON first, like `safe:confirm-offline`,
+and also checks the service for other transactions queued at its nonce. In the other direction,
 `safe:confirm-offline $tx $safe <safeTxHash>` exports a queued transaction
 with its confirmations plus your signature:
 
