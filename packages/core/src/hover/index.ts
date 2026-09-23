@@ -23,9 +23,11 @@ import { isAddress } from "viem";
 import type { EvmlAST } from "../EvmlAST";
 import { collectLineDeclaredErrors } from "../errors/declarations";
 import {
+  builtinCaptureError,
   declarationsNamed,
   editorErrorContext,
   editorSchemas,
+  formatBuiltinErrorCard,
   formatDeclaredErrorCard,
   formatDeclaredErrorsSection,
 } from "../errors/editor";
@@ -678,16 +680,30 @@ export async function getHoverInfo(
   const commandNode = ast.getCommandAtLine(position.line);
   if (!commandNode) return null;
 
-  // --- a name captured with `-!>` / `-?!>` ---
-  // The declarations the line can raise: the command's own, then those of
-  // every helper reachable in its arguments and options. A name several of
-  // them declare with different signatures gets one card per signature —
-  // the bare name is ambiguous and the script must spell one out.
+  // --- a name captured with one of the four capture arrows ---
+  // The clause's timing picks the source, exactly as the resolver does. A
+  // refusal (`-/>`, `-?/>`) names a declaration of the line: the command's
+  // own, then those of every helper reachable in its arguments and options;
+  // a name several of them declare with different signatures gets one card
+  // per signature — the bare name is ambiguous and the script must spell one
+  // out. A revert (`-!>`, `-?!>`) names a Solidity builtin; a contract's own
+  // custom errors have no offline card yet, and a declared name under a
+  // revert arrow is a mistake the analyzer already reports.
   const capture = commandNode.errorCaptures?.find(
     (e) =>
       e.errorName === token.value && isInside(e, position.line, position.col),
   );
   if (capture) {
+    if (capture.timing === "revert") {
+      const builtin = builtinCaptureError(token.value);
+      return builtin
+        ? {
+            contents: [
+              formatBuiltinErrorCard(builtin.abi, builtin.description),
+            ],
+          }
+        : null;
+    }
     const { lookup } = editorErrorContext(ast.body, moduleCache);
     const declared = await collectLineDeclaredErrors(commandNode, lookup);
     const cards = declarationsNamed(declared, token.value).map(

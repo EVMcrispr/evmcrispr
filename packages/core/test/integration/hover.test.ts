@@ -237,6 +237,27 @@ describe("Core > hover", () => {
       expect(authErr!.contents.join("\n")).to.include("$authErr");
     });
 
+    it("seeds capture slots and flags under every capture arrow", async () => {
+      // Seeding is a property of the clause, not of its timing: all four
+      // arrows bind their destructure slot and their bool flag.
+      for (const arrow of ["-/>", "-?/>", "-!>", "-?!>"]) {
+        const script = [
+          `exec $contract transfer(uint) 100 ${arrow} Boom(uint) [$slot]`,
+          `exec $contract approve(address,uint) $spender 1 ${arrow} $flag`,
+          "print $slot",
+          "print $flag",
+        ].join("\n");
+        const evm = ctx.createWorkspace();
+        await evm.prewarm(script);
+        const slot = await evm.getHoverInfo(script, { line: 3, col: 8 });
+        const flag = await evm.getHoverInfo(script, { line: 4, col: 8 });
+        expect(slot, `${arrow} slot`).to.not.be.null;
+        expect(slot!.contents.join("\n")).to.include("$slot");
+        expect(flag, `${arrow} flag`).to.not.be.null;
+        expect(flag!.contents.join("\n")).to.include("$flag");
+      }
+    });
+
     it("appends the address card under @token(...) when used as a direct arg to a non-binding command", async () => {
       // Regression: previously the prewarm walker only visited
       // `load`/`set`/`switch` commands, so helpers used as direct args to
@@ -591,6 +612,10 @@ describe("Core > hover", () => {
         "A part is worth less than the minimum order value",
       );
       expect(text).to.include("SameToken()");
+      // Declarations are refusals: the card points at the refusal arrows.
+      expect(text).to.include("-/>");
+      expect(text).to.include("-?/>");
+      expect(text).to.not.include("-!>");
     });
 
     it("lists a helper's declared errors on its card", async () => {
@@ -604,6 +629,8 @@ describe("Core > hover", () => {
       expect(text).to.include("**Errors**");
       expect(text).to.include("NoExplorer(uint256)");
       expect(text).to.include("The chain has no supported explorer");
+      expect(text).to.include("-/>");
+      expect(text).to.not.include("-!>");
     });
 
     it("leaves a card without declarations unchanged", async () => {
@@ -613,7 +640,7 @@ describe("Core > hover", () => {
     });
 
     it("describes a captured name declared by the command", async () => {
-      const script = "load coretest\ncoretest:risky -!> BelowMinimum [$min]";
+      const script = "load coretest\ncoretest:risky -/> BelowMinimum [$min]";
       const result = await ctx.hover(script, {
         line: 2,
         col: colOf(script, 2, "BelowMinimum"),
@@ -631,8 +658,8 @@ describe("Core > hover", () => {
       expect(text).to.include("uint256");
     });
 
-    it("describes a captured name declared by a helper, under either arrow", async () => {
-      for (const arrow of ["-!>", "-?!>"]) {
+    it("describes a captured name declared by a helper, under either refusal arrow", async () => {
+      for (const arrow of ["-/>", "-?/>"]) {
         const script = `load coretest\ncoretest:risky @coretest:hfail() ${arrow} NoExplorer`;
         const result = await ctx.hover(script, {
           line: 2,
@@ -648,10 +675,10 @@ describe("Core > hover", () => {
 
     it("shows every declaration of an ambiguous captured name", async () => {
       const script =
-        "load coretest\ncoretest:risky @coretest:hfail() -!> Shared";
+        "load coretest\ncoretest:risky @coretest:hfail() -/> Shared";
       const result = await ctx.hover(script, {
         line: 2,
-        col: colOf(script, 2, "-!> Shared") + 4,
+        col: colOf(script, 2, "-/> Shared") + 4,
       });
       expect(result).to.not.be.null;
       const text = result!.contents.join("\n");
@@ -681,7 +708,7 @@ describe("Core > hover", () => {
         .with({ chainId: gnosis.id, transports })
         .workspace();
       const script =
-        "load coretest\ncoretest:risky @coretest:hfail() -!> NoExplorer";
+        "load coretest\ncoretest:risky @coretest:hfail() -/> NoExplorer";
       const position = {
         line: 2,
         col: colOf(script, 2, "NoExplorer"),
@@ -710,10 +737,64 @@ describe("Core > hover", () => {
     });
 
     it("returns nothing for a name no declaration covers", async () => {
-      const script = "load coretest\ncoretest:risky -!> Whatever";
+      const script = "load coretest\ncoretest:risky -/> Whatever";
       const result = await ctx.hover(script, {
         line: 2,
         col: colOf(script, 2, "Whatever"),
+      });
+      expect(result).to.be.null;
+    });
+
+    it("describes a Solidity builtin captured under either revert arrow", async () => {
+      for (const arrow of ["-!>", "-?!>"]) {
+        const script = `exec $contract transfer(uint) 100 ${arrow} Error(string) [$reason]`;
+        const result = await ctx.hover(script, {
+          line: 1,
+          col: colOf(script, 1, "Error(string)"),
+        });
+        expect(result, `no builtin card after ${arrow}`).to.not.be.null;
+        const text = result!.contents.join("\n");
+        expect(text).to.include("**Error**");
+        expect(text).to.include("Error(string)");
+        expect(text).to.include(
+          "The reason string of a failed `require` / `revert`",
+        );
+        expect(text).to.include("reason");
+        expect(text).to.include("string");
+      }
+    });
+
+    it("describes Panic captured under a revert arrow", async () => {
+      const script = "exec $contract transfer(uint) 100 -!> Panic(uint256)";
+      const result = await ctx.hover(script, {
+        line: 1,
+        col: colOf(script, 1, "Panic(uint256)"),
+      });
+      expect(result).to.not.be.null;
+      const text = result!.contents.join("\n");
+      expect(text).to.include("Panic(uint256)");
+      expect(text).to.include("panic code");
+      expect(text).to.include("code");
+    });
+
+    it("returns nothing for a contract or unknown name under a revert arrow", async () => {
+      for (const clause of ["NotEnough(uint256,uint256)", "Whatever"]) {
+        const script = `exec $contract transfer(uint) 100 -!> ${clause}`;
+        const result = await ctx.hover(script, {
+          line: 1,
+          col: colOf(script, 1, clause),
+        });
+        expect(result, clause).to.be.null;
+      }
+    });
+
+    it("returns nothing for a declared name under a revert arrow", async () => {
+      // The analyzer already flags this as a refusal captured with the
+      // wrong arrow; hover adds nothing.
+      const script = "load coretest\ncoretest:risky -!> BelowMinimum";
+      const result = await ctx.hover(script, {
+        line: 2,
+        col: colOf(script, 2, "BelowMinimum"),
       });
       expect(result).to.be.null;
     });

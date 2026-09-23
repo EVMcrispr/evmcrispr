@@ -254,6 +254,9 @@ export const createLanguage: (
       // Before the plain `::` rule, so a read hop colours as one token.
       { regex: /::!/, action: { token: "operator" } },
       { regex: /::/, action: { token: "operator" } },
+      // Longest first: `-?/>` must not tokenize as `-?` plus `/>`.
+      { regex: /-\?\/>/, action: { token: "operator" } },
+      { regex: /-\/>/, action: { token: "operator" } },
       { regex: /-\?!>/, action: { token: "operator" } },
       { regex: /-!>/, action: { token: "operator" } },
       { regex: /->/, action: { token: "operator" } },

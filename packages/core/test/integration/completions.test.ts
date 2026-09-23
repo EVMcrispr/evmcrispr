@@ -169,8 +169,8 @@ describe("Core > completions", () => {
     const labelsOf = async (script: string, line: number) =>
       (await ctx.completions(script, endOf(script, line))).map((c) => c.label);
 
-    it("offers the command's declared errors after -!>", async () => {
-      const script = "load coretest\ncoretest:risky -!> ";
+    it("offers the command's declared errors after -/>", async () => {
+      const script = "load coretest\ncoretest:risky -/> ";
       const items = await ctx.completions(script, endOf(script, 2));
       const labels = items.map((c) => c.label);
       expect(labels).to.include("BelowMinimum");
@@ -183,65 +183,88 @@ describe("Core > completions", () => {
       expect(below.detail).to.equal("BelowMinimum(uint256)");
       // The destructure template comes from the declared fields.
       expect(below.insertText).to.equal("BelowMinimum [$minimum]");
+      expect(below.sortPriority).to.equal(0);
       // A fieldless error inserts just its name.
       expect(items.find((c) => c.label === "SameToken")!.insertText).to.equal(
         "SameToken",
       );
     });
 
-    it("offers the same declarations after -?!>", async () => {
-      const script = "load coretest\ncoretest:risky -?!> ";
+    it("offers the same declarations after -?/>", async () => {
+      // `-?/>` is scanned before `-?`, so the optional refusal arrow is one
+      // token and not a `-?` followed by a stray `/>`.
+      const script = "load coretest\ncoretest:risky -?/> ";
       const labels = await labelsOf(script, 2);
       expect(labels).to.include("BelowMinimum");
       expect(labels).to.include("SameToken");
     });
 
-    it("offers a helper's declared errors after either arrow", async () => {
-      for (const arrow of ["-!>", "-?!>"]) {
+    it("offers a helper's declared errors after either refusal arrow", async () => {
+      for (const arrow of ["-/>", "-?/>"]) {
         const script = `load coretest\ncoretest:risky @coretest:hfail() ${arrow} `;
         const items = await ctx.completions(script, endOf(script, 2));
         const noExplorer = items.find((c) => c.label === "NoExplorer");
         expect(noExplorer, `helper error missing after ${arrow}`).to.not.be
           .undefined;
         expect(noExplorer!.insertText).to.equal("NoExplorer [$chain]");
+        expect(noExplorer!.sortPriority).to.equal(1);
         expect(noExplorer!.documentation).to.include(
           "The chain has no supported explorer",
         );
       }
     });
 
-    it("orders command declarations, then helper declarations, then the builtins", async () => {
-      const script = "load coretest\ncoretest:risky @coretest:hfail() -!> ";
+    it("orders command declarations before helper declarations", async () => {
+      const script = "load coretest\ncoretest:risky @coretest:hfail() -/> ";
       const labels = await labelsOf(script, 2);
       expect(labels.indexOf("BelowMinimum")).to.be.greaterThan(-1);
       expect(labels.indexOf("BelowMinimum")).to.be.lessThan(
         labels.indexOf("NoExplorer"),
       );
-      expect(labels.indexOf("NoExplorer")).to.be.lessThan(
-        labels.indexOf("Error(string)"),
-      );
     });
 
-    it("always offers the Solidity builtins", async () => {
-      const script =
-        'exec 0x00000000000000000000000000000000000c0de5 "risk(uint256)" 1 -!> ';
-      const items = await ctx.completions(script, endOf(script, 1));
-      const labels = items.map((c) => c.label);
-      expect(labels).to.include("Error(string)");
-      expect(labels).to.include("Panic(uint256)");
-      expect(
-        items.find((c) => c.label === "Error(string)")!.insertText,
-      ).to.equal("Error(string) [$reason]");
+    it("offers no builtins or contract errors after a refusal arrow", async () => {
+      for (const arrow of ["-/>", "-?/>"]) {
+        const script = `load coretest\ncoretest:risky @coretest:hfail() ${arrow} `;
+        const labels = await labelsOf(script, 2);
+        expect(labels, arrow).to.include("BelowMinimum");
+        expect(labels, arrow).to.not.include("Error(string)");
+        expect(labels, arrow).to.not.include("Panic(uint256)");
+      }
+    });
+
+    it("offers the Solidity builtins after either revert arrow", async () => {
+      for (const arrow of ["-!>", "-?!>"]) {
+        const script = `exec 0x00000000000000000000000000000000000c0de5 "risk(uint256)" 1 ${arrow} `;
+        const items = await ctx.completions(script, endOf(script, 1));
+        const labels = items.map((c) => c.label);
+        expect(labels, arrow).to.include("Error(string)");
+        expect(labels, arrow).to.include("Panic(uint256)");
+        const error = items.find((c) => c.label === "Error(string)")!;
+        expect(error.insertText).to.equal("Error(string) [$reason]");
+        expect(error.sortPriority).to.equal(0);
+      }
+    });
+
+    it("offers no declared names after a revert arrow", async () => {
+      for (const arrow of ["-!>", "-?!>"]) {
+        const script = `load coretest\ncoretest:risky @coretest:hfail() ${arrow} `;
+        const labels = await labelsOf(script, 2);
+        expect(labels, arrow).to.not.include("BelowMinimum");
+        expect(labels, arrow).to.not.include("SameToken");
+        expect(labels, arrow).to.not.include("NoExplorer");
+        expect(labels, arrow).to.include("Error(string)");
+      }
     });
 
     it("keeps offering names while one is being typed", async () => {
-      const script = "load coretest\ncoretest:risky -!> Belo";
+      const script = "load coretest\ncoretest:risky -/> Belo";
       const labels = await labelsOf(script, 2);
       expect(labels).to.include("BelowMinimum");
     });
 
     it("offers an ambiguous name only as explicit signatures", async () => {
-      const script = "load coretest\ncoretest:risky @coretest:hfail() -!> ";
+      const script = "load coretest\ncoretest:risky @coretest:hfail() -/> ";
       const items = await ctx.completions(script, endOf(script, 2));
       const labels = items.map((c) => c.label);
       expect(labels).to.not.include("Shared");
@@ -253,26 +276,26 @@ describe("Core > completions", () => {
     });
 
     it("dedupes a signature declared by both the command and a helper", async () => {
-      const script = "load coretest\ncoretest:risky @coretest:hfail() -!> ";
+      const script = "load coretest\ncoretest:risky @coretest:hfail() -/> ";
       const labels = await labelsOf(script, 2);
       expect(labels.filter((l) => l === "Twin")).to.have.lengthOf(1);
     });
 
     it("does not offer error names in a destructure position", async () => {
-      const script = "load coretest\ncoretest:risky -!> BelowMinimum [";
+      const script = "load coretest\ncoretest:risky -/> BelowMinimum [";
       const labels = await labelsOf(script, 2);
       expect(labels).to.not.include("SameToken");
       expect(labels).to.not.include("Error(string)");
     });
 
     it("does not offer error names once the clause has its name", async () => {
-      const script = "load coretest\ncoretest:risky -!> BelowMinimum ";
+      const script = "load coretest\ncoretest:risky -/> BelowMinimum ";
       const labels = await labelsOf(script, 2);
       expect(labels).to.not.include("SameToken");
     });
 
     it("ignores an arrow inside a string", async () => {
-      const script = 'load coretest\ncoretest:risky "text -!> Bel';
+      const script = 'load coretest\ncoretest:risky "text -/> Bel';
       const labels = await labelsOf(script, 2);
       expect(labels).to.not.include("BelowMinimum");
     });
@@ -282,10 +305,10 @@ describe("Core > completions", () => {
       // that starts a token — `foo#note` is `foo` followed by a comment —
       // and its text may well start with a digit.
       for (const line of [
-        "coretest:risky # -!> Bel",
-        "coretest:risky foo#note -!> Bel",
-        "coretest:risky foo#2nd -!> Bel",
-        "#2 not an occurrence selector -!> Bel",
+        "coretest:risky # -/> Bel",
+        "coretest:risky foo#note -/> Bel",
+        "coretest:risky foo#2nd -/> Bel",
+        "#2 not an occurrence selector -/> Bel",
       ]) {
         const script = `load coretest\n${line}`;
         const labels = await labelsOf(script, 2);
@@ -295,14 +318,14 @@ describe("Core > completions", () => {
 
     it("still sees an arrow after an event capture's occurrence selector", async () => {
       const script =
-        "load coretest\ncoretest:risky -> Transfer#2 [$to] -!> Bel";
+        "load coretest\ncoretest:risky -> Transfer#2 [$to] -/> Bel";
       const labels = await labelsOf(script, 2);
       expect(labels).to.include("BelowMinimum");
     });
 
     it("does not carry an arrow over from an earlier line", async () => {
       const script =
-        "load coretest\ncoretest:risky -!> SameToken\ncoretest:risky ";
+        "load coretest\ncoretest:risky -/> SameToken\ncoretest:risky ";
       const labels = await labelsOf(script, 3);
       expect(labels).to.not.include("BelowMinimum");
       expect(labels).to.not.include("Error(string)");
@@ -367,13 +390,33 @@ describe("Core > completions", () => {
       );
       const labels = items.map((c) => c.label);
       expect(labels).to.include("NotEnough(uint256,uint256)");
-      expect(
-        items.find((c) => c.label === "NotEnough(uint256,uint256)")!.insertText,
-      ).to.equal("NotEnough(uint256,uint256) [$available $required]");
-      // Declared/builtin entries still come first.
+      const notEnough = items.find(
+        (c) => c.label === "NotEnough(uint256,uint256)",
+      )!;
+      expect(notEnough.insertText).to.equal(
+        "NotEnough(uint256,uint256) [$available $required]",
+      );
+      expect(notEnough.sortPriority).to.equal(1);
+      // The builtins still come first.
       expect(labels.indexOf("Error(string)")).to.be.lessThan(
         labels.indexOf("NotEnough(uint256,uint256)"),
       );
+    });
+
+    it("offers no contract errors after a refusal arrow, warm cache and all", async () => {
+      const { workspace, offline } = countingWorkspace();
+      // Warm the editor's ABI cache the way the signature slot does.
+      const warm = `exec ${customErrorContract.address} `;
+      await workspace.getCompletions(warm, endOf(warm, 1));
+
+      const refusalScript = `exec ${customErrorContract.address} "risk(uint256)" 1 -/> `;
+      const items = await offline(() =>
+        workspace.getCompletions(refusalScript, endOf(refusalScript, 1)),
+      );
+      const labels = items.map((c) => c.label);
+      expect(labels).to.not.include("NotEnough(uint256,uint256)");
+      expect(labels).to.not.include("Error(string)");
+      expect(labels).to.not.include("Panic(uint256)");
     });
 
     it("offers no contract errors — and fetches nothing — with a cold cache", async () => {

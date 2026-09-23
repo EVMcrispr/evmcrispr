@@ -4,6 +4,7 @@ import type {
   CommandExpressionNode,
   CompletionItem,
   DeclaredErrorEntry,
+  ErrorCaptureNode,
   HelperFunctionNode,
   NormalizedDeclaredErrors,
 } from "@evmcrispr/sdk";
@@ -28,7 +29,11 @@ import {
 } from "../analysis/declarations";
 import { ModuleSchemaProvider } from "../analysis/moduleSchemas";
 import { isLoadCommand } from "../astWalk";
+import { ERROR_CAPTURE_ARROWS } from "../parsers/capture";
 import type { DeclarationLookup } from "./declarations";
+
+/** Which family of failure a capture clause can ever observe. */
+export type CaptureTiming = ErrorCaptureNode["timing"];
 
 /**
  * The declared errors an editor feature shows: completions after an error
@@ -157,16 +162,21 @@ export function editorErrorContext(
 // Capture-name position (completions)
 // ---------------------------------------------------------------------------
 
-const ARROWS = ["-?!>", "-!>"] as const;
+/** The timing an arrow selects: what the clause can ever observe. */
+const arrowTiming = (arrow: string): CaptureTiming =>
+  arrow.includes("/") ? "refusal" : "revert";
 
 export interface CaptureNamePosition {
   /** Column of the `-` starting the clause the cursor is typing into. */
   readonly arrowStart: number;
+  /** Which family the arrow opens — refusals (`-/>`, `-?/>`) name what the
+   *  line declares, reverts (`-!>`, `-?!>`) name what the chain raises. */
+  readonly timing: CaptureTiming;
 }
 
 /**
- * Whether the cursor sits where an error name goes: right after a `-!>` /
- * `-?!>` on this line, with at most a partial name typed since.
+ * Whether the cursor sits where an error name goes: right after one of the
+ * four capture arrows on this line, with at most a partial name typed since.
  *
  * Text-based on purpose — the line does not parse while the name is still
  * missing — but not naive: strings are skipped whole (so an arrow inside a
@@ -181,6 +191,7 @@ export function findCaptureNamePosition(
 ): CaptureNamePosition | undefined {
   const text = line.slice(0, col);
   let arrowStart: number | undefined;
+  let timing: CaptureTiming = "revert";
   let arrowEnd = 0;
   // Inside the head of an event capture (`-> Name(types)?#N? [slots]`) —
   // the one place a `#` is not a comment.
@@ -215,9 +226,12 @@ export function findCaptureNamePosition(
       i++;
       continue;
     }
-    const arrow = ARROWS.find((a) => text.startsWith(a, i));
+    // Longest first (`ERROR_CAPTURE_ARROWS` is ordered that way), so `-?/>`
+    // is one arrow and never a `-?` followed by a stray `/>`.
+    const arrow = ERROR_CAPTURE_ARROWS.find((a) => text.startsWith(a, i));
     if (arrow) {
       arrowStart = i;
+      timing = arrowTiming(arrow);
       i += arrow.length;
       arrowEnd = i;
       eventHead = false;
@@ -239,7 +253,7 @@ export function findCaptureNamePosition(
   if (!/^[ \t]+([A-Za-z_][A-Za-z0-9_]*)?$/.test(text.slice(arrowEnd))) {
     return undefined;
   }
-  return { arrowStart };
+  return { arrowStart, timing };
 }
 
 // ---------------------------------------------------------------------------
@@ -295,13 +309,18 @@ function destructureTemplate(abi: ErrorAbi): string {
 }
 
 /**
- * What a script may capture on this line, in the order it is offered: the
- * command's declarations, then the reachable helpers', then Solidity's
- * builtins, then the cached contract's own custom errors. Identical
- * signatures collapse (first wins); a bare name several declarations share
- * is offered as each of its explicit signatures instead.
+ * What a script may capture on this line under the arrow it just typed —
+ * one source per timing, never a mix.
+ *
+ * A refusal (`-/>`, `-?/>`) offers the line's declarations: the command's
+ * first, then the reachable helpers'. A revert (`-!>`, `-?!>`) offers
+ * Solidity's builtins, then the custom errors of a contract ABI the editor
+ * already holds. Identical signatures collapse (first wins); a bare name
+ * several declarations share is offered as each of its explicit signatures
+ * instead.
  */
 export function errorCaptureCompletionItems(
+  timing: CaptureTiming,
   declared: readonly DeclaredErrorEntry[],
   abi: Abi | undefined,
 ): CompletionItem[] {
@@ -332,26 +351,29 @@ export function errorCaptureCompletionItems(
     });
   };
 
-  for (const entry of index.entries) {
-    const ambiguous = (index.byName.get(entry.name)?.length ?? 0) > 1;
-    push(entry.abi, {
-      explicit: ambiguous,
-      sortPriority: entry.ownerKind === "command" ? 0 : 1,
-      documentation: `${entry.description}\n\nDeclared by ${entry.ownerKind} \`${entry.ownerLabel}\`.`,
-    });
+  if (timing === "refusal") {
+    for (const entry of index.entries) {
+      const ambiguous = (index.byName.get(entry.name)?.length ?? 0) > 1;
+      push(entry.abi, {
+        explicit: ambiguous,
+        sortPriority: entry.ownerKind === "command" ? 0 : 1,
+        documentation: `${entry.description}\n\nDeclared by ${entry.ownerKind} \`${entry.ownerLabel}\`.`,
+      });
+    }
+    return items;
   }
 
   for (const builtin of BUILTIN_ERRORS) {
     push(builtin.abi, {
       explicit: true,
-      sortPriority: 2,
+      sortPriority: 0,
       documentation: builtin.description,
     });
   }
 
   for (const item of abi ?? []) {
     if (item.type !== "error") continue;
-    push(item, { explicit: true, sortPriority: 3 });
+    push(item, { explicit: true, sortPriority: 1 });
   }
 
   return items;
@@ -372,7 +394,41 @@ export function formatDeclaredErrorsSection(
     (name) =>
       `- \`${errorSignature(declaredErrorAbi(name, errors[name]))}\` — ${errors[name].description}`,
   );
-  return `**Errors**\n\n${lines.join("\n")}`;
+  // A declaration is refused before anything is sent, so only the refusal
+  // arrows can ever observe it.
+  return `**Errors**\n\n${lines.join("\n")}\n\nCapture with \`-/> Name\` or \`-?/> Name [$field]\`.`;
+}
+
+/** The Solidity builtin a revert clause may name, with the description and
+ *  the field names its card and its destructure template use. */
+export function builtinCaptureError(
+  errorName: string,
+): { abi: ErrorAbi; description: string } | undefined {
+  return BUILTIN_ERRORS.find((builtin) => builtin.abi.name === errorName);
+}
+
+/** The card for a Solidity builtin captured on a line: its signature, what
+ *  it means, and the fields a destructure can bind. */
+export function formatBuiltinErrorCard(
+  abi: ErrorAbi,
+  description: string,
+): string {
+  const sections = [
+    `**Error** \`${errorSignature(abi)}\` — a Solidity builtin, raised by the transaction`,
+    description,
+  ];
+  if (abi.inputs.length > 0) {
+    sections.push(fieldTable(abi));
+  }
+  return sections.join("\n\n");
+}
+
+/** The `| field | type |` table of an error's inputs. */
+function fieldTable(abi: ErrorAbi): string {
+  const rows = abi.inputs.map(
+    (input, i) => `| \`${fieldName(input, i)}\` | \`${input.type}\` |`,
+  );
+  return ["| field | type |", "| --- | --- |", ...rows].join("\n");
 }
 
 /** The card for one declared error captured on a line: its signature, the
@@ -383,10 +439,7 @@ export function formatDeclaredErrorCard(entry: DeclaredErrorEntry): string {
     entry.description,
   ];
   if (entry.abi.inputs.length > 0) {
-    const rows = entry.abi.inputs.map(
-      (input, i) => `| \`${fieldName(input, i)}\` | \`${input.type}\` |`,
-    );
-    sections.push(["| field | type |", "| --- | --- |", ...rows].join("\n"));
+    sections.push(fieldTable(entry.abi));
   }
   return sections.join("\n\n");
 }

@@ -365,10 +365,11 @@ export async function getCompletions(
   // (e.g. Solidity) — EVML suggestions there are pure noise.
   if (isInsideHeredoc(scriptLines, position.line)) return [];
 
-  // An error name being typed after `-!>` / `-?!>` on this line. The clause
-  // does not parse while its name is missing, so the command node comes
-  // from the text before the arrow; a head that is not a command means the
-  // arrow was not one (a mid-edit line), and the ordinary paths apply.
+  // An error name being typed after one of the four capture arrows on this
+  // line. The clause does not parse while its name is missing, so the
+  // command node comes from the text before the arrow; a head that is not a
+  // command means the arrow was not one (a mid-edit line), and the ordinary
+  // paths apply. The arrow's timing picks which source is offered.
   const capturePos = findCaptureNamePosition(currentLineContent, position.col);
   let captureCommandNode: CommandExpressionNode | undefined;
   if (capturePos) {
@@ -597,23 +598,30 @@ export async function getCompletions(
     resolveNode,
   );
 
-  // Error-capture completions: what the line itself declares (the command
-  // first, then every helper reachable in its arguments and options), the
-  // Solidity builtins, and the custom errors of a target contract whose
-  // ABI the editor already holds. Nothing here goes on the network.
-  if (captureCommandNode) {
-    const { lookup } = editorErrorContext(fullAST?.body ?? [], moduleCache);
-    const declared = await collectLineDeclaredErrors(
-      captureCommandNode,
-      lookup,
-    );
-    const abi = cachedTargetAbi(
-      captureCommandNode,
-      bindings,
-      moduleCache,
-      state.chainId,
-    );
-    return errorCaptureCompletionItems(declared, abi);
+  // Error-capture completions, from the one source the arrow's timing
+  // selects. A refusal offers what the line itself declares (the command
+  // first, then every helper reachable in its arguments and options) and
+  // never touches the ABI cache; a revert offers the Solidity builtins and
+  // the custom errors of a target contract whose ABI the editor already
+  // holds, and never resolves a helper's declarations. Nothing here goes on
+  // the network either way.
+  if (captureCommandNode && capturePos) {
+    const refusal = capturePos.timing === "refusal";
+    const declared = refusal
+      ? await collectLineDeclaredErrors(
+          captureCommandNode,
+          editorErrorContext(fullAST?.body ?? [], moduleCache).lookup,
+        )
+      : [];
+    const abi = refusal
+      ? undefined
+      : cachedTargetAbi(
+          captureCommandNode,
+          bindings,
+          moduleCache,
+          state.chainId,
+        );
+    return errorCaptureCompletionItems(capturePos.timing, declared, abi);
   }
 
   // Also walk the current command to populate bindings for its own completions

@@ -196,6 +196,14 @@
           "name": "keyword.operator.namespace.evml"
         },
         {
+          "match": "-\\?/>",
+          "name": "keyword.operator.refusal-capture-optional.evml"
+        },
+        {
+          "match": "-/>",
+          "name": "keyword.operator.refusal-capture.evml"
+        },
+        {
           "match": "-\\?!>",
           "name": "keyword.operator.error-capture-optional.evml"
         },
