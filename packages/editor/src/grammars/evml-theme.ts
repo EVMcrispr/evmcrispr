@@ -54,6 +54,8 @@ export const evmlTheme: ThemeRegistrationRaw = {
     {
       scope: [
         "keyword.operator.namespace.evml",
+        "keyword.operator.refusal-capture-optional.evml",
+        "keyword.operator.refusal-capture.evml",
         "keyword.operator.error-capture-optional.evml",
         "keyword.operator.error-capture.evml",
         "keyword.operator.arrow.evml",

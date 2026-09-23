@@ -764,17 +764,19 @@ describe("Core > hover", () => {
       }
     });
 
-    it("describes Panic captured under a revert arrow", async () => {
-      const script = "exec $contract transfer(uint) 100 -!> Panic(uint256)";
-      const result = await ctx.hover(script, {
-        line: 1,
-        col: colOf(script, 1, "Panic(uint256)"),
-      });
-      expect(result).to.not.be.null;
-      const text = result!.contents.join("\n");
-      expect(text).to.include("Panic(uint256)");
-      expect(text).to.include("panic code");
-      expect(text).to.include("code");
+    it("describes Panic captured under either revert arrow", async () => {
+      for (const arrow of ["-!>", "-?!>"]) {
+        const script = `exec $contract transfer(uint) 100 ${arrow} Panic(uint256)`;
+        const result = await ctx.hover(script, {
+          line: 1,
+          col: colOf(script, 1, "Panic(uint256)"),
+        });
+        expect(result, `no Panic card after ${arrow}`).to.not.be.null;
+        const text = result!.contents.join("\n");
+        expect(text).to.include("Panic(uint256)");
+        expect(text).to.include("panic code");
+        expect(text).to.include("code");
+      }
     });
 
     it("returns nothing for a contract or unknown name under a revert arrow", async () => {

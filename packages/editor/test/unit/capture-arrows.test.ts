@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createLanguage } from "../../src/editor/evml";
 import grammar from "../../src/grammars/evml.tmLanguage.json";
+import { evmlTheme } from "../../src/grammars/evml-theme";
 
 /** The four error-capture arrows, longest first — the order a scanner has
  *  to try them in so `-?/>` is never read as `-?` followed by `/>`. */
@@ -48,6 +49,28 @@ describe("capture arrows", () => {
     expect(indexOfArrow("-/>")).toBeLessThan(indexOfArrow("-?!>"));
     expect(indexOfArrow("-?!>")).toBeLessThan(indexOfArrow("-!>"));
     expect(indexOfArrow("-!>")).toBeLessThan(arrowIndex);
+  });
+
+  it("paints all four capture scopes the same in the Shiki viewer theme", () => {
+    // View mode renders through `evmlTheme`, edit mode through Monarch's
+    // `operator` token (white). A capture scope the theme does not name
+    // falls through to the generic `keyword.operator` rule and comes out a
+    // different grey than its sibling arrows — and than edit mode.
+    const colorOf = (scope: string) => {
+      const rule = evmlTheme.settings?.find((s) =>
+        (Array.isArray(s.scope) ? s.scope : [s.scope]).includes(scope),
+      );
+      return rule?.settings.foreground;
+    };
+    const scopes = [
+      "keyword.operator.refusal-capture-optional.evml",
+      "keyword.operator.refusal-capture.evml",
+      "keyword.operator.error-capture-optional.evml",
+      "keyword.operator.error-capture.evml",
+    ];
+    for (const scope of scopes) {
+      expect(colorOf(scope), scope).toBe("#ffffff");
+    }
   });
 
   it("tokenizes every arrow as one Monarch operator", () => {

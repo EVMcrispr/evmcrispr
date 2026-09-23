@@ -300,6 +300,19 @@ describe("Core > completions", () => {
       expect(labels).to.not.include("BelowMinimum");
     });
 
+    it("ignores a revert arrow inside a string or a comment", async () => {
+      // The position scanner is shared by both families, so it keeps a case
+      // on the revert side too.
+      for (const line of [
+        'exec 0x00000000000000000000000000000000000c0de5 "text -!> Err',
+        "exec 0x00000000000000000000000000000000000c0de5 foo#note -?!> Err",
+      ]) {
+        const labels = await labelsOf(line, 1);
+        expect(labels, line).to.not.include("Error(string)");
+        expect(labels, line).to.not.include("Panic(uint256)");
+      }
+    });
+
     it("ignores an arrow inside a comment", async () => {
       // A comment opens at any `#` a bareword stopped at, not only at one
       // that starts a token — `foo#note` is `foo` followed by a comment —
@@ -379,28 +392,31 @@ describe("Core > completions", () => {
       return { workspace, offline };
     };
 
-    it("offers a cached contract's custom errors without fetching", async () => {
+    it("offers a cached contract's custom errors without fetching, under either revert arrow", async () => {
       const { workspace, offline } = countingWorkspace();
       // Warm the editor's ABI cache the way the signature slot does.
       const warm = `exec ${customErrorContract.address} `;
       await workspace.getCompletions(warm, endOf(warm, 1));
 
-      const items = await offline(() =>
-        workspace.getCompletions(captureScript, endOf(captureScript, 1)),
-      );
-      const labels = items.map((c) => c.label);
-      expect(labels).to.include("NotEnough(uint256,uint256)");
-      const notEnough = items.find(
-        (c) => c.label === "NotEnough(uint256,uint256)",
-      )!;
-      expect(notEnough.insertText).to.equal(
-        "NotEnough(uint256,uint256) [$available $required]",
-      );
-      expect(notEnough.sortPriority).to.equal(1);
-      // The builtins still come first.
-      expect(labels.indexOf("Error(string)")).to.be.lessThan(
-        labels.indexOf("NotEnough(uint256,uint256)"),
-      );
+      for (const arrow of ["-!>", "-?!>"]) {
+        const script = `exec ${customErrorContract.address} "risk(uint256)" 1 ${arrow} `;
+        const items = await offline(() =>
+          workspace.getCompletions(script, endOf(script, 1)),
+        );
+        const labels = items.map((c) => c.label);
+        expect(labels, arrow).to.include("NotEnough(uint256,uint256)");
+        const notEnough = items.find(
+          (c) => c.label === "NotEnough(uint256,uint256)",
+        )!;
+        expect(notEnough.insertText).to.equal(
+          "NotEnough(uint256,uint256) [$available $required]",
+        );
+        expect(notEnough.sortPriority).to.equal(1);
+        // The builtins still come first.
+        expect(labels.indexOf("Error(string)")).to.be.lessThan(
+          labels.indexOf("NotEnough(uint256,uint256)"),
+        );
+      }
     });
 
     it("offers no contract errors after a refusal arrow, warm cache and all", async () => {
