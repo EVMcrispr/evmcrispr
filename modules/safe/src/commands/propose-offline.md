@@ -41,7 +41,7 @@ with [safe:confirm-offline](confirm-offline.md).
 The Safe commands are named after where their result goes: the Safe
 Transaction Service (`propose`, `confirm`), a variable holding JSON
 (`propose-offline`, `confirm-offline`), or the chain (`confirm-onchain`,
-`execute`). See the [Safe guide](/guides/safe/) for the complete flows.
+`execute`). See [Offline Safe transactions](/guides/offline-safe/) for the complete flows.
 
 The JSON contains `chainId`, `safe`, `signatures`, `version: 1` and `kind`,
 plus `tx` and `safeTxHash` for a transaction, or `message`, `safeMessageHash`

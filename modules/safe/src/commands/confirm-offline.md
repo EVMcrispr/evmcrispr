@@ -41,7 +41,7 @@ on to the next owner, merge parallel signatures with
 The Safe commands are named after where their result goes: the Safe
 Transaction Service (`propose`, `confirm`), a variable holding JSON
 (`propose-offline`, `confirm-offline`), or the chain (`confirm-onchain`,
-`execute`). See the [Safe guide](/guides/safe/) for the complete flows.
+`execute`). See [Offline Safe transactions](/guides/offline-safe/) for the complete flows.
 
 Given a hash instead of JSON, the queued transaction (or, with `--message`,
 message) is fetched from the Safe Transaction Service, checked against the

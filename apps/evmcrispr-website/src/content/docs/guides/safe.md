@@ -1,14 +1,16 @@
 ---
 title: Operating a Safe
-description: Propose, confirm, verify and execute Safe transactions and messages, with or without the Safe Transaction Service, including owner Safes, cancellations and TWAP orders.
+description: Propose, confirm, verify and execute Safe transactions and messages through the Safe Transaction Service or on-chain, including owner Safes, cancellations, upgrades, guards and TWAP orders.
 experimental: true
 ---
 
 The `safe` module turns any EVMcrispr block into a Safe transaction. Commands
 inside the block run **as the Safe**: `@sender` is the Safe, while `@me` stays
-your connected owner wallet. You can hand the transaction to the Safe
-Transaction Service so the other owners confirm it in the Safe web app, or
-exchange signed Safe transaction JSON without any Safe infrastructure.
+your connected owner wallet. This guide hands transactions to the Safe
+Transaction Service, where the other owners confirm them here or in the Safe
+web app, or sends them straight to the chain. To exchange signed Safe
+transaction JSON without the service, see
+[Offline Safe transactions](/guides/offline-safe/).
 
 This module is experimental. Use [next.evmcrispr.com](https://next.evmcrispr.com)
 or enable experimental modules in your host; the CLI accepts `--experimental`.
@@ -24,23 +26,50 @@ owners **confirm** it until the threshold is met, and anyone **executes** it.
 The command name says where the result goes, and the argument says what it
 acts on:
 
-| Step | To the Safe Transaction Service | To a variable (JSON) | On-chain |
-|---|---|---|---|
-| Propose | `safe:propose` | `safe:propose-offline` | |
-| Confirm | `safe:confirm` | `safe:confirm-offline` | `safe:confirm-onchain` |
-| Execute | | | `safe:execute` |
+| Step | To the Safe Transaction Service | On-chain |
+|---|---|---|
+| Propose | `safe:propose` | |
+| Confirm | `safe:confirm` | `safe:confirm-onchain` |
+| Execute | | `safe:execute` |
 
 The argument is a command block for a new transaction, `cancel` for a
-rejection, a quoted string for a message, a nonce or 32-byte hash for
+rejection, a quoted string for a message, or a nonce or 32-byte hash for
 something queued on the service (`--message` when the hash is a
-safeMessageHash), or Safe transaction / Safe message JSON. Reviewing sends
-nothing, so it is a helper: [`@safe:verify`](/reference/safe/helpers/verify/).
+safeMessageHash). Reviewing sends nothing, so it is a helper:
+[`@safe:verify`](/reference/safe/helpers/verify/). Each step also has an
+`-offline` form that puts Safe transaction JSON in a variable instead; those
+are covered in [Offline Safe transactions](/guides/offline-safe/).
 
-## Execute directly from a threshold-one Safe
+## User flows
+
+Pick the row that matches how your owners work. Each flow links to the
+section that walks through it, and they can be mixed: a transaction proposed
+on the service can be confirmed on-chain, or
+[exported as JSON](/guides/offline-safe/#move-between-the-service-and-json).
+
+| # | Flow | Commands | Section |
+|---|---|---|---|
+| 1 | Solo, or the executor plus on-chain confirmations meet the threshold | `execute <block>` | [Execute directly](#execute-directly-from-a-safe) |
+| 2 | Team on the Safe Transaction Service | `propose <block>` → `@safe:verify` → `confirm <hash>` → `execute <hash>` | [Transaction Service](#work-with-the-safe-transaction-service) |
+| 3 | On-chain confirmations of a queued transaction | `confirm-onchain <hash>` (each owner) → `execute <hash>` | [Confirm on-chain](#confirm-on-chain-instead-of-signing) |
+| 4 | A Safe that owns another Safe | The same commands as a direct owner | [Nested Safes](#nested-safes) |
+| 5 | Signing a message on the service | `propose "text"` → `confirm <hash> --message true` → `@safe:signature` | [Sign messages](#sign-messages) |
+| 6 | Cancelling a pending transaction | `propose cancel --nonce <n>`, then flow 2 or 3 | [Cancel](#cancel-a-pending-transaction) |
+| 7 | Review only | `@safe:verify(<nonce \| hash>)` | [Check the hashes](#check-the-hashes-before-you-sign) |
+
+Every command in the table takes the Safe as its first argument
+(`safe:confirm $safe $safeTxHash`), which the table leaves out. Configuring
+the Safe itself, such as [upgrading it](#upgrade-a-safe) or
+[setting a guard](#set-a-guard), is a transaction of the Safe, so it goes
+through whichever flow your owners use.
+
+## Execute directly from a Safe
 
 When the Safe needs a single signature and the connected wallet is an owner,
 [`safe:execute`](/reference/safe/commands/execute/) sends the block straight
-to the chain. No queue or off-chain signature is involved:
+to the chain. No queue or off-chain signature is involved. The same works on
+a multisig once enough owners have [confirmed on-chain](#confirm-on-chain-instead-of-signing),
+since an owner who executes counts as a confirmation:
 
 ```evml
 load safe
@@ -109,6 +138,11 @@ set $safe 0x1111111111111111111111111111111111111111
 safe:execute $safe 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ```
 
+Execution checks the chain, Safe, hash, current nonce, owner membership, and
+threshold again, and fails on `ExecutionFailure` even when the outer
+transaction succeeds. It can still fail for insufficient funds, a guard, or
+the underlying call.
+
 No API key is needed for normal use. Anonymous clients get a few requests per
 second, and each command makes only a handful of requests. For heavier
 automation, `set $safe:apiKey <key>` raises the limit. `set $safe:serviceUrl
@@ -137,8 +171,8 @@ print @safe:verify($safe 42)
 
 Compare each hash in the report with what your wallet displays **before**
 confirming on the device. If any of them differs, reject the signature. The
-commands that sign or send (`confirm`, `confirm-offline`, `confirm-onchain`,
-`execute`) print the same hashes and warnings before they act.
+commands that sign or send (`confirm`, `confirm-onchain`, `execute`) print
+the same hashes and warnings before they act.
 
 Several transactions can be queued at one nonce, and only one of them can
 ever execute. A nonce with several queued transactions is an error that
@@ -156,117 +190,31 @@ for MultiSend and for targets you describe with `abi:`, a JSON object that
 maps addresses to ABI arrays; there are no explorer or selector-registry
 lookups.
 
-## Work without the Safe API
-
-The `-offline` commands never contact the Safe Transaction Service. They put
-**Safe transaction JSON** in a variable, and owners exchange it however they
-like: chat, files, IPFS, or the CLI's stdin. RPC access is still used to read
-the Safe's owners, threshold, and nonce. The nonce defaults to the current
-on-chain nonce, since pending service proposals are not consulted.
-
-### Prepare a Safe transaction
-
-Anyone, including a non-owner without a wallet, can prepare the unsigned
-transaction with
-[`safe:propose-offline`](/reference/safe/commands/propose-offline/):
-
-```evml
-load safe
-
-set $safe 0x1111111111111111111111111111111111111111
-set $receiver 0x2222222222222222222222222222222222222222
-
-safe:propose-offline $tx $safe (
-  exec @token(DAI) "transfer(address,uint256)" $receiver 100e18
-)
-print $tx
-```
-
-Share the complete JSON, not the block. Rebuilding a block later can produce
-a different transaction if a helper read, such as a balance or nonce, has
-changed in the meantime.
-
-### Review and sign
-
-Each owner loads the Safe transaction into `$tx`, reviews it, and adds a
-signature with
-[`safe:confirm-offline`](/reference/safe/commands/confirm-offline/):
-
-```evml
-load safe
-load http [@fetch]
-
-set $safe 0x1111111111111111111111111111111111111111
-set $tx @fetch(stdin:)
-
-print @safe:verify($safe $tx)
-safe:confirm-offline $tx $safe $tx
-print $tx
-```
-
-For a strictly air-gapped review, pass `no-rpc:true` to `@safe:verify`. It
-makes no network calls; ownership, threshold, and nonce are then reported as
-unchecked.
-
-### Merge and execute
-
-Owners who sign in parallel produce separate JSON; merge it with
-[`@safe:merge`](/reference/safe/helpers/merge/). Once the signatures add up
-to the threshold, any account executes it. This script reads a JSON array of
-signed Safe transactions from stdin, for example produced with
-`jq -s . owner-a.json owner-b.json`:
-
-```evml
-load safe
-load http [@fetch]
-
-set $safe 0x1111111111111111111111111111111111111111
-set $input @fetch(stdin:)
-set $tx @safe:merge(@http:json($input "[0]") @http:json($input "[1]"))
-
-print @http:json(@safe:verify($safe $tx) readiness)
-safe:execute $safe $tx
-```
-
-`ready` only means that the signatures and the nonce are sufficient. Execution
-can still fail for insufficient funds, a guard, or the underlying call.
-Execution checks the chain, Safe, hash, current nonce, owner membership, and
-threshold again. It sorts and deduplicates signers and fails on
-`ExecutionFailure` even when the outer transaction succeeds.
-
-### Move between the service and JSON
-
-Signed JSON can be handed to the Safe web app at any point:
-`safe:propose $safe $tx` posts it, its first owner signature proposing it and
-the rest becoming confirmations, with no wallet prompt. In the other
-direction, `safe:confirm-offline $tx $safe <safeTxHash>` exports a queued
-transaction with its confirmations plus your signature.
-
 ## Confirm on-chain instead of signing
 
 Owners can confirm on-chain instead of signing off-chain. Each owner sends
-`approveHash` for the transaction with
-[`safe:confirm-onchain`](/reference/safe/commands/confirm-onchain/), and then
-any account executes it. The Safe records every confirmation, so this needs
-no JSON exchange and no Transaction Service, only an RPC node:
+`approveHash` for the queued transaction with
+[`safe:confirm-onchain`](/reference/safe/commands/confirm-onchain/), which
+checks the hash against the service data first. The Safe records every
+confirmation, so the other owners do not need the Safe web app:
 
-```evml novalidate
-safe:confirm-onchain $safe $tx
+```evml
+load safe
+
+set $safe 0x1111111111111111111111111111111111111111
+safe:confirm-onchain $safe 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ```
 
-It also takes a queued safeTxHash, checked against the service data. Execution
-then counts the on-chain confirmations. An owner who executes does not need to
-confirm first, because the Safe accepts the sender of `execTransaction` as
-that owner's approval. In a two-of-three Safe, one `safe:confirm-onchain` plus
-an execution by a second owner is enough:
-
-```evml novalidate
-safe:execute $safe $tx
-```
+Execution then counts the on-chain confirmations. An owner who executes does
+not need to confirm first, because the Safe accepts the sender of
+`execTransaction` as that owner's approval. In a two-of-three Safe, one
+`safe:confirm-onchain` plus an execution by a second owner is enough.
 
 On-chain confirmations, off-chain signatures, and the executor's own approval
 can be mixed in one execution. An on-chain confirmation cannot be withdrawn:
-to cancel it, execute a rejection at the same nonce.
+to cancel it, execute a rejection at the same nonce. On-chain confirmations
+also work without the service, from Safe transaction JSON; see
+[Offline Safe transactions](/guides/offline-safe/#confirm-on-chain-from-json).
 
 ## Cancel a pending transaction
 
@@ -281,10 +229,8 @@ set $safe 0x1111111111111111111111111111111111111111
 safe:propose $safe cancel --nonce 42
 ```
 
-Confirm and execute the rejection like any other transaction. Without the
-service, `safe:propose-offline $rejection $safe cancel --nonce 42` prepares
-it as JSON. Old JSON is not deleted, and a used nonce alone does not tell you
-which of the competing transactions executed.
+Confirm and execute the rejection like any other transaction. A used nonce
+alone does not tell you which of the competing transactions executed.
 
 ## Sign messages
 
@@ -312,16 +258,8 @@ print @safe:signature($safe $messageHash message:true)
 
 [`@safe:signature`](/reference/safe/helpers/signature/) returns the packed
 owner signatures once the threshold is met: the signature to hand to the
-dapp. Without the service, the same flow uses JSON:
-
-```evml novalidate
-safe:propose-offline $msg $safe "I agree to the terms"
-safe:confirm-offline $msg $safe $msg
-print @safe:signature($safe $msg)
-```
-
-For exporting Safe transactions from the CLI, terminal file input, and IPFS
-sharing, see [Safe transactions from files](/guides/local-first-safe/).
+dapp. To collect message signatures without the service, see
+[Offline Safe transactions](/guides/offline-safe/#sign-messages-offline).
 
 ## Nested Safes
 
@@ -344,9 +282,8 @@ What happens depends on whether your signature completes the owner Safe:
 | | Owner Safe needs only you | Owner Safe needs more signatures |
 |---|---|---|
 | `safe:confirm` | Off-chain: you sign the owner Safe's EIP-1271 message and its contract signature is posted as a confirmation. No gas. | Its on-chain confirmation (`approveHash`) is proposed in the owner Safe's own queue, as in the Safe web app. Its owners confirm and execute it there. |
-| `safe:confirm-offline` | Your signature is stored under the owner Safe in the JSON. | Same: each of its owners runs the same command until its threshold is met. |
 | `safe:confirm-onchain` | The owner Safe sends `approveHash` in one transaction you send. | Refused: use `safe:confirm` to queue it. |
-| `safe:propose` | The owner Safe's signature proposes the new item. | Refused: prepare with `safe:propose-offline` and collect the signatures offline first. |
+| `safe:propose` | The owner Safe's signature proposes the new item. | Refused: [collect the signatures offline](/guides/offline-safe/#owner-safes) first. |
 
 [`@safe:verify`](/reference/safe/helpers/verify/) shows an owner Safe's
 progress while its owners sign (`incomplete`, `1 of 2`), and checks the
@@ -360,11 +297,13 @@ sign off-chain for a Safe below 1.5.0; confirm on-chain instead.
 
 Safe blocks cannot be nested inside each other, so an owner Safe's on-chain
 confirmation is always a transaction of its own. Inside an owner Safe's
-block, `safe:confirm-onchain $safe $tx` confirms as that Safe.
+block, `safe:confirm-onchain $safe <safeTxHash>` confirms as that Safe.
 
 ## Upgrade a Safe
 
-New Safes from `safe:new` use Safe v1.5.0. An older Safe (v1.3.0 or later)
+New Safes from [`safe:new`](/reference/safe/commands/new/) use Safe v1.5.0,
+created the way Safe{Wallet} creates them, so the same owners, threshold and
+salt give the same address on every chain. An older Safe (v1.3.0 or later)
 moves to v1.5.0 with [`safe:upgrade`](/reference/safe/commands/upgrade/), a
 delegatecall to Safe's own `SafeMigration` contract. It is a transaction of
 the Safe like any other, so it goes through the usual flow:
@@ -380,6 +319,58 @@ safe:propose $safe (
 
 It keeps the Safe's L2 or plain flavour and any custom fallback handler, and
 does nothing on a Safe that is already on v1.5.0.
+
+## Set a guard
+
+A guard is a contract the Safe calls before and after a transaction, and it
+can refuse the transaction. A Safe has two:
+
+- The **transaction guard** checks every transaction the owners execute.
+  [`safe:install-scope-guard`](/reference/safe/commands/install-scope-guard/)
+  deploys a Zodiac ScopeGuard and sets it in one step.
+- The **module guard** (Safe v1.5.0 and later) checks every transaction a
+  module executes, such as a Zodiac Roles or Delay module. Before v1.5.0,
+  modules bypass guards entirely.
+
+[`safe:set-guard`](/reference/safe/commands/set-guard/) sets the transaction
+guard, and `--module true` sets the module guard instead.
+[`safe:remove-guard`](/reference/safe/commands/remove-guard/) takes the same
+flag. Guard changes are transactions of the Safe, so they go through the
+usual flow. On a Safe below v1.5.0, upgrade it in the same transaction:
+
+```evml
+load safe
+
+set $safe 0x1111111111111111111111111111111111111111
+set $moduleGuard 0x4444444444444444444444444444444444444444
+
+safe:propose $safe (
+  safe:upgrade
+  safe:set-guard $moduleGuard --module true
+) --origin "Update Safe to v1.5.0 and guard its modules"
+```
+
+Before building the transaction, the command checks that the address reports
+the matching guard interface, which the Safe would otherwise refuse with
+`GS300` or `GS301`. It also refuses `--module` on a Safe below v1.5.0, unless
+a `safe:upgrade` earlier in the same block upgrades it first. A guard
+deployed earlier in the same block has no code yet, so it is logged and not
+checked.
+
+A transaction guard that reverts on everything also blocks the transaction
+that would remove it. Test a new guard on a fork with
+[`sim:fork`](#combining-with-simulation) before the owners sign.
+
+[`@safe:guard`](/reference/safe/helpers/guard/) reads either guard, and its
+`!` form checks it in an on-chain assertion:
+
+```evml
+load safe
+
+set $safe 0x1111111111111111111111111111111111111111
+print @safe:guard($safe)
+print @safe:guard($safe module:true)
+```
 
 ## Run a TWAP order from a Safe
 

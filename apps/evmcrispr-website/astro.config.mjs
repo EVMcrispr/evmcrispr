@@ -342,6 +342,8 @@ export default defineConfig({
     "/guides/eez-showcase": "/guides/eez",
     "/architecture": "/contribute/architecture",
     "/contributing": "/contribute/contributing",
+    // The Safe files guide became the offline Safe guide.
+    "/guides/local-first-safe": "/guides/offline-safe",
   },
   markdown: {
     processor: unified({
@@ -416,7 +418,7 @@ export default defineConfig({
             docItem("Simulation", "guides/simulation"),
             docItem("Working with DAOs", "guides/working-with-daos"),
             docItem("Operating a Safe", "guides/safe"),
-            docItem("Safe Transactions from Files", "guides/local-first-safe"),
+            docItem("Offline Safe Transactions", "guides/offline-safe"),
             docItem("Managing OpenZeppelin Contracts", "guides/openzeppelin"),
             docItem("Zero-Knowledge Proofs", "guides/circom"),
             docItem("Cross-Chain with EEZ", "guides/eez"),
