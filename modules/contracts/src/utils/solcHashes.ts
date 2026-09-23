@@ -243,4 +243,6 @@ export const SOLC_SHA256: Record<string, string> = {
     "0xecabf2b0bf0c3ab0c6bb9cebd309900bd3b5e80c833d2bc68a330fa5508398f5",
   "0.8.36+commit.8a079791":
     "0x704877a592467d7de651ec5377ea6e3c676ae71d31f325401957d41bedfaa0d8",
+  "0.8.37+commit.f401782d":
+    "0xd73fead3cbc860438f56f4d1723677499cdef212d0f8890241748d2d5afc1c5f",
 };
