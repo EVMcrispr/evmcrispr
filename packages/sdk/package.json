@@ -37,7 +37,7 @@
     "arcsecond": "^5.0.0"
   },
   "peerDependencies": {
-    "viem": "^2.54.1"
+    "viem": "^2.56.8"
   },
   "bin": {
     "evmcrispr-build": "./scripts/build.ts"

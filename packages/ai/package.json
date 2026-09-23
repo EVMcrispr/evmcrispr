@@ -24,15 +24,15 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.53",
+    "@ai-sdk/openai-compatible": "^3.0.54",
     "@evmcrispr/sdk": "workspace:^",
-    "ai": "^7.0.108",
+    "ai": "^7.0.112",
     "zod": "^4.6.5"
   },
   "peerDependencies": {
     "@evmcrispr/core": "workspace:^",
     "react": "^19.2.4",
-    "viem": "^2.54.1"
+    "viem": "^2.56.8"
   },
   "devDependencies": {
     "@evmcrispr/core": "workspace:*",

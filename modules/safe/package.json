@@ -43,7 +43,7 @@
     "safe-contracts-v1.3": "npm:@gnosis.pm/safe-contracts@1.3.0"
   },
   "peerDependencies": {
-    "viem": "^2.54.1"
+    "viem": "^2.56.8"
   },
   "files": [
     "dist",

@@ -31,7 +31,7 @@
     "@evmcrispr/module-acl": "workspace:*"
   },
   "peerDependencies": {
-    "viem": "^2.54.1"
+    "viem": "^2.56.8"
   },
   "files": [
     "dist",

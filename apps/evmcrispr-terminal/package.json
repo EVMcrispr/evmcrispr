@@ -20,7 +20,7 @@
     "@tanstack/react-query": "^5.103.2",
     "@wagmi/core": "^3.6.5",
     "@walletconnect/ethereum-provider": "^2.25.0",
-    "ai": "^7.0.108",
+    "ai": "^7.0.112",
     "buffer": "^6.0.3",
     "ethereum-blockies-base64": "^1.0.2",
     "is-ipfs": "^8.0.4",

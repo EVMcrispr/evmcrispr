@@ -2,7 +2,7 @@
   "private": true,
   "overrides": {
     "@types/node": "^26.6.2",
-    "viem": "^2.54.1"
+    "viem": "^2.56.8"
   },
   "scripts": {
     "postinstall": "ln -sf ../../packages/sdk/scripts/build.ts node_modules/.bin/evmcrispr-build && ln -sf ../../packages/cli/src/bin.ts node_modules/.bin/evmcrispr",
@@ -33,7 +33,7 @@
     "@types/node": "^26.6.2",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
-    "turbo": "^2.11.2",
+    "turbo": "^2.11.3",
     "typescript": "^7.0.2"
   },
   "name": "evmcrispr-monorepo",
