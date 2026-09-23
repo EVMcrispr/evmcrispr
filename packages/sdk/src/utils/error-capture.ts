@@ -2,7 +2,7 @@ import type { AbiError } from "abitype";
 import { decodeErrorResult } from "viem";
 
 import type { BindingsManager } from "../BindingsManager";
-import { RevertError } from "../errors";
+import { isChainFailure, RevertError } from "../errors";
 import type { ErrorCaptureNode } from "../types";
 import { BindingsSpace } from "../types";
 import { findDeclaredError, MAX_CAUSE_DEPTH } from "./declaredErrors";
@@ -22,12 +22,37 @@ export type {
   ErrorCaptureSources,
 } from "./error-signatures";
 export {
+  builtinErrorAbi,
   errorAbiFromSignature,
   errorSelector,
   errorSignature,
   indexDeclaredErrors,
   selectCaptureErrorAbis,
 } from "./error-signatures";
+
+/**
+ * When a failure happened, in the terms a capture clause is written in.
+ *
+ * A chain failure — a revert reported by the provider, or our own
+ * {@link RevertError}, anywhere in a bounded `cause` chain — is a
+ * `"revert"`: the transaction was sent and the chain rejected it.
+ * Everything else failed before anything was sent and is a `"refusal"`,
+ * including a `DeclaredError`: it carries ABI-encoded `revertData` so it
+ * decodes like a custom error, but it is a module's own off-chain refusal.
+ */
+export function failureTiming(error: unknown): ErrorCaptureNode["timing"] {
+  if (isChainFailure(error)) return "revert";
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  for (let depth = 0; current && depth < MAX_CAUSE_DEPTH; depth++) {
+    if (seen.has(current)) break;
+    seen.add(current);
+    if (current instanceof RevertError) return "revert";
+    if (typeof current !== "object") break;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return "refusal";
+}
 
 const { USER } = BindingsSpace;
 
@@ -221,6 +246,8 @@ interface ClauseOutcome {
 /** The failure, decoded once for every clause. */
 interface Failure {
   readonly error: unknown;
+  /** When it happened — only clauses of that timing may see it. */
+  readonly timing: ErrorCaptureNode["timing"];
   readonly revertData: `0x${string}` | undefined;
   /** The raise-site refusal, found anywhere in the cause chain. */
   readonly declaredMessage: string | undefined;
@@ -292,6 +319,12 @@ function genericOutcome(
  * whole list is evaluated before anything is published, so an unmatched
  * failure leaves no partial captures behind.
  *
+ * A clause only ever sees a failure of its own timing: a refusal clause
+ * never matches a revert, and a revert clause never matches a refusal —
+ * not even a `DeclaredError`, whose `revertData` would otherwise decode.
+ * That verdict comes first, for named and generic clauses alike, so a
+ * clause of the other timing is a plain mismatch and not a script error.
+ *
  * Throws only for a script error (a malformed inline signature, an
  * ambiguous bare name). An unavailable name or an undecodable payload is
  * a plain mismatch.
@@ -301,6 +334,7 @@ function evaluateClause(
   failure: Failure,
   sources: ErrorCaptureSources | undefined,
 ): ClauseOutcome {
+  if (failure.timing !== capture.timing) return noMatch(capture);
   if (!capture.errorName) return genericOutcome(capture, failure);
 
   // Selection first, and unconditionally: a capture the script cannot
@@ -352,6 +386,12 @@ function applyClause(
  * every clause against the failure, then — only if at least one clause
  * matched — publish the bindings.
  *
+ * Timing: the caller passes the clauses of one family — the refusal
+ * clauses of a line that failed before sending, with `{ declared }`, or
+ * its revert clauses when its transaction reverted, with `{ abi }`. A
+ * clause of the other timing never matches ({@link failureTiming} decides),
+ * so a mixed list is safe but resolves nothing for the wrong family.
+ *
  * Any-match: several clauses on one line are an alternation. Every flagged
  * clause reads `"true"` or `"false"` for its own match, and only a matching
  * clause's destructure applies. If no clause matches, the original error
@@ -370,6 +410,7 @@ export async function resolveErrorCaptures(
 ): Promise<void> {
   const failure: Failure = {
     error,
+    timing: failureTiming(error),
     revertData: extractRevertData(error),
     declaredMessage: findDeclaredError(error)?.message,
   };

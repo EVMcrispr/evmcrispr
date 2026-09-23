@@ -11,6 +11,7 @@ import {
   defineErrors,
   type ErrorCaptureNode,
   ErrorException,
+  failureTiming,
   NodeType,
   normalizeDeclaredErrors,
   RevertError,
@@ -76,9 +77,17 @@ function raised(run: () => never): unknown {
   throw new Error("expected fail() to throw");
 }
 
-function capture(spec: Partial<ErrorCaptureNode>): ErrorCaptureNode {
+/**
+ * A capture clause. The timing defaults to `"revert"` (the `-!>` / `-?!>`
+ * family); refusal cases pass `"refusal"` explicitly.
+ */
+function capture(
+  spec: Partial<ErrorCaptureNode>,
+  timing: ErrorCaptureNode["timing"] = "revert",
+): ErrorCaptureNode {
   return {
     type: NodeType.ErrorCapture,
+    timing,
     optional: true,
     captures: [],
     ...spec,
@@ -121,8 +130,8 @@ describe("resolveErrorCaptures — alternation", () => {
     const { result, value } = run(
       err,
       [
-        capture({ errorName: "SameToken", boolVar: "same" }),
-        capture({ errorName: "BelowMinimum", boolVar: "small" }),
+        capture({ errorName: "SameToken", boolVar: "same" }, "refusal"),
+        capture({ errorName: "BelowMinimum", boolVar: "small" }, "refusal"),
       ],
       { declared: COMMAND_ONLY },
     );
@@ -138,8 +147,11 @@ describe("resolveErrorCaptures — alternation", () => {
     const { result, value } = run(
       err,
       [
-        capture({ errorName: "SameToken", captures: ["ignored"] }),
-        capture({ errorName: "BelowMinimum", captures: ["min", "token"] }),
+        capture({ errorName: "SameToken", captures: ["ignored"] }, "refusal"),
+        capture(
+          { errorName: "BelowMinimum", captures: ["min", "token"] },
+          "refusal",
+        ),
       ],
       { declared: COMMAND_ONLY },
     );
@@ -156,12 +168,15 @@ describe("resolveErrorCaptures — alternation", () => {
     const { result, value } = run(
       err,
       [
-        capture({ errorName: "BelowMinimum", boolVar: "a" }),
-        capture({
-          errorName: "BelowMinimum",
-          errorParams: ["uint256", "address"],
-          captures: ["min", null],
-        }),
+        capture({ errorName: "BelowMinimum", boolVar: "a" }, "refusal"),
+        capture(
+          {
+            errorName: "BelowMinimum",
+            errorParams: ["uint256", "address"],
+            captures: ["min", null],
+          },
+          "refusal",
+        ),
       ],
       { declared: COMMAND_ONLY },
     );
@@ -232,8 +247,8 @@ describe("resolveErrorCaptures — generic clauses", () => {
     const { result, value } = run(
       err,
       [
-        capture({ boolVar: "any" }),
-        capture({ errorName: "SameToken", boolVar: "same" }),
+        capture({ boolVar: "any" }, "refusal"),
+        capture({ errorName: "SameToken", boolVar: "same" }, "refusal"),
       ],
       { declared: COMMAND_ONLY },
     );
@@ -244,9 +259,11 @@ describe("resolveErrorCaptures — generic clauses", () => {
 
   it("binds a declared error's raise-site message", async () => {
     const err = raised(() => commandFail("SameToken", {}, "same token"));
-    const { result, value } = run(err, [capture({ captures: ["reason"] })], {
-      declared: COMMAND_ONLY,
-    });
+    const { result, value } = run(
+      err,
+      [capture({ captures: ["reason"] }, "refusal")],
+      { declared: COMMAND_ONLY },
+    );
     await result;
     expect(value("$reason")).toBe("same token");
   });
@@ -259,10 +276,8 @@ describe("resolveErrorCaptures — generic clauses", () => {
     wrapper.cause = declared;
     const { result, value } = run(
       wrapper,
-      [capture({ captures: ["reason"] })],
-      {
-        declared: UNION,
-      },
+      [capture({ captures: ["reason"] }, "refusal")],
+      { declared: UNION },
     );
     await result;
     expect(value("$reason")).toBe("no explorer for gnosis");
@@ -270,7 +285,9 @@ describe("resolveErrorCaptures — generic clauses", () => {
 
   it("binds an ordinary pre-send failure's message", async () => {
     const err = new ErrorException("encoding failed");
-    const { result, value } = run(err, [capture({ captures: ["reason"] })]);
+    const { result, value } = run(err, [
+      capture({ captures: ["reason"] }, "refusal"),
+    ]);
     await result;
     expect(value("$reason")).toBe("encoding failed");
   });
@@ -339,7 +356,7 @@ describe("resolveErrorCaptures — signature selection", () => {
   const SAME_TOKEN_ARG_ABI = parseAbi(["error SameToken(uint256)"]);
   const SAME_TOKEN_ABI = parseAbi(["error SameToken()"]);
 
-  it("matches an on-chain error whose signature equals the declared one", async () => {
+  it("matches an on-chain error whose signature equals the ABI's", async () => {
     const err = new RevertError(
       "Transaction reverted",
       encodeErrorResult({ abi: SAME_TOKEN_ABI, errorName: "SameToken" }),
@@ -347,7 +364,7 @@ describe("resolveErrorCaptures — signature selection", () => {
     const { result, value } = run(
       err,
       [capture({ errorName: "SameToken", boolVar: "same" })],
-      { declared: COMMAND_ONLY },
+      { abi: SAME_TOKEN_ABI as Abi },
     );
     await result;
     expect(value("$same")).toBe("true");
@@ -365,7 +382,7 @@ describe("resolveErrorCaptures — signature selection", () => {
     const { result } = run(
       err,
       [capture({ errorName: "SameToken", boolVar: "same" })],
-      { declared: COMMAND_ONLY },
+      { abi: SAME_TOKEN_ABI as Abi },
     );
     expect(await caught(result)).toBe(err);
   });
@@ -394,7 +411,7 @@ describe("resolveErrorCaptures — signature selection", () => {
     expect(String(value("$n"))).toBe("7");
   });
 
-  it("prefers a declaration over the contract ABI for a bare name", async () => {
+  it("ignores a same-named declaration for a revert clause", async () => {
     const abi = parseAbi(["error SameToken(uint256)"]) as Abi;
     const err = new RevertError(
       "Transaction reverted",
@@ -404,17 +421,18 @@ describe("resolveErrorCaptures — signature selection", () => {
         args: [7n],
       }),
     );
-    // The declared no-arg signature wins, so the one-arg on-chain error
-    // is not a match even though the contract ABI would decode it.
-    const { result } = run(
+    // The declared no-arg signature is a refusal shape; a revert clause
+    // reads the contract ABI only, so the one-arg on-chain error matches.
+    const { result, value } = run(
       err,
-      [capture({ errorName: "SameToken", boolVar: "same" })],
+      [capture({ errorName: "SameToken", captures: ["n"] })],
       { abi, declared: COMMAND_ONLY },
     );
-    expect(await caught(result)).toBe(err);
+    await result;
+    expect(String(value("$n"))).toBe("7");
   });
 
-  it("falls back to the contract ABI when nothing declares the name", async () => {
+  it("decodes a contract error with the failing action's ABI", async () => {
     const abi = parseAbi(["error InsufficientBalance(uint256,uint256)"]) as Abi;
     const err = new RevertError(
       "Transaction reverted",
@@ -472,7 +490,7 @@ describe("resolveErrorCaptures — signature selection", () => {
     const err = raised(() => commandFail("SameToken", {}, "same token"));
     const { result, value } = run(
       err,
-      [capture({ errorName: "SameToken", boolVar: "same" })],
+      [capture({ errorName: "SameToken", boolVar: "same" }, "refusal")],
       { declared: twice },
     );
     await result;
@@ -483,7 +501,7 @@ describe("resolveErrorCaptures — signature selection", () => {
 describe("resolveErrorCaptures — invalid captures are script errors", () => {
   it("rejects a bare name declared with two different signatures", async () => {
     const err = raised(() => commandFail("Shared", {}, "shared"));
-    const { result } = run(err, [capture({ errorName: "Shared" })], {
+    const { result } = run(err, [capture({ errorName: "Shared" }, "refusal")], {
       declared: UNION,
     });
     const thrown = await caught(result);
@@ -498,8 +516,8 @@ describe("resolveErrorCaptures — invalid captures are script errors", () => {
     const { result } = run(
       err,
       [
-        capture({ errorName: "SameToken", boolVar: "same" }),
-        capture({ errorName: "Shared", boolVar: "shared" }),
+        capture({ errorName: "SameToken", boolVar: "same" }, "refusal"),
+        capture({ errorName: "Shared", boolVar: "shared" }, "refusal"),
       ],
       { declared: UNION },
     );
@@ -521,7 +539,12 @@ describe("resolveErrorCaptures — invalid captures are script errors", () => {
     const err = raised(() => commandFail("SameToken", {}, "same token"));
     const { result } = run(
       err,
-      [capture({ errorName: "SameToken", captures: ["one", "two"] })],
+      [
+        capture(
+          { errorName: "SameToken", captures: ["one", "two"] },
+          "refusal",
+        ),
+      ],
       { declared: COMMAND_ONLY },
     );
     const thrown = await caught(result);
@@ -532,6 +555,7 @@ describe("resolveErrorCaptures — invalid captures are script errors", () => {
 
 describe("resolveErrorCaptures — malformed payloads", () => {
   it("treats a truncated payload with the right selector as a mismatch", async () => {
+    const abi = parseAbi(["error BelowMinimum(uint256,address)"]) as Abi;
     const full = encodeErrorResult({
       abi: parseAbi(["error BelowMinimum(uint256,address)"]),
       errorName: "BelowMinimum",
@@ -542,7 +566,7 @@ describe("resolveErrorCaptures — malformed payloads", () => {
     const { result, value } = run(
       err,
       [capture({ errorName: "BelowMinimum", captures: ["min", "token"] })],
-      { declared: COMMAND_ONLY },
+      { abi },
     );
     expect(await caught(result)).toBe(err);
     expect(value("$min")).toBeUndefined();
@@ -553,7 +577,7 @@ describe("resolveErrorCaptures — malformed payloads", () => {
     const { result } = run(
       err,
       [capture({ errorName: "SameToken", boolVar: "same" })],
-      { declared: COMMAND_ONLY },
+      { abi: parseAbi(["error SameToken()"]) as Abi },
     );
     expect(await caught(result)).toBe(err);
   });
@@ -569,7 +593,7 @@ describe("resolveErrorCaptures — declared helper failures", () => {
     const err = declaredErr();
     const { result, value } = run(
       err,
-      [capture({ errorName: "NoExplorer", captures: ["chain"] })],
+      [capture({ errorName: "NoExplorer", captures: ["chain"] }, "refusal")],
       { declared: UNION },
     );
     await result;
@@ -581,11 +605,14 @@ describe("resolveErrorCaptures — declared helper failures", () => {
     const { result, value } = run(
       err,
       [
-        capture({
-          errorName: "NoExplorer",
-          optional: false,
-          captures: ["chain"],
-        }),
+        capture(
+          {
+            errorName: "NoExplorer",
+            optional: false,
+            captures: ["chain"],
+          },
+          "refusal",
+        ),
       ],
       { declared: UNION },
     );
@@ -598,7 +625,7 @@ describe("resolveErrorCaptures — declared helper failures", () => {
     wrapper.cause = declaredErr();
     const { result, value } = run(
       wrapper,
-      [capture({ errorName: "NoExplorer", boolVar: "missing" })],
+      [capture({ errorName: "NoExplorer", boolVar: "missing" }, "refusal")],
       { declared: UNION },
     );
     await result;
@@ -609,7 +636,7 @@ describe("resolveErrorCaptures — declared helper failures", () => {
     const err = declaredErr();
     const { result, value } = run(
       err,
-      [capture({ optional: false, boolVar: "failed" })],
+      [capture({ optional: false, boolVar: "failed" }, "refusal")],
       { declared: UNION },
     );
     await result;
@@ -647,7 +674,7 @@ describe("selectCaptureErrorAbis", () => {
 
   it("returns the declared item for a bare declared name", () => {
     const [item] = selectCaptureErrorAbis(
-      capture({ errorName: "BelowMinimum" }),
+      capture({ errorName: "BelowMinimum" }, "refusal"),
       { declared: COMMAND_ONLY },
     );
     expect(item?.inputs.map((i) => i.type)).toEqual(["uint256", "address"]);
@@ -664,5 +691,199 @@ describe("selectCaptureErrorAbis", () => {
     expect(selectCaptureErrorAbis(capture({ errorName: "Nope" }), {})).toEqual(
       [],
     );
+  });
+
+  it("ignores the contract ABI for a refusal clause", () => {
+    const abi = parseAbi(["error Dup()", "error Dup(uint256)"]) as Abi;
+    expect(
+      selectCaptureErrorAbis(capture({ errorName: "Dup" }, "refusal"), {
+        abi,
+        declared: COMMAND_ONLY,
+      }),
+    ).toEqual([]);
+  });
+
+  it("ignores the builtins for a refusal clause", () => {
+    expect(
+      selectCaptureErrorAbis(capture({ errorName: "Error" }, "refusal"), {
+        declared: COMMAND_ONLY,
+      }),
+    ).toEqual([]);
+  });
+
+  it("ignores declarations for a revert clause", () => {
+    expect(
+      selectCaptureErrorAbis(capture({ errorName: "BelowMinimum" }), {
+        declared: COMMAND_ONLY,
+      }),
+    ).toEqual([]);
+  });
+
+  it("builds an inline signature for either timing", () => {
+    const params = { errorName: "Error", errorParams: ["string"] };
+    for (const timing of ["refusal", "revert"] as const) {
+      const [item] = selectCaptureErrorAbis(capture(params, timing), {});
+      expect(item?.name).toBe("Error");
+      expect(item?.inputs.map((i) => i.type)).toEqual(["string"]);
+    }
+  });
+
+  it("throws on an ambiguous declared name for a refusal clause only", () => {
+    expect(() =>
+      selectCaptureErrorAbis(capture({ errorName: "Shared" }, "refusal"), {
+        declared: UNION,
+      }),
+    ).toThrow(/more than one signature/);
+    expect(
+      selectCaptureErrorAbis(capture({ errorName: "Shared" }), {
+        declared: UNION,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("failureTiming", () => {
+  it("reads a chain revert as a revert", () => {
+    expect(failureTiming(new RevertError("Transaction reverted"))).toBe(
+      "revert",
+    );
+  });
+
+  it("reads a wrapped chain revert as a revert", () => {
+    const wrapper = new ErrorException("an error occurred");
+    wrapper.cause = new RevertError("Transaction reverted");
+    expect(failureTiming(wrapper)).toBe("revert");
+  });
+
+  it("reads a declared error as a refusal, despite its revertData", () => {
+    const err = raised(() => commandFail("SameToken", {}, "same token"));
+    expect(failureTiming(err)).toBe("refusal");
+  });
+
+  it("reads an ordinary exception and a non-error value as a refusal", () => {
+    expect(failureTiming(new ErrorException("encoding failed"))).toBe(
+      "refusal",
+    );
+    expect(failureTiming({ nope: true })).toBe("refusal");
+  });
+});
+
+describe("resolveErrorCaptures — the two timings never cross", () => {
+  const sameTokenRevert = () =>
+    new RevertError(
+      "Transaction reverted",
+      encodeErrorResult({
+        abi: parseAbi(["error SameToken()"]),
+        errorName: "SameToken",
+      }),
+    );
+  const reasonRevert = () =>
+    new RevertError(
+      "Transaction reverted",
+      encodeErrorResult({
+        abi: ERROR_STRING_ABI,
+        errorName: "Error",
+        args: ["nope"],
+      }),
+    );
+
+  it("matches a declared refusal with a refusal clause", async () => {
+    const err = raised(() => commandFail("SameToken", {}, "same token"));
+    const { result, value } = run(
+      err,
+      [capture({ errorName: "SameToken", boolVar: "same" }, "refusal")],
+      { declared: COMMAND_ONLY },
+    );
+    await result;
+    expect(value("$same")).toBe("true");
+  });
+
+  it("does not match a declared refusal with a revert clause", async () => {
+    const err = raised(() => commandFail("SameToken", {}, "same token"));
+    const { result } = run(
+      err,
+      [capture({ errorName: "SameToken", boolVar: "same" })],
+      { declared: COMMAND_ONLY, abi: parseAbi(["error SameToken()"]) as Abi },
+    );
+    expect(await caught(result)).toBe(err);
+  });
+
+  it("matches a reason-string revert with a revert clause", async () => {
+    const err = reasonRevert();
+    const { result, value } = run(err, [
+      capture({
+        errorName: "Error",
+        errorParams: ["string"],
+        captures: ["why"],
+      }),
+    ]);
+    await result;
+    expect(value("$why")).toBe("nope");
+  });
+
+  it("does not match a revert with a refusal clause", async () => {
+    const err = reasonRevert();
+    const { result } = run(err, [
+      capture(
+        { errorName: "Error", errorParams: ["string"], captures: ["why"] },
+        "refusal",
+      ),
+    ]);
+    expect(await caught(result)).toBe(err);
+  });
+
+  it("does not match a contract revert with a refusal clause", async () => {
+    const err = sameTokenRevert();
+    const { result } = run(
+      err,
+      [capture({ errorName: "SameToken", boolVar: "same" }, "refusal")],
+      { declared: COMMAND_ONLY },
+    );
+    expect(await caught(result)).toBe(err);
+  });
+
+  it("binds a declared refusal's message to a generic refusal clause", async () => {
+    const err = raised(() => commandFail("SameToken", {}, "same token"));
+    const { result, value } = run(
+      err,
+      [capture({ captures: ["reason"] }, "refusal")],
+      { declared: COMMAND_ONLY },
+    );
+    await result;
+    expect(value("$reason")).toBe("same token");
+  });
+
+  it("binds a plain exception's message to a generic refusal clause", async () => {
+    const err = new ErrorException("no explorer for gnosis");
+    const { result, value } = run(err, [
+      capture({ captures: ["reason"] }, "refusal"),
+    ]);
+    await result;
+    expect(value("$reason")).toBe("no explorer for gnosis");
+  });
+
+  it("binds a revert's decoded reason to a generic revert clause", async () => {
+    const { result, value } = run(reasonRevert(), [
+      capture({ captures: ["reason"] }),
+    ]);
+    await result;
+    expect(value("$reason")).toBe("nope");
+  });
+
+  it("leaves a declared refusal to a generic revert clause untouched", async () => {
+    const err = raised(() =>
+      helperFail("NoExplorer", { chainId: 100n }, "no explorer for gnosis"),
+    );
+    const { result, value } = run(err, [capture({ captures: ["reason"] })], {
+      declared: UNION,
+    });
+    expect(await caught(result)).toBe(err);
+    expect(value("$reason")).toBeUndefined();
+  });
+
+  it("does not match a generic revert clause against a plain exception", async () => {
+    const err = new ErrorException("encoding failed");
+    const { result } = run(err, [capture({ boolVar: "failed" })]);
+    expect(await caught(result)).toBe(err);
   });
 });

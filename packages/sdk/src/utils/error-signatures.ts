@@ -27,18 +27,20 @@ export interface DeclaredErrorEntry {
 }
 
 /**
- * Everything a capture clause may resolve its error name against.
- *
- * The two sources are kept apart so their precedence survives: a bare name
- * selects a declaration first and only then the failing action's contract
- * ABI.
+ * Everything a capture clause may resolve its error name against. Each
+ * timing reads exactly one of the two fields and ignores the other:
+ * a refusal clause (`-/>` / `-?/>`) resolves in `declared`, a revert
+ * clause (`-!>` / `-?!>`) in the Solidity builtins and `abi`.
  */
 export interface ErrorCaptureSources {
-  /** ABI of the failing action's target contract, when one is known. */
+  /**
+   * ABI of the failing action's target contract, when one is known. Read
+   * by revert clauses only.
+   */
   readonly abi?: Abi;
   /**
    * Declared errors of the command and its reachable helpers, in
-   * declaration order (the command's first).
+   * declaration order (the command's first). Read by refusal clauses only.
    */
   readonly declared?: readonly DeclaredErrorEntry[];
 }
@@ -59,7 +61,7 @@ export const STANDARD_ERROR_ABI = parseAbiItem(
 export const PANIC_ABI = parseAbiItem("error Panic(uint256)") as AbiError;
 
 /** The Solidity built-ins every contract can raise, looked up by bare name. */
-function builtinErrorAbi(errorName: string): AbiError | undefined {
+export function builtinErrorAbi(errorName: string): AbiError | undefined {
   if (errorName === "Error") return STANDARD_ERROR_ABI;
   if (errorName === "Panic") return PANIC_ABI;
   return undefined;
@@ -146,11 +148,14 @@ export function indexDeclaredErrors(
  * The ABI error items a capture clause may decode against, in the order
  * they are tried.
  *
- * Precedence, for a bare name: the declared union first, then the Solidity
- * builtins, then every same-named error of the failing action's contract
- * ABI (all of them — an overloaded name must not silently resolve to
- * whichever item `getAbiItem` happens to return first). An inline
- * signature bypasses the lookup entirely.
+ * The clause's timing picks its one source, with no precedence between
+ * them: a refusal clause resolves a bare name in the declared union alone
+ * (so a contract's custom error is unavailable to it, and so are the
+ * Solidity builtins); a revert clause resolves it in the builtins and then
+ * in every same-named error of the failing action's contract ABI (all of
+ * them — an overloaded name must not silently resolve to whichever item
+ * `getAbiItem` happens to return first), with declarations unavailable. An
+ * inline signature bypasses the lookup entirely, for either timing.
  *
  * An empty result means the name is unavailable here, which the resolver
  * reads as "this clause does not match". Malformed capture syntax and an
@@ -169,11 +174,11 @@ export function selectCaptureErrorAbis(
     return [errorAbiFromSignature(errorName, capture.errorParams)];
   }
 
-  // Declarations win over contract metadata for a bare name. (`Error` and
-  // `Panic` are reserved names no declaration may use, so the builtins
-  // below can never be shadowed here.)
-  const declared = indexDeclaredErrors(sources?.declared).byName.get(errorName);
-  if (declared && declared.length > 0) {
+  // A refusal names a declared error of the line, and only that.
+  if (capture.timing === "refusal") {
+    const declared =
+      indexDeclaredErrors(sources?.declared).byName.get(errorName) ?? [];
+    if (declared.length === 0) return [];
     if (declared.length > 1) {
       const shown = declared
         .map(
@@ -188,6 +193,7 @@ export function selectCaptureErrorAbis(
     return [declared[0].abi];
   }
 
+  // A revert names a Solidity builtin or an error of the target contract.
   const builtin = builtinErrorAbi(errorName);
   if (builtin) return [builtin];
 
