@@ -27,11 +27,11 @@ import {
 } from "../../src/utils/eez";
 
 const l1 = {
-  chainId: 7331,
-  registry: EEZ_CHAINS[7331].registry,
+  chainId: 10200,
+  registry: EEZ_CHAINS[10200].registry,
   rollupId: 0n,
   peerRollupId: 1n,
-  peerChainId: 6290,
+  peerChainId: 6291,
 };
 
 // Unit tests run without the module registry: declare the chains by hand.
@@ -44,20 +44,20 @@ describe("eez utils", () => {
   });
 
   it("refuses a proxy for the current rollup itself", () => {
-    expect(() => assertForeignRollup(0n, 0n, 7331)).toThrow(
+    expect(() => assertForeignRollup(0n, 0n, 10200)).toThrow(
       /rollup 0 is .* itself/,
     );
-    expect(() => assertForeignRollup(-1n, 0n, 7331)).toThrow(/negative/);
-    expect(() => assertForeignRollup(1n, 0n, 7331)).not.toThrow();
+    expect(() => assertForeignRollup(-1n, 0n, 10200)).toThrow(/negative/);
+    expect(() => assertForeignRollup(1n, 0n, 10200)).not.toThrow();
   });
 
   it("names rollups by chain key, chain id or bare rollup id", () => {
     expect(rollupIdFor("eezL2")).toBe(1n);
-    expect(rollupIdFor("eezL1")).toBe(0n);
-    expect(rollupIdFor(6290)).toBe(1n);
+    expect(rollupIdFor("gnosisChiado")).toBe(0n);
+    expect(rollupIdFor(6291)).toBe(1n);
     expect(rollupIdFor(7)).toBe(7n);
     expect(() => rollupIdFor("nowhere")).toThrow(/unknown rollup/);
-    expect(() => resolveRollup(l1, "eezL1")).toThrow(/itself/);
+    expect(() => resolveRollup(l1, "gnosisChiado")).toThrow(/itself/);
     expect(resolveRollup(l1, "eezL2")).toBe(1n);
   });
 

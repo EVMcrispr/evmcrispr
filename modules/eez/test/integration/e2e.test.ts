@@ -80,7 +80,7 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
       [
         "load eez",
         "eez:on eezL2 (",
-        "  eez:on eezL1 (",
+        "  eez:on gnosisChiado (",
         `    exec ${value} setValue(uint256) ${expected}`,
         "  )",
         ")",

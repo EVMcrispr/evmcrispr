@@ -24,7 +24,7 @@ eez:deploy-proxy <target>
 
 ```evml
 # Create the L1 proxy for a rollup contract, so L1 code can call it
-switch eezL1
+switch gnosisChiado
 eez:deploy-proxy 0x000000000000000000000000000000000000dEaD
 ```
 

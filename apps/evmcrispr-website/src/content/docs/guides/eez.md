@@ -6,7 +6,7 @@ experimental: true
 An EEZ L2 and its L1 share one sequencer, so a call can cross between
 them inside a single transaction: the far side executes atomically with the
 sending side, and its return value or revert comes back in the same
-transaction. The `eez` module ships the two devnet chains, `eezL1` and
+transaction. The `eez` module ships the two devnet chains, `gnosisChiado` and
 `eezL2`, so `switch` reaches them by name, plus a faucet for gas.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
@@ -14,7 +14,7 @@ transaction. The `eez` module ships the two devnet chains, `eezL1` and
 ```evml
 load eez
 
-switch eezL1
+switch gnosisChiado
 eez:faucet @me
 ```
 
@@ -35,9 +35,9 @@ set $registry 0x000000000000000000000000000000000000dEaD   # some contract on L1
 switch eezL2
 # Its proxy on L2: deterministic, so usable before it exists —
 # as a constructor argument, for instance.
-print "proxy on L2:" @eez:proxy(eezL1 $registry)
+print "proxy on L2:" @eez:proxy(gnosisChiado $registry)
 eez:deploy-proxy $registry
-print "stands in for:" @eez:target(eezL2 @eez:proxy(eezL1 $registry))
+print "stands in for:" @eez:target(eezL2 @eez:proxy(gnosisChiado $registry))
 ```
 
 ## Calling across from a contract
@@ -52,7 +52,7 @@ load eez
 load contracts
 
 # ── L1: the minter ────────────────────────────────────────────────
-switch eezL1
+switch gnosisChiado
 set $minterSrc <<<SOL
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
@@ -77,11 +77,11 @@ contract Badge {
   function mint(address to) external { require(msg.sender == minter, "only minter"); balanceOf[to] += 1; }
 }
 SOL
-contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $minter)]
+contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(gnosisChiado $minter)]
 eez:deploy-proxy $minter                      # create the proxy the callback resolves to
 
 # ── L1 → L2, in one transaction ───────────────────────────────
-switch eezL1
+switch gnosisChiado
 eez:deploy-proxy $badge                       # the Badge's proxy on L1
 exec $minter mintBadge(address) @eez:proxy(eezL2 $badge)
 ```
@@ -103,7 +103,7 @@ load eez
 
 set $counter 0x000000000000000000000000000000000000bEEF   # a contract on L2
 
-switch eezL1
+switch gnosisChiado
 eez:on eezL2 (
   exec $counter setValue(uint256) 42
 )
@@ -121,13 +121,13 @@ load eez
 
 set $vault 0x000000000000000000000000000000000000bEEF   # a contract on L2
 
-switch eezL1
+switch gnosisChiado
 eez:on eezL2 (
   # msg.sender on L2 is @sender, the wallet's proxy there
   exec $vault setOwner(address) @sender
 )
 # The same proxy, computed on L2, from L1
-print "my proxy on L2:" @eez:on(eezL2 @eez:proxy(eezL1 @me))
+print "my proxy on L2:" @eez:on(eezL2 @eez:proxy(gnosisChiado @me))
 ```
 
 Gas is estimated by simulating the remote leg as the rollup will see it,
@@ -148,10 +148,10 @@ load eez
 set $counter 0x000000000000000000000000000000000000bEEF   # on L2
 set $treasury 0x000000000000000000000000000000000000dEaD  # on L1, open to L2 proxies only
 
-switch eezL1
+switch gnosisChiado
 eez:on eezL2 (
   exec $counter increment()
-  eez:on eezL1 (
+  eez:on gnosisChiado (
     # L1 → L2 → L1: back home, but as the L1 proxy of your L2 proxy
     exec $treasury claim(address) @sender
   )
@@ -159,7 +159,7 @@ eez:on eezL2 (
 ```
 
 Every hop adds its own overhead to the gas estimate, and deeper nesting
-works the same way (`eezL1` → `eezL2` → `eezL1` → `eezL2`, and so on).
+works the same way (`gnosisChiado` → `eezL2` → `gnosisChiado` → `eezL2`, and so on).
 
 `switch` and contract deployments are not allowed inside the block: a proxy
 only forwards calls.
@@ -178,7 +178,7 @@ load eez
 
 set $vault 0x000000000000000000000000000000000000bEEF   # on L2
 
-switch eezL1
+switch gnosisChiado
 eez:batch eezL2 (
   exec $vault setValue(uint256) 42
   exec $vault setOwner(address) @sender
@@ -206,7 +206,7 @@ and returns the value, without a transaction:
 ```evml
 load eez
 
-switch eezL1
+switch gnosisChiado
 print "balance on L2:" @eez:on(eezL2 @balance(ETH @me))
 ```
 
@@ -241,13 +241,13 @@ load safe
 set $minter 0x000000000000000000000000000000000000dEaD   # the Minter on L1
 set $badge 0x000000000000000000000000000000000000bEEF    # the Badge on L2
 
-switch eezL1
+switch gnosisChiado
 safe:new @me -> ProxyCreation(address indexed, address) [$safe _]
 
 switch eezL2
 eez:faucet $safe --amount 100e18              # the Safe's stash on L2
 
-switch eezL1
+switch gnosisChiado
 safe:execute $safe (
   assert @eez:on!(eezL2 @balance!(ETH $safe)) >= 100e18 "not a whale on L2"
   exec $minter mintBadge(address) @eez:proxy(eezL2 $badge)
@@ -294,7 +294,7 @@ contract Gate {
 # L1: prove and admit
 exec $gate "admit(uint256[2],uint256[2][2],uint256[2],uint256[1])" $a $b $c $signals
 # L2: the Badge is pinned to the Gate's proxy there
-contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
+contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(gnosisChiado $gate)]
 # L1 → L2: mint, atomically with this transaction
 exec $gate mintBadge(address) @eez:proxy(eezL2 $badge)
 ```

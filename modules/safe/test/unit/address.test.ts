@@ -46,7 +46,7 @@ describe("Safe address prediction", () => {
   });
 
   it("matches safe:new with default, custom and uint256-max nonces without RPC", async () => {
-    for (const chainId of [1, 7331]) {
+    for (const chainId of [1, 10200]) {
       for (const nonce of [undefined, 42n, (1n << 256n) - 1n]) {
         const { logs, actions } = await compile(
           `print @safe:address(${owner}${nonce === undefined ? "" : ` ${nonce}`})
@@ -78,9 +78,9 @@ print @safe:address(${other} 42)`;
     expect(canonical[0]).toBe(canonical[1]);
     expect(new Set([canonical[0], canonical[2], canonical[3]]).size).toBe(3);
     expect((await compile(script, 100)).logs).toEqual(canonical);
-    const eez = (await compile(script, 7331)).logs;
+    const eez = (await compile(script, 10200)).logs;
     expect(eez[2]).not.toBe(canonical[2]);
-    expect((await compile(script, 6290)).logs).toEqual(eez);
+    expect((await compile(script, 6291)).logs).toEqual(eez);
   });
 
   it("predicts after collecting a deployment in a batch", async () => {

@@ -174,7 +174,7 @@ describeCommand("on", {
       name: "resolves helpers inside the block against the designated chain",
       // No `switch` inside: the block itself puts the script on the target
       // chain, so @eez:proxy computes with that chain's registry.
-      script: `eez:on eezL2 (\n  exec ${KNOWN} setOwner(address) @eez:proxy(eezL1 ${KNOWN})\n)`,
+      script: `eez:on eezL2 (\n  exec ${KNOWN} setOwner(address) @eez:proxy(gnosisChiado ${KNOWN})\n)`,
       timeout: 120_000,
       setup: ensureKnownProxy,
       validate: async (actions) => {
@@ -218,7 +218,7 @@ describeCommand("on", {
       name: "routes a nested block back home through a proxy of a proxy",
       // L1 → L2 → L1: the inner block's call to KNOWN goes through KNOWN's
       // proxy on L2, and that proxy's own proxy on L1 is what we send to.
-      script: `eez:on eezL2 (\n  eez:on eezL1 (\n    exec ${KNOWN} setValue(uint256) 1\n  )\n)`,
+      script: `eez:on eezL2 (\n  eez:on gnosisChiado (\n    exec ${KNOWN} setValue(uint256) 1\n  )\n)`,
       timeout: 120_000,
       setup: async () => {
         await ensureFunded();
@@ -238,7 +238,7 @@ describeCommand("on", {
     },
     {
       name: "creates the missing proxies of a nested block on both chains",
-      script: `eez:on eezL2 (\n  eez:on eezL1 (\n    exec ${fresh4} setValue(uint256) 2\n  )\n)`,
+      script: `eez:on eezL2 (\n  eez:on gnosisChiado (\n    exec ${fresh4} setValue(uint256) 2\n  )\n)`,
       timeout: 120_000,
       setup: async () => {
         await ensureFunded();
@@ -275,7 +275,7 @@ describeCommand("on", {
       // four hops); each hop adds the sending chain's overhead.
       script: [
         "eez:on eezL2 (",
-        "  eez:on eezL1 (",
+        "  eez:on gnosisChiado (",
         "    eez:on eezL2 (",
         `      exec ${KNOWN} setValue(uint256) 3`,
         "    )",
@@ -302,7 +302,7 @@ describeCommand("on", {
   errorCases: [
     {
       name: "refuses to run the block on the current chain",
-      script: `eez:on eezL1 (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
+      script: `eez:on gnosisChiado (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
       error: "itself",
     },
     {
@@ -312,7 +312,7 @@ describeCommand("on", {
     },
     {
       name: "refuses a switch inside the block",
-      script: `eez:on eezL2 (\n  switch eezL1\n  exec ${KNOWN} setValue(uint256) 1\n)`,
+      script: `eez:on eezL2 (\n  switch gnosisChiado\n  exec ${KNOWN} setValue(uint256) 1\n)`,
       error: "switch cannot be used inside eez:on",
     },
     {
@@ -337,7 +337,7 @@ describeCommand("on", {
     {
       description:
         "From L1, set a value on a rollup contract in one atomic transaction",
-      code: "switch eezL1\neez:on eezL2 (\n  exec 0x000000000000000000000000000000000000bEEF setValue(uint256) 42\n)",
+      code: "switch gnosisChiado\neez:on eezL2 (\n  exec 0x000000000000000000000000000000000000bEEF setValue(uint256) 42\n)",
     },
   ],
 });

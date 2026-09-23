@@ -94,9 +94,9 @@ interface World {
 /** The swap itself. Scheduled by Alice and executed by Bob as the same
  *  calls, so it names both parties instead of `@me`. */
 const swapBlock = ({ dai, usdc, intents }: World) => `(
-  assert ${intents}::!{executor()(address)} == @eez:proxy(eezL1 ${bob.address}) "only Bob"
+  assert ${intents}::!{executor()(address)} == @eez:proxy(gnosisChiado ${bob.address}) "only Bob"
   token:transfer-from ${USDC_AMOUNT} ${usdc} from ${bob.address} to ${alice.address}
-  eez:on eezL1 (
+  eez:on gnosisChiado (
     token:transfer-from ${DAI_AMOUNT} ${dai} from ${alice.address} to ${bob.address}
   )
 )`;
@@ -108,7 +108,7 @@ set $mockSrc <<<SOL
 ${MOCK_SRC}
 SOL
 
-switch eezL1
+switch gnosisChiado
 contracts:deploy $dai @contracts:solidity($mockSrc contract:Mock)
 
 switch eezL2
@@ -134,7 +134,7 @@ eez:deploy-proxy ${bob.address}    # Bob's proxy here: the executor the batch ex
 
 governor:timelock-schedule $op $intents 0 ${swapBlock({ ...w, intents: "$intents" as Address })}
 
-switch eezL1
+switch gnosisChiado
 eez:deploy-proxy $intents          # msg.sender of the DAI leg, and Bob's door in
 token:approve ${DAI_AMOUNT} ${w.dai} for @eez:proxy(eezL2 $intents)
 print "intents:" $intents`;
@@ -147,13 +147,13 @@ load token
 switch eezL2
 token:approve ${USDC_AMOUNT} ${w.usdc} for ${w.intents}
 
-switch eezL1
+switch gnosisChiado
 eez:on eezL2 (
   governor:timelock-execute ${w.intents} ${swapBlock(w)}
 )`;
 
 /** Alice funds herself: the swap becomes takeable. */
-const FUND_ALICE = (w: World) => `switch eezL1
+const FUND_ALICE = (w: World) => `switch gnosisChiado
 exec ${w.dai} mint(address,uint256) ${alice.address} ${DAI_AMOUNT}`;
 
 async function runAs(account: Account, script: string): Promise<string> {

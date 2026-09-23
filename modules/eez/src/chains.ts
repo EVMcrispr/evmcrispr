@@ -1,12 +1,13 @@
 import type { ChainDef } from "@evmcrispr/sdk";
 
 // Literal-only declarations: hosts and docs read this file without loading
-// the module. Both chains are the EEZ Team's hosted devnet, reached through
-// EVMcrispr's `experimental-eez-rpc`: one ordinary JSON-RPC per chain that
-// forwards to the devnet's execution RPC and hands cross-chain transactions
-// (the ones that would revert with a registry gate error outside a composed
-// sync block) to the EEZ cross-chain ingress instead, estimating their gas
-// too. Ephemeral networks; they may be reset.
+// the module. The EEZ Team's hosted devnet settles on Gnosis Chiado (chain id
+// 10200, a chain viem already knows as `gnosisChiado`, so it is not declared
+// here); its rollup is declared below, reached through the EEZ composer: an
+// ordinary JSON-RPC that also takes cross-chain transactions and composes
+// them with the rollup's execution. It cannot estimate the gas of a
+// cross-chain call, so `eez:on`/`eez:batch` size their own gas and other
+// commands take `--gas`. Ephemeral network; it may be reset.
 //
 // No explorer is declared: the devnet's Blockscout frontends are reachable
 // but its API backend is not, and `registerChains` derives an explorer API
@@ -14,17 +15,10 @@ import type { ChainDef } from "@evmcrispr/sdk";
 // at a frontend that answers HTML.
 export const chains: ChainDef[] = [
   {
-    id: 7331,
-    key: "eezL1",
-    name: "EEZ L1",
-    rpcUrl: "https://api.evmcrispr.com/experimental-eez-rpc/eezL1",
-    testnet: true,
-  },
-  {
-    id: 6290,
+    id: 6291,
     key: "eezL2",
     name: "EEZ L2",
-    rpcUrl: "https://api.evmcrispr.com/experimental-eez-rpc/eezL2",
+    rpcUrl: "https://eez.asuscomm.com/composer/l2",
     testnet: true,
   },
 ];

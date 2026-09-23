@@ -22,7 +22,7 @@ describeHelper(
   {
     module: "eez",
     skip: !devnet,
-    preamble: "switch eezL1",
+    preamble: "switch gnosisChiado",
     cases: [
       {
         name: "resolves the proxy of a rollup contract on L1",
@@ -33,7 +33,7 @@ describeHelper(
       },
       {
         name: "accepts the chain id too",
-        input: `@eez:proxy(6290 ${DEAD})`,
+        input: `@eez:proxy(6291 ${DEAD})`,
         validate: async (result) => {
           expect(isAddressEqual(result, await onChain(1n))).to.be.true;
         },
@@ -49,7 +49,7 @@ describeHelper(
     errorCases: [
       {
         name: "refuses the current chain's own rollup id",
-        input: `@eez:proxy(eezL1 ${DEAD})`,
+        input: `@eez:proxy(gnosisChiado ${DEAD})`,
         error: "itself",
       },
     ],
@@ -57,7 +57,7 @@ describeHelper(
       {
         description:
           "Resolve where a rollup contract is reachable from L1, e.g. to pass it to another contract",
-        code: "switch eezL1\nprint @eez:proxy(eezL2 0x000000000000000000000000000000000000dEaD)",
+        code: "switch gnosisChiado\nprint @eez:proxy(eezL2 0x000000000000000000000000000000000000dEaD)",
         preamble: "load eez",
       },
     ],

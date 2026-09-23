@@ -33,7 +33,7 @@ const DEMO = `load eez
 load circom
 load contracts
 
-switch eezL1
+switch gnosisChiado
 
 set $circuit <<<CIRCOM
 pragma circom 2.0.0;
@@ -99,11 +99,11 @@ contract Badge {
   function setNote(string calldata n) external { note[msg.sender] = n; }
 }
 SOL
-contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
-contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $gate)]
+contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(gnosisChiado $gate)]
+contracts:verify $badge --source $badgeSrc --constructor "constructor(address)" --constructor-args [@eez:proxy(gnosisChiado $gate)]
 eez:deploy-proxy $gate
 
-switch eezL1
+switch gnosisChiado
 eez:deploy-proxy $badge
 exec $gate mintBadge(address) @eez:proxy(eezL2 $badge)
 
@@ -113,7 +113,7 @@ print "badges on the rollup:" $badges
 eez:on eezL2 (
   exec $badge setNote(string) "admitted on L1"
 )
-print "note on the rollup:" @eez:on(eezL2 $badge::{note(address)(string) @eez:proxy(eezL1 @me)})
+print "note on the rollup:" @eez:on(eezL2 $badge::{note(address)(string) @eez:proxy(gnosisChiado @me)})
 `;
 
 const badgeAbi = parseAbi([

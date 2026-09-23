@@ -60,19 +60,19 @@ describeParity("@eez", {
     },
     {
       name: "target of a registered proxy",
-      run: `@eez:target(eezL1 ${knownProxy})`,
-      compile: `@eez:target!(eezL1 ${knownProxy})`,
+      run: `@eez:target(gnosisChiado ${knownProxy})`,
+      compile: `@eez:target!(gnosisChiado ${knownProxy})`,
     },
     {
       name: "round trip with a live target",
-      run: `@eez:proxy(eezL2 @eez:target(eezL1 ${knownProxy}))`,
-      compile: `@eez:proxy!(eezL2 @eez:target!(eezL1 ${knownProxy}))`,
+      run: `@eez:proxy(eezL2 @eez:target(gnosisChiado ${knownProxy}))`,
+      compile: `@eez:proxy!(eezL2 @eez:target!(gnosisChiado ${knownProxy}))`,
     },
     {
       name: "a non-proxy resolves to the zero address instead of failing",
       helper: "target",
-      run: `@eez:target(eezL1 ${DEAD})`,
-      compile: `@eez:target!(eezL1 ${DEAD})`,
+      run: `@eez:target(gnosisChiado ${DEAD})`,
+      compile: `@eez:target!(gnosisChiado ${DEAD})`,
       runThrows: "not a cross-chain proxy",
     },
     {

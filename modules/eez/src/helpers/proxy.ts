@@ -18,7 +18,7 @@ export default defineHelper<Eez>({
     {
       name: "chain",
       type: "chain",
-      description: "Chain the target lives on (`eezL1`, `eezL2`)",
+      description: "Chain the target lives on (`gnosisChiado`, `eezL2`)",
     },
     {
       name: "target",

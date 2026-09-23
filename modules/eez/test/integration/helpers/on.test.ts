@@ -18,7 +18,7 @@ describeHelper(
   {
     module: "eez",
     skip: !devnet,
-    preamble: "switch eezL1",
+    preamble: "switch gnosisChiado",
     cases: [
       {
         name: "reads a balance on the other chain",
@@ -30,7 +30,7 @@ describeHelper(
       },
       {
         name: "evaluates module helpers against the other chain",
-        input: `@eez:on(${L2_ID} @eez:proxy(eezL1 ${DEAD}))`,
+        input: `@eez:on(${L2_ID} @eez:proxy(gnosisChiado ${DEAD}))`,
         validate: async (result) => {
           const expected = await l2.readContract({
             address: EEZ_CHAINS[L2_ID].registry,
@@ -60,7 +60,7 @@ describeHelper(
       {
         description:
           "From L1, read the connected account's balance on the rollup",
-        code: "switch eezL1\nprint @eez:on(eezL2 @balance(ETH @me))",
+        code: "switch gnosisChiado\nprint @eez:on(eezL2 @balance(ETH @me))",
         preamble: "load eez",
       },
     ],
@@ -71,7 +71,7 @@ describeHelper(
 describe.skipIf(!devnet)("Eez > helpers > @eez:on > restores the chain", () => {
   it("leaves the script on its own chain afterwards", async () => {
     const interpreter = createInterpreter(
-      `load eez\nset $far @eez:on(${L2_ID} @balance(ETH ${FUNDED}))\nset $near @balance(ETH ${FUNDED})`,
+      `load eez\nset $far @eez:on(${L2_ID} @balance(ETH ${FUNDED}))\nset $near @balance(XDAI ${FUNDED})`,
       getPublicClient(),
       { chainId: L1_ID },
     );

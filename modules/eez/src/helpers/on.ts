@@ -46,7 +46,7 @@ export default defineHelper<Eez>({
     const node = expression as Node | undefined;
     if (!node) {
       throw new ErrorException(
-        "@eez:on expects a chain and an expression, e.g. @eez:on(6290 @balance(ETH @me))",
+        "@eez:on expects a chain and an expression, e.g. @eez:on(6291 @balance(ETH @me))",
       );
     }
     const target = resolveChainId(chain);

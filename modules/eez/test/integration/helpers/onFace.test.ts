@@ -119,10 +119,10 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
 
   it("is the plain face on the current chain", async () => {
     const wrapped = await compileExpression(
-      `@eez:on!(eezL1 @balance!(ETH ${FUNDED}))`,
+      `@eez:on!(gnosisChiado @balance!(XDAI ${FUNDED}))`,
       env,
     );
-    const plain = await compileExpression(`@balance!(ETH ${FUNDED})`, env);
+    const plain = await compileExpression(`@balance!(XDAI ${FUNDED})`, env);
     expect(wrapped.operand).to.eql(plain.operand);
     expect(wrapped.ctx.hints?.transact).to.not.be.true;
   });
@@ -136,7 +136,7 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
     expect((crossChain as { readOnly?: boolean }).readOnly).to.be.false;
 
     const [local] = await createInterpreter(
-      `load eez\nassert @balance!(ETH ${FUNDED}) > 0`,
+      `load eez\nassert @balance!(XDAI ${FUNDED}) > 0`,
       undefined as never,
       { chainId: L1_ID },
     ).interpret();

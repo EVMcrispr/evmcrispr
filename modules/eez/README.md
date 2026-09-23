@@ -24,8 +24,7 @@ Networks this module ships. They are available to `switch` as soon as the module
 
 | Chain | Key | Id | RPC | Explorer |
 |-------|-----|----|-----|----------|
-| EEZ L1 (testnet) | `eezL1` | `7331` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL1> | — |
-| EEZ L2 (testnet) | `eezL2` | `6290` | <https://api.evmcrispr.com/experimental-eez-rpc/eezL2> | — |
+| EEZ L2 (testnet) | `eezL2` | `6291` | <https://eez.asuscomm.com/composer/l2> | — |
 
 ## Commands
 

@@ -38,6 +38,7 @@ const DRPC_SLUGS: Record<number, string> = {
   11155420: "optimism-sepolia",
   421614: "arbitrum-sepolia",
   84532: "base-sepolia",
+  10200: "gnosis-chiado",
 };
 
 function drpcUrl(slug: string): string {

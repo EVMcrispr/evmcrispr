@@ -11,8 +11,8 @@ describeCommand("switch", {
   describeName: "Eez > chains > switch by key",
   cases: [
     {
-      name: "switches to eezL1 by key",
-      script: "switch eezL1",
+      name: "switches to gnosisChiado by key",
+      script: "switch gnosisChiado",
       validate: (actions, interpreter) => {
         expect(actions).to.have.lengthOf(1);
         expect((actions[0] as any).params[0].chainId).to.equal(

@@ -21,6 +21,7 @@ export const BLOCKSCOUT_HOSTS: Record<number, string> = {
   84532: "base-sepolia.blockscout.com",
   421614: "arbitrum-sepolia.blockscout.com",
   11155420: "testnet-explorer.optimism.io",
+  10200: "gnosis-chiado.blockscout.com",
 };
 
 /** Base API URL of the chain's Blockscout instance, or null when none is known. */

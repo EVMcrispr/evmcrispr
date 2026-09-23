@@ -106,7 +106,7 @@ beforeAll(async () => {
 afterAll(() => process?.kill());
 
 describe("safe:new and @safe:address (isolated local chain)", () => {
-  for (const selectedChain of [chainId, 7331]) {
+  for (const selectedChain of [chainId, 10200]) {
     for (const nonce of [0n, 42n]) {
       it(`matches factory deployment for profile ${selectedChain}, nonce ${nonce}`, async () => {
         const { actions, logs } = await compile(

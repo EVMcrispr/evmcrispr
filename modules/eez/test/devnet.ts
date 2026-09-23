@@ -2,7 +2,8 @@
  * Hosted EEZ devnet used by the integration tests. Endpoints come from the
  * module's chain declarations, overridable per chain with
  * EVMCRISPR_RPC_URL_<id> (the CLI's knob) so a local Kurtosis enclave works
- * too; set EEZ_DEVNET=0 to force-skip.
+ * too. The tests skip when EEZ_DEVNET_FUNDER_KEY (funds the test account on
+ * Chiado) is unset, as in CI; set EEZ_DEVNET=0 to force-skip.
  */
 
 import { toViemChain } from "@evmcrispr/sdk";
@@ -24,22 +25,29 @@ import {
   stringToHex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { gnosisChiado } from "viem/chains";
 import { eezBaseAbi } from "../src/abis";
 import { chains } from "../src/chains";
 import { supportsExecuteBatch } from "../src/utils/eez";
 
-export const L1_ID = 7331;
-export const L2_ID = 6290;
+export const L1_ID = 10200;
+export const L2_ID = 6291;
 
-const url = (id: number) =>
-  process.env[`EVMCRISPR_RPC_URL_${id}`] ??
-  chains.find((c) => c.id === id)!.rpcUrl;
+// L1 is Gnosis Chiado, which the module does not declare (viem knows it).
+// The tests reach it through the EEZ composer, which also takes the
+// cross-chain transactions sent from L1.
+const L1_DEFAULT_RPC = "https://eez.asuscomm.com/composer/l1";
+const l2Def = chains.find((c) => c.id === L2_ID)!;
 
-export const L1_RPC = url(L1_ID);
-export const L2_RPC = url(L2_ID);
+export const L1_RPC =
+  process.env[`EVMCRISPR_RPC_URL_${L1_ID}`] ?? L1_DEFAULT_RPC;
+export const L2_RPC = process.env[`EVMCRISPR_RPC_URL_${L2_ID}`] ?? l2Def.rpcUrl;
 
-export const l1Chain = toViemChain({ ...chains[0], rpcUrl: L1_RPC });
-export const l2Chain = toViemChain({ ...chains[1], rpcUrl: L2_RPC });
+export const l1Chain: Chain = {
+  ...gnosisChiado,
+  rpcUrls: { default: { http: [L1_RPC] } },
+};
+export const l2Chain = toViemChain({ ...l2Def, rpcUrl: L2_RPC });
 
 /** Dedicated test identity (never a shared hardhat key), funded on demand. */
 export const TEST_KEY = keccak256(
@@ -47,8 +55,8 @@ export const TEST_KEY = keccak256(
 );
 export const testAccount = privateKeyToAccount(TEST_KEY);
 
-/** Anvil #1 — pre-funded on both devnet chains (#0 is the devnet operator's
- *  busy key, whose nonce races); only used to top up. */
+/** Anvil #1 — pre-funded on the rollup (#0 is the devnet operator's busy
+ *  key, whose nonce races); only used to top up there. */
 const FAUCET_KEY: Hex =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
@@ -81,6 +89,13 @@ async function chainIdAt(rpc: string): Promise<number | undefined> {
 
 async function probe(): Promise<boolean> {
   if (process.env.EEZ_DEVNET === "0") return false;
+  // Without the funder key the test account cannot be topped up on Chiado,
+  // so the devnet tests would fail on funds rather than on what they test
+  // (CI does not have the key).
+  if (!process.env.EEZ_DEVNET_FUNDER_KEY) {
+    console.warn("Skipping EEZ devnet tests: EEZ_DEVNET_FUNDER_KEY is not set");
+    return false;
+  }
   const [l1, l2] = await Promise.all([chainIdAt(L1_RPC), chainIdAt(L2_RPC)]);
   const up = l1 === L1_ID && l2 === L2_ID;
   if (!up) console.warn("Skipping EEZ devnet tests: endpoints unreachable");
@@ -111,27 +126,32 @@ export const l2Wallet: WalletClient<Transport, Chain, Account> =
     transport: http(L2_RPC),
   });
 
-/** Top an account (the test identity by default) up on both chains when it runs low. */
+/** Top an account (the test identity by default) up on both chains when it
+ *  runs low. The rollup's genesis funds anvil #1; Chiado is a public testnet
+ *  where it holds nothing, so L1 top-ups come from EEZ_DEVNET_FUNDER_KEY
+ *  (a local key, funded by hand with a little Chiado xDAI) and stay small:
+ *  gas there costs cents per thousand transactions. */
 export async function ensureFunded(
   address: Address = testAccount.address,
   minimum = parseEther("1"),
 ): Promise<void> {
-  const faucet = privateKeyToAccount(FAUCET_KEY);
-  for (const [client, chain, rpc] of [
-    [l1, l1Chain, L1_RPC],
-    [l2, l2Chain, L2_RPC],
+  const l1Funder = process.env.EEZ_DEVNET_FUNDER_KEY as Hex | undefined;
+  for (const [client, chain, rpc, key, min, topUp] of [
+    [l1, l1Chain, L1_RPC, l1Funder, parseEther("0.02"), parseEther("0.05")],
+    [l2, l2Chain, L2_RPC, FAUCET_KEY, minimum, parseEther("50")],
   ] as const) {
     const balance = await client.getBalance({ address });
-    if (balance >= minimum) continue;
+    if (balance >= min) continue;
+    if (!key)
+      throw new Error(
+        `${address} needs ${chain.name} funds: set EEZ_DEVNET_FUNDER_KEY to a key holding Chiado xDAI`,
+      );
     const wallet = createWalletClient({
-      account: faucet,
+      account: privateKeyToAccount(key),
       chain,
       transport: http(rpc),
     });
-    const hash = await wallet.sendTransaction({
-      to: address,
-      value: parseEther("50"),
-    });
+    const hash = await wallet.sendTransaction({ to: address, value: topUp });
     await client.waitForTransactionReceipt({ hash, timeout: 60_000 });
   }
 }

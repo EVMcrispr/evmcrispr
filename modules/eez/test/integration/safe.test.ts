@@ -54,7 +54,10 @@ describe.skipIf(!devnet)("Safe on the EEZ devnet", () => {
     }
   }, 60_000);
 
-  it("earns the whale badge: L2 balance asserted and badge minted in one Safe transaction", async () => {
+  // Cross-chain transactions sent from Chiado are not composed by the EEZ
+  // front there (a public chain it does not build blocks for), so the Safe
+  // lives on the rollup: it asserts Chiado state and mints on Chiado.
+  it("earns the whale badge: rollup Safe asserts Chiado state and mints there in one Safe transaction", async () => {
     const salt = BigInt(Date.now());
     const wallets: Record<number, WalletClient> = {
       [L1_ID]: l1Wallet,
@@ -73,7 +76,7 @@ describe.skipIf(!devnet)("Safe on the EEZ devnet", () => {
 load contracts
 load safe
 
-switch eezL1
+switch eezL2
 set $minterSrc <<<SOL
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
@@ -84,7 +87,7 @@ contract Minter {
 SOL
 contracts:deploy $minter @contracts:solidity($minterSrc)
 
-switch eezL2
+switch gnosisChiado
 set $badgeSrc <<<SOL
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
@@ -95,22 +98,20 @@ contract Badge {
   function mint(address to) external { require(msg.sender == minter, "only minter"); balanceOf[to] += 1; }
 }
 SOL
-contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL1 $minter)]
+contracts:deploy $badge @contracts:solidity($badgeSrc) --constructor "constructor(address)" --constructor-args [@eez:proxy(eezL2 $minter)]
 eez:deploy-proxy $minter
 
-switch eezL1
+switch eezL2
 eez:deploy-proxy $badge
 safe:new @me --salt ${salt} -> ProxyCreation(address indexed, address) [$safe _]
-
-switch eezL2
 eez:faucet $safe --amount 100e18
-
-switch eezL1
-safe:execute $safe (
-  assert @eez:on!(eezL2 @balance!(ETH $safe)) >= 100e18 "not a whale on L2"
-  exec $minter mintBadge(address) @eez:proxy(eezL2 $badge)
+set $minterOnChiado @eez:on(gnosisChiado @eez:proxy(eezL2 $minter))
+safe:execute $safe --gas 1500000 (
+  assert @balance!(ETH $safe) >= 100e18 "not a whale on L2"
+  assert @eez:on!(gnosisChiado $badge::!{minter()(address)}) == $minterOnChiado "the badge does not trust this minter"
+  exec $minter mintBadge(address) @eez:proxy(gnosisChiado $badge)
 )
-print "badges:" @eez:on(eezL2 $badge::{balanceOf(address)(uint256) $safe})`,
+print "badges:" @eez:on(gnosisChiado $badge::{balanceOf(address)(uint256) $safe})`,
       evml.registry,
       {
         chainId: L1_ID,

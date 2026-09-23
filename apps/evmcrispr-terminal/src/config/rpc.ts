@@ -31,6 +31,7 @@ import {
   cronoszkEVM,
   fantom,
   gnosis,
+  gnosisChiado,
   harmonyOne,
   hashkey,
   hemi,
@@ -172,6 +173,7 @@ const chainConfig: [Chain, string][] = [
   [optimismSepolia, `optimism-sepolia`],
   [arbitrumSepolia, `arbitrum-sepolia`],
   [baseSepolia, `base-sepolia`],
+  [gnosisChiado, `gnosis-chiado`],
 ];
 
 applyBrowserUrlPolicy();

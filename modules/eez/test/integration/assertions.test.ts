@@ -32,7 +32,7 @@ for (const [label, chainId, client, proxy] of [
   ["L2", L2_ID, l2, PROXY_L2],
 ] as const) {
   const { registry, peerRollupId } = EEZ_CHAINS[chainId];
-  const read = `${registry}::{computeCrossChainProxyAddress(address,uint64)(address) ${DEAD} ${peerRollupId}}`;
+  const read = `${registry}::!{computeCrossChainProxyAddress(address,uint64)(address) ${DEAD} ${peerRollupId}}`;
 
   describeCommand("assert", {
     describeName: `Eez > assertions runtime on EEZ Devnet ${label}`,

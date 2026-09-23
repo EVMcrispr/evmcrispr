@@ -57,8 +57,8 @@ export const CREATE2_DEPLOYMENT: SafeDeployment = {
 
 /** Chains without the canonical deployment. */
 const DEPLOYMENTS: Record<number, SafeDeployment> = {
-  7331: CREATE2_DEPLOYMENT, // EEZ devnet L1
-  6290: CREATE2_DEPLOYMENT, // EEZ devnet L2
+  10200: CREATE2_DEPLOYMENT, // Gnosis Chiado (EEZ devnet settlement layer)
+  6291: CREATE2_DEPLOYMENT, // EEZ devnet rollup
 };
 
 /** The Safe contracts to use on `chainId`: canonical unless listed above. */

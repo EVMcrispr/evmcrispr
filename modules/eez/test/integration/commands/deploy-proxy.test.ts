@@ -55,7 +55,7 @@ describeCommand("deploy-proxy", {
     {
       description:
         "Create the L1 proxy for a rollup contract, so L1 code can call it",
-      code: "switch eezL1\neez:deploy-proxy 0x000000000000000000000000000000000000dEaD",
+      code: "switch gnosisChiado\neez:deploy-proxy 0x000000000000000000000000000000000000dEaD",
     },
   ],
 });

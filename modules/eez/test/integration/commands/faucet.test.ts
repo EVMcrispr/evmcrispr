@@ -2,7 +2,7 @@ import "../../setup";
 import { expect } from "@evmcrispr/test-utils";
 import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { parseEther, toHex } from "viem";
-import { devnet, L1_ID, l1 } from "../../devnet";
+import { devnet, L2_ID, l2 } from "../../devnet";
 
 /** Fresh recipient per run: its balance starts at zero. */
 const recipient: `0x${string}` = `0x${toHex(BigInt(Date.now()) + 7n, { size: 20 }).slice(2)}`;
@@ -10,7 +10,7 @@ const recipient: `0x${string}` = `0x${toHex(BigInt(Date.now()) + 7n, { size: 20 
 describeCommand("faucet", {
   module: "eez",
   preamble: "load eez",
-  chainId: L1_ID,
+  chainId: L2_ID,
   skip: !devnet,
   cases: [
     {
@@ -19,7 +19,7 @@ describeCommand("faucet", {
       timeout: 120_000,
       validate: async (actions) => {
         expect(actions).to.have.lengthOf(0);
-        const balance = await l1.getBalance({ address: recipient });
+        const balance = await l2.getBalance({ address: recipient });
         expect(balance).to.equal(parseEther("1"));
       },
     },
@@ -27,8 +27,8 @@ describeCommand("faucet", {
   docCases: [
     {
       description: "Give the connected wallet some devnet ETH for gas",
-      code: "switch eezL1\neez:faucet @me",
-      // A real transfer: the receipt lands in the next 12s L1 slot.
+      code: "switch eezL2\neez:faucet @me",
+      // The faucet serves the rollup only: Chiado is a public testnet.
       timeout: 120_000,
     },
   ],
@@ -40,7 +40,7 @@ describeCommand("faucet", {
   describeName: "Eez > commands > faucet (non-EEZ chain)",
   errorCases: [
     {
-      name: "explains that only devnets have a faucet",
+      name: "explains that only the devnet rollup has a faucet",
       script: `eez:faucet ${recipient}`,
       error: "has no faucet",
     },

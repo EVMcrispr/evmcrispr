@@ -200,7 +200,7 @@ describeCommand("batch", {
   errorCases: [
     {
       name: "refuses to run the block on the current chain",
-      script: `eez:batch eezL1 (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
+      script: `eez:batch gnosisChiado (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
       error: "itself",
     },
     {
@@ -215,7 +215,7 @@ describeCommand("batch", {
     },
     {
       name: "refuses a switch inside the block",
-      script: `eez:batch eezL2 (\n  switch eezL1\n  exec ${KNOWN} setValue(uint256) 1\n)`,
+      script: `eez:batch eezL2 (\n  switch gnosisChiado\n  exec ${KNOWN} setValue(uint256) 1\n)`,
       error: "switch cannot be used inside eez:batch",
     },
     {
@@ -264,7 +264,7 @@ describeCommand("batch", {
     {
       description:
         "From L1, two writes on the rollup that either both land or neither does",
-      code: "switch eezL1\neez:batch eezL2 (\n  exec 0x000000000000000000000000000000000000bEEF setValue(uint256) 1\n  exec 0x000000000000000000000000000000000000bEEF setOwner(address) @sender\n)",
+      code: "switch gnosisChiado\neez:batch eezL2 (\n  exec 0x000000000000000000000000000000000000bEEF setValue(uint256) 1\n  exec 0x000000000000000000000000000000000000bEEF setOwner(address) @sender\n)",
     },
   ],
 });

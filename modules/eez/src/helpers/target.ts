@@ -27,7 +27,7 @@ export default defineHelper<Eez>({
     {
       name: "chain",
       type: "chain",
-      description: "Chain the proxy lives on (`eezL1`, `eezL2`)",
+      description: "Chain the proxy lives on (`gnosisChiado`, `eezL2`)",
     },
     {
       name: "proxy",
@@ -59,7 +59,7 @@ export default defineHelper<Eez>({
     const [chainNode, proxyNode] = node.args;
     if (!chainNode || !proxyNode) {
       throw new ErrorException(
-        "@eez:target! expects a chain and a proxy, e.g. @eez:target!(eezL1 $proxy)",
+        "@eez:target! expects a chain and a proxy, e.g. @eez:target!(gnosisChiado $proxy)",
       );
     }
     const module = ctx.module as Eez;

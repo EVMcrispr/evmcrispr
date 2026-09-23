@@ -47,7 +47,7 @@ export function chainNames(): string[] {
 /**
  * Resolve a value coming from a `chain`-typed arg/opt to a numeric chain id.
  * Accepts either a numeric chain id or a chain name: a key declared by a
- * module (`eezL1`) or a viem chain export name like `mainnet`, `optimism`,
+ * module (`eezL2`) or a viem chain export name like `mainnet`, `optimism`,
  * `base`. Throws on unknown values.
  */
 export function resolveChainId(value: unknown): number {

@@ -159,7 +159,7 @@ export interface ConfigDef {
  */
 export interface ChainDef {
   id: number;
-  /** Identifier scripts use wherever a chain is named (`switch eezL1`,
+  /** Identifier scripts use wherever a chain is named (`switch eezL2`,
    *  `@eez:on(eezL2 …)`), in the camelCase style of viem's chain names.
    *  Letters and digits only. */
   key: string;

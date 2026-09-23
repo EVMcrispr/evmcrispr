@@ -18,25 +18,28 @@ export interface EezChainInfo {
   faucetKey?: `0x${string}`;
 }
 
-/** Anvil account #1 — funded in the devnet genesis on both chains and,
- *  unlike #0, not the devnet operator's busy key. */
+/** Anvil account #1 — funded in the rollup's genesis and, unlike #0, not
+ *  the devnet operator's busy key. It holds nothing on Chiado, a public
+ *  testnet, so the faucet only serves the rollup. */
 const DEVNET_FAUCET_KEY =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
 /** Built-in deployments, keyed by chain id (see `chains.ts`). */
 export const EEZ_CHAINS: Record<number, EezChainInfo> = {
-  7331: {
-    registry: "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  // Gnosis Chiado: the devnet's settlement layer. The registry was found on
+  // chain (2026-09-23): the only contract answering the EEZ interface, with
+  // one registered rollup, id 1.
+  10200: {
+    registry: "0xC412aAE1361bcd8Da4581153Df182f293437fdD7",
     rollupId: 0n,
     peerRollupId: 1n,
-    peerChainId: 6290,
-    faucetKey: DEVNET_FAUCET_KEY,
+    peerChainId: 6291,
   },
-  6290: {
+  6291: {
     registry: EEZ_L2_PREDEPLOY,
     rollupId: 1n,
     peerRollupId: 0n,
-    peerChainId: 7331,
+    peerChainId: 10200,
     faucetKey: DEVNET_FAUCET_KEY,
   },
 };
