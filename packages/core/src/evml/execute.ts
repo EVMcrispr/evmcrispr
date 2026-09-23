@@ -11,6 +11,7 @@ import {
   defaultTransport,
   ExitSignal,
   isTransactionAction,
+  RevertError,
   resolveChain,
 } from "@evmcrispr/sdk";
 import {
@@ -699,7 +700,11 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           .getPublicClient(chainId)
           .waitForTransactionReceipt({ hash: tx });
         if (receipt.status === "reverted") {
-          throw new Error(
+          // A `RevertError`, not a plain one: sent with an explicit gas
+          // limit viem skips estimation, so this is the only place the
+          // chain's refusal surfaces — and the revert captures must see it
+          // as a revert.
+          throw new RevertError(
             `Transaction reverted on-chain: ${tx}${
               action.rpcUrl
                 ? ` — it was meant to be submitted through ${action.rpcUrl}; check the wallet's RPC for this network`

@@ -1,5 +1,6 @@
 import { describe, it } from "bun:test";
 import type { TransactionAction } from "@evmcrispr/sdk";
+import { failureTiming } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 import type { ActionHandlerCtx } from "../../../src/evml/execute";
 import { makeDefaultHandlers } from "../../../src/evml/execute";
@@ -51,6 +52,18 @@ describe("evml > execute > transaction handler", () => {
     } catch (err: any) {
       expect(err.message).to.include("reverted on-chain");
       expect(err.message).to.include(HASH);
+    }
+  });
+
+  // Sent with an explicit gas limit viem skips estimation, so a mined
+  // revert is the only failure the line sees — the revert captures
+  // (`-!>` / `-?!>`) must recognise it as one.
+  it("reports the mined revert as a revert, not a refusal", async () => {
+    try {
+      await handlers.transaction(action, makeCtx("reverted"));
+      throw new Error("Expected handler to throw");
+    } catch (err) {
+      expect(failureTiming(err)).to.equal("revert");
     }
   });
 
