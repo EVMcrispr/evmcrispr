@@ -16,6 +16,11 @@ export const MULTISEND_CALL_ONLY: Address =
 /** SafeMigration: delegatecalled by a Safe >=1.3.0 to move it to v1.5.0. */
 export const SAFE_MIGRATION: Address =
   "0x6439e7ABD8Bb915A5263094784C5CF561c4172AC";
+/** SafeToL2Setup: delegatecalled from setup() to switch a new Safe to the L2
+ *  singleton on every chain but Ethereum mainnet, so it can be created with
+ *  the plain singleton, at the same address, everywhere. */
+export const SAFE_TO_L2_SETUP: Address =
+  "0x900C7589200010D6C6eCaaE5B06EBe653bc2D82a";
 
 export const SENTINEL: Address = "0x0000000000000000000000000000000000000001";
 
@@ -28,6 +33,7 @@ export interface SafeDeployment {
   multiSend: Address;
   multiSendCallOnly: Address;
   migration: Address;
+  toL2Setup: Address;
 }
 
 /** Safe's own deployment, through the Safe Singleton Factory. */
@@ -39,6 +45,7 @@ export const CANONICAL_DEPLOYMENT: SafeDeployment = {
   multiSend: MULTISEND,
   multiSendCallOnly: MULTISEND_CALL_ONLY,
   migration: SAFE_MIGRATION,
+  toL2Setup: SAFE_TO_L2_SETUP,
 };
 
 /** The same v1.5.0 creation bytecode, deployed with a zero salt through the
@@ -53,6 +60,7 @@ export const CREATE2_DEPLOYMENT: SafeDeployment = {
   multiSend: "0x4faF5C1F98B09F1494bDaf93c85E2A05FbC1e1Bd",
   multiSendCallOnly: "0x756E377D1dcDC33bD973216E64D32bec6aB4b569",
   migration: "0x8feA00BF4b60e9E1912F4D613954d8E3452A8ae9",
+  toL2Setup: "0xE750f5d88E935bd6fc6c1fEb906A15C5e7476083",
 };
 
 /** Chains without the canonical deployment. */

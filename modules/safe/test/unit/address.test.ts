@@ -5,6 +5,7 @@ import {
   custom,
   decodeFunctionData,
   encodeAbiParameters,
+  encodeFunctionData,
   type Hex,
   parseAbi,
   zeroAddress,
@@ -17,6 +18,10 @@ import {
   safeFactoryAbi,
   safeInitializer,
 } from "../../src/utils/deployment";
+
+const setupAbi = parseAbi([
+  "function setup(address[] _owners, uint256 _threshold, address to, bytes data, address fallbackHandler, address paymentToken, uint256 payment, address paymentReceiver)",
+]);
 
 const owner = "0x1111111111111111111111111111111111111111";
 const other = "0x2222222222222222222222222222222222222222";
@@ -61,12 +66,39 @@ safe:new ${owner}${nonce === undefined ? "" : ` --salt ${nonce}`}`,
         expect(
           decodeFunctionData({ abi: safeFactoryAbi, data: action.data! }).args,
         ).toEqual([
-          deployment.l2Singleton,
-          safeInitializer([owner], 1n, deployment.fallbackHandler),
+          deployment.singleton,
+          safeInitializer([owner], 1n, deployment.fallbackHandler, {
+            to: deployment.toL2Setup,
+            data: encodeFunctionData({
+              abi: parseAbi(["function setupToL2(address)"]),
+              args: [deployment.l2Singleton],
+            }),
+          }),
           nonce ?? 0n,
         ]);
       }
     }
+  });
+
+  it("creates Safes like Safe{Wallet}: plain singleton plus SafeToL2Setup", async () => {
+    const { actions } = await compile(`safe:new ${owner} --salt 7`);
+    const action = actions[0];
+    if ("type" in action) throw new Error("expected deployment action");
+    const [singleton, initializer] = decodeFunctionData({
+      abi: safeFactoryAbi,
+      data: action.data!,
+    }).args as [string, Hex, bigint];
+    // Canonical v1.5.0 addresses from safe-deployments, spelled out rather
+    // than read from the table under test.
+    expect(singleton).toBe("0xFf51A5898e281Db6DfC7855790607438dF2ca44b");
+    const setup = decodeFunctionData({ abi: setupAbi, data: initializer });
+    expect(setup.args[2]).toBe("0x900C7589200010D6C6eCaaE5B06EBe653bc2D82a");
+    expect(setup.args[3]).toBe(
+      encodeFunctionData({
+        abi: parseAbi(["function setupToL2(address)"]),
+        args: ["0xEdd160fEBBD92E350D4D398fb636302fccd67C7e"],
+      }),
+    );
   });
 
   it("depends on owner, nonce and deployment profile, with a default nonce of 0", async () => {

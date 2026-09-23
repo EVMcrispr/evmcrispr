@@ -22,10 +22,17 @@ export const safeFactoryAbi = parseAbi([
   "function proxyCreationCode() pure returns (bytes)",
 ]);
 
+/** The delegatecall `setup()` makes right after initializing the owners. */
+export interface SafeSetupCall {
+  to: Address;
+  data: Hex;
+}
+
 export function safeInitializer(
   owners: Address[],
   threshold: bigint,
   handler: Address,
+  setupCall: SafeSetupCall = { to: zeroAddress, data: "0x" },
 ): Hex {
   return encodeFunctionData({
     abi: parseAbi([
@@ -35,8 +42,8 @@ export function safeInitializer(
     args: [
       owners,
       threshold,
-      zeroAddress,
-      "0x",
+      setupCall.to,
+      setupCall.data,
       handler,
       zeroAddress,
       0n,
@@ -50,6 +57,7 @@ export function predictSafeAddress(
   creationCode: Hex,
   initializer: Hex,
   saltNonce: bigint,
+  singleton: Address = deployment.l2Singleton,
 ): Address {
   return getContractAddress({
     opcode: "CREATE2",
@@ -57,10 +65,7 @@ export function predictSafeAddress(
     salt: keccak256(
       concatHex([keccak256(initializer), toHex(saltNonce, { size: 32 })]),
     ),
-    bytecode: concatHex([
-      creationCode,
-      toHex(BigInt(deployment.l2Singleton), { size: 32 }),
-    ]),
+    bytecode: concatHex([creationCode, toHex(BigInt(singleton), { size: 32 })]),
   });
 }
 
@@ -68,13 +73,45 @@ export function encodeSafeDeployment(
   deployment: SafeDeployment,
   initializer: Hex,
   saltNonce: bigint,
+  singleton: Address = deployment.l2Singleton,
 ): TransactionAction {
   return {
     to: deployment.proxyFactory,
     data: encodeFunctionData({
       abi: safeFactoryAbi,
       functionName: "createProxyWithNonce",
-      args: [deployment.l2Singleton, initializer, saltNonce],
+      args: [singleton, initializer, saltNonce],
     }),
+  };
+}
+
+/**
+ * A new Safe the way Safe{Wallet} creates one: the plain singleton, plus a
+ * SafeToL2Setup delegatecall in `setup()` that switches it to the L2
+ * singleton on every chain but Ethereum mainnet. The deployment inputs are
+ * then the same on every chain, so the same owners, threshold and salt give
+ * the same address everywhere; the Safe web app only offers "Add network"
+ * for Safes created this way. Used by safe:new and @safe:address.
+ */
+export function multichainSafe(
+  deployment: SafeDeployment,
+  owners: Address[],
+  threshold: bigint,
+): { singleton: Address; initializer: Hex } {
+  return {
+    singleton: deployment.singleton,
+    initializer: safeInitializer(
+      owners,
+      threshold,
+      deployment.fallbackHandler,
+      {
+        to: deployment.toL2Setup,
+        data: encodeFunctionData({
+          abi: parseAbi(["function setupToL2(address l2Singleton)"]),
+          functionName: "setupToL2",
+          args: [deployment.l2Singleton],
+        }),
+      },
+    ),
   };
 }

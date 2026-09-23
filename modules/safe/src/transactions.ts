@@ -3,6 +3,7 @@
 export { safeDeployment } from "./addresses";
 export {
   encodeSafeDeployment,
+  multichainSafe,
   predictSafeAddress,
   safeFactoryAbi,
   safeInitializer,

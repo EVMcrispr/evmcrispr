@@ -5,9 +5,9 @@ import { safeDeployment } from "../addresses";
 import { toBigInt } from "../utils";
 import {
   encodeSafeDeployment,
+  multichainSafe,
   predictSafeAddress,
   SAFE_PROXY_CREATION_CODE,
-  safeInitializer,
 } from "../utils/deployment";
 import { safeUint } from "../utils/offline";
 
@@ -18,7 +18,7 @@ export default defineCommand<Safe>({
   },
   name: "new",
   description:
-    "Deploy a new Safe (v1.5.0 L2 singleton) with the given owners, at a deterministic address.",
+    "Deploy a new Safe v1.5.0 with the given owners, at a deterministic address that is the same on every chain for the same owners, threshold and salt (created like Safe{Wallet} creates Safes: switched to the L2 singleton on every chain but Ethereum mainnet).",
   args: [
     {
       name: "owners",
@@ -53,20 +53,23 @@ export default defineCommand<Safe>({
     }
     const saltNonce = safeUint(opts.salt ?? 0n, "salt nonce");
     const deployment = safeDeployment(await module.getChainId());
-    const initializer = safeInitializer(
+    const { singleton, initializer } = multichainSafe(
+      deployment,
       owners as Address[],
       threshold,
-      deployment.fallbackHandler,
     );
     const predicted = predictSafeAddress(
       deployment,
       SAFE_PROXY_CREATION_CODE,
       initializer,
       saltNonce,
+      singleton,
     );
 
     module.context.log(`Deploying new Safe at ${predicted}`);
 
-    return [encodeSafeDeployment(deployment, initializer, saltNonce)];
+    return [
+      encodeSafeDeployment(deployment, initializer, saltNonce, singleton),
+    ];
   },
 });

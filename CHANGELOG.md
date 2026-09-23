@@ -49,8 +49,9 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
 
 ### Safe v1.5.0
 
-- The safe module uses Safe v1.5.0: `safe:new` deploys the v1.5.0 L2 singleton with the v1.5.0 proxy factory, CompatibilityFallbackHandler and MultiSend contracts, and `@safe:address` predicts with the v1.5.0 proxy creation code, so predicted addresses differ from before. TWAP execution Safes of the swaps module use v1.5.0 too.
-- The zero-salt CREATE2 deployment used on chains without Safe's canonical factory (the EEZ devnet) now holds the v1.5.0 contracts, plus the plain singleton and SafeMigration, at new addresses; redeploy it with `DEPLOYER_KEY=… bun modules/safe/scripts/deploy-create2.ts <rpc…>` (`--print` lists them).
+- The safe module uses Safe v1.5.0: `safe:new` deploys with the v1.5.0 proxy factory, CompatibilityFallbackHandler and MultiSend contracts, and `@safe:address` predicts with the v1.5.0 proxy creation code, so predicted addresses differ from before. TWAP execution Safes of the swaps module use v1.5.0 too.
+- `safe:new` creates Safes the way Safe{Wallet} does: the plain singleton plus a `SafeToL2Setup` delegatecall in `setup()` that switches the Safe to the L2 singleton on every chain but Ethereum mainnet. The same owners, threshold and salt now give the same address on every chain, including mainnet, which is what the Safe web app's "Add network" requires.
+- The zero-salt CREATE2 deployment used on chains without Safe's canonical factory (the EEZ devnet) now holds the v1.5.0 contracts, plus the plain singleton, SafeToL2Setup and SafeMigration, at new addresses; redeploy it with `DEPLOYER_KEY=… bun modules/safe/scripts/deploy-create2.ts <rpc…>` (`--print` lists them).
 - New `safe:upgrade` moves a Safe v1.3.0 or later to v1.5.0 through Safe's `SafeMigration` contract, like the Safe web app's "Update Safe": one delegatecall that keeps the Safe's L2 or plain flavour and any custom fallback handler. `@safe:verify` recognizes the migration instead of warning about the delegatecall.
 
 ### Deterministic Safe addresses

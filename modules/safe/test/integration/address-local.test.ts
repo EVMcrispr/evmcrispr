@@ -2,7 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { createServer } from "node:net";
 import { createEvml, Interpreter } from "@evmcrispr/core";
 import { encodeAction, type TransactionAction } from "@evmcrispr/sdk";
+import SafeToL2Setup from "@safe-global/safe-smart-account/build/artifacts/contracts/libraries/SafeToL2Setup.sol/SafeToL2Setup.json";
 import Factory from "@safe-global/safe-smart-account/build/artifacts/contracts/proxies/SafeProxyFactory.sol/SafeProxyFactory.json";
+import PlainSingleton from "@safe-global/safe-smart-account/build/artifacts/contracts/Safe.sol/Safe.json";
 import Singleton from "@safe-global/safe-smart-account/build/artifacts/contracts/SafeL2.sol/SafeL2.json";
 import {
   type Address,
@@ -95,6 +97,8 @@ beforeAll(async () => {
     for (const [address, artifact] of [
       [deployment.proxyFactory, Factory],
       [deployment.l2Singleton, Singleton],
+      [deployment.singleton, PlainSingleton],
+      [deployment.toL2Setup, SafeToL2Setup],
     ] as const)
       await client.request({
         method: "anvil_setCode",
@@ -146,6 +150,13 @@ safe:new ${owner} --salt ${nonce}`,
             functionName: "getThreshold",
           }),
         ).toBe(1n);
+        // Chain 31337 is not Ethereum mainnet: SafeToL2Setup switched the
+        // Safe created with the plain singleton to the L2 one.
+        expect(
+          getAddress(
+            `0x${(await client.getStorageAt({ address: predicted, slot: "0x0" }))!.slice(-40)}`,
+          ),
+        ).toBe(getAddress(deployment.l2Singleton));
         expect(logs[1]).toBe(`Deploying new Safe at ${predicted}`);
       });
     }

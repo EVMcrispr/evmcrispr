@@ -2,7 +2,7 @@
 title: "@safe:address"
 ---
 
-Predict the single-owner Safe address for safe:new with a deployment salt nonce, without RPC access.
+Predict the single-owner Safe address for safe:new with a deployment salt nonce, without RPC access. The address is the same on every chain.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 

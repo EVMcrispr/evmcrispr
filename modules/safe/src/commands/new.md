@@ -2,7 +2,7 @@
 title: "safe:new"
 ---
 
-Deploy a new Safe (v1.5.0 L2 singleton) with the given owners, at a deterministic address.
+Deploy a new Safe v1.5.0 with the given owners, at a deterministic address that is the same on every chain for the same owners, threshold and salt (created like Safe{Wallet} creates Safes: switched to the L2 singleton on every chain but Ethereum mainnet).
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -51,8 +51,11 @@ safe:new $owner --salt $salt
 ```
 
 The address is deterministic (CREATE2 over the deployment profile, owners,
-threshold, and salt). The same configuration gives the same address on chains
-using the same factory, singleton, and fallback handler. Use `--salt` to deploy
+threshold, and salt), and the same configuration gives the same address on
+every chain with Safe's canonical deployment. Like Safe{Wallet}, the command
+deploys the plain Safe singleton with a `SafeToL2Setup` delegatecall in
+`setup()`, which switches the Safe to the L2 singleton on every chain but
+Ethereum mainnet; the deployment inputs are therefore identical everywhere. Use `--salt` to deploy
 several Safes with the same configuration. The salt defaults to 0 and is not
 the Safe's transaction nonce. Repeating a deployed configuration and salt
 reverts; this command always prepares a deployment.

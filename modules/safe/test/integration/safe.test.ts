@@ -163,15 +163,23 @@ describe("Safe > integration", () => {
   });
 
   it("deploys a new Safe at a deterministic address", async () => {
-    // Predict the address independently from the command's implementation
+    // Predict the address independently from the command's implementation:
+    // the plain singleton with a SafeToL2Setup delegatecall, as Safe{Wallet}
+    // creates Safes (canonical v1.5.0 addresses from safe-deployments).
+    const plainSingleton: Address =
+      "0xFf51A5898e281Db6DfC7855790607438dF2ca44b";
+    const toL2Setup: Address = "0x900C7589200010D6C6eCaaE5B06EBe653bc2D82a";
     const initializer = encodeFunctionData({
       abi: safeAbi,
       functionName: "setup",
       args: [
         [ownerA],
         1n,
-        zeroAddress,
-        "0x",
+        toL2Setup,
+        encodeFunctionData({
+          abi: parseAbi(["function setupToL2(address l2Singleton)"]),
+          args: [SAFE_L2_SINGLETON],
+        }),
         COMPATIBILITY_FALLBACK_HANDLER,
         zeroAddress,
         0n,
@@ -191,7 +199,7 @@ describe("Safe > integration", () => {
       ),
       bytecode: concatHex([
         creationCode,
-        toHex(BigInt(SAFE_L2_SINGLETON), { size: 32 }),
+        toHex(BigInt(plainSingleton), { size: 32 }),
       ]),
     });
 
@@ -233,6 +241,19 @@ describe("Safe > integration", () => {
       await client.readContract({
         address: safe,
         abi: safeAbi,
+    // Gnosis is not chain 1, so SafeToL2Setup moved it to the L2 singleton.
+    expect(
+      getAddress(
+        sliceHex(
+          (await client.getStorageAt({
+            address: safe,
+            slot: toHex(0n, { size: 32 }),
+          })) as Hex,
+          12,
+          32,
+        ),
+      ),
+    ).to.equal(SAFE_L2_SINGLETON);
         functionName: "isModuleEnabled",
         args: [delay],
       }),
