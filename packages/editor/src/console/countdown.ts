@@ -26,31 +26,40 @@ export function countdownText(countdown: BoxCountdown, now: number): string {
 }
 
 export type Segment =
-  | { kind: "elapsed" }
-  | { kind: "current"; fill: number }
+  | { kind: "done" }
+  | { kind: "upcoming"; fill: number }
   | { kind: "pending" };
 
 /** Past this many steps, segments get too thin to read: the host falls
  *  back to a continuous bar. */
 export const MAX_SEGMENTS = 48;
 
-/** The schedule, one segment per step: steps before the countdown's are
- *  elapsed, its own fills with elapsed time, later ones are pending. It
- *  shows time only; what a step achieved (e.g. a settled part) is the
- *  box's detail, so a settlement never makes the bar jump. */
+/** One segment per step. The first `done` are full, matching the box's
+ *  "N/M" text. The step the countdown leads to (the one after
+ *  `countdown.segment`, when "Next part in") fills faintly with time until
+ *  it opens; every other unfinished step is empty. A finished step is full
+ *  whatever the clock says. */
 export function segments(
-  total: number,
+  [done, total]: [number, number],
   countdown: BoxCountdown,
   now: number,
 ): Segment[] | null {
-  const current = countdown.segment;
-  if (current === undefined || total <= 0 || total > MAX_SEGMENTS) return null;
+  if (countdown.segment === undefined || total <= 0 || total > MAX_SEGMENTS)
+    return null;
+  // "Starts in" leads to step 0 itself; "Next part in" to the following
+  // step; "Ends in" to no step.
+  const next =
+    countdown.label === "Starts in"
+      ? countdown.segment
+      : countdown.label === "Next part in"
+        ? countdown.segment + 1
+        : undefined;
   return Array.from({ length: total }, (_, i): Segment => {
-    if (i < current) return { kind: "elapsed" };
-    if (i > current) return { kind: "pending" };
+    if (i < done) return { kind: "done" };
+    if (i !== next) return { kind: "pending" };
     const span = countdown.until - countdown.from;
     const fill = span > 0 ? (now - countdown.from) / span : 0;
-    return { kind: "current", fill: Math.min(1, Math.max(0, fill)) };
+    return { kind: "upcoming", fill: Math.min(1, Math.max(0, fill)) };
   });
 }
 

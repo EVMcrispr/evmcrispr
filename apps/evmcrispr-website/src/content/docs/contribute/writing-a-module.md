@@ -196,10 +196,9 @@ async run(module, args, { interpreters }) {
   cancelled rather than failed).
 - `box.update({ countdown: { label: "Next part in", from, until, segment } })`
   (Unix seconds) shows a ticking countdown in the terminal. With `progress`
-  its bar then shows the schedule, not the progress: one segment per step,
-  earlier steps full and `segment` filling from `from` to `until`, so the
-  bar moves with time and never jumps when a step completes (say so in the
-  detail). `countdown: null` clears it; it is never logged as a
+  its bar gets one segment per step: the `progress` steps done are full, and
+  the step the countdown leads to (the one after `segment`, or `segment`
+  itself for "Starts in") fills faintly from `from` to `until`. `countdown: null` clears it; it is never logged as a
   line, and it clears when the box ends.
 - A box with a `watch` keeps a real run open until it ends; simulations
   never wait, and a box opened inside `sim:fork` ends when the fork does.

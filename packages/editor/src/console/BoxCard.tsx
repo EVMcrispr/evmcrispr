@@ -116,9 +116,9 @@ export function BoxCard({ box }: BoxCardProps) {
   );
 }
 
-/** Steps done out of total. With a countdown, the bar is the schedule
- *  instead: one segment per step, the current one filling with elapsed
- *  time, and the time left ticking under it. */
+/** Steps done out of total. With a countdown, one segment per step: done
+ *  steps full, the step it leads to filling faintly until it opens, and the
+ *  time left ticking under the bar. */
 function BoxProgress({
   progress,
   countdown,
@@ -130,28 +130,27 @@ function BoxProgress({
 }) {
   const now = useNow(countdown !== undefined);
   const [done, total] = progress;
-  const parts = countdown ? segments(total, countdown, now) : null;
+  const parts = countdown ? segments(progress, countdown, now) : null;
   return (
     <div className="flex flex-col gap-1">
       {parts ? (
         <div
           className="flex h-1.5 w-full gap-1"
           role="progressbar"
-          aria-label="Schedule"
           aria-valuemin={0}
           aria-valuemax={total}
-          aria-valuenow={countdown?.segment ?? 0}
+          aria-valuenow={done}
         >
           {parts.map((part, i) => (
             <div
               key={i}
               className={`h-full flex-1 overflow-hidden rounded-sm ${
-                part.kind === "elapsed" ? "bg-evm-green-300" : "bg-white/20"
+                part.kind === "done" ? "bg-evm-green-300" : "bg-white/20"
               }`}
             >
-              {part.kind === "current" && (
+              {part.kind === "upcoming" && (
                 <div
-                  className="h-full bg-evm-green-300 motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear"
+                  className="h-full bg-evm-green-300/40 motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear"
                   style={{ width: `${part.fill * 100}%` }}
                 />
               )}
