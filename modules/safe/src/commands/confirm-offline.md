@@ -49,7 +49,7 @@ on to the next owner, merge parallel signatures with
 [safe:propose](propose.md).
 
 Before your wallet prompts, it reviews the item like
-[safe:confirm](confirm.md): it prints the hashes and findings, and refuses on
+[safe:confirm](confirm.md): it prints its findings, and refuses on
 a blocking finding until the matching `--allow-*` option names what you
 reviewed. Competing transactions are only checked for a hash fetched from the
 service, since JSON does not reach it.
@@ -67,7 +67,8 @@ signatures the service cannot hold.
 
 The connected account must be a current owner, directly or through owner
 Safes, and the Safe must be >=1.3.0.
-The hashes are printed before the wallet prompt. Signing needs a real wallet,
+Read the hashes your wallet will show with [@safe:verify](../helpers/verify.md)
+before signing. Signing needs a real wallet,
 so it is refused during simulation.
 
 ## Owner Safes

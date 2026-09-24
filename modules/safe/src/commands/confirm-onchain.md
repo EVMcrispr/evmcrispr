@@ -46,7 +46,7 @@ off-chain signature. It costs gas but needs no Safe Transaction Service and no
 JSON exchange; the service lists it as a confirmation of queued transactions.
 It works for Safe transactions and Safe messages alike.
 
-Before confirming, the command prints the hashes and findings, and refuses on
+Before confirming, the command prints its findings, and refuses on
 a blocking finding until the matching `--allow-*` option names what you
 reviewed, like [safe:confirm](confirm.md). A queued hash is fetched from the
 service and must hash back to itself, and other transactions queued at the

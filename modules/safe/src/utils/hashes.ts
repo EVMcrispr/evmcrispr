@@ -1,5 +1,5 @@
 import type { Address } from "@evmcrispr/sdk";
-import { chainLabel, ErrorException } from "@evmcrispr/sdk";
+import { ErrorException } from "@evmcrispr/sdk";
 import {
   concatHex,
   hashDomain,
@@ -116,21 +116,3 @@ export const getSafeMessageHashes = (
     kind,
   };
 };
-
-/**
- * The short block used by safe:verify, safe:propose and safe:execute: the
- * safeTxHash, then the domain and message hashes a hardware wallet shows
- * when it signs, then any findings.
- */
-export const formatSafeTxHashesLog = (
-  safe: Address,
-  chainId: number,
-  tx: SafeTx,
-  hashes: SafeTxHashes,
-  findingLines: string[] = [],
-): string =>
-  [
-    `Safe transaction ${hashes.safeTxHash} (safe ${safe}, ${chainLabel(chainId)}, nonce ${tx.nonce})`,
-    `  Device shows domain ${hashes.domainHash}, message ${hashes.messageHash}`,
-    ...findingLines,
-  ].join("\n");

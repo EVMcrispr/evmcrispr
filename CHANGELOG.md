@@ -38,7 +38,7 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
 | `safe:execute $safe (...) --no-api true --nonce 7 --signatures [...]` | `safe:propose-offline` the block, `@safe:merge` the signatures, then `safe:execute $safe $tx` |
 | `safe:verify $safe <nonce \| hash \| $tx>` (`--as`, `--abi`, `--offline`) | `print @safe:verify($safe <nonce \| hash \| $tx>)` (`abi:`, `no-rpc:`) |
 | `safe:verify $safe (...)` | `safe:propose-offline` the block, then `@safe:verify` |
-| `safe:verify ... --nested-safe $owner` | `safe:propose $owner (safe:confirm-onchain $safe <hash>)` prints the owner Safe's hashes |
+| `safe:verify ... --nested-safe $owner` | `@safe:verify` on the owner Safe's `safe:propose-offline` of `safe:confirm-onchain $safe <hash>` |
 | `safe:verify-message $safe "text"`, `@safe:messageHash` | `safe:propose-offline $msg $safe "text"`, then `@safe:verify($safe $msg)` |
 | `safe:verify-message ... --format bytes` (nested owners) | `safe:confirm-offline $tx $safe $tx` from an owner of the owner Safe |
 | `safe:approve-hash $safe <hash \| $tx>` | `safe:confirm-onchain $safe <hash \| $tx>` |
@@ -127,6 +127,7 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
   as failed: those boxes end "Stopped following: the script failed". A
   transaction cancelled after it was sent says so ("Sent; stopped waiting for
   the receipt") instead of reading as never sent.
+- The Safe transaction notice (its hashes and fields) and the "Sending transaction to …" line are gone: the transaction and proposal boxes show that progress. Review findings are still printed, and `@safe:verify` returns the hashes a hardware wallet shows.
 - The separate "Transaction confirmed" log line is replaced by the
   transaction's box. Every change to a box's detail is still logged as a line.
 - Module authors open boxes with `interpreters.box` (ended with `done`,

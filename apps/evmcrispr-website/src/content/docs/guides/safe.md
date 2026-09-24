@@ -159,8 +159,9 @@ set $safeTxHash 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 safe:confirm $safe $safeTxHash
 ```
 
-Before your wallet prompts, `safe:confirm` prints the hashes your device
-will show and refuses the transaction if it finds anything risky; see
+Before your wallet prompts, `safe:confirm` prints its findings and refuses
+the transaction if it finds anything risky; `@safe:verify` returns the hashes
+your device will show. See
 [what EVMcrispr checks before you sign](#what-evmcrispr-checks-before-you-sign).
 
 Once it has enough confirmations, anyone executes it. An owner who executes

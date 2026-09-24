@@ -669,12 +669,6 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         (env.account && actionFrom === env.account.toLowerCase());
 
       if (isOurTransaction) {
-        ctx.onLog(
-          action.to
-            ? `Sending transaction to ${truncateAddress(action.to)}`
-            : "Sending contract deployment transaction",
-        );
-
         if (action.chainId === undefined) {
           throw new Error(
             `Transaction to ${action.to ?? "<deploy>"} is missing chainId`,

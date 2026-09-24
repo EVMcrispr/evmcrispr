@@ -422,15 +422,10 @@ describe("Safe > integration", () => {
     // The owner's 65-byte ECDSA signature: its confirmation.
     expect(proposal.signature.length).to.equal(2 + 65 * 2);
 
-    // The hashes are printed, so owners can cross-check them when confirming.
-    const hashLog = evm.logs.find((l) => l.startsWith("Safe transaction 0x"));
-    const domainSeparator = await client.readContract({
-      address: safe,
-      abi: safeAbi,
-      functionName: "domainSeparator",
-    });
-    expect(hashLog).to.include(expectedHash);
-    expect(hashLog).to.include(domainSeparator);
+    // The proposal box shows it; no separate Safe transaction notice.
+    expect(evm.logs.some((l) => l.startsWith("Safe transaction ("))).to.be
+      .false;
+    expect(evm.logs.some((l) => l.includes("Domain hash"))).to.be.false;
   });
 
   const waitFor = async (condition: () => boolean, timeout = 30_000) => {

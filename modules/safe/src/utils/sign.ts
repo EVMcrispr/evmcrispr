@@ -16,7 +16,6 @@ import {
   formatFindings,
   type SafeFinding,
 } from "./assess";
-import { formatSafeTxHashesLog, getSafeTxHashes } from "./hashes";
 import { normalizeSafeSignature, stringifySafeTransaction } from "./offline";
 import {
   decodeSafeTxCalls,
@@ -25,10 +24,10 @@ import {
   signableTypedData,
 } from "./signables";
 
-/** Print what is about to be signed or sent, so signers can compare the
- *  hashes with their hardware wallet display, with its findings: by default
+/** Print the findings of what is about to be signed or sent: by default
  *  the notices of the content checks; a gated command passes its own
- *  findings and `enforced`. */
+ *  findings and `enforced`. A transaction's progress shows in its status
+ *  box, so it prints nothing else; a message also prints its hashes. */
 export function logSafeSignable(
   module: Safe,
   signable: SafeSignable,
@@ -39,25 +38,18 @@ export function logSafeSignable(
   }: { findings?: SafeFinding[]; allow?: AllowOpts; enforced?: boolean } = {},
 ): void {
   if (signable.kind === "transaction") {
-    module.context.log(
-      formatSafeTxHashesLog(
-        signable.safe,
-        signable.chainId,
-        signable.tx,
-        getSafeTxHashes(signable.chainId, signable.safe, signable.tx),
-        formatFindings(
-          findings ??
-            assessSafeTx(
-              signable.safe,
-              signable.tx,
-              decodeSafeTxCalls(signable),
-              safeDeployment(signable.chainId),
-            ),
-          allow,
-          enforced,
+    const lines = formatFindings(
+      findings ??
+        assessSafeTx(
+          signable.safe,
+          signable.tx,
+          decodeSafeTxCalls(signable),
+          safeDeployment(signable.chainId),
         ),
-      ),
+      allow,
+      enforced,
     );
+    for (const line of lines) module.context.log(line.trim());
     return;
   }
   const hashes = signableHashes(signable);
