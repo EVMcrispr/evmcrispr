@@ -1,7 +1,7 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
 import type Swaps from "..";
 import { integer } from "../twap/cow";
-import { parseReference } from "../twap/reference";
+import { resolveReference } from "../twap/reference";
 import { twapSnapshot } from "../twap/status";
 import { activeSimMode } from "../utils/sim";
 
@@ -14,8 +14,8 @@ export default defineHelper<Swaps>({
   args: [
     {
       name: "order",
-      type: "string",
-      description: "Portable JSON TWAP reference",
+      type: "bytes32",
+      description: "Order hash bound by swaps:twap",
     },
     {
       name: "offset",
@@ -31,11 +31,7 @@ export default defineHelper<Swaps>({
     },
   ],
   async run(module, { order, offset, limit }) {
-    const ref = parseReference(order);
-    if ((await module.getChainId()) !== ref.chainId)
-      throw new ErrorException(
-        `TWAP reference belongs to chain ${ref.chainId}`,
-      );
+    const ref = await resolveReference(module, order);
     const start = integer(offset ?? "0", "offset");
     const count = integer(limit ?? "100", "limit");
     if (start > 0xffffffffn || count < 1n || count > 128n)

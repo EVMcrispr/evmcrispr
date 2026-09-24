@@ -12,6 +12,7 @@ import type { Module, TransactionAction } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
 import type { Address, Block, Hex, PublicClient } from "viem";
 import {
+  ContractFunctionExecutionError,
   decodeAbiParameters,
   decodeFunctionData,
   encodeAbiParameters,
@@ -106,6 +107,51 @@ async function prediction(module: Module, controller: Address, slot: number) {
     salt,
     address: predictSafeAddress(deployment, creationCode, initializer, salt),
   };
+}
+
+/** The controller and slot an execution Safe was derived from, checked
+ * against every current owner so an added owner does not hide it. */
+export async function locateAccount(
+  client: PublicClient,
+  chainId: number,
+  account: Address,
+): Promise<{ controller: Address; slot: number }> {
+  const deployment = safeDeployment(chainId);
+  const notOurs = new ErrorException(
+    `TWAP account ${account} was not created by swaps:twap`,
+  );
+  const [owners, creationCode] = await Promise.all([
+    client
+      .readContract({
+        address: account,
+        abi: accountAbi,
+        functionName: "getOwners",
+      })
+      // Not a Safe at all, e.g. the CoW Shed proxy of a CoW Swap EOA TWAP.
+      .catch((error) => {
+        if (error instanceof ContractFunctionExecutionError) throw notOurs;
+        throw error;
+      }),
+    client.readContract({
+      address: deployment.proxyFactory,
+      abi: safeFactoryAbi,
+      functionName: "proxyCreationCode",
+    }),
+  ]);
+  for (const owner of owners) {
+    const initializer = safeInitializer([owner], 1n, COW_FALLBACK);
+    for (let slot = 0; slot < MAX_ACCOUNT_SLOTS; slot++) {
+      const predicted = predictSafeAddress(
+        deployment,
+        creationCode,
+        initializer,
+        accountSalt(chainId, owner, slot),
+      );
+      if (isAddressEqual(predicted, account))
+        return { controller: owner, slot };
+    }
+  }
+  throw notOurs;
 }
 
 const storageAddress = (value: Hex | undefined): Address =>

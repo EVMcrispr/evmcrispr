@@ -205,3 +205,13 @@ const EXPLORER_PREFIXES: Record<number, string> = {
 export function explorerLink(chainId: number, orderUid: string): string {
   return `https://explorer.cow.fi/${EXPLORER_PREFIXES[chainId] ?? ""}orders/${orderUid}`;
 }
+
+/** The orders a settlement transaction filled. */
+export function explorerTxLink(chainId: number, txHash: string): string {
+  return `https://explorer.cow.fi/${EXPLORER_PREFIXES[chainId] ?? ""}tx/${txHash}?tab=orders`;
+}
+
+/** Every order an owner placed, TWAP parts included. */
+export function explorerAddressLink(chainId: number, address: string): string {
+  return `https://explorer.cow.fi/${EXPLORER_PREFIXES[chainId] ?? ""}address/${address}`;
+}

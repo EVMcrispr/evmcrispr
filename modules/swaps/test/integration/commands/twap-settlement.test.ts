@@ -22,6 +22,7 @@ import {
   settlementAbi,
 } from "../../../src/twap/evidence";
 import { partOrder, partUid } from "../../../src/twap/parts";
+import { findReference } from "../../../src/twap/reference";
 import { twapSnapshot } from "../../../src/twap/status";
 import type { TwapReference } from "../../../src/twap/types";
 import { COW_SETTLEMENT } from "../../../src/venues/lib/cowApi";
@@ -55,7 +56,7 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
   let firstTrade: Awaited<ReturnType<typeof trade>>;
   let firstFillTx: Hex;
   const total = 12n * 10n ** 18n;
-  const refArg = () => `'${JSON.stringify(ref)}'`;
+  const refArg = () => ref.orderHash;
 
   async function send(action: TransactionAction, success = true) {
     const hash = await wallet.sendTransaction({
@@ -187,11 +188,10 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
     const interpreter = await run(
       `swaps:twap $order ${total} ${WXDAI} to ${GNO} --parts 3 --every 60 --min 6 --offline true`,
     );
-    ref = JSON.parse(
-      interpreter.bindingsManager.getBindingValue(
-        "$order",
-        BindingsSpace.USER,
-      ) as string,
+    ref = await findReference(
+      client,
+      100,
+      interpreter.bindingsManager.getBindingValue("$order", BindingsSpace.USER),
     );
     const state = await cowTwap.status(client, ref);
     start = BigInt(state.start!);
@@ -349,6 +349,13 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
     expect(snapshot.nextOffset).toBe(2);
     expect(snapshot.items[0].uid).toBe(partUid(ref, start, 0n));
     expect(snapshot.items[0].settlement?.transactionHash).toBe(firstFillTx);
+    // Both links land on CoW Explorer: the part's order and its settlement.
+    expect(snapshot.items[0].explorer).toBe(
+      `https://explorer.cow.fi/gc/orders/${partUid(ref, start, 0n)}`,
+    );
+    expect(snapshot.items[0].settlement?.explorer).toBe(
+      `https://explorer.cow.fi/gc/tx/${firstFillTx}?tab=orders`,
+    );
     const interpreter = await run(
       `set $page @swaps:twapParts(${refArg()} 1 1)`,
     );
@@ -436,22 +443,24 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
     const interpreter = await run(
       `swaps:twap $order ${total} ${WXDAI} to ${GNO} --parts 3 --every 60 --min 6 --offline true`,
     );
-    ref = JSON.parse(
-      interpreter.bindingsManager.getBindingValue(
-        "$order",
-        BindingsSpace.USER,
-      ) as string,
+    ref = await findReference(
+      client,
+      100,
+      interpreter.bindingsManager.getBindingValue("$order", BindingsSpace.USER),
     );
     expect(ref.account).toBe(previous.account);
     const pending = await trade();
-    let apiCalls = 0;
+    // Both CoW services are down: the order hash resolves from recent
+    // blocks and nothing else is asked of the API.
+    let orderbookCalls = 0;
+    let indexerCalls = 0;
     server.use(
       http.all("https://api.cow.fi/*", () => {
-        apiCalls++;
+        orderbookCalls++;
         return new HttpResponse(null, { status: 503 });
       }),
       http.all("https://programmatic-orders.cow.fi/*", () => {
-        apiCalls++;
+        indexerCalls++;
         return new HttpResponse(null, { status: 503 });
       }),
     );
@@ -460,7 +469,8 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
     expect((await cowTwap.status(client, ref)).filled).toBe("none");
     expect((await cowTwap.status(client, previous)).filled).toBe("complete");
     await run(`swaps:twap-recover ${refArg()}`);
-    expect(apiCalls).toBe(0);
+    expect(orderbookCalls).toBe(0);
+    expect(indexerCalls).toBe(2);
   }, 120000);
 
   it("discards evidence if the observation block is reorganized", async () => {

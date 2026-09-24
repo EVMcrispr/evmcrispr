@@ -26,11 +26,12 @@ import {
   protectionBps,
   twapPreflight,
 } from "../twap/preflight";
+import { rememberReference } from "../twap/reference";
 import { resolveTwap } from "../twap/registry";
 import type { TwapReference, TwapSchedule } from "../twap/types";
 import { buildApprovalActions } from "../utils/approval";
 import { activeSimMode } from "../utils/sim";
-import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
+import { COW_VAULT_RELAYER, explorerAddressLink } from "../venues/lib/cowApi";
 
 export default defineCommand<Swaps, typeof TWAP_ERRORS>({
   smartSupport: {
@@ -45,7 +46,7 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
     {
       name: "variable",
       type: "variable",
-      description: "Variable to bind the order reference to",
+      description: "Variable to bind the order hash to",
     },
     {
       name: "amount",
@@ -256,19 +257,6 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
         "CoW TWAP quote expired during account validation; retry",
       );
     if (preflight) {
-      module.context.log(
-        `CoW TWAP preflight: ${JSON.stringify({
-          quotedAt: preflight.quotedAt,
-          expiresAt: new Date(preflight.expiration).toISOString(),
-          estimatedFeePerPart: preflight.fee.toString(),
-          protocolFeeBps: preflight.protocolFeeBps.toString(),
-          estimatedProtocolFeeInBuyToken: preflight.protocolFeeInBuy.toString(),
-          expectedNetBuyPerPart: preflight.netBuy.toString(),
-          minBuyPerPart: schedule.minPartLimit.toString(),
-          minimumIfAllPartsFill: (schedule.minPartLimit * parts).toString(),
-          notionalUsdcPerPart: preflight.notionalUsdc,
-        })}`,
-      );
       if (schedule.minPartLimit > preflight.netBuy)
         module.context.log(
           "TWAP limit is currently unfillable at the quoted price; parts require a better price to execute.",
@@ -297,17 +285,17 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
       },
       provider.create(params),
     ];
-    const reference = JSON.stringify(ref);
+    rememberReference(module, ref);
     module.bindingsManager.setBinding(
       variable,
-      reference,
+      hash,
       BindingsSpace.USER,
       true,
       undefined,
       true,
     );
     module.context.log(
-      `Prepared CoW TWAP ${hash} in Safe ${account.account}. Registration becomes active only after execution. Save this reference for status, cancellation and recovery:\n${reference}`,
+      `CoW TWAP [${hash}](${explorerAddressLink(chainId, account.account)}) prepared; it starts once its registration is executed.`,
     );
     return [
       ...account.deploy,

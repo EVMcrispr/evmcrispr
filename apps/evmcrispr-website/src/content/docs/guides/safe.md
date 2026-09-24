@@ -533,19 +533,20 @@ works with `safe:execute`, and the proposal is reviewed when owners confirm
 it, like any other queued transaction (or at once, when your signature alone
 authorizes it).
 
-`$order` is a JSON reference with the chain, controller, execution account,
-and order parameters. Save the printed string: every later command needs it.
-To check progress, restore it and read the order status:
+`$order` holds the order hash. Every later command takes it, and it is all
+you need to keep: the rest is read back from CoW's order indexer and the
+chain. To check progress in another session, set it again and read the order
+status:
 
 ```evml
 load swaps
 
-set $order '{"version":1}'
+set $order 0x187b95c91c6d307d05c1860c32116b8859ffb8bc77f670dc6ec0b0454034810e
 print @swaps:twapStatus($order)
 print @swaps:twapParts($order 0 12)
 ```
 
-Replace `'{"version":1}'` with the complete printed reference. The status
+Replace the hash with the one your command printed. The status
 separates on-chain registration, fills proven by settlement events, and
 finality. A successful proposal on its own is not proof that the order was
 registered.

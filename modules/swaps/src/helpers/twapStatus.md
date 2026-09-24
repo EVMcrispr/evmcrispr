@@ -18,19 +18,20 @@ JSON TWAP status: independent registration, schedule, verified settlement totals
 
 | Name | Type | Description |
 |------|------|-------------|
-| `order` | `string` | JSON order reference bound by swaps:twap |
+| `order` | `bytes32` | Order hash bound by swaps:twap |
 
 <!-- HAND-WRITTEN -->
 
 ## Example
 
-Using the `$order` reference saved by `swaps:twap`:
+Using the order hash `swaps:twap` bound to `$order`:
 
 ```evml novalidate
 print @swaps:twapStatus($order)
 ```
 
-The result remains a JSON string and accepts portable version-1 references.
+The result is a JSON string. See [the order hash](../commands/twap.md#the-order-hash)
+for how the order is looked up.
 Amounts and timestamps are decimal strings. Call it outside batches that
 already contain actions; the controller need not be connected.
 
@@ -45,7 +46,7 @@ already contain actions; the controller need not be connected.
 | `evidence` | Coverage (`complete`), reasons for incomplete coverage, observation `blockNumber` and `blockHash`. |
 | `finality` | `finalized`, `pending`, or `unknown` according to the RPC's finalized block. |
 | `discovery` | Indexer parent record: `observed`, `not-observed`, `unavailable`, or `skipped`. |
-| `submission` | Current part index, separate orderbook observation, and reported orderbook status when present. |
+| `submission` | Current part index, its order `uid` and `explorer` link on CoW Explorer, separate orderbook observation, and reported orderbook status when present. |
 | `start`, `end` | Effective schedule timestamps, or null when unavailable. |
 | `remainingSellBalance`, `allowance` | Current execution account funds and CoW relayer allowance; these do not establish fills. |
 

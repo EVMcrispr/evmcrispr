@@ -23,15 +23,13 @@ import {
   decodeSchedule,
   integer,
   MAX_UINT32,
-  orderHash,
   paramsAbi,
   TIMESTAMP_FACTORY,
   TWAP_HANDLER,
   validateSchedule,
 } from "../../src/twap/cow";
-import { parseReference } from "../../src/twap/reference";
 import { resolveTwap } from "../../src/twap/registry";
-import type { TwapReference, TwapSchedule } from "../../src/twap/types";
+import type { TwapSchedule } from "../../src/twap/types";
 
 const sellToken = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
 const buyToken = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
@@ -49,16 +47,6 @@ const base: TwapSchedule = {
   appData: zeroHash,
 };
 const params = cowTwap.buildParams(base, padHex("0x1234", { size: 32 }));
-const ref: TwapReference = {
-  version: 1,
-  provider: "CoWSwap",
-  chainId: 1,
-  controller: receiver,
-  account: receiver,
-  slot: 0,
-  params,
-  orderHash: orderHash(params),
-};
 
 describe("Swaps > TWAP encoding and validation", () => {
   it("matches the upstream 30-day DAI/WETH example with all ten ABI words", () => {
@@ -144,22 +132,6 @@ describe("Swaps > TWAP encoding and validation", () => {
     expect(() => integer(Num(1n, 2n), "amount")).toThrow("integer");
     expect(() => integer(-1n, "amount")).toThrow("uint256");
     expect(() => integer(1n << 256n, "amount")).toThrow("uint256");
-  });
-
-  it("validates portable references and rejects tampering", () => {
-    expect(parseReference(JSON.stringify(ref))).toEqual(ref);
-    for (const changed of [
-      { version: 2 },
-      { chainId: 10 },
-      { slot: -1 },
-      { orderHash: zeroHash },
-      { controller: "oops" },
-    ]) {
-      expect(() =>
-        parseReference(JSON.stringify({ ...ref, ...changed })),
-      ).toThrow("Invalid TWAP reference");
-    }
-    expect(() => parseReference("not json")).toThrow("Invalid TWAP reference");
   });
 
   it("keeps provider support separate from spot CoW's intent policy", async () => {

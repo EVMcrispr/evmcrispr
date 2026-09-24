@@ -59,6 +59,9 @@ export interface TwapStatus {
   discovery: "observed" | "not-observed" | "unavailable" | "skipped";
   submission: {
     partIndex: number | null;
+    /** The current part's order UID and CoW Explorer page. */
+    uid?: Hex;
+    explorer?: string;
     state: "observed" | "not-observed" | "unavailable" | "skipped" | "not-due";
     orderbookStatus?: string;
   };

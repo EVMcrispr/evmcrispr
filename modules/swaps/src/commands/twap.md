@@ -18,7 +18,7 @@ swaps:twap <variable> <amount> <tokenIn> <to> <tokenOut>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `variable` | `variable` | Build time | Variable to bind the order reference to |
+| `variable` | `variable` | Build time | Variable to bind the order hash to |
 | `amount` | `command \| number` | Build time | Total sell amount in base units, or the keyword `max` for the funder's whole balance; rounded down to a multiple of --parts, the remainder stays with the funder |
 | `tokenIn` | `address` | Build time | ERC-20 token to sell |
 | `to` | `command` | Build time | Keyword `to` |
@@ -147,9 +147,8 @@ swaps:twap $order 12e18 @token(WXDAI) to @token(GNO) --parts 3 --every 3600 --pr
 
 Protection accepts 0–99.99 percent in exact basis points. Each part's minimum is
 `ceil(quotedNetBuyAmount × (10000 − protectionBps) / 10000)`. That fixed minimum
-is encoded on-chain; it does not follow later prices. The log reports the quote
-timestamp and expiry, estimated fee and net output per part, enforced minimum,
-and conditional total. A fixed `--min` above the quote is permitted with a
+is encoded on-chain; it does not follow later prices. A fixed `--min` above the
+quote is permitted with a
 “currently unfillable” warning, since waiting for a better price is valid.
 
 Online checks require intervals of at least five minutes and a minimum part
@@ -231,13 +230,24 @@ rebuild them if the account state has changed. Account configuration changes
 can also prevent the convenience management commands from recognizing it;
 its controller retains ordinary Safe control.
 
-## Saving the order reference
+## The order hash
 
-`$order` is a JSON **string**, also printed by the command. Save the entire
-string; it includes the chain, controller, execution account, and conditional
-order parameters. To manage an order in another session, restore it with
-`set $order '<the printed JSON>'` and switch to its original chain. A successful
-encoding or proposal is not proof that the order was registered.
+`$order` is bound to the order's **hash** (a `bytes32`). The command also prints
+it, linked to the execution Safe's page on CoW Explorer, where the parts appear
+as CoW's watchtower submits them. The hash is the only thing `@swaps:twapStatus`, `@swaps:twapParts`,
+`swaps:twap-cancel` and `swaps:twap-recover` take. In another session, set it
+again with `set $order <the printed hash>` and switch to the order's chain.
+
+Everything else is read back from the chain. The lookup asks CoW's
+programmatic-order indexer first; an order it has not indexed yet, or any
+order while it is unavailable, is found by scanning roughly the last six hours
+of blocks. Either way the result is verified on-chain before use: the
+parameters must hash to the order, the registration event must be in a
+successful transaction, and the execution Safe must be one `swaps:twap`
+derives from its controller. An order that is older than six hours and missing
+from the indexer cannot be found. Within the script that created it, the hash
+resolves before the registration is mined. A successful encoding or proposal
+is not proof that the order was registered.
 
 `--salt` makes order encoding reproducible. Otherwise a cryptographically random
 salt distinguishes otherwise identical orders. The same conditional order is
@@ -255,7 +265,8 @@ not recreated in a previously used execution account.
 | Finality | The evidence is at or below the RPC's finalized block; otherwise pending or unknown. |
 
 Use `@swaps:twapStatus($order)` and `@swaps:twapParts($order 0 100)` to inspect
-these separately. API outages do not prevent on-chain cancellation or recovery.
+these separately. API outages do not prevent on-chain cancellation or recovery
+of an order registered in the last six hours.
 There is no scheduler, automatic submission, or background monitor in EVMcrispr.
 Neither a quote nor a successful simulation guarantees future liquidity,
 watchtower availability, or execution of every part.

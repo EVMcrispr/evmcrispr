@@ -10,7 +10,7 @@ import { getEndpoint } from "../../../../../scripts/anvil-config";
 import { WRAPPED_NATIVE } from "../../../src/addresses";
 import { cowTwap } from "../../../src/twap/cow";
 import { TWAP_NETWORKS } from "../../../src/twap/networks";
-import type { TwapReference } from "../../../src/twap/types";
+import { findReference } from "../../../src/twap/reference";
 
 describe("TWAP > five-network deployment and lifecycle smoke", () => {
   for (const chain of [mainnet, gnosis, polygon, base, arbitrum]) {
@@ -95,18 +95,20 @@ describe("TWAP > five-network deployment and lifecycle smoke", () => {
         };
         const create = `swaps:twap $order 2e18 ${WRAPPED_NATIVE[chain.id]} to ${TWAP_NETWORKS[chain.id].usdc} --parts 2 --every 300 --min 2 --offline true`;
         const readRef = (interpreter: Interpreter) =>
-          JSON.parse(
+          findReference(
+            client as any,
+            chain.id,
             interpreter.bindingsManager.getBindingValue(
               "$order",
               BindingsSpace.USER,
-            ) as string,
-          ) as TwapReference;
-        const ref = readRef(await run(`swaps:wrap 2e18\n${create}`));
+            ),
+          );
+        const ref = await readRef(await run(`swaps:wrap 2e18\n${create}`));
         const status = await cowTwap.status(client as any, ref);
         expect(status.registered).toBe(true);
         expect(status.filled).toBe("none");
         expect(status.remainingSellBalance).toBe("2000000000000000000");
-        const arg = `'${JSON.stringify(ref)}'`;
+        const arg = ref.orderHash;
         await run(`swaps:twap-cancel ${arg}\nswaps:twap-recover ${arg}`);
         const recovered = await cowTwap.status(client as any, ref);
         expect(recovered.registered).toBe(false);
@@ -114,7 +116,7 @@ describe("TWAP > five-network deployment and lifecycle smoke", () => {
         expect(recovered.start).toBe(status.start);
         expect(recovered.remainingSellBalance).toBe("0");
         expect(recovered.allowance).toBe("0");
-        expect(readRef(await run(create)).account).toBe(ref.account);
+        expect((await readRef(await run(create))).account).toBe(ref.account);
       } finally {
         node.kill();
         await node.exited;

@@ -1,6 +1,10 @@
 import type { Hex, PublicClient } from "viem";
 import { erc20Abi } from "viem";
-import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
+import {
+  COW_VAULT_RELAYER,
+  explorerLink,
+  explorerTxLink,
+} from "../venues/lib/cowApi";
 import { orderbookOrders } from "./api";
 import { readOrderState } from "./cow";
 import { collectEvidence, type ObservationBlock } from "./evidence";
@@ -170,6 +174,12 @@ export async function twapSnapshot(
     discovery: evidence.discovery,
     submission: {
       partIndex: current,
+      ...(currentEntry
+        ? {
+            uid: currentEntry.uid,
+            explorer: explorerLink(ref.chainId, currentEntry.uid),
+          }
+        : {}),
       state: currentStatus
         ? "observed"
         : start && block.timestamp < start && submissionState === "not-observed"
@@ -188,6 +198,7 @@ export async function twapSnapshot(
     return {
       index,
       uid,
+      explorer: explorerLink(ref.chainId, uid),
       start: from.toString(),
       validTo: order.validTo,
       window:
@@ -200,7 +211,12 @@ export async function twapSnapshot(
       submission: accepted.has(uid) ? "observed" : submissionState,
       orderbookStatus: accepted.get(uid) ?? null,
       filled: fill ? "complete" : evidence.complete ? "none" : "unknown",
-      settlement: fill ?? null,
+      settlement: fill
+        ? {
+            ...fill,
+            explorer: explorerTxLink(ref.chainId, fill.transactionHash),
+          }
+        : null,
       finality:
         !fill || finalized?.number === undefined || finalized.number === null
           ? "unknown"

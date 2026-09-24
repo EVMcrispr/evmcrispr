@@ -3,7 +3,7 @@ import { encodeFunctionData, erc20Abi } from "viem";
 import type Swaps from "..";
 import { executeAccount, ownedAccount } from "../twap/account";
 import { decodeSchedule } from "../twap/cow";
-import { parseReference } from "../twap/reference";
+import { resolveReference } from "../twap/reference";
 import { resolveTwap } from "../twap/registry";
 import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
 
@@ -18,12 +18,12 @@ export default defineCommand<Swaps>({
   args: [
     {
       name: "order",
-      type: "string",
-      description: "JSON order reference bound by swaps:twap",
+      type: "bytes32",
+      description: "Order hash bound by swaps:twap",
     },
   ],
   async run(module, { order }) {
-    const ref = parseReference(order);
+    const ref = await resolveReference(module, order);
     const provider = await resolveTwap(module, ref.provider);
     const { nonce } = await ownedAccount(module, ref);
     const schedule = decodeSchedule(ref.params);

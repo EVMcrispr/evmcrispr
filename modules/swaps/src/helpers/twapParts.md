@@ -18,7 +18,7 @@ JSON page of TWAP parts with exact UIDs, trading windows, submission observation
 
 | Name | Type | Description |
 |------|------|-------------|
-| `order` | `string` | Portable JSON TWAP reference |
+| `order` | `bytes32` | Order hash bound by swaps:twap |
 | `[offset]` | `number` | Zero-based part offset (default: 0) |
 | `[limit]` | `number` | Parts to return (default: 100, maximum: 128) |
 
@@ -26,7 +26,7 @@ JSON page of TWAP parts with exact UIDs, trading windows, submission observation
 
 ## Example
 
-Using the version-1 JSON reference saved by `swaps:twap`:
+Using the order hash `swaps:twap` bound to `$order`:
 
 ```evml novalidate
 print @swaps:twapParts($order)
@@ -38,10 +38,12 @@ Returns a JSON string with `items`, `offset`, `nextOffset`, `totalParts`, and
 the maximum page size is 128. `nextOffset` is null at the end. Missing mining-time
 registration history can leave the page empty with incomplete coverage.
 
-Each item contains its zero-based `index`, exact CoW `uid`, `start`, inclusive
+Each item contains its zero-based `index`, exact CoW `uid`, its `explorer` link
+(the part's CoW Explorer page, which exists once the part is submitted), `start`, inclusive
 `validTo`, `window`, current registration, orderbook `submission` observation,
 `orderbookStatus`, `filled`, `settlement`, and `finality`. A settlement includes
-its transaction hash, block number/hash, and executed token amounts.
+its transaction hash, block number/hash, executed token amounts, and an
+`explorer` link to the settlement on CoW Explorer.
 
 Page size bounds returned parts and orderbook lookups; evidence reconstruction
 has separate bounded history and receipt budgets. Exhausting those budgets is

@@ -130,6 +130,26 @@ export async function indexedOrders(
   return page.items.map(record);
 }
 
+/** Candidate registrations of one conditional order hash. Untrusted: every
+ *  row is checked against its registration receipt before use. */
+export async function programmaticOrder(chainId: number, hash: Hex) {
+  const result = record(
+    await cowJson(PROGRAMMATIC_API, {
+      query: `query Order($chainId:Int!,$hash:String!){
+      programmaticOrders(where:{chainId:$chainId,hash:$hash},limit:8){
+        items{owner handler salt staticInput hash txHash}
+      }}`,
+      variables: { chainId, hash: hash.toLowerCase() },
+    }),
+  );
+  if (result.errors)
+    throw new ErrorException("CoW TWAP indexer returned errors");
+  const page = record(record(result.data).programmaticOrders);
+  if (!Array.isArray(page.items) || page.items.length > 8)
+    throw new ErrorException("Invalid CoW TWAP indexer page");
+  return page.items.map(record);
+}
+
 export async function orderbookOrders(chainId: number, uids: Hex[]) {
   if (uids.length > 128)
     throw new ErrorException("CoW order lookup exceeds 128 UIDs");

@@ -50,12 +50,13 @@ import {
   orderHash,
 } from "../../../src/twap/cow";
 import { TWAP_NETWORKS } from "../../../src/twap/networks";
+import { findReference } from "../../../src/twap/reference";
 import type { TwapReference } from "../../../src/twap/types";
 import {
   buildOrderTypedData,
   COW_VAULT_RELAYER,
 } from "../../../src/venues/lib/cowApi";
-import { GNO, WXDAI } from "../../fixtures";
+import { GNO, plannedTwap, WXDAI } from "../../fixtures";
 
 const tradeAbi = parseAbi([
   "struct Params { address handler; bytes32 salt; bytes staticInput; }",
@@ -109,14 +110,13 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     );
     return { interpreter, actions };
   }
+  /** A mined order, resolved from the hash the command bound. */
   const reference = (interpreter: Interpreter, name = "$order") =>
-    JSON.parse(
-      interpreter.bindingsManager.getBindingValue(
-        name,
-        BindingsSpace.USER,
-      ) as string,
-    ) as TwapReference;
-  const quoteRef = (ref: TwapReference) => `'${JSON.stringify(ref)}'`;
+    findReference(
+      client,
+      100,
+      interpreter.bindingsManager.getBindingValue(name, BindingsSpace.USER),
+    );
   const balance = (account: Address) =>
     client.readContract({
       address: WXDAI,
@@ -148,7 +148,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
 
   it("deploys, funds and registers an EOA-controlled Safe with a mining-time start", async () => {
     const { interpreter } = await run(script());
-    first = reference(interpreter);
+    first = await reference(interpreter);
     expect(first.controller).toBe(controller);
     expect(first.account).not.toBe(controller);
     expect(
@@ -219,22 +219,30 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
   }, 120000);
 
   it("reserves different accounts for two orders encoded in one script", async () => {
-    const { interpreter, actions } = await run(
+    const logs: string[] = [];
+    const { actions } = await run(
       `batch (\n${script("$one")}\n${script("$two")}\n)`,
       false,
+      logs,
     );
-    const one = reference(interpreter, "$one");
-    const two = reference(interpreter, "$two");
+    const [one, two] = logs
+      .map((log) =>
+        log.match(
+          /^CoW TWAP \[0x[0-9a-f]{64}\]\(https:\/\/explorer\.cow\.fi\/gc\/address\/(0x[0-9a-fA-F]{40})\)/,
+        ),
+      )
+      .filter((match) => match !== null)
+      .map((match) => ({ account: match![1] }));
     expect(one.account).not.toBe(two.account);
     expect(one.account).not.toBe(first.account);
     expect(actions.length).toBeGreaterThan(0);
   }, 120000);
 
   it("refuses recovery while live, cancels signatures, then recovers funds", async () => {
-    await expect(run(`swaps:twap-recover ${quoteRef(first)}`)).rejects.toThrow(
+    await expect(run(`swaps:twap-recover ${first.orderHash}`)).rejects.toThrow(
       "still live",
     );
-    await run(`swaps:twap-cancel ${quoteRef(first)}`);
+    await run(`swaps:twap-cancel ${first.orderHash}`);
     expect(await allowance(first.account)).toBe(0n);
     await expect(
       client.readContract({
@@ -245,14 +253,14 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
       }),
     ).rejects.toThrow();
     const before = await balance(controller);
-    await run(`swaps:twap-recover ${quoteRef(first)}`);
+    await run(`swaps:twap-recover ${first.orderHash}`);
     expect(await balance(first.account)).toBe(0n);
     expect(await balance(controller)).toBe(before + total);
   }, 120000);
 
   it("reuses the cleaned Safe and distinguishes expiry from fills", async () => {
     const { interpreter } = await run(script());
-    const reused = reference(interpreter);
+    const reused = await reference(interpreter);
     expect(reused.account).toBe(first.account);
     await client.request({
       method: "evm_increaseTime" as any,
@@ -260,7 +268,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     });
     await client.request({ method: "evm_mine" as any });
     const { interpreter: statusInterpreter } = await run(
-      `set $status @swaps:twapStatus(${quoteRef(reused)})`,
+      `set $status @swaps:twapStatus(${reused.orderHash})`,
       false,
     );
     const state = JSON.parse(
@@ -273,29 +281,27 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     expect(state.filled).toBe("none");
     expect(state.remainingSellBalance).toBe(total.toString());
     // Expiry alone does not clear approvals, so the next order uses a new Safe.
-    const { interpreter: next } = await run(script(), false);
-    expect(reference(next).account).not.toBe(first.account);
-    await run(`swaps:twap-recover ${quoteRef(reused)}`);
+    const { actions } = await run(script(), false);
+    expect(plannedTwap(actions).account).not.toBe(first.account);
+    await run(`swaps:twap-recover ${reused.orderHash}`);
   }, 120000);
 
-  it("rejects wrong controllers, wrong chains and invented references", async () => {
+  it("rejects wrong controllers and unknown order hashes", async () => {
+    const stranger = new Interpreter(evml.registry, {
+      account: getWalletClients()[7].account!.address,
+      transports: getTransports(),
+    });
+    stranger.switchChainId(100);
     await expect(
-      run(
-        `swaps:twap-cancel ${quoteRef({ ...first, controller: getWalletClients()[7].account!.address })}`,
-      ),
+      stranger.interpret(`load swaps\nswaps:twap-cancel ${first.orderHash}`),
     ).rejects.toThrow("original controller");
-    await expect(
-      run(`swaps:twap-cancel ${quoteRef({ ...first, chainId: 1 })}`),
-    ).rejects.toThrow("chain 1");
-    await expect(
-      run(`swaps:twap-cancel ${quoteRef({ ...first, account: controller })}`),
-    ).rejects.toThrow("does not match");
     const params = { ...first.params, salt: zeroHash };
+    await expect(run(`swaps:twap-cancel ${orderHash(params)}`)).rejects.toThrow(
+      "was not found on Gnosis",
+    );
     await expect(
-      run(
-        `swaps:twap-cancel ${quoteRef({ ...first, params, orderHash: orderHash(params) })}`,
-      ),
-    ).rejects.toThrow("verified order history");
+      run(`swaps:twap-cancel '${JSON.stringify(first)}'`),
+    ).rejects.toThrow("<order> must be a bytes32 hex string");
   }, 120000);
 
   it("rejects incompatible thresholds, handlers, verifiers, guards and modules", async () => {
@@ -415,8 +421,8 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
         preValidatedSignature(controller),
       ),
     );
-    const { interpreter } = await run(script(), false);
-    expect(reference(interpreter).account).not.toBe(first.account);
+    const { actions } = await run(script(), false);
+    expect(plannedTwap(actions).account).not.toBe(first.account);
   }, 120000);
 
   it("uses an enclosing Safe as controller, funder and default recipient", async () => {
@@ -445,15 +451,15 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     const { interpreter } = await run(
       `load safe\nsafe:execute ${outer} (\n${script()}\n)`,
     );
-    const ref = reference(interpreter);
+    const ref = await reference(interpreter);
     expect(ref.controller).toBe(outer);
     expect(decodeSchedule(ref.params).receiver).toBe(outer);
     expect(await balance(ref.account)).toBe(total);
     await run(
-      `load safe\nsafe:execute ${outer} (\nswaps:twap-cancel ${quoteRef(ref)}\n)`,
+      `load safe\nsafe:execute ${outer} (\nswaps:twap-cancel ${ref.orderHash}\n)`,
     );
     await run(
-      `load safe\nsafe:execute ${outer} (\nswaps:twap-recover ${quoteRef(ref)}\n)`,
+      `load safe\nsafe:execute ${outer} (\nswaps:twap-recover ${ref.orderHash}\n)`,
     );
     expect(await balance(outer)).toBe(total);
   }, 120000);
@@ -576,7 +582,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     const { interpreter } = await run(
       script("$order", `--start ${start} --window 60`),
     );
-    const ref = reference(interpreter);
+    const ref = await reference(interpreter);
     expect((await cowTwap.status(client, ref)).schedule).toBe("scheduled");
     await expect(
       client.readContract({
@@ -610,19 +616,19 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
           Number(start + (offset / 3600n) * 3600n + 59n),
         );
     }
-    await run(`swaps:twap-cancel ${quoteRef(ref)}`);
-    await run(`swaps:twap-recover ${quoteRef(ref)}`);
+    await run(`swaps:twap-cancel ${ref.orderHash}`);
+    await run(`swaps:twap-recover ${ref.orderHash}`);
   }, 120000);
 
   it("floors an indivisible amount to a multiple of --parts and logs the dust", async () => {
     const logs: string[] = [];
     const odd = total + 1n;
-    const { interpreter, actions } = await run(
+    const { actions } = await run(
       script().replace(total.toString(), odd.toString()),
       false,
       logs,
     );
-    const schedule = decodeSchedule(reference(interpreter).params);
+    const schedule = decodeSchedule(plannedTwap(actions).params);
     expect(schedule.partSellAmount).toBe(total / 3n);
     expect(schedule.n).toBe(3n);
     const funded = actions
@@ -641,11 +647,11 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
   it("sells the funder's whole balance with `max`, floored to --parts", async () => {
     const held = await balance(controller);
     expect(held).toBeGreaterThan(0n);
-    const { interpreter } = await run(
+    const { actions } = await run(
       script().replace(total.toString(), "max"),
       false,
     );
-    const schedule = decodeSchedule(reference(interpreter).params);
+    const schedule = decodeSchedule(plannedTwap(actions).params);
     expect(schedule.partSellAmount).toBe(held / 3n);
     expect(schedule.n).toBe(3n);
     // A funder without the token has nothing to sell.
@@ -714,7 +720,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
         BindingsSpace.USER,
       ),
     ).toBe("false");
-    expect(reference(prepared.interpreter).params).toBeDefined();
+    expect(plannedTwap(prepared.actions).params).toBeDefined();
   });
 
   it("rejects missing bounds, fractions and indivisible input in the DSL", async () => {
@@ -791,12 +797,12 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
       const forward = (body: string) =>
         `load aragonos\naragonos:forward ${agent} (\n${body}\n)`;
       const { interpreter } = await run(forward(script()));
-      const ref = reference(interpreter);
+      const ref = await reference(interpreter);
       expect(ref.controller.toLowerCase()).toBe(agent);
       expect(decodeSchedule(ref.params).receiver.toLowerCase()).toBe(agent);
       expect(await balance(ref.account)).toBe(total);
-      await run(forward(`swaps:twap-cancel ${quoteRef(ref)}`));
-      await run(forward(`swaps:twap-recover ${quoteRef(ref)}`));
+      await run(forward(`swaps:twap-cancel ${ref.orderHash}`));
+      await run(forward(`swaps:twap-recover ${ref.orderHash}`));
       expect(await balance(ref.account)).toBe(0n);
     } finally {
       await client.request({

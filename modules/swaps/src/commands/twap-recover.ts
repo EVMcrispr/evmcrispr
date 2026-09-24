@@ -3,7 +3,7 @@ import { encodeFunctionData, erc20Abi } from "viem";
 import type Swaps from "..";
 import { executeAccount, ownedAccount } from "../twap/account";
 import { readOrderState } from "../twap/cow";
-import { parseReference } from "../twap/reference";
+import { resolveReference } from "../twap/reference";
 import { resolveTwap } from "../twap/registry";
 import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
 
@@ -19,8 +19,8 @@ export default defineCommand<Swaps>({
   args: [
     {
       name: "order",
-      type: "string",
-      description: "JSON order reference bound by swaps:twap",
+      type: "bytes32",
+      description: "Order hash bound by swaps:twap",
     },
   ],
   async run(module, { order }, { interpreters }) {
@@ -28,7 +28,7 @@ export default defineCommand<Swaps>({
       throw new ErrorException(
         "twap-recover reads the account balance and cannot observe earlier actions in this batch; recover in a separate transaction after cancellation",
       );
-    const ref = parseReference(order);
+    const ref = await resolveReference(module, order);
     const provider = await resolveTwap(module, ref.provider);
     const { client, block, nonce } = await ownedAccount(module, ref);
     const { schedule, registered, start, end } = await readOrderState(

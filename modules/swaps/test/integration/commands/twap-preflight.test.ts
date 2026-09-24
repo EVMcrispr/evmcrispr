@@ -20,8 +20,8 @@ import { toHex } from "viem";
 import { gnosis } from "viem/chains";
 import { decodeSchedule } from "../../../src/twap/cow";
 import { protectedMinimum } from "../../../src/twap/preflight";
-import type { TwapReference } from "../../../src/twap/types";
-import { GNO, WXDAI } from "../../fixtures";
+import { findReference } from "../../../src/twap/reference";
+import { GNO, plannedTwap, WXDAI } from "../../fixtures";
 import { COW_MOCK_BUY_AMOUNT, cowState } from "../../fixtures/msw-handlers";
 import { server } from "../../setup";
 
@@ -31,12 +31,11 @@ describe("TWAP > creation preflight", () => {
   const source = (opts: string) =>
     `swaps:twap $order 12e18 ${WXDAI} to ${GNO} --parts 3 --every 3600 ${opts}`;
   const reference = (interpreter: Interpreter) =>
-    JSON.parse(
-      interpreter.bindingsManager.getBindingValue(
-        "$order",
-        BindingsSpace.USER,
-      ) as string,
-    ) as TwapReference;
+    findReference(
+      client,
+      100,
+      interpreter.bindingsManager.getBindingValue("$order", BindingsSpace.USER),
+    );
   async function run(body: string, execute = false) {
     const interpreter = new Interpreter(evml.registry, {
       account: wallet.account!.address,
@@ -71,10 +70,10 @@ describe("TWAP > creation preflight", () => {
   });
 
   it("freezes the quoted net limit and quotes the execution Safe with the selected recipient", async () => {
-    const { interpreter, actions } = await run(
+    const { actions } = await run(
       source(`--price-protection 0.01 --to ${GNO}`),
     );
-    const ref = reference(interpreter);
+    const ref = plannedTwap(actions);
     expect(decodeSchedule(ref.params).minPartLimit).toBe(
       protectedMinimum(COW_MOCK_BUY_AMOUNT, 1n),
     );
@@ -90,8 +89,8 @@ describe("TWAP > creation preflight", () => {
   }, 120000);
 
   it("permits a fixed minimum above today's quote and never silently makes it cheaper", async () => {
-    const { interpreter } = await run(source("--min 300e18"));
-    expect(decodeSchedule(reference(interpreter).params).minPartLimit).toBe(
+    const { actions } = await run(source("--min 300e18"));
+    expect(decodeSchedule(plannedTwap(actions).params).minPartLimit).toBe(
       100n * 10n ** 18n,
     );
   }, 120000);
@@ -214,8 +213,8 @@ describe("TWAP > creation preflight", () => {
         `swaps:wrap 12e18\n${source("--min 1 --offline true")}`,
         true,
       );
-      const ref = reference(interpreter);
-      const arg = `'${JSON.stringify(ref)}'`;
+      const ref = await reference(interpreter);
+      const arg = ref.orderHash;
       await run(`swaps:twap-cancel ${arg}\nswaps:twap-recover ${arg}`, true);
       server.use(
         http.post("https://programmatic-orders.cow.fi/graphql", async () => {

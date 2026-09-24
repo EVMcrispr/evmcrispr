@@ -18,13 +18,13 @@ swaps:twap-cancel <order>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `order` | `string` | Build time | JSON order reference bound by swaps:twap |
+| `order` | `bytes32` | Build time | Order hash bound by swaps:twap |
 
 <!-- HAND-WRITTEN -->
 
 ## Example
 
-Using the `$order` reference saved by `swaps:twap`:
+Using the order hash `swaps:twap` bound to `$order`:
 
 ```evml novalidate
 swaps:twap-cancel $order
