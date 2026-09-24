@@ -295,9 +295,6 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
       undefined,
       true,
     );
-    module.context.log(
-      `CoW TWAP [${hash}](${explorerAddressLink(chainId, account.account)}) prepared; it starts once its registration is executed.`,
-    );
     const actions = [
       ...account.deploy,
       ...funding,

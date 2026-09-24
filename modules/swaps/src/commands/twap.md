@@ -232,11 +232,12 @@ its controller retains ordinary Safe control.
 
 ## The order hash
 
-`$order` is bound to the order's **hash** (a `bytes32`). The command also prints
-it, linked to the execution Safe's page on CoW Explorer, where the parts appear
-as CoW's watchtower submits them. The hash is the only thing `@swaps:twapStatus`, `@swaps:twapParts`,
-`swaps:twap-cancel` and `swaps:twap-recover` take. In another session, set it
-again with `set $order <the printed hash>` and switch to the order's chain.
+`$order` is bound to the order's **hash** (a `bytes32`); `print $order` shows
+it. The order's status box links to the execution Safe's page on CoW Explorer,
+where the parts appear as CoW's watchtower submits them. The hash is the only
+thing `@swaps:twapStatus`, `@swaps:twapParts`, `swaps:twap-cancel` and
+`swaps:twap-recover` take. In another session, set it again with
+`set $order <the hash>` and switch to the order's chain.
 
 Everything else is read back from the chain. The lookup asks CoW's
 programmatic-order indexer first; an order it has not indexed yet, or any

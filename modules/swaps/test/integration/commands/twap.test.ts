@@ -10,7 +10,7 @@ import {
   safeFactoryAbi,
   safeInitializer,
 } from "@evmcrispr/module-safe/transactions";
-import type { Action, TransactionAction } from "@evmcrispr/sdk";
+import type { Action, BoxSnapshot, TransactionAction } from "@evmcrispr/sdk";
 import { BindingsSpace, isTransactionAction } from "@evmcrispr/sdk";
 import {
   getPublicClient,
@@ -91,12 +91,18 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     return receipt;
   }
 
-  async function run(source: string, execute = true, logs?: string[]) {
+  async function run(
+    source: string,
+    execute = true,
+    logs?: string[],
+    boxes?: BoxSnapshot[],
+  ) {
     const interpreter = new Interpreter(evml.registry, {
       account: controller,
       transports: getTransports(),
       follow: false,
       onLog: logs ? (message: string) => logs.push(message) : undefined,
+      onBox: boxes ? (box: BoxSnapshot) => boxes.push(box) : undefined,
     });
     interpreter.switchChainId(100);
     const actions = await interpreter.interpret(
@@ -220,20 +226,19 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
   }, 120000);
 
   it("reserves different accounts for two orders encoded in one script", async () => {
-    const logs: string[] = [];
+    const boxes: BoxSnapshot[] = [];
     const { actions } = await run(
       `batch (\n${script("$one")}\n${script("$two")}\n)`,
       false,
-      logs,
+      undefined,
+      boxes,
     );
-    const [one, two] = logs
-      .map((log) =>
-        log.match(
-          /^CoW TWAP \[0x[0-9a-f]{64}\]\(https:\/\/explorer\.cow\.fi\/gc\/address\/(0x[0-9a-fA-F]{40})\)/,
-        ),
-      )
-      .filter((match) => match !== null)
-      .map((match) => ({ account: match![1] }));
+    // Each order's box links to its execution Safe's orders.
+    const orders = new Map<string, string>();
+    for (const box of boxes)
+      if (box.title.startsWith("CoW TWAP") && box.links?.Orders)
+        orders.set(box.id, box.links.Orders.split("/").at(-1)!);
+    const [one, two] = [...orders.values()].map((account) => ({ account }));
     expect(one.account).not.toBe(two.account);
     expect(one.account).not.toBe(first.account);
     expect(actions.length).toBeGreaterThan(0);
