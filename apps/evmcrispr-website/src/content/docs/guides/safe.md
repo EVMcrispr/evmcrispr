@@ -128,9 +128,9 @@ before the wallet prompt, so changes to the Safe need the matching
 `--allow-*` options.
 
 An owner adds a delegate, another account than the owners, with
-[`safe:delegate`](/reference/safe/commands/delegate/) (optionally until
-`--expires`), and removes it with
-[`safe:undelegate`](/reference/safe/commands/undelegate/);
+[`safe:delegate add`](/reference/safe/commands/delegate/) (optionally until
+`--expires`), and removes it with `safe:delegate remove`, which the delegate
+can also run to remove itself;
 [`@safe:delegates`](/reference/safe/helpers/delegates/) lists them:
 
 ```evml
@@ -138,7 +138,7 @@ load safe
 
 set $safe 0x1111111111111111111111111111111111111111
 set $bot 0x4444444444444444444444444444444444444444
-safe:delegate $safe $bot --label bot --expires @date(now +30d)
+safe:delegate add $safe $bot --label bot --expires @date(now +30d)
 ```
 
 The nonce defaults to the next free nonce in the service queue; use `--nonce`

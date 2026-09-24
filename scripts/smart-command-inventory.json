@@ -317,6 +317,10 @@
     "kind": "static",
     "reason": "Only exact static delegatecalls are supported; the composability executor cannot represent dynamic delegatecalls."
   },
+  "safe/delegate": {
+    "kind": "incompatible",
+    "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
+  },
   "safe/disable-module": {
     "kind": "static",
     "reason": "The module address selects its predecessor in the Safe linked list at build time."

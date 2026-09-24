@@ -1330,13 +1330,18 @@ describe("Safe > integration", () => {
     const block = `(\n  safe:change-threshold 1\n)`;
     expect(
       await failure(run(`load safe\nsafe:propose ${pair} ${block}`, ownerC)),
-    ).to.include(`an owner can add it with safe:delegate ${pair} ${ownerC}`);
+    ).to.include(
+      `an owner can add it with safe:delegate add ${pair} ${ownerC}`,
+    );
     expect(
-      await failure(run(`load safe\nsafe:delegate ${pair} ${ownerB}`)),
+      await failure(run(`load safe\nsafe:delegate add ${pair} ${ownerB}`)),
     ).to.include("a delegate must be another account");
+    expect(
+      await failure(run(`load safe\nsafe:delegate set ${pair} ${ownerC}`)),
+    ).to.include("expected the keyword add or remove");
 
     await run(
-      `load safe\nsafe:delegate ${pair} ${ownerC} --label bot --expires @date(now +1d)`,
+      `load safe\nsafe:delegate add ${pair} ${ownerC} --label bot --expires @date(now +1d)`,
     );
     expect(serviceState.delegates).to.have.lengthOf(1);
     expect(serviceState.delegates[0]).to.include({
@@ -1361,9 +1366,28 @@ describe("Safe > integration", () => {
     expect(proposal.signature).to.have.length(2 + 65 * 2);
 
     // The delegate can remove itself.
-    await run(`load safe\nsafe:undelegate ${pair} ${ownerC}`, ownerC);
+    await run(`load safe\nsafe:delegate remove ${pair} ${ownerC}`, ownerC);
     expect(serviceState.delegates).to.have.lengthOf(0);
     expect(serviceState.delegateRemovals[0]).to.include({
+      safe: pair,
+      delegator: ownerA,
+    });
+    // Removal takes no add options, and needs a delegate to remove.
+    expect(
+      await failure(
+        run(`load safe\nsafe:delegate remove ${pair} ${ownerC} --label bot`),
+      ),
+    ).to.include("only apply to safe:delegate add");
+    expect(
+      await failure(run(`load safe\nsafe:delegate remove ${pair} ${ownerC}`)),
+    ).to.include(`is not a delegate of Safe ${pair}`);
+
+    // The owner who added it removes it too.
+    await run(`load safe\nsafe:delegate add ${pair} ${ownerC}`);
+    expect(serviceState.delegates).to.have.lengthOf(1);
+    await run(`load safe\nsafe:delegate remove ${pair} ${ownerC}`);
+    expect(serviceState.delegates).to.have.lengthOf(0);
+    expect(serviceState.delegateRemovals[1]).to.include({
       safe: pair,
       delegator: ownerA,
     });

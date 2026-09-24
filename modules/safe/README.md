@@ -26,7 +26,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [safe:confirm](src/commands/confirm.md) | Confirm a Safe transaction or Safe message queued on the Safe Transaction Service, as an owner or through an owner Safe. |
 | [safe:confirm-offline](src/commands/confirm-offline.md) | Sign a Safe transaction or Safe message as an owner, or through an owner Safe, and bind the signed JSON to a variable without posting it to the Safe Transaction Service. |
 | [safe:confirm-onchain](src/commands/confirm-onchain.md) | Confirm a Safe transaction or Safe message on-chain with approveHash, as an owner or through an owner Safe you complete alone, instead of signing it off-chain. |
-| [safe:delegate](src/commands/delegate.md) | Let an account propose Safe transactions on the Safe Transaction Service on behalf of the connected owner, without confirming them. |
+| [safe:delegate](src/commands/delegate.md) | Add or remove an account that proposes Safe transactions on the Safe Transaction Service on behalf of the connected owner, without confirming them. |
 | [safe:delegate-exec](src/commands/delegate-exec.md) | Call a contract function via DELEGATECALL from the Safe. The code runs in the storage context of the Safe — only use audited libraries you trust. |
 | [safe:disable-module](src/commands/disable-module.md) | Disable a module on the Safe. |
 | [safe:enable-module](src/commands/enable-module.md) | Enable a module on the Safe, allowing it to execute transactions without owner signatures (e.g. a Zodiac module). |
@@ -42,7 +42,6 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [safe:set-fallback-handler](src/commands/set-fallback-handler.md) | Set the fallback handler contract of the Safe. |
 | [safe:set-guard](src/commands/set-guard.md) | Set the transaction guard of the Safe, a contract that checks every owner transaction before and after execution (e.g. a Zodiac ScopeGuard), or with --module its module guard (Safe v1.5.0 or later), which checks every module transaction. |
 | [safe:swap-owner](src/commands/swap-owner.md) | Replace an owner of the Safe with a new address. |
-| [safe:undelegate](src/commands/undelegate.md) | Remove a delegate of the Safe Transaction Service, as the owner who added it or as the delegate itself. |
 | [safe:upgrade](src/commands/upgrade.md) | Upgrade the Safe to v1.5.0 with Safe's SafeMigration contract (a delegatecall from the Safe), keeping its L2 or plain flavour and any custom fallback handler. |
 
 ## Helpers

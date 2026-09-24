@@ -47,6 +47,10 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
 | `@safe:merge(package ...)` argument name | `@safe:merge(base ...)` |
 | `SafePackage`, `parseSafePackage`, `transactionPackage`, … in `@evmcrispr/module-safe/transactions` | `SafeSignable`, `parseSafeSignable`, `transactionSignable`, … |
 
+### Safe delegates
+
+- New `safe:delegate add <safe> <account>` lets another account propose transactions of a Safe on the Safe Transaction Service for the connected owner, without confirming them (`--label`, `--expires`); `@safe:delegates(<safe>)` lists them. `safe:delegate remove <safe> <account>` removes it, run by the owner who added it or by the delegate itself.
+
 ### Safe v1.5.0
 
 - The safe module uses Safe v1.5.0: `safe:new` deploys with the v1.5.0 proxy factory, CompatibilityFallbackHandler and MultiSend contracts, and `@safe:address` predicts with the v1.5.0 proxy creation code, so predicted addresses differ from before. TWAP execution Safes of the swaps module use v1.5.0 too.

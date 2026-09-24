@@ -114,7 +114,7 @@ export async function resolveProposer(
   );
   if (!delegation)
     throw new ErrorException(
-      `${account} is neither an owner of Safe ${safe}, directly or through owner Safes, nor a delegate of one of its owners; an owner can add it with safe:delegate ${safe} ${account}`,
+      `${account} is neither an owner of Safe ${safe}, directly or through owner Safes, nor a delegate of one of its owners; an owner can add it with safe:delegate add ${safe} ${account}`,
     );
   return { kind: "delegate", delegator: delegation.delegator };
 }
