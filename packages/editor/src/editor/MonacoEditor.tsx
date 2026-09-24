@@ -827,6 +827,9 @@ function Editor({
       wordBasedSuggestions: "off" as const,
       tabSize: 2,
       minimap: { enabled: false },
+      // Monaco's default color provider swatches any `#rgb`-looking word,
+      // but in EVML `#add` is a comment, not a color.
+      colorDecorators: false,
       wordWrap: "on" as const,
       // Match the Shiki viewer's CSS wrapping (`pre-wrap` +
       // `overflow-wrap: anywhere` in components.css): break only at
