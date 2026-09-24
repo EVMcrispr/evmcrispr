@@ -10,9 +10,7 @@ import {
   NoSymbolIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { type ReactNode, useState } from "react";
 import { Alert } from "../ui/Alert";
-import { Popover } from "../ui/Popover";
 import { ConsoleMarkdown } from "./ConsoleMarkdown";
 import { countdownText, type Segment, segments, useNow } from "./countdown";
 
@@ -187,22 +185,23 @@ function BoxProgress({
   );
 }
 
-/** One step of the bar: done steps full (a link to their page when they
- *  have one), missed ones hatched, the open one filling faintly. */
+/** One step of the bar: its drawn width is its elapsed time, solid once
+ *  done and faint while open; missed steps are hatched. A done step with a
+ *  page is a link to it. */
 function SegmentBar({ part, step }: { part: Segment; step: number }) {
   const bar = (
     <span
       className={`block h-1.5 overflow-hidden rounded-sm ${
-        part.kind === "done"
-          ? "bg-evm-green-300"
-          : part.kind === "missed"
-            ? "bg-[repeating-linear-gradient(135deg,var(--color-evm-orange-300)_0_2px,transparent_2px_5px)] opacity-70"
-            : "bg-white/20"
+        part.kind === "missed"
+          ? "bg-[repeating-linear-gradient(135deg,var(--color-evm-orange-300)_0_2px,transparent_2px_5px)] opacity-70"
+          : "bg-white/20"
       }`}
     >
-      {part.kind === "upcoming" && (
+      {(part.kind === "done" || part.kind === "open") && (
         <span
-          className="block h-full bg-evm-green-300/40 motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear"
+          className={`block h-full motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear ${
+            part.kind === "done" ? "bg-evm-green-300" : "bg-evm-green-300/40"
+          }`}
           style={{ width: `${part.fill * 100}%` }}
         />
       )}
@@ -210,64 +209,22 @@ function SegmentBar({ part, step }: { part: Segment; step: number }) {
   );
   if (part.kind === "done" && part.href)
     return (
-      <StepPopover label={`Segment ${step}`} href={part.href}>
-        {bar}
-      </StepPopover>
-    );
-  if (part.kind === "missed")
-    return <StepPopover label={`Segment ${step} expired`}>{bar}</StepPopover>;
-  return <span className="block py-2">{bar}</span>;
-}
-
-/** A step with the terminal's popover naming it above the bar on hover
- *  (and keyboard focus, when it is a link). Anchored rather than a popover
- *  trigger, so clicking a link opens it instead of toggling. */
-function StepPopover({
-  label,
-  href,
-  children,
-}: {
-  label: string;
-  href?: string;
-  children: ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const show = {
-    onPointerEnter: () => setOpen(true),
-    onPointerLeave: () => setOpen(false),
-  };
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <Popover.Anchor asChild>
-        {href ? (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={label}
-            {...show}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setOpen(false)}
-            className="block rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-evm-green-300"
-          >
-            {children}
-          </a>
-        ) : (
-          <span {...show} className="block py-2">
-            {children}
-          </span>
-        )}
-      </Popover.Anchor>
-      <Popover.Content
-        side="top"
-        sideOffset={2}
-        className="pointer-events-none w-auto px-2 py-1 text-xs"
-        // A label, not a dialog: focus stays where it was.
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        onCloseAutoFocus={(event) => event.preventDefault()}
+      <a
+        href={part.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Segment ${step}`}
+        className="block rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-evm-green-300"
       >
-        {label}
-      </Popover.Content>
-    </Popover>
+        {bar}
+      </a>
+    );
+  return (
+    <span className="block py-2">
+      {bar}
+      {part.kind === "missed" && (
+        <span className="sr-only">Segment {step} expired</span>
+      )}
+    </span>
   );
 }

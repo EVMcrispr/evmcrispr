@@ -17,11 +17,14 @@ export type BoxState = "live" | "done" | "failed" | "cancelled";
 
 /** One step of a box's progress, for hosts that draw a step per segment:
  *  `done` (with an optional link to what completed it), `missed` (its time
- *  passed without it completing), `open` (its time is running now) or
- *  `pending` (not reached yet). */
+ *  passed without it completing), `open` (its time is running and it has
+ *  not completed) or `pending` (not reached yet). `current` marks the step
+ *  whose time is running, done early or not: hosts grow its segment with
+ *  the countdown's time. */
 export interface BoxStep {
   state: "done" | "missed" | "open" | "pending";
   href?: string;
+  current?: boolean;
 }
 
 /** Time left until the box's next step, which hosts can show ticking:

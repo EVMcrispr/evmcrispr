@@ -358,7 +358,7 @@ describe("watchTwap", () => {
 });
 
 describe("twapCountdown", () => {
-  // Four parts of 60 s from t=1000: parts start at 1000, 1060, 1120, 1180.
+  // Four segments of 60 s from t=1000: they open at 1000, 1060, 1120, 1180.
   const status = (over: Record<string, unknown>) =>
     ({
       start: "1000",
@@ -369,47 +369,52 @@ describe("twapCountdown", () => {
       filledParts: 0,
       ...over,
     }) as any;
+  const steps = (current: "open" | "done") =>
+    [
+      { state: "done" },
+      { state: current, current: true },
+      { state: "pending" },
+      { state: "pending" },
+    ] as const;
 
-  it("counts down to the start of a scheduled order", () => {
+  it("counts down to the first opening before the start", () => {
     expect(twapCountdown(status({ schedule: "scheduled" }))).toEqual({
-      label: "Starts in",
-      due: "Starting now",
+      label: "Segment 1 opens in",
+      due: "Segment 1 opening now",
       from: 1000,
       until: 1000,
-      segment: 0,
     });
   });
 
-  it("counts down to the next settlement, filling the first unsettled step", () => {
-    // Nothing settled yet: the first segment fills, never the second.
-    expect(twapCountdown(status({}))).toEqual({
-      label: "Next segment in",
-      due: "Segment landing soon",
+  it("counts down to the running segment's close while it has not executed", () => {
+    expect(twapCountdown(status({}), [...steps("open")])).toEqual({
+      label: "Segment 2 closes in",
+      due: "Segment 2 closing now",
       from: 1060,
       until: 1120,
-      segment: 0,
     });
-    expect(twapCountdown(status({ filledParts: 1 }))?.segment).toBe(1);
   });
 
-  it("counts down to the end during the last part", () => {
-    expect(
-      twapCountdown(status({ submission: { partIndex: 3 }, filledParts: 2 })),
-    ).toEqual({
-      label: "Ends in",
-      due: "Ending now",
-      from: 1180,
-      until: 1240,
-      segment: 2,
+  it("after an early execution, counts down to the next opening", () => {
+    // Segments open on schedule: executing early does not open the next one.
+    expect(twapCountdown(status({}), [...steps("done")])).toEqual({
+      label: "Segment 3 opens in",
+      due: "Segment 3 opening now",
+      from: 1060,
+      until: 1120,
     });
-    // All settled: nothing left to fill.
-    expect(
-      twapCountdown(status({ submission: { partIndex: 3 }, filledParts: 4 }))
-        ?.segment,
-    ).toBeUndefined();
   });
 
-  it("has nothing to count once ended or when the schedule is unknown", () => {
+  it("has nothing left once the last segment executed, or the order ended", () => {
+    const last = status({ submission: { partIndex: 3 } });
+    expect(
+      twapCountdown(last, [
+        { state: "done" },
+        { state: "done" },
+        { state: "done" },
+        { state: "done", current: true },
+      ]),
+    ).toBeNull();
     expect(twapCountdown(status({ schedule: "expired" }))).toBeNull();
     expect(twapCountdown(status({ start: null }))).toBeNull();
   });
@@ -427,9 +432,16 @@ describe("partStep", () => {
       state: "done",
       href: "https://explorer.cow.fi/gc/orders/0xabc",
     });
-    // Settled early, while its window is still open: done wins.
-    expect(partStep(item("active", "complete")).state).toBe("done");
-    expect(partStep(item("active", "none"))).toEqual({ state: "open" });
+    // Executed early, while its window still runs: done, and still current.
+    expect(partStep(item("active", "complete"))).toEqual({
+      state: "done",
+      href: "https://explorer.cow.fi/gc/orders/0xabc",
+      current: true,
+    });
+    expect(partStep(item("active", "none"))).toEqual({
+      state: "open",
+      current: true,
+    });
     expect(partStep(item("expired", "none"))).toEqual({ state: "missed" });
     expect(partStep(item("scheduled", "none"))).toEqual({ state: "pending" });
   });

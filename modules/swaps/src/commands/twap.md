@@ -258,13 +258,14 @@ not recreated in a previously used execution account.
 
 In the terminal and the CLI, the order shows as a status box that follows
 it to the end: *Waiting for execution → Started at 2026-09-24 14:05 UTC →
-1/4 executed → … → Finished: 4/4 executed*. In the terminal its bar has one
-segment per part: settled ones full, matching the text, and the next one
-filling faintly until it is due, with a live countdown under it (*Starts
-in*, *Next segment in 4m 12s*, *Segment landing soon*, *Ends in*).
-Each executed segment of the bar links to its order on CoW Explorer
-(hover or focus it to see *Segment 1*, *Segment 2*, …); a segment whose time
-passed unexecuted is hatched and reads *Segment 2 expired*. The run
+1/4 executed → … → Finished: 4/4 executed*. Segments open on a fixed
+schedule, whatever happens to the previous one. In the terminal the bar has
+one segment per part: the running segment grows with its window's time,
+faint until it executes and solid after, and the next one starts growing
+when it opens. Executed segments link to their order on CoW Explorer;
+expired ones are hatched. Under the bar a live countdown reads *Segment 1
+opens in …*, *Segment 2 closes in …* while the running segment has not
+executed, and *Segment 3 opens in …* once it has. The run
 stays open until the schedule ends; Cancel stops following, never the
 order. An order that expires with parts unfilled ends as *Ended: 3/4
 executed, 1 expired*, and one removed with `swaps:twap-cancel` ends

@@ -18,88 +18,85 @@ describe("countdown", () => {
 
   it("reads the label with the time left, then its due text", () => {
     const next = {
-      label: "Next segment in",
-      due: "Segment landing soon",
+      label: "Segment 2 opens in",
+      due: "Segment 2 opening now",
       from: 1000,
       until: 1060,
-      segment: 2,
     };
-    expect(countdownText(next, 1030)).toBe("Next segment in 30s");
-    expect(countdownText(next, 1060)).toBe("Segment landing soon");
+    expect(countdownText(next, 1030)).toBe("Segment 2 opens in 30s");
+    expect(countdownText(next, 1060)).toBe("Segment 2 opening now");
     // Without a due text, the label stays.
     expect(countdownText({ label: "Ends in", from: 0, until: 10 }, 10)).toBe(
       "Ends in",
     );
   });
 
-  it("fills settled steps, and the step the countdown leads to faintly", () => {
-    // 2 of 4 settled; the countdown leads to step index 2, half way there.
-    const next = {
-      label: "Next segment in",
-      from: 100,
-      until: 160,
-      segment: 2,
-    };
-    expect(segments([2, 4], next, 130)).toEqual([
-      { kind: "done" },
-      { kind: "done" },
-      { kind: "upcoming", fill: 0.5 },
+  const window = { label: "Segment 2 closes in", from: 100, until: 160 };
+
+  it("grows the running step with its time, faint until it executes", () => {
+    expect(
+      segments([1, 4], window, 130, [
+        { state: "done" },
+        { state: "open", current: true },
+        { state: "pending" },
+        { state: "pending" },
+      ]),
+    ).toEqual([
+      { kind: "done", fill: 1, href: undefined },
+      { kind: "open", fill: 0.5 },
+      { kind: "pending" },
       { kind: "pending" },
     ]);
-    // Only 1 settled: the step in between waits empty.
-    expect(segments([1, 4], next, 130)?.map((s) => s.kind)).toEqual([
-      "done",
-      "pending",
-      "upcoming",
-      "pending",
-    ]);
   });
 
-  it("a settled step stays full even if its time has not come", () => {
-    const next = {
-      label: "Next segment in",
-      from: 100,
-      until: 160,
-      segment: 2,
-    };
-    expect(segments([3, 4], next, 130)?.[2]).toEqual({ kind: "done" });
+  it("keeps growing a step executed early, in solid colour, until its time is up", () => {
+    const opens = { label: "Segment 3 opens in", from: 100, until: 160 };
+    const early = segments([2, 4], opens, 130, [
+      { state: "done", href: "https://explorer.cow.fi/gc/orders/0x1" },
+      {
+        state: "done",
+        current: true,
+        href: "https://explorer.cow.fi/gc/orders/0x2",
+      },
+      { state: "pending" },
+      { state: "pending" },
+    ]);
+    expect(early?.[1]).toEqual({
+      kind: "done",
+      fill: 0.5,
+      href: "https://explorer.cow.fi/gc/orders/0x2",
+    });
+    // The next step has not opened: it waits empty.
+    expect(early?.[2]).toEqual({ kind: "pending" });
+    // Once the countdown is gone (the box ended), done steps are full.
+    expect(
+      segments([1, 1], undefined, 0, [{ state: "done", current: true }])?.[0],
+    ).toEqual({ kind: "done", fill: 1, href: undefined });
   });
 
-  it("without a countdown step nothing fills; done steps still show", () => {
-    expect(segments([2, 4], undefined, 0)?.map((s) => s.kind)).toEqual([
-      "done",
-      "done",
-      "pending",
-      "pending",
+  it("hatches missed steps, whatever order steps complete in", () => {
+    expect(
+      segments([2, 4], window, 130, [
+        { state: "done" },
+        { state: "missed" },
+        { state: "done" },
+        { state: "open", current: true },
+      ])?.map((s) => s.kind),
+    ).toEqual(["done", "missed", "done", "open"]);
+  });
+
+  it("without steps, fills the first done and grows the countdown's segment", () => {
+    expect(segments([1, 3], { ...window, segment: 1 }, 130)).toEqual([
+      { kind: "done", fill: 1 },
+      { kind: "open", fill: 0.5 },
+      { kind: "pending" },
     ]);
-    const end = { label: "Ends in", from: 180, until: 240 };
-    expect(segments([3, 4], end, 200)?.[3]).toEqual({ kind: "pending" });
+    expect(
+      segments([1, 3], undefined, 0, [{ state: "done" }])?.map((s) => s.kind),
+    ).toEqual(["done", "pending", "pending"]);
   });
 
   it("falls back to a plain bar with too many steps", () => {
     expect(segments([0, MAX_SEGMENTS + 1], undefined, 0)).toBeNull();
-  });
-  it("draws each step's own state when the box gives them", () => {
-    // Segment 2 expired, 3 executed out of order, 4 running half way.
-    const running = { label: "Ends in", from: 100, until: 160 };
-    expect(
-      segments([2, 4], running, 130, [
-        { state: "done", href: "https://explorer.cow.fi/gc/orders/0x1" },
-        { state: "missed" },
-        { state: "done", href: "https://explorer.cow.fi/gc/orders/0x3" },
-        { state: "open" },
-      ]),
-    ).toEqual([
-      { kind: "done", href: "https://explorer.cow.fi/gc/orders/0x1" },
-      { kind: "missed" },
-      { kind: "done", href: "https://explorer.cow.fi/gc/orders/0x3" },
-      { kind: "upcoming", fill: 0.5 },
-    ]);
-  });
-
-  it("ignores steps that do not match the step count", () => {
-    expect(
-      segments([1, 3], undefined, 0, [{ state: "done" }])?.map((s) => s.kind),
-    ).toEqual(["done", "pending", "pending"]);
   });
 });

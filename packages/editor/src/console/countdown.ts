@@ -19,10 +19,12 @@ export function countdownText(countdown: BoxCountdown, now: number): string {
   return countdown.due ?? countdown.label;
 }
 
+/** A segment of the bar: `fill` is how much of it is drawn (its elapsed
+ *  time), in solid colour when done and faint while open. */
 export type Segment =
-  | { kind: "done"; href?: string }
+  | { kind: "done"; fill: number; href?: string }
+  | { kind: "open"; fill: number }
   | { kind: "missed" }
-  | { kind: "upcoming"; fill: number }
   | { kind: "pending" };
 
 /** Past this many steps, segments get too thin to read: the host falls
@@ -36,10 +38,11 @@ const elapsed = (countdown: BoxCountdown | undefined, now: number) => {
   return Math.min(1, Math.max(0, fill));
 };
 
-/** One segment per step. With per-step states (`steps`), each segment
- *  shows its own: done (linked when it has an `href`), missed, open
- *  (filling faintly with the countdown's time) or pending. Without them,
- *  the first `done` are full and the countdown's `segment` fills. */
+/** One segment per step. With per-step states (`steps`), the current
+ *  step grows with the countdown's time, solid once done and faint until
+ *  then; earlier done steps are full, missed ones hatched, later ones
+ *  empty. Without them, the first `done` are full and the countdown's
+ *  `segment` grows. */
 export function segments(
   [done, total]: [number, number],
   countdown: BoxCountdown | undefined,
@@ -47,24 +50,31 @@ export function segments(
   steps?: BoxStep[],
 ): Segment[] | null {
   if (total <= 0 || total > MAX_SEGMENTS) return null;
+  const grown = elapsed(countdown, now);
   if (steps && steps.length === total)
     return steps.map((step): Segment => {
       switch (step.state) {
         case "done":
-          return { kind: "done", href: step.href };
+          return {
+            kind: "done",
+            // A step done early keeps growing with its time; once the
+            // countdown is over (or gone), it is full.
+            fill: step.current && countdown ? grown : 1,
+            href: step.href,
+          };
+        case "open":
+          return { kind: "open", fill: countdown ? grown : 0 };
         case "missed":
           return { kind: "missed" };
-        case "open":
-          return { kind: "upcoming", fill: elapsed(countdown, now) };
         default:
           return { kind: "pending" };
       }
     });
   const next = countdown?.segment;
   return Array.from({ length: total }, (_, i): Segment => {
-    if (i < done) return { kind: "done" };
+    if (i < done) return { kind: "done", fill: 1 };
     if (i !== next || !countdown) return { kind: "pending" };
-    return { kind: "upcoming", fill: elapsed(countdown, now) };
+    return { kind: "open", fill: grown };
   });
 }
 

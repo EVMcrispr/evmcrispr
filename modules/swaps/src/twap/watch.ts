@@ -30,21 +30,27 @@ interface Reading {
   steps: BoxStep[];
 }
 
-/** A part as a bar step: settled (linked to its order), missed (its window
- *  closed unfilled), open (its window is running) or pending. A closed
- *  window with incomplete fill history stays pending: it may have settled. */
+/** A part as a bar step: executed (linked to its order), missed (its
+ *  window closed unexecuted), open (its window is running) or pending. A
+ *  closed window with incomplete fill history stays pending: it may have
+ *  executed. `current` marks the part whose window is running, executed
+ *  early or not. */
 export const partStep = (item: {
   window: string;
   filled: string;
   explorer: string;
-}): BoxStep =>
-  item.filled === "complete"
-    ? { state: "done", href: item.explorer }
-    : item.window === "active"
-      ? { state: "open" }
-      : item.window === "expired" && item.filled === "none"
-        ? { state: "missed" }
-        : { state: "pending" };
+}): BoxStep => {
+  const current = item.window === "active";
+  const step: BoxStep =
+    item.filled === "complete"
+      ? { state: "done", href: item.explorer }
+      : current
+        ? { state: "open" }
+        : item.window === "expired" && item.filled === "none"
+          ? { state: "missed" }
+          : { state: "pending" };
+  return current ? { ...step, current } : step;
+};
 
 /** Status plus a settlement link per filled part. Orders of up to 128
  *  parts are read as one page so every settlement is linked; longer ones
@@ -76,37 +82,42 @@ async function readTwap(
 const utc = (seconds: string) =>
   `${new Date(Number(seconds) * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
 
-/** What the order waits for next, from its schedule: the start, the next
- *  part, or the end of the last part's interval. None once it has ended or
- *  while the schedule is unknown. */
-export const twapCountdown = (s: TwapStatus): BoxCountdown | null => {
+/** What the order waits for next, from its schedule. Segments open on a
+ *  fixed schedule, whatever happens to the previous one: before the start
+ *  and after the running segment executed, the next one's opening; while
+ *  the running segment has not executed, its closing. None once it has
+ *  ended, or when the schedule is unknown. `steps` tells whether the
+ *  running segment executed (without them, the next opening is counted).
+ *  The countdown spans the running segment's window, which hosts use to
+ *  grow its bar. */
+export const twapCountdown = (
+  s: TwapStatus,
+  steps: BoxStep[] = [],
+): BoxCountdown | null => {
   if (!s.start || !s.end || s.totalParts <= 0) return null;
   const start = Number(s.start);
   const end = Number(s.end);
   const interval = (end - start) / s.totalParts;
-  if (s.schedule === "scheduled")
-    return {
-      label: "Starts in",
-      due: "Starting now",
-      from: start,
-      until: start,
-      segment: 0,
-    };
+  const opens = (n: number, from: number, until: number): BoxCountdown => ({
+    label: `Segment ${n} opens in`,
+    due: `Segment ${n} opening now`,
+    from,
+    until,
+  });
+  if (s.schedule === "scheduled") return opens(1, start, start);
   if (s.schedule !== "active" && s.schedule !== "between-windows") return null;
   const index = s.submission.partIndex;
   if (index === null) return null;
   const from = start + index * interval;
-  // The bar fills the next step to settle: the first unsettled one.
-  const segment = s.filledParts < s.totalParts ? s.filledParts : undefined;
-  return index + 1 < s.totalParts
-    ? {
-        label: "Next segment in",
-        due: "Segment landing soon",
-        from,
-        until: from + interval,
-        segment,
-      }
-    : { label: "Ends in", due: "Ending now", from, until: end, segment };
+  const until = index + 1 < s.totalParts ? from + interval : end;
+  if (steps[index]?.state === "open")
+    return {
+      label: `Segment ${index + 1} closes in`,
+      due: `Segment ${index + 1} closing now`,
+      from,
+      until,
+    };
+  return index + 1 < s.totalParts ? opens(index + 2, from, until) : null;
 };
 
 /** A TWAP box from its registration's outcome to the end of its schedule. */
@@ -204,7 +215,7 @@ export async function watchTwap(
             : s.filledParts === 0 && s.start
               ? `Started at ${utc(s.start)}`
               : executed;
-      const countdown = s.registered ? twapCountdown(s) : null;
+      const countdown = s.registered ? twapCountdown(s, steps) : null;
       box.update(
         unknown
           ? { detail, countdown }
