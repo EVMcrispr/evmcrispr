@@ -7,7 +7,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { Alert } from "../ui/Alert";
 import { ConsoleMarkdown } from "./ConsoleMarkdown";
-import { countdownText, segments, useNow } from "./countdown";
+import { countdownText, type Segment, segments, useNow } from "./countdown";
 
 const boxStatus: Record<BoxState, "warning" | "success" | "error" | "info"> = {
   live: "warning",
@@ -78,6 +78,7 @@ export function BoxCard({ box }: BoxCardProps) {
             <BoxProgress
               progress={box.progress}
               countdown={box.state === "live" ? box.countdown : undefined}
+              links={box.progressLinks}
               percent={percent}
             />
           )}
@@ -116,47 +117,44 @@ export function BoxCard({ box }: BoxCardProps) {
   );
 }
 
-/** Steps done out of total. With a countdown, one segment per step: done
- *  steps full, the step it leads to filling faintly until it opens, and the
+/** Steps done out of total. With a countdown or step links, one segment
+ *  per step: done steps full (and linked, when the box links them), the
+ *  step the countdown leads to filling faintly until it is due, and the
  *  time left ticking under the bar. */
 function BoxProgress({
   progress,
   countdown,
+  links = [],
   percent,
 }: {
   progress: [number, number];
   countdown?: BoxCountdown;
+  links?: string[];
   percent: number;
 }) {
   const now = useNow(countdown !== undefined);
   const [done, total] = progress;
-  const parts = countdown ? segments(progress, countdown, now) : null;
+  const parts =
+    countdown || links.length > 0 ? segments(progress, countdown, now) : null;
   return (
     <div className="flex flex-col gap-1">
       {parts ? (
-        <div
-          className="flex h-1.5 w-full gap-1"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={done}
+        // Each segment has a taller hit area than the 6px bar it draws, so
+        // a linked one is easy to click, hover and focus.
+        <ol
+          className="-my-2 flex w-full list-none gap-1 p-0"
+          aria-label={`${done} of ${total} done`}
         >
           {parts.map((part, i) => (
-            <div
-              key={i}
-              className={`h-full flex-1 overflow-hidden rounded-sm ${
-                part.kind === "done" ? "bg-evm-green-300" : "bg-white/20"
-              }`}
-            >
-              {part.kind === "upcoming" && (
-                <div
-                  className="h-full bg-evm-green-300/40 motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear"
-                  style={{ width: `${part.fill * 100}%` }}
-                />
-              )}
-            </div>
+            <li key={i} className="m-0 flex-1 p-0">
+              <SegmentBar
+                part={part}
+                step={i + 1}
+                href={part.kind === "done" ? links[i] : undefined}
+              />
+            </li>
           ))}
-        </div>
+        </ol>
       ) : (
         <div
           className="h-1.5 w-full overflow-hidden rounded bg-white/20"
@@ -181,5 +179,45 @@ function BoxProgress({
         </p>
       )}
     </div>
+  );
+}
+
+/** One step of the bar: a link to its page when it has one. */
+function SegmentBar({
+  part,
+  step,
+  href,
+}: {
+  part: Segment;
+  step: number;
+  href?: string;
+}) {
+  const bar = (
+    <span
+      className={`block h-1.5 overflow-hidden rounded-sm ${
+        part.kind === "done" ? "bg-evm-green-300" : "bg-white/20"
+      }`}
+    >
+      {part.kind === "upcoming" && (
+        <span
+          className="block h-full bg-evm-green-300/40 motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear"
+          style={{ width: `${part.fill * 100}%` }}
+        />
+      )}
+    </span>
+  );
+  return href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Settlement ${step}`}
+      aria-label={`Settlement ${step}`}
+      className="block rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-evm-green-300"
+    >
+      {bar}
+    </a>
+  ) : (
+    <span className="block py-2">{bar}</span>
   );
 }

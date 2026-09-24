@@ -131,7 +131,7 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
 - The Safe transaction notice (its hashes and fields) and the "Sending transaction to …" line are gone: the transaction and proposal boxes show that progress. Review notices and allowed findings are no longer printed; a blocking finding is reported only as the command's refusal error, and `@safe:verify` returns the full review and the hashes a hardware wallet shows. Rejecting a transaction in the wallet ends the run as cancelled in the terminal, without an error message: the transaction box says so.
 - The separate "Transaction confirmed" log line is replaced by the
   transaction's box. Every change to a box's detail is still logged as a line.
-- The TWAP box shows one bar segment per part, the next one filling as its time approaches, with a live countdown under it: *Starts in*, *Next part in 4m 12s*, *Ends in*.
+- The TWAP box shows one bar segment per settlement, the settled ones full and the next one filling as its time approaches, with a live countdown under it: *Starts in*, *Next settlement in 4m 12s*, *Settlement landing soon*, *Ends in*. Its links are the settlements (*Settlement 1*, *Settlement 2*, … on CoW Explorer), and each settled segment of the bar links to its settlement too.
 - Module authors open boxes with `interpreters.box` (ended with `done`,
   `fail` or `cancel`) and report wrapped outcomes with `interpreters.carry`.
   An action that was sent or queued without a known result (a Safe App

@@ -53,6 +53,7 @@ const sameCountdown = (a?: BoxCountdown, b?: BoxCountdown) =>
   (a !== undefined &&
     b !== undefined &&
     a.label === b.label &&
+    a.due === b.due &&
     a.from === b.from &&
     a.until === b.until &&
     a.segment === b.segment);
@@ -261,11 +262,16 @@ export class BoxRegistry {
     const countdownChanged =
       update.countdown !== undefined &&
       !sameCountdown(update.countdown ?? undefined, previous.countdown);
+    const progressLinksChanged =
+      update.progressLinks !== undefined &&
+      update.progressLinks.join("\n") !==
+        (previous.progressLinks ?? []).join("\n");
     if (
       !detailChanged &&
       !progressChanged &&
       !linksChanged &&
-      !countdownChanged
+      !countdownChanged &&
+      !progressLinksChanged
     )
       return;
     entry.snapshot = {
@@ -282,6 +288,9 @@ export class BoxRegistry {
       countdown: countdownChanged
         ? (update.countdown ?? undefined)
         : previous.countdown,
+      progressLinks: progressLinksChanged
+        ? update.progressLinks
+        : previous.progressLinks,
     };
     // A countdown ticks on the host: it is never a log line of its own.
     this.#publish(entry, detailChanged);

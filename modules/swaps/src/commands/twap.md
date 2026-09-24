@@ -257,12 +257,14 @@ not recreated in a previously used execution account.
 ## Following the order
 
 In the terminal and the CLI, the order shows as a status box that follows
-it to the end: *Waiting for execution → Started, part 1 of 4 at 14:05 UTC →
+it to the end: *Waiting for execution → Started at 2026-09-24 14:05 UTC →
 1/4 executed → … → Finished: 4/4 executed*. In the terminal its bar has one
-segment per part: settled parts full, matching the text, and the next part
-filling faintly until it opens, with a live countdown under it (*Starts
-in*, *Next part in*, *Ends in*). It links to the execution Safe's
-orders, to the current part and to each settlement on CoW Explorer. The run
+segment per part: settled ones full, matching the text, and the next one
+filling faintly until it is due, with a live countdown under it (*Starts
+in*, *Next settlement in 4m 12s*, *Settlement landing soon*, *Ends in*).
+Its links are the settlements, *Settlement 1*, *Settlement 2*, …, each
+opening the settled order on CoW Explorer; the bar's settled segments link
+to the same pages. The run
 stays open until the schedule ends; Cancel stops following, never the
 order. An order that expires with parts unfilled ends as *Ended: 3/4
 executed, 1 expired*, and one removed with `swaps:twap-cancel` ends

@@ -16,29 +16,37 @@ describe("countdown", () => {
     expect(formatDuration(-5)).toBe("0s");
   });
 
-  it("reads the label with the time left, then what is due", () => {
-    const next = { label: "Next part in", from: 1000, until: 1060, segment: 1 };
-    expect(countdownText(next, 1030)).toBe("Next part in 30s");
-    expect(countdownText(next, 1060)).toBe("Next part due now");
-    expect(countdownText({ label: "Starts in", from: 5, until: 5 }, 9)).toBe(
-      "Starting now",
-    );
+  it("reads the label with the time left, then its due text", () => {
+    const next = {
+      label: "Next settlement in",
+      due: "Settlement landing soon",
+      from: 1000,
+      until: 1060,
+      segment: 2,
+    };
+    expect(countdownText(next, 1030)).toBe("Next settlement in 30s");
+    expect(countdownText(next, 1060)).toBe("Settlement landing soon");
+    // Without a due text, the label stays.
     expect(countdownText({ label: "Ends in", from: 0, until: 10 }, 10)).toBe(
-      "Ending now",
+      "Ends in",
     );
   });
 
-  it("fills settled steps, and the next step faintly until it opens", () => {
-    // Part index 1 is running, 2 of 4 settled already; part index 2 opens
-    // at 160 and we are half way there.
-    const next = { label: "Next part in", from: 100, until: 160, segment: 1 };
+  it("fills settled steps, and the step the countdown leads to faintly", () => {
+    // 2 of 4 settled; the countdown leads to step index 2, half way there.
+    const next = {
+      label: "Next settlement in",
+      from: 100,
+      until: 160,
+      segment: 2,
+    };
     expect(segments([2, 4], next, 130)).toEqual([
       { kind: "done" },
       { kind: "done" },
       { kind: "upcoming", fill: 0.5 },
       { kind: "pending" },
     ]);
-    // Only 1 settled: the running part waits empty, the next one fills.
+    // Only 1 settled: the step in between waits empty.
     expect(segments([1, 4], next, 130)?.map((s) => s.kind)).toEqual([
       "done",
       "pending",
@@ -48,30 +56,27 @@ describe("countdown", () => {
   });
 
   it("a settled step stays full even if its time has not come", () => {
-    const next = { label: "Next part in", from: 100, until: 160, segment: 1 };
+    const next = {
+      label: "Next settlement in",
+      from: 100,
+      until: 160,
+      segment: 2,
+    };
     expect(segments([3, 4], next, 130)?.[2]).toEqual({ kind: "done" });
   });
 
-  it("nothing fills in the last part; the first part fills before the start", () => {
-    const end = { label: "Ends in", from: 180, until: 240, segment: 3 };
-    expect(segments([2, 4], end, 200)?.map((s) => s.kind)).toEqual([
+  it("without a countdown step nothing fills; done steps still show", () => {
+    expect(segments([2, 4], undefined, 0)?.map((s) => s.kind)).toEqual([
       "done",
       "done",
       "pending",
       "pending",
     ]);
-    const start = { label: "Starts in", from: 0, until: 100, segment: 0 };
-    expect(segments([0, 4], start, 50)?.[0]).toEqual({
-      kind: "upcoming",
-      fill: 0.5,
-    });
+    const end = { label: "Ends in", from: 180, until: 240 };
+    expect(segments([3, 4], end, 200)?.[3]).toEqual({ kind: "pending" });
   });
 
-  it("falls back without a step or with too many", () => {
-    const c = { label: "Next part in", from: 100, until: 160, segment: 0 };
-    expect(segments([0, MAX_SEGMENTS + 1], c, 130)).toBeNull();
-    expect(
-      segments([0, 2], { label: "Ends in", from: 0, until: 1 }, 0),
-    ).toBeNull();
+  it("falls back to a plain bar with too many steps", () => {
+    expect(segments([0, MAX_SEGMENTS + 1], undefined, 0)).toBeNull();
   });
 });

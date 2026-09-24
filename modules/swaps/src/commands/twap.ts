@@ -32,7 +32,7 @@ import type { TwapReference, TwapSchedule } from "../twap/types";
 import { watchTwap } from "../twap/watch";
 import { buildApprovalActions } from "../utils/approval";
 import { activeSimMode } from "../utils/sim";
-import { COW_VAULT_RELAYER, explorerAddressLink } from "../venues/lib/cowApi";
+import { COW_VAULT_RELAYER } from "../venues/lib/cowApi";
 
 export default defineCommand<Swaps, typeof TWAP_ERRORS>({
   smartSupport: {
@@ -312,7 +312,6 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
       title: `CoW TWAP ${hash.slice(0, 10)}…`,
       detail: "Waiting for execution",
       follows: actions,
-      links: { Orders: explorerAddressLink(chainId, account.account) },
     });
     box?.watch((watch) => watchTwap(box, client, ref, watch));
     return actions;

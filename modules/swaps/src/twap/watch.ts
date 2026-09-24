@@ -1,6 +1,5 @@
 import type { BoxCountdown, BoxHandle, WatchContext } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
-import { explorerAddressLink } from "../venues/lib/cowApi";
 import { decodeSchedule } from "./cow";
 import type { ObservationBlock } from "./evidence";
 import { twapSnapshot } from "./status";
@@ -21,8 +20,11 @@ const EVIDENCE_POLLS = 5;
 
 interface Reading {
   status: TwapStatus;
-  /** CoW Explorer links to the settlements seen so far, by label. */
+  /** CoW Explorer order pages of the settlements seen so far, in the order
+   *  they happened: "Settlement 1", "Settlement 2", … */
   settlements: Record<string, string>;
+  /** The same pages as a list, for the bar's settled segments. */
+  settled: string[];
 }
 
 /** Status plus a settlement link per filled part. Orders of up to 128
@@ -46,28 +48,20 @@ async function readTwap(
     { external: true, block, signal },
     page,
   );
-  const settlements: Record<string, string> = {};
-  if (page)
-    for (const item of items)
-      if (item.settlement)
-        settlements[`Part ${item.index + 1} settlement`] =
-          item.settlement.explorer;
-  return { status, settlements };
+  const settled = page
+    ? items
+        .filter((item) => item.settlement)
+        .sort((a, b) => a.index - b.index)
+        .map((item) => item.explorer)
+    : [];
+  const settlements = Object.fromEntries(
+    settled.map((href, i) => [`Settlement ${i + 1}`, href]),
+  );
+  return { status, settlements, settled };
 }
 
 const utc = (seconds: string) =>
   `${new Date(Number(seconds) * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
-
-/** " at HH:MM UTC" for when the current part opened, from the schedule's
- *  start and its even split up to the end. Empty when unknown. */
-const partStart = (s: TwapStatus): string => {
-  const index = s.submission.partIndex;
-  if (index === null || !s.start || !s.end || s.totalParts <= 0) return "";
-  const start = Number(s.start);
-  const interval = (Number(s.end) - start) / s.totalParts;
-  const at = new Date((start + index * interval) * 1000).toISOString();
-  return ` at ${at.slice(11, 16)} UTC`;
-};
 
 /** What the order waits for next, from its schedule: the start, the next
  *  part, or the end of the last part's interval. None once it has ended or
@@ -78,14 +72,28 @@ export const twapCountdown = (s: TwapStatus): BoxCountdown | null => {
   const end = Number(s.end);
   const interval = (end - start) / s.totalParts;
   if (s.schedule === "scheduled")
-    return { label: "Starts in", from: start, until: start, segment: 0 };
+    return {
+      label: "Starts in",
+      due: "Starting now",
+      from: start,
+      until: start,
+      segment: 0,
+    };
   if (s.schedule !== "active" && s.schedule !== "between-windows") return null;
   const index = s.submission.partIndex;
   if (index === null) return null;
   const from = start + index * interval;
+  // The bar fills the next step to settle: the first unsettled one.
+  const segment = s.filledParts < s.totalParts ? s.filledParts : undefined;
   return index + 1 < s.totalParts
-    ? { label: "Next part in", from, until: from + interval, segment: index }
-    : { label: "Ends in", from, until: end, segment: index };
+    ? {
+        label: "Next settlement in",
+        due: "Settlement landing soon",
+        from,
+        until: from + interval,
+        segment,
+      }
+    : { label: "Ends in", due: "Ending now", from, until: end, segment };
 };
 
 /** A TWAP box from its registration's outcome to the end of its schedule. */
@@ -107,17 +115,15 @@ export async function watchTwap(
   if (outcome.kind !== "confirmed")
     return box.fail(`Not registered: ${outcome.reason}`);
   if (simulated)
-    return box.done("Registered (simulated; parts are not executed in a fork)");
+    return box.done("Registered (simulated; nothing settles in a fork)");
   const custom = options.status;
   const read = custom
     ? async (): Promise<Reading> => ({
         status: await custom(client, ref),
         settlements: {},
+        settled: [],
       })
     : () => readTwap(client, ref, box.signal);
-  box.update({
-    links: { Orders: explorerAddressLink(ref.chainId, ref.account) },
-  });
   let seenRegistered = false;
   let unregisteredPolls = 0;
   let unverifiedPolls = 0;
@@ -125,14 +131,14 @@ export async function watchTwap(
     async () => {
       const reading = await read();
       if (!reading) return "stop";
-      const { status: s, settlements } = reading;
+      const { status: s, settlements, settled } = reading;
       const progress: [number, number] = [s.filledParts, s.totalParts];
       const executed = `${s.filledParts}/${s.totalParts} executed`;
       const unknown = s.filled === "unknown";
       const reason = s.evidence?.reasons?.[0] ?? "fill history unavailable";
       // Completion first: recovering a finished order also removes it.
       if (s.filled === "complete") {
-        box.update({ links: settlements, progress });
+        box.update({ links: settlements, progressLinks: settled, progress });
         box.done(`Finished: ${s.totalParts}/${s.totalParts} executed`);
         return "stop";
       }
@@ -164,11 +170,11 @@ export async function watchTwap(
             box.update({ detail: `${ending}; confirming fills…` });
             return "continue";
           }
-          box.update({ links: settlements });
+          box.update({ links: settlements, progressLinks: settled });
           end(`${ending}; fill count could not be verified: ${reason}`);
           return "stop";
         }
-        box.update({ links: settlements, progress });
+        box.update({ links: settlements, progressLinks: settled, progress });
         end(
           removed
             ? `${ending} after ${executed}`
@@ -177,26 +183,21 @@ export async function watchTwap(
         return "stop";
       }
       unverifiedPolls = 0;
-      const links = {
-        ...settlements,
-        ...(s.submission.explorer
-          ? { "Current part": s.submission.explorer }
-          : {}),
-      };
       const detail = !s.registered
         ? "Waiting for the order to appear on-chain"
         : s.schedule === "scheduled" && s.start
-          ? `Scheduled, part 1 of ${s.totalParts} at ${utc(s.start)}`
+          ? `Starts at ${utc(s.start)}`
           : unknown
             ? `Fills unknown: ${reason}`
-            : s.filledParts === 0
-              ? `Started, part ${(s.submission.partIndex ?? 0) + 1} of ${s.totalParts}${partStart(s)}`
+            : s.filledParts === 0 && s.start
+              ? `Started at ${utc(s.start)}`
               : executed;
       const countdown = s.registered ? twapCountdown(s) : null;
+      const links = settlements;
       box.update(
         unknown
           ? { detail, links, countdown }
-          : { detail, progress, links, countdown },
+          : { detail, progress, links, progressLinks: settled, countdown },
       );
       return "continue";
     },

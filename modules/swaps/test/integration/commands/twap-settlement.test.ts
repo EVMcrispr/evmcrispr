@@ -527,9 +527,7 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
         `swaps:twap $order ${total} ${WXDAI} to ${GNO} --parts 3 --every 60 --min 6 --offline true`,
         interpreter,
       );
-      await until(
-        () => twapBox()?.detail.startsWith("Started, part 1 of 3 at ") ?? false,
-      );
+      await until(() => twapBox()?.detail.startsWith("Started at ") ?? false);
       const order = await findReference(
         client,
         100,
@@ -541,7 +539,7 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
       const began = BigInt(
         (await cowTwap.status(client, order)).start as string,
       );
-      const started = `Started, part 1 of 3 at ${new Date(Number(began) * 1000).toISOString().slice(11, 16)} UTC`;
+      const started = `Started at ${new Date(Number(began) * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
       expect(twapBox()!.detail).toBe(started);
       await send(settle(await trade(order)));
       for (let part = 1n; part < 3n; part++) {
@@ -554,10 +552,15 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
       expect(box.detail).toBe("Finished: 3/3 executed");
       expect(box.history).toContain(started);
       expect(box.parent).toBeDefined();
-      expect(box.links?.Orders).toBe(
-        `https://explorer.cow.fi/gc/address/${order.account}`,
-      );
-      expect(Object.keys(box.links ?? {})).toContain("Part 3 settlement");
+      // Only settlements, each an order page, also attached to the bar.
+      expect(Object.keys(box.links ?? {})).toEqual([
+        "Settlement 1",
+        "Settlement 2",
+        "Settlement 3",
+      ]);
+      for (const href of Object.values(box.links ?? {}))
+        expect(href).toStartWith("https://explorer.cow.fi/gc/orders/");
+      expect(box.progressLinks).toEqual(Object.values(box.links ?? {}));
     } finally {
       await client.request({
         method: "evm_revert" as any,

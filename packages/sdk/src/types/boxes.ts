@@ -15,11 +15,14 @@ export type ActionOutcome =
 
 export type BoxState = "live" | "done" | "failed" | "cancelled";
 
-/** Time left until the box's next step, which hosts can show ticking.
- *  Times are Unix seconds. `segment` is the step (zero-based, out of
- *  `progress[1]`) that fills from `from` to `until`. */
+/** Time left until the box's next step, which hosts can show ticking:
+ *  `label` and the time left ("Next settlement in 4m 12s"), then `due`
+ *  once `until` has passed. Times are Unix seconds. `segment` is the step
+ *  (zero-based, out of `progress[1]`) the countdown leads to, which fills
+ *  from `from` to `until`. */
 export interface BoxCountdown {
   label: string;
+  due?: string;
   from: number;
   until: number;
   segment?: number;
@@ -37,6 +40,9 @@ export interface BoxSnapshot {
   progress?: [number, number];
   links?: Record<string, string>;
   countdown?: BoxCountdown;
+  /** Links of the finished steps, in order: hosts attach them to the
+   *  progress bar's segments. */
+  progressLinks?: string[];
   simulated: boolean;
 }
 
@@ -46,6 +52,7 @@ export interface BoxUpdate {
   links?: Record<string, string>;
   /** `null` clears it. */
   countdown?: BoxCountdown | null;
+  progressLinks?: string[];
 }
 
 export interface BoxOptions {

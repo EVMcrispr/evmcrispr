@@ -38,13 +38,20 @@ const execAbi = parseAbi([
   "function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures) payable returns (bool)",
 ]);
 
-/** An unmined TWAP's execution Safe and params, read from the actions
- *  swaps:twap returned: its order hash cannot be resolved before mining. */
-export function plannedTwap(
+/** Every unmined TWAP's execution Safe and params, read from the actions
+ *  swaps:twap returned (inside a batch too): an order hash cannot be
+ *  resolved before mining. */
+export function plannedTwaps(
   actions: Action[],
   chainId = 100,
-): { account: Address; params: ConditionalOrderParams } {
-  for (const action of actions.filter(isTransactionAction)) {
+): { account: Address; params: ConditionalOrderParams }[] {
+  const flat = actions.flatMap((action) =>
+    !isTransactionAction(action) && action.type === "batched"
+      ? action.actions
+      : [action],
+  );
+  const found: { account: Address; params: ConditionalOrderParams }[] = [];
+  for (const action of flat.filter(isTransactionAction)) {
     const { to, data } = action;
     if (!to || !data?.startsWith(toFunctionSelector(execAbi[0]))) continue;
     const { args } = decodeFunctionData({ abi: execAbi, data });
@@ -52,11 +59,21 @@ export function plannedTwap(
       if (!call.to || !call.data || !isAddressEqual(call.to, COMPOSABLE_COW))
         continue;
       const created = decodeFunctionData({ abi: cowAbi, data: call.data });
-      return {
+      found.push({
         account: getAddress(to),
         params: created.args[0] as ConditionalOrderParams,
-      };
+      });
     }
   }
-  throw new Error("No TWAP registration among the actions");
+  return found;
+}
+
+/** The first unmined TWAP among the actions (see `plannedTwaps`). */
+export function plannedTwap(
+  actions: Action[],
+  chainId = 100,
+): { account: Address; params: ConditionalOrderParams } {
+  const [first] = plannedTwaps(actions, chainId);
+  if (!first) throw new Error("No TWAP registration among the actions");
+  return first;
 }

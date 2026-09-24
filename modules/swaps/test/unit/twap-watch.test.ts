@@ -52,6 +52,8 @@ const ctx = (kind: WatchContext["outcome"]["kind"]): WatchContext => ({
 });
 // 2026-09-24 14:05 UTC, four hourly parts.
 const START = Date.UTC(2026, 8, 24, 14, 5) / 1000;
+/** The watcher's UTC format: "2026-01-01 14:05 UTC". */
+const AT_START = `${new Date(START * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
 const HOURLY = {
   start: String(START),
   end: String(START + 4 * 3600),
@@ -103,19 +105,18 @@ describe("watchTwap", () => {
       status: async () => statuses[i++] as any,
     });
     expect(log).toEqual([
-      "Started, part 1 of 4 at 14:05 UTC",
+      `Started at ${AT_START}`,
       "1/4 executed",
       "Finished: 4/4 executed",
     ]);
     expect(state()).toBe("done");
     expect(progress()).toEqual([4, 4]);
-    expect(links.Orders).toBe(
-      "https://explorer.cow.fi/gc/address/0x1c5b66503ed58070f6b0a53472cca49ce533df02",
-    );
-    expect(links["Current part"]).toBe("https://part/1");
+    // Only settlements are linked: no order-history or current-step links.
+    expect(links.Orders).toBeUndefined();
+    expect(links["Current part"]).toBeUndefined();
   });
 
-  it("gives the current part's start time once it started", async () => {
+  it("says when the order started, without naming parts", async () => {
     const { box, log } = fakeBox();
     const statuses = [
       {
@@ -140,7 +141,7 @@ describe("watchTwap", () => {
     await watchTwap(box, {} as any, ref, ctx("confirmed"), {
       status: async () => statuses[i++] as any,
     });
-    expect(log[0]).toBe("Started, part 2 of 4 at 15:05 UTC");
+    expect(log[0]).toBe(`Started at ${AT_START}`);
   });
 
   it("ends with the executed count when the schedule expires unfilled", async () => {
@@ -322,7 +323,7 @@ describe("watchTwap", () => {
       simulated: true,
     });
     expect(log.at(-1)).toBe(
-      "Registered (simulated; parts are not executed in a fork)",
+      "Registered (simulated; nothing settles in a fork)",
     );
     expect(state()).toBe("done");
   });
@@ -366,34 +367,47 @@ describe("twapCountdown", () => {
       totalParts: 4,
       schedule: "active",
       submission: { partIndex: 1 },
+      filledParts: 0,
       ...over,
     }) as any;
 
   it("counts down to the start of a scheduled order", () => {
     expect(twapCountdown(status({ schedule: "scheduled" }))).toEqual({
       label: "Starts in",
+      due: "Starting now",
       from: 1000,
       until: 1000,
       segment: 0,
     });
   });
 
-  it("counts down to the next part while one is running", () => {
+  it("counts down to the next settlement, filling the first unsettled step", () => {
+    // Nothing settled yet: the first segment fills, never the second.
     expect(twapCountdown(status({}))).toEqual({
-      label: "Next part in",
+      label: "Next settlement in",
+      due: "Settlement landing soon",
       from: 1060,
       until: 1120,
-      segment: 1,
+      segment: 0,
     });
+    expect(twapCountdown(status({ filledParts: 1 }))?.segment).toBe(1);
   });
 
   it("counts down to the end during the last part", () => {
-    expect(twapCountdown(status({ submission: { partIndex: 3 } }))).toEqual({
+    expect(
+      twapCountdown(status({ submission: { partIndex: 3 }, filledParts: 2 })),
+    ).toEqual({
       label: "Ends in",
+      due: "Ending now",
       from: 1180,
       until: 1240,
-      segment: 3,
+      segment: 2,
     });
+    // All settled: nothing left to fill.
+    expect(
+      twapCountdown(status({ submission: { partIndex: 3 }, filledParts: 4 }))
+        ?.segment,
+    ).toBeUndefined();
   });
 
   it("has nothing to count once ended or when the schedule is unknown", () => {

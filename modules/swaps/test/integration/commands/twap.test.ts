@@ -56,7 +56,7 @@ import {
   buildOrderTypedData,
   COW_VAULT_RELAYER,
 } from "../../../src/venues/lib/cowApi";
-import { GNO, plannedTwap, WXDAI } from "../../fixtures";
+import { GNO, plannedTwap, plannedTwaps, WXDAI } from "../../fixtures";
 
 const tradeAbi = parseAbi([
   "struct Params { address handler; bytes32 salt; bytes staticInput; }",
@@ -226,19 +226,11 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
   }, 120000);
 
   it("reserves different accounts for two orders encoded in one script", async () => {
-    const boxes: BoxSnapshot[] = [];
     const { actions } = await run(
       `batch (\n${script("$one")}\n${script("$two")}\n)`,
       false,
-      undefined,
-      boxes,
     );
-    // Each order's box links to its execution Safe's orders.
-    const orders = new Map<string, string>();
-    for (const box of boxes)
-      if (box.title.startsWith("CoW TWAP") && box.links?.Orders)
-        orders.set(box.id, box.links.Orders.split("/").at(-1)!);
-    const [one, two] = [...orders.values()].map((account) => ({ account }));
+    const [one, two] = plannedTwaps(actions);
     expect(one.account).not.toBe(two.account);
     expect(one.account).not.toBe(first.account);
     expect(actions.length).toBeGreaterThan(0);

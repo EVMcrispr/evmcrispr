@@ -194,12 +194,15 @@ async run(module, args, { interpreters }) {
   that returned no receipt) but how they ended is not known.
 - End a box with `done`, `fail` or `cancel` (⊘, for something that was
   cancelled rather than failed).
-- `box.update({ countdown: { label: "Next part in", from, until, segment } })`
-  (Unix seconds) shows a ticking countdown in the terminal. With `progress`
-  its bar gets one segment per step: the `progress` steps done are full, and
-  the step the countdown leads to (the one after `segment`, or `segment`
-  itself for "Starts in") fills faintly from `from` to `until`. `countdown: null` clears it; it is never logged as a
-  line, and it clears when the box ends.
+- `box.update({ countdown: { label, due, from, until, segment } })` (Unix
+  seconds) shows a ticking countdown in the terminal: `label` and the time
+  left ("Next settlement in 4m 12s"), then `due` once `until` has passed.
+  With `progress`, its bar gets one segment per step: the steps done are
+  full, and step `segment` (the one the countdown leads to) fills faintly
+  from `from` to `until`. `countdown: null` clears it; it is never logged
+  as a line, and it clears when the box ends.
+- `box.update({ progressLinks: [url, …] })` links the done steps, in order:
+  the terminal makes each full segment of the bar a link.
 - A box with a `watch` keeps a real run open until it ends; simulations
   never wait, and a box opened inside `sim:fork` ends when the fork does.
   Cancel aborts `box.signal`.
