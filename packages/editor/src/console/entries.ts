@@ -2,7 +2,7 @@ import type { BoxSnapshot } from "@evmcrispr/sdk";
 
 export type ConsoleEntry =
   | { kind: "line"; text: string }
-  | { kind: "box"; box: BoxSnapshot; children: ConsoleEntry[] };
+  | { kind: "box"; box: BoxSnapshot };
 
 type Slot = { kind: "line"; text: string } | { kind: "box"; id: string };
 
@@ -65,53 +65,11 @@ export function reduceConsole(
   return { slots, boxes, live };
 }
 
-/** Top-level entries in order. A box with a parent renders inside it; the
- *  parent takes the slot of whichever of them appeared first. */
+/** Entries in the order they first appeared. Boxes stay flat: a box's
+ *  `parent` (the transaction or proposal carrying it) decides which box ends
+ *  after which, and is not shown. */
 export function consoleEntries(state: ConsoleState): ConsoleEntry[] {
-  const parentOf = (id: string): string | undefined => {
-    const parent = state.boxes[id]?.parent;
-    return parent && parent !== id && state.boxes[parent] ? parent : undefined;
-  };
-  const children = new Map<string, string[]>();
-  for (const slot of state.slots) {
-    if (slot.kind !== "box") continue;
-    const parent = parentOf(slot.id);
-    if (parent)
-      children.set(parent, [...(children.get(parent) ?? []), slot.id]);
-  }
-  const rootOf = (id: string): string => {
-    const seen = new Set<string>([id]);
-    let current = id;
-    for (;;) {
-      const parent = parentOf(current);
-      if (!parent || seen.has(parent)) return current;
-      seen.add(parent);
-      current = parent;
-    }
-  };
-  // `built` guards against parent cycles, which would otherwise recurse forever.
-  const built = new Set<string>();
-  const build = (id: string): ConsoleEntry => {
-    built.add(id);
-    return {
-      kind: "box",
-      box: state.boxes[id],
-      children: (children.get(id) ?? [])
-        .filter((child) => !built.has(child))
-        .map(build),
-    };
-  };
-  const placed = new Set<string>();
-  const entries: ConsoleEntry[] = [];
-  for (const slot of state.slots) {
-    if (slot.kind === "line") {
-      entries.push(slot);
-      continue;
-    }
-    const root = rootOf(slot.id);
-    if (placed.has(root) || built.has(root)) continue;
-    placed.add(root);
-    entries.push(build(root));
-  }
-  return entries;
+  return state.slots.map((slot) =>
+    slot.kind === "line" ? slot : { kind: "box", box: state.boxes[slot.id] },
+  );
 }

@@ -32,20 +32,14 @@ describe("mobile activity panel", () => {
     expect(screen.getByText("Following 2 status boxes…")).toBeTruthy();
   });
 
-  it("keeps plain logs and shows each box as one line, nested boxes under it", () => {
+  it("keeps plain logs and shows each box as one line", () => {
     const entries: ConsoleEntry[] = [
       { kind: "line", text: "hello" },
       {
         kind: "box",
-        box: box(),
-        children: [
-          {
-            kind: "box",
-            box: box({ id: "twap", title: "TWAP", detail: "Waiting" }),
-            children: [],
-          },
-        ],
+        box: box({ id: "twap", title: "TWAP", detail: "Waiting" }),
       },
+      { kind: "box", box: box() },
     ];
     render(
       <ActivityPanel
@@ -61,16 +55,10 @@ describe("mobile activity panel", () => {
   });
   it("does not claim every action confirmed when a followed box failed", () => {
     const failed: ConsoleEntry[] = [
+      { kind: "box", box: box() },
       {
         kind: "box",
-        box: box(),
-        children: [
-          {
-            kind: "box",
-            box: box({ id: "r", state: "failed", detail: "Replaced" }),
-            children: [],
-          },
-        ],
+        box: box({ id: "r", state: "failed", detail: "Replaced" }),
       },
     ];
     const { rerender } = render(

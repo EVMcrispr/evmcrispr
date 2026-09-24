@@ -5,10 +5,8 @@ import {
   NoSymbolIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import type { ReactNode } from "react";
 import { Alert } from "../ui/Alert";
 import { ConsoleMarkdown } from "./ConsoleMarkdown";
-import type { ConsoleEntry } from "./entries";
 
 const boxStatus: Record<BoxState, "warning" | "success" | "error" | "info"> = {
   live: "warning",
@@ -41,15 +39,10 @@ const boxStateLabel: Record<BoxState, string> = {
 
 export interface BoxCardProps {
   box: BoxSnapshot;
-  /** Boxes that follow this one, rendered nested inside it. */
-  nested?: ConsoleEntry[];
-  /** Renders a nested plain-line entry (boxes nest only boxes today). */
-  renderLine?: (text: string, key: string) => ReactNode;
 }
 
-/** One status box: title, live detail, progress, links, history and the
- *  boxes nested under it. */
-export function BoxCard({ box, nested = [], renderLine }: BoxCardProps) {
+/** One status box: title, live detail, progress, links and history. */
+export function BoxCard({ box }: BoxCardProps) {
   const IconComp = boxIcon[box.state];
   const links = Object.entries(box.links ?? {});
   const [done, total] = box.progress ?? [0, 0];
@@ -77,7 +70,7 @@ export function BoxCard({ box, nested = [], renderLine }: BoxCardProps) {
               </span>
             )}
           </div>
-          <div className="text-base prose prose-invert prose-base max-w-none break-words">
+          <div className="text-base prose prose-invert prose-base max-w-none wrap-break-word">
             <ConsoleMarkdown>{box.detail}</ConsoleMarkdown>
           </div>
           {box.progress && total > 0 && (
@@ -116,28 +109,12 @@ export function BoxCard({ box, nested = [], renderLine }: BoxCardProps) {
               </summary>
               <ol className="mt-1 flex flex-col gap-1 pl-4 list-decimal">
                 {box.history.map((line, i) => (
-                  <li key={`${box.id}-h-${i}`} className="break-words">
+                  <li key={`${box.id}-h-${i}`} className="wrap-break-word">
                     <ConsoleMarkdown>{line}</ConsoleMarkdown>
                   </li>
                 ))}
               </ol>
             </details>
-          )}
-          {nested.length > 0 && (
-            <div className="flex flex-col gap-2 pl-4 border-l border-white/30">
-              {nested.map((child, i) =>
-                child.kind === "box" ? (
-                  <BoxCard
-                    key={child.box.id}
-                    box={child.box}
-                    nested={child.children}
-                    renderLine={renderLine}
-                  />
-                ) : (
-                  renderLine?.(child.text, `${box.id}-l-${i}`)
-                ),
-              )}
-            </div>
           )}
         </div>
       </div>

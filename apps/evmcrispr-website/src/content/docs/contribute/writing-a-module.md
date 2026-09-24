@@ -186,7 +186,9 @@ async run(module, args, { interpreters }) {
 
 - `outcome` is how the actions ended, through whatever carried them: sent
   directly, inside `batch` / `safe:execute` / `aragonos:forward`, or proposed
-  with `safe:propose`. The box nests under its carrier's box on its own.
+  with `safe:propose`. The link to the carrier only decides which box ends
+  after which; the console shows every box on its own, in the order they
+  opened.
   `not-sent` means the actions never went out (for example, the run stopped
   first); `unknown` means they were sent or queued (a Safe App batch, a host
   that returned no receipt) but how they ended is not known.

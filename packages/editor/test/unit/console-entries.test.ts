@@ -48,31 +48,25 @@ describe("console entries", () => {
     expect(entry.kind === "box" && entry.box.detail).toBe("1/4");
   });
 
-  it("nests a child under its parent and moves the parent to the child's place", () => {
+  it("keeps boxes flat, in the order they opened, whatever carries them", () => {
     let s = emptyConsole;
     s = reduceConsole(s, { kind: "line", text: "first" });
     s = reduceConsole(s, {
       kind: "box",
       snapshot: snap({ id: "twap", title: "TWAP" }),
     });
-    s = reduceConsole(s, { kind: "line", text: "between" });
     s = reduceConsole(s, {
       kind: "box",
       snapshot: snap({ id: "safe", title: "Safe tx" }),
     });
+    // The TWAP learns its carrier: that orders endings, not the layout.
     s = reduceConsole(s, {
       kind: "box",
       snapshot: snap({ id: "twap", title: "TWAP", parent: "safe" }),
     });
-    const entries = consoleEntries(s);
-    expect(entries.map((e) => (e.kind === "line" ? e.text : e.box.id))).toEqual(
-      ["first", "safe", "between"],
-    );
-    const safe = entries[1];
     expect(
-      safe.kind === "box" &&
-        safe.children.map((c) => c.kind === "box" && c.box.id),
-    ).toEqual(["twap"]);
+      consoleEntries(s).map((e) => (e.kind === "line" ? e.text : e.box.id)),
+    ).toEqual(["first", "twap", "safe"]);
   });
 
   it("counts live boxes", () => {
@@ -82,21 +76,6 @@ describe("console entries", () => {
     expect(s.live).toBe(0);
   });
 
-  it("renders each box once when parents form a cycle", () => {
-    let s = emptyConsole;
-    s = reduceConsole(s, {
-      kind: "box",
-      snapshot: snap({ id: "a", parent: "b" }),
-    });
-    s = reduceConsole(s, {
-      kind: "box",
-      snapshot: snap({ id: "b", parent: "a" }),
-    });
-    const entries = consoleEntries(s);
-    expect(entries).toHaveLength(1);
-    const [root] = entries;
-    expect(root.kind === "box" && root.children).toHaveLength(1);
-  });
   it("ends every live box when the run dies, keeping ended ones", () => {
     let s = emptyConsole;
     s = reduceConsole(s, { kind: "box", snapshot: snap({ id: "a" }) });

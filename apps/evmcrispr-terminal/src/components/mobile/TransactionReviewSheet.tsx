@@ -65,30 +65,20 @@ export function followingCopy(count: number): string {
 }
 
 /** Console lines for the compact mobile log: plain lines as they are, each
- *  status box as one `title: detail` line with nested boxes indented. */
+ *  status box as one `title: detail` line. */
 function consoleLines(
   entries: ConsoleEntry[],
-  depth = 0,
-): { text: string; depth: number; box: boolean }[] {
-  return entries.flatMap((entry) =>
+): { text: string; box: boolean }[] {
+  return entries.map((entry) =>
     entry.kind === "line"
-      ? [{ text: entry.text, depth, box: false }]
-      : [
-          {
-            text: `${entry.box.title}: ${entry.box.detail}`,
-            depth,
-            box: true,
-          },
-          ...consoleLines(entry.children, depth + 1),
-        ],
+      ? { text: entry.text, box: false }
+      : { text: `${entry.box.title}: ${entry.box.detail}`, box: true },
   );
 }
 
 function anyBoxFailed(entries: ConsoleEntry[]): boolean {
   return entries.some(
-    (entry) =>
-      entry.kind === "box" &&
-      (entry.box.state === "failed" || anyBoxFailed(entry.children)),
+    (entry) => entry.kind === "box" && entry.box.state === "failed",
   );
 }
 
@@ -114,7 +104,7 @@ export function ActivityPanel({
   const copy = PHASE_COPY[phase];
   const lines = entries
     ? consoleLines(entries)
-    : logs.map((text) => ({ text, depth: 0, box: false }));
+    : logs.map((text) => ({ text, box: false }));
 
   return (
     <div className="flex flex-col gap-3 border-t border-foreground/10 p-3">
@@ -184,9 +174,6 @@ export function ActivityPanel({
                 key={`log-${index}`}
                 className={
                   line.box ? "text-foreground/85" : "text-foreground/65"
-                }
-                style={
-                  line.depth ? { paddingLeft: `${line.depth}rem` } : undefined
                 }
               >
                 {line.text}

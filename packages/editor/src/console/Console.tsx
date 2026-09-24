@@ -112,12 +112,7 @@ export function Console({
       )}
       {entries.map((entry, i) =>
         entry.kind === "box" ? (
-          <BoxCard
-            key={`box-${entry.box.id}`}
-            box={entry.box}
-            nested={entry.children}
-            renderLine={renderLine}
-          />
+          <BoxCard key={`box-${entry.box.id}`} box={entry.box} />
         ) : (
           renderLine(entry.text, `log-${i}`)
         ),

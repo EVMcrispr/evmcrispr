@@ -114,9 +114,10 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
 - Transactions, Safe proposals and CoW TWAP orders show as status boxes
   that update while they happen: *Waiting for wallet → Sent → Confirmed*,
   *Proposed → 1/2 confirmations → Executed*, *Started → 1/4 executed → …
-  → Finished*. A box nests under the transaction or proposal that carries
-  it, and ends with the carrier's reason when that fails (rejected in the
-  wallet, reverted, replaced).
+  → Finished*. Each is its own box, in the order they opened (a TWAP inside
+  a Safe proposal comes first, then the proposal); a box follows the
+  transaction or proposal that carries it, and ends with the carrier's
+  reason when that fails (rejected in the wallet, reverted, replaced).
 - A run stays open while a Safe proposal or a TWAP it created is still in
   progress, in the terminal and the CLI; Cancel (or Ctrl-C) stops
   following, and the boxes say "Stopped following" (the proposal or order
