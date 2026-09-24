@@ -1,5 +1,5 @@
 import type { Address } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import {
   concatHex,
   hashDomain,
@@ -117,16 +117,10 @@ export const getSafeMessageHashes = (
   };
 };
 
-const truncateData = (data: `0x${string}`): string => {
-  const bytes = (data.length - 2) / 2;
-  return data.length > 202
-    ? `${data.slice(0, 202)}… (${bytes} bytes)`
-    : `${data}${bytes > 0 ? ` (${bytes} bytes)` : ""}`;
-};
-
 /**
- * One uniform multi-line block used by safe:verify, safe:propose and
- * safe:execute so the hashes always look the same in the terminal.
+ * The short block used by safe:verify, safe:propose and safe:execute: the
+ * safeTxHash, then the domain and message hashes a hardware wallet shows
+ * when it signs, then any findings.
  */
 export const formatSafeTxHashesLog = (
   safe: Address,
@@ -134,23 +128,9 @@ export const formatSafeTxHashesLog = (
   tx: SafeTx,
   hashes: SafeTxHashes,
   findingLines: string[] = [],
-): string => {
-  const lines = [
-    `Safe transaction (safe ${safe}, chain ${chainId}, nonce ${tx.nonce})`,
-    `  to:              ${tx.to}`,
-    `  value:           ${tx.value}`,
-    `  data:            ${truncateData(tx.data)}`,
-    `  operation:       ${tx.operation} (${tx.operation === 1 ? "DELEGATECALL" : "CALL"})`,
-    `  safeTxGas:       ${tx.safeTxGas}`,
-    `  baseGas:         ${tx.baseGas}`,
-    `  gasPrice:        ${tx.gasPrice}`,
-    `  gasToken:        ${tx.gasToken}`,
-    `  refundReceiver:  ${tx.refundReceiver}`,
-    "",
-    `  Domain hash:     ${hashes.domainHash}`,
-    `  Message hash:    ${hashes.messageHash}`,
-    `  safeTxHash:      ${hashes.safeTxHash}`,
+): string =>
+  [
+    `Safe transaction ${hashes.safeTxHash} (safe ${safe}, ${chainLabel(chainId)}, nonce ${tx.nonce})`,
+    `  Device shows domain ${hashes.domainHash}, message ${hashes.messageHash}`,
     ...findingLines,
-  ];
-  return lines.join("\n");
-};
+  ].join("\n");

@@ -410,7 +410,7 @@ describe("Safe > integration", () => {
     expect(proposal.signature.length).to.equal(2 + 65 * 2);
 
     // The hashes are printed, so owners can cross-check them when confirming.
-    const hashLog = evm.logs.find((l) => l.includes("safeTxHash:"));
+    const hashLog = evm.logs.find((l) => l.startsWith("Safe transaction 0x"));
     const domainSeparator = await client.readContract({
       address: safe,
       abi: safeAbi,
