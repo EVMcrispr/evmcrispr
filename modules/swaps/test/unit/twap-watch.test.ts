@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { BoxHandle, BoxUpdate, WatchContext } from "@evmcrispr/sdk";
-import { watchTwap } from "../../src/twap/watch";
+import { twapCountdown, watchTwap } from "../../src/twap/watch";
 
 function fakeBox() {
   const log: string[] = [];
@@ -354,5 +354,50 @@ describe("watchTwap", () => {
       `Queued in the Safe as 0x${"ab".repeat(32)}; check it later with @swaps:twapStatus`,
     );
     expect(state()).toBe("done");
+  });
+});
+
+describe("twapCountdown", () => {
+  // Four parts of 60 s from t=1000: parts start at 1000, 1060, 1120, 1180.
+  const status = (over: Record<string, unknown>) =>
+    ({
+      start: "1000",
+      end: "1240",
+      totalParts: 4,
+      schedule: "active",
+      submission: { partIndex: 1 },
+      ...over,
+    }) as any;
+
+  it("counts down to the start of a scheduled order", () => {
+    expect(twapCountdown(status({ schedule: "scheduled" }))).toEqual({
+      label: "Starts in",
+      from: 1000,
+      until: 1000,
+      segment: 0,
+    });
+  });
+
+  it("counts down to the next part while one is running", () => {
+    expect(twapCountdown(status({}))).toEqual({
+      label: "Next part in",
+      from: 1060,
+      until: 1120,
+      segment: 1,
+    });
+  });
+
+  it("counts down to the end during the last part", () => {
+    expect(twapCountdown(status({ submission: { partIndex: 3 } }))).toEqual({
+      label: "Ends in",
+      from: 1180,
+      until: 1240,
+      segment: 3,
+    });
+  });
+
+  it("has nothing to count once ended or when the schedule is unknown", () => {
+    expect(twapCountdown(status({ schedule: "expired" }))).toBeNull();
+    expect(twapCountdown(status({ start: null }))).toBeNull();
   });
 });

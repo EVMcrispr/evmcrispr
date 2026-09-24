@@ -18,6 +18,12 @@ export { BoxCard } from "./console/BoxCard";
 export type { ConsoleProps } from "./console/Console";
 // ── Console & actions preview ──
 export { Console } from "./console/Console";
+export {
+  countdownText,
+  formatDuration,
+  segments,
+  useNow,
+} from "./console/countdown";
 export type {
   ConsoleEntry,
   ConsoleEvent,

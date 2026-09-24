@@ -1,4 +1,4 @@
-import type { BoxSnapshot, BoxState } from "@evmcrispr/sdk";
+import type { BoxCountdown, BoxSnapshot, BoxState } from "@evmcrispr/sdk";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -7,6 +7,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { Alert } from "../ui/Alert";
 import { ConsoleMarkdown } from "./ConsoleMarkdown";
+import { countdownText, segments, useNow } from "./countdown";
 
 const boxStatus: Record<BoxState, "warning" | "success" | "error" | "info"> = {
   live: "warning",
@@ -74,18 +75,11 @@ export function BoxCard({ box }: BoxCardProps) {
             <ConsoleMarkdown>{box.detail}</ConsoleMarkdown>
           </div>
           {box.progress && total > 0 && (
-            <div
-              className="h-1.5 w-full overflow-hidden rounded bg-white/20"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={total}
-              aria-valuenow={done}
-            >
-              <div
-                className="h-full bg-evm-green-300 transition-[width]"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
+            <BoxProgress
+              progress={box.progress}
+              countdown={box.state === "live" ? box.countdown : undefined}
+              percent={percent}
+            />
           )}
           {links.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -119,5 +113,77 @@ export function BoxCard({ box }: BoxCardProps) {
         </div>
       </div>
     </Alert>
+  );
+}
+
+/** Steps done out of total. With a countdown, one segment per step: the
+ *  step being waited on fills with elapsed time, and the time left ticks
+ *  under the bar. */
+function BoxProgress({
+  progress,
+  countdown,
+  percent,
+}: {
+  progress: [number, number];
+  countdown?: BoxCountdown;
+  percent: number;
+}) {
+  const now = useNow(countdown !== undefined);
+  const [done, total] = progress;
+  const parts = countdown ? segments(progress, countdown, now) : null;
+  return (
+    <div className="flex flex-col gap-1">
+      {parts ? (
+        <div
+          className="flex h-1.5 w-full gap-1"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={done}
+        >
+          {parts.map((part, i) => (
+            <div
+              key={i}
+              className={`h-full flex-1 overflow-hidden rounded-sm ${
+                part.kind === "done"
+                  ? "bg-evm-green-300"
+                  : part.kind === "passed"
+                    ? "bg-white/40"
+                    : "bg-white/20"
+              }`}
+            >
+              {part.kind === "current" && (
+                <div
+                  className="h-full bg-evm-green-300/60 motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear"
+                  style={{ width: `${part.fill * 100}%` }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          className="h-1.5 w-full overflow-hidden rounded bg-white/20"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={done}
+        >
+          <div
+            className="h-full bg-evm-green-300 transition-[width]"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      )}
+      {countdown && (
+        <p
+          role="timer"
+          aria-live="off"
+          className="self-end text-sm tabular-nums text-white/80"
+        >
+          {countdownText(countdown, now)}
+        </p>
+      )}
+    </div>
   );
 }

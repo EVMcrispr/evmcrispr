@@ -1,4 +1,5 @@
 import type {
+  BoxCountdown,
   BoxHandle,
   BoxOptions,
   BoxSnapshot,
@@ -46,6 +47,15 @@ const abortableSleep = (ms: number, signal: AbortSignal) =>
     }, ms);
     signal.addEventListener("abort", onAbort, { once: true });
   });
+
+const sameCountdown = (a?: BoxCountdown, b?: BoxCountdown) =>
+  a === b ||
+  (a !== undefined &&
+    b !== undefined &&
+    a.label === b.label &&
+    a.from === b.from &&
+    a.until === b.until &&
+    a.segment === b.segment);
 
 const DEFAULT_MAX_BACKOFF = 5 * 60_000;
 
@@ -248,7 +258,16 @@ export class BoxRegistry {
       Object.entries(update.links).some(
         ([key, url]) => previous.links?.[key] !== url,
       );
-    if (!detailChanged && !progressChanged && !linksChanged) return;
+    const countdownChanged =
+      update.countdown !== undefined &&
+      !sameCountdown(update.countdown ?? undefined, previous.countdown);
+    if (
+      !detailChanged &&
+      !progressChanged &&
+      !linksChanged &&
+      !countdownChanged
+    )
+      return;
     entry.snapshot = {
       ...previous,
       detail: detailChanged ? update.detail! : previous.detail,
@@ -260,7 +279,11 @@ export class BoxRegistry {
       links: linksChanged
         ? { ...previous.links, ...update.links }
         : previous.links,
+      countdown: countdownChanged
+        ? (update.countdown ?? undefined)
+        : previous.countdown,
     };
+    // A countdown ticks on the host: it is never a log line of its own.
     this.#publish(entry, detailChanged);
   }
 
@@ -279,6 +302,8 @@ export class BoxRegistry {
         entry.snapshot.detail && detailChanged
           ? [...entry.snapshot.history, entry.snapshot.detail]
           : entry.snapshot.history,
+      // An ended box waits for nothing.
+      countdown: undefined,
     };
     entry.controller.abort(new ErrorException(detail));
     // The state change is always published; the line only when it says

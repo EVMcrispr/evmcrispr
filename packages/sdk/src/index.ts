@@ -41,6 +41,7 @@ export type {
   Binding,
   BlockExpressionNode,
   BooleanLiteralNode,
+  BoxCountdown,
   BoxHandle,
   BoxOpener,
   BoxOptions,

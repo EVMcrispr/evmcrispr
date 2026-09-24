@@ -15,6 +15,16 @@ export type ActionOutcome =
 
 export type BoxState = "live" | "done" | "failed" | "cancelled";
 
+/** Time left until the box's next step, which hosts can show ticking.
+ *  Times are Unix seconds. `segment` is the step (zero-based, out of
+ *  `progress[1]`) that fills from `from` to `until`. */
+export interface BoxCountdown {
+  label: string;
+  from: number;
+  until: number;
+  segment?: number;
+}
+
 /** Everything a host needs to render a box. Structured-cloneable. */
 export interface BoxSnapshot {
   id: string;
@@ -26,6 +36,7 @@ export interface BoxSnapshot {
   history: string[];
   progress?: [number, number];
   links?: Record<string, string>;
+  countdown?: BoxCountdown;
   simulated: boolean;
 }
 
@@ -33,6 +44,8 @@ export interface BoxUpdate {
   detail?: string;
   progress?: [number, number];
   links?: Record<string, string>;
+  /** `null` clears it. */
+  countdown?: BoxCountdown | null;
 }
 
 export interface BoxOptions {

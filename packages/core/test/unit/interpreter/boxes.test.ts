@@ -308,3 +308,41 @@ describe("BoxRegistry", () => {
     expect(last("Real")!.state).toBe("live");
   });
 });
+
+describe("BoxRegistry countdown", () => {
+  it("publishes countdown changes without a log line, and clears it when the box ends", () => {
+    const outcomes = new OutcomeRegistry();
+    const snapshots: BoxSnapshot[] = [];
+    const lines: string[] = [];
+    const boxes = new BoxRegistry({
+      outcomes,
+      emit: (s) => snapshots.push(s),
+      log: (m) => lines.push(m),
+    });
+    const box = boxes.open({
+      title: "T",
+      detail: "d",
+      simulated: false,
+      realRun: () => true,
+    });
+    const countdown = {
+      label: "Next part in",
+      from: 100,
+      until: 160,
+      segment: 1,
+    };
+    box.update({ countdown });
+    box.update({ countdown }); // unchanged: not republished
+    expect(snapshots.at(-1)!.countdown).toEqual(countdown);
+    expect(snapshots).toHaveLength(2);
+    expect(lines).toEqual(["T: d"]);
+    box.update({ countdown: null });
+    expect(snapshots.at(-1)!.countdown).toBeUndefined();
+    box.update({ countdown });
+    box.done("Finished");
+    expect(snapshots.at(-1)).toMatchObject({
+      state: "done",
+      countdown: undefined,
+    });
+  });
+});

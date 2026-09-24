@@ -1,4 +1,4 @@
-import type { BoxHandle, WatchContext } from "@evmcrispr/sdk";
+import type { BoxCountdown, BoxHandle, WatchContext } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { explorerAddressLink } from "../venues/lib/cowApi";
 import { decodeSchedule } from "./cow";
@@ -67,6 +67,25 @@ const partStart = (s: TwapStatus): string => {
   const interval = (Number(s.end) - start) / s.totalParts;
   const at = new Date((start + index * interval) * 1000).toISOString();
   return ` at ${at.slice(11, 16)} UTC`;
+};
+
+/** What the order waits for next, from its schedule: the start, the next
+ *  part, or the end of the last part's interval. None once it has ended or
+ *  while the schedule is unknown. */
+export const twapCountdown = (s: TwapStatus): BoxCountdown | null => {
+  if (!s.start || !s.end || s.totalParts <= 0) return null;
+  const start = Number(s.start);
+  const end = Number(s.end);
+  const interval = (end - start) / s.totalParts;
+  if (s.schedule === "scheduled")
+    return { label: "Starts in", from: start, until: start, segment: 0 };
+  if (s.schedule !== "active" && s.schedule !== "between-windows") return null;
+  const index = s.submission.partIndex;
+  if (index === null) return null;
+  const from = start + index * interval;
+  return index + 1 < s.totalParts
+    ? { label: "Next part in", from, until: from + interval, segment: index }
+    : { label: "Ends in", from, until: end, segment: index };
 };
 
 /** A TWAP box from its registration's outcome to the end of its schedule. */
@@ -173,7 +192,12 @@ export async function watchTwap(
             : s.filledParts === 0
               ? `Started, part ${(s.submission.partIndex ?? 0) + 1} of ${s.totalParts}${partStart(s)}`
               : executed;
-      box.update(unknown ? { detail, links } : { detail, progress, links });
+      const countdown = s.registered ? twapCountdown(s) : null;
+      box.update(
+        unknown
+          ? { detail, links, countdown }
+          : { detail, progress, links, countdown },
+      );
       return "continue";
     },
     { every: options.every ?? twapWatchTiming.every },

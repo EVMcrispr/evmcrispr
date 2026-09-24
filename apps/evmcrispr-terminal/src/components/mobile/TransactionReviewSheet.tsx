@@ -1,4 +1,5 @@
 import type { ConsoleEntry } from "@evmcrispr/editor";
+import { countdownText, useNow } from "@evmcrispr/editor";
 import type { Action, TransactionAction } from "@evmcrispr/sdk";
 import {
   CheckCircleIcon,
@@ -68,12 +69,17 @@ export function followingCopy(count: number): string {
  *  status box as one `title: detail` line. */
 function consoleLines(
   entries: ConsoleEntry[],
+  now: number,
 ): { text: string; box: boolean }[] {
-  return entries.map((entry) =>
-    entry.kind === "line"
-      ? { text: entry.text, box: false }
-      : { text: `${entry.box.title}: ${entry.box.detail}`, box: true },
-  );
+  return entries.map((entry) => {
+    if (entry.kind === "line") return { text: entry.text, box: false };
+    const { title, detail, state, countdown } = entry.box;
+    const left =
+      state === "live" && countdown
+        ? ` (${countdownText(countdown, now)})`
+        : "";
+    return { text: `${title}: ${detail}${left}`, box: true };
+  });
 }
 
 function anyBoxFailed(entries: ConsoleEntry[]): boolean {
@@ -102,8 +108,14 @@ export function ActivityPanel({
   rawActions: unknown;
 }) {
   const copy = PHASE_COPY[phase];
+  // Ticks only while a live box counts down.
+  const now = useNow(
+    entries?.some(
+      (e) => e.kind === "box" && e.box.state === "live" && e.box.countdown,
+    ) ?? false,
+  );
   const lines = entries
-    ? consoleLines(entries)
+    ? consoleLines(entries, now)
     : logs.map((text) => ({ text, box: false }));
 
   return (
