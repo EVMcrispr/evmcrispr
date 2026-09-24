@@ -258,8 +258,10 @@ not recreated in a previously used execution account.
 
 In the terminal and the CLI, the order shows as a status box once its
 registration transaction is confirmed (after that transaction's own box),
-and follows it to the end: *Executed 0/4 → Executed 1/4 (1 USDC → 0.0004
-WETH) → … → Executed 4/4 (4 USDC → 0.0016 WETH)*. Segments open on a fixed
+titled with what it sells, e.g. *TWAP 4 USDC → WETH*, and follows it to
+the end: *Executed 0/4 → Executed 1/4 (avg 2,709.5 USDC/WETH) → … →
+Executed 4/4 (avg 2,712 USDC/WETH)*, the average price of what executed so
+far. Segments open on a fixed
 schedule, whatever happens to the previous one. In the terminal the bar has
 one segment per part: the running segment grows with its window's time,
 faint until it executes and solid after, and the next one starts growing

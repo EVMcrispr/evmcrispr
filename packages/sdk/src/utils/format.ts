@@ -19,9 +19,10 @@ export function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-// Display-only: any failure (no client, unreadable token) degrades to
-// undefined so a formatter never masks the message it decorates.
-async function tokenMeta(
+/** A token's symbol and decimals, for display only: any failure (no
+ *  client, unreadable token) degrades to undefined so a formatter never
+ *  masks the message it decorates. */
+export async function tokenMeta(
   module: Module,
   token: Address,
 ): Promise<{ symbol: string; decimals: number } | undefined> {

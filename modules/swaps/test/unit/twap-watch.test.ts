@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { BoxHandle, BoxUpdate, WatchContext } from "@evmcrispr/sdk";
-import { partStep, twapCountdown, watchTwap } from "../../src/twap/watch";
+import {
+  averagePrice,
+  partStep,
+  twapCountdown,
+  watchTwap,
+} from "../../src/twap/watch";
 
 function fakeBox() {
   const log: string[] = [];
@@ -367,7 +372,7 @@ describe("watchTwap", () => {
 });
 
 describe("watchTwap reveal and amounts", () => {
-  it("reads executed amounts with their tokens", async () => {
+  it("reads the average price of what executed", async () => {
     const { box, log } = fakeBox();
     const statuses = [
       {
@@ -394,14 +399,14 @@ describe("watchTwap reveal and amounts", () => {
     let i = 0;
     await watchTwap(box, {} as any, {} as any, ctx("confirmed"), {
       status: async () => statuses[i++] as any,
-      format: {
-        sell: (v) => `${Number(v) / 1e6} USDC`,
-        buy: (v) => `${Number(v) / 1e18} WETH`,
+      tokens: {
+        sell: { symbol: "USDC", decimals: 6 },
+        buy: { symbol: "WETH", decimals: 18 },
       },
     });
     expect(log).toEqual([
-      "Executed 1/4 (1 USDC → 0.0004 WETH)",
-      "Executed 4/4 (4 USDC → 0.0016 WETH)",
+      "Executed 1/4 (avg 2,500 USDC/WETH)",
+      "Executed 4/4 (avg 2,500 USDC/WETH)",
     ]);
   });
 });
@@ -497,5 +502,25 @@ describe("partStep", () => {
 
   it("never calls a part missed while its fill history is incomplete", () => {
     expect(partStep(item("expired", "unknown"))).toEqual({ state: "pending" });
+  });
+});
+
+describe("averagePrice", () => {
+  const usdc = { symbol: "USDC", decimals: 6 };
+  const weth = { symbol: "WETH", decimals: 18 };
+
+  it("reads the price the way that gives a number of at least 1", () => {
+    // Selling 1 USDC for 0.000369077 WETH: USDC per WETH.
+    expect(
+      averagePrice(1_000000n, 369077182443993n, { sell: usdc, buy: weth }),
+    ).toBe("2,709.5 USDC/WETH");
+    // Selling WETH for USDC: still USDC per WETH.
+    expect(
+      averagePrice(369077182443993n, 1_000000n, { sell: weth, buy: usdc }),
+    ).toBe("2,709.5 USDC/WETH");
+  });
+
+  it("has nothing to say before anything executed", () => {
+    expect(averagePrice(0n, 0n, { sell: usdc, buy: weth })).toBeUndefined();
   });
 });

@@ -517,7 +517,7 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
         },
       });
       const twapBox = () =>
-        [...boxes.values()].find((box) => box.title.startsWith("CoW TWAP"));
+        [...boxes.values()].find((box) => box.title.startsWith("TWAP "));
       const until = (predicate: () => boolean) =>
         new Promise<void>((resolve) => {
           changed = () => predicate() && resolve();
@@ -552,7 +552,10 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
       await running;
       const box = twapBox()!;
       expect(box.state).toBe("done");
-      expect(box.detail).toMatch(/^Executed 3\/3 \(12 WXDAI → .+ GNO\)$/);
+      expect(box.title).toBe("TWAP 12 WXDAI → GNO");
+      expect(box.detail).toMatch(
+        /^Executed 3\/3 \(avg [\d,.]+ (WXDAI\/GNO|GNO\/WXDAI)\)$/,
+      );
       expect(box.history).toContain("Executed 0/3");
       expect(box.parent).toBeDefined();
       // No visible links: each settled segment of the bar links to its

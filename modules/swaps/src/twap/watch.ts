@@ -5,6 +5,7 @@ import type {
   WatchContext,
 } from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
+import { formatUnits } from "viem";
 import { decodeSchedule } from "./cow";
 import type { ObservationBlock } from "./evidence";
 import { twapSnapshot } from "./status";
@@ -126,6 +127,27 @@ export const twapCountdown = (
   return index + 1 < s.totalParts ? next(from, until) : null;
 };
 
+/** A price reads with 5 significant digits: "2,709.5". */
+const price = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 5 });
+
+/** The average price of what executed, as "2,709.5 USDC/WETH": oriented so
+ *  the number is at least 1, whichever token was sold. */
+export const averagePrice = (
+  sold: bigint,
+  bought: bigint,
+  tokens: {
+    sell: { symbol: string; decimals: number };
+    buy: { symbol: string; decimals: number };
+  },
+): string | undefined => {
+  const s = Number(formatUnits(sold, tokens.sell.decimals));
+  const b = Number(formatUnits(bought, tokens.buy.decimals));
+  if (!(s > 0 && b > 0)) return undefined;
+  return s / b >= 1
+    ? `${price.format(s / b)} ${tokens.sell.symbol}/${tokens.buy.symbol}`
+    : `${price.format(b / s)} ${tokens.buy.symbol}/${tokens.sell.symbol}`;
+};
+
 /** A TWAP box from its registration's outcome to the end of its schedule. */
 export async function watchTwap(
   box: BoxHandle,
@@ -135,8 +157,11 @@ export async function watchTwap(
   options: {
     every?: number;
     status?: (client: PublicClient, ref: TwapReference) => Promise<TwapStatus>;
-    /** Base units to "1 USDC", "0.0004 WETH", for the executed amounts. */
-    format?: { sell(amount: bigint): string; buy(amount: bigint): string };
+    /** The sold and bought tokens, for the average price. */
+    tokens?: {
+      sell: { symbol: string; decimals: number };
+      buy: { symbol: string; decimals: number };
+    };
   } = {},
 ): Promise<void> {
   // Opened `showWhenConfirmed`: it shows only once the registration is
@@ -151,14 +176,19 @@ export async function watchTwap(
     return box.fail(`Not registered: ${outcome.reason}`);
   if (simulated)
     return box.done("Registered (simulated; nothing settles in a fork)");
-  const format = options.format;
-  /** "Executed 1/4 (1 USDC → 0.0004 WETH)". */
-  const executedText = (s: TwapStatus) =>
-    `Executed ${s.filledParts}/${s.totalParts}${
-      format && s.filledParts > 0
-        ? ` (${format.sell(BigInt(s.executedSellAmount))} → ${format.buy(BigInt(s.executedBuyAmount))})`
-        : ""
-    }`;
+  const tokens = options.tokens;
+  /** "Executed 1/4 (avg 2,709 USDC/WETH)". */
+  const executedText = (s: TwapStatus) => {
+    const price =
+      tokens && s.filledParts > 0
+        ? averagePrice(
+            BigInt(s.executedSellAmount),
+            BigInt(s.executedBuyAmount),
+            tokens,
+          )
+        : undefined;
+    return `Executed ${s.filledParts}/${s.totalParts}${price ? ` (avg ${price})` : ""}`;
+  };
   const custom = options.status;
   const read = custom
     ? async (): Promise<Reading> => ({

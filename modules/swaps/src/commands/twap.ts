@@ -1,13 +1,21 @@
 import {
   BindingsSpace,
   coerceBoolean,
+  compactAmount,
   defineCommand,
   ErrorException,
   fieldItem,
   tokenAmountFormatter,
   tokenLabel,
+  tokenMeta,
 } from "@evmcrispr/sdk";
-import { encodeFunctionData, erc20Abi, isAddressEqual, toHex } from "viem";
+import {
+  encodeFunctionData,
+  erc20Abi,
+  formatUnits,
+  isAddressEqual,
+  toHex,
+} from "viem";
 import type Swaps from "..";
 import {
   executeAccount,
@@ -308,19 +316,23 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
     ];
     // Follows the order until its schedule ends. `client` is the order's
     // chain, even if the script switches chains afterwards.
+    const [sell, buy] = await Promise.all([
+      tokenMeta(module, tokenIn),
+      tokenMeta(module, tokenOut),
+    ]);
     // Shown only once the registration is confirmed, after its carrier.
     const box = interpreters.box?.({
-      title: `CoW TWAP ${hash.slice(0, 10)}…`,
+      // "TWAP 4 USDC → WETH": what it sells in total, and for what.
+      title:
+        sell && buy
+          ? `TWAP ${compactAmount(formatUnits(total, sell.decimals))} ${sell.symbol} → ${buy.symbol}`
+          : `CoW TWAP ${hash.slice(0, 10)}…`,
       detail: "Waiting for execution",
       follows: actions,
       showWhenConfirmed: true,
     });
-    // Rounded for reading: "0.0003691 WETH", not 18 decimals.
-    const format = {
-      sell: await tokenAmountFormatter(module, tokenIn, { compact: true }),
-      buy: await tokenAmountFormatter(module, tokenOut, { compact: true }),
-    };
-    box?.watch((watch) => watchTwap(box, client, ref, watch, { format }));
+    const tokens = sell && buy ? { sell, buy } : undefined;
+    box?.watch((watch) => watchTwap(box, client, ref, watch, { tokens }));
     return actions;
   },
 });
