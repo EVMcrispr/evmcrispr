@@ -98,13 +98,19 @@ export const twapCountdown = (
   const start = Number(s.start);
   const end = Number(s.end);
   const interval = (end - start) / s.totalParts;
-  const opens = (n: number, from: number, until: number): BoxCountdown => ({
-    label: `Segment ${n} opens in`,
-    due: `Segment ${n} opening now`,
+  const next = (from: number, until: number): BoxCountdown => ({
+    label: "Next segment starts in",
+    due: "Next segment opening now",
     from,
     until,
   });
-  if (s.schedule === "scheduled") return opens(1, start, start);
+  if (s.schedule === "scheduled")
+    return {
+      label: "First segment starts in",
+      due: "First segment opening now",
+      from: start,
+      until: start,
+    };
   if (s.schedule !== "active" && s.schedule !== "between-windows") return null;
   const index = s.submission.partIndex;
   if (index === null) return null;
@@ -112,12 +118,12 @@ export const twapCountdown = (
   const until = index + 1 < s.totalParts ? from + interval : end;
   if (steps[index]?.state === "open")
     return {
-      label: `Segment ${index + 1} closes in`,
-      due: `Segment ${index + 1} closing now`,
+      label: "Segment closes in",
+      due: "Segment closing now",
       from,
       until,
     };
-  return index + 1 < s.totalParts ? opens(index + 2, from, until) : null;
+  return index + 1 < s.totalParts ? next(from, until) : null;
 };
 
 /** A TWAP box from its registration's outcome to the end of its schedule. */
@@ -129,8 +135,13 @@ export async function watchTwap(
   options: {
     every?: number;
     status?: (client: PublicClient, ref: TwapReference) => Promise<TwapStatus>;
+    /** Base units to "1 USDC", "0.0004 WETH", for the executed amounts. */
+    format?: { sell(amount: bigint): string; buy(amount: bigint): string };
   } = {},
 ): Promise<void> {
+  // Opened `showWhenConfirmed`: it shows only once the registration is
+  // confirmed, after the transaction that carries it. Otherwise that
+  // transaction's box already says why, and this one ends unseen.
   if (outcome.kind === "not-sent") return box.done("Prepared, not sent");
   // Queued in a Safe, or sent by a host that returned no receipt: it may
   // still register, just out of this box's sight.
@@ -140,6 +151,14 @@ export async function watchTwap(
     return box.fail(`Not registered: ${outcome.reason}`);
   if (simulated)
     return box.done("Registered (simulated; nothing settles in a fork)");
+  const format = options.format;
+  /** "Executed 1/4 (1 USDC → 0.0004 WETH)". */
+  const executedText = (s: TwapStatus) =>
+    `Executed ${s.filledParts}/${s.totalParts}${
+      format && s.filledParts > 0
+        ? ` (${format.sell(BigInt(s.executedSellAmount))} → ${format.buy(BigInt(s.executedBuyAmount))})`
+        : ""
+    }`;
   const custom = options.status;
   const read = custom
     ? async (): Promise<Reading> => ({
@@ -156,13 +175,13 @@ export async function watchTwap(
       if (!reading) return "stop";
       const { status: s, steps } = reading;
       const progress: [number, number] = [s.filledParts, s.totalParts];
-      const executed = `${s.filledParts}/${s.totalParts} executed`;
+      const executed = executedText(s);
       const unknown = s.filled === "unknown";
       const reason = s.evidence?.reasons?.[0] ?? "fill history unavailable";
       // Completion first: recovering a finished order also removes it.
       if (s.filled === "complete") {
         box.update({ steps, progress });
-        box.done(`Finished: ${s.totalParts}/${s.totalParts} executed`);
+        box.done(executed);
         return "stop";
       }
       if (s.registered) {
@@ -200,8 +219,8 @@ export async function watchTwap(
         box.update({ steps, progress });
         end(
           removed
-            ? `${ending} after ${executed}`
-            : `Ended: ${executed}, ${s.totalParts - s.filledParts} expired`,
+            ? `${ending} after ${executed.replace("Executed", "executing")}`
+            : `${executed}, ${s.totalParts - s.filledParts} expired`,
         );
         return "stop";
       }
@@ -212,9 +231,7 @@ export async function watchTwap(
           ? `Starts at ${utc(s.start)}`
           : unknown
             ? `Fills unknown: ${reason}`
-            : s.filledParts === 0 && s.start
-              ? `Started at ${utc(s.start)}`
-              : executed;
+            : executed;
       const countdown = s.registered ? twapCountdown(s, steps) : null;
       box.update(
         unknown

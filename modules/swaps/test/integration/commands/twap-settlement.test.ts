@@ -527,7 +527,12 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
         `swaps:twap $order ${total} ${WXDAI} to ${GNO} --parts 3 --every 60 --min 6 --offline true`,
         interpreter,
       );
-      await until(() => twapBox()?.detail.startsWith("Started at ") ?? false);
+      await until(() => twapBox()?.detail === "Executed 0/3");
+      // Shown only after its registration confirmed: after every
+      // transaction box, never before.
+      const firstSeen = [...boxes.keys()];
+      expect(firstSeen.at(-1)).toBe(twapBox()!.id);
+      expect(firstSeen.length).toBeGreaterThan(1);
       const order = await findReference(
         client,
         100,
@@ -539,8 +544,6 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
       const began = BigInt(
         (await cowTwap.status(client, order)).start as string,
       );
-      const started = `Started at ${new Date(Number(began) * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
-      expect(twapBox()!.detail).toBe(started);
       await send(settle(await trade(order)));
       for (let part = 1n; part < 3n; part++) {
         await advance(began + part * 60n);
@@ -549,8 +552,8 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
       await running;
       const box = twapBox()!;
       expect(box.state).toBe("done");
-      expect(box.detail).toBe("Finished: 3/3 executed");
-      expect(box.history).toContain(started);
+      expect(box.detail).toMatch(/^Executed 3\/3 \(12 WXDAI → .+ GNO\)$/);
+      expect(box.history).toContain("Executed 0/3");
       expect(box.parent).toBeDefined();
       // No visible links: each settled segment of the bar links to its
       // settled order on CoW Explorer.

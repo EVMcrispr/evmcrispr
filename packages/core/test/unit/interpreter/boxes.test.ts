@@ -207,15 +207,56 @@ describe("BoxRegistry", () => {
   it("parents a following box under its carrier box, even when the carrier appears later", () => {
     const { open, outcomes, snapshots } = setup();
     const inner = tx();
-    const outer = tx();
     const child = open({ title: "TWAP", follows: [inner] });
+    // By default it shows at once, while the carrier is still live.
     expect(snapshots.at(-1)!.parent).toBeUndefined();
     const parent = open({ title: "Safe tx" });
     outcomes.carry([inner], new Promise(() => {}), parent.id);
     expect(snapshots.filter((s) => s.id === child.id).at(-1)!.parent).toBe(
       parent.id,
     );
-    void outer;
+  });
+
+  it("showWhenConfirmed shows a following box only once its carrier confirmed", async () => {
+    const { open, outcomes, snapshots } = setup();
+    const inner = tx();
+    const child = open({
+      title: "TWAP",
+      follows: [inner],
+      showWhenConfirmed: true,
+    });
+    expect(snapshots).toEqual([]);
+    const parent = open({ title: "Safe tx" });
+    let confirm!: () => void;
+    outcomes.carry(
+      [inner],
+      new Promise((resolve) => {
+        confirm = () => resolve({ kind: "confirmed" });
+      }),
+      parent.id,
+    );
+    await Bun.sleep(1);
+    expect(snapshots.map((s) => s.title)).toEqual(["Safe tx"]);
+    confirm();
+    await Bun.sleep(1);
+    const shown = snapshots.filter((s) => s.id === child.id);
+    expect(shown).toHaveLength(1);
+    expect(shown[0].parent).toBe(parent.id);
+    expect(snapshots.map((s) => s.title)).toEqual(["Safe tx", "TWAP"]);
+  });
+
+  it("showWhenConfirmed never shows a box whose carrier did not confirm", async () => {
+    const { open, outcomes, snapshots } = setup();
+    const inner = tx();
+    const child = open({
+      title: "TWAP",
+      follows: [inner],
+      showWhenConfirmed: true,
+    });
+    child.watch(async () => child.fail("Not registered: rejected"));
+    outcomes.settle(inner, { kind: "rejected", reason: "Rejected in wallet" });
+    await Bun.sleep(1);
+    expect(snapshots).toEqual([]);
   });
 
   it("endLive closes every live box with the given state", () => {
@@ -344,5 +385,62 @@ describe("BoxRegistry countdown", () => {
       state: "done",
       countdown: undefined,
     });
+  });
+});
+
+describe("BoxRegistry hidden boxes", () => {
+  const setup = () => {
+    const outcomes = new OutcomeRegistry();
+    const snapshots: BoxSnapshot[] = [];
+    const lines: string[] = [];
+    const boxes = new BoxRegistry({
+      outcomes,
+      emit: (s) => snapshots.push(s),
+      log: (m) => lines.push(m),
+    });
+    return { boxes, snapshots, lines };
+  };
+
+  it("publishes nothing until revealed, then the box as it is", () => {
+    const { boxes, snapshots, lines } = setup();
+    const box = boxes.open({
+      title: "TWAP",
+      detail: "Waiting for execution",
+      hidden: true,
+      simulated: false,
+      realRun: () => true,
+    });
+    box.update({ detail: "Executed 0/4" });
+    expect(snapshots).toEqual([]);
+    expect(lines).toEqual([]);
+    box.reveal();
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]).toMatchObject({
+      state: "live",
+      detail: "Executed 0/4",
+    });
+    expect(lines).toEqual(["TWAP: Executed 0/4"]);
+    box.reveal(); // once only
+    expect(snapshots).toHaveLength(1);
+  });
+
+  it("never shows a hidden box that ends, and still holds the run until then", async () => {
+    const { boxes, snapshots } = setup();
+    const box = boxes.open({
+      title: "TWAP",
+      hidden: true,
+      holds: true,
+      simulated: false,
+      realRun: () => true,
+    });
+    let released = false;
+    const waiting = boxes.waitForHolding().then(() => {
+      released = true;
+    });
+    await Bun.sleep(1);
+    expect(released).toBe(false);
+    box.fail("Not registered: rejected");
+    await waiting;
+    expect(snapshots).toEqual([]);
   });
 });

@@ -103,6 +103,7 @@ const makeBox = () => {
       ended.state = "cancelled";
       ended.detail = detail;
     },
+    reveal: () => {},
     watch: () => {},
     poll: async (step) => {
       for (let i = 0; i < 20; i++) {

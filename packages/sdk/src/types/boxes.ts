@@ -74,6 +74,15 @@ export interface BoxOptions {
   follows?: Action[];
   /** Keep the run open while live, even without a `watch`. */
   holds?: boolean;
+  /** Not shown until `reveal()`: no snapshot or log line before, so the
+   *  box appears where and when it is revealed. A hidden box that ends is
+   *  never shown. */
+  hidden?: boolean;
+  /** With `follows`: hidden until those actions are confirmed, through
+   *  whatever carries them, then shown on its own (after the carrier's
+   *  box); never shown if they are not. By default a box shows at once,
+   *  while its carrier is still live. */
+  showWhenConfirmed?: boolean;
   links?: Record<string, string>;
 }
 
@@ -94,6 +103,8 @@ export interface BoxHandle {
   /** Ends the box cancelled (⊘): what it followed was cancelled or it
    *  stopped following, without failing. */
   cancel(detail: string): void;
+  /** Show a box opened `hidden`, as it is now. */
+  reveal(): void;
   /** Runs once `follows` settles. Holds the run in real execution. */
   watch(fn: (ctx: WatchContext) => Promise<void>): void;
   /** Calls `step` every `every` ms until it returns "stop" or the box

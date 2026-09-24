@@ -256,30 +256,32 @@ not recreated in a previously used execution account.
 
 ## Following the order
 
-In the terminal and the CLI, the order shows as a status box that follows
-it to the end: *Waiting for execution → Started at 2026-09-24 14:05 UTC →
-1/4 executed → … → Finished: 4/4 executed*. Segments open on a fixed
+In the terminal and the CLI, the order shows as a status box once its
+registration transaction is confirmed (after that transaction's own box),
+and follows it to the end: *Executed 0/4 → Executed 1/4 (1 USDC → 0.0004
+WETH) → … → Executed 4/4 (4 USDC → 0.0016 WETH)*. Segments open on a fixed
 schedule, whatever happens to the previous one. In the terminal the bar has
 one segment per part: the running segment grows with its window's time,
 faint until it executes and solid after, and the next one starts growing
 when it opens. Executed segments link to their order on CoW Explorer;
-expired ones are hatched. Under the bar a live countdown reads *Segment 1
-opens in …*, *Segment 2 closes in …* while the running segment has not
-executed, and *Segment 3 opens in …* once it has. The run
-stays open until the schedule ends; Cancel stops following, never the
-order. An order that expires with parts unfilled ends as *Ended: 3/4
-executed, 1 expired*, and one removed with `swaps:twap-cancel` ends
-cancelled (⊘) as *Cancelled on-chain after 1/4 executed*. When the order
-ended but its fill history is still incomplete, the box reads *Ended;
-confirming fills…* for a few more polls before giving the count or saying
-it could not be verified. Inside a Safe proposal the box waits for the
-Safe to execute it; a rejected, reverted or replaced transaction ends it
-as *Not registered*. When the registration left the run without an
-outcome to follow (queued in a Safe, or sent by a host that returned no
-receipt), the box ends with that reason and a pointer to
-[@swaps:twapStatus](../helpers/twapStatus.md); a dry run ends as
-*Prepared, not sent*. Inside `sim:fork` it ends at once as registered,
-since forks do not execute parts.
+expired ones are hatched. Under the bar a live countdown reads *First
+segment starts in …*, then *Segment closes in …* while the running segment
+has not executed and *Next segment starts in …* once it has. The run stays
+open until the schedule ends; Cancel stops following, never the order. An
+order that expires with parts unfilled ends as *Executed 3/4 (…), 1
+expired*, and one removed with `swaps:twap-cancel` ends cancelled (⊘) as
+*Cancelled on-chain after executing 1/4 (…)*. When the order ended but its
+fill history is still incomplete, the box reads *Ended; confirming fills…*
+for a few more polls before giving the count or saying it could not be
+verified.
+
+Inside a Safe proposal the box appears when the Safe executes it. If the
+registration is rejected, reverts or is replaced, the box never appears:
+the transaction's own box says why. Neither does it when the registration
+left the run without a confirmed outcome (queued in a Safe, sent by a host
+that returned no receipt, or a dry run); check such an order later with
+[@swaps:twapStatus](../helpers/twapStatus.md). Inside `sim:fork` it appears
+and ends at once as registered, since forks do not execute parts.
 
 ## What each observation proves
 

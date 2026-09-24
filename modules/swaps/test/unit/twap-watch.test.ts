@@ -7,6 +7,7 @@ function fakeBox() {
   const links: Record<string, string> = {};
   let progress: [number, number] | undefined;
   let state = "live";
+  let revealed = false;
   const controller = new AbortController();
   const box: BoxHandle = {
     id: "b",
@@ -29,6 +30,9 @@ function fakeBox() {
       state = "cancelled";
       log.push(d);
     },
+    reveal: () => {
+      revealed = true;
+    },
     watch: () => {},
     poll: async (step) => {
       while (state === "live") {
@@ -40,7 +44,14 @@ function fakeBox() {
       }
     },
   };
-  return { box, log, links, state: () => state, progress: () => progress };
+  return {
+    box,
+    log,
+    links,
+    state: () => state,
+    progress: () => progress,
+    revealed: () => revealed,
+  };
 }
 const ctx = (kind: WatchContext["outcome"]["kind"]): WatchContext => ({
   outcome:
@@ -53,7 +64,7 @@ const ctx = (kind: WatchContext["outcome"]["kind"]): WatchContext => ({
 // 2026-09-24 14:05 UTC, four hourly parts.
 const START = Date.UTC(2026, 8, 24, 14, 5) / 1000;
 /** The watcher's UTC format: "2026-01-01 14:05 UTC". */
-const AT_START = `${new Date(START * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+const _AT_START = `${new Date(START * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
 const HOURLY = {
   start: String(START),
   end: String(START + 4 * 3600),
@@ -104,11 +115,7 @@ describe("watchTwap", () => {
     await watchTwap(box, {} as any, ref, ctx("confirmed"), {
       status: async () => statuses[i++] as any,
     });
-    expect(log).toEqual([
-      `Started at ${AT_START}`,
-      "1/4 executed",
-      "Finished: 4/4 executed",
-    ]);
+    expect(log).toEqual(["Executed 0/4", "Executed 1/4", "Executed 4/4"]);
     expect(state()).toBe("done");
     expect(progress()).toEqual([4, 4]);
     // No visible links: settlements are linked from the bar's segments.
@@ -140,7 +147,7 @@ describe("watchTwap", () => {
     await watchTwap(box, {} as any, ref, ctx("confirmed"), {
       status: async () => statuses[i++] as any,
     });
-    expect(log[0]).toBe(`Started at ${AT_START}`);
+    expect(log[0]).toBe("Executed 0/4");
   });
 
   it("ends with the executed count when the schedule expires unfilled", async () => {
@@ -156,7 +163,7 @@ describe("watchTwap", () => {
           submission: { partIndex: 3 },
         }) as any,
     });
-    expect(log.at(-1)).toBe("Ended: 3/4 executed, 1 expired");
+    expect(log.at(-1)).toBe("Executed 3/4, 1 expired");
     expect(progress()).toEqual([3, 4]);
   });
 
@@ -174,7 +181,7 @@ describe("watchTwap", () => {
           submission: { partIndex: null },
         }) as any,
     });
-    expect(log.at(-1)).toBe("Cancelled on-chain after 1/4 executed");
+    expect(log.at(-1)).toBe("Cancelled on-chain after executing 1/4");
     expect(state()).toBe("cancelled");
   });
 
@@ -192,7 +199,7 @@ describe("watchTwap", () => {
           submission: { partIndex: null },
         }) as any,
     });
-    expect(log.at(-1)).toBe("Finished: 4/4 executed");
+    expect(log.at(-1)).toBe("Executed 4/4");
   });
 
   const unknown = (overrides: Record<string, unknown>) =>
@@ -231,7 +238,7 @@ describe("watchTwap", () => {
     });
     expect(log).toEqual([
       "Ended; confirming fills…",
-      "Ended: 3/4 executed, 1 expired",
+      "Executed 3/4, 1 expired",
     ]);
     expect(progress()).toEqual([3, 4]);
   });
@@ -311,7 +318,9 @@ describe("watchTwap", () => {
           submission: { partIndex: null },
         }) as any,
     });
-    expect(log.at(-1)).toBe("No longer registered on-chain after 0/4 executed");
+    expect(log.at(-1)).toBe(
+      "No longer registered on-chain after executing 0/4",
+    );
     expect(state()).toBe("done");
   });
 
@@ -357,6 +366,46 @@ describe("watchTwap", () => {
   });
 });
 
+describe("watchTwap reveal and amounts", () => {
+  it("reads executed amounts with their tokens", async () => {
+    const { box, log } = fakeBox();
+    const statuses = [
+      {
+        registered: true,
+        schedule: "active",
+        filledParts: 1,
+        totalParts: 4,
+        filled: "partial",
+        executedSellAmount: "1000000",
+        executedBuyAmount: "400000000000000",
+        submission: { partIndex: 1 },
+      },
+      {
+        registered: true,
+        schedule: "expired",
+        filledParts: 4,
+        totalParts: 4,
+        filled: "complete",
+        executedSellAmount: "4000000",
+        executedBuyAmount: "1600000000000000",
+        submission: { partIndex: 3 },
+      },
+    ];
+    let i = 0;
+    await watchTwap(box, {} as any, {} as any, ctx("confirmed"), {
+      status: async () => statuses[i++] as any,
+      format: {
+        sell: (v) => `${Number(v) / 1e6} USDC`,
+        buy: (v) => `${Number(v) / 1e18} WETH`,
+      },
+    });
+    expect(log).toEqual([
+      "Executed 1/4 (1 USDC → 0.0004 WETH)",
+      "Executed 4/4 (4 USDC → 0.0016 WETH)",
+    ]);
+  });
+});
+
 describe("twapCountdown", () => {
   // Four segments of 60 s from t=1000: they open at 1000, 1060, 1120, 1180.
   const status = (over: Record<string, unknown>) =>
@@ -379,8 +428,8 @@ describe("twapCountdown", () => {
 
   it("counts down to the first opening before the start", () => {
     expect(twapCountdown(status({ schedule: "scheduled" }))).toEqual({
-      label: "Segment 1 opens in",
-      due: "Segment 1 opening now",
+      label: "First segment starts in",
+      due: "First segment opening now",
       from: 1000,
       until: 1000,
     });
@@ -388,8 +437,8 @@ describe("twapCountdown", () => {
 
   it("counts down to the running segment's close while it has not executed", () => {
     expect(twapCountdown(status({}), [...steps("open")])).toEqual({
-      label: "Segment 2 closes in",
-      due: "Segment 2 closing now",
+      label: "Segment closes in",
+      due: "Segment closing now",
       from: 1060,
       until: 1120,
     });
@@ -398,8 +447,8 @@ describe("twapCountdown", () => {
   it("after an early execution, counts down to the next opening", () => {
     // Segments open on schedule: executing early does not open the next one.
     expect(twapCountdown(status({}), [...steps("done")])).toEqual({
-      label: "Segment 3 opens in",
-      due: "Segment 3 opening now",
+      label: "Next segment starts in",
+      due: "Next segment opening now",
       from: 1060,
       until: 1120,
     });

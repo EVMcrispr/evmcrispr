@@ -192,6 +192,12 @@ async run(module, args, { interpreters }) {
   `not-sent` means the actions never went out (for example, the run stopped
   first); `unknown` means they were sent or queued (a Safe App batch, a host
   that returned no receipt) but how they ended is not known.
+- A box shows as soon as it opens, even while whatever carries its actions
+  (a transaction, `safe:execute`, a Safe proposal, a simulation) is still
+  live. With `follows` and `showWhenConfirmed: true` it shows only once
+  those actions are confirmed, right after the carrier's box, and never if
+  the carrier fails (its box says why). `hidden: true` keeps any box out of
+  sight until you call `reveal()`; a hidden box that ends is never shown.
 - End a box with `done`, `fail` or `cancel` (⊘, for something that was
   cancelled rather than failed).
 - `box.update({ countdown: { label, due, from, until } })` (Unix seconds)

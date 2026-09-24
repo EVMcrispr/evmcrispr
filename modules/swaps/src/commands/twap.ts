@@ -308,12 +308,18 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
     ];
     // Follows the order until its schedule ends. `client` is the order's
     // chain, even if the script switches chains afterwards.
+    // Shown only once the registration is confirmed, after its carrier.
     const box = interpreters.box?.({
       title: `CoW TWAP ${hash.slice(0, 10)}…`,
       detail: "Waiting for execution",
       follows: actions,
+      showWhenConfirmed: true,
     });
-    box?.watch((watch) => watchTwap(box, client, ref, watch));
+    const format = {
+      sell: await tokenAmountFormatter(module, tokenIn),
+      buy: await tokenAmountFormatter(module, tokenOut),
+    };
+    box?.watch((watch) => watchTwap(box, client, ref, watch, { format }));
     return actions;
   },
 });

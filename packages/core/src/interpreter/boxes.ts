@@ -30,6 +30,8 @@ interface Entry {
   /** Its followed actions confirmed and its watch runs (e.g. a TWAP
    *  polling its order): what it follows exists whatever the script does. */
   following?: boolean;
+  /** Opened `hidden` and not revealed yet: nothing is published. */
+  hidden: boolean;
 }
 
 const abortableSleep = (ms: number, signal: AbortSignal) =>
@@ -57,6 +59,11 @@ const sameCountdown = (a?: BoxCountdown, b?: BoxCountdown) =>
     a.from === b.from &&
     a.until === b.until &&
     a.segment === b.segment);
+
+/** Shown only once its followed actions are confirmed (and so after the
+ *  box of whatever carries them); never, if they are not. */
+const showWhenConfirmed = (options: BoxOptions) =>
+  options.showWhenConfirmed === true && (options.follows?.length ?? 0) > 0;
 
 const DEFAULT_MAX_BACKOFF = 5 * 60_000;
 
@@ -102,9 +109,14 @@ export class BoxRegistry {
       options,
       controller: new AbortController(),
       holds: !options.simulated && options.holds === true,
+      hidden: options.hidden === true || showWhenConfirmed(options),
     };
     this.#entries.set(id, entry);
     this.#publish(entry, true);
+    if (showWhenConfirmed(options) && options.follows)
+      void this.#input.outcomes.outcomeOf(options.follows).then((outcome) => {
+        if (outcome.kind === "confirmed") this.#reveal(entry);
+      });
     const handle: BoxHandle = {
       id,
       get signal() {
@@ -115,6 +127,7 @@ export class BoxRegistry {
       done: (detail) => this.#end(entry, "done", detail),
       fail: (detail) => this.#end(entry, "failed", detail),
       cancel: (detail) => this.#end(entry, "cancelled", detail),
+      reveal: () => this.#reveal(entry),
       watch: (fn) => {
         if (!options.simulated && options.realRun()) entry.holds = true;
         entry.watching = this.#runWatch(entry, fn);
@@ -191,13 +204,23 @@ export class BoxRegistry {
         this.#end(entry, "done", detail);
   }
 
+  #reveal(entry: Entry): void {
+    if (!entry.hidden) return;
+    entry.hidden = false;
+    this.#publish(entry, true);
+  }
+
   async #runWatch(entry: Entry, fn: (ctx: WatchContext) => Promise<void>) {
     try {
       const outcome = entry.options.follows
         ? await this.#input.outcomes.outcomeOf(entry.options.follows)
         : ({ kind: "confirmed" } as const);
       if (entry.snapshot.state !== "live" || this.#input.aborted?.()) return;
-      if (outcome.kind === "confirmed") entry.following = true;
+      if (outcome.kind === "confirmed") {
+        entry.following = true;
+        // Before the watch runs, so its first update is already visible.
+        if (showWhenConfirmed(entry.options)) this.#reveal(entry);
+      }
       await fn({
         outcome,
         signal: entry.controller.signal,
@@ -333,6 +356,11 @@ export class BoxRegistry {
   }
 
   #publish(entry: Entry, withLine: boolean): void {
+    // Holding and state still count; only what hosts see waits.
+    if (entry.hidden) {
+      for (const check of [...this.#changed]) check();
+      return;
+    }
     this.#input.emit(entry.snapshot);
     if (withLine && entry.snapshot.detail)
       this.#input.log(
