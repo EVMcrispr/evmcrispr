@@ -4,10 +4,11 @@ import {
   InformationCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useEffect, useMemo, useRef } from "react";
 import { Alert } from "../ui/Alert";
+import { BoxCard } from "./BoxCard";
+import { ConsoleMarkdown } from "./ConsoleMarkdown";
+import type { ConsoleEntry } from "./entries";
 
 type LogStatus = "success" | "error" | "warning" | "info";
 
@@ -45,28 +46,62 @@ const statusIcon: Record<LogStatus, typeof XCircleIcon> = {
   info: InformationCircleIcon,
 };
 
+/** One plain log line, styled by its `:success:` / `:error:` / `:waiting:`
+ *  prefix. */
+function LogLine({ log }: { log: string }) {
+  const _status = status(log);
+  const colorClass = statusColorClass[_status];
+  const IconComp = statusIcon[_status];
+  return (
+    <Alert status={_status} variant="solid">
+      <div className="flex items-start gap-2">
+        <IconComp className={`w-5 h-5 shrink-0 ${colorClass}`} />
+        <Alert.Description className="text-base prose prose-invert prose-base max-w-none">
+          <ConsoleMarkdown>{stripString(log)}</ConsoleMarkdown>
+        </Alert.Description>
+      </div>
+    </Alert>
+  );
+}
+
+const renderLine = (text: string, key: string) => (
+  <LogLine key={key} log={text} />
+);
+
 export interface ConsoleProps {
-  logs: string[];
+  /** Log lines and status boxes in order (from `useExecutionLogs`). */
+  entries?: ConsoleEntry[];
+  /** Plain log lines. Used only when `entries` is not given. */
+  logs?: string[];
   errors: string[];
   /** Shown when there are no logs or errors yet. */
   placeholder?: string;
 }
 
 export function Console({
+  entries: entriesProp,
   logs,
   errors,
   placeholder = "Console output will appear here during execution.",
 }: ConsoleProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const hasContent = logs.length > 0 || errors.length > 0;
+  const entries = useMemo<ConsoleEntry[]>(
+    () =>
+      entriesProp ??
+      (logs ?? []).map((text) => ({ kind: "line" as const, text })),
+    [entriesProp, logs],
+  );
 
-  // Follow new output. `block: "nearest"` keeps the scroll inside the
+  const hasContent = entries.length > 0 || errors.length > 0;
+
+  // Follow new output, including in-place box updates (a new `entries`
+  // array on every change). `block: "nearest"` keeps the scroll inside the
   // console's own container — never the embedding page.
   useEffect(() => {
-    if (logs.length === 0 && errors.length === 0) return;
+    if (entries.length === 0 && errors.length === 0) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [logs.length, errors.length]);
+  }, [entries, errors.length]);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-4 py-3 gap-2">
@@ -75,38 +110,18 @@ export function Console({
           {placeholder}
         </p>
       )}
-      {logs.map((log, i) => {
-        const _status = status(log);
-        const colorClass = statusColorClass[_status];
-        const IconComp = statusIcon[_status];
-        return (
-          <Alert key={`log-${i}`} status={_status} variant="solid">
-            <div className="flex items-start gap-2">
-              <IconComp className={`w-5 h-5 shrink-0 ${colorClass}`} />
-              <Alert.Description className="text-base prose prose-invert prose-base max-w-none">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    a: ({ href, children, ...props }) => (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-evm-green-300 underline"
-                        {...props}
-                      >
-                        {children}
-                      </a>
-                    ),
-                  }}
-                >
-                  {stripString(log)}
-                </ReactMarkdown>
-              </Alert.Description>
-            </div>
-          </Alert>
-        );
-      })}
+      {entries.map((entry, i) =>
+        entry.kind === "box" ? (
+          <BoxCard
+            key={`box-${entry.box.id}`}
+            box={entry.box}
+            nested={entry.children}
+            renderLine={renderLine}
+          />
+        ) : (
+          renderLine(entry.text, `log-${i}`)
+        ),
+      )}
       {errors.map((e, i) => (
         <Alert key={`err-${i}`} status="error">
           <div className="flex items-start gap-2">

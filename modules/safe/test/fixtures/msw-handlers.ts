@@ -15,7 +15,11 @@ export const serviceState = {
   /** Delegates of the v2 delegates endpoint, as the service lists them. */
   delegates: [] as any[],
   delegateRemovals: [] as any[],
+  /** Serve POSTed proposals back from the queue, as the real service
+   *  does. Off by default: most tests seed the queue by hand. */
+  serveProposals: false,
   reset() {
+    this.serveProposals = false;
     this.delegates = [];
     this.delegateRemovals = [];
     this.proposals = [];
@@ -108,8 +112,26 @@ export const safeServiceHandlers = [
   ),
   http.post(
     `${BASE}/safes/:safe/multisig-transactions/`,
-    async ({ request }) => {
-      serviceState.proposals.push(await request.json());
+    async ({ request, params }) => {
+      const body = (await request.json()) as any;
+      serviceState.proposals.push(body);
+      // Served back like the real service does, so proposals can be
+      // followed (and executed by hash).
+      if (serviceState.serveProposals)
+        serviceState.transactions.set(
+          String(body.contractTransactionHash).toLowerCase(),
+          {
+            ...body,
+            safe: params.safe,
+            safeTxHash: body.contractTransactionHash,
+            trusted: !!body.signature,
+            confirmationsRequired: 1,
+            isExecuted: false,
+            confirmations: body.signature
+              ? [{ owner: body.sender, signature: body.signature }]
+              : [],
+          },
+        );
       return new HttpResponse(null, { status: 201 });
     },
   ),

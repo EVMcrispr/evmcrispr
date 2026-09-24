@@ -604,6 +604,9 @@ export default defineCommand<Sim>({
       // Simulated off-chain effects (recorded by commands that skipped a
       // real API write) must not outlive the fork.
       module.context.offchain.clear();
+      // Status boxes opened in the fork follow simulated actions: they end
+      // with it, not with the script.
+      await module.context.endSimulatedBoxes?.("Simulation ended");
       // Restore the pre-fork chain so the rest of the script doesn't see the
       // simulated client. `chainId` was captured at the top of `run()` from
       // the script's chain at fork-entry time (preserves any preceding

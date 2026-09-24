@@ -1,6 +1,6 @@
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
-import type { Action, Address } from "@evmcrispr/sdk";
+import type { Action, Address, BoxSnapshot } from "@evmcrispr/sdk";
 import {
   BindingsSpace,
   isTransactionAction,
@@ -42,6 +42,7 @@ import {
   predictZodiacModuleAddress,
 } from "../../src/utils";
 import { safeInitializer } from "../../src/utils/deployment";
+import { followTiming } from "../../src/utils/follow";
 import { serviceState } from "../fixtures/msw-handlers";
 
 const factoryAbi = parseAbi([
@@ -74,12 +75,23 @@ describe("Safe > integration", () => {
   let delay: Address;
   const deploySalt = BigInt(Date.now());
 
-  const run = async (script: string, account?: Address) => {
+  // Proposal boxes hold a real run until the Safe executes the proposal:
+  // tests that only propose stop following once the script ends.
+  const run = async (
+    script: string,
+    account?: Address,
+    {
+      onBox,
+      follow = false,
+    }: { onBox?: (s: BoxSnapshot) => void; follow?: boolean } = {},
+  ) => {
     const logs: string[] = [];
     const evm = new Interpreter(evml.registry, {
       account: account ?? ownerA,
       transports: getTransports(),
       onLog: (message: string) => logs.push(message),
+      onBox,
+      follow,
     });
     evm.switchChainId(gnosis.id);
 
@@ -195,6 +207,7 @@ describe("Safe > integration", () => {
   };
 
   beforeAll(() => {
+    followTiming.every = 200;
     client = getPublicClient();
     wallets = getWalletClients();
     [ownerA, ownerB, ownerC, ownerD] = wallets.map(
@@ -419,6 +432,68 @@ describe("Safe > integration", () => {
     expect(hashLog).to.include(expectedHash);
     expect(hashLog).to.include(domainSeparator);
   });
+
+  const waitFor = async (condition: () => boolean, timeout = 30_000) => {
+    const start = Date.now();
+    while (!condition()) {
+      if (Date.now() - start > timeout) throw new Error("timed out waiting");
+      await Bun.sleep(50);
+    }
+  };
+  const proposalBox = (snapshots: BoxSnapshot[]) =>
+    snapshots.filter((s) => s.title.startsWith("Safe transaction ")).at(-1);
+  const proposeFollowing = (snapshots: BoxSnapshot[]) =>
+    run(
+      `load safe\nsafe:propose ${safe} (\n  safe:change-threshold 1\n) --allow-change-threshold-to 1`,
+      undefined,
+      { onBox: (s) => snapshots.push(s), follow: true },
+    );
+
+  it("follows a proposal until the Safe executes it", async () => {
+    serviceState.reset();
+    serviceState.serveProposals = true;
+    const snapshots: BoxSnapshot[] = [];
+    const proposing = proposeFollowing(snapshots);
+    await waitFor(
+      () => proposalBox(snapshots)?.detail.includes("confirmations") ?? false,
+    );
+    expect(proposalBox(snapshots)!.detail).to.equal("1/1 confirmations");
+    expect(proposalBox(snapshots)!.links?.Queue).to.include(safe);
+    const { contractTransactionHash } = serviceState.proposals.at(-1);
+    expect(proposalBox(snapshots)!.title).to.include(
+      contractTransactionHash.slice(0, 10),
+    );
+    await run(`load safe\nsafe:execute ${safe} ${contractTransactionHash}`);
+    await proposing;
+    expect(proposalBox(snapshots)!.state).to.equal("done");
+    expect(proposalBox(snapshots)!.detail.startsWith("Executed in ")).to.be
+      .true;
+  }, 120000);
+
+  it("marks a proposal replaced when another transaction takes its nonce", async () => {
+    serviceState.reset();
+    serviceState.serveProposals = true;
+    const snapshots: BoxSnapshot[] = [];
+    const proposing = proposeFollowing(snapshots);
+    await waitFor(
+      () => proposalBox(snapshots)?.detail.includes("confirmations") ?? false,
+    );
+    const nonce = await client.readContract({
+      address: safe,
+      abi: safeAbi,
+      functionName: "nonce",
+    });
+    // A different transaction executes directly at the same nonce.
+    await run(
+      `load safe\nsafe:execute ${safe} (\n  exec ${safe} changeThreshold(uint256) 1\n  exec ${safe} changeThreshold(uint256) 1\n) --allow-change-threshold-to 1`,
+    );
+    await proposing;
+    expect(proposalBox(snapshots)).to.include({
+      state: "failed",
+      detail: `Replaced by another transaction at nonce ${nonce}`,
+    });
+    serviceState.reset();
+  }, 120000);
 
   it("executes a fully-confirmed queued transaction by hash", async () => {
     // Raise the threshold to 2 so direct block execution is rejected...

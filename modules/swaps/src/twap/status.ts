@@ -32,7 +32,13 @@ export async function twapSnapshot(
   const block =
     options.block ?? ((await client.getBlock()) as ObservationBlock);
   const state = await readOrderState(client, ref, block.number);
-  const evidence = await collectEvidence(client, ref, block, options.external);
+  const evidence = await collectEvidence(
+    client,
+    ref,
+    block,
+    options.external,
+    options.signal,
+  );
   const start = evidence.registration?.start ?? state.start;
   const s = state.schedule;
   const end = start + s.n * s.t;
@@ -75,6 +81,7 @@ export async function twapSnapshot(
     : "skipped";
   const accepted = new Map<Hex, string>();
   if (options.external && entries.length) {
+    options.signal?.throwIfAborted();
     try {
       const orders = await orderbookOrders(
         ref.chainId,

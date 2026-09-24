@@ -158,6 +158,48 @@ async run(module, args) {
 }
 ```
 
+## Status boxes
+
+A command that starts something longer than its transaction can show its
+progress in a status box. Open it from `interpreters.box`, follow the
+actions the command returns, and update it from `watch`:
+
+```ts
+async run(module, args, { interpreters }) {
+  const actions = [/* … */];
+  const box = interpreters.box?.({ title: "My order 0x12…", detail: "Waiting for execution", follows: actions });
+  box?.watch(async ({ outcome, simulated }) => {
+    if (outcome.kind === "not-sent") return box.done("Prepared, not sent");
+    if (outcome.kind === "unknown") return box.done(outcome.reason);
+    if (outcome.kind !== "confirmed") return box.fail(`Not registered: ${outcome.reason}`);
+    if (simulated) return box.done("Registered (simulated)");
+    await box.poll(async () => {
+      const done = await checkProgress();
+      box.update({ detail: `${done}/4 done`, progress: [done, 4] });
+      return done === 4 ? "stop" : "continue";
+    }, { every: 60_000 });
+    box.done("Finished");
+  });
+  return actions;
+}
+```
+
+- `outcome` is how the actions ended, through whatever carried them: sent
+  directly, inside `batch` / `safe:execute` / `aragonos:forward`, or proposed
+  with `safe:propose`. The box nests under its carrier's box on its own.
+  `not-sent` means the actions never went out (for example, the run stopped
+  first); `unknown` means they were sent or queued (a Safe App batch, a host
+  that returned no receipt) but how they ended is not known.
+- End a box with `done`, `fail` or `cancel` (⊘, for something that was
+  cancelled rather than failed).
+- A box with a `watch` keeps a real run open until it ends; simulations
+  never wait, and a box opened inside `sim:fork` ends when the fork does.
+  Cancel aborts `box.signal`.
+- A wrapper that sends nothing itself reports what happened with
+  `interpreters.carry(innerActions, outcomePromise, box)`.
+- Every change to a box's detail is also a log line (title: detail), so the
+  CLI and tests see it too; progress and link updates are not logged.
+
 ## Building and Testing
 
 ```sh

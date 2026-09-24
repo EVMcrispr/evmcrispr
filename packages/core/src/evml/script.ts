@@ -1,4 +1,4 @@
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, ActionReport } from "@evmcrispr/sdk";
 import type { WalletClient } from "viem";
 
 import {
@@ -25,8 +25,9 @@ import type { EvmlConfig } from "./types";
 
 export interface InterpretOptions {
   /** Escape hatch: receive every resolved action as the run progresses
-   *  (e.g. to send transactions with custom logic). */
-  onAction?: (action: Action) => Promise<unknown>;
+   *  (e.g. to send transactions with custom logic). `report.sent(hash)`
+   *  shows the sent hash on the action's transaction box. */
+  onAction?: (action: Action, report?: ActionReport) => Promise<unknown>;
   /** Cancels the run between nodes (and inside abort-aware commands). */
   signal?: AbortSignal;
 }

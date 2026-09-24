@@ -1,4 +1,5 @@
 import type { EvmlScript } from "@evmcrispr/core";
+import type { BoxSnapshot } from "@evmcrispr/sdk";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { Console } from "./console/Console";
@@ -50,7 +51,10 @@ export interface EvmcrisprTerminalProps
    *  decoded transactions and console output — nothing is ever sent. */
   executeAction?: (
     script: EvmlScript,
-    ctx: { onLog: (log: string) => void },
+    ctx: {
+      onLog: (log: string) => void;
+      onBox: (snapshot: BoxSnapshot) => void;
+    },
   ) => Promise<void>;
   className?: string;
 }
@@ -110,10 +114,14 @@ function TerminalInner({
       interpreter.clearLogs();
       try {
         const evmlScript = tag
-          .with({ onLog: interpreter.logListener })
+          .with({
+            onLog: interpreter.logListener,
+            onBox: interpreter.boxListener,
+          })
           .script(scriptRef.current);
         await executeAction(evmlScript, {
           onLog: interpreter.logListener,
+          onBox: interpreter.boxListener,
         });
       } catch (err) {
         setExecuteErrors([err instanceof Error ? err.message : String(err)]);
@@ -208,11 +216,11 @@ function TerminalInner({
                   {interpreter.actions.length > 0 && (
                     <ActionsPreview actions={interpreter.actions} />
                   )}
-                  {(interpreter.logs.length > 0 || errors.length > 0) && (
-                    <Console logs={interpreter.logs} errors={errors} />
+                  {(interpreter.entries.length > 0 || errors.length > 0) && (
+                    <Console entries={interpreter.entries} errors={errors} />
                   )}
                   {interpreter.actions.length === 0 &&
-                    interpreter.logs.length === 0 &&
+                    interpreter.entries.length === 0 &&
                     errors.length === 0 && (
                       <p className="py-2 text-sm text-foreground/40">
                         The script completed without producing transactions or
@@ -249,7 +257,7 @@ function TerminalInner({
       {showConsole && executeAction && (
         <div className="border-t border-border/40 max-h-56 overflow-y-auto bg-evm-gray-900/30">
           <Console
-            logs={interpreter.logs}
+            entries={interpreter.entries}
             errors={errors}
             placeholder="Console output will appear here during execution."
           />

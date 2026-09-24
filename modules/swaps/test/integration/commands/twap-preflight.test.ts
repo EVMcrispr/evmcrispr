@@ -40,6 +40,7 @@ describe("TWAP > creation preflight", () => {
     const interpreter = new Interpreter(evml.registry, {
       account: wallet.account!.address,
       transports: getTransports(),
+      follow: false,
     });
     interpreter.switchChainId(100);
     const actions = await interpreter.interpret(

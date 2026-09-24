@@ -45,6 +45,18 @@ describe("evml > execute > transaction handler", () => {
     expect(receipt.status).to.equal("success");
   });
 
+  it("reports the sent hash and leaves the confirmation to the transaction box", async () => {
+    const sent: string[] = [];
+    const logs: string[] = [];
+    await handlers.transaction(action, {
+      ...makeCtx("success"),
+      onLog: (m) => logs.push(m),
+      onSent: (hash) => sent.push(hash),
+    });
+    expect(sent).to.deep.equal([HASH]);
+    expect(logs.some((m) => m.includes("confirmed"))).to.be.false;
+  });
+
   it("fails loudly when the mined transaction reverted", async () => {
     try {
       await handlers.transaction(action, makeCtx("reverted"));
@@ -76,6 +88,79 @@ describe("evml > execute > transaction handler", () => {
       throw new Error("Expected handler to throw");
     } catch (err: any) {
       expect(err.message).to.include("https://ingress.example");
+    }
+  });
+
+  it("reports the hash of a transaction observed from another signer", async () => {
+    const other = "0x1111111111111111111111111111111111111111" as const;
+    const sent: string[] = [];
+    await handlers.transaction(
+      { to: TO, data: "0x1234", chainId: 1, from: other },
+      {
+        ...makeCtx("success"),
+        getPublicClient: () =>
+          ({
+            getBlockNumber: async () => 0n,
+            getBlock: async () => ({
+              transactions: [
+                {
+                  hash: HASH,
+                  blockNumber: 0n,
+                  from: other,
+                  to: TO,
+                  input: "0x1234",
+                },
+              ],
+            }),
+            getTransactionReceipt: async () => ({
+              status: "success",
+              transactionHash: HASH,
+            }),
+          }) as any,
+        onSent: (hash) => sent.push(hash),
+      },
+    );
+    expect(sent).to.deep.equal([HASH]);
+  });
+
+  it("returns the receipt of an observed transaction and fails on its revert", async () => {
+    const other = "0x1111111111111111111111111111111111111111" as const;
+    const observe = (status: "success" | "reverted") =>
+      handlers.transaction(
+        { to: TO, data: "0x1234", chainId: 1, from: other },
+        {
+          ...makeCtx(status),
+          getPublicClient: () =>
+            ({
+              getBlockNumber: async () => 0n,
+              getBlock: async () => ({
+                transactions: [
+                  {
+                    hash: HASH,
+                    blockNumber: 0n,
+                    from: other,
+                    to: TO,
+                    input: "0x1234",
+                  },
+                ],
+              }),
+              getTransactionReceipt: async () => ({
+                status,
+                blockNumber: 0n,
+                transactionHash: HASH,
+                logs: [],
+              }),
+            }) as any,
+        },
+      );
+    expect(((await observe("success")) as { status: string }).status).to.equal(
+      "success",
+    );
+    try {
+      await observe("reverted");
+      throw new Error("Expected handler to throw");
+    } catch (err) {
+      expect(failureTiming(err)).to.equal("revert");
     }
   });
 });

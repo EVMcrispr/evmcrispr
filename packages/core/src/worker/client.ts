@@ -1,4 +1,4 @@
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, ActionReport, BoxSnapshot } from "@evmcrispr/sdk";
 import type { Transport, WalletClient } from "viem";
 import { http } from "viem";
 
@@ -29,7 +29,14 @@ export type {
 
 /** Worker config plus the main-thread callbacks the client bridges. */
 export interface WorkerEvmlClientConfig extends WorkerEvmlConfig {
-  onLog?: (message: string) => void;
+  /** `meta.box` tags lines that belong to a status box. */
+  onLog?: (
+    message: string,
+    prevMessages: string[],
+    meta?: { box?: string },
+  ) => void;
+  /** Status box listener: a complete snapshot on every change. */
+  onBox?: (snapshot: BoxSnapshot) => void;
   onOutput?: (message: string) => void;
   onLine?: (line: number | null) => void;
 }
@@ -55,7 +62,8 @@ export interface WorkerEvml {
 }
 
 interface RunCallbacks {
-  onLog?(message: string): void;
+  onLog?(message: string, meta?: { box?: string }): void;
+  onBox?(snapshot: BoxSnapshot): void;
   onOutput?(message: string): void;
   onLine?(line: number | null): void;
   onAction?(actionId: number, action: Action): void;
@@ -70,6 +78,9 @@ interface PendingRun extends RunCallbacks {
    *  as handled before rejecting them (teardown must not surface
    *  unhandled-rejection noise for consumers that already moved on). */
   result?: Promise<unknown>;
+  /** The boxes the worker last reported live: a killed or crashed worker
+   *  never ends them, so the client does. */
+  live: Map<string, BoxSnapshot>;
 }
 
 /** How long a soft abort may go unanswered before the worker is killed —
@@ -118,8 +129,24 @@ class WorkerManager {
     this.#worker?.terminate();
     this.#worker = null;
     this.#ready = null;
+    // What the boxes followed may still be going on (a sent transaction,
+    // a posted proposal): they only stop being followed.
+    const detail =
+      error.message === "Execution cancelled"
+        ? "Stopped following"
+        : "Stopped following: the EVML worker crashed";
     for (const run of pending) {
       run.cleanup();
+      for (const box of run.live.values()) {
+        run.onBox?.({
+          ...box,
+          state: "cancelled",
+          detail,
+          history: box.detail ? [...box.history, box.detail] : box.history,
+        });
+        run.onLog?.(`${box.title}: ${detail}`, { box: box.id });
+      }
+      run.live.clear();
       run.reject(error);
     }
   }
@@ -140,7 +167,13 @@ class WorkerManager {
     if (!run) return;
     switch (msg.kind) {
       case "log":
-        run.onLog?.(msg.message);
+        run.onLog?.(msg.message, msg.box ? { box: msg.box } : undefined);
+        break;
+      case "box":
+        if (msg.snapshot.state === "live")
+          run.live.set(msg.snapshot.id, msg.snapshot);
+        else run.live.delete(msg.snapshot.id);
+        run.onBox?.(msg.snapshot);
         break;
       case "output":
         (run.onOutput ?? run.onLog)?.(msg.message);
@@ -194,6 +227,7 @@ class WorkerManager {
         ...callbacks,
         resolve,
         reject,
+        live: new Map(),
         cleanup: () => {
           if (killTimer !== undefined) clearTimeout(killTimer);
           signal?.removeEventListener("abort", onAbort);
@@ -222,6 +256,14 @@ class WorkerManager {
     return { id, result };
   }
 
+  /** Tell the worker a proxied action was sent (its box shows the hash). */
+  reportSent(id: string, actionId: number, hash: `0x${string}`): void {
+    // A run the worker no longer serves (killed, crashed) needs no word,
+    // and sending one would respawn a worker for nothing.
+    if (!this.#pending.has(id)) return;
+    this.#send({ kind: "action-progress", id, actionId, hash }).catch(() => {});
+  }
+
   /** Reply to a proxied action. Falls back to an empty success when the
    *  handler's result isn't structured-cloneable. */
   replyAction(
@@ -231,6 +273,7 @@ class WorkerManager {
       | { ok: true; value: unknown }
       | { ok: false; error: SerializedError },
   ): void {
+    if (!this.#pending.has(id)) return;
     const base = { kind: "action-result" as const, id, actionId };
     const message = outcome.ok
       ? { ...base, ok: true as const, value: outcome.value }
@@ -292,6 +335,7 @@ function makeWorkerEvml(
     account: config.account ?? account,
     chainId: config.chainId,
     rpcUrls: config.rpcUrls,
+    follow: config.follow,
   });
 
   const script = (source: string): WorkerEvmlScript => ({
@@ -301,7 +345,10 @@ function makeWorkerEvml(
         { kind: "simulate", source, config: workerConfig(), options: rest },
         {
           signal,
-          onLog: config.onLog,
+          onLog:
+            config.onLog &&
+            ((message, meta) => config.onLog?.(message, [], meta)),
+          onBox: config.onBox,
           onOutput: config.onOutput,
           onLine: config.onLine,
         },
@@ -321,6 +368,7 @@ function makeWorkerEvml(
         chainId: config.chainId,
         transports: toTransports(config.rpcUrls),
         onLog: config.onLog,
+        onBox: config.onBox,
         onOutput: config.onOutput,
         onLine: config.onLine,
       };
@@ -343,10 +391,14 @@ function makeWorkerEvml(
               {
                 signal: hooks.signal,
                 onLog: hooks.onLog,
+                onBox: hooks.onBox,
                 onOutput: hooks.onOutput,
                 onLine: hooks.onLine,
                 onAction: (actionId, action) => {
-                  dispatch(action).then(
+                  const report: ActionReport = {
+                    sent: (hash) => manager.reportSent(id, actionId, hash),
+                  };
+                  dispatch(action, report).then(
                     (value) =>
                       manager.replyAction(id, actionId, { ok: true, value }),
                     (err) =>

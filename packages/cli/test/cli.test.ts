@@ -127,6 +127,99 @@ describe("CLI", () => {
       expect(result.exitCode).toBe(0);
       expect(JSON.parse(result.stdout).valid).toBe(true);
     });
+    it("cancels the run on Ctrl-C", async () => {
+      const proc = Bun.spawn(["bun", BIN, "run", "-"], {
+        stdin: "pipe",
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, NO_COLOR: "1" } as Record<string, string>,
+      });
+      proc.stdin.write('print "started"\nwait 60s\nprint "after"');
+      proc.stdin.end();
+      const reader = proc.stdout.getReader();
+      const decoder = new TextDecoder();
+      let stdout = "";
+      let interrupted = false;
+      const timer = setTimeout(() => proc.kill(), 10_000);
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        stdout += decoder.decode(value);
+        if (!interrupted && stdout.includes("started")) {
+          interrupted = true;
+          proc.kill("SIGINT");
+        }
+      }
+      const exitCode = await proc.exited;
+      clearTimeout(timer);
+      const stderr = await new Response(proc.stderr).text();
+      expect(exitCode).toBe(1);
+      expect(stdout).not.toContain("after");
+      expect(stderr).toContain("Cancelling…");
+      expect(stderr).toContain("Execution cancelled");
+    }, 20_000);
+    it("cancels a send the wallet never answers on Ctrl-C", async () => {
+      // Answers the chain id and holds every other request open, like a
+      // wallet prompt nobody confirms.
+      let hanging!: () => void;
+      const reached = new Promise<void>((r) => {
+        hanging = r;
+      });
+      const rpc = Bun.serve({
+        port: 0,
+        fetch: async (req) => {
+          const body = (await req.json()) as { id?: number; method?: string };
+          if (body.method === "eth_chainId")
+            return Response.json({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: "0x1",
+            });
+          hanging();
+          return new Promise<Response>(() => {});
+        },
+      });
+      const url = `http://127.0.0.1:${rpc.port}`;
+      const proc = Bun.spawn(
+        [
+          "bun",
+          BIN,
+          "run",
+          "-",
+          "--wallet-rpc",
+          url,
+          "--account",
+          "0x000000000000000000000000000000000000dEaD",
+        ],
+        {
+          stdin: "pipe",
+          stdout: "pipe",
+          stderr: "pipe",
+          env: {
+            ...process.env,
+            NO_COLOR: "1",
+            EVMCRISPR_DEFAULT_CHAIN_ID: "1",
+            EVMCRISPR_RPC_URL_1: url,
+          } as Record<string, string>,
+        },
+      );
+      proc.stdin.write(
+        'exec 0x1111111111111111111111111111111111111111 "transfer(address,uint256)" 0x2222222222222222222222222222222222222222 5\nprint "after"',
+      );
+      proc.stdin.end();
+      const timer = setTimeout(() => proc.kill(), 10_000);
+      await reached;
+      proc.kill("SIGINT");
+      const exitCode = await proc.exited;
+      clearTimeout(timer);
+      rpc.stop(true);
+      const stdout = await new Response(proc.stdout).text();
+      const stderr = await new Response(proc.stderr).text();
+      expect(exitCode).toBe(1);
+      expect(stdout).not.toContain("after");
+      expect(stderr).toContain("Cancelled");
+      expect(stderr).toContain("Execution cancelled");
+    }, 20_000);
     it("requires both an external wallet endpoint and its account", async () => {
       const result = await run(
         ["run", "-", "--wallet-rpc", "http://127.0.0.1:1"],

@@ -73,6 +73,7 @@ describe("TWAP > five-network deployment and lifecycle smoke", () => {
           const interpreter = new Interpreter(evml.registry, {
             account: account.address,
             transports: { [chain.id]: transport },
+            follow: false,
           });
           interpreter.switchChainId(chain.id);
           await interpreter.interpret(

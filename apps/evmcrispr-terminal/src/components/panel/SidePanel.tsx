@@ -1,4 +1,4 @@
-import { Console } from "@evmcrispr/editor";
+import { Console, type ConsoleEntry } from "@evmcrispr/editor";
 import {
   BookOpenIcon,
   ChatBubbleLeftRightIcon,
@@ -17,11 +17,12 @@ import { LibraryTab } from "./LibraryTab";
 import { ReferenceTab } from "./ReferenceTab";
 
 export function SidePanel({
-  logs,
+  entries,
   ioControl,
   errors,
 }: {
-  logs: string[];
+  /** Log lines and status boxes in order. */
+  entries: ConsoleEntry[];
   ioControl?: ReactNode;
   errors: string[];
 }) {
@@ -77,7 +78,7 @@ export function SidePanel({
           </div>
         )}
         <div className="min-h-0 flex-1">
-          <Console logs={logs} errors={errors} />
+          <Console entries={entries} errors={errors} />
         </div>
       </Tabs.Content>
       <Tabs.Content

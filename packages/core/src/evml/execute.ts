@@ -1,6 +1,8 @@
 import type {
   Action,
+  ActionReport,
   BatchedAction,
+  BoxSnapshot,
   RpcAction,
   SmartBatchAction,
   TerminalAction,
@@ -13,6 +15,7 @@ import {
   isTransactionAction,
   RevertError,
   resolveChain,
+  truncateAddress,
 } from "@evmcrispr/sdk";
 import {
   checkSmartAccountReceipt,
@@ -50,12 +53,15 @@ import type { EvmlConfig } from "./types";
  */
 export type InterpretRunner = (
   source: string,
-  dispatch: (action: Action) => Promise<unknown>,
+  dispatch: (action: Action, report?: ActionReport) => Promise<unknown>,
   hooks: {
     /** Sender account resolved from the config or wallet. */
     account?: Address;
-    /** Feed script log output into the execution's log stream. */
-    onLog(message: string): void;
+    /** Feed script log output into the execution's log stream (`meta.box`
+     *  tags status box lines). */
+    onLog(message: string, meta?: { box?: string }): void;
+    /** Feed status box snapshots to the config's box listener. */
+    onBox(snapshot: BoxSnapshot): void;
     /** Feed printed text to the configured output stream. */
     onOutput(message: string): void;
     /** Feed line progress to the config's line listener. */
@@ -93,6 +99,9 @@ export interface ActionHandlerCtx {
   signal?: AbortSignal;
   /** Host-configured transports, keyed by chain id. */
   transports?: Record<number, Transport>;
+  /** The host sent the action; the interpreter shows the hash on the
+   *  action's transaction box. */
+  onSent?(hash: Hash): void;
   /** Delegate to the built-in handler for this action. */
   next(action: Action): Promise<unknown>;
 }
@@ -158,10 +167,6 @@ export function checkReceiptOutcome(
     throw new Error(
       `Transaction receipt is missing the expected success event from ${check.address}`,
     );
-}
-
-function truncateAddress(addr: string): string {
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
 /** Abort-aware sleep for real-time `wait` terminal actions. */
@@ -696,6 +701,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         const tx = action.rpcUrl
           ? await sendThrough(action.rpcUrl, chainId, request, ctx)
           : await ctx.walletClient.sendTransaction(request);
+        ctx.onSent?.(tx);
         const receipt = await ctx
           .getPublicClient(chainId)
           .waitForTransactionReceipt({ hash: tx });
@@ -713,11 +719,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           );
         }
         checkReceiptOutcome(action, receipt);
-        const explorer = chainFor(chainId, ctx)?.blockExplorers?.default.url;
-        const link = explorer ? `${explorer.replace(/\/$/, "")}/tx/${tx}` : tx;
-        ctx.onLog(
-          `:success:Transaction confirmed: [${tx.slice(0, 10)}...](${link})`,
-        );
+        // The transaction box reports the confirmation.
         return receipt;
       }
 
@@ -737,12 +739,18 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         onStatusUpdate: ctx.onLog,
         signal: ctx.signal,
       });
-      if (action.receiptCheck)
-        checkReceiptOutcome(
-          action,
-          await publicClient.getTransactionReceipt({ hash: observed.hash }),
+      ctx.onSent?.(observed.hash);
+      // The observed transaction is mined but may have reverted: the
+      // transaction box only confirms a receipt that says it succeeded.
+      const receipt = await publicClient.getTransactionReceipt({
+        hash: observed.hash,
+      });
+      if (receipt.status === "reverted")
+        throw new RevertError(
+          `Transaction from ${truncateAddress(action.from!)} reverted on-chain: ${observed.hash}`,
         );
-      return observed;
+      if (action.receiptCheck) checkReceiptOutcome(action, receipt);
+      return receipt;
     },
 
     async batched(action, ctx) {
@@ -792,10 +800,16 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
 
       // Aggregate logs from all receipts for event capture support.
       if (result.receipts && result.receipts.length > 0) {
+        // EIP-5792 only hands the hash over with the receipts: the box
+        // shows it (the last one for wallets that split the batch).
+        ctx.onSent?.(result.receipts.at(-1)!.transactionHash);
         const allLogs = result.receipts.flatMap((r) => r.logs);
         for (const inner of actions)
           checkReceiptOutcome(inner, { logs: allLogs });
         return {
+          // Every call succeeded (checked above): the batch is mined.
+          status: "success",
+          blockNumber: result.receipts.at(-1)!.blockNumber,
           logs: allLogs,
           transactionHash:
             result.receipts.length === 1
@@ -914,22 +928,39 @@ export async function executeScript(
     }
   };
 
-  const ctx: ActionHandlerCtx = {
-    get walletClient() {
-      if (!walletClient)
-        throw new Error(
-          "Wallet access is required to sign or send; connect a wallet or configure --wallet-rpc and --account",
-        );
-      return walletClient;
-    },
-    getPublicClient,
-    onLog,
-    signal: options.signal,
-    transports: config.transports,
-    next: (action) => runDefault(action, ctx),
+  // Handlers stop on cancel, and when the run fails under them (a killed
+  // or crashed worker leaves proxied wallet prompts nobody awaits).
+  const handlerController = new AbortController();
+  const handlerSignal = handlerController.signal;
+  const stopHandlers = () => handlerController.abort(options.signal?.reason);
+  if (options.signal?.aborted) stopHandlers();
+  else options.signal?.addEventListener("abort", stopHandlers, { once: true });
+
+  // One context per dispatch, so `next` keeps the action's send report.
+  const contextFor = (report?: ActionReport): ActionHandlerCtx => {
+    const ctx: ActionHandlerCtx = {
+      get walletClient() {
+        if (!walletClient)
+          throw new Error(
+            "Wallet access is required to sign or send; connect a wallet or configure --wallet-rpc and --account",
+          );
+        return walletClient;
+      },
+      getPublicClient,
+      onLog,
+      signal: handlerSignal,
+      transports: config.transports,
+      onSent: report ? (hash) => report.sent(hash) : undefined,
+      next: (action) => runDefault(action, ctx),
+    };
+    return ctx;
   };
 
-  const dispatch = async (action: Action): Promise<unknown> => {
+  const dispatch = async (
+    action: Action,
+    report?: ActionReport,
+  ): Promise<unknown> => {
+    const ctx = contextFor(report);
     if (options.signal?.aborted) {
       throw new Error("Execution cancelled");
     }
@@ -964,13 +995,18 @@ export async function executeScript(
   const runInterpret: InterpretRunner =
     options.interpretRunner ??
     (async (src, dispatchFn, hooks) => {
-      await interpreter.interpret(src, dispatchFn, { signal: hooks.signal });
+      await interpreter.interpret(
+        src,
+        (action, report) => dispatchFn(action, report),
+        { signal: hooks.signal },
+      );
     });
 
   try {
     await runInterpret(source, dispatch, {
       account,
-      onLog: (message) => interpreter.log(message),
+      onLog: (message, meta) => interpreter.log(message, meta),
+      onBox: (snapshot) => config.onBox?.(snapshot),
       onOutput: (message) => interpreter.output(message),
       onLine: (line) => config.onLine?.(line),
       signal: options.signal,
@@ -980,6 +1016,9 @@ export async function executeScript(
     if (err instanceof ExitSignal) {
       return { executed, exited: true, logs };
     }
+    stopHandlers();
     throw err;
+  } finally {
+    options.signal?.removeEventListener("abort", stopHandlers);
   }
 }

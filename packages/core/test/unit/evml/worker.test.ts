@@ -1,4 +1,5 @@
 import { afterAll, describe, it } from "bun:test";
+import type { BoxSnapshot } from "@evmcrispr/sdk";
 import {
   CommandError,
   DeclaredError,
@@ -226,6 +227,108 @@ describe("evml > worker", () => {
       expect(logs).to.include("before");
       expect(lines[lines.length - 1]).to.be.null;
       // Cold worker spawn can exceed the 5s default under parallel turbo load.
+    }, 15_000);
+
+    it("streams the transaction box and the sent hash across the worker", async () => {
+      const snapshots: BoxSnapshot[] = [];
+      const tagged: string[] = [];
+      const logs: string[] = [];
+      await workerEvml
+        .with({
+          onBox: (s) => snapshots.push(s),
+          onLog: (m, _prev, meta) => {
+            logs.push(m);
+            if (meta?.box) tagged.push(m);
+          },
+        })
+        .script(
+          "exec 0x1111111111111111111111111111111111111111 transfer(address,uint256) 0x2222222222222222222222222222222222222222 5",
+        )
+        .execute(stubWallet, {
+          prepareChains: false,
+          handlers: {
+            transaction: async (_action, ctx) => {
+              ctx.onSent?.(`0x${"ab".repeat(32)}`);
+              return { status: "success", blockNumber: 12n };
+            },
+          },
+        });
+      const details = snapshots.map((s) => s.detail);
+      expect(details).to.deep.equal([
+        "Waiting for wallet…",
+        `Sent [0xabababab…](https://gnosisscan.io/tx/0x${"ab".repeat(32)})`,
+        "Confirmed in block 12",
+      ]);
+      expect(snapshots.at(-1)!.state).to.equal("done");
+      expect(tagged).to.include(
+        "Transaction to 0x1111...1111: Confirmed in block 12",
+      );
+      // Hosts without `onBox` (the CLI) still get the full hash.
+      expect(logs.join("\n")).to.include(`0x${"ab".repeat(32)}`);
+      // The transaction box replaces the old untagged confirmation line.
+      expect(logs.some((m) => m.includes("Transaction confirmed"))).to.be.false;
+    }, 15_000);
+
+    it("marks a wallet rejection on the transaction box across the worker", async () => {
+      const snapshots: BoxSnapshot[] = [];
+      try {
+        await workerEvml
+          .with({ onBox: (s) => snapshots.push(s) })
+          .script(
+            "exec 0x1111111111111111111111111111111111111111 transfer(address,uint256) 0x2222222222222222222222222222222222222222 5",
+          )
+          .execute(stubWallet, {
+            prepareChains: false,
+            handlers: {
+              transaction: async () => {
+                throw Object.assign(new Error("User denied"), { code: 4001 });
+              },
+            },
+          });
+        expect.fail("should have thrown");
+      } catch (err) {
+        expect((err as Error).message).to.match(/User denied/);
+      }
+      expect(snapshots.at(-1)).to.deep.include({
+        state: "failed",
+        detail: "Rejected in wallet",
+      });
+    }, 15_000);
+
+    it("ends a pending transaction box as cancelled when the run is cancelled", async () => {
+      const snapshots: BoxSnapshot[] = [];
+      const controller = new AbortController();
+      let sending!: () => void;
+      const started = new Promise<void>((r) => {
+        sending = r;
+      });
+      const run = workerEvml
+        .with({ onBox: (s) => snapshots.push(s) })
+        .script(
+          "exec 0x1111111111111111111111111111111111111111 transfer(address,uint256) 0x2222222222222222222222222222222222222222 5",
+        )
+        .execute(stubWallet, {
+          prepareChains: false,
+          signal: controller.signal,
+          handlers: {
+            transaction: () => {
+              sending();
+              return new Promise(() => {});
+            },
+          },
+        });
+      await started;
+      controller.abort();
+      try {
+        await run;
+        expect.fail("should have thrown");
+      } catch (err) {
+        expect((err as Error).message).to.equal("Execution cancelled");
+      }
+      expect(snapshots.at(-1)).to.deep.include({
+        state: "cancelled",
+        detail: "Cancelled",
+      });
     }, 15_000);
 
     it("propagates script errors from the worker", async () => {

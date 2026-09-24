@@ -1,4 +1,5 @@
 import type { HoverRef } from "@evmcrispr/core";
+import type { ConsoleEntry } from "@evmcrispr/editor";
 import type { Action } from "@evmcrispr/sdk";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -29,6 +30,8 @@ type MobileTerminalProps = ScriptLoadStateProps & {
   script: string;
   executingLine: number | null;
   logs: string[];
+  entries?: ConsoleEntry[];
+  followingBoxes?: number;
   ioControl?: ReactNode;
   errors: string[];
   executionPhase: ExecutionPhase;
@@ -87,6 +90,7 @@ export function MobileTerminal(props: MobileTerminalProps) {
   useEffect(() => {
     if (
       props.executionPhase === "awaiting-wallet" ||
+      props.executionPhase === "watching" ||
       props.executionPhase === "success" ||
       props.executionPhase === "error" ||
       props.executionPhase === "cancelled"
@@ -197,6 +201,8 @@ export function MobileTerminal(props: MobileTerminalProps) {
         executionPhase={props.executionPhase}
         canExecute={props.review.canExecute}
         logs={props.logs}
+        entries={props.entries}
+        followingBoxes={props.followingBoxes}
         ioControl={props.ioControl}
         errors={props.errors}
         executed={props.executed}

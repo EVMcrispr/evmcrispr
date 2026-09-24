@@ -1,4 +1,4 @@
-import type { ChainDef, IModuleConstructor } from "@evmcrispr/sdk";
+import type { BoxSnapshot, ChainDef, IModuleConstructor } from "@evmcrispr/sdk";
 import type { Address, Transport } from "viem";
 
 /**
@@ -20,8 +20,18 @@ export interface EvmlConfig {
   /** Per-chain viem transports. Chains without an entry fall back to
    *  viem's default `http()` transport. */
   transports?: Record<number, Transport>;
-  /** Log listener, invoked for every `print`/module log message. */
-  onLog?: (message: string, prevMessages: string[]) => void;
+  /** Log listener, invoked for every `print`/module log message. `meta.box`
+   *  tags lines that belong to a status box. */
+  onLog?: (
+    message: string,
+    prevMessages: string[],
+    meta?: { box?: string },
+  ) => void;
+  /** Status box listener: a complete snapshot on every change. */
+  onBox?: (snapshot: BoxSnapshot) => void;
+  /** Wait for status boxes that hold the run (default true). False ends
+   *  them as "Stopped following" when the script ends. */
+  follow?: boolean;
   /** Printed text, without its terminating newline. When absent, `print`
    *  uses the log stream for backwards compatibility. */
   onOutput?: (message: string) => void;

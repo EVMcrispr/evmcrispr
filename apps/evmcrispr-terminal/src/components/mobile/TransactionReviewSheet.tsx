@@ -1,3 +1,4 @@
+import type { ConsoleEntry } from "@evmcrispr/editor";
 import type { Action, TransactionAction } from "@evmcrispr/sdk";
 import {
   CheckCircleIcon,
@@ -11,6 +12,7 @@ import { type Chain, formatEther } from "viem";
 import * as viemChains from "viem/chains";
 import type { ExecutionPhase } from "../../hooks/useTransactionExecutor";
 import type { TransactionReviewState } from "../../hooks/useTransactionReview";
+import { useTerminalStore } from "../../stores/terminal-store";
 
 const PHASE_COPY: Record<
   ExecutionPhase,
@@ -31,6 +33,10 @@ const PHASE_COPY: Record<
   "awaiting-wallet": {
     title: "Check your wallet",
     description: "Review the wallet prompt and provide final approval.",
+  },
+  watching: {
+    title: "Following status",
+    description: "The script finished; the run stays open until they end.",
   },
   success: {
     title: "Execution complete",
@@ -54,20 +60,61 @@ function json(value: unknown) {
   );
 }
 
-function ActivityPanel({
+export function followingCopy(count: number): string {
+  return `Following ${count} status box${count === 1 ? "" : "es"}…`;
+}
+
+/** Console lines for the compact mobile log: plain lines as they are, each
+ *  status box as one `title: detail` line with nested boxes indented. */
+function consoleLines(
+  entries: ConsoleEntry[],
+  depth = 0,
+): { text: string; depth: number; box: boolean }[] {
+  return entries.flatMap((entry) =>
+    entry.kind === "line"
+      ? [{ text: entry.text, depth, box: false }]
+      : [
+          {
+            text: `${entry.box.title}: ${entry.box.detail}`,
+            depth,
+            box: true,
+          },
+          ...consoleLines(entry.children, depth + 1),
+        ],
+  );
+}
+
+function anyBoxFailed(entries: ConsoleEntry[]): boolean {
+  return entries.some(
+    (entry) =>
+      entry.kind === "box" &&
+      (entry.box.state === "failed" || anyBoxFailed(entry.children)),
+  );
+}
+
+export function ActivityPanel({
   phase,
   logs,
+  entries,
+  followingBoxes = 0,
   errors,
   executed,
   rawActions,
 }: {
   phase: ExecutionPhase;
   logs: string[];
+  /** Lines and status boxes in order; `logs` is used when absent. */
+  entries?: ConsoleEntry[];
+  /** Live status boxes the run follows (shown in the watching phase). */
+  followingBoxes?: number;
   errors: string[];
   executed: { action: Action; result?: unknown }[];
   rawActions: unknown;
 }) {
   const copy = PHASE_COPY[phase];
+  const lines = entries
+    ? consoleLines(entries)
+    : logs.map((text) => ({ text, depth: 0, box: false }));
 
   return (
     <div className="flex flex-col gap-3 border-t border-foreground/10 p-3">
@@ -88,7 +135,11 @@ function ActivityPanel({
           <div>
             <h3 className="font-sans text-xs font-semibold">{copy.title}</h3>
             <p className="mt-0.5 font-sans text-xs leading-relaxed text-foreground/55">
-              {copy.description}
+              {phase === "watching"
+                ? followingCopy(followingBoxes)
+                : phase === "success" && entries && anyBoxFailed(entries)
+                  ? "The script finished, but a status box failed."
+                  : copy.description}
             </p>
           </div>
         </div>
@@ -122,15 +173,23 @@ function ActivityPanel({
         </section>
       )}
 
-      {(logs.length > 0 || errors.length > 0) && (
+      {(lines.length > 0 || errors.length > 0) && (
         <section>
           <h3 className="mb-2 font-sans text-[10px] uppercase tracking-wider text-foreground/40">
             Console
           </h3>
           <div className="max-h-60 overflow-auto border border-foreground/10 bg-black/55 p-3 font-mono text-[11px] leading-relaxed">
-            {logs.map((log, index) => (
-              <p key={`log-${index}`} className="text-foreground/65">
-                {log}
+            {lines.map((line, index) => (
+              <p
+                key={`log-${index}`}
+                className={
+                  line.box ? "text-foreground/85" : "text-foreground/65"
+                }
+                style={
+                  line.depth ? { paddingLeft: `${line.depth}rem` } : undefined
+                }
+              >
+                {line.text}
               </p>
             ))}
             {errors.map((error, index) => (
@@ -295,6 +354,8 @@ export function TransactionReviewSheet({
   onExecute,
   onConnect,
   logs,
+  entries,
+  followingBoxes = 0,
   ioControl,
   errors,
   executed,
@@ -312,17 +373,24 @@ export function TransactionReviewSheet({
   onExecute: () => void;
   onConnect: () => void;
   logs: string[];
+  entries?: ConsoleEntry[];
+  followingBoxes?: number;
   ioControl?: ReactNode;
   errors: string[];
   executed: { action: Action; result?: unknown }[];
   onCancel: () => void;
 }) {
-  const busy =
-    state.status === "validating" ||
-    state.status === "simulating" ||
+  // A run in flight (even one only watching boxes) keeps the sheet busy,
+  // whatever phase it shows.
+  const running = useTerminalStore((s) => s.isLoading);
+  const inFlight =
+    running ||
     executionPhase === "preparing" ||
     executionPhase === "running" ||
-    executionPhase === "awaiting-wallet";
+    executionPhase === "awaiting-wallet" ||
+    executionPhase === "watching";
+  const busy =
+    inFlight || state.status === "validating" || state.status === "simulating";
   const actions = state.status === "ready" ? flattenActions(state.actions) : [];
   const chainIds = targetChainIds(actions);
   const multiChain = chainIds.length > 1;
@@ -572,6 +640,8 @@ export function TransactionReviewSheet({
                 <ActivityPanel
                   phase={executionPhase}
                   logs={logs}
+                  entries={entries}
+                  followingBoxes={followingBoxes}
                   errors={errors}
                   executed={executed}
                   rawActions={state.actions}
@@ -599,6 +669,8 @@ export function TransactionReviewSheet({
             <ActivityPanel
               phase={executionPhase}
               logs={logs}
+              entries={entries}
+              followingBoxes={followingBoxes}
               errors={errors}
               executed={executed}
               rawActions={executed.map(({ action }) => action)}
@@ -608,40 +680,28 @@ export function TransactionReviewSheet({
 
         <Drawer.Footer className="mobile-safe-bottom border-t border-foreground/10 bg-background/95 px-4 pb-3 pt-3">
           {state.status === "ready" ? (
-            <>
-              {!address ? (
-                <Button
-                  type="button"
-                  className="min-h-12 font-sans shadow-none"
-                  onClick={onConnect}
-                >
-                  Connect wallet to continue
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  className="min-h-12 font-sans shadow-none"
-                  disabled={busy || !canExecute}
-                  onClick={onExecute}
-                >
-                  {executionPhase === "awaiting-wallet"
-                    ? "Confirm in your wallet…"
+            !address ? (
+              <Button
+                type="button"
+                className="min-h-12 font-sans shadow-none"
+                onClick={onConnect}
+              >
+                Connect wallet to continue
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="min-h-12 font-sans shadow-none"
+                disabled={busy || !canExecute}
+                onClick={onExecute}
+              >
+                {executionPhase === "awaiting-wallet"
+                  ? "Confirm in your wallet…"
+                  : executionPhase === "watching"
+                    ? `Following ${followingBoxes} status box${followingBoxes === 1 ? "" : "es"}`
                     : `Confirm ${actionCount} action${actionCount === 1 ? "" : "s"} in wallet`}
-                </Button>
-              )}
-              {(executionPhase === "preparing" ||
-                executionPhase === "running" ||
-                executionPhase === "awaiting-wallet") && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-h-12 font-sans shadow-none"
-                  onClick={onCancel}
-                >
-                  Cancel execution
-                </Button>
-              )}
-            </>
+              </Button>
+            )
           ) : state.status === "error" ? (
             <Button
               type="button"
@@ -652,6 +712,22 @@ export function TransactionReviewSheet({
               Run the simulation again
             </Button>
           ) : null}
+          {/* Whatever the review state shows (it resets when the script
+              changes), a run in flight keeps its cancel control. Cancel
+              in the watching phase only stops following: it never touches
+              what was already sent. */}
+          {inFlight && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-12 font-sans shadow-none"
+              onClick={onCancel}
+            >
+              {executionPhase === "watching"
+                ? "Stop following"
+                : "Cancel execution"}
+            </Button>
+          )}
           {!busy && (state.status !== "ready" || !address) && (
             <Button
               type="button"

@@ -29,6 +29,7 @@ import {
 import { rememberReference } from "../twap/reference";
 import { resolveTwap } from "../twap/registry";
 import type { TwapReference, TwapSchedule } from "../twap/types";
+import { watchTwap } from "../twap/watch";
 import { buildApprovalActions } from "../utils/approval";
 import { activeSimMode } from "../utils/sim";
 import { COW_VAULT_RELAYER, explorerAddressLink } from "../venues/lib/cowApi";
@@ -123,7 +124,7 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
   async run(
     module,
     { variable, amount, tokenIn, to, tokenOut },
-    { opts, fail },
+    { opts, fail, interpreters },
   ) {
     if (to !== "to")
       throw new ErrorException(`expected keyword "to", got "${to}"`);
@@ -297,7 +298,7 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
     module.context.log(
       `CoW TWAP [${hash}](${explorerAddressLink(chainId, account.account)}) prepared; it starts once its registration is executed.`,
     );
-    return [
+    const actions = [
       ...account.deploy,
       ...funding,
       executeAccount(
@@ -308,5 +309,15 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
         calls,
       ),
     ];
+    // Follows the order until its schedule ends. `client` is the order's
+    // chain, even if the script switches chains afterwards.
+    const box = interpreters.box?.({
+      title: `CoW TWAP ${hash.slice(0, 10)}…`,
+      detail: "Waiting for execution",
+      follows: actions,
+      links: { Orders: explorerAddressLink(chainId, account.account) },
+    });
+    box?.watch((watch) => watchTwap(box, client, ref, watch));
+    return actions;
   },
 });

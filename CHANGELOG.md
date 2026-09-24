@@ -105,6 +105,32 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
 - `NoQuote` covers only the rejection codes CoW documents for declining a quote: `NoLiquidity`, `InsufficientLiquidity`, `UnsupportedToken` and `SellAmountDoesNotCoverFee`. An unknown code, a server error, a timeout, a malformed response, an unavailable valuation, a temporarily suspended token and a quote that does not verify or does not match the request stop the script as before, even under a `NoQuote` capture. CoW API failures now report the rejection code alongside the HTTP status.
 - **Breaking:** `swaps:twap` binds the order hash instead of a JSON reference, and `@swaps:twapStatus`, `@swaps:twapParts`, `swaps:twap-cancel` and `swaps:twap-recover` take only that hash. The rest is read back and verified on-chain: from CoW's programmatic-order indexer first, then from roughly the last six hours of blocks for orders it has not indexed yet (or while it is down). Saved JSON references no longer work; pass their `orderHash` field instead.
 
+### Status boxes
+
+- Transactions, Safe proposals and CoW TWAP orders show as status boxes
+  that update while they happen: *Waiting for wallet → Sent → Confirmed*,
+  *Proposed → 1/2 confirmations → Executed*, *Started → 1/4 executed → …
+  → Finished*. A box nests under the transaction or proposal that carries
+  it, and ends with the carrier's reason when that fails (rejected in the
+  wallet, reverted, replaced).
+- A run stays open while a Safe proposal or a TWAP it created is still in
+  progress, in the terminal and the CLI; Cancel (or Ctrl-C) stops
+  following, and the boxes say "Stopped following" (the proposal or order
+  itself is untouched). The CLI says when the script has finished and it is
+  only following boxes. Simulations never wait: a box opened inside
+  `sim:fork` ends when the fork does.
+- A later line failing does not mark a posted proposal or a registered order
+  as failed: those boxes end "Stopped following: the script failed". A
+  transaction cancelled after it was sent says so ("Sent; stopped waiting for
+  the receipt") instead of reading as never sent.
+- The separate "Transaction confirmed" log line is replaced by the
+  transaction's box. Every change to a box's detail is still logged as a line.
+- Module authors open boxes with `interpreters.box` (ended with `done`,
+  `fail` or `cancel`) and report wrapped outcomes with `interpreters.carry`.
+  An action that was sent or queued without a known result (a Safe App
+  batch, a host that returned no receipt) settles as `unknown`, not
+  `not-sent`.
+
 ## 0.11.1
 
 A patch release: fixes for problems found right after 0.11.0 shipped, plus a few small editor and CLI improvements. No breaking changes.

@@ -253,6 +253,27 @@ is not proof that the order was registered.
 salt distinguishes otherwise identical orders. The same conditional order is
 not recreated in a previously used execution account.
 
+## Following the order
+
+In the terminal and the CLI, the order shows as a status box that follows
+it to the end: *Waiting for execution → Started, part 1 of 4 at 14:05 UTC →
+1/4 executed → … → Finished: 4/4 executed*. It links to the execution Safe's
+orders, to the current part and to each settlement on CoW Explorer. The run
+stays open until the schedule ends; Cancel stops following, never the
+order. An order that expires with parts unfilled ends as *Ended: 3/4
+executed, 1 expired*, and one removed with `swaps:twap-cancel` ends
+cancelled (⊘) as *Cancelled on-chain after 1/4 executed*. When the order
+ended but its fill history is still incomplete, the box reads *Ended;
+confirming fills…* for a few more polls before giving the count or saying
+it could not be verified. Inside a Safe proposal the box waits for the
+Safe to execute it; a rejected, reverted or replaced transaction ends it
+as *Not registered*. When the registration left the run without an
+outcome to follow (queued in a Safe, or sent by a host that returned no
+receipt), the box ends with that reason and a pointer to
+[@swaps:twapStatus](../helpers/twapStatus.md); a dry run ends as
+*Prepared, not sent*. Inside `sim:fork` it ends at once as registered,
+since forks do not execute parts.
+
 ## What each observation proves
 
 | Observation | Meaning |

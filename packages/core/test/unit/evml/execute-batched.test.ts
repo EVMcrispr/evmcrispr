@@ -67,4 +67,33 @@ describe("evml > execute > batched handler", () => {
       "Batch contains transactions for multiple chains",
     );
   });
+
+  it("reports the batch's transaction hash once the wallet returns receipts", async () => {
+    const hash = `0x${"cd".repeat(32)}` as const;
+    const sent: string[] = [];
+    const action: BatchedAction = {
+      type: "batched",
+      chainId: 1,
+      from: FROM,
+      actions: [{ to: TO, data: "0x1234" }],
+    };
+    const result = (await handlers.batched(
+      action,
+      makeCtx({
+        walletClient: {
+          switchChain: async () => {},
+          sendCalls: async () => ({ id: "0x1" }),
+          waitForCallsStatus: async () => ({
+            status: "success",
+            receipts: [{ logs: [], transactionHash: hash, blockNumber: 4n }],
+          }),
+        } as any,
+        onSent: (h) => sent.push(h),
+      }),
+    )) as { status: string; blockNumber?: bigint };
+    expect(sent).to.deep.equal([hash]);
+    // A mined batch: the transaction box counts it as confirmed.
+    expect(result.status).to.equal("success");
+    expect(result.blockNumber).to.equal(4n);
+  });
 });

@@ -170,6 +170,8 @@ export interface ServiceTransaction {
   safeTxHash: `0x${string}`;
   confirmationsRequired: number;
   isExecuted: boolean;
+  /** The executing transaction, once the service saw it. */
+  transactionHash?: `0x${string}` | null;
   confirmations: { owner: Address; signature: `0x${string}` }[];
 }
 

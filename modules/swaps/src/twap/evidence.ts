@@ -274,6 +274,8 @@ export async function collectEvidence(
   ref: TwapReference,
   block: ObservationBlock,
   external = false,
+  /** Aborted: throw before the next CoW API call instead of making it. */
+  signal?: AbortSignal,
 ): Promise<FillEvidence> {
   const result: FillEvidence = {
     registration: null,
@@ -314,8 +316,10 @@ export async function collectEvidence(
     if (failed?.status === "rejected") throw failed.reason;
   };
   if (external) {
+    signal?.throwIfAborted();
     try {
       for (let offset = 0; offset < 1000; offset += 100) {
+        if (signal?.aborted) break;
         const rows = await indexedOrders(ref.chainId, ref.account, offset);
         if (
           rows.some(
@@ -334,8 +338,10 @@ export async function collectEvidence(
     } catch {
       result.discovery = "unavailable";
     }
+    signal?.throwIfAborted();
     try {
       for (let offset = 0; offset < 1000; offset += 100) {
+        if (signal?.aborted) break;
         const trades = await accountTrades(ref.chainId, ref.account, offset);
         const hashes = new Set(
           trades
@@ -356,6 +362,7 @@ export async function collectEvidence(
     } catch {
       /* API hints cannot establish absence; scan canonical logs below. */
     }
+    signal?.throwIfAborted();
   }
   const total = decodeSchedule(ref.params).n;
   if (BigInt(result.fills.size) === total) {

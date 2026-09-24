@@ -1,4 +1,5 @@
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, ActionReport } from "@evmcrispr/sdk";
+import { ErrorException } from "@evmcrispr/sdk";
 import type { Transport } from "viem";
 import { http } from "viem";
 
@@ -27,6 +28,8 @@ interface WorkerScope {
 interface PendingAction {
   resolve(value: unknown): void;
   reject(error: Error): void;
+  /** The interpreter's send report: `action-progress` feeds it. */
+  report?: ActionReport;
 }
 
 /**
@@ -58,8 +61,16 @@ export function exposeEvmlWorker(tag: EvmlTag): void {
       account: config.account,
       sender: config.sender,
       chainId: config.chainId,
+      follow: config.follow,
       transports,
-      onLog: (message) => post({ kind: "log", id, message }),
+      onLog: (message, _prev, meta) =>
+        post({
+          kind: "log",
+          id,
+          message,
+          ...(meta?.box ? { box: meta.box } : {}),
+        }),
+      onBox: (snapshot) => post({ kind: "box", id, snapshot }),
       onOutput: (message) => post({ kind: "output", id, message }),
       onLine: (line) => post({ kind: "line", id, line }),
     });
@@ -97,10 +108,10 @@ export function exposeEvmlWorker(tag: EvmlTag): void {
         const pending = new Map<number, PendingAction>();
         pendingActions.set(msg.id, pending);
         let nextActionId = 0;
-        const onAction = (action: Action) =>
+        const onAction = (action: Action, report?: ActionReport) =>
           new Promise<unknown>((resolve, reject) => {
             const actionId = nextActionId++;
-            pending.set(actionId, { resolve, reject });
+            pending.set(actionId, { resolve, reject, report });
             post({ kind: "action", id: msg.id, actionId, action });
           });
         run(msg.id, () =>
@@ -126,9 +137,22 @@ export function exposeEvmlWorker(tag: EvmlTag): void {
         break;
       }
 
-      case "abort":
-        controllers.get(msg.id)?.abort();
+      case "action-progress": {
+        pendingActions.get(msg.id)?.get(msg.actionId)?.report?.sent(msg.hash);
         break;
+      }
+
+      case "abort": {
+        controllers.get(msg.id)?.abort();
+        // Actions still on the main thread (a wallet prompt, a receipt
+        // wait) never answer after a cancel: settle them here so the run
+        // unwinds and ends its boxes before the kill grace runs out.
+        const pending = pendingActions.get(msg.id);
+        for (const entry of pending?.values() ?? [])
+          entry.reject(new ErrorException("Execution cancelled"));
+        pending?.clear();
+        break;
+      }
     }
   };
 

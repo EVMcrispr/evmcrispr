@@ -11,7 +11,8 @@ import { useExecutionLogs } from "./useExecutionLogs";
 export function useScriptInterpreter() {
   const tag = useEvmlTag();
 
-  const { logs, logListener, clearLogs } = useExecutionLogs();
+  const { entries, logs, logListener, boxListener, clearLogs } =
+    useExecutionLogs();
   const [errors, setErrors] = useState<string[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
   const [executingLine, setExecutingLine] = useState<number | null>(null);
@@ -29,17 +30,21 @@ export function useScriptInterpreter() {
       setIsRunning(true);
 
       abortRef.current?.abort();
-      abortRef.current = new AbortController();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
       try {
         const evmlScript = tag
           .with({
             onLog: logListener,
+            onBox: boxListener,
             onLine: setExecutingLine,
           })
           .script(script);
 
-        const resolved = await evmlScript.interpret();
+        const resolved = await evmlScript.interpret({
+          signal: controller.signal,
+        });
         setActions(resolved);
         return resolved;
       } catch (err) {
@@ -50,7 +55,7 @@ export function useScriptInterpreter() {
         setExecutingLine(null);
       }
     },
-    [tag, logListener, clearLogs],
+    [tag, logListener, boxListener, clearLogs],
   );
 
   return {
@@ -58,8 +63,10 @@ export function useScriptInterpreter() {
     isRunning,
     executingLine,
     actions,
+    entries,
     logs,
     logListener,
+    boxListener,
     errors,
     clearLogs,
     clearErrors,

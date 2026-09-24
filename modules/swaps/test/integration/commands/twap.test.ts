@@ -95,6 +95,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     const interpreter = new Interpreter(evml.registry, {
       account: controller,
       transports: getTransports(),
+      follow: false,
       onLog: logs ? (message: string) => logs.push(message) : undefined,
     });
     interpreter.switchChainId(100);
@@ -290,6 +291,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     const stranger = new Interpreter(evml.registry, {
       account: getWalletClients()[7].account!.address,
       transports: getTransports(),
+      follow: false,
     });
     stranger.switchChainId(100);
     await expect(
@@ -659,6 +661,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     const bare = new Interpreter(evml.registry, {
       account: empty,
       transports: getTransports(),
+      follow: false,
     });
     bare.switchChainId(100);
     await expectDeclaredFailure(

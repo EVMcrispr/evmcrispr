@@ -2,6 +2,7 @@ import "../../setup";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import {
   BindingsSpace,
+  type BoxSnapshot,
   isTransactionAction,
   type TransactionAction,
 } from "@evmcrispr/sdk";
@@ -25,6 +26,7 @@ import { partOrder, partUid } from "../../../src/twap/parts";
 import { findReference } from "../../../src/twap/reference";
 import { twapSnapshot } from "../../../src/twap/status";
 import type { TwapReference } from "../../../src/twap/types";
+import { twapWatchTiming } from "../../../src/twap/watch";
 import { COW_SETTLEMENT } from "../../../src/venues/lib/cowApi";
 import { GNO, WXDAI } from "../../fixtures";
 import { server } from "../../setup";
@@ -71,11 +73,14 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
     expect(receipt.status).toBe(success ? "success" : "reverted");
     return receipt;
   }
-  async function run(body: string) {
-    const interpreter = new Interpreter(evml.registry, {
+  async function run(
+    body: string,
+    interpreter = new Interpreter(evml.registry, {
       account: owner,
       transports: getTransports(),
-    });
+      follow: false,
+    }),
+  ) {
     interpreter.switchChainId(100);
     await interpreter.interpret(`load swaps\n${body}`, async (action) => {
       if (!isTransactionAction(action))
@@ -84,12 +89,12 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
     });
     return interpreter;
   }
-  async function trade() {
+  async function trade(target = ref) {
     const [order, signature] = await client.readContract({
       address: COMPOSABLE_COW,
       abi: tradeableAbi,
       functionName: "getTradeableOrderWithSignature",
-      args: [ref.account, ref.params, "0x", []],
+      args: [target.account, target.params, "0x", []],
     });
     return {
       sellTokenIndex: 0n,
@@ -102,7 +107,7 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
       feeAmount: order.feeAmount,
       flags: 64n,
       executedAmount: 0n,
-      signature: concatHex([ref.account, signature]),
+      signature: concatHex([target.account, signature]),
     };
   }
   const settle = (
@@ -125,6 +130,7 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
   }
 
   beforeAll(async () => {
+    twapWatchTiming.every = 200;
     snapshot = (await client.request({ method: "evm_snapshot" as any })) as Hex;
     const auth = await client.readContract({
       address: COW_SETTLEMENT,
@@ -486,5 +492,77 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
     expect(state.filled).toBe("unknown");
     expect(state.evidence.complete).toBe(false);
     expect(state.finality).toBe("unknown");
+  }, 120000);
+  it("follows the order in a status box until every part is settled", async () => {
+    const saved = await client.request({ method: "evm_snapshot" as any });
+    // Both CoW services are down: the box reads fills from the chain.
+    server.use(
+      http.all("https://api.cow.fi/*", () =>
+        HttpResponse.json(null, { status: 503 }),
+      ),
+      http.all("https://programmatic-orders.cow.fi/*", () =>
+        HttpResponse.json(null, { status: 503 }),
+      ),
+    );
+    try {
+      const boxes = new Map<string, BoxSnapshot>();
+      let changed = () => {};
+      const interpreter = new Interpreter(evml.registry, {
+        account: owner,
+        transports: getTransports(),
+        follow: true,
+        onBox: (box: BoxSnapshot) => {
+          boxes.set(box.id, box);
+          changed();
+        },
+      });
+      const twapBox = () =>
+        [...boxes.values()].find((box) => box.title.startsWith("CoW TWAP"));
+      const until = (predicate: () => boolean) =>
+        new Promise<void>((resolve) => {
+          changed = () => predicate() && resolve();
+          changed();
+        });
+      const running = run(
+        `swaps:twap $order ${total} ${WXDAI} to ${GNO} --parts 3 --every 60 --min 6 --offline true`,
+        interpreter,
+      );
+      await until(
+        () => twapBox()?.detail.startsWith("Started, part 1 of 3 at ") ?? false,
+      );
+      const order = await findReference(
+        client,
+        100,
+        interpreter.bindingsManager.getBindingValue(
+          "$order",
+          BindingsSpace.USER,
+        ),
+      );
+      const began = BigInt(
+        (await cowTwap.status(client, order)).start as string,
+      );
+      const started = `Started, part 1 of 3 at ${new Date(Number(began) * 1000).toISOString().slice(11, 16)} UTC`;
+      expect(twapBox()!.detail).toBe(started);
+      await send(settle(await trade(order)));
+      for (let part = 1n; part < 3n; part++) {
+        await advance(began + part * 60n);
+        await send(settle(await trade(order)));
+      }
+      await running;
+      const box = twapBox()!;
+      expect(box.state).toBe("done");
+      expect(box.detail).toBe("Finished: 3/3 executed");
+      expect(box.history).toContain(started);
+      expect(box.parent).toBeDefined();
+      expect(box.links?.Orders).toBe(
+        `https://explorer.cow.fi/gc/address/${order.account}`,
+      );
+      expect(Object.keys(box.links ?? {})).toContain("Part 3 settlement");
+    } finally {
+      await client.request({
+        method: "evm_revert" as any,
+        params: [saved] as any,
+      });
+    }
   }, 120000);
 });

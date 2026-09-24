@@ -91,4 +91,6 @@ export interface TwapReadOptions {
   /** Direct programmatic reads are on-chain only unless explicitly requested. */
   external?: boolean;
   block?: ObservationBlock;
+  /** Stops the read before its next CoW API call once aborted. */
+  signal?: AbortSignal;
 }

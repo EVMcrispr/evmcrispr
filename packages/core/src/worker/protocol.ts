@@ -1,4 +1,8 @@
-import type { Action, DeclaredErrorFieldValue } from "@evmcrispr/sdk";
+import type {
+  Action,
+  BoxSnapshot,
+  DeclaredErrorFieldValue,
+} from "@evmcrispr/sdk";
 import {
   DeclaredError,
   ErrorException,
@@ -22,6 +26,8 @@ export interface WorkerEvmlConfig {
   /** Per-chain RPC endpoints. Chains without an entry fall back to viem's
    *  default `http()` transport, matching `EvmlConfig.transports`. */
   rpcUrls?: Record<number, string>;
+  /** `EvmlConfig.follow`: wait for status boxes that hold the run. */
+  follow?: boolean;
 }
 
 export interface SerializedError {
@@ -51,6 +57,9 @@ export interface SerializedError {
    *  `instanceof ErrorException` survives the boundary as it did before
    *  subclass names started travelling. */
   exception?: true;
+  /** A numeric `code` (EIP-1193 `4001` for a wallet rejection), so the
+   *  worker still classifies the action's outcome as rejected. */
+  code?: number;
 }
 
 /** `SimulateOptions` minus the non-cloneable signal (aborts travel as
@@ -79,11 +88,19 @@ export type MainToWorkerMessage =
       value?: unknown;
       error?: SerializedError;
     }
+  | {
+      /** The host sent the action (worker → `ActionReport.sent`). */
+      kind: "action-progress";
+      id: string;
+      actionId: number;
+      hash: `0x${string}`;
+    }
   | { kind: "abort"; id: string };
 
 export type WorkerToMainMessage =
   | { kind: "ready" }
-  | { kind: "log"; id: string; message: string }
+  | { kind: "log"; id: string; message: string; box?: string }
+  | { kind: "box"; id: string; snapshot: BoxSnapshot }
   | { kind: "output"; id: string; message: string }
   | { kind: "line"; id: string; line: number | null }
   | { kind: "action"; id: string; actionId: number; action: Action }
@@ -146,6 +163,8 @@ export function serializeError(
   depth = 0,
 ): SerializedError {
   const serialized = serializeErrorLevel(err);
+  const code = (err as { code?: unknown } | null)?.code;
+  if (typeof code === "number") serialized.code = code;
   if (
     err &&
     typeof err === "object" &&
@@ -197,5 +216,12 @@ export function deserializeError(e: SerializedError): Error {
     }
   })();
   if (cause !== undefined) err.cause = cause;
+  if (e.code !== undefined)
+    Object.defineProperty(err, "code", {
+      value: e.code,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
   return err;
 }

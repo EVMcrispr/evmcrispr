@@ -1,3 +1,4 @@
+import type { Action, NodesInterpreters } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Safe from "..";
 import { safeDeployment } from "../addresses";
@@ -12,6 +13,7 @@ import {
   smartPlanFor,
 } from "../utils";
 import { ALLOW_OPTS } from "../utils/assess";
+import { followProposal } from "../utils/follow";
 import { gateSignable } from "../utils/gate";
 import { safeUint } from "../utils/offline";
 import {
@@ -83,12 +85,15 @@ export default defineCommand<Safe>({
       await gateSignable(module, rejection, opts, "safe:propose", {
         competing: true,
       });
+      const fromBlock = await followFrom(module, interpreters);
       await postToService(module, interpreters, rejection, {
         commandName: "safe:propose",
         origin: opts.origin ?? "evmcrispr",
         via: opts.via,
         proposedBy,
       });
+      if (fromBlock !== undefined && rejection.kind === "transaction")
+        openProposalBox(module, interpreters, rejection, fromBlock);
       return [];
     }
     const input = classifySafeInput(proposal, { chainId, safe });
@@ -158,6 +163,10 @@ export default defineCommand<Safe>({
       competing: signable.kind === "transaction",
       enforce: proposedBy !== undefined,
     });
+    const fromBlock =
+      signable.kind === "transaction"
+        ? await followFrom(module, interpreters)
+        : undefined;
     await postToService(module, interpreters, signable, {
       commandName: "safe:propose",
       origin: opts.origin ?? "evmcrispr",
@@ -165,6 +174,60 @@ export default defineCommand<Safe>({
       via: opts.via,
       proposedBy,
     });
+    if (signable.kind === "transaction" && fromBlock !== undefined) {
+      const outcome = openProposalBox(
+        module,
+        interpreters,
+        signable,
+        fromBlock,
+      );
+      // The block's actions are sent when the Safe executes the proposal:
+      // boxes that follow them (a TWAP inside) wait for it. Smart blocks
+      // lower to new actions, so the collected inner ones are carried too.
+      const inner = [
+        ...new Set<Action>([
+          ...(interpreters.provenance?.collected ?? []),
+          ...(actions ?? []),
+        ]),
+      ];
+      if (inner.length)
+        interpreters.carry?.(inner, outcome.promise, outcome.box);
+    }
     return [];
   },
 });
+
+/** The block to search for the proposal's execution from, read before it
+ *  is posted; `undefined` where no proposal box opens (simulations, or
+ *  hosts without boxes). */
+async function followFrom(
+  module: Safe,
+  interpreters: NodesInterpreters,
+): Promise<bigint | undefined> {
+  if (interpreters.simulation || !interpreters.box) return undefined;
+  const client = await module.getClient();
+  return client.getBlockNumber({ cacheTime: 0 });
+}
+
+/** Opens the proposal's status box, which holds the run until the Safe
+ *  executes the proposal or its nonce is used by another transaction. */
+function openProposalBox(
+  module: Safe,
+  interpreters: NodesInterpreters,
+  signable: Extract<SafeSignable, { kind: "transaction" }>,
+  fromBlock: bigint,
+) {
+  const box = interpreters.box!({
+    title: `Safe transaction ${signable.safeTxHash.slice(0, 10)}…`,
+    detail: `Proposed (nonce ${signable.tx.nonce})`,
+    holds: true,
+  });
+  const promise = followProposal(module, box, {
+    chainId: signable.chainId,
+    safe: signable.safe,
+    safeTxHash: signable.safeTxHash,
+    nonce: signable.tx.nonce,
+    fromBlock,
+  });
+  return { box, promise };
+}

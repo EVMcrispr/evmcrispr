@@ -11,6 +11,7 @@ import type {
   HelperFunctionNode,
   Node,
 } from "./ast";
+import type { ActionReport, BoxOpener, Carrier } from "./boxes";
 import type { CompletionOverrides } from "./completions";
 import type {
   DeclaredErrors,
@@ -103,6 +104,11 @@ export interface ModuleContext {
    *  on-chain helper dispatch fall back to std the same way the
    *  interpreter's unqualified-helper resolution does. */
   getStd?(): Module | undefined;
+
+  /** Ends the live status boxes opened inside a simulation (`done` with
+   *  `detail`). `sim:fork` calls it when its block returns, after the
+   *  boxes' watches have seen the outcomes that just settled. */
+  endSimulatedBoxes?(detail: string): Promise<void>;
 }
 
 /** Who is executing the current nodes: the user's script (default) or a
@@ -133,9 +139,15 @@ export interface BatchContext {
   smartState?: import("../onchain/smart-types").SmartBatchState;
 }
 
+/** Actions collected while a command's block runs; see OutcomeRegistry. */
+export interface ProvenanceFrame {
+  collected: Action[];
+  carried: boolean;
+}
+
 export interface InterpretOptions {
   blockInitializer?(): Promise<void>;
-  actionCallback?(action: Action): Promise<unknown>;
+  actionCallback?(action: Action, report?: ActionReport): Promise<unknown>;
   /** The enclosing atomic batch context, if any. */
   batchContext?: BatchContext;
   /** Execution origin of the nodes being interpreted (defaults to user). */
@@ -147,6 +159,9 @@ export interface InterpretOptions {
    *  `OffchainOverlay`), so later reads of that off-chain source in the same
    *  simulation see it. */
   simulation?: boolean;
+  /** Collects the actions a command's block produces, so the interpreter can
+   *  link them to the actions the command returns (their carriers). */
+  provenance?: ProvenanceFrame;
 }
 
 export type NodeInterpreter<T extends Node = Node> = (
@@ -161,7 +176,7 @@ export type NodesInterpreter = (
 export type NodesInterpreters = {
   interpretNode: NodeInterpreter;
   interpretNodes: NodesInterpreter;
-  actionCallback?(action: Action): Promise<unknown>;
+  actionCallback?(action: Action, report?: ActionReport): Promise<unknown>;
   /** The enclosing atomic batch context, if any. */
   batchContext?: BatchContext;
   /** Execution origin of the running command/helper (defaults to user). */
@@ -169,6 +184,12 @@ export type NodesInterpreters = {
   /** True inside a simulated fork (`sim:fork`) — skip real-world side
    *  effects (API writes, wallet signatures). */
   simulation?: boolean;
+  provenance?: ProvenanceFrame;
+  /** Open a status box. Absent where boxes cannot exist (helpers). */
+  box?: BoxOpener;
+  /** Report the outcome of inner actions a wrapper carries without
+   *  returning a carrying action (e.g. `safe:propose`). */
+  carry?: Carrier;
 };
 
 export type CommandFunction<T extends Module = Module> = (

@@ -1,6 +1,6 @@
 import type { ActionHandlers } from "@evmcrispr/core";
 import { useExecutionLogs } from "@evmcrispr/editor";
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, BoxSnapshot } from "@evmcrispr/sdk";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWalletClient } from "wagmi";
@@ -46,13 +46,44 @@ export function makeSafeBatchedHandler(
       throw new Error("Contract deployments cannot be executed in batch mode");
     }
 
-    await sdk.txs.send({
+    const sent = await sdk.txs.send({
       txs: callableActions.map((action) => ({
         to: action.to as `0x${string}`,
         data: action.data,
         value: String(action.value || "0"),
       })),
     });
+    // The Safe only queued the batch: its owners execute it later. The
+    // transaction box says so, and boxes following the batch do not treat
+    // it as mined.
+    const safeTxHash: string | undefined = sent?.safeTxHash;
+    return {
+      status: "queued",
+      reason: safeTxHash
+        ? `Queued in the Safe as ${safeTxHash}`
+        : "Queued in the Safe",
+    };
+  };
+}
+
+/** Live status boxes the run follows after the script ends. Simulated
+ *  boxes never hold a run, so they never count. Updated synchronously from
+ *  `onBox`, so `onLine(null)` sees every snapshot sent before it. */
+export function trackFollowedBoxes() {
+  const live = new Set<string>();
+  return {
+    update(snapshot: BoxSnapshot): number {
+      if (snapshot.state === "live" && !snapshot.simulated)
+        live.add(snapshot.id);
+      else live.delete(snapshot.id);
+      return live.size;
+    },
+    get size() {
+      return live.size;
+    },
+    clear() {
+      live.clear();
+    },
   };
 }
 
@@ -67,7 +98,22 @@ export function useTransactionExecutor(
   const scriptRef = useRef(script);
   scriptRef.current = script;
 
-  const { logs, logListener, clearLogs } = useExecutionLogs();
+  const { entries, logs, logListener, boxListener, endLiveBoxes, clearLogs } =
+    useExecutionLogs();
+  // Read from `onLine`, a closure that outlives renders: a ref, not state.
+  const followedRef = useRef(trackFollowedBoxes());
+  const [followingBoxes, setFollowingBoxes] = useState(0);
+  const followBox = useCallback(
+    (snapshot: BoxSnapshot) => {
+      boxListener(snapshot);
+      setFollowingBoxes(followedRef.current.update(snapshot));
+    },
+    [boxListener],
+  );
+  const clearFollowed = useCallback(() => {
+    followedRef.current.clear();
+    setFollowingBoxes(0);
+  }, []);
   const [output, setOutput] = useState("");
   const outputListener = useCallback(
     (text: string) => {
@@ -86,27 +132,57 @@ export function useTransactionExecutor(
     setPhase("idle");
   }, []);
 
-  // A finished run belongs to the script it ran against — switching scripts
-  // must not keep showing its phase, logs and executed actions.
+  // The run in flight, if any. A run can follow live boxes for hours, so
+  // it is the one thing that gates a new run, not the phase.
+  const runRef = useRef<Run | null>(null);
+
+  const cancelExecution = useCallback(() => {
+    runRef.current?.controller.abort();
+  }, []);
+
+  // A run belongs to the script it ran against: switching scripts cancels
+  // a run still in flight (it may be watching boxes for hours) and drops
+  // its phase, logs and executed actions. Whatever the cancelled run still
+  // reports while it unwinds is ignored.
   const currentScriptId = useTerminalStore((s) => s.currentScriptId);
   const prevScriptIdRef = useRef(currentScriptId);
   useEffect(() => {
     if (prevScriptIdRef.current === currentScriptId) return;
     prevScriptIdRef.current = currentScriptId;
+    const run = runRef.current;
+    if (run) {
+      runRef.current = null;
+      run.controller.abort();
+      terminalStoreActions("isLoading", false);
+      terminalStoreActions("executingLine", null);
+    }
     setErrors([]);
     setPhase("idle");
     setExecuted([]);
     clearLogs();
+    clearFollowed();
     setOutput("");
-  }, [currentScriptId, clearLogs]);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  const cancelExecution = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
+  }, [currentScriptId, clearLogs, clearFollowed]);
 
   const executeScript = useCallback(async () => {
+    // One run at a time: a run still in flight (even one only watching
+    // boxes) is cancelled first, never overlapped.
+    if (runRef.current) return false;
+    const run: Run = { controller: new AbortController() };
+    runRef.current = run;
+    const current = () => runRef.current === run;
+    // Callbacks of a run that is no longer current (the script switched)
+    // must not touch the state the new script shows.
+    const guard =
+      <A extends unknown[]>(fn: (...args: A) => void) =>
+      (...args: A) => {
+        if (current()) fn(...args);
+      };
+    const onLog = guard(logListener);
+    const onBox = guard(followBox);
+    const onOutput = guard(outputListener);
+    const setRunPhase = guard(setPhase);
+
     clearErrors();
     setExecuted([]);
     setPhase("preparing");
@@ -115,10 +191,10 @@ export function useTransactionExecutor(
       terminalStoreActions("activeTab", "console");
     }
     clearLogs();
+    clearFollowed();
     setOutput("");
 
-    abortControllerRef.current = new AbortController();
-    const abortSignal = abortControllerRef.current.signal;
+    const abortSignal = run.controller.signal;
 
     try {
       // Local commands can run without a wallet. Wallet actions update the
@@ -128,35 +204,41 @@ export function useTransactionExecutor(
         .with({
           account: address,
           stdin: options.stdin,
-          onLog: logListener,
-          onOutput: outputListener,
+          onLog,
+          onBox,
+          onOutput,
           onLine: (line: number | null) => {
+            if (!current()) return;
             terminalStoreActions("executingLine", line);
             if (line !== null && !sawExecution) {
               sawExecution = true;
               setPhase("running");
             }
+            // The script ended but boxes it opened are still followed:
+            // the run stays open (and cancellable) until they end.
+            if (line === null && followedRef.current.size > 0)
+              setPhase("watching");
           },
         })
         .script(scriptRef.current);
 
       const result = await evmlScript.execute(walletClient, {
         signal: abortSignal,
-        onLog: logListener,
+        onLog,
         handlers: {
           wallet: async (action, ctx) => {
-            setPhase("awaiting-wallet");
+            setRunPhase("awaiting-wallet");
             try {
               return await ctx.next(action);
             } finally {
-              setPhase("running");
+              setRunPhase("running");
             }
           },
           // Endpoints a module asks to submit through (`action.rpcUrl`)
           // are declared as the module sees them; the browser can only
           // use https, so route them like the chain RPCs.
           transaction: (action, ctx) => {
-            if (!action.readOnly) setPhase("awaiting-wallet");
+            if (!action.readOnly) setRunPhase("awaiting-wallet");
             return ctx.next(
               action.rpcUrl
                 ? { ...action, rpcUrl: browserSafeUrl(action.rpcUrl) }
@@ -175,15 +257,27 @@ export function useTransactionExecutor(
             : {}),
         },
       });
+      if (!current()) return false;
       setExecuted(result.executed);
       setPhase("success");
       return true;
     } catch (err: any) {
+      if (!current()) return false;
       const e = err as Error;
-      if (
+      const cancelled =
         e.message === "Observation cancelled" ||
-        e.message === "Execution cancelled"
-      ) {
+        e.message === "Execution cancelled";
+      // A rejected run sends no more snapshots: when its worker was killed
+      // (the kill grace after a cancel ran out) or crashed, boxes it left
+      // live would show "In progress" forever. End them here; boxes the
+      // core already ended keep their own ending.
+      endLiveBoxes(
+        cancelled
+          ? "Stopped following"
+          : "Stopped following: the script stopped unexpectedly",
+      );
+      clearFollowed();
+      if (cancelled) {
         setErrors(["Script execution cancelled"]);
         setPhase("cancelled");
       } else {
@@ -204,17 +298,22 @@ export function useTransactionExecutor(
       }
       return false;
     } finally {
-      terminalStoreActions("isLoading", false);
-      terminalStoreActions("executingLine", null);
-      abortControllerRef.current = null;
+      if (current()) {
+        runRef.current = null;
+        terminalStoreActions("isLoading", false);
+        terminalStoreActions("executingLine", null);
+      }
     }
   }, [
     address,
     walletClient,
     safeConnector,
     logListener,
+    followBox,
+    endLiveBoxes,
     outputListener,
     clearLogs,
+    clearFollowed,
     clearErrors,
     options.openConsoleOnExecute,
     options.stdin,
@@ -223,7 +322,9 @@ export function useTransactionExecutor(
   return {
     executeScript,
     cancelExecution,
+    entries,
     logs,
+    followingBoxes,
     output,
     errors,
     clearErrors,
@@ -232,11 +333,17 @@ export function useTransactionExecutor(
   };
 }
 
+interface Run {
+  controller: AbortController;
+}
+
 export type ExecutionPhase =
   | "idle"
   | "preparing"
   | "running"
   | "awaiting-wallet"
+  /** The script ended; the run follows live status boxes until they end. */
+  | "watching"
   | "success"
   | "cancelled"
   | "error";

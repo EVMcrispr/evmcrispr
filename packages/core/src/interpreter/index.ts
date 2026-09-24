@@ -1,9 +1,13 @@
 import type {
   Action,
+  ActionOutcome,
+  ActionReport,
   ArrayExpressionNode,
   BarewordNode,
   BatchContext,
   BlockExpressionNode,
+  BoxHandle,
+  BoxOptions,
   CallExpressionNode,
   CommandExpressionNode,
   DeclaredError,
@@ -25,6 +29,7 @@ import type {
   NodesInterpreter,
   NodesInterpreters,
   Param,
+  ProvenanceFrame,
   TxCaptureNode,
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
@@ -72,7 +77,9 @@ import {
   checkCaptureNames,
   collectLineDeclaredErrors,
 } from "../errors/declarations";
+import type { BoxRegistry } from "./boxes";
 import { runtimeDeclarationLookup } from "./declarations";
+import type { OutcomeRegistry } from "./outcomes";
 import {
   locateCommand,
   locateHelper,
@@ -550,20 +557,26 @@ async function interpretHelperFunction(
 function withInheritedOptions(
   interpreters: NodesInterpreters,
   options:
-    | Pick<InterpretOptions, "batchContext" | "origin" | "simulation">
+    | Pick<
+        InterpretOptions,
+        "batchContext" | "origin" | "simulation" | "provenance"
+      >
     | undefined,
 ): NodesInterpreters {
   const batchContext = options?.batchContext;
   const origin = options?.origin;
   const simulation = options?.simulation;
-  if (!batchContext && !origin && !simulation) return interpreters;
+  const provenance = options?.provenance;
+  if (!batchContext && !origin && !simulation && !provenance)
+    return interpreters;
   const inherited: Pick<
     InterpretOptions,
-    "batchContext" | "origin" | "simulation"
+    "batchContext" | "origin" | "simulation" | "provenance"
   > = {};
   if (batchContext) inherited.batchContext = batchContext;
   if (origin) inherited.origin = origin;
   if (simulation) inherited.simulation = simulation;
+  if (provenance) inherited.provenance = provenance;
   return {
     ...interpreters,
     interpretNode: (n, options) =>
@@ -590,10 +603,21 @@ export interface ExecutionResolversInput extends ResolutionInput {
   executeWithCaptures: (
     c: CommandExpressionNode,
     res: Action[] | void,
-    actionCallback: ((action: Action) => Promise<unknown>) | undefined,
+    actionCallback: ActionCallback | undefined,
     revert: ErrorCaptureNode[],
+    simulated?: boolean,
   ) => Promise<Action[] | void>;
+  /** Getters: both registries are replaced at the start of every run. */
+  outcomes: () => OutcomeRegistry;
+  boxes: () => BoxRegistry;
+  /** True when sends reach a host (an action callback exists at top level). */
+  realRun: () => boolean;
 }
+
+type ActionCallback = (
+  action: Action,
+  report?: ActionReport,
+) => Promise<unknown>;
 
 export function makeExecutionResolveHelper(
   input: ResolutionInput,
@@ -655,10 +679,9 @@ export function makeExecutionResolveCommand(
   const observed = new WeakSet<DeclaredError>();
 
   return async (c, rawInterpreters, options) => {
-    const actionCallback: ((a: Action) => Promise<unknown>) | undefined =
-      options?.actionCallback;
+    const actionCallback: ActionCallback | undefined = options?.actionCallback;
+    const simulated = options?.simulation === true;
     const batchContext: BatchContext | undefined = options?.batchContext;
-    const interpreters = withInheritedOptions(rawInterpreters, options);
     // The two capture families observe different phases of the line:
     // refusals (`-/>`, `-?/>`) the failure of the line before anything is
     // sent, reverts (`-!>`, `-?!>`) the outcome of its own transaction.
@@ -796,9 +819,31 @@ export function makeExecutionResolveCommand(
       return true;
     };
 
+    // Provenance: the actions this command's block produces are carried by
+    // the actions the command returns (unless it reports their outcome
+    // itself through `carry`).
+    const frame: ProvenanceFrame = { collected: [], carried: false };
     let res: Action[] | void;
     try {
-      const commandInterpreters = { ...interpreters, actionCallback };
+      const commandInterpreters: NodesInterpreters = {
+        ...withInheritedOptions(rawInterpreters, {
+          ...options,
+          provenance: frame,
+        }),
+        actionCallback,
+        box: (boxOptions: BoxOptions) =>
+          input
+            .boxes()
+            .open({ ...boxOptions, simulated, realRun: input.realRun }),
+        carry: (
+          inner: Action[],
+          outcome: Promise<ActionOutcome>,
+          box?: BoxHandle,
+        ) => {
+          frame.carried = true;
+          input.outcomes().carry(inner, outcome, box?.id);
+        },
+      };
       if (target.kind === "def") {
         res = await target.def.run(input.std(), c, commandInterpreters);
       } else {
@@ -817,6 +862,10 @@ export function makeExecutionResolveCommand(
       if (err instanceof NodeError) throw err;
       panic(c, (err as Error).message, err);
     }
+    const produced = Array.isArray(res) ? res : [];
+    if (frame.collected.length > 0 && !frame.carried)
+      input.outcomes().link(frame.collected, produced);
+    options?.provenance?.collected.push(...produced);
     try {
       // The line composed: a required refusal is an assertion failure
       // before anything is sent, an optional one reads `"false"`.
@@ -829,7 +878,13 @@ export function makeExecutionResolveCommand(
         setBoolVarsFalse(refusal, input.bindings);
       }
       return trackBatchActions(
-        await input.executeWithCaptures(c, res, actionCallback, revert),
+        await input.executeWithCaptures(
+          c,
+          res,
+          actionCallback,
+          revert,
+          simulated,
+        ),
       );
     } catch (err) {
       if (err instanceof NodeError || err instanceof ControlFlowSignal)
@@ -984,6 +1039,13 @@ export interface CapturesInput {
    *  (`sim:fork` consumes its block's actions and returns none, so this
    *  is the only place a caller can see what a simulation executed). */
   onActionDispatch?: (action: Action) => void;
+  /** Wraps every send: the interpreter's transaction box and outcome
+   *  settlement. `simulated` is true for sends inside `sim:fork`. */
+  aroundSend?: (
+    action: Action,
+    send: (report?: ActionReport) => Promise<unknown>,
+    simulated: boolean,
+  ) => Promise<unknown>;
 }
 
 export function makeExecuteWithCaptures(
@@ -991,10 +1053,12 @@ export function makeExecuteWithCaptures(
 ): (
   c: CommandExpressionNode,
   res: Action[] | void,
-  actionCallback: ((action: Action) => Promise<unknown>) | undefined,
+  actionCallback: ActionCallback | undefined,
   revert: ErrorCaptureNode[],
+  simulated?: boolean,
 ) => Promise<Action[] | void> {
-  const { bindings, getClient, interpretNode, onActionDispatch } = input;
+  const { bindings, getClient, interpretNode, onActionDispatch, aroundSend } =
+    input;
 
   /** The cached ABI of an action's target, when the action is a
    *  transaction to a known contract. */
@@ -1057,12 +1121,16 @@ export function makeExecuteWithCaptures(
 
   const executeOnce = async (
     action: Action,
-    actionCallback: (action: Action) => Promise<unknown>,
+    actionCallback: ActionCallback,
+    simulated: boolean,
   ): Promise<unknown> => {
     if (executed.has(action)) return receiptByAction.get(action);
     executed.add(action);
     onActionDispatch?.(action);
-    const receipt = await actionCallback(action);
+    const send = (report?: ActionReport) => actionCallback(action, report);
+    const receipt = await (aroundSend
+      ? aroundSend(action, send, simulated)
+      : send());
     receiptByAction.set(action, receipt);
     return receipt;
   };
@@ -1070,7 +1138,7 @@ export function makeExecuteWithCaptures(
   // `revert` is the line's revert-capture family only (`-!>`, `-?!>`):
   // refusal captures were settled by the command resolver before the line
   // reached this point.
-  return async (c, res, actionCallback, revert) => {
+  return async (c, res, actionCallback, revert, simulated = false) => {
     const hasEventCaptures =
       c.eventCaptures != null && c.eventCaptures.length > 0;
     const hasErrorCaptures = revert.length > 0;
@@ -1081,7 +1149,7 @@ export function makeExecuteWithCaptures(
     if (!hasEventCaptures && !hasErrorCaptures && !hasTxCaptures) {
       if (res && actionCallback) {
         for (const action of res) {
-          await executeOnce(action, actionCallback);
+          await executeOnce(action, actionCallback, simulated);
         }
       }
       return res;
@@ -1156,7 +1224,7 @@ export function makeExecuteWithCaptures(
       // transaction is sent exactly once.
       const receipts: any[] = [];
       for (const action of res) {
-        receipts.push(await executeOnce(action, actionCallback));
+        receipts.push(await executeOnce(action, actionCallback, simulated));
       }
 
       if (hasEventCaptures) {
@@ -1223,10 +1291,10 @@ export function makeExecuteWithCaptures(
     // capture handles the failure, it does not roll the line back.
     let failure: { error: unknown; action: Action } | undefined;
     for (const action of res) {
-      executed.add(action);
-      onActionDispatch?.(action);
       try {
-        await actionCallback(action);
+        // Through `executeOnce`, so the send gets its transaction box and
+        // settles its outcome; a revert still throws here for the capture.
+        await executeOnce(action, actionCallback, simulated);
       } catch (error) {
         failure = { error, action };
         break;

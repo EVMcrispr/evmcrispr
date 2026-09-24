@@ -13,9 +13,21 @@ export { EvmcrisprTerminal } from "./EvmcrisprTerminal";
 // ── Editor (Monaco is code-split: importing this entry does not download
 //    monaco-editor; the chunk loads when <Editor> first renders) ──
 export const Editor = lazy(() => import("./editor/MonacoEditor"));
+export type { BoxCardProps } from "./console/BoxCard";
+export { BoxCard } from "./console/BoxCard";
 export type { ConsoleProps } from "./console/Console";
 // ── Console & actions preview ──
 export { Console } from "./console/Console";
+export type {
+  ConsoleEntry,
+  ConsoleEvent,
+  ConsoleState,
+} from "./console/entries";
+export {
+  consoleEntries,
+  emptyConsole,
+  reduceConsole,
+} from "./console/entries";
 export {
   conf as evmlLanguageConfiguration,
   contribution as evmlLanguageContribution,

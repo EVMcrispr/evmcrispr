@@ -65,6 +65,8 @@ export default function Terminal() {
           script={script}
           executingLine={executingLine}
           logs={execution.logs}
+          entries={execution.entries}
+          followingBoxes={execution.followingBoxes}
           ioControl={ioControl}
           errors={execution.errors}
           executionPhase={execution.phase}
@@ -86,7 +88,7 @@ export default function Terminal() {
           script={script}
           viewMode={viewMode}
           executingLine={executingLine}
-          logs={execution.logs}
+          entries={execution.entries}
           ioControl={ioControl}
           errors={execution.errors}
           onActivateEdit={() => setViewMode("edit")}

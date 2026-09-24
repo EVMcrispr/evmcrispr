@@ -67,6 +67,20 @@ Transaction Service (`propose`, `confirm`), a variable holding JSON
 (`propose-offline`, `confirm-offline`), or the chain (`confirm-onchain`,
 `execute`). See the [Safe guide](/guides/safe/) for the complete flows.
 
+## Following the proposal
+
+In the terminal and the CLI, the proposal stays open as a status box:
+*Proposed (nonce 42) → 1/2 confirmations → Executed in 0x77…*, where
+the hash links to the executing transaction on the chain's explorer (the
+full hash when the chain has none), *Executed but reverted in 0x77…*
+when the Safe ran it but its call failed
+(possible with a non-zero `safeTxGas` or `gasPrice`), or *Replaced by
+another transaction at nonce 42* when another transaction uses the nonce
+first. The run waits until one of those happens; Cancel
+stops following without touching the proposal. A `cancel` rejection is
+followed the same way. Commands inside the block follow it too: a TWAP
+proposed here starts tracking once the Safe executes.
+
 ## Examples
 
 Propose a token transfer:
