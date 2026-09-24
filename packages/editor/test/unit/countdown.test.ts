@@ -28,26 +28,28 @@ describe("countdown", () => {
     );
   });
 
-  it("fills the counted step and marks unsettled earlier steps as passed", () => {
-    // 1 of 4 settled, waiting on step 2 (index 2), half way through it.
+  it("shows the schedule only: earlier steps elapsed, the counted one filling", () => {
+    // Waiting on step index 2 of 4, half way through it. How many parts
+    // settled plays no part: the bar never jumps on a settlement.
     expect(
       segments(
-        [1, 4],
+        4,
         { label: "Next part in", from: 100, until: 160, segment: 2 },
         130,
       ),
     ).toEqual([
-      { kind: "done" },
-      { kind: "passed" },
+      { kind: "elapsed" },
+      { kind: "elapsed" },
       { kind: "current", fill: 0.5 },
       { kind: "pending" },
     ]);
   });
 
-  it("clamps the fill and falls back when there are too many steps", () => {
+  it("clamps the fill and falls back without a step or with too many", () => {
     const c = { label: "Next part in", from: 100, until: 160, segment: 0 };
-    expect(segments([0, 2], c, 500)?.[0]).toEqual({ kind: "current", fill: 1 });
-    expect(segments([0, 2], c, 50)?.[0]).toEqual({ kind: "current", fill: 0 });
-    expect(segments([0, MAX_SEGMENTS + 1], c, 130)).toBeNull();
+    expect(segments(2, c, 500)?.[0]).toEqual({ kind: "current", fill: 1 });
+    expect(segments(2, c, 50)?.[0]).toEqual({ kind: "current", fill: 0 });
+    expect(segments(MAX_SEGMENTS + 1, c, 130)).toBeNull();
+    expect(segments(2, { label: "Ends in", from: 0, until: 1 }, 0)).toBeNull();
   });
 });

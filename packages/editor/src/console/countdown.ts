@@ -26,8 +26,7 @@ export function countdownText(countdown: BoxCountdown, now: number): string {
 }
 
 export type Segment =
-  | { kind: "done" }
-  | { kind: "passed" }
+  | { kind: "elapsed" }
   | { kind: "current"; fill: number }
   | { kind: "pending" };
 
@@ -35,21 +34,20 @@ export type Segment =
  *  back to a continuous bar. */
 export const MAX_SEGMENTS = 48;
 
-/** One segment per step: the first `done` settled, the countdown's step
- *  filling with elapsed time, earlier unsettled ones passed, the rest
- *  pending. */
+/** The schedule, one segment per step: steps before the countdown's are
+ *  elapsed, its own fills with elapsed time, later ones are pending. It
+ *  shows time only; what a step achieved (e.g. a settled part) is the
+ *  box's detail, so a settlement never makes the bar jump. */
 export function segments(
-  [done, total]: [number, number],
-  countdown: BoxCountdown | undefined,
+  total: number,
+  countdown: BoxCountdown,
   now: number,
 ): Segment[] | null {
-  if (total <= 0 || total > MAX_SEGMENTS) return null;
-  const current = countdown?.segment;
+  const current = countdown.segment;
+  if (current === undefined || total <= 0 || total > MAX_SEGMENTS) return null;
   return Array.from({ length: total }, (_, i): Segment => {
-    if (i < done) return { kind: "done" };
-    if (current === undefined) return { kind: "pending" };
-    if (i < current) return { kind: "passed" };
-    if (i > current || !countdown) return { kind: "pending" };
+    if (i < current) return { kind: "elapsed" };
+    if (i > current) return { kind: "pending" };
     const span = countdown.until - countdown.from;
     const fill = span > 0 ? (now - countdown.from) / span : 0;
     return { kind: "current", fill: Math.min(1, Math.max(0, fill)) };

@@ -258,9 +258,10 @@ not recreated in a previously used execution account.
 
 In the terminal and the CLI, the order shows as a status box that follows
 it to the end: *Waiting for execution → Started, part 1 of 4 at 14:05 UTC →
-1/4 executed → … → Finished: 4/4 executed*. In the terminal its bar has one
-segment per part, the next one filling as its time approaches, with a live
-countdown under it (*Starts in*, *Next part in*, *Ends in*). It links to the execution Safe's
+1/4 executed → … → Finished: 4/4 executed*. In the terminal its bar shows the
+schedule, one segment per part filling with time, and a live countdown
+under it (*Starts in*, *Next part in*, *Ends in*); how many parts settled
+is in the text. It links to the execution Safe's
 orders, to the current part and to each settlement on CoW Explorer. The run
 stays open until the schedule ends; Cancel stops following, never the
 order. An order that expires with parts unfilled ends as *Ended: 3/4
