@@ -9,49 +9,18 @@ import {
   type TypedDataDefinition,
 } from "viem";
 import type Safe from "..";
-import { safeDeployment } from "../addresses";
-import {
-  type AllowOpts,
-  assessSafeTx,
-  formatFindings,
-  type SafeFinding,
-} from "./assess";
 import { normalizeSafeSignature, stringifySafeTransaction } from "./offline";
 import {
-  decodeSafeTxCalls,
   type SafeSignable,
   signableHashes,
   signableTypedData,
 } from "./signables";
 
-/** Print the findings of what is about to be signed or sent: by default
- *  the notices of the content checks; a gated command passes its own
- *  findings and `enforced`. A transaction's progress shows in its status
- *  box, so it prints nothing else; a message also prints its hashes. */
-export function logSafeSignable(
-  module: Safe,
-  signable: SafeSignable,
-  {
-    findings,
-    allow,
-    enforced = false,
-  }: { findings?: SafeFinding[]; allow?: AllowOpts; enforced?: boolean } = {},
-): void {
-  if (signable.kind === "transaction") {
-    const lines = formatFindings(
-      findings ??
-        assessSafeTx(
-          signable.safe,
-          signable.tx,
-          decodeSafeTxCalls(signable),
-          safeDeployment(signable.chainId),
-        ),
-      allow,
-      enforced,
-    );
-    for (const line of lines) module.context.log(line.trim());
-    return;
-  }
+/** A Safe message's hashes, for signers to compare with their wallet. A
+ *  transaction prints nothing: its progress shows in its status box, and a
+ *  gated command refuses a blocking finding with an error. */
+export function logSafeSignable(module: Safe, signable: SafeSignable): void {
+  if (signable.kind === "transaction") return;
   const hashes = signableHashes(signable);
   const content =
     signable.content === undefined
@@ -66,7 +35,6 @@ export function logSafeSignable(
       `  Domain hash:      ${hashes.domainHash}`,
       `  Message hash:     ${hashes.messageHash}`,
       `  SafeMessage hash: ${hashes.finalHash}`,
-      ...formatFindings(findings ?? [], allow, enforced),
     ].join("\n"),
   );
 }

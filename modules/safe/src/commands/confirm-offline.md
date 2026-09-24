@@ -49,7 +49,7 @@ on to the next owner, merge parallel signatures with
 [safe:propose](propose.md).
 
 Before your wallet prompts, it reviews the item like
-[safe:confirm](confirm.md): it prints its findings, and refuses on
+[safe:confirm](confirm.md): it refuses on
 a blocking finding until the matching `--allow-*` option names what you
 reviewed. Competing transactions are only checked for a hash fetched from the
 service, since JSON does not reach it.

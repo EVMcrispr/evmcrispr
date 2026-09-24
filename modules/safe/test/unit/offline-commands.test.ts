@@ -498,9 +498,8 @@ describe("Safe > flows without the Safe Transaction Service", () => {
     const signed = await run(
       `safe:confirm-offline $out ${safe} ${json} --allow-new-owners [${newOwner}] --allow-change-threshold-to 3`,
     );
-    expect(signed.logs.join("\n")).toContain(
-      "ALLOWED (--allow-change-threshold-to)",
-    );
+    // Allowed findings are not echoed: only a refusal is reported.
+    expect(signed.logs.join("\n")).not.toContain("ALLOWED");
     // The verification report reaches the same verdict.
     const report = JSON.parse(
       (await run(`set $r @safe:verify(${safe} ${json})`, 0, false)).binding(

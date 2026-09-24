@@ -1160,12 +1160,13 @@ describe("Safe > integration", () => {
     );
     expect(String(notOwner?.message)).to.include("is not an owner");
 
-    // Flow 9: a rejection at the same nonce lists what it competes with.
+    // Flow 9: a rejection at the same nonce (the transaction it competes
+    // with is in @safe:verify's review; notices are not printed).
     const cancelled = await run(
       `load safe\nsafe:propose ${localSafe} cancel --nonce 0`,
       ownerA,
     );
-    expect(cancelled.logs.join("\n")).to.include(safeTxHash);
+    expect(cancelled.logs.join("\n")).to.not.include("NOTICE");
     expect(serviceState.proposals).to.have.lengthOf(1);
     expect(serviceState.proposals[0]).to.include({
       to: localSafe,
@@ -1264,7 +1265,7 @@ describe("Safe > integration", () => {
     const allowed = await run(
       `load safe\nsafe:propose ${single} ${block} --allow-new-owners ${ownerB}`,
     );
-    expect(allowed.logs.join("\n")).to.include("ALLOWED (--allow-new-owners)");
+    expect(allowed.logs.join("\n")).to.not.include("ALLOWED");
     const queued = queue(serviceState.proposals[0], 1);
     queued.confirmations.push({
       owner: ownerA,

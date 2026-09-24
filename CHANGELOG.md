@@ -127,7 +127,7 @@ Exported JSON is now called a Safe transaction or Safe message (formerly "packag
   as failed: those boxes end "Stopped following: the script failed". A
   transaction cancelled after it was sent says so ("Sent; stopped waiting for
   the receipt") instead of reading as never sent.
-- The Safe transaction notice (its hashes and fields) and the "Sending transaction to …" line are gone: the transaction and proposal boxes show that progress. Review findings are still printed, and `@safe:verify` returns the hashes a hardware wallet shows.
+- The Safe transaction notice (its hashes and fields) and the "Sending transaction to …" line are gone: the transaction and proposal boxes show that progress. Review notices and allowed findings are no longer printed; a blocking finding is reported only as the command's refusal error, and `@safe:verify` returns the full review and the hashes a hardware wallet shows. Rejecting a transaction in the wallet ends the run as cancelled in the terminal, without an error message: the transaction box says so.
 - The separate "Transaction confirmed" log line is replaced by the
   transaction's box. Every change to a box's detail is still logged as a line.
 - Module authors open boxes with `interpreters.box` (ended with `done`,

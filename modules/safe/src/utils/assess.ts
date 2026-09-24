@@ -586,23 +586,6 @@ export function requiredOptions(blocking: SafeFinding[]): string[] {
   });
 }
 
-/** The lines findings add to the hashes log. Unless `enforced`, blocking
- *  findings are left out: another command's signature authorizes the
- *  transaction, and that command is the one that refuses it. */
-export const formatFindings = (
-  findings: SafeFinding[],
-  allow: AllowOpts = {},
-  enforced = true,
-): string[] =>
-  findings.flatMap((f) => {
-    const where = f.path ? `${f.path}: ` : "";
-    if (f.severity === "notice") return [`  ⓘ NOTICE: ${where}${f.message}`];
-    if (!enforced) return [];
-    if (isAllowed(f, allow))
-      return [`  ⚠️ ALLOWED (--${f.allow}): ${where}${f.message}`];
-    return [`  ⛔ BLOCKED: ${where}${f.message}`];
-  });
-
 /**
  * Refuse to sign or execute while a blocking finding is not explicitly
  * allowed. The error names every blocking finding and the options that

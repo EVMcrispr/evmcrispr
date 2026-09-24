@@ -233,6 +233,26 @@ describe("useTransactionExecutor worker killed or crashed", () => {
     });
   });
 
+  test("a wallet rejection ends the run cancelled without error text", async () => {
+    const { result, run } = await startWatching();
+    // As it crosses the worker: the command's wrapper, with viem's
+    // rejection in its cause chain.
+    const rejection = new Error("User rejected the request.");
+    rejection.name = "UserRejectedRequestError";
+    await act(async () => {
+      fail(
+        new Error(
+          "execute(12:0,14:1): User rejected the request. Request Arguments: chain: Polygon",
+          { cause: rejection },
+        ),
+      );
+      expect(await run).toBe(false);
+    });
+    expect(result.current.phase).toBe("cancelled");
+    expect(result.current.errors).toEqual([]);
+    expect(terminalStoreGet("isLoading")).toBe(false);
+  });
+
   test("a worker crash ends the run in error and its boxes", async () => {
     const { result, run } = await startWatching();
     await act(async () => {

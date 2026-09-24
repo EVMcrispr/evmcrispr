@@ -1,4 +1,5 @@
 import type { ActionHandlers } from "@evmcrispr/core";
+import { classifyError } from "@evmcrispr/core";
 import { useExecutionLogs } from "@evmcrispr/editor";
 import type { Action, BoxSnapshot } from "@evmcrispr/sdk";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
@@ -264,7 +265,11 @@ export function useTransactionExecutor(
     } catch (err: any) {
       if (!current()) return false;
       const e = err as Error;
+      // Rejecting in the wallet is a choice, not a failure: the transaction
+      // box already reads "Rejected in wallet", so no error text follows.
+      const rejected = classifyError(err).kind === "rejected";
       const cancelled =
+        rejected ||
         e.message === "Observation cancelled" ||
         e.message === "Execution cancelled";
       // A rejected run sends no more snapshots: when its worker was killed
@@ -278,7 +283,7 @@ export function useTransactionExecutor(
       );
       clearFollowed();
       if (cancelled) {
-        setErrors(["Script execution cancelled"]);
+        setErrors(rejected ? [] : ["Script execution cancelled"]);
         setPhase("cancelled");
       } else {
         console.error(e);

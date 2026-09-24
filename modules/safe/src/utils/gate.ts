@@ -58,7 +58,7 @@ export async function gateSignable(
         ),
       ),
     );
-  logSafeSignable(module, signable, { findings, allow, enforced });
+  logSafeSignable(module, signable);
   if (enforced) enforceFindings(findings, allow, commandName);
   return { ...report, findings, enforced };
 }
