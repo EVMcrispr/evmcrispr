@@ -1,11 +1,18 @@
-import type { BoxCountdown, BoxSnapshot, BoxState } from "@evmcrispr/sdk";
+import type {
+  BoxCountdown,
+  BoxSnapshot,
+  BoxState,
+  BoxStep,
+} from "@evmcrispr/sdk";
 import {
   CheckCircleIcon,
   ClockIcon,
   NoSymbolIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
+import { type ReactNode, useState } from "react";
 import { Alert } from "../ui/Alert";
+import { Popover } from "../ui/Popover";
 import { ConsoleMarkdown } from "./ConsoleMarkdown";
 import { countdownText, type Segment, segments, useNow } from "./countdown";
 
@@ -78,7 +85,7 @@ export function BoxCard({ box }: BoxCardProps) {
             <BoxProgress
               progress={box.progress}
               countdown={box.state === "live" ? box.countdown : undefined}
-              links={box.progressLinks}
+              steps={box.steps}
               percent={percent}
             />
           )}
@@ -124,18 +131,20 @@ export function BoxCard({ box }: BoxCardProps) {
 function BoxProgress({
   progress,
   countdown,
-  links = [],
+  steps,
   percent,
 }: {
   progress: [number, number];
   countdown?: BoxCountdown;
-  links?: string[];
+  steps?: BoxStep[];
   percent: number;
 }) {
   const now = useNow(countdown !== undefined);
   const [done, total] = progress;
   const parts =
-    countdown || links.length > 0 ? segments(progress, countdown, now) : null;
+    countdown || steps?.length
+      ? segments(progress, countdown, now, steps)
+      : null;
   return (
     <div className="flex flex-col gap-1">
       {parts ? (
@@ -147,11 +156,7 @@ function BoxProgress({
         >
           {parts.map((part, i) => (
             <li key={i} className="m-0 flex-1 p-0">
-              <SegmentBar
-                part={part}
-                step={i + 1}
-                href={part.kind === "done" ? links[i] : undefined}
-              />
+              <SegmentBar part={part} step={i + 1} />
             </li>
           ))}
         </ol>
@@ -182,20 +187,17 @@ function BoxProgress({
   );
 }
 
-/** One step of the bar: a link to its page when it has one. */
-function SegmentBar({
-  part,
-  step,
-  href,
-}: {
-  part: Segment;
-  step: number;
-  href?: string;
-}) {
+/** One step of the bar: done steps full (a link to their page when they
+ *  have one), missed ones hatched, the open one filling faintly. */
+function SegmentBar({ part, step }: { part: Segment; step: number }) {
   const bar = (
     <span
       className={`block h-1.5 overflow-hidden rounded-sm ${
-        part.kind === "done" ? "bg-evm-green-300" : "bg-white/20"
+        part.kind === "done"
+          ? "bg-evm-green-300"
+          : part.kind === "missed"
+            ? "bg-[repeating-linear-gradient(135deg,var(--color-evm-orange-300)_0_2px,transparent_2px_5px)] opacity-70"
+            : "bg-white/20"
       }`}
     >
       {part.kind === "upcoming" && (
@@ -206,18 +208,66 @@ function SegmentBar({
       )}
     </span>
   );
-  return href ? (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={`Settlement ${step}`}
-      aria-label={`Settlement ${step}`}
-      className="block rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-evm-green-300"
-    >
-      {bar}
-    </a>
-  ) : (
-    <span className="block py-2">{bar}</span>
+  if (part.kind === "done" && part.href)
+    return (
+      <StepPopover label={`Segment ${step}`} href={part.href}>
+        {bar}
+      </StepPopover>
+    );
+  if (part.kind === "missed")
+    return <StepPopover label={`Segment ${step} expired`}>{bar}</StepPopover>;
+  return <span className="block py-2">{bar}</span>;
+}
+
+/** A step with the terminal's popover naming it above the bar on hover
+ *  (and keyboard focus, when it is a link). Anchored rather than a popover
+ *  trigger, so clicking a link opens it instead of toggling. */
+function StepPopover({
+  label,
+  href,
+  children,
+}: {
+  label: string;
+  href?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const show = {
+    onPointerEnter: () => setOpen(true),
+    onPointerLeave: () => setOpen(false),
+  };
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <Popover.Anchor asChild>
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            {...show}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            className="block rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-evm-green-300"
+          >
+            {children}
+          </a>
+        ) : (
+          <span {...show} className="block py-2">
+            {children}
+          </span>
+        )}
+      </Popover.Anchor>
+      <Popover.Content
+        side="top"
+        sideOffset={2}
+        className="pointer-events-none w-auto px-2 py-1 text-xs"
+        // A label, not a dialog: focus stays where it was.
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
+        {label}
+      </Popover.Content>
+    </Popover>
   );
 }

@@ -18,14 +18,14 @@ describe("countdown", () => {
 
   it("reads the label with the time left, then its due text", () => {
     const next = {
-      label: "Next settlement in",
-      due: "Settlement landing soon",
+      label: "Next segment in",
+      due: "Segment landing soon",
       from: 1000,
       until: 1060,
       segment: 2,
     };
-    expect(countdownText(next, 1030)).toBe("Next settlement in 30s");
-    expect(countdownText(next, 1060)).toBe("Settlement landing soon");
+    expect(countdownText(next, 1030)).toBe("Next segment in 30s");
+    expect(countdownText(next, 1060)).toBe("Segment landing soon");
     // Without a due text, the label stays.
     expect(countdownText({ label: "Ends in", from: 0, until: 10 }, 10)).toBe(
       "Ends in",
@@ -35,7 +35,7 @@ describe("countdown", () => {
   it("fills settled steps, and the step the countdown leads to faintly", () => {
     // 2 of 4 settled; the countdown leads to step index 2, half way there.
     const next = {
-      label: "Next settlement in",
+      label: "Next segment in",
       from: 100,
       until: 160,
       segment: 2,
@@ -57,7 +57,7 @@ describe("countdown", () => {
 
   it("a settled step stays full even if its time has not come", () => {
     const next = {
-      label: "Next settlement in",
+      label: "Next segment in",
       from: 100,
       until: 160,
       segment: 2,
@@ -78,5 +78,28 @@ describe("countdown", () => {
 
   it("falls back to a plain bar with too many steps", () => {
     expect(segments([0, MAX_SEGMENTS + 1], undefined, 0)).toBeNull();
+  });
+  it("draws each step's own state when the box gives them", () => {
+    // Segment 2 expired, 3 executed out of order, 4 running half way.
+    const running = { label: "Ends in", from: 100, until: 160 };
+    expect(
+      segments([2, 4], running, 130, [
+        { state: "done", href: "https://explorer.cow.fi/gc/orders/0x1" },
+        { state: "missed" },
+        { state: "done", href: "https://explorer.cow.fi/gc/orders/0x3" },
+        { state: "open" },
+      ]),
+    ).toEqual([
+      { kind: "done", href: "https://explorer.cow.fi/gc/orders/0x1" },
+      { kind: "missed" },
+      { kind: "done", href: "https://explorer.cow.fi/gc/orders/0x3" },
+      { kind: "upcoming", fill: 0.5 },
+    ]);
+  });
+
+  it("ignores steps that do not match the step count", () => {
+    expect(
+      segments([1, 3], undefined, 0, [{ state: "done" }])?.map((s) => s.kind),
+    ).toEqual(["done", "pending", "pending"]);
   });
 });

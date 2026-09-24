@@ -47,6 +47,7 @@ export type {
   BoxOptions,
   BoxSnapshot,
   BoxState,
+  BoxStep,
   BoxUpdate,
   BytesLiteralNode,
   CacheBinding,

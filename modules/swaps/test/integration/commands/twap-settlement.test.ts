@@ -552,15 +552,16 @@ describe("TWAP > actual CoW settlement on a Gnosis fork", () => {
       expect(box.detail).toBe("Finished: 3/3 executed");
       expect(box.history).toContain(started);
       expect(box.parent).toBeDefined();
-      // Only settlements, each an order page, also attached to the bar.
-      expect(Object.keys(box.links ?? {})).toEqual([
-        "Settlement 1",
-        "Settlement 2",
-        "Settlement 3",
+      // No visible links: each settled segment of the bar links to its
+      // settled order on CoW Explorer.
+      expect(box.links ?? {}).toEqual({});
+      expect(box.steps?.map((step) => step.state)).toEqual([
+        "done",
+        "done",
+        "done",
       ]);
-      for (const href of Object.values(box.links ?? {}))
-        expect(href).toStartWith("https://explorer.cow.fi/gc/orders/");
-      expect(box.progressLinks).toEqual(Object.values(box.links ?? {}));
+      for (const step of box.steps ?? [])
+        expect(step.href).toStartWith("https://explorer.cow.fi/gc/orders/");
     } finally {
       await client.request({
         method: "evm_revert" as any,

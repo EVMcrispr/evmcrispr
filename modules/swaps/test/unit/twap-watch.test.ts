@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { BoxHandle, BoxUpdate, WatchContext } from "@evmcrispr/sdk";
-import { twapCountdown, watchTwap } from "../../src/twap/watch";
+import { partStep, twapCountdown, watchTwap } from "../../src/twap/watch";
 
 function fakeBox() {
   const log: string[] = [];
@@ -111,9 +111,8 @@ describe("watchTwap", () => {
     ]);
     expect(state()).toBe("done");
     expect(progress()).toEqual([4, 4]);
-    // Only settlements are linked: no order-history or current-step links.
-    expect(links.Orders).toBeUndefined();
-    expect(links["Current part"]).toBeUndefined();
+    // No visible links: settlements are linked from the bar's segments.
+    expect(links).toEqual({});
   });
 
   it("says when the order started, without naming parts", async () => {
@@ -384,8 +383,8 @@ describe("twapCountdown", () => {
   it("counts down to the next settlement, filling the first unsettled step", () => {
     // Nothing settled yet: the first segment fills, never the second.
     expect(twapCountdown(status({}))).toEqual({
-      label: "Next settlement in",
-      due: "Settlement landing soon",
+      label: "Next segment in",
+      due: "Segment landing soon",
       from: 1060,
       until: 1120,
       segment: 0,
@@ -413,5 +412,29 @@ describe("twapCountdown", () => {
   it("has nothing to count once ended or when the schedule is unknown", () => {
     expect(twapCountdown(status({ schedule: "expired" }))).toBeNull();
     expect(twapCountdown(status({ start: null }))).toBeNull();
+  });
+});
+
+describe("partStep", () => {
+  const item = (window: string, filled: string) => ({
+    window,
+    filled,
+    explorer: "https://explorer.cow.fi/gc/orders/0xabc",
+  });
+
+  it("maps each part to its own bar state", () => {
+    expect(partStep(item("expired", "complete"))).toEqual({
+      state: "done",
+      href: "https://explorer.cow.fi/gc/orders/0xabc",
+    });
+    // Settled early, while its window is still open: done wins.
+    expect(partStep(item("active", "complete")).state).toBe("done");
+    expect(partStep(item("active", "none"))).toEqual({ state: "open" });
+    expect(partStep(item("expired", "none"))).toEqual({ state: "missed" });
+    expect(partStep(item("scheduled", "none"))).toEqual({ state: "pending" });
+  });
+
+  it("never calls a part missed while its fill history is incomplete", () => {
+    expect(partStep(item("expired", "unknown"))).toEqual({ state: "pending" });
   });
 });

@@ -15,6 +15,15 @@ export type ActionOutcome =
 
 export type BoxState = "live" | "done" | "failed" | "cancelled";
 
+/** One step of a box's progress, for hosts that draw a step per segment:
+ *  `done` (with an optional link to what completed it), `missed` (its time
+ *  passed without it completing), `open` (its time is running now) or
+ *  `pending` (not reached yet). */
+export interface BoxStep {
+  state: "done" | "missed" | "open" | "pending";
+  href?: string;
+}
+
 /** Time left until the box's next step, which hosts can show ticking:
  *  `label` and the time left ("Next settlement in 4m 12s"), then `due`
  *  once `until` has passed. Times are Unix seconds. `segment` is the step
@@ -40,9 +49,9 @@ export interface BoxSnapshot {
   progress?: [number, number];
   links?: Record<string, string>;
   countdown?: BoxCountdown;
-  /** Links of the finished steps, in order: hosts attach them to the
-   *  progress bar's segments. */
-  progressLinks?: string[];
+  /** Each step's state, in order: hosts draw one segment per step and
+   *  link the done ones that carry an `href`. */
+  steps?: BoxStep[];
   simulated: boolean;
 }
 
@@ -52,7 +61,7 @@ export interface BoxUpdate {
   links?: Record<string, string>;
   /** `null` clears it. */
   countdown?: BoxCountdown | null;
-  progressLinks?: string[];
+  steps?: BoxStep[];
 }
 
 export interface BoxOptions {

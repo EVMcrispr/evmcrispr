@@ -1,4 +1,9 @@
-import type { BoxCountdown, BoxHandle, WatchContext } from "@evmcrispr/sdk";
+import type {
+  BoxCountdown,
+  BoxHandle,
+  BoxStep,
+  WatchContext,
+} from "@evmcrispr/sdk";
 import type { PublicClient } from "viem";
 import { decodeSchedule } from "./cow";
 import type { ObservationBlock } from "./evidence";
@@ -20,12 +25,26 @@ const EVIDENCE_POLLS = 5;
 
 interface Reading {
   status: TwapStatus;
-  /** CoW Explorer order pages of the settlements seen so far, in the order
-   *  they happened: "Settlement 1", "Settlement 2", … */
-  settlements: Record<string, string>;
-  /** The same pages as a list, for the bar's settled segments. */
-  settled: string[];
+  /** Each part's state, linking settled ones to their order on CoW
+   *  Explorer. Empty when the order is too long to read in one page. */
+  steps: BoxStep[];
 }
+
+/** A part as a bar step: settled (linked to its order), missed (its window
+ *  closed unfilled), open (its window is running) or pending. A closed
+ *  window with incomplete fill history stays pending: it may have settled. */
+export const partStep = (item: {
+  window: string;
+  filled: string;
+  explorer: string;
+}): BoxStep =>
+  item.filled === "complete"
+    ? { state: "done", href: item.explorer }
+    : item.window === "active"
+      ? { state: "open" }
+      : item.window === "expired" && item.filled === "none"
+        ? { state: "missed" }
+        : { state: "pending" };
 
 /** Status plus a settlement link per filled part. Orders of up to 128
  *  parts are read as one page so every settlement is linked; longer ones
@@ -48,16 +67,10 @@ async function readTwap(
     { external: true, block, signal },
     page,
   );
-  const settled = page
-    ? items
-        .filter((item) => item.settlement)
-        .sort((a, b) => a.index - b.index)
-        .map((item) => item.explorer)
+  const steps = page
+    ? [...items].sort((a, b) => a.index - b.index).map(partStep)
     : [];
-  const settlements = Object.fromEntries(
-    settled.map((href, i) => [`Settlement ${i + 1}`, href]),
-  );
-  return { status, settlements, settled };
+  return { status, steps };
 }
 
 const utc = (seconds: string) =>
@@ -87,8 +100,8 @@ export const twapCountdown = (s: TwapStatus): BoxCountdown | null => {
   const segment = s.filledParts < s.totalParts ? s.filledParts : undefined;
   return index + 1 < s.totalParts
     ? {
-        label: "Next settlement in",
-        due: "Settlement landing soon",
+        label: "Next segment in",
+        due: "Segment landing soon",
         from,
         until: from + interval,
         segment,
@@ -120,8 +133,7 @@ export async function watchTwap(
   const read = custom
     ? async (): Promise<Reading> => ({
         status: await custom(client, ref),
-        settlements: {},
-        settled: [],
+        steps: [],
       })
     : () => readTwap(client, ref, box.signal);
   let seenRegistered = false;
@@ -131,14 +143,14 @@ export async function watchTwap(
     async () => {
       const reading = await read();
       if (!reading) return "stop";
-      const { status: s, settlements, settled } = reading;
+      const { status: s, steps } = reading;
       const progress: [number, number] = [s.filledParts, s.totalParts];
       const executed = `${s.filledParts}/${s.totalParts} executed`;
       const unknown = s.filled === "unknown";
       const reason = s.evidence?.reasons?.[0] ?? "fill history unavailable";
       // Completion first: recovering a finished order also removes it.
       if (s.filled === "complete") {
-        box.update({ links: settlements, progressLinks: settled, progress });
+        box.update({ steps, progress });
         box.done(`Finished: ${s.totalParts}/${s.totalParts} executed`);
         return "stop";
       }
@@ -170,11 +182,11 @@ export async function watchTwap(
             box.update({ detail: `${ending}; confirming fills…` });
             return "continue";
           }
-          box.update({ links: settlements, progressLinks: settled });
+          box.update({ steps });
           end(`${ending}; fill count could not be verified: ${reason}`);
           return "stop";
         }
-        box.update({ links: settlements, progressLinks: settled, progress });
+        box.update({ steps, progress });
         end(
           removed
             ? `${ending} after ${executed}`
@@ -193,11 +205,10 @@ export async function watchTwap(
               ? `Started at ${utc(s.start)}`
               : executed;
       const countdown = s.registered ? twapCountdown(s) : null;
-      const links = settlements;
       box.update(
         unknown
-          ? { detail, links, countdown }
-          : { detail, progress, links, progressLinks: settled, countdown },
+          ? { detail, countdown }
+          : { detail, progress, steps, countdown },
       );
       return "continue";
     },

@@ -196,13 +196,15 @@ async run(module, args, { interpreters }) {
   cancelled rather than failed).
 - `box.update({ countdown: { label, due, from, until, segment } })` (Unix
   seconds) shows a ticking countdown in the terminal: `label` and the time
-  left ("Next settlement in 4m 12s"), then `due` once `until` has passed.
+  left ("Next segment in 4m 12s"), then `due` once `until` has passed.
   With `progress`, its bar gets one segment per step: the steps done are
   full, and step `segment` (the one the countdown leads to) fills faintly
   from `from` to `until`. `countdown: null` clears it; it is never logged
   as a line, and it clears when the box ends.
-- `box.update({ progressLinks: [url, …] })` links the done steps, in order:
-  the terminal makes each full segment of the bar a link.
+- `box.update({ steps: [{ state, href }, …] })` gives each step its own
+  state, in order: `done` (full, and a link when it has an `href`),
+  `missed` (hatched), `open` (filling with the countdown's time) or
+  `pending`. Without `steps`, the bar fills the first `progress` steps.
 - A box with a `watch` keeps a real run open until it ends; simulations
   never wait, and a box opened inside `sim:fork` ends when the fork does.
   Cancel aborts `box.signal`.

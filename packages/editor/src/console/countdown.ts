@@ -1,4 +1,4 @@
-import type { BoxCountdown } from "@evmcrispr/sdk";
+import type { BoxCountdown, BoxStep } from "@evmcrispr/sdk";
 import { useEffect, useState } from "react";
 
 /** "30s", "4m 12s", "2h 05m", "3d 4h": the two most significant units. */
@@ -11,7 +11,7 @@ export function formatDuration(seconds: number): string {
   return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h`;
 }
 
-/** "Next settlement in 4m 12s", then the countdown's `due` text once the
+/** "Next segment in 4m 12s", then the countdown's `due` text once the
  *  time has come (the box updates on its next poll). */
 export function countdownText(countdown: BoxCountdown, now: number): string {
   const left = countdown.until - now;
@@ -20,7 +20,8 @@ export function countdownText(countdown: BoxCountdown, now: number): string {
 }
 
 export type Segment =
-  | { kind: "done" }
+  | { kind: "done"; href?: string }
+  | { kind: "missed" }
   | { kind: "upcoming"; fill: number }
   | { kind: "pending" };
 
@@ -28,23 +29,42 @@ export type Segment =
  *  back to a continuous bar. */
 export const MAX_SEGMENTS = 48;
 
-/** One segment per step. The first `done` are full, matching the box's
- *  "N/M" text. The step the countdown leads to (`countdown.segment`) fills
- *  faintly with time until `until`; every other unfinished step is empty.
- *  A finished step is full whatever the clock says. */
+const elapsed = (countdown: BoxCountdown | undefined, now: number) => {
+  if (!countdown) return 0;
+  const span = countdown.until - countdown.from;
+  const fill = span > 0 ? (now - countdown.from) / span : 0;
+  return Math.min(1, Math.max(0, fill));
+};
+
+/** One segment per step. With per-step states (`steps`), each segment
+ *  shows its own: done (linked when it has an `href`), missed, open
+ *  (filling faintly with the countdown's time) or pending. Without them,
+ *  the first `done` are full and the countdown's `segment` fills. */
 export function segments(
   [done, total]: [number, number],
   countdown: BoxCountdown | undefined,
   now: number,
+  steps?: BoxStep[],
 ): Segment[] | null {
   if (total <= 0 || total > MAX_SEGMENTS) return null;
+  if (steps && steps.length === total)
+    return steps.map((step): Segment => {
+      switch (step.state) {
+        case "done":
+          return { kind: "done", href: step.href };
+        case "missed":
+          return { kind: "missed" };
+        case "open":
+          return { kind: "upcoming", fill: elapsed(countdown, now) };
+        default:
+          return { kind: "pending" };
+      }
+    });
   const next = countdown?.segment;
   return Array.from({ length: total }, (_, i): Segment => {
     if (i < done) return { kind: "done" };
     if (i !== next || !countdown) return { kind: "pending" };
-    const span = countdown.until - countdown.from;
-    const fill = span > 0 ? (now - countdown.from) / span : 0;
-    return { kind: "upcoming", fill: Math.min(1, Math.max(0, fill)) };
+    return { kind: "upcoming", fill: elapsed(countdown, now) };
   });
 }
 

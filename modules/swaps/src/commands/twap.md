@@ -261,10 +261,10 @@ it to the end: *Waiting for execution → Started at 2026-09-24 14:05 UTC →
 1/4 executed → … → Finished: 4/4 executed*. In the terminal its bar has one
 segment per part: settled ones full, matching the text, and the next one
 filling faintly until it is due, with a live countdown under it (*Starts
-in*, *Next settlement in 4m 12s*, *Settlement landing soon*, *Ends in*).
-Its links are the settlements, *Settlement 1*, *Settlement 2*, …, each
-opening the settled order on CoW Explorer; the bar's settled segments link
-to the same pages. The run
+in*, *Next segment in 4m 12s*, *Segment landing soon*, *Ends in*).
+Each executed segment of the bar links to its order on CoW Explorer
+(hover or focus it to see *Segment 1*, *Segment 2*, …); a segment whose time
+passed unexecuted is hatched and reads *Segment 2 expired*. The run
 stays open until the schedule ends; Cancel stops following, never the
 order. An order that expires with parts unfilled ends as *Ended: 3/4
 executed, 1 expired*, and one removed with `swaps:twap-cancel` ends
