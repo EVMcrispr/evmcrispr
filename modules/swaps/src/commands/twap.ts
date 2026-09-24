@@ -315,9 +315,10 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
       follows: actions,
       showWhenConfirmed: true,
     });
+    // Rounded for reading: "0.0003691 WETH", not 18 decimals.
     const format = {
-      sell: await tokenAmountFormatter(module, tokenIn),
-      buy: await tokenAmountFormatter(module, tokenOut),
+      sell: await tokenAmountFormatter(module, tokenIn, { compact: true }),
+      buy: await tokenAmountFormatter(module, tokenOut, { compact: true }),
     };
     box?.watch((watch) => watchTwap(box, client, ref, watch, { format }));
     return actions;
