@@ -35,6 +35,17 @@
   --sl-nav-height: 4.75rem;
 }
 
+/* ── No ligatures ──────────────────────────────────────────── */
+/* JetBrains Mono ships ligatures that draw EVML operators such as `->`,
+   `>=` and `!=` as single glyphs; readers must see the characters they
+   type. Set on code too, where expressive-code sets its own font. */
+:root,
+.expressive-code,
+code,
+pre {
+  font-variant-ligatures: none;
+}
+
 /* ── Retro overrides: no border-radius ─────────────────────── */
 :root {
   --sl-border-radius: 0px;
