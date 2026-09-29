@@ -419,6 +419,7 @@ export default defineConfig({
             docItem("Working with DAOs", "guides/working-with-daos"),
             docItem("Operating a Safe", "guides/safe"),
             docItem("Offline Safe Transactions", "guides/offline-safe"),
+            docItem("Smart Batches", "guides/smart-batches"),
             docItem("Managing OpenZeppelin Contracts", "guides/openzeppelin"),
             docItem("Zero-Knowledge Proofs", "guides/circom"),
             docItem("Cross-Chain with EEZ", "guides/eez"),
