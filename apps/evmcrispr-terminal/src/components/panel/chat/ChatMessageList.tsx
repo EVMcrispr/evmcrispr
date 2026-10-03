@@ -11,12 +11,16 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/solid";
 import { Button, cn, IconButton } from "@repo/ui";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { markdownComponents } from "../MarkdownComponents";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { useStickToBottom } from "./useStickToBottom";
+
+// Depth positions (0 = back, 1 = front) of the stacked copies that give the
+// working logo its thickness; see `.dappnode-tumble` in index.css.
+const LOGO_LAYERS = Array.from({ length: 9 }, (_, i) => i / 8);
 
 const WORKING_STATUSES = [
   "Liberating humanity...",
@@ -375,11 +379,24 @@ export function ChatMessageList({
         })}
         {isRunning && (
           <div className="flex items-center gap-2 text-sm text-foreground/60">
-            <img
-              src="/dappnode-logo.svg"
-              alt=""
-              className="size-5 animate-[spin_2s_linear_infinite]"
-            />
+            <span className="dappnode-tumble size-5" aria-hidden="true">
+              {LOGO_LAYERS.flatMap((i) => [
+                <img
+                  key={`front-${i}`}
+                  src="/dappnode-logo.svg"
+                  alt=""
+                  className={cn(i < 1 && "inner")}
+                  style={{ "--i": i } as CSSProperties}
+                />,
+                <img
+                  key={`back-${i}`}
+                  src="/dappnode-logo-back.svg"
+                  alt=""
+                  className={cn("back", i > 0 && "inner")}
+                  style={{ "--i": i } as CSSProperties}
+                />,
+              ])}
+            </span>
             <span className="animate-pulse">{WORKING_STATUSES[statusIdx]}</span>
           </div>
         )}

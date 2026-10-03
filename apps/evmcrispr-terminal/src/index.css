@@ -15,6 +15,67 @@
    `@evmcrispr/editor/styles/components.css`, scoped under the
    `.evmcrispr-root` class applied on the App root. */
 
+/* Chat "working" logo: flip over the anti-diagonal (bottom-right corner to
+   top-left), then over the main diagonal (bottom-left to top-right). One
+   pair of flips leaves the logo half a turn round, so the loop is two pairs.
+   Both faces of the logo carry an N (see `.dappnode-tumble` below).
+   The transforms apply right-to-left, and every keyframe keeps the same
+   function list so each leg interpolates one angle instead of falling back
+   to matrix blending. */
+@keyframes dappnode-tumble {
+  0% {
+    transform: perspective(25px) rotate3d(1, 1, 0, 0deg)
+      rotate3d(1, -1, 0, 0deg) rotate3d(1, 1, 0, 0deg) rotate3d(1, -1, 0, 0deg);
+  }
+  25% {
+    transform: perspective(25px) rotate3d(1, 1, 0, 0deg)
+      rotate3d(1, -1, 0, 0deg) rotate3d(1, 1, 0, 0deg)
+      rotate3d(1, -1, 0, 180deg);
+  }
+  50% {
+    transform: perspective(25px) rotate3d(1, 1, 0, 0deg)
+      rotate3d(1, -1, 0, 0deg) rotate3d(1, 1, 0, 180deg)
+      rotate3d(1, -1, 0, 180deg);
+  }
+  75% {
+    transform: perspective(25px) rotate3d(1, 1, 0, 0deg)
+      rotate3d(1, -1, 0, 180deg) rotate3d(1, 1, 0, 180deg)
+      rotate3d(1, -1, 0, 180deg);
+  }
+  100% {
+    transform: perspective(25px) rotate3d(1, 1, 0, 180deg)
+      rotate3d(1, -1, 0, 180deg) rotate3d(1, 1, 0, 180deg)
+      rotate3d(1, -1, 0, 180deg);
+  }
+}
+
+/* The logo is a stack of copies spread along its own Z axis, which gives it
+   an edge to show when a flip turns it side-on. Each depth holds two
+   one-sided copies: one facing front, and one facing back that is already
+   flipped over the anti-diagonal. A plain diagonal flip would show the N
+   from behind as a mirrored Z; this way the back face is an N too. The back
+   copy's gradient runs the other way, so the bar's dark end is seen to
+   travel with the flip instead of snapping back. */
+.dappnode-tumble {
+  position: relative;
+  transform-style: preserve-3d;
+  animation: dappnode-tumble 4s ease-in-out infinite;
+}
+.dappnode-tumble > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  transform: translateZ(calc((var(--i) - 0.5) * 4px));
+}
+.dappnode-tumble > img.back {
+  transform: translateZ(calc((var(--i) - 0.5) * 4px)) rotate3d(1, -1, 0, 180deg);
+}
+.dappnode-tumble > img.inner {
+  filter: brightness(0.75);
+}
+
 #root {
   height: 100%;
   overflow: hidden;
