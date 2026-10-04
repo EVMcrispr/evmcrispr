@@ -22,6 +22,7 @@ export const COLLECTIONS_ABI = parseAbi([
   "function fold(uint8 domain, uint256 n, bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
   // array-shape ops over aligned-word bytes payloads
   "function applyWords(bytes s, address target, bytes template, uint256[] elemOffsets, bool filter) view returns (bytes)",
+  "function reduceWords(bytes s, address target, bytes template, uint256[] elemOffsets, uint8 mode, uint8 cmp, bytes32 bound) view returns (uint256)",
   "function iotaWords(uint256 n) pure returns (bytes)",
   "function wordIndexOf(bytes s, bytes32 w) pure returns (uint256)",
   "function reverseWords(bytes s) pure returns (bytes)",

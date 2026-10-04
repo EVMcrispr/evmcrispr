@@ -13,7 +13,7 @@ export const SMART_DEPENDENCY_HASHES: Record<Address, Hex> = {
   [OPERATIONS_ADDRESS.toLowerCase() as Address]:
     "0x7e8b97fb2bdc86551d58dfce2e50c2a35e57b0ed734cf540f2eec7ffdb09fbc1",
   [COLLECTIONS_ADDRESS.toLowerCase() as Address]:
-    "0x52d71912aa27825e1ad235b4c7d24a529d50dd676f8e2ff9603f7fcbc86daa8a",
+    "0x7287bccb153c694f843f46f91a095fee3f023d8aa0b9be6fc6c58197e6b9efcb",
   [EXPRESSIONS_ADDRESS.toLowerCase() as Address]:
     "0x3c52e3025fa1bed7fa34edb206ccf09b24876d61e0b86c37728f3f5d29a3d739",
 };

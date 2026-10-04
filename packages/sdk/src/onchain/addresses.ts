@@ -27,7 +27,7 @@ export const OPERATIONS_ADDRESS: Address =
 /** Canonical address of Collections (CREATE2): iteration and the
  *  ABI-valued collection family (requires Cancun). */
 export const COLLECTIONS_ADDRESS: Address =
-  "0xc011Ec76C3f40945184b93F79377Bca9662165d5";
+  "0xC011eC77aE33213fAa3ec60D0f0C88C420cBc30E";
 
 /** Canonical address of Expressions (CREATE2): typed expression graphs
  *  (`evaluate`), the host of collection callbacks compiled as graphs.
