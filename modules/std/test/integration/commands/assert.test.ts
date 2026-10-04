@@ -222,8 +222,8 @@ const stringDigest = (s: string) => keccak256(stringToHex(s));
  *  the bytes arg is FIRST, so the head is [offset_s = 96][mask] and the
  *  live string envelope splices last (offset_s points at payload+32,
  *  skipping the envelope's 0x20 word). This is the fixed-operation form of
- *  the old foldBytes(bitSet, All) recipe — one on-chain loop, no per-byte
- *  lambda call — while foldBytes stays the general per-byte predicate. */
+ *  the old Bytes fold with bitSet and the All exit — one on-chain loop, no per-byte
+ *  lambda call — while the Bytes fold stays the general per-byte predicate. */
 function charsetLiteral(mask: bigint): `0x${string}` {
   return `0x${word(96n).slice(2)}${word(mask).slice(2)}`;
 }
@@ -915,7 +915,7 @@ describeCommand("assert", {
       script: `assert @str.charset!(${TOKEN}::!{symbol()(string)} "a-z") == true`,
       validate: (actions) => {
         const { param } = decodeAssert(actions);
-        // Native charset(s, mask): one op read, not a foldBytes(bitSet)
+        // Native charset(s, mask): one op read, not a Bytes fold over bitSet
         // fold — the EVML surface and semantics are unchanged, only the
         // compiled calldata is the fixed-operation form.
         const args = opReadOf(param, "charset(bytes,uint256)");

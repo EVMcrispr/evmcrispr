@@ -17,7 +17,7 @@ import { LEAF_A, LEAF_B, LEAF_C } from "../../fixtures";
  * checked against a hash written down by hand, so an error in either face
  * shows up as the two disagreeing.
  *
- * `@merkle.verify!` folds through `foldWords`. Literal hex arrays infer
+ * `@merkle.verify!` folds through `fold` in its Words domain. Literal hex arrays infer
  * `bytes[]`, so this proof uses a typed `bytes32[]` contract result.
  * Nothing on the Gnosis fork returns a `bytes32[]`
  * proof for a tree whose root we know, so a constant-returning mock stands in.

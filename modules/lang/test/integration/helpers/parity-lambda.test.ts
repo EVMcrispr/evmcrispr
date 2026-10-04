@@ -10,7 +10,7 @@ import { helpers } from "../../../src/_generated";
  * The def-backed lambda family, compared by value.
  *
  * This is the most intricate compile path in the module — `@map!` and
- * `@filter!` splice a template into `mapWords`/`filterWords` at the element
+ * `@filter!` splice a template into `applyWords` at the element
  * offsets a def's parameter occupies, `@reduce!` folds with an accumulator
  * window beside the element one, and `@any!`/`@all!`/`@find!` are folds with
  * different exits. Until now all of it was pinned only by calldata-shape

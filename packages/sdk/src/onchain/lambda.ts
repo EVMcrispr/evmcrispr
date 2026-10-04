@@ -1,6 +1,6 @@
 /**
  * Fold/map lambda templates: compiling a helper-reference predicate into
- * the single-staticcall TEMPLATE the bounded folds and `mapWords` consume
+ * the single-staticcall TEMPLATE the bounded folds and `applyWords` consume
  * (fixed calldata for `target` with the element substituted at the
  * window(s) in `elemOffsets`).
  *

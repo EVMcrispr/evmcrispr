@@ -37,21 +37,22 @@ const d = createAssertDecoders({
   operators: OPERATIONS,
 });
 
-/** The RAW_BYTES literal of the merkle foldWords read: 7 head words, the
- *  hashPairSorted(acc, sibling) template at 224 with the canonical 4/36
+/** The RAW_BYTES literal of the merkle Words-domain fold read: 9 head
+ *  words (domain 2, n 0 first), the
+ *  hashPairSorted(acc, sibling) template at 288 with the canonical 4/36
  *  windows, a one-element `elemOffsets` array after the template, init =
  *  leaf, Full exit; the proof payload splices last. */
 function merkleFoldLiteral(leaf: Hex): Hex {
   const template = `${selectorOf("hashPairSorted(bytes32,bytes32)").slice(2)}${word(0n).slice(2)}${word(0n).slice(2)}`;
   const tail = `${word(68n).slice(2)}${template}${"0".repeat(56)}`;
   const offsetsTail = `${word(1n).slice(2)}${word(36n).slice(2)}`;
-  const offsetsAt = 224 + tail.length / 2;
+  const offsetsAt = 288 + tail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
-  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(224n).slice(2)}${word(4n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(BigInt(leaf)).slice(2)}${word(0n).slice(2)}${tail}${offsetsTail}`;
+  return `0x${word(2n).slice(2)}${word(0n).slice(2)}${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(288n).slice(2)}${word(4n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(BigInt(leaf)).slice(2)}${word(0n).slice(2)}${tail}${offsetsTail}`;
 }
 
 const FOLD_SIG =
-  "foldWords(bytes,address,bytes,uint256,uint256[],bytes32,uint8)";
+  "fold(uint8,uint256,bytes,address,bytes,uint256,uint256[],bytes32,uint8)";
 
 describeCommand("assert (@merkle.verify!)", {
   describeName: "Crypto > helpers > @merkle.verify!",
@@ -119,7 +120,7 @@ describeCommand("assert (@merkle.verify!)", {
       // folds to a constant that the expression then compares against a
       // live read. (An on-chain root over LIVE leaves is a different
       // thing entirely, and is not expressible: the reduction halves the
-      // array each round, and mapWords is one-to-one.)
+      // array each round, and the applyWords map is one-to-one.)
       name: "folds a plain @merkle.root into the expression as a constant",
       script: `assert ${DIST}::!{merkleRoot()(bytes32)} == @crypto:merkle.root([${LEAF} ${ROOT}])`,
       validate: (actions) => {

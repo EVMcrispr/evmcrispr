@@ -19,12 +19,9 @@ export const COLLECTIONS_ABI = parseAbi([
   "function zipValues(string leftType,string rightType,bytes[] left,bytes[] right) pure returns (bytes[])",
   "function unzipValues(string leftType,string rightType,bytes[] pairs,uint256 lane) pure returns (bytes[])",
   // bounded folds (FoldExit as uint8: Full = 0, Any = 1, All = 2)
-  "function foldRange(uint256 n, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
-  "function foldBytes(bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
-  "function foldWords(bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
+  "function fold(uint8 domain, uint256 n, bytes s, address target, bytes template, uint256 accOffset, uint256[] elemOffsets, bytes32 init, uint8 exit) view returns (bytes32)",
   // array-shape ops over aligned-word bytes payloads
-  "function mapWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
-  "function filterWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
+  "function applyWords(bytes s, address target, bytes template, uint256[] elemOffsets, bool filter) view returns (bytes)",
   "function iotaWords(uint256 n) pure returns (bytes)",
   "function wordIndexOf(bytes s, bytes32 w) pure returns (uint256)",
   "function reverseWords(bytes s) pure returns (bytes)",

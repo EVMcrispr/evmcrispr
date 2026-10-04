@@ -36,9 +36,9 @@ const d = createAssertDecoders({
   operators: OPERATIONS,
 });
 
-/** The single RAW_BYTES literal of a foldWords/foldBytes read: 7 head
- *  words [offset_s][target][offset_template = 224][accOffset]
- *  [offset_elemOffsets][init][exit], the template tail at 224, a
+/** The single RAW_BYTES literal of a Words-domain fold read: 9 head
+ *  words [domain = 2][n = 0][offset_s][target][offset_template = 288]
+ *  [accOffset][offset_elemOffsets][init][exit], the template tail at 288, a
  *  one-element `elemOffsets` array after it, and the live payload
  *  envelope spliced last with offset_s skipping its 0x20 word. */
 function foldLiteral(
@@ -52,9 +52,9 @@ function foldLiteral(
   const padded = payload + "0".repeat((64 - (payload.length % 64)) % 64);
   const tail = `${word(BigInt(payload.length / 2)).slice(2)}${padded}`;
   const offsetsTail = `${word(1n).slice(2)}${word(elemOffset).slice(2)}`;
-  const offsetsAt = 224 + tail.length / 2;
+  const offsetsAt = 288 + tail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
-  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(224n).slice(2)}${word(accOffset).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(init).slice(2)}${word(exit).slice(2)}${tail}${offsetsTail}`;
+  return `0x${word(2n).slice(2)}${word(0n).slice(2)}${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(288n).slice(2)}${word(accOffset).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(init).slice(2)}${word(exit).slice(2)}${tail}${offsetsTail}`;
 }
 
 /** A binary lambda template: selector plus two words. */
@@ -88,7 +88,7 @@ function expectWordsPayload(param: DecodedParam): DecodedParam {
 }
 
 const FOLD_SIG =
-  "foldWords(bytes,address,bytes,uint256,uint256[],bytes32,uint8)";
+  "fold(uint8,uint256,bytes,address,bytes,uint256,uint256[],bytes32,uint8)";
 
 describeCommand("assert (lang on-chain faces)", {
   describeName: "Lang > helpers > on-chain faces",
@@ -220,7 +220,7 @@ describeCommand("assert (lang on-chain faces)", {
     },
     // ---- @includes! (arrays) ------------------------------------------------
     {
-      name: "compiles array @includes! to an Any-exit eq foldWords over the word payload",
+      name: "compiles array @includes! to an Any-exit eq Words fold over the word payload",
       script: `assert @includes!(${TOKEN}::!{holders()(address[])} ${HOLDER})`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
@@ -272,7 +272,7 @@ describeCommand("assert (lang on-chain faces)", {
     },
     // ---- @all! / @any! -------------------------------------------------------
     {
-      name: "compiles @all! with a comparison predicate to an All-exit foldWords",
+      name: "compiles @all! with a comparison predicate to an All-exit Words fold",
       script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
 assert @all!(${TOKEN}::!{caps()(uint256[])} @ge100!)`,
       validate: (actions) => {
@@ -295,7 +295,7 @@ assert @all!(${TOKEN}::!{caps()(uint256[])} @ge100!)`,
       },
     },
     {
-      name: "compiles @any! with an equality predicate to an Any-exit foldWords",
+      name: "compiles @any! with an equality predicate to an Any-exit Words fold",
       script: `def @isZero! "$x: number -> bool" @bool!($x == 0)
 assert @any!(${TOKEN}::!{caps()(uint256[])} @isZero!) == false`,
       validate: (actions) => {
@@ -333,7 +333,7 @@ assert @all!(${TOKEN}::!{flags()(bool[])} @isOff!)`,
     },
     // ---- @reduce! --------------------------------------------------------------
     {
-      name: "compiles @reduce! with add to a Full foldWords at the canonical 4/36 offsets",
+      name: "compiles @reduce! with add to a Full Words fold at the canonical 4/36 offsets",
       script: `assert @reduce!(${TOKEN}::!{caps()(uint256[])} add 0) >= 100`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
@@ -441,7 +441,7 @@ assert @all!(${TOKEN}::!{flags()(bool[])} @isOff!)`,
         const { param } = d.decodeAssert(actions);
         d.expectConstraint(param, "Gte", 100n);
         // Native sumWords — the fixed-operation form of the general
-        // @reduce!(... add 0) foldWords recipe: one on-chain loop, no
+        // @reduce!(... add 0) Words fold recipe: one on-chain loop, no
         // per-element lambda call. The payload is the single bytes arg.
         const segs = d.opReadOf(param, "sumWords(bytes)");
         expect(segs).to.have.lengthOf(1);
@@ -456,7 +456,7 @@ assert @sum!(@map!(${TOKEN}::!{caps()(uint256[])} @dbl!)) >= 10`,
         const { param } = d.decodeAssert(actions);
         const segs = d.opReadOf(param, "sumWords(bytes)");
         expect(segs).to.have.lengthOf(1);
-        d.opReadOf(segs[0], "mapWords(bytes,address,bytes,uint256[])");
+        d.opReadOf(segs[0], "applyWords(bytes,address,bytes,uint256[],bool)");
         d.expectConstraint(param, "Gte", 10n);
       },
     },
@@ -525,16 +525,16 @@ function tailOf(payload: string): string {
   return `${word(BigInt(len)).slice(2)}${padded}`;
 }
 
-/** The single RAW_BYTES literal of a mapWords read: 4 head words
- *  [offset_s][target][offset_template = 128][offset_elemOffsets], the
- *  template tail, a one-element `elemOffsets` array, then the live
+/** The single RAW_BYTES literal of an applyWords read: 5 head words
+ *  [offset_s][target][offset_template = 160][offset_elemOffsets][filter],
+ *  the template tail, a one-element `elemOffsets` array, then the live
  *  payload envelope. */
-function mapLiteral(template: Hex, elemOffset: bigint): Hex {
+function mapLiteral(template: Hex, elemOffset: bigint, filter = false): Hex {
   const tail = tailOf(template.slice(2));
   const offsetsTail = `${word(1n).slice(2)}${word(elemOffset).slice(2)}`;
-  const offsetsAt = 128 + tail.length / 2;
+  const offsetsAt = 160 + tail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
-  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(128n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${tail}${offsetsTail}`;
+  return `0x${word(BigInt(envelopeAt + 32)).slice(2)}${word(BigInt(OPERATIONS)).slice(2)}${word(160n).slice(2)}${word(BigInt(offsetsAt)).slice(2)}${word(filter ? 1n : 0n).slice(2)}${tail}${offsetsTail}`;
 }
 
 describeCommand("assert (lang on-chain faces, wave 2)", {
@@ -606,7 +606,7 @@ describeCommand("assert (lang on-chain faces, wave 2)", {
       },
     },
     {
-      name: "compiles @map! to mapWords with the lambda window at its marker offset",
+      name: "compiles @map! to applyWords with the lambda window at its marker offset",
       script: `def @dbl! "$x: number -> number" @calc!($x * 2)
 assert @map!(${TOKEN}::!{caps()(uint256[])} @dbl!) == 0x1122`,
       validate: (actions) => {
@@ -614,7 +614,7 @@ assert @map!(${TOKEN}::!{caps()(uint256[])} @dbl!) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const segs = d.opReadOf(
           hashArgs[0],
-          "mapWords(bytes,address,bytes,uint256[])",
+          "applyWords(bytes,address,bytes,uint256[],bool)",
         );
         expect(segs).to.have.lengthOf(2);
         // mul(<element>, 2): element window at 4
@@ -652,7 +652,10 @@ assert @reverse!(@map!(${TOKEN}::!{caps()(uint256[])} @inc!)) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const revSegs = d.opReadOf(hashArgs[0], "reverseWords(bytes)");
         expect(revSegs).to.have.lengthOf(1);
-        d.opReadOf(revSegs[0], "mapWords(bytes,address,bytes,uint256[])");
+        d.opReadOf(
+          revSegs[0],
+          "applyWords(bytes,address,bytes,uint256[],bool)",
+        );
       },
     },
     {
@@ -726,7 +729,7 @@ assert @reduce!(@map!(${TOKEN}::!{caps()(uint256[])} @dbl!) add 0) >= 10`,
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, FOLD_SIG);
         expect(args).to.have.lengthOf(2);
-        d.opReadOf(args[1], "mapWords(bytes,address,bytes,uint256[])");
+        d.opReadOf(args[1], "applyWords(bytes,address,bytes,uint256[],bool)");
         d.expectConstraint(param, "Gte", 10n);
       },
     },
@@ -762,7 +765,7 @@ assert @filter!(${TOKEN}::!{caps()(uint256[])} @inc!) == 0x11`,
 });
 
 // ---------------------------------------------------------------------------
-//  Wave 3: filterWords/iotaWords/wordIndexOf — @filter!, @find!,
+//  Wave 3: applyWords (filter)/iotaWords/wordIndexOf — @filter!, @find!,
 //  @enumerate! and the record faces (@keys!, @values!, @lookup!), plus
 //  @len!/@at! over nested array faces
 // ---------------------------------------------------------------------------
@@ -773,7 +776,7 @@ describeCommand("assert (lang on-chain faces, wave 3)", {
   cases: [
     // ---- @filter! / @find! ----------------------------------------------
     {
-      name: "compiles @filter! to filterWords with the predicate template",
+      name: "compiles @filter! to applyWords (filter flag set) with the predicate template",
       script: `def @ge100! "$x: number -> bool" @bool!($x >= 100)
 assert @filter!(${TOKEN}::!{caps()(uint256[])} @ge100!) == 0x1122`,
       validate: (actions) => {
@@ -781,13 +784,13 @@ assert @filter!(${TOKEN}::!{caps()(uint256[])} @ge100!) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const segs = d.opReadOf(
           hashArgs[0],
-          "filterWords(bytes,address,bytes,uint256[])",
+          "applyWords(bytes,address,bytes,uint256[],bool)",
         );
         expect(segs).to.have.lengthOf(2);
         // ge(<element>, 100): element window at 4 — the same lambda
         // machinery and byte layout as @map!, only the selector differs.
         expect(segs[0].paramData).to.equal(
-          mapLiteral(template2("ge(uint256,uint256)", 0n, 100n), 4n),
+          mapLiteral(template2("ge(uint256,uint256)", 0n, 100n), 4n, true),
         );
         expectWordsPayload(segs[1]);
         d.expectConstraint(param, "Eq", BigInt(keccak256("0x1122")));
@@ -971,7 +974,7 @@ assert @reduce!(${TOKEN}::!{caps()(uint256[])} @weighted! 0) > 0`,
         const args = d.opReadOf(param, FOLD_SIG);
         // A two-call body cannot flatten to one direct Operations call, so
         // the lambda target is the CORE and the template is the whole read.
-        const lambda = lambdaOf(args[0].paramData, 4);
+        const lambda = lambdaOf(args[0].paramData, "fold");
         expect(lambda.target).to.equal(ASSERTIONS);
         expect(lambda.elemOffsets.length).to.be.greaterThan(0);
       },
@@ -993,16 +996,16 @@ assert @reduce!(${TOKEN}::!{caps()(uint256[])} @weighted! 0) > 0`,
     {
       // Signed elements would otherwise sort by raw word, putting every
       // negative after every positive. The sign bit is flipped in and back
-      // out, which is two mapWords passes around the sort.
+      // out, which is two applyWords passes around the sort.
       name: "flips the sign bit around a signed @sort!",
       script: `assert @sort!(${TOKEN}::!{deltas()(int256[])}) == 0x1122`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const outer = d.opReadOf(
           d.opReadOf(param, "hash(bytes)")[0],
-          "mapWords(bytes,address,bytes,uint256[])",
+          "applyWords(bytes,address,bytes,uint256[],bool)",
         );
-        const lambda = lambdaOf(outer[0].paramData, 3);
+        const lambda = lambdaOf(outer[0].paramData, "applyWords");
         expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.elemOffsets).to.deep.equal([4n]);
         expect(lambda.template).to.equal(
@@ -1013,7 +1016,7 @@ assert @reduce!(${TOKEN}::!{caps()(uint256[])} @weighted! 0) > 0`,
         const sorted = d.opReadOf(outer[outer.length - 1], "sortWords(bytes)");
         d.opReadOf(
           sorted[sorted.length - 1],
-          "mapWords(bytes,address,bytes,uint256[])",
+          "applyWords(bytes,address,bytes,uint256[],bool)",
         );
       },
     },
@@ -1269,14 +1272,22 @@ interface DecodedLambda {
  *  located through the literal's own offset_template head, and the
  *  `elemOffsets` array through the offset at `offsetsHead`, so nothing is
  *  re-derived with the compiler's formula. */
-function lambdaOf(literal: Hex, offsetsHead: number): DecodedLambda {
+function lambdaOf(literal: Hex, call: "fold" | "applyWords"): DecodedLambda {
   const b = literal.slice(2);
-  const head = (i: number) => BigInt(`0x${b.slice(i * 64, i * 64 + 64)}`);
-  const target: Hex = getAddress(`0x${b.slice(64 + 24, 128)}`);
+  // fold leads with [domain][n]; both calls then run
+  // [offset_s][target][offset_template], and the elemOffsets head follows
+  // (after accOffset in a fold).
+  const first = call === "fold" ? 2 : 0;
+  const offsetsHead = call === "fold" ? first + 4 : first + 3;
+  const word = (i: number) => BigInt(`0x${b.slice(i * 64, i * 64 + 64)}`);
+  const head = (i: number) => word(first + i);
+  const target: Hex = getAddress(
+    `0x${b.slice((first + 1) * 64 + 24, (first + 2) * 64)}`,
+  );
   const tplAt = Number(head(2)) * 2;
   const tplLen = Number(BigInt(`0x${b.slice(tplAt, tplAt + 64)}`)) * 2;
   const template: Hex = `0x${b.slice(tplAt + 64, tplAt + 64 + tplLen)}`;
-  const offsAt = Number(head(offsetsHead)) * 2;
+  const offsAt = Number(word(offsetsHead)) * 2;
   const offsLen = Number(BigInt(`0x${b.slice(offsAt, offsAt + 64)}`));
   expect(offsLen).to.be.greaterThan(0);
   const elemOffsets: bigint[] = [];
@@ -1354,7 +1365,7 @@ assert @any!(${TOKEN}::!{caps()(uint256[])} @overCap!)`,
         d.expectConstraint(param, "Eq", 1n);
         const args = d.opReadOf(param, FOLD_SIG);
         expect(args).to.have.lengthOf(2);
-        const lambda = lambdaOf(args[0].paramData, 4);
+        const lambda = lambdaOf(args[0].paramData, "fold");
         // Fold heads: the predicate ignores the accumulator, so both
         // windows share the element offset; init 0, Any exit.
         expect(lambda.head(3)).to.equal(lambda.elemOffset);
@@ -1383,10 +1394,10 @@ assert @map!(${TOKEN}::!{caps()(uint256[])} @dblInc!) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const segs = d.opReadOf(
           hashArgs[0],
-          "mapWords(bytes,address,bytes,uint256[])",
+          "applyWords(bytes,address,bytes,uint256[],bool)",
         );
         expect(segs).to.have.lengthOf(2);
-        const lambda = lambdaOf(segs[0].paramData, 3);
+        const lambda = lambdaOf(segs[0].paramData, "applyWords");
         const { selector, segments } = decodeCoreTemplate(lambda);
         expect(selector).to.equal(selectorOf("add(uint256,uint256)"));
         expect(BigInt(segments[1].paramData)).to.equal(1n);
@@ -1418,7 +1429,7 @@ assert @all!(${TOKEN}::!{caps()(uint256[])} @ge100!)`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const args = d.opReadOf(param, FOLD_SIG);
-        const lambda = lambdaOf(args[0].paramData, 4);
+        const lambda = lambdaOf(args[0].paramData, "fold");
         expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.template).to.equal(
           template2("ge(uint256,uint256)", 0n, 100n),
@@ -1435,9 +1446,9 @@ assert @map!(${TOKEN}::!{caps()(uint256[])} @dbl!) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const segs = d.opReadOf(
           hashArgs[0],
-          "mapWords(bytes,address,bytes,uint256[])",
+          "applyWords(bytes,address,bytes,uint256[],bool)",
         );
-        const lambda = lambdaOf(segs[0].paramData, 3);
+        const lambda = lambdaOf(segs[0].paramData, "applyWords");
         expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.template).to.equal(
           template2("mul(uint256,uint256)", 0n, 2n),
@@ -1459,9 +1470,9 @@ assert @map!(${TOKEN}::!{caps()(uint256[])} @sq!) == 0x1122`,
         const hashArgs = d.opReadOf(param, "hash(bytes)");
         const segs = d.opReadOf(
           hashArgs[0],
-          "mapWords(bytes,address,bytes,uint256[])",
+          "applyWords(bytes,address,bytes,uint256[],bool)",
         );
-        const lambda = lambdaOf(segs[0].paramData, 3);
+        const lambda = lambdaOf(segs[0].paramData, "applyWords");
         expect(lambda.target).to.equal(OPERATIONS);
         expect(lambda.elemOffsets).to.deep.equal([4n, 36n]);
         expect(lambda.template).to.equal(

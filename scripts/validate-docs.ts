@@ -212,7 +212,7 @@ interface DescRule {
 }
 
 const OPERATOR_INTERNALS =
-  /\b(foldWords|foldBytes|foldRange|filterWords|mapWords|zipWords|unzipWords|sortWords|uniqueWords|iotaWords|wordIndexOf|sumWords|hashPairSorted|byteLen|bitSet|rawCall|arrayWordsParam|Operations\.\w+)\b/;
+  /\b(foldWords|foldBytes|foldRange|filterWords|mapWords|applyWords|zipWords|unzipWords|sortWords|uniqueWords|iotaWords|wordIndexOf|sumWords|hashPairSorted|byteLen|bitSet|rawCall|arrayWordsParam|Operations\.\w+)\b/;
 
 const DESC_RULES: DescRule[] = [
   {

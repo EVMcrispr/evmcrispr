@@ -164,14 +164,8 @@ export const OP_SELECTORS = {
   lnWad: sel("lnWad(int256)"),
   slice: sel("slice(bytes,uint256,uint256)"),
   bitSet: sel("bitSet(uint256,uint256)"),
-  foldBytes: sel(
-    "foldBytes(bytes,address,bytes,uint256,uint256[],bytes32,uint8)",
-  ),
-  foldWords: sel(
-    "foldWords(bytes,address,bytes,uint256,uint256[],bytes32,uint8)",
-  ),
-  foldRange: sel(
-    "foldRange(uint256,address,bytes,uint256,uint256[],bytes32,uint8)",
+  fold: sel(
+    "fold(uint8,uint256,bytes,address,bytes,uint256,uint256[],bytes32,uint8)",
   ),
   addModInt: sel("addMod(int256,int256,int256)"),
   mulModInt: sel("mulMod(int256,int256,int256)"),
@@ -203,8 +197,7 @@ export const OP_SELECTORS = {
   rawCall: sel("rawCall(address,bytes)"),
   code: sel("code(address)"),
   hashPairSorted: sel("hashPairSorted(bytes32,bytes32)"),
-  mapWords: sel("mapWords(bytes,address,bytes,uint256[])"),
-  filterWords: sel("filterWords(bytes,address,bytes,uint256[])"),
+  applyWords: sel("applyWords(bytes,address,bytes,uint256[],bool)"),
   iotaWords: sel("iotaWords(uint256)"),
   wordIndexOf: sel("wordIndexOf(bytes,bytes32)"),
   reverseWords: sel("reverseWords(bytes)"),

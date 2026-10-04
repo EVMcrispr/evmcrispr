@@ -58,7 +58,7 @@ print "Included:" @crypto:merkle.verify($root 0x33333333333333333333333333333333
 
 Verify a sorted-pair (OpenZeppelin MerkleProof) inclusion proof at
 assertion time: a live `bytes32[]` proof folds through a
-`foldWords` with the `hashPairSorted(accumulator, sibling)` lambda at
+a Words-domain `fold` with the `hashPairSorted(accumulator, sibling)` lambda at
 the canonical 4/36 windows, init = leaf, Full exit — and the reproduced
 root compares against the expected one with `eq`.
 

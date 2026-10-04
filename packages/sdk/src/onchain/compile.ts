@@ -1248,7 +1248,7 @@ export async function chainArgWithLens(
 }
 
 /** Require a {@link chainArgWithLens} result to select a string or bytes
- *  value: the bytes operators (hash, byteLen, indexOf, slice, foldBytes)
+ *  value: the bytes operators (hash, byteLen, indexOf, slice, fold)
  *  consume the value's DECODED payload, which only exists for a canonical
  *  string/bytes envelope. */
 export function requireBytesLike(

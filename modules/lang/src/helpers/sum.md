@@ -29,7 +29,7 @@ Sum the elements of an array.
 
 Sum the array return of a call into one word, on-chain: a native
 `sumWords` over the word payload. This is the fixed-operation form of
-`@reduce!(add 0)` (one on-chain loop instead of a per-element `foldWords`
+`@reduce!(add 0)` (one on-chain loop instead of a per-element `fold`
 lambda call, so it is cheaper). Reach for `@reduce!` when you need a
 different reduction (min, max, bitOr, bitAnd) or a nonzero initial
 accumulator.

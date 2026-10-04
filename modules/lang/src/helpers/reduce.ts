@@ -339,7 +339,7 @@ export default defineHelper<Lang>({
       );
     }
     // <fn>(<accumulator>, <element>): accumulator window at 4, element
-    // window at 36 — the canonical foldWords convention.
+    // window at 36 — the canonical fold convention.
     const template: Hex = `0x${opSelector(name, signed).slice(2)}${toWord(0n).slice(2)}${toWord(0n).slice(2)}`;
     return {
       kind: "call",

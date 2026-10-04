@@ -147,15 +147,20 @@ export function includesWordParam(
 }
 
 /**
- * A bounded fold over a LIVE payload (`foldWords`/`foldBytes`): heads are
- * [offset_s][target][offset_template = 224][accOffset][offset_elemOffsets]
- * [init][exit], the template tail sits at 224, the `elemOffsets` array
- * follows it, and the runtime envelope of `s` is spliced last with
+ * A bounded fold over a LIVE payload: `fold` in its Words or Bytes domain
+ * (`kind` keeps the names the helpers know them by). Heads are
+ * [domain][n = 0][offset_s][target][offset_template = 288][accOffset]
+ * [offset_elemOffsets][init][exit]: the count is taken from `s`, so `n`
+ * must be zero (the contract refuses the argument a domain does not use).
+ * The template tail sits at 288, the `elemOffsets` array follows it, and the runtime envelope of `s` is spliced last with
  * offset_s skipping its leading 0x20 word. The lambda target is the
  * Operations contract for a template built from its own vocabulary, or the
  * core for a composed `read(...)` template. Pass a one-element
  * `elemOffsets` for the pre-C single-window shape.
  */
+/** `Collections.FoldDomain`: what a fold iterates. */
+const FOLD_DOMAIN = { foldBytes: 1n, foldWords: 2n } as const;
+
 export function foldParam(
   ctx: CompileCtx,
   kind: "foldWords" | "foldBytes",
@@ -169,15 +174,17 @@ export function foldParam(
 ): InputParam {
   const templateTail = bytesTail(template);
   const offsetsTail = wordsArrayTail(elemOffsets);
-  const offsetsAt = 224 + templateTail.length / 2;
+  const offsetsAt = 288 + templateTail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
   return opReadParam(
     ctx,
-    OP_SELECTORS[kind],
+    OP_SELECTORS.fold,
     mergeSegments([
+      wordSpan(FOLD_DOMAIN[kind]),
+      wordSpan(0n), // n: unused by the Bytes and Words domains
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
       wordSpan(BigInt(target)), // lambda target
-      wordSpan(224n), // offset_template
+      wordSpan(288n), // offset_template
       wordSpan(accOffset),
       wordSpan(BigInt(offsetsAt)), // offset_elemOffsets
       wordSpan(init),
@@ -195,8 +202,8 @@ export function foldParam(
  * envelope splices LAST — offset_s points at the payload+32 (skipping the
  * envelope's leading 0x20 word, the same trick every other bytes recipe
  * uses). `mask` is a composition-time constant built from the charset
- * spec. This replaces the old foldBytes(bitSet, All) recipe with a single
- * on-chain loop; foldBytes stays the general form for other per-byte
+ * spec. This replaces the old Bytes fold with `bitSet` and the All exit with a single
+ * on-chain loop; the Bytes fold stays the general form for other per-byte
  * predicates.
  */
 export function charsetParam(
@@ -217,16 +224,16 @@ export function charsetParam(
 
 /** `sumWords(s)` over a live word payload — the native checked sum of the
  *  payload's 32-byte words (the fixed-operation form of the
- *  foldWords(add) recipe), spliced as the single `bytes` argument like
+ *  Words fold with `add`), spliced as the single `bytes` argument like
  *  {@link byteLenParamOf}. */
 export function sumWordsParam(ctx: CompileCtx, s: InputParam): InputParam {
   return opReadParam(ctx, OP_SELECTORS.sumWords, [s]);
 }
 
 /**
- * `mapWords`/`filterWords` over a LIVE payload (identical signatures, so
- * they share one layout): heads are [offset_s][target]
- * [offset_template = 128][offset_elemOffsets], the template tail at 128,
+ * `applyWords` over a LIVE payload, as a map or (with the `filter` flag)
+ * a filter: heads are [offset_s][target][offset_template = 160]
+ * [offset_elemOffsets][filter], the template tail at 160,
  * the `elemOffsets` array after it, and the runtime envelope of `s`
  * spliced last with the +32 offset trick. Pass a one-element
  * `elemOffsets` for the pre-C single-window shape.
@@ -241,16 +248,17 @@ function applyWordsParam(
 ): InputParam {
   const templateTail = bytesTail(template);
   const offsetsTail = wordsArrayTail(elemOffsets);
-  const offsetsAt = 128 + templateTail.length / 2;
+  const offsetsAt = 160 + templateTail.length / 2;
   const envelopeAt = offsetsAt + offsetsTail.length / 2;
   return opReadParam(
     ctx,
-    OP_SELECTORS[kind],
+    OP_SELECTORS.applyWords,
     mergeSegments([
       wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
       wordSpan(BigInt(target)), // lambda target
-      wordSpan(128n), // offset_template
+      wordSpan(160n), // offset_template
       wordSpan(BigInt(offsetsAt)), // offset_elemOffsets
+      wordSpan(kind === "filterWords" ? 1n : 0n), // filter
       templateTail,
       offsetsTail,
       s,
@@ -258,7 +266,7 @@ function applyWordsParam(
   );
 }
 
-/** `mapWords` over a LIVE payload (see {@link applyWordsParam}). */
+/** `applyWords` as a map over a LIVE payload (see {@link applyWordsParam}). */
 export function mapWordsParam(
   ctx: CompileCtx,
   s: InputParam,
@@ -269,9 +277,9 @@ export function mapWordsParam(
   return applyWordsParam(ctx, "mapWords", s, target, template, elemOffsets);
 }
 
-/** `filterWords` over a LIVE payload — the kept-elements sibling of
- *  {@link mapWordsParam}, byte-identical layout (only the selector
- *  differs: the lambda word decides keep/drop instead of replacing). */
+/** `applyWords` as a filter over a LIVE payload: the kept-elements sibling
+ *  of {@link mapWordsParam}, same layout with the filter flag set (the
+ *  lambda word decides keep/drop instead of replacing). */
 export function filterWordsParam(
   ctx: CompileCtx,
   s: InputParam,
@@ -358,8 +366,8 @@ export function enumerateParam(
 /**
  * The word payload of a live ARRAY-envelope operand as a bytes value —
  * the bridge from a `T[]` return (envelope `[0x20][count][words…]`, its
- * length word an ELEMENT count) into the word-array operators (foldWords,
- * mapWords, sortWords, …) whose `bytes` payloads measure length in BYTES.
+ * length word an ELEMENT count) into the word-array operators (fold,
+ * applyWords, sortWords, …) whose `bytes` payloads measure length in BYTES.
  *
  * Validates one canonical array and shares that resolved envelope through the graph.
  */
