@@ -206,6 +206,116 @@ describeParity("@std", {
       run: `@hash(${WXDAI}::{symbol()(string)})`,
       compile: `@hash!(${WXDAI}::{symbol()(string)})`,
     },
+    {
+      name: "hash names keccak256 over a string explicitly",
+      run: `@hash(${WXDAI}::{symbol()(string)} keccak256)`,
+      compile: `@hash!(${WXDAI}::{symbol()(string)} keccak256)`,
+    },
+    {
+      name: "hash computes sha256 over a string",
+      run: `@hash(${WXDAI}::{symbol()(string)} sha256)`,
+      compile: `@hash!(${WXDAI}::{symbol()(string)} sha256)`,
+    },
+    {
+      // In a bytes mode a hex value is hashed as the bytes it spells, which
+      // is what the chain hashes too.
+      name: "hash in bytes mode digests the bytes a call returns",
+      run: `@hash(${BLOB_CALL} bytes)`,
+      compile: `@hash!(${BLOB_CALL} bytes)`,
+    },
+    {
+      name: "hash in bytes-sha256 mode digests the bytes a call returns",
+      run: `@hash(${BLOB_CALL} bytes-sha256)`,
+      compile: `@hash!(${BLOB_CALL} bytes-sha256)`,
+    },
+    {
+      name: "hash in bytes mode digests an ABI encoding",
+      run: `@hash(@abi.encode("uint256,address" ${MOCK_VALUE} ${HOLDER}) bytes)`,
+      compile: `@hash!(@abi.encode!("uint256,address" ${MOCK_VALUE} ${HOLDER}) bytes)`,
+    },
+    {
+      name: "hash in bytes mode digests a packed encoding",
+      run: `@hash(@abi.encodePacked("uint64,address" ${MOCK_VALUE} ${HOLDER}) bytes)`,
+      compile: `@hash!(@abi.encodePacked!("uint64,address" ${MOCK_VALUE} ${HOLDER}) bytes)`,
+    },
+    {
+      name: "hash in bytes-sha256 mode digests an ABI encoding",
+      run: `@hash(@abi.encode("uint256" ${MOCK_VALUE}) bytes-sha256)`,
+      compile: `@hash!(@abi.encode!("uint256" ${MOCK_VALUE}) bytes-sha256)`,
+    },
+    {
+      name: "hash folds a constant in each reading",
+      run: `@hash(0x1234 bytes)`,
+      compile: `@hash!(0x1234 bytes)`,
+    },
+    {
+      name: "hash folds a constant text",
+      run: `@hash("transfer(address,uint256)")`,
+      compile: `@hash!("transfer(address,uint256)")`,
+    },
+    {
+      name: "hash folds an encoder over constants",
+      run: `@hash(@abi.encode("address" ${HOLDER}) bytes)`,
+      compile: `@hash!(@abi.encode!("address" ${HOLDER}) bytes)`,
+    },
+    {
+      // Off-chain a bytes value read as text is its hex spelling; on-chain
+      // it has no spelling. Accepting this would make the faces disagree.
+      name: "hash refuses a bytes return in the default text mode",
+      helper: "hash",
+      run: `@hash(${BLOB_CALL})`,
+      compile: `@hash!(${BLOB_CALL})`,
+      refuses:
+        /reads its argument as text in `keccak256` mode, and this one is bytes: write @hash!\(… bytes\)$/,
+    },
+    {
+      name: "hash refuses helper-built bytes in sha256 mode and names bytes-sha256",
+      helper: "hash",
+      run: `@hash(@abi.encode("uint256" ${MOCK_VALUE}) sha256)`,
+      compile: `@hash!(@abi.encode!("uint256" ${MOCK_VALUE}) sha256)`,
+      refuses:
+        /reads its argument as text in `sha256` mode, and this one is bytes: write @hash!\(… bytes-sha256\)$/,
+    },
+    {
+      name: "hash refuses a string return in bytes mode",
+      helper: "hash",
+      run: `@hash(${WXDAI}::{symbol()(string)} bytes)`,
+      compile: `@hash!(${WXDAI}::{symbol()(string)} bytes)`,
+      refuses:
+        /reads its argument as bytes in `bytes` mode, and this one is a string: write @hash!\(… keccak256\)$/,
+    },
+    {
+      name: "hash refuses a string return in bytes-sha256 mode",
+      helper: "hash",
+      run: `@hash(${WXDAI}::{symbol()(string)} bytes-sha256)`,
+      compile: `@hash!(${WXDAI}::{symbol()(string)} bytes-sha256)`,
+      refuses: /this one is a string: write @hash!\(… sha256\)$/,
+    },
+    {
+      // A word has two byte forms with different digests, so the face asks
+      // for the preimage instead of choosing one.
+      name: "hash refuses a word and names both preimages",
+      helper: "hash",
+      run: `@hash(${MOCK_VALUE})`,
+      compile: `@hash!(${MOCK_VALUE})`,
+      refuses:
+        /@hash! needs a string or bytes value, got uint256\. It has two byte forms, so name one: @hash!\(@abi\.encode!\("uint256" …\) bytes\) for the 32-byte ABI word, or @hash!\(@abi\.encodePacked!\("uint256" …\) bytes\) for the packed bytes\.$/,
+    },
+    {
+      name: "hash refuses a word in a sha256 mode and keeps the function",
+      helper: "hash",
+      run: `@hash(${MOCK_VALUE} sha256)`,
+      compile: `@hash!(${MOCK_VALUE} sha256)`,
+      refuses: /@hash!\(@abi\.encode!\("uint256" …\) bytes-sha256\)/,
+    },
+    {
+      name: "hash refuses a word produced by a nested helper",
+      helper: "hash",
+      run: `@hash(@calc(${MOCK_VALUE} + 1))`,
+      compile: `@hash!(@calc!(${MOCK_VALUE} + 1))`,
+      refuses:
+        /its nested helper resolves a single word\. It has two byte forms, so name one: @hash!\(@abi\.encode!\("<type>" …\) bytes\)/,
+    },
 
     // ---- @balance! ----------------------------------------------------------
     {

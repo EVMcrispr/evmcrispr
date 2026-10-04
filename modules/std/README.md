@@ -55,7 +55,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@gas.estimate](src/helpers/gas.estimate.md) | `number` | Estimate the gas required for a contract call. |
 | [@gas.price](src/helpers/gas.price.md) | `number` | Current gas price in wei. |
 | [@get](src/helpers/get.md) | `any` | Call a read-only contract function and return its result. |
-| [@hash](src/helpers/hash.md) | `bytes32` | Compute the hash of a string with keccak256 (default) or sha256. |
+| [@hash](src/helpers/hash.md) | `bytes32` | Hash a string with keccak256 (default) or sha256, or a hex value as bytes with the `bytes` modes. |
 | [@ifElse](src/helpers/ifElse.md) | `any` | A ternary over live reads: `cond ? then : else`, evaluating only the winning branch. Parenthesized ternaries nest as branches. |
 | [@ipfs](src/helpers/ipfs.md) | `string` | Upload text content to IPFS and return the CID. |
 | [@ipfs.get](src/helpers/ipfs.get.md) | `string` | Fetch content from IPFS, verified against its CID, and return it as text. |

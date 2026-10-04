@@ -111,7 +111,7 @@ export default defineHelper<Lang>({
       // the wordIndexOf path, which carries its needle as an argument.
       if (item.cat === "String" || item.cat === "Bytes") {
         throw new ErrorException(
-          "@includes! cannot search an array for a live string or bytes value — the elements are single words, so hash it first with @hash!(…) and search an array of digests, or use @str.includes! to look inside one string",
+          "@includes! cannot search an array for a live string or bytes value — the elements are single words, so hash it first with @hash!(…) (add the `bytes` mode for a bytes value) and search an array of digests, or use @str.includes! to look inside one string",
         );
       }
       return {

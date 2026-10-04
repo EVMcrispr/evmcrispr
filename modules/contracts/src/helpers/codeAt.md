@@ -40,5 +40,5 @@ or was redeployed, neither of which a build-time read can.
 
 ### Notes
 
-- Compare with `@hash!` rather than by value when you only care about identity;
-  a full code payload is large.
+- Compare with `@hash!(@codeAt!(…) bytes)` rather than by value when you only
+  care about identity; a full code payload is large.
