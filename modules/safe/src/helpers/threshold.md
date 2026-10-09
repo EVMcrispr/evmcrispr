@@ -32,9 +32,13 @@ Signature threshold of a Safe.
 
 ## On-chain face (@threshold!)
 
-Read getThreshold() at assertion time. The Safe still resolves at
-composition time (explicit argument, enclosing propose/exec block, or
-the connected account).
+Read getThreshold() at assertion time. A Safe given as an address, or
+left to the enclosing propose/exec block or the connected account, is
+fixed when the script is built.
+
+The Safe may also be a `::!` call that returns its address, such as
+`@safe:threshold!($registry::!{safe()(address)})`: the read is then made against
+whatever address that call returns when the assertion runs.
 
 ### Examples
 

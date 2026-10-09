@@ -239,7 +239,8 @@ describeCommand("assert", {
         const { param, message } = decodeAssert(actions);
         const { target, data } = staticCallOf(param);
         expect(target).to.equal(TOKEN);
-        expect(data.startsWith(selectorOf("balanceOf(address)"))).to.be.true;
+        expect(data.startsWith(toFunctionSelector("balanceOf(address)"))).to.be
+          .true;
         expectConstraint(param, "Gte", 10n * 10n ** 18n);
         expect(message).to.equal("insufficient");
       },
@@ -984,6 +985,34 @@ describeCommand("assert", {
         expectConstraint(param, "Gte", 10n ** 18n);
       },
     },
+    {
+      name: "constructs an ERC-20 @balance! of a call-resolved account as the token's own balanceOf",
+      script: `assert @balance!(DAI ${TOKEN}::!{treasury()(address)}) > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const read = core(param);
+        expect(read.functionName).to.equal("read");
+        expectRawWord(read.args[0] as unknown as Param, BigInt(DAI));
+        expect(read.args[1]).to.equal(toFunctionSelector("balanceOf(address)"));
+        const segments = read.args[2] as unknown as Param[];
+        expect(segments).to.have.lengthOf(1);
+        expect(staticCallOf(segments[0]).target).to.equal(TOKEN);
+      },
+    },
+    {
+      name: "constructs @balance! of a call-resolved token against the address the call returns",
+      script: `assert @balance!(${TOKEN}::!{asset()(address)} ${HOLDER}) > 0`,
+      validate: (actions) => {
+        const { param } = decodeAssert(actions);
+        const read = core(param);
+        expect(read.functionName).to.equal("read");
+        const target = staticCallOf(read.args[0] as unknown as Param);
+        expect(target.target).to.equal(TOKEN);
+        expect(target.data).to.equal(toFunctionSelector("asset()"));
+        expect(read.args[1]).to.equal(toFunctionSelector("balanceOf(address)"));
+        expectRawWord((read.args[2] as unknown as Param[])[0], BigInt(HOLDER));
+      },
+    },
     // ---- @calc! / @bool! composition ---------------------------------------
     {
       name: "compiles live addition through add",
@@ -1658,11 +1687,6 @@ describeCommand("assert", {
       name: "rejects comparing an unsigned return against a negative value",
       script: `assert ${TOKEN}::!{supply()(uint256)} >= -5`,
       error: "negative value",
-    },
-    {
-      name: "rejects an ERC-20 @balance! of a call-resolved account",
-      script: `assert @balance!(DAI ${TOKEN}::!{treasury()(address)}) > 0`,
-      error: "only supports the native token",
     },
     {
       name: "detects missing spaces around operators",

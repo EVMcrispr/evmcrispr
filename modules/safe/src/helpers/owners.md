@@ -34,9 +34,13 @@ print $owners
 ## On-chain face (@owners!)
 
 The Safe's `getOwners()` read happens on-chain at assertion time as an
-ARRAY operand: the live owner words payload (the Safe itself still
-resolves at composition time). It composes with the lang array faces
-like any nested array face.
+ARRAY operand: the live owner words payload. It composes with the lang
+array faces like any nested array face. A Safe given as an address is
+fixed when the script is built.
+
+The Safe may also be a `::!` call that returns its address, such as
+`@safe:owners!($registry::!{safe()(address)})`: the read is then made against
+whatever address that call returns when the assertion runs.
 
 ### Examples
 

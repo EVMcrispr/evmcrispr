@@ -19,6 +19,7 @@ load lang
 | [@lang:bytes.not](src/helpers/bytes.not.md) | `bytes` | Bitwise NOT of a bytes value (256-bit complement). |
 | [@lang:bytes.slice](src/helpers/bytes.slice.md) | `bytes` | Extract a byte range from a bytes value. |
 | [@lang:concat](src/helpers/concat.md) | `array` | Concatenate arrays together. |
+| [@lang:count](src/helpers/count.md) | `number` | Count the elements of an array that satisfy the predicate. |
 | [@lang:enumerate](src/helpers/enumerate.md) | `array` | Pair every element of an array with its index. |
 | [@lang:filter](src/helpers/filter.md) | `array` | Keep elements of an array for which a helper returns truthy. |
 | [@lang:find](src/helpers/find.md) | `any` | First element that satisfies the predicate; no match is an error. |

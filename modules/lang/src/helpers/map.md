@@ -37,3 +37,5 @@ Inputs may be homogeneous literals, live fixed-size or dynamic arrays, or nested
 on-chain collection helpers. Negative numeric literals select `int256`; otherwise
 numeric literals select `uint256`. An untyped empty literal defaults to `uint256[]`.
 Callback parameter types must remain compatible with the inferred element type.
+
+Over single-word elements, a transform that is one call on a contract with the element as a literal argument, such as a balance lookup, costs one call per element. That contract sees the collections contract as its caller.

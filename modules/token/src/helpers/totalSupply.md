@@ -41,4 +41,8 @@ Read totalSupply() at assertion time. The symbol resolves to the token
 address at composition time; the native token has no total supply and
 fails at build time.
 
+The token may also be a `::!` call that returns its address: the read
+is then made against whatever address that call returns when the
+assertion runs.
+
 #

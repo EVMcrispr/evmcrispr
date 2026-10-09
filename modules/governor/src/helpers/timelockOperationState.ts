@@ -1,12 +1,17 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
+import type { InputParam, ReadArg } from "@evmcrispr/sdk/onchain";
 import {
+  callReadOperand,
   coreCall,
   encodeCond,
+  isLiveArg,
   rawParam,
+  readTarget,
   staticCallParam,
   toWord,
 } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress, isHex } from "viem";
+import type { AbiFunction } from "viem";
+import { getAbiItem, isHex } from "viem";
 import type Governor from "..";
 import { timelockAbi } from "../utils";
 
@@ -50,25 +55,38 @@ export default defineHelper<Governor>({
         "@timelockOperationState! expects (timelock operationId)",
       );
     }
-    const timelock = getAddress(
-      String(await ctx.interpreters.interpretNode(node.args[0])),
+    // Both the timelock and the operation id may be live.
+    const timelock = await readTarget(
+      ctx,
+      "timelockOperationState!",
+      node.args[0],
     );
-    const rawId = String(await ctx.interpreters.interpretNode(node.args[1]));
-    if (!isHex(rawId) || rawId.length !== 66) {
-      throw new ErrorException(
-        `@timelockOperationState! operationId must be a bytes32 value, got ${rawId}`,
-      );
+    let id: ReadArg = node.args[1];
+    if (!isLiveArg(node.args[1])) {
+      const rawId = String(await ctx.interpreters.interpretNode(node.args[1]));
+      if (!isHex(rawId) || rawId.length !== 66) {
+        throw new ErrorException(
+          `@timelockOperationState! operationId must be a bytes32 value, got ${rawId}`,
+        );
+      }
+      id = { value: rawId };
     }
-    const view = (
-      functionName:
-        | "isOperationDone"
-        | "isOperationReady"
-        | "isOperationPending",
-    ) =>
-      staticCallParam(
+    const views: Record<string, InputParam> = {};
+    for (const name of [
+      "isOperationDone",
+      "isOperationReady",
+      "isOperationPending",
+    ] as const) {
+      const operand = await callReadOperand(
+        ctx,
         timelock,
-        encodeFunctionData({ abi: timelockAbi, functionName, args: [rawId] }),
+        getAbiItem({ abi: timelockAbi, name }) as AbiFunction,
+        [id],
+        "Bool",
       );
+      views[name] = (operand as { param: InputParam }).param;
+    }
+    const view = (name: string) => views[name];
     // Nested lazy conds over the three state views, producing OZ's
     // numeric OperationState: cond(done, 3, cond(ready, 2,
     // cond(pending, 1, 0))) — Done = 3, Ready = 2, Waiting = 1

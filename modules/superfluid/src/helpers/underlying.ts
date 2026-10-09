@@ -1,5 +1,5 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import { staticCallParam } from "@evmcrispr/sdk/onchain";
+import { targetCallParam } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData } from "viem";
 import type Superfluid from "..";
 import { superTokenAbi } from "../abis";
@@ -36,7 +36,8 @@ export default defineHelper<Superfluid>({
     );
     return {
       kind: "call",
-      param: staticCallParam(
+      param: targetCallParam(
+        ctx,
         superToken,
         encodeFunctionData({
           abi: superTokenAbi,

@@ -1,7 +1,7 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
-import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
-import { getAbiItem, getAddress } from "viem";
+import { getAbiItem } from "viem";
 import type Vault from "..";
 import { erc7540Abi } from "../erc7540";
 
@@ -48,9 +48,7 @@ export default defineHelper<Vault>({
     }
   },
   compile: async (ctx, node) => {
-    const vault = getAddress(
-      String(await ctx.interpreters.interpretNode(node.args[0])),
-    );
+    const vault = await readTarget(ctx, "isOperator!", node.args[0]);
     const controller = node.args[2] ?? {
       value: await ctx.module.getConnectedAccount(true),
     };

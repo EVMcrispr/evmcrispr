@@ -1,6 +1,7 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress } from "viem";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type AccessControl from "..";
 import { accessControlAbi, accessManagerAbi, resolveRole } from "../utils";
 
@@ -46,31 +47,28 @@ export default defineHelper<AccessControl>({
     return isMember;
   },
   compile: async (ctx, node) => {
-    const [target, role, account] = await Promise.all(
-      node.args.map((n) => ctx.interpreters.interpretNode(n)),
+    // The role decides which of the two access systems is read, so it is
+    // fixed when the script is built; the contract and the account may be
+    // live.
+    const resolved = resolveRole(
+      await ctx.interpreters.interpretNode(node.args[1]),
     );
-    const resolved = resolveRole(role);
+    const target = await readTarget(ctx, "hasRole!", node.args[0]);
     if (resolved.system === "access-control") {
-      return directReadOperand(
+      return callReadOperand(
         ctx,
-        getAddress(String(target)),
-        encodeFunctionData({
-          abi: accessControlAbi,
-          functionName: "hasRole",
-          args: [resolved.role, getAddress(String(account))],
-        }),
+        target,
+        getAbiItem({ abi: accessControlAbi, name: "hasRole" }) as AbiFunction,
+        [{ value: resolved.role }, node.args[2]],
         "Bool",
       );
     }
     // AccessManager returns (isMember, executionDelay): word 0.
-    return directReadOperand(
+    return callReadOperand(
       ctx,
-      getAddress(String(target)),
-      encodeFunctionData({
-        abi: accessManagerAbi,
-        functionName: "hasRole",
-        args: [resolved.roleId, getAddress(String(account))],
-      }),
+      target,
+      getAbiItem({ abi: accessManagerAbi, name: "hasRole" }) as AbiFunction,
+      [{ value: resolved.roleId }, node.args[2]],
       "Bool",
       0n,
     );

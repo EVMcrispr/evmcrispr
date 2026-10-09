@@ -71,6 +71,15 @@ export type Operand =
        *  `mulDiv(a, b, d)` read instead of div(mul(a, b), d), which would
        *  revert on an intermediate past 2^256. */
       mulOf?: { a: InputParam; b: InputParam };
+      /** When this param is `mapWords(words, lambda)`, the source payload
+       *  and the lambda — lets an unsigned sum fuse into one
+       *  `reduceWords` pass instead of summing a mapped copy. */
+      mapOf?: {
+        words: InputParam;
+        target: Address;
+        template: Hex;
+        elemOffsets: readonly bigint[];
+      };
     };
 
 /** Context threaded through on-chain expression compilation. */

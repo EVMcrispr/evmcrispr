@@ -3,8 +3,9 @@ import {
   ErrorException,
   normalizeSignature,
 } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress, toFunctionSelector } from "viem";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem, toFunctionSelector } from "viem";
 import type AccessControl from "..";
 import { accessManagerAbi } from "../utils";
 
@@ -47,9 +48,9 @@ export default defineHelper<AccessControl>({
     return immediate;
   },
   compile: async (ctx, node) => {
-    const [manager, caller, target, signature] = await Promise.all(
-      node.args.map((n) => ctx.interpreters.interpretNode(n)),
-    );
+    // The signature names a function, so it is fixed when the script is
+    // built; the manager, the caller and the target may be live.
+    const signature = await ctx.interpreters.interpretNode(node.args[3]);
     let selector: `0x${string}`;
     try {
       selector = toFunctionSelector(normalizeSignature(String(signature)));
@@ -57,18 +58,11 @@ export default defineHelper<AccessControl>({
       throw new ErrorException(`invalid function signature: ${signature}`);
     }
     // (immediate, delay): the immediate flag is word 0.
-    return directReadOperand(
+    return callReadOperand(
       ctx,
-      getAddress(String(manager)),
-      encodeFunctionData({
-        abi: accessManagerAbi,
-        functionName: "canCall",
-        args: [
-          getAddress(String(caller)),
-          getAddress(String(target)),
-          selector,
-        ],
-      }),
+      await readTarget(ctx, "canCall!", node.args[0]),
+      getAbiItem({ abi: accessManagerAbi, name: "canCall" }) as AbiFunction,
+      [node.args[1], node.args[2], { value: selector }],
       "Bool",
       0n,
     );

@@ -28,6 +28,8 @@ import { decodeFuses } from "../../../src/fuses";
  */
 
 const NAME = "vitalik.eth";
+/** The ETHRegistrarController the faces read on mainnet. */
+const CONTROLLER = "0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547";
 /** Wrapped at the fork block (NameWrapper getData shows burned fuses). */
 const WRAPPED = "jefflau.eth";
 /** vitalik.eth's forward-consistent reverse record. */
@@ -100,6 +102,13 @@ describeParity("@ens", {
       name: "rentPrice sums base and premium across faces",
       run: `@ens:rentPrice(${NAME} 1y)`,
       compile: `@ens:rentPrice!(${NAME} 1y)`,
+    },
+    {
+      // The duration is read from a call when the assertion runs: the
+      // controller's own minimum, 28 days.
+      name: "rentPrice takes a live duration",
+      run: `@ens:rentPrice(${NAME} 2419200)`,
+      compile: `@ens:rentPrice!(${NAME} ${CONTROLLER}::!{MIN_REGISTRATION_DURATION()(uint256)})`,
     },
     {
       // vitalik.eth's reverse record forward-resolves consistently, so the

@@ -5,7 +5,7 @@ import { getAbiItem } from "viem";
 import type Superfluid from "..";
 import { cfaForwarderAbi } from "../abis";
 import { cfaForwarder } from "../addresses";
-import { compileSuperToken } from "../utils/onchain";
+import { superTokenArg } from "../utils/onchain";
 import { requireCore } from "../utils/protocol";
 import { resolveSuperToken } from "../utils/supertoken";
 
@@ -38,7 +38,7 @@ export default defineHelper<Superfluid>({
   },
   compile: async (ctx, node) => {
     const chainId = await requireCore(ctx.module);
-    const superToken = await compileSuperToken(ctx, node.args[0], "@flow!");
+    const superToken = await superTokenArg(ctx, node.args[0], "@flow!");
     // int96: the ABI sign-extends it into the full word, so the operand
     // reads as a signed value (a receiver-side rate is never negative,
     // but @netFlow! shares the category).
@@ -46,7 +46,7 @@ export default defineHelper<Superfluid>({
       ctx,
       cfaForwarder(chainId),
       getAbiItem({ abi: cfaForwarderAbi, name: "getFlowrate" }) as AbiFunction,
-      [{ value: superToken }, node.args[1], node.args[2]],
+      [superToken, node.args[1], node.args[2]],
       "Int",
     );
   },

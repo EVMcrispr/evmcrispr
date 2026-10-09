@@ -5,7 +5,7 @@ import { getAbiItem } from "viem";
 import type Superfluid from "..";
 import { cfaForwarderAbi } from "../abis";
 import { cfaForwarder } from "../addresses";
-import { compileSuperToken } from "../utils/onchain";
+import { superTokenArg } from "../utils/onchain";
 import { requireCore } from "../utils/protocol";
 import { parseFlowRate } from "../utils/rate";
 import { resolveSuperToken } from "../utils/supertoken";
@@ -43,7 +43,7 @@ export default defineHelper<Superfluid>({
   },
   compile: async (ctx, node) => {
     const chainId = await requireCore(ctx.module);
-    const superToken = await compileSuperToken(ctx, node.args[0], "@buffer!");
+    const superToken = await superTokenArg(ctx, node.args[0], "@buffer!");
     // Rate literals (`1000e18/mo`) are exact rationals floored to
     // wei/second by the parser, so the rate is a composition-time value
     // even here; only the deposit computation defers to assertion time.
@@ -58,7 +58,7 @@ export default defineHelper<Superfluid>({
         abi: cfaForwarderAbi,
         name: "getBufferAmountByFlowrate",
       }) as AbiFunction,
-      [{ value: superToken }, { value: rate }],
+      [superToken, { value: rate }],
       "Uint",
     );
   },

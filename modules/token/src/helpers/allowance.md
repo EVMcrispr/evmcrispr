@@ -43,8 +43,12 @@ if @bool(@token:allowance(DAI @me $spender) < @token:amount(DAI 100)) (
 
 ## On-chain face (@allowance!)
 
-Read allowance(owner, spender) at assertion time. The symbol resolves
-at composition time; owner and spender are literal addresses, or live
-`::` calls folded into a core read splice.
+Read allowance(owner, spender) at assertion time. A token symbol
+resolves at composition time; owner and spender are literal addresses,
+or live `::!` calls folded into a core read splice.
+
+The token may also be a `::!` call that returns its address: the read
+is then made against whatever address that call returns when the
+assertion runs.
 
 #

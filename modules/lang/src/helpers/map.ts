@@ -76,6 +76,12 @@ export default defineHelper<Lang>({
         element: output,
         transport: "words",
       },
+      mapOf: {
+        words: array.words!,
+        target: tpl.target,
+        template: tpl.template,
+        elemOffsets: tpl.elemOffsets,
+      },
     };
   },
 });

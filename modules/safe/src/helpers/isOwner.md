@@ -36,6 +36,10 @@ Whether an address is an owner of a Safe.
 Read the Safe's own isOwner(address) view at assertion time (the plain
 face walks getOwners() off-chain instead).
 
+The Safe may also be a `::!` call that returns its address, such as
+`@safe:isOwner!(@me $registry::!{safe()(address)})`: the read is then made
+against whatever address that call returns when the assertion runs.
+
 ### Examples
 
 ```evml

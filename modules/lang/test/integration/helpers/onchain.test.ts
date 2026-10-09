@@ -449,14 +449,28 @@ assert @all!(${TOKEN}::!{flags()(bool[])} @isOff!)`,
       },
     },
     {
-      name: "feeds a nested @map! into @sum!",
+      // An unsigned sum of a map is one reduction over the SOURCE payload:
+      // no mapWords copy for a sumWords to walk afterwards.
+      name: "fuses a nested @map! into @sum! as one reduction",
       script: `def @dbl! "$x: number -> number" @calc!($x * 2)
 assert @sum!(@map!(${TOKEN}::!{caps()(uint256[])} @dbl!)) >= 10`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        const segs = d.opReadOf(param, "sumWords(bytes)");
-        expect(segs).to.have.lengthOf(1);
-        d.opReadOf(segs[0], "mapWords(bytes,address,bytes,uint256[])");
+        const args = d.opReadOf(
+          param,
+          "reduceWords(bytes,address,bytes,uint256[],uint8,uint8,bytes32)",
+        );
+        expect(args).to.have.lengthOf(2);
+        const head = args[0].paramData.slice(2);
+        const headWord = (i: number) =>
+          BigInt(`0x${head.slice(i * 64, (i + 1) * 64)}`);
+        expect(headWord(1)).to.equal(BigInt(OPERATIONS));
+        expect(headWord(4)).to.equal(3n); // Reduce.Sum
+        expect(head).to.include(
+          `${template2("mul(uint256,uint256)", 0n, 2n).slice(2)}`,
+        );
+        const envelope = expectWordsPayload(args[1]);
+        expect(d.staticCallOf(envelope).target).to.equal(TOKEN);
         d.expectConstraint(param, "Gte", 10n);
       },
     },

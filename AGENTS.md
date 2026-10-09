@@ -32,6 +32,56 @@ general smart contract interaction. Scripts run in a web terminal
 - Commands return `Action[]` (transaction descriptors). Helpers return values.
 - The DSL is modular: `std` is loaded by default, others via `load <module>`
 
+## On-chain helpers (`!` faces)
+
+**Rule: every value an on-chain face reads from may be live.** A `compile`
+face must accept a `::!` call (or another `!` helper) wherever it takes a
+contract to read or a value to pass to it, and resolve it when the
+assertion runs. Evaluating such an argument at composition time
+(`ctx.interpreters.interpretNode`) silently limits the helper to contracts
+known when the script is written, which is exactly the case an assertion
+after a migration, an upgrade or a rotation cannot satisfy.
+
+- **How:** build the read with `@evmcrispr/sdk/onchain`'s shared pieces, not
+  by hand. `readTarget(ctx, "<name>!", node, resolve?)` gives the contract as
+  a `ReadTarget` (an address, or a parameter resolved on-chain; `resolve`
+  keeps a symbol or default lookup for the fixed case).
+  `callReadOperand(ctx, target, abiFn, args, cat, pickWord?)` takes that
+  target and argument NODES, so a live argument needs nothing more than
+  passing `node.args[i]`; pass `{ value }` only for something computed at
+  composition time. `targetCallParam(ctx, target, data)` is for a helper
+  that already has complete calldata, and `isLiveArg(node)` tells the two
+  cases apart when they need different code. A fixed target with fixed
+  arguments still compiles to the same direct staticcall as before.
+- **What may stay fixed:** an argument that decides WHAT is compiled, not a
+  value that is read. The ABI or system a name selects (`@acl:hasRole!`'s
+  role), a signature or type list, a rounding mode or algorithm, a page
+  size, a symbol looked up in an off-chain list, a name hashed off-chain
+  (`@ens:*!`), bytes that shape creation code (`@proxies:predictClone!`),
+  and a protocol's own singleton taken from the module's address book. Each
+  such argument says so: in the helper's `.md` on-chain section, and in the
+  error a live value gets.
+- **Tests:** a live target is a new calldata geometry, so one test must
+  EXECUTE it. The pattern is `test/integration/helpers/live-target.test.ts`
+  in vault, acl, governor, token, safe, superfluid and proxies: a constant
+  mock stands for the contract, a second one for the registry that returns
+  its address, and the compiled operand is resolved through the core on the
+  fork. Decoder-level tests alone do not show that the constructed read
+  returns the right word.
+- **Carry `pickWord` across a rewrite.** A face over a multi-value return
+  picks one word; converting `directReadOperand(..., cat, 0n)` to
+  `callReadOperand` without its last argument compiles, type-checks, and
+  returns the whole pair (it happened to `@acl:pendingDefaultAdmin!`; one
+  existing test caught it).
+- **Known gaps** (values still fixed, to close or to justify): the leaf of
+  `@crypto:merkle.verify!` (the fold lays its seed out as a literal), the
+  token of the `@lending:*!` faces (the adapter picks the market from it
+  off-chain), the group of `@semaphore:verify!`, and a fractional live
+  amount in `@token:amount!` (a live amount is whole tokens).
+- **Fixtures move with the contracts:** after `sync-assertions-bytecode.ts`,
+  also run `sync-smart-dependency-hashes.ts`, or every smart-batch test
+  fails with "unrecognized smart-batch bytecode".
+
 ## Common Tasks
 
 - **Add a command**: create `modules/<mod>/src/commands/<name>.ts`, run build

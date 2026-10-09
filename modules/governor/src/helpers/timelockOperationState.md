@@ -71,7 +71,9 @@ assert @governor:timelockOperationState!($timelock $opId) == 2 "not ready"
 
 - The conds are lazy: only the winning branch resolves, so at most
   three views execute (Done short-circuits after one).
-- The timelock address and operation id resolve at composition time.
+- The timelock address and the operation id are fixed at composition
+  time when written out; either may be a `::!` call, resolved when the
+  assertion runs.
 
 ## See Also
 

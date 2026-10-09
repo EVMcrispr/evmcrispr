@@ -1,13 +1,10 @@
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
-import {
-  arrayWordsParam,
-  lensedDataOperand,
-  staticCallParam,
-} from "@evmcrispr/sdk/onchain";
+import { arrayWordsParam, lensedDataOperand } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData } from "viem";
 import type Safe from "..";
 import { SENTINEL } from "../addresses";
 import { getModules, safeAbi } from "../utils";
+import { safeReadParam } from "../utils/onchain";
 
 /** Default getModulesPaginated page size of the on-chain face — matches
  *  the off-chain pagination stride and comfortably covers real Safes. */
@@ -40,10 +37,6 @@ export default defineHelper<Safe>({
     return getModules(await module.getClient(), await module.resolveSafe(safe));
   },
   compile: async (ctx, node) => {
-    const explicit = node.args[0]
-      ? String(await ctx.interpreters.interpretNode(node.args[0]))
-      : undefined;
-    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
     let pageSize = DEFAULT_PAGE_SIZE;
     if (node.args[1]) {
       const raw = await ctx.interpreters.interpretNode(node.args[1]);
@@ -52,8 +45,10 @@ export default defineHelper<Safe>({
         throw new ErrorException("@modules! pageSize must be positive");
       }
     }
-    const param = staticCallParam(
-      safe,
+    const param = await safeReadParam(
+      ctx,
+      "modules!",
+      node.args[0],
       encodeFunctionData({
         abi: safeAbi,
         functionName: "getModulesPaginated",

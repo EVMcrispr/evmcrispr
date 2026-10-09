@@ -44,4 +44,12 @@ decimals() read: `mul(mantissa, exp(10, decimals - k))` where the
 amount is `mantissa / 10^k`. The native token's decimals are a chain
 constant, so a native @amount! folds at build time.
 
+The token may also be a `::!` call that returns its address: the read
+is then made against whatever address that call returns when the
+assertion runs.
+
+The amount may be live too, a `::!` call or an on-chain helper yielding
+a whole number of tokens: base units are then `mul(amount, exp(10,
+decimals))`. A fractional amount has to be written out.
+
 #

@@ -1,6 +1,6 @@
 import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
 import { defineHelper } from "@evmcrispr/sdk";
-import { staticCallParam } from "@evmcrispr/sdk/onchain";
+import { readTarget, targetCallParam } from "@evmcrispr/sdk/onchain";
 import { parseAbiItem, toFunctionSelector, zeroAddress } from "viem";
 import type Token from "..";
 
@@ -33,9 +33,10 @@ export default defineHelper<Token>({
     });
   },
   compile: async (ctx, node) => {
-    const symbol = await ctx.interpreters.interpretNode(node.args[0]);
-    const tokenAddr = await resolveToken(ctx.module, String(symbol));
-    if (tokenAddr === zeroAddress) {
+    const token = await readTarget(ctx, "symbol!", node.args[0], (value) =>
+      resolveToken(ctx.module, String(value)),
+    );
+    if (token === zeroAddress) {
       const chain = await ctx.module.getChain();
       return {
         kind: "const",
@@ -48,8 +49,9 @@ export default defineHelper<Token>({
     // faces splice its envelope (e.g. @str.lower!(@token:symbol!(DAI))).
     return {
       kind: "call",
-      param: staticCallParam(
-        tokenAddr,
+      param: targetCallParam(
+        ctx,
+        token,
         toFunctionSelector("function symbol()"),
       ),
       cat: "String",

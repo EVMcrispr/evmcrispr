@@ -3,10 +3,11 @@ import {
   coreCall,
   encodeOrElse,
   rawParam,
-  staticCallParam,
+  readTarget,
+  targetCallParam,
   toWord,
 } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress } from "viem";
+import { encodeFunctionData } from "viem";
 import type Vault from "..";
 import { erc7540Abi, vaultShare } from "../erc7540";
 
@@ -27,19 +28,19 @@ export default defineHelper<Vault>({
     return vaultShare(module, vault);
   },
   compile: async (ctx, node) => {
-    const vault = getAddress(
-      String(await ctx.interpreters.interpretNode(node.args[0])),
-    );
+    const vault = await readTarget(ctx, "share!", node.args[0]);
     // orElse(share(), vault): plain ERC-4626 vaults have no share() and
     // ARE their own share token, mirroring the run face's fallback.
     return coreCall(
       ctx,
       encodeOrElse(
-        staticCallParam(
+        targetCallParam(
+          ctx,
           vault,
           encodeFunctionData({ abi: erc7540Abi, functionName: "share" }),
         ),
-        rawParam(toWord(BigInt(vault))),
+        // The fallback is the vault itself: its address, fixed or live.
+        typeof vault === "string" ? rawParam(toWord(BigInt(vault))) : vault,
       ),
       "Address",
     );

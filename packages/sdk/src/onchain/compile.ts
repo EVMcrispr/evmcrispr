@@ -1222,7 +1222,7 @@ export async function chainArgWithLens(
     const o = await compileOnchainHelper(ctx, node);
     if (o.kind !== "call" || (o.cat !== "String" && o.cat !== "Bytes")) {
       throw new ErrorException(
-        `@${helper} nested helper argument must resolve a string/bytes value on-chain`,
+        `@${helper} nested helper argument must resolve a string/bytes value on-chain. ${wordPreimageHint()}`,
       );
     }
     return {
@@ -1267,9 +1267,28 @@ export function requireBytesLike(
   }
   if (t !== "string" && t !== "bytes") {
     throw new ErrorException(
-      `@${helper} needs a string or bytes value, got ${t ?? "none"}`,
+      `@${helper} needs a string or bytes value, got ${t ?? "none"}. ${wordPreimageHint(t)}`,
     );
   }
+}
+
+/** What to write when a bytes operator is handed a value that is not a
+ *  string or bytes. Such a value has two byte forms (an address is 32 bytes
+ *  ABI-encoded and 20 packed), and choosing one silently would compute a
+ *  digest or a length the author did not ask for, so the script names the
+ *  encoder. `wrap` spells the examples inside the face that takes the bytes
+ *  (`@hash!(… bytes)`). Packed encoding is offered for single-word types
+ *  only: a live array or tuple has no packed face. */
+export function wordPreimageHint(
+  type?: string,
+  wrap: (encoderCall: string) => string = (call) => call,
+): string {
+  const t = type ?? "<type>";
+  const spell = (encoder: string) => wrap(`@abi.${encoder}!("${t}" …)`);
+  const composite = /[[(]/.test(t);
+  return composite
+    ? `Its bytes are its ABI encoding: write ${spell("encode")}.`
+    : `It has two byte forms, so name one: ${spell("encode")} for the 32-byte ABI word, or ${spell("encodePacked")} for the packed bytes.`;
 }
 
 /** Wrap the selected value of a {@link chainArgWithLens} result in `nav`

@@ -2,15 +2,23 @@ import { defineHelper, ErrorException, NodeType } from "@evmcrispr/sdk";
 import type { Operand } from "@evmcrispr/sdk/onchain";
 import {
   balanceParam,
+  callReadOperand,
   chainParam,
   coreCall,
   encodeOpRead,
+  isLiveArg,
   OP_SELECTORS,
+  readTarget,
   requireChainArg,
 } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
 import { getAddress, isAddress, parseAbiItem, zeroAddress } from "viem";
 import type Std from "..";
 import { resolveToken } from "./token";
+
+const BALANCE_OF_ABI = parseAbiItem(
+  "function balanceOf(address) view returns (uint256)",
+) as AbiFunction;
 
 export default defineHelper<Std>({
   name: "balance",
@@ -18,7 +26,7 @@ export default defineHelper<Std>({
   description:
     "Balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address.",
   compileDescription:
-    "The holder may be a `::` call resolving to an address, for native ETH only.",
+    "The token and the holder may each be a `::!` call resolving to an address.",
   returnType: "number",
   args: [
     {
@@ -60,16 +68,20 @@ export default defineHelper<Std>({
       );
     }
     const [tokenNode, accountNode] = node.args;
-    const tokenValue = await ctx.interpreters.interpretNode(tokenNode);
-    const tokenAddr = await resolveToken(ctx.module, String(tokenValue));
-    const native = tokenAddr === zeroAddress;
+    const token = await readTarget(ctx, "balance!", tokenNode, (value) =>
+      resolveToken(ctx.module, String(value)),
+    );
+    const native = token === zeroAddress;
+
+    // A live token, or a live account of an ERC-20: the BALANCE fetcher
+    // takes both as literals, so the read is the token's own
+    // balanceOf(account), constructed when the assertion runs.
+    if (typeof token !== "string" || (!native && isLiveArg(accountNode))) {
+      return callReadOperand(ctx, token, BALANCE_OF_ABI, [accountNode], "Uint");
+    }
+    const tokenAddr = token;
 
     if (accountNode.type === NodeType.CallExpression) {
-      if (!native) {
-        throw new ErrorException(
-          "@balance! with a call-resolved account only supports the native token (ETH) — the BALANCE fetcher needs a literal account address",
-        );
-      }
       const chain = await requireChainArg(ctx, "balance!", accountNode);
       const out = chain.lastAbi.outputs?.[0];
       if (chain.lastAbi.outputs?.length !== 1 || out?.type !== "address") {

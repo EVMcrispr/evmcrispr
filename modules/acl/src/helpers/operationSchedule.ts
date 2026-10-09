@@ -1,6 +1,7 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress } from "viem";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type AccessControl from "..";
 import { accessManagerAbi } from "../utils";
 
@@ -28,19 +29,12 @@ export default defineHelper<AccessControl>({
     });
     return Num.fromBigInt(BigInt(timestamp));
   },
-  compile: async (ctx, node) => {
-    const [manager, operationId] = await Promise.all(
-      node.args.map((n) => ctx.interpreters.interpretNode(n)),
-    );
-    return directReadOperand(
+  compile: async (ctx, node) =>
+    callReadOperand(
       ctx,
-      getAddress(String(manager)),
-      encodeFunctionData({
-        abi: accessManagerAbi,
-        functionName: "getSchedule",
-        args: [operationId as `0x${string}`],
-      }),
+      await readTarget(ctx, "operationSchedule!", node.args[0]),
+      getAbiItem({ abi: accessManagerAbi, name: "getSchedule" }) as AbiFunction,
+      [node.args[1]],
       "Uint",
-    );
-  },
+    ),
 });

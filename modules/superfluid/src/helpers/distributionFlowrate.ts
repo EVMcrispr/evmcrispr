@@ -5,7 +5,7 @@ import { getAbiItem } from "viem";
 import type Superfluid from "..";
 import { gdaForwarderAbi } from "../abis";
 import { GDA_FORWARDER } from "../addresses";
-import { compileSuperToken } from "../utils/onchain";
+import { superTokenArg } from "../utils/onchain";
 import { resolveSuperToken } from "../utils/supertoken";
 
 export default defineHelper<Superfluid>({
@@ -35,7 +35,7 @@ export default defineHelper<Superfluid>({
     return Num.fromBigInt(rate);
   },
   compile: async (ctx, node) => {
-    const superToken = await compileSuperToken(
+    const superToken = await superTokenArg(
       ctx,
       node.args[0],
       "@distributionFlowrate!",
@@ -47,7 +47,7 @@ export default defineHelper<Superfluid>({
         abi: gdaForwarderAbi,
         name: "getFlowDistributionFlowRate",
       }) as AbiFunction,
-      [{ value: superToken }, node.args[1], node.args[2]],
+      [superToken, node.args[1], node.args[2]],
       "Int",
     );
   },

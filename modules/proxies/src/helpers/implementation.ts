@@ -4,10 +4,12 @@ import {
   encodeChain,
   encodeOrElse,
   rawParam,
+  readTarget,
   staticCallParam,
+  targetCallParam,
   toWord,
 } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress, parseAbi } from "viem";
+import { encodeFunctionData, parseAbi } from "viem";
 import type Proxies from "..";
 import {
   BEACON_SLOT,
@@ -50,9 +52,7 @@ export default defineHelper<Proxies>({
     );
   },
   compile: async (ctx, node) => {
-    const proxy = getAddress(
-      String(await ctx.interpreters.interpretNode(node.args[0])),
-    );
+    const proxy = await readTarget(ctx, "implementation!", node.args[0]);
     const implementationData = encodeFunctionData({
       abi: beaconAbi,
       functionName: "implementation",
@@ -67,13 +67,14 @@ export default defineHelper<Proxies>({
     return coreCall(
       ctx,
       encodeOrElse(
-        staticCallParam(proxy, implementationData),
+        targetCallParam(ctx, proxy, implementationData),
         staticCallParam(
           ctx.core,
-          encodeChain(rawParam(toWord(BigInt(proxy))), [
-            beaconData,
-            implementationData,
-          ]),
+          // The chain starts at the proxy: its address, fixed or live.
+          encodeChain(
+            typeof proxy === "string" ? rawParam(toWord(BigInt(proxy))) : proxy,
+            [beaconData, implementationData],
+          ),
         ),
       ),
       "Address",

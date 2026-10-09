@@ -1,8 +1,9 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import { arrayWordsParam, staticCallParam } from "@evmcrispr/sdk/onchain";
+import { arrayWordsParam } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData } from "viem";
 import type Safe from "..";
 import { getOwners, safeAbi } from "../utils";
+import { safeReadParam } from "../utils/onchain";
 
 export default defineHelper<Safe>({
   name: "owners",
@@ -22,12 +23,10 @@ export default defineHelper<Safe>({
     return getOwners(await module.getClient(), await module.resolveSafe(safe));
   },
   compile: async (ctx, node) => {
-    const explicit = node.args[0]
-      ? String(await ctx.interpreters.interpretNode(node.args[0]))
-      : undefined;
-    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
-    const param = staticCallParam(
-      safe,
+    const param = await safeReadParam(
+      ctx,
+      "owners!",
+      node.args[0],
       encodeFunctionData({ abi: safeAbi, functionName: "getOwners" }),
     );
     // The array-face representation: the getOwners() envelope re-framed

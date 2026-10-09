@@ -27,7 +27,10 @@ Whether every element satisfies the predicate.
 
 - [@any](any.md) — true if at least one matches
 - [@filter](filter.md) — keep matching elements
+- [@count](count.md): how many match
 
 ## On-chain face (@all!)
 
 Return true if every element satisfies a named boolean callback, stopping at the first failure. Empty arrays return true. Callbacks support composed helpers and ABI calls over typed single-word or multiword elements.
+
+A predicate that compares one call over the element with a value, such as a balance against a minimum, costs one call per element. The value may be a call of its own: it is read once, not once per element.

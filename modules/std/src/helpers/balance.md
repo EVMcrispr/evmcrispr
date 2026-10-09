@@ -4,7 +4,7 @@ title: "@balance"
 
 Balance in base units: the native balance for ETH, or an ERC-20 balanceOf for any token symbol or address.
 
-**On-chain (`@balance!`)**: The holder may be a `::` call resolving to an address, for native ETH only.
+**On-chain (`@balance!`)**: The token and the holder may each be a `::!` call resolving to an address.
 
 **Returns**: `number`
 

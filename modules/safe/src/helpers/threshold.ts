@@ -1,8 +1,8 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData } from "viem";
 import type Safe from "..";
 import { getThreshold, safeAbi } from "../utils";
+import { safeReadParam } from "../utils/onchain";
 
 export default defineHelper<Safe>({
   name: "threshold",
@@ -27,15 +27,12 @@ export default defineHelper<Safe>({
     );
   },
   compile: async (ctx, node) => {
-    const explicit = node.args[0]
-      ? String(await ctx.interpreters.interpretNode(node.args[0]))
-      : undefined;
-    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
-    return directReadOperand(
+    const param = await safeReadParam(
       ctx,
-      safe,
+      "threshold!",
+      node.args[0],
       encodeFunctionData({ abi: safeAbi, functionName: "getThreshold" }),
-      "Uint",
     );
+    return { kind: "call", param, cat: "Uint" };
   },
 });

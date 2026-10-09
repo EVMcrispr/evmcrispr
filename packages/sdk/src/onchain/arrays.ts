@@ -91,6 +91,8 @@ export async function wordsArg(
   payload: InputParam;
   elemType: string;
   lanes?: readonly AbiParameter[];
+  /** Set when the payload is a word map of another payload. */
+  mapOf?: Extract<Operand, { kind: "call" }>["mapOf"];
 }> {
   if (node && isBangHelperNode(node)) {
     const o: Operand = await compileOnchainHelper(ctx, node);
@@ -116,7 +118,12 @@ export async function wordsArg(
         `@${helper} needs single-word elements, got ${elemType}`,
       );
     if (o.collection.transport === "words")
-      return { payload: o.param, elemType, lanes: o.collection.lanes };
+      return {
+        payload: o.param,
+        elemType,
+        lanes: o.collection.lanes,
+        mapOf: o.mapOf,
+      };
     return { payload: arrayWordsParam(ctx, o.param, elemType), elemType };
   }
   const array = await typedArrayArg(ctx, node, helper);

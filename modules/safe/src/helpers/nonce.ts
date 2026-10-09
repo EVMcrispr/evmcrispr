@@ -1,8 +1,8 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData } from "viem";
 import type Safe from "..";
 import { getSafeNonce, safeAbi } from "../utils";
+import { safeReadParam } from "../utils/onchain";
 
 export default defineHelper<Safe>({
   name: "nonce",
@@ -27,15 +27,12 @@ export default defineHelper<Safe>({
     );
   },
   compile: async (ctx, node) => {
-    const explicit = node.args[0]
-      ? String(await ctx.interpreters.interpretNode(node.args[0]))
-      : undefined;
-    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
-    return directReadOperand(
+    const param = await safeReadParam(
       ctx,
-      safe,
+      "nonce!",
+      node.args[0],
       encodeFunctionData({ abi: safeAbi, functionName: "nonce" }),
-      "Uint",
     );
+    return { kind: "call", param, cat: "Uint" };
   },
 });

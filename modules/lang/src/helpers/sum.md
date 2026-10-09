@@ -54,6 +54,8 @@ assert @sum!(@map!($vault::!{caps()(uint256[])} @dbl!)) >= 200
 - Arrays of single-word elements only; the result is judged as a uint
   word (the checked sum overflows-reverts past 2^256 - 1).
 - An empty array sums to 0.
+- Summing a mapped array of unsigned results, as in the second example,
+  adds each result as it is produced: no mapped array is built first.
 - An average is `@calc!(@sum!(...) // @len!(...))`.
 
 ### See Also

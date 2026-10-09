@@ -10,6 +10,8 @@ import {
   FOLD_EXIT,
   foldParam,
   opSelector,
+  REDUCE,
+  reduceWordsParam,
   sumWordsParam,
   toWord,
 } from "@evmcrispr/sdk/onchain";
@@ -50,11 +52,31 @@ export default defineHelper<Lang>({
         "@sum! expects a single call argument, e.g. @sum!($vault::!{caps()(uint256[])})",
       );
     }
-    const { payload, elemType } = await wordsArg(ctx, node.args[0], "sum!");
+    const { payload, elemType, mapOf } = await wordsArg(
+      ctx,
+      node.args[0],
+      "sum!",
+    );
     if (!/^u?int\d*$/.test(elemType)) {
       throw new ErrorException("@sum! every element must be numeric");
     }
     const signed = elemType.startsWith("int");
+    // An unsigned sum of a word map adds each result as the map produces
+    // it: one pass, and no mapped copy to sum afterwards. A signed sum
+    // keeps the signed fold, since the fused sum is unsigned.
+    if (mapOf && !signed)
+      return {
+        kind: "call",
+        cat: "Uint",
+        param: reduceWordsParam(
+          ctx,
+          mapOf.words,
+          mapOf.target,
+          mapOf.template,
+          mapOf.elemOffsets,
+          REDUCE.Sum,
+        ),
+      };
     return {
       kind: "call",
       param: signed

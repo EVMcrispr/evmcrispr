@@ -2,9 +2,10 @@ import type { Address } from "../types";
 
 /**
  * The four contract addresses compiled on-chain expressions target. Each is
- * deployed at a deterministic CREATE2 address, identical on every chain, so
- * there is nothing to configure: a fork that wants different code at these
- * addresses installs it there (see `installAssertionsCore` in
+ * predicted from deterministic CREATE2 inputs, identical on compatible chains.
+ * These constants do not establish that code is deployed: check the selected
+ * chain before use. A test fork installs matching runtime at these addresses
+ * (see `installAssertionsCore` in
  * `@evmcrispr/test-utils`), which keeps compiled calldata byte-identical to
  * what production emits.
  *
@@ -16,20 +17,20 @@ import type { Address } from "../types";
 
 /** Canonical address of the Assertions core (CREATE2). */
 export const CORE_ADDRESS: Address =
-  "0xA55e479Cfb10A70BA33560ecAf5dd29C3fDE8531";
+  "0xa55e47C835ACD377da79D57162117D9B5Ecf3496";
 
 /** Canonical address of Operations (CREATE2): scalar computation over
  *  resolved values. */
 export const OPERATIONS_ADDRESS: Address =
-  "0x09E4A7Ef72b44d3E16466Ca3517Af567eA7D8aDA";
+  "0x09e4a7eF82674BaDD27a02E19f3D3e5a1903eA1f";
 
 /** Canonical address of Collections (CREATE2): iteration and the
  *  ABI-valued collection family (requires Cancun). */
 export const COLLECTIONS_ADDRESS: Address =
-  "0xC011ec718c89903c3c5348837877f0FFCa67B500";
+  "0xc011ec7f6fAAaa37DE5923D2c6206C9597D16bc7";
 
 /** Canonical address of Expressions (CREATE2): typed expression graphs
  *  (`evaluate`), the host of collection callbacks compiled as graphs.
  *  Resolve-once call construction is the core's (`get`, `gather`). */
 export const EXPRESSIONS_ADDRESS: Address =
-  "0xe5594E555dF45DbF1a5622ED73e282EDb42e7930";
+  "0xe5594e55aCa44ac271209612FA57866130edC9e5";

@@ -1,6 +1,7 @@
 import { defineHelper, encodeSignatureCall } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress } from "viem";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type AccessControl from "..";
 import { accessManagerAbi } from "../utils";
 
@@ -44,21 +45,29 @@ export default defineHelper<AccessControl>({
     });
   },
   compile: async (ctx, node) => {
-    const [manager, caller, target, signature, params] = await Promise.all(
-      node.args.map((n) => ctx.interpreters.interpretNode(n)),
-    );
-    return directReadOperand(
+    // The call being hashed is encoded when the script is built; the
+    // manager, the caller and the target may be live.
+    const signature = await ctx.interpreters.interpretNode(node.args[3]);
+    const params = node.args[4]
+      ? await ctx.interpreters.interpretNode(node.args[4])
+      : undefined;
+    return callReadOperand(
       ctx,
-      getAddress(String(manager)),
-      encodeFunctionData({
+      await readTarget(ctx, "operationId!", node.args[0]),
+      getAbiItem({
         abi: accessManagerAbi,
-        functionName: "hashOperation",
-        args: [
-          getAddress(String(caller)),
-          getAddress(String(target)),
-          encodeSignatureCall(String(signature), (params as never[]) ?? []),
-        ],
-      }),
+        name: "hashOperation",
+      }) as AbiFunction,
+      [
+        node.args[1],
+        node.args[2],
+        {
+          value: encodeSignatureCall(
+            String(signature),
+            (params as never[]) ?? [],
+          ),
+        },
+      ],
       "Bytes32",
     );
   },

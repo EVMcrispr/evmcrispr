@@ -1,7 +1,7 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
-import { getAbiItem, getAddress } from "viem";
+import { getAbiItem } from "viem";
 import type Governor from "..";
 import { governorAbi, toBigIntValue } from "../utils";
 
@@ -39,9 +39,7 @@ export default defineHelper<Governor>({
     return PROPOSAL_STATES[state] ?? String(state);
   },
   compile: async (ctx, node) => {
-    const governor = getAddress(
-      String(await ctx.interpreters.interpretNode(node.args[0])),
-    );
+    const governor = await readTarget(ctx, "proposalState!", node.args[0]);
     // The uint8 enum value; the string names stay off-chain.
     return callReadOperand(
       ctx,
