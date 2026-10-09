@@ -121,6 +121,25 @@ export const OPERATIONS_ABI = parseAbi([
 /** Fold early-exit modes (Collections.FoldExit, ABI-encoded as uint8). */
 export const FOLD_EXIT = { Full: 0, Any: 1, All: 2 } as const;
 
+/** What `reduceWords` returns (Collections.Reduce, ABI-encoded as uint8). */
+export const REDUCE = { All: 0, Any: 1, Count: 2, Sum: 3 } as const;
+
+/** How `reduceWords` compares a lambda result with its bound
+ *  (Collections.Cmp, ABI-encoded as uint8). The S-prefixed orderings read
+ *  both words as int256. */
+export const REDUCE_CMP = {
+  EQ: 0,
+  NE: 1,
+  LT: 2,
+  LE: 3,
+  GT: 4,
+  GE: 5,
+  SLT: 6,
+  SLE: 7,
+  SGT: 8,
+  SGE: 9,
+} as const;
+
 /** Binary word operators with an int256 overload — signedness is selected
  *  at encode time from the tracked operand categories; everything else
  *  falls back to the uint256 signature. */
@@ -205,6 +224,9 @@ export const OP_SELECTORS = {
   hashPairSorted: sel("hashPairSorted(bytes32,bytes32)"),
   mapWords: sel("mapWords(bytes,address,bytes,uint256[])"),
   filterWords: sel("filterWords(bytes,address,bytes,uint256[])"),
+  reduceWords: sel(
+    "reduceWords(bytes,address,bytes,uint256[],uint8,uint8,bytes32)",
+  ),
   iotaWords: sel("iotaWords(uint256)"),
   wordIndexOf: sel("wordIndexOf(bytes,bytes32)"),
   reverseWords: sel("reverseWords(bytes)"),

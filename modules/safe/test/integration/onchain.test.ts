@@ -289,3 +289,132 @@ test("Safe owners remain typed through nested collection consumers", async () =>
     expect(decodeAbiParameters([{ type }], data as Hex)[0]).to.equal(want);
   }
 });
+
+// A Safe that is only known when the assertion runs: the address a call
+// returns. The read is then constructed on-chain against that address.
+const REGISTRY = getAddress("0x00000000000000000000000000000000000d0400");
+const LIVE_SAFE = `${REGISTRY}::!{safe()(address)}`;
+
+describeCommand("assert (safe faces over a live Safe)", {
+  describeName: "Safe > helpers > on-chain faces over a call",
+  preamble,
+  cases: [
+    {
+      name: "constructs getThreshold() against the address the call returns",
+      script: `assert @safe:threshold!(${LIVE_SAFE}) >= 3`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const read = d.core(param);
+        expect(read.functionName).to.equal("read");
+        const target = d.staticCallOf(read.args[0] as unknown as DecodedParam);
+        expect(target.target).to.equal(REGISTRY);
+        expect(target.data).to.equal(selectorOf("safe()"));
+        expect(read.args[1]).to.equal(selectorOf("getThreshold()"));
+        expect(read.args[2]).to.deep.equal([]);
+        d.expectConstraint(param, "Gte", 3n);
+      },
+    },
+    {
+      name: "carries isOwner's argument after the selector as one literal segment",
+      script: `assert @safe:isOwner!(${OWNER} ${LIVE_SAFE})`,
+      validate: (actions) => {
+        const { param } = d.decodeAssert(actions);
+        const read = d.core(param);
+        expect(read.functionName).to.equal("read");
+        expect(read.args[1]).to.equal(selectorOf("isOwner(address)"));
+        const segments = read.args[2] as unknown as DecodedParam[];
+        expect(segments).to.have.lengthOf(1);
+        d.expectRawWord(segments[0], BigInt(OWNER));
+      },
+    },
+  ],
+  errorCases: [
+    {
+      name: "refuses a call that does not return a single address",
+      script: `assert @safe:threshold!(${REGISTRY}::!{count()(uint256)}) >= 3`,
+      error: "its live target must resolve to an address",
+    },
+  ],
+});
+
+test("Safe reads resolve against the address a call returns", async () => {
+  const client = getPublicClient();
+  const guard = getAddress("0x00000000000000000000000000000000000d0499");
+  await installAssertionsCore(client);
+  // One mock per read: a constant mock answers every call with the same
+  // data, so each stands for a Safe as that one read sees it.
+  const safes = {
+    threshold: "0x00000000000000000000000000000000000d0401",
+    isOwner: "0x00000000000000000000000000000000000d0402",
+    owners: "0x00000000000000000000000000000000000d0403",
+    guard: "0x00000000000000000000000000000000000d0404",
+    modules: "0x00000000000000000000000000000000000d0405",
+  } as const;
+  await installConstantMock(
+    client,
+    safes.threshold,
+    encodeAbiParameters([{ type: "uint256" }], [3n]),
+  );
+  await installConstantMock(
+    client,
+    safes.isOwner,
+    encodeAbiParameters([{ type: "bool" }], [true]),
+  );
+  await installConstantMock(
+    client,
+    safes.owners,
+    encodeAbiParameters([{ type: "address[]" }], [[OWNER, guard]]),
+  );
+  // getStorageAt(slot, 1) returns the slot word as bytes.
+  await installConstantMock(
+    client,
+    safes.guard,
+    encodeAbiParameters([{ type: "bytes" }], [word(BigInt(guard)) as Hex]),
+  );
+  await installConstantMock(
+    client,
+    safes.modules,
+    encodeAbiParameters(
+      [{ type: "address[]" }, { type: "address" }],
+      [[guard], "0x0000000000000000000000000000000000000001"],
+    ),
+  );
+  const registryFor = async (safe: string) => {
+    await installConstantMock(
+      client,
+      REGISTRY,
+      encodeAbiParameters([{ type: "address" }], [getAddress(safe)]),
+    );
+  };
+  for (const [safe, expression, type, want] of [
+    [safes.threshold, `@safe:threshold!(${LIVE_SAFE})`, "uint256", 3n],
+    [safes.threshold, `@safe:nonce!(${LIVE_SAFE})`, "uint256", 3n],
+    [safes.isOwner, `@safe:isOwner!(${OWNER} ${LIVE_SAFE})`, "bool", true],
+    [safes.guard, `@safe:guard!(${LIVE_SAFE})`, "address", guard],
+    [safes.owners, `@len!(@safe:owners!(${LIVE_SAFE}))`, "uint256", 2n],
+    [
+      safes.owners,
+      `@includes!(@safe:owners!(${LIVE_SAFE}) ${guard})`,
+      "bool",
+      true,
+    ],
+    [safes.owners, `@at!(@safe:owners!(${LIVE_SAFE}) 1)`, "address", guard],
+    [safes.modules, `@len!(@safe:modules!(${LIVE_SAFE}))`, "uint256", 1n],
+    [safes.modules, `@at!(@safe:modules!(${LIVE_SAFE}) 0)`, "address", guard],
+  ] as const) {
+    await registryFor(safe);
+    const { operand, ctx } = await compileExpression(expression, {
+      module: "lang",
+      preamble: "load safe",
+    });
+    if (operand.kind !== "call") throw new Error("expected call");
+    const { data } = await client.call({
+      to: ctx.core,
+      data: encodeResolve(operand.param),
+    });
+    expect(
+      decodeAbiParameters([{ type }], data as Hex)[0],
+      expression,
+    ).to.equal(want);
+  }
+});

@@ -1,9 +1,10 @@
 import { defineHelper, isNamedArgNode } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
+import { encodePick, staticCallParam } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData } from "viem";
 import type Safe from "..";
 import { GUARD_STORAGE_SLOT, MODULE_GUARD_STORAGE_SLOT } from "../addresses";
 import { getGuard, safeAbi } from "../utils";
+import { safeReadParam } from "../utils/onchain";
 
 export default defineHelper<Safe>({
   name: "guard",
@@ -38,10 +39,6 @@ export default defineHelper<Safe>({
     const moduleArg = node.args.find(
       (arg) => isNamedArgNode(arg) && arg.name === "module",
     );
-    const explicit = safeArg
-      ? String(await ctx.interpreters.interpretNode(safeArg))
-      : undefined;
-    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
     // Which slot to read is fixed when the script is built, like the Safe.
     const moduleGuard =
       moduleArg && isNamedArgNode(moduleArg)
@@ -51,16 +48,20 @@ export default defineHelper<Safe>({
     const slot = moduleGuard ? MODULE_GUARD_STORAGE_SLOT : GUARD_STORAGE_SLOT;
     // getStorageAt(slot, 1) returns bytes [0x20][32][slot word]: the
     // guard address word is word 2 of the envelope.
-    return directReadOperand(
+    const param = await safeReadParam(
       ctx,
-      safe,
+      "guard!",
+      safeArg,
       encodeFunctionData({
         abi: safeAbi,
         functionName: "getStorageAt",
         args: [BigInt(slot), 1n],
       }),
-      "Address",
-      2n,
     );
+    return {
+      kind: "call",
+      param: staticCallParam(ctx.core, encodePick(param, 2n)),
+      cat: "Address",
+    };
   },
 });

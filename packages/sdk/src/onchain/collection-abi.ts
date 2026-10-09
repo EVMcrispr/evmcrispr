@@ -25,6 +25,8 @@ export const COLLECTIONS_ABI = parseAbi([
   // array-shape ops over aligned-word bytes payloads
   "function mapWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
   "function filterWords(bytes s, address target, bytes template, uint256[] elemOffsets) view returns (bytes)",
+  // lambda results reduced in the loop (Reduce and Cmp as uint8)
+  "function reduceWords(bytes s, address target, bytes template, uint256[] elemOffsets, uint8 mode, uint8 cmp, bytes32 bound) view returns (uint256)",
   "function iotaWords(uint256 n) pure returns (bytes)",
   "function wordIndexOf(bytes s, bytes32 w) pure returns (uint256)",
   "function reverseWords(bytes s) pure returns (bytes)",

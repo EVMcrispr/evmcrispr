@@ -33,9 +33,10 @@ print "Underlying:" @superfluid:underlying(USDCx)
 
 ## On-chain face (@underlying!)
 
-Read getUnderlyingToken() at assertion time. The SuperToken still resolves at
-composition time — a symbol, an address, or a nested `@token(...)`, which folds
-into the expression as a build-time constant. This is the live half of that
+Read getUnderlyingToken() at assertion time. A SuperToken given as a symbol, an
+address, or a nested `@token(...)` resolves at composition time and folds into
+the expression as a build-time constant; it may also be a `::!` call returning
+the SuperToken's address, read when the assertion runs. This is the live half of that
 pairing: the token list says which SuperToken to look at, and this says what it
 currently wraps.
 

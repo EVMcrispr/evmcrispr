@@ -1,10 +1,14 @@
 import { getChainNativeCurrency, resolveToken } from "@evmcrispr/module-std";
 import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import {
+  compileOperand,
+  isLiveArg,
+  materializeWord,
   opReadParam,
   opSelector,
   rawParam,
-  staticCallParam,
+  readTarget,
+  targetCallParam,
   toWord,
   wordOpParam,
 } from "@evmcrispr/sdk/onchain";
@@ -54,8 +58,53 @@ export default defineHelper<Token>({
         "@amount! expects (token amount), e.g. @amount!(DAI 1.5)",
       );
     }
-    const symbol = await ctx.interpreters.interpretNode(node.args[0]);
-    const tokenAddr = await resolveToken(ctx.module, String(symbol));
+    const token = await readTarget(ctx, "amount!", node.args[0], (value) =>
+      resolveToken(ctx.module, String(value)),
+    );
+    const decimalsOf = () =>
+      targetCallParam(ctx, token, toFunctionSelector("function decimals()"));
+    if (isLiveArg(node.args[1])) {
+      // A live amount is a whole number of tokens read when the assertion
+      // runs: base units are mul(amount, exp(10, decimals)).
+      const live = await compileOperand(ctx, node.args[1]);
+      if (live.kind !== "const") {
+        if (live.cat !== "Uint") {
+          throw new ErrorException(
+            `@amount! live amount must resolve to an unsigned integer, got a ${live.cat} value`,
+          );
+        }
+        if (token === zeroAddress) {
+          const chain = await ctx.module.getChain();
+          const { decimals } = getChainNativeCurrency(chain);
+          return {
+            kind: "call",
+            param: wordOpParam(
+              ctx,
+              "mul",
+              false,
+              materializeWord(ctx, live),
+              rawParam(toWord(10n ** BigInt(decimals))),
+            ),
+            cat: "Uint",
+          };
+        }
+        const scale = opReadParam(ctx, opSelector("exp"), [
+          rawParam(toWord(10n)),
+          decimalsOf(),
+        ]);
+        return {
+          kind: "call",
+          param: wordOpParam(
+            ctx,
+            "mul",
+            false,
+            materializeWord(ctx, live),
+            scale,
+          ),
+          cat: "Uint",
+        };
+      }
+    }
     const amount = String(
       await ctx.interpreters.interpretNode(node.args[1]),
     ).trim();
@@ -64,7 +113,7 @@ export default defineHelper<Token>({
         `@amount! amount must be a non-negative decimal number, got ${amount}`,
       );
     }
-    if (tokenAddr === zeroAddress) {
+    if (token === zeroAddress) {
       // The native token's decimals are a chain constant: fold fully.
       const chain = await ctx.module.getChain();
       const { decimals } = getChainNativeCurrency(chain);
@@ -82,10 +131,7 @@ export default defineHelper<Token>({
     const trimmed = fraction.replace(/0+$/, "");
     const mantissa = BigInt(whole + trimmed);
     const k = BigInt(trimmed.length);
-    const decimalsParam = staticCallParam(
-      tokenAddr,
-      toFunctionSelector("function decimals()"),
-    );
+    const decimalsParam = decimalsOf();
     const exponent =
       k === 0n
         ? decimalsParam

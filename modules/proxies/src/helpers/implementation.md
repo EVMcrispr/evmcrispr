@@ -47,7 +47,8 @@ print @proxies:implementation(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
 
 Resolve the implementation at assertion time through the core's orElse:
 a direct implementation() call when the proxy exposes one, else the
-beacon() -> implementation() hop through the core chain.
+beacon() -> implementation() hop through the core chain. The proxy may be
+a `::!` call returning its address, read when the assertion runs.
 
 ### Examples
 

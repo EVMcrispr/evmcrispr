@@ -1,40 +1,46 @@
 import type { Node } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
-import type { CompileCtx } from "@evmcrispr/sdk/onchain";
-import { compileOperand } from "@evmcrispr/sdk/onchain";
-import type { Address } from "viem";
-import { getAddress } from "viem";
+import type { CompileCtx, ReadArg, ReadTarget } from "@evmcrispr/sdk/onchain";
+import { readTarget } from "@evmcrispr/sdk/onchain";
 import { resolveSuperToken } from "./supertoken";
 
 /**
- * Resolve a `supertoken` argument inside an on-chain face. The Superfluid
- * token list is an off-chain service, so the symbol lookup stays at
- * composition time and the SuperToken address enters the expression as a
- * constant; a nested face that folds to a constant (`@token!`) is accepted
- * too, a live one is not.
+ * The SuperToken of an on-chain face, as the contract it reads. A symbol
+ * is looked up when the script is built (the Superfluid token list is an
+ * off-chain service), and so is an address or a nested face that folds to
+ * a constant (`@token!`); a `::!` call or a live face that yields an
+ * address is resolved when the assertion runs.
  */
 export async function compileSuperToken(
   ctx: CompileCtx,
   node: Node,
   face: string,
-): Promise<Address> {
-  const o = await compileOperand(ctx, node);
-  if (o.kind !== "const") {
-    throw new ErrorException(
-      `${face} resolves its SuperToken at composition time — pass a symbol, address or @token!(...)`,
-    );
-  }
-  return resolveSuperToken(ctx.module, String(o.value));
+): Promise<ReadTarget> {
+  return readTarget(ctx, face.replace(/^@/, ""), node, (value) =>
+    resolveSuperToken(ctx.module, String(value)),
+  );
 }
 
 /**
- * Resolve an on-chain face argument that has to be known at composition
- * time because it is the staticcall TARGET (a GDA pool), not a value
- * spliced into calldata.
+ * The SuperToken of an on-chain face, as an argument of a call to another
+ * contract (a forwarder): the resolved address, or the live node itself.
+ */
+export async function superTokenArg(
+  ctx: CompileCtx,
+  node: Node,
+  face: string,
+): Promise<ReadArg> {
+  const token = await compileSuperToken(ctx, node, face);
+  return typeof token === "string" ? { value: token } : node;
+}
+
+/**
+ * The contract an on-chain face reads (a GDA pool): an address fixed when
+ * the script is built, or a `::!` call resolved when the assertion runs.
  */
 export async function compileTarget(
   ctx: CompileCtx,
   node: Node,
-): Promise<Address> {
-  return getAddress(String(await ctx.interpreters.interpretNode(node)));
+  face = "pool",
+): Promise<ReadTarget> {
+  return readTarget(ctx, face, node);
 }

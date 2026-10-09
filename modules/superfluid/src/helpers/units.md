@@ -41,7 +41,8 @@ sim:fork --using anvil (
 
 ## On-chain face (@units!)
 
-Read getUnits(member) at assertion time (the pool still resolves at
-composition time, since it is the call target).
+Read getUnits(member) at assertion time. The pool is fixed at
+composition time when given as an address; it may also be a `::!` call
+returning the pool, read when the assertion runs.
 
 #

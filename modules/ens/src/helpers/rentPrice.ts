@@ -1,10 +1,13 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
+import type { InputParam } from "@evmcrispr/sdk/onchain";
 import {
+  callReadOperand,
   encodePick,
   staticCallParam,
   wordOpParam,
 } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, parseAbi } from "viem";
+import type { AbiFunction } from "viem";
+import { getAbiItem, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { ethRegistrarControllerMap, requireAddress } from "../addresses";
@@ -59,22 +62,21 @@ export default defineHelper<Ens>({
   compile: async (ctx, node) => {
     const name = String(await ctx.interpreters.interpretNode(node.args[0]));
     const label = name.includes(".") ? eth2LDLabel(name) : name;
-    const duration = BigInt(
-      String(await ctx.interpreters.interpretNode(node.args[1])),
-    );
     const controller = await onchainAddress(
       ctx,
       ethRegistrarControllerMap,
       "ETHRegistrarController",
     );
-    const call = staticCallParam(
+    // The name is hashed into the call when the script is built; the
+    // duration may be live.
+    const read = await callReadOperand(
+      ctx,
       controller,
-      encodeFunctionData({
-        abi: rentPriceAbi,
-        functionName: "rentPrice",
-        args: [label, duration],
-      }),
+      getAbiItem({ abi: rentPriceAbi, name: "rentPrice" }) as AbiFunction,
+      [{ value: label }, node.args[1]],
+      "Uint",
     );
+    const call = (read as { param: InputParam }).param;
     const base = staticCallParam(ctx.core, encodePick(call, 0n));
     const premium = staticCallParam(ctx.core, encodePick(call, 1n));
     return {

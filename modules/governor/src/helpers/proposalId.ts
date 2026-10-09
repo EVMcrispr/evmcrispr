@@ -2,10 +2,11 @@ import { defineHelper, ErrorException, Num } from "@evmcrispr/sdk";
 import {
   coreCall,
   encodeOrElse,
-  staticCallParam,
+  readTarget,
+  targetCallParam,
 } from "@evmcrispr/sdk/onchain";
 import type { Hex } from "viem";
-import { encodeFunctionData, getAddress, isAddress, isHex } from "viem";
+import { encodeFunctionData, isAddress, isHex } from "viem";
 import type Governor from "..";
 import { governorAbi, hashDescription, hashProposalLocal } from "../utils";
 
@@ -78,10 +79,12 @@ export default defineHelper<Governor>({
         "@proposalId! expects (governor targets values calldatas description)",
       );
     }
-    const [governor, targets, values, calldatas, description] =
-      await Promise.all(
-        node.args.map((n) => ctx.interpreters.interpretNode(n)),
-      );
+    // The proposal is hashed from what the script fixes; the governor
+    // asked may be live.
+    const governor = await readTarget(ctx, "proposalId!", node.args[0]);
+    const [targets, values, calldatas, description] = await Promise.all(
+      node.args.slice(1).map((n) => ctx.interpreters.interpretNode(n)),
+    );
     const parsedTargets = (targets as unknown[]).map((t) => {
       if (typeof t !== "string" || !isAddress(t)) {
         throw new ErrorException(`<targets> must contain addresses, got ${t}`);
@@ -110,16 +113,18 @@ export default defineHelper<Governor>({
     return coreCall(
       ctx,
       encodeOrElse(
-        staticCallParam(
-          getAddress(String(governor)),
+        targetCallParam(
+          ctx,
+          governor,
           encodeFunctionData({
             abi: governorAbi,
             functionName: "getProposalId",
             args,
           }),
         ),
-        staticCallParam(
-          getAddress(String(governor)),
+        targetCallParam(
+          ctx,
+          governor,
           encodeFunctionData({
             abi: governorAbi,
             functionName: "hashProposal",

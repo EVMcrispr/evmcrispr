@@ -35,6 +35,10 @@ Current nonce of a Safe.
 Read the Safe's nonce() at assertion time — pin a proposal's execution
 window on-chain.
 
+The Safe may also be a `::!` call that returns its address, such as
+`@safe:nonce!($registry::!{safe()(address)})`: the read is then made against
+whatever address that call returns when the assertion runs.
+
 ### Examples
 
 ```evml

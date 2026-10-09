@@ -1,8 +1,10 @@
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress, isAddressEqual } from "viem";
+import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem, isAddressEqual } from "viem";
 import type Safe from "..";
 import { getOwners, safeAbi } from "../utils";
+import { safeTarget } from "../utils/onchain";
 
 export default defineHelper<Safe>({
   name: "isOwner",
@@ -32,19 +34,12 @@ export default defineHelper<Safe>({
         "@isOwner! expects (owner safe?), e.g. @isOwner!(@me $safe)",
       );
     }
-    const owner = String(await ctx.interpreters.interpretNode(node.args[0]));
-    const explicit = node.args[1]
-      ? String(await ctx.interpreters.interpretNode(node.args[1]))
-      : undefined;
-    const safe = await (ctx.module as Safe).resolveSafe(explicit as never);
-    return directReadOperand(
+    // Both the Safe and the address asked about may be live.
+    return callReadOperand(
       ctx,
-      safe,
-      encodeFunctionData({
-        abi: safeAbi,
-        functionName: "isOwner",
-        args: [getAddress(owner)],
-      }),
+      await safeTarget(ctx, "isOwner!", node.args[1]),
+      getAbiItem({ abi: safeAbi, name: "isOwner" }) as AbiFunction,
+      [node.args[0]],
       "Bool",
     );
   },

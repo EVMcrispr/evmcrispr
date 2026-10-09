@@ -9,11 +9,11 @@ import {
 } from "./addresses";
 export const SMART_DEPENDENCY_HASHES: Record<Address, Hex> = {
   [CORE_ADDRESS.toLowerCase() as Address]:
-    "0x0926b1a0eccd3ddbcf44408b1a786c666d44039cd225d4ada1cc89391c464f7f",
+    "0xf8efc5ba85443814dc06bdfedfb971dd80a1f379c56dfeb066db86ad93b44a6e",
   [OPERATIONS_ADDRESS.toLowerCase() as Address]:
-    "0xae4284b0ebb25e55b7c9f9ddcab2d991114b76c4f3407427e03eaf35fce71cdb",
+    "0x5db6cb348cfb6904d50db0869249ae56f9445cc8d2c0f8f2f30b3dba9882b089",
   [COLLECTIONS_ADDRESS.toLowerCase() as Address]:
-    "0x885829599b023fa9f0c47650a2ae0d88c04c255b30a03718281bc204e709c114",
+    "0xeaa6abecb60962744bbe1b2916a41e9615e7b200877ad9766dc1aa068bd2af79",
   [EXPRESSIONS_ADDRESS.toLowerCase() as Address]:
-    "0x4eeb154d97553a02eafff3b026eed98f1b939d4a40ac4aea198abea1f9c5b65d",
+    "0x79e0a1903ce1572e42b7992749bff73c72e9292ef274e9fd16ebe28a3ca41dfe",
 };

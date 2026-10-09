@@ -1,6 +1,7 @@
 import { defineHelper } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress } from "viem";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type AccessControl from "..";
 import { ownableAbi } from "../utils";
 
@@ -24,13 +25,12 @@ export default defineHelper<AccessControl>({
       functionName: "owner",
     });
   },
-  compile: async (ctx, node) => {
-    const contract = await ctx.interpreters.interpretNode(node.args[0]);
-    return directReadOperand(
+  compile: async (ctx, node) =>
+    callReadOperand(
       ctx,
-      getAddress(String(contract)),
-      encodeFunctionData({ abi: ownableAbi, functionName: "owner" }),
+      await readTarget(ctx, "owner!", node.args[0]),
+      getAbiItem({ abi: ownableAbi, name: "owner" }) as AbiFunction,
+      [],
       "Address",
-    );
-  },
+    ),
 });

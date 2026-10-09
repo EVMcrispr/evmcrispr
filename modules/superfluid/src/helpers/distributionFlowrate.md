@@ -45,7 +45,8 @@ sim:fork --using anvil (
 ## On-chain face (@distributionFlowrate!)
 
 Read getFlowDistributionFlowRate(token, from, pool) at assertion time.
-The SuperToken resolves at composition time; the distributor and the
+A SuperToken symbol resolves at composition time; the SuperToken may
+also be a `::!` call returning its address, and the distributor and the
 pool may be live values.
 
 #

@@ -34,11 +34,15 @@ print @token:symbol(0x0000000000000000000000000000000000000000)
 
 ## On-chain face (@symbol!)
 
-The token resolves at composition time and `symbol()` is read on-chain
-at assertion time as a STRING operand: top-level and nested `==`/`!=`
+A token symbol or address resolves at composition time and `symbol()`
+is read on-chain at assertion time as a STRING operand: top-level and nested `==`/`!=`
 judge it by the keccak digest of the decoded payload, like the other
 string faces, and the string faces splice its envelope directly. The
 native token folds to its constant symbol at build time.
+
+The token may also be a `::!` call that returns its address: the read
+is then made against whatever address that call returns when the
+assertion runs.
 
 The argument is the *token*, not the answer: passing an address is the
 useful direction, since the symbol is what comes back. A symbol goes

@@ -55,7 +55,9 @@ export default defineHelper<Lang>({
     if (output.type !== "bool")
       throw new ErrorException("@filter! callback must return bool");
     const tpl = array.words
-      ? await wordCallbackTemplate(ctx, node.args[1], [array.element], output)
+      ? await wordCallbackTemplate(ctx, node.args[1], [array.element], output, {
+          checkedBool: true,
+        })
       : undefined;
     if (!tpl) {
       const values = arrayValuesParam(ctx, array);

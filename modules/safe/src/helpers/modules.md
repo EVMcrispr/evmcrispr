@@ -42,6 +42,10 @@ composable with the lang array faces. The sentinel `0x1` starts the
 module linked list; `pageSize` is a composition-time argument
 defaulting to 100.
 
+The Safe may also be a `::!` call that returns its address, such as
+`@safe:modules!($registry::!{safe()(address)})`: the read is then made against
+whatever address that call returns when the assertion runs.
+
 THE PAGINATION CAP: the face reads a single page, so a Safe with more
 enabled modules than `pageSize` is truncated to the first page (the
 off-chain @safe:modules follows `next` across pages instead). Raise

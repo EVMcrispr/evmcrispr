@@ -17,20 +17,20 @@ import type { Address } from "../types";
 
 /** Canonical address of the Assertions core (CREATE2). */
 export const CORE_ADDRESS: Address =
-  "0xa55e47A8F0701e231a9c0ac916776074e5c561d5";
+  "0xa55e47C835ACD377da79D57162117D9B5Ecf3496";
 
 /** Canonical address of Operations (CREATE2): scalar computation over
  *  resolved values. */
 export const OPERATIONS_ADDRESS: Address =
-  "0x09e4A7EA7868aEC605bE16FE64Bd5b56A8B9601A";
+  "0x09e4a7eF82674BaDD27a02E19f3D3e5a1903eA1f";
 
 /** Canonical address of Collections (CREATE2): iteration and the
  *  ABI-valued collection family (requires Cancun). */
 export const COLLECTIONS_ADDRESS: Address =
-  "0xc011eC7071DA62522F0DCD03606e5A299a8e6323";
+  "0xc011ec7f6fAAaa37DE5923D2c6206C9597D16bc7";
 
 /** Canonical address of Expressions (CREATE2): typed expression graphs
  *  (`evaluate`), the host of collection callbacks compiled as graphs.
  *  Resolve-once call construction is the core's (`get`, `gather`). */
 export const EXPRESSIONS_ADDRESS: Address =
-  "0xE5594e5577165b73F3f3CFcc4F3983345c5F0F48";
+  "0xe5594e55aCa44ac271209612FA57866130edC9e5";

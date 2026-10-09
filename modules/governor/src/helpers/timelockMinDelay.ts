@@ -1,7 +1,7 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import { callReadOperand } from "@evmcrispr/sdk/onchain";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
-import { getAbiItem, getAddress } from "viem";
+import { getAbiItem } from "viem";
 import type Governor from "..";
 import { timelockAbi } from "../utils";
 
@@ -28,9 +28,7 @@ export default defineHelper<Governor>({
     return Num.fromBigInt(minDelay);
   },
   compile: async (ctx, node) => {
-    const timelock = getAddress(
-      String(await ctx.interpreters.interpretNode(node.args[0])),
-    );
+    const timelock = await readTarget(ctx, "timelockMinDelay!", node.args[0]);
     return callReadOperand(
       ctx,
       timelock,

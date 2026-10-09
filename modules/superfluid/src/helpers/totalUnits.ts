@@ -1,5 +1,5 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
+import { targetCallParam } from "@evmcrispr/sdk/onchain";
 import type { Abi } from "viem";
 import { encodeFunctionData } from "viem";
 import type Superfluid from "..";
@@ -22,14 +22,17 @@ export default defineHelper<Superfluid>({
     return Num.fromBigInt(units);
   },
   compile: async (ctx, node) => {
-    return directReadOperand(
-      ctx,
-      await compileTarget(ctx, node.args[0]),
-      encodeFunctionData({
-        abi: superfluidPoolAbi,
-        functionName: "getTotalUnits",
-      }),
-      "Uint",
-    );
+    return {
+      kind: "call",
+      param: targetCallParam(
+        ctx,
+        await compileTarget(ctx, node.args[0], "totalUnits!"),
+        encodeFunctionData({
+          abi: superfluidPoolAbi,
+          functionName: "getTotalUnits",
+        }),
+      ),
+      cat: "Uint",
+    };
   },
 });

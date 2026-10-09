@@ -37,7 +37,8 @@ print "Flow rate:" @superfluid:flow(xDAIx 0x4F2083f5fBede34C2714aFfb3105539775f7
 
 Read getFlowrate(token, sender, receiver) at assertion time, so a batch
 gates on the stream still running when it executes rather than when it
-was built. The SuperToken resolves at composition time; sender and
+was built. A SuperToken symbol resolves at composition time; the
+SuperToken may also be a `::!` call returning its address, and sender and
 receiver may be live values.
 
 #

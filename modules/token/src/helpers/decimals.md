@@ -41,4 +41,8 @@ Read decimals() at assertion time. The symbol resolves to the token
 address at composition time (like the plain face); the native token
 folds to its chain constant at build time.
 
+The token may also be a `::!` call that returns its address: the read
+is then made against whatever address that call returns when the
+assertion runs.
+
 #

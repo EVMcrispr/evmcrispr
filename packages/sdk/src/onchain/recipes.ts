@@ -282,6 +282,50 @@ export function filterWordsParam(
   return applyWordsParam(ctx, "filterWords", s, target, template, elemOffsets);
 }
 
+/**
+ * `reduceWords` over a LIVE payload: heads are [offset_s][target]
+ * [offset_template = 224][offset_elemOffsets][mode][cmp][bound], the
+ * template tail at 224, the `elemOffsets` array after it, and the runtime
+ * envelope of `s` spliced last with the +32 offset trick. The lambda's
+ * result is compared with `bound` inside the loop that calls it, so a
+ * predicate of the form `f(element) <cmp> bound` costs one staticcall per
+ * element. `bound` may be a live word: it is a head argument, so the core
+ * resolves it once for the whole reduction rather than once per element.
+ * `mode` is a {@link REDUCE} value and `cmp` a {@link REDUCE_CMP} one;
+ * Sum ignores `cmp` and `bound`.
+ */
+export function reduceWordsParam(
+  ctx: CompileCtx,
+  s: InputParam,
+  target: Address,
+  template: Hex,
+  elemOffsets: readonly bigint[],
+  mode: number,
+  cmp: number = 0,
+  bound: bigint | InputParam = 0n,
+): InputParam {
+  const templateTail = bytesTail(template);
+  const offsetsTail = wordsArrayTail(elemOffsets);
+  const offsetsAt = 224 + templateTail.length / 2;
+  const envelopeAt = offsetsAt + offsetsTail.length / 2;
+  return opReadParam(
+    ctx,
+    OP_SELECTORS.reduceWords,
+    mergeSegments([
+      wordSpan(BigInt(envelopeAt + 32)), // offset_s skips the 0x20 word
+      wordSpan(BigInt(target)), // lambda target
+      wordSpan(224n), // offset_template
+      wordSpan(BigInt(offsetsAt)), // offset_elemOffsets
+      wordSpan(BigInt(mode)),
+      wordSpan(BigInt(cmp)),
+      wordPiece(bound),
+      templateTail,
+      offsetsTail,
+      s,
+    ]),
+  );
+}
+
 /** `iotaWords(n)` with a live count: calldata is the selector plus the
  *  resolved count word — the index generator 0, 1, …, n-1 that pairs with
  *  zipWords for enumerations. */

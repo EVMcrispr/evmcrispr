@@ -1,15 +1,8 @@
 import { resolveToken } from "@evmcrispr/module-std";
 import { defineHelper, ErrorException } from "@evmcrispr/sdk";
-import {
-  buildCall,
-  callParam,
-  compileArgSpecs,
-  rawParam,
-  staticCallParam,
-  toWord,
-} from "@evmcrispr/sdk/onchain";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
-import { encodeFunctionData, parseAbiItem, zeroAddress } from "viem";
+import { parseAbiItem, zeroAddress } from "viem";
 import type Token from "..";
 
 const ALLOWANCE_ABI = parseAbiItem(
@@ -57,38 +50,20 @@ export default defineHelper<Token>({
         "@allowance! expects (token owner spender), e.g. @allowance!(DAI @me $spender)",
       );
     }
-    const symbol = await ctx.interpreters.interpretNode(node.args[0]);
-    const tokenAddr = await resolveToken(ctx.module, String(symbol));
-    if (tokenAddr === zeroAddress) {
+    const token = await readTarget(ctx, "allowance!", node.args[0], (value) =>
+      resolveToken(ctx.module, String(value)),
+    );
+    if (token === zeroAddress) {
       throw new ErrorException("the native token has no allowances");
     }
-    // Owner/spender ride the shared arg machinery: literal addresses
-    // compile to plain calldata, live calls fold into a core read splice.
-    const specs = await compileArgSpecs(
+    // The token, the owner and the spender may each be live: literal
+    // values compile to plain calldata, live ones fold into a core read.
+    return callReadOperand(
       ctx,
-      node.args.slice(1),
+      token,
       ALLOWANCE_ABI,
-      "allowance",
+      node.args.slice(1),
+      "Uint",
     );
-    if (specs.every((s) => s.kind === "value")) {
-      return {
-        kind: "call",
-        param: staticCallParam(
-          tokenAddr,
-          encodeFunctionData({
-            abi: [ALLOWANCE_ABI],
-            functionName: "allowance",
-            args: specs.map((s) => (s as { value: unknown }).value) as never,
-          }),
-        ),
-        cat: "Uint",
-      };
-    }
-    const call = buildCall(ctx, ALLOWANCE_ABI, specs);
-    return {
-      kind: "call",
-      param: callParam(ctx, rawParam(toWord(BigInt(tokenAddr))), call),
-      cat: "Uint",
-    };
   },
 });

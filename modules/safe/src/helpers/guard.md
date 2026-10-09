@@ -48,6 +48,10 @@ instead; the choice is fixed when the script is built. On a Safe below
 v1.5.0 the module guard slot is always empty, so the assertion reads the
 zero address there.
 
+The Safe may also be a `::!` call that returns its address, such as
+`@safe:guard!($registry::!{safe()(address)})`: the read is then made against
+whatever address that call returns when the assertion runs.
+
 ### Examples
 
 ```evml

@@ -10,9 +10,12 @@ import {
   foldParam,
   formatParamType,
   lookupOnchainDef,
+  REDUCE,
+  reduceWordsParam,
 } from "@evmcrispr/sdk/onchain";
 import type Lang from "..";
 import { arrayArg } from "../utils/genericCollections";
+import { wordReduction } from "../utils/wordCallback";
 
 export default defineHelper<Lang>({
   name: "any",
@@ -75,6 +78,22 @@ export default defineHelper<Lang>({
       };
     }
     const payload = array.words!;
+    const reduction = await wordReduction(ctx, node.args[1], array.element);
+    if (reduction)
+      return {
+        kind: "call",
+        cat: "Bool",
+        param: reduceWordsParam(
+          ctx,
+          payload,
+          reduction.target,
+          reduction.template,
+          reduction.elemOffsets,
+          REDUCE.Any,
+          reduction.cmp,
+          reduction.bound,
+        ),
+      };
     const elemType = array.element.type;
     const tpl = await compilePredicateTemplate(
       ctx,

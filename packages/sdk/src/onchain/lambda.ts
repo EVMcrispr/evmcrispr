@@ -35,6 +35,7 @@ import { lookupOnchainDef } from "./defs";
 import { compileOnchainHelper } from "./dispatch";
 import type { InputParam } from "./erc8211";
 import { FETCHER_TYPE, rawParam } from "./erc8211";
+import { opSelector, REDUCE_CMP, SIGNED_OVERLOADS } from "./operators";
 import type { Category, CompileCtx, Operand } from "./types";
 
 /** Shown when a face is handed something that is not a definition. */
@@ -209,11 +210,16 @@ function astCapturesOuterElement(node: Node): boolean {
  * word-category guard protects: a bytes/string result's first word is its
  * ABI offset, so those reject instead of silently folding offsets. Every
  * marker window is zeroed.
+ *
+ * With `direct`, a literal `read` on ANY contract flattens the same way,
+ * to that contract's own calldata. The caller it sees is then the engine
+ * running the lambda instead of the core, which is why this is opt-in.
  */
 export function extractLambdaTemplate(
   ctx: CompileCtx,
   o: Operand,
   label: string,
+  { direct = false }: { direct?: boolean } = {},
 ): LambdaTemplate {
   const fail = (why: string): never => {
     throw new ErrorException(
@@ -254,9 +260,11 @@ export function extractLambdaTemplate(
         Hex,
         readonly InputParam[],
       ];
-      if (
+      const onOperators =
         readTarget.fetcherType === FETCHER_TYPE.RawBytes &&
-        BigInt(readTarget.paramData) === BigInt(ctx.operators) &&
+        BigInt(readTarget.paramData) === BigInt(ctx.operators);
+      if (
+        (onOperators || (direct && isAddressWord(readTarget))) &&
         segments.every((seg) => seg.fetcherType === FETCHER_TYPE.RawBytes)
       ) {
         const bytes = segments.map((seg) => seg.paramData.slice(2)).join("");
@@ -272,7 +280,9 @@ export function extractLambdaTemplate(
             4,
           );
           return {
-            target: ctx.operators,
+            target: onOperators
+              ? ctx.operators
+              : getAddress(`0x${readTarget.paramData.slice(-40)}`),
             template: `0x${selector.slice(2)}${zeroed}`,
             elemOffsets,
             accOffset,
@@ -297,6 +307,115 @@ export function extractLambdaTemplate(
     elemOffsets,
     accOffset,
   };
+}
+
+/** A literal, unconstrained address word. */
+function isAddressWord(p: InputParam): boolean {
+  return (
+    p.fetcherType === FETCHER_TYPE.RawBytes &&
+    p.constraints.length === 0 &&
+    p.paramData.length === 66 &&
+    BigInt(p.paramData) >> 160n === 0n
+  );
+}
+
+/** A predicate split at its outer comparison: `inner <cmp> bound`, with
+ *  the element inside `inner` only. `cmp` is a {@link REDUCE_CMP} value. */
+export interface WordComparison {
+  inner: InputParam;
+  cmp: number;
+  bound: bigint | InputParam;
+}
+
+/** Comparison selector to its `[element on the left, element on the
+ *  right]` codes: `100 <= f(x)` is `f(x) >= 100`. */
+const COMPARISONS: ReadonlyMap<string, readonly [number, number]> = (() => {
+  const { EQ, NE, LT, LE, GT, GE } = REDUCE_CMP;
+  const table = new Map<string, readonly [number, number]>();
+  for (const [name, cmp, mirrored] of [
+    ["eq", EQ, EQ],
+    ["ne", NE, NE],
+    ["lt", LT, GT],
+    ["le", LE, GE],
+    ["gt", GT, LT],
+    ["ge", GE, LE],
+  ] as const) {
+    table.set(opSelector(name), [cmp, mirrored]);
+    // The signed codes follow the unsigned orderings in the same order.
+    if (SIGNED_OVERLOADS.has(name))
+      table.set(opSelector(name, true), [cmp + 4, mirrored + 4]);
+  }
+  return table;
+})();
+
+const carriesElement = (p: InputParam): boolean =>
+  p.paramData.toLowerCase().includes(ELEMENT_MARKER.slice(2));
+
+/**
+ * Split a compiled predicate at its outer comparison, when it is one
+ * Operations comparison between a staticcall over the element and a value
+ * that does not depend on the element. That is the shape `reduceWords`
+ * evaluates with a single call per element: the engine runs `inner` and
+ * compares its result with `bound` itself.
+ *
+ * The signedness is the comparison's own (the int256 overload the
+ * compiler selected), and an element on the right-hand side mirrors the
+ * ordering. Anything else returns undefined: a bare element on one side
+ * has no call to run, and an element on both sides has no fixed bound.
+ */
+export function splitComparison(
+  ctx: CompileCtx,
+  o: Operand,
+): WordComparison | undefined {
+  if (
+    o.kind !== "call" ||
+    o.param.fetcherType !== FETCHER_TYPE.StaticCall ||
+    o.param.constraints.length !== 0
+  )
+    return undefined;
+  const [target, data] = decodeAbiParameters(
+    [{ type: "address" }, { type: "bytes" }],
+    o.param.paramData,
+  ) as [Hex, Hex];
+  if (getAddress(target) !== getAddress(ctx.core)) return undefined;
+  let decoded: ReturnType<typeof decodeFunctionData>;
+  try {
+    decoded = decodeFunctionData({ abi: CORE_ABI, data });
+  } catch {
+    return undefined;
+  }
+  if (decoded.functionName !== "read") return undefined;
+  const [readTarget, selector, sides] = decoded.args as unknown as [
+    InputParam,
+    Hex,
+    readonly InputParam[],
+  ];
+  const codes = COMPARISONS.get(selector.toLowerCase());
+  if (
+    !codes ||
+    sides.length !== 2 ||
+    !isAddressWord(readTarget) ||
+    BigInt(readTarget.paramData) !== BigInt(ctx.operators)
+  )
+    return undefined;
+  const onLeft = carriesElement(sides[0]);
+  if (onLeft === carriesElement(sides[1])) return undefined;
+  const inner = sides[onLeft ? 0 : 1];
+  const other = sides[onLeft ? 1 : 0];
+  if (
+    inner.fetcherType !== FETCHER_TYPE.StaticCall ||
+    inner.constraints.length !== 0
+  )
+    return undefined;
+  let bound: bigint | InputParam = other;
+  if (
+    other.fetcherType === FETCHER_TYPE.RawBytes &&
+    other.constraints.length === 0
+  ) {
+    if (other.paramData.length !== 66) return undefined;
+    bound = BigInt(other.paramData);
+  }
+  return { inner, cmp: codes[onLeft ? 0 : 1], bound };
 }
 
 /**

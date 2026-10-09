@@ -264,12 +264,23 @@ describeCommand("assert (superfluid on-chain faces)", {
         expect(d.staticCallOf(segments[1]).target).to.equal(POOL);
       },
     },
-  ],
-  errorCases: [
     {
-      name: "rejects a live SuperToken argument",
+      name: "splices a live SuperToken into the forwarder call",
       script: `assert @flow!(${USDCX}::!{getUnderlyingToken()(address)} ${SOME_ADDRESS} ${RECEIVER}) > 0`,
-      error: "resolves its SuperToken at composition time",
+      validate: (actions) => {
+        // The SuperToken is an argument of the forwarder's getFlowrate, so
+        // a call that returns it is resolved when the assertion runs.
+        const { param } = d.decodeAssert(actions);
+        // A flow rate is signed, so `> 0` wraps the read in a signed compare.
+        const { target, selector, segments } = d.readOf(
+          signedCmp(param, "gt", 0n),
+        );
+        d.expectRawWord(target, BigInt(CFA_FORWARDER));
+        expect(selector).to.equal(
+          selectorOf("getFlowrate(address,address,address)"),
+        );
+        expect(d.staticCallOf(segments[0]).target).to.equal(USDCX);
+      },
     },
   ],
 });

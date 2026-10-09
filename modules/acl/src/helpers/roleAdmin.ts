@@ -1,6 +1,7 @@
 import { defineHelper, Num } from "@evmcrispr/sdk";
-import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, getAddress } from "viem";
+import { callReadOperand, readTarget } from "@evmcrispr/sdk/onchain";
+import type { AbiFunction } from "viem";
+import { getAbiItem } from "viem";
 import type AccessControl from "..";
 import { accessControlAbi, accessManagerAbi, resolveRole } from "../utils";
 
@@ -45,30 +46,32 @@ export default defineHelper<AccessControl>({
     return Num.fromBigInt(adminRoleId);
   },
   compile: async (ctx, node) => {
-    const [target, role] = await Promise.all(
-      node.args.map((n) => ctx.interpreters.interpretNode(n)),
+    // The role decides which of the two access systems is read, so it is
+    // fixed when the script is built; the contract may be live.
+    const resolved = resolveRole(
+      await ctx.interpreters.interpretNode(node.args[1]),
     );
-    const resolved = resolveRole(role);
+    const target = await readTarget(ctx, "roleAdmin!", node.args[0]);
     if (resolved.system === "access-control") {
-      return directReadOperand(
+      return callReadOperand(
         ctx,
-        getAddress(String(target)),
-        encodeFunctionData({
+        target,
+        getAbiItem({
           abi: accessControlAbi,
-          functionName: "getRoleAdmin",
-          args: [resolved.role],
-        }),
+          name: "getRoleAdmin",
+        }) as AbiFunction,
+        [{ value: resolved.role }],
         "Bytes32",
       );
     }
-    return directReadOperand(
+    return callReadOperand(
       ctx,
-      getAddress(String(target)),
-      encodeFunctionData({
+      target,
+      getAbiItem({
         abi: accessManagerAbi,
-        functionName: "getRoleAdmin",
-        args: [resolved.roleId],
-      }),
+        name: "getRoleAdmin",
+      }) as AbiFunction,
+      [{ value: resolved.roleId }],
       "Uint",
     );
   },

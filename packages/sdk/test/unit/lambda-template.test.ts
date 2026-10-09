@@ -17,7 +17,9 @@ import {
 import {
   ELEMENT_MARKER,
   extractLambdaTemplate,
+  splitComparison,
 } from "../../src/onchain/lambda";
+import { REDUCE_CMP } from "../../src/onchain/operators";
 import type { CompileCtx, Operand } from "../../src/onchain/types";
 
 /**
@@ -308,5 +310,128 @@ describe("extractLambdaTemplate", () => {
     expect(() => extractLambdaTemplate(ctx, o, "@test")).toThrow(
       /does not appear/,
     );
+  });
+});
+
+/** A compiled call on any contract: `read(target, selector, args)` at the
+ *  core, the shape a `::` call over live arguments compiles to. */
+const anyRead = (target: Hex, selector: Hex, args: InputParam[]): InputParam =>
+  staticCallParam(CORE, encodeOpRead(target, selector, args));
+
+const BALANCE_OF = selectorOf("balanceOf(address)");
+const SLT = selectorOf("lt(int256,int256)");
+const LE = selectorOf("le(uint256,uint256)");
+const NE = selectorOf("ne(uint256,uint256)");
+const balanceOfElement = (): InputParam =>
+  anyRead(TOKEN, BALANCE_OF, [rawParam(ELEMENT_MARKER)]);
+
+describe("extractLambdaTemplate, direct", () => {
+  it("leaves a call on another contract behind the core by default", () => {
+    const tpl = extractLambdaTemplate(ctx, call(balanceOfElement()), "@test");
+    expect(getAddress(tpl.target)).toBe(getAddress(CORE));
+  });
+
+  it("flattens a literal call on another contract to that contract's calldata", () => {
+    const tpl = extractLambdaTemplate(ctx, call(balanceOfElement()), "@test", {
+      direct: true,
+    });
+    expect(getAddress(tpl.target)).toBe(getAddress(TOKEN));
+    expect(substitute(tpl.template, tpl.elemOffsets)).toBe(
+      `0x${BALANCE_OF.slice(2)}${SENTINEL.slice(2)}`,
+    );
+  });
+
+  it("keeps the read when an argument of the call is live", () => {
+    const o = call(
+      anyRead(TOKEN, selectorOf("allowance(address,address)"), [
+        rawParam(ELEMENT_MARKER),
+        staticCallParam(TOKEN, "0x12345678"),
+      ]),
+    );
+    const tpl = extractLambdaTemplate(ctx, o, "@test", { direct: true });
+    expect(getAddress(tpl.target)).toBe(getAddress(CORE));
+  });
+});
+
+describe("splitComparison", () => {
+  it("splits a call compared with a constant", () => {
+    const inner = balanceOfElement();
+    const split = splitComparison(
+      ctx,
+      call(opRead(GE, [inner, rawParam(toWord(100n))])),
+    );
+    expect(split?.cmp).toBe(REDUCE_CMP.GE);
+    expect(split?.bound).toBe(100n);
+    expect(split?.inner.paramData).toBe(inner.paramData);
+  });
+
+  it("mirrors the ordering when the call is on the right", () => {
+    const split = splitComparison(
+      ctx,
+      call(opRead(LE, [rawParam(toWord(100n)), balanceOfElement()])),
+    );
+    expect(split?.cmp).toBe(REDUCE_CMP.GE);
+    expect(split?.bound).toBe(100n);
+    const strict = splitComparison(
+      ctx,
+      call(opRead(GT, [rawParam(toWord(7n)), balanceOfElement()])),
+    );
+    expect(strict?.cmp).toBe(REDUCE_CMP.LT);
+  });
+
+  it("reads the signedness off the comparison's overload", () => {
+    const split = splitComparison(
+      ctx,
+      call(opRead(SLT, [balanceOfElement(), rawParam(toWord(3n))])),
+    );
+    expect(split?.cmp).toBe(REDUCE_CMP.SLT);
+    const mirrored = splitComparison(
+      ctx,
+      call(opRead(SLT, [rawParam(toWord(3n)), balanceOfElement()])),
+    );
+    expect(mirrored?.cmp).toBe(REDUCE_CMP.SGT);
+  });
+
+  it("keeps an inequality on either side", () => {
+    for (const sides of [
+      [balanceOfElement(), rawParam(toWord(0n))],
+      [rawParam(toWord(0n)), balanceOfElement()],
+    ])
+      expect(splitComparison(ctx, call(opRead(NE, sides)))?.cmp).toBe(
+        REDUCE_CMP.NE,
+      );
+  });
+
+  it("keeps a live bound as an operand", () => {
+    const bound = staticCallParam(TOKEN, "0x12345678");
+    const split = splitComparison(
+      ctx,
+      call(opRead(GE, [balanceOfElement(), bound])),
+    );
+    expect(split?.bound).toEqual(bound);
+  });
+
+  it("refuses a bare element, an element on both sides, and none at all", () => {
+    const bare = opRead(GE, [rawParam(ELEMENT_MARKER), rawParam(toWord(1n))]);
+    expect(splitComparison(ctx, call(bare))).toBeUndefined();
+    const both = opRead(GE, [balanceOfElement(), balanceOfElement()]);
+    expect(splitComparison(ctx, call(both))).toBeUndefined();
+    const none = opRead(GE, [rawParam(toWord(2n)), rawParam(toWord(1n))]);
+    expect(splitComparison(ctx, call(none))).toBeUndefined();
+  });
+
+  it("refuses anything that is not one Operations comparison", () => {
+    const arithmetic = opRead(ADD, [balanceOfElement(), rawParam(toWord(1n))]);
+    expect(splitComparison(ctx, call(arithmetic))).toBeUndefined();
+    const elsewhere = anyRead(TOKEN, GE, [
+      balanceOfElement(),
+      rawParam(toWord(1n)),
+    ]);
+    expect(splitComparison(ctx, call(elsewhere))).toBeUndefined();
+    const constrained = {
+      ...opRead(GE, [balanceOfElement(), rawParam(toWord(1n))]),
+      constraints: [{ constraintType: 0, referenceData: toWord(1n) }],
+    } as InputParam;
+    expect(splitComparison(ctx, call(constrained))).toBeUndefined();
   });
 });
