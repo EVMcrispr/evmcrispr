@@ -383,6 +383,9 @@ export interface WalkChainState {
   /** Optional per-chain transports map. Used by `applySwitch` to mint a
    *  client for the chain a `switch` command targets. */
   transports?: Record<number, Transport>;
+  /** Nothing of the walk may reach the network: no module code that
+   *  resolves an argument is run. The caller gives no client either. */
+  offline?: boolean;
 }
 
 /** If `c` is a `switch <chain>` we can resolve, mutate `state` in place
@@ -399,6 +402,8 @@ export function applySwitch(
   const switchedChainId = resolveSwitchChainId(c, bindings);
   if (switchedChainId == null) return;
   state.chainId = switchedChainId;
+  // Offline, the walk has no client and a `switch` gives it none.
+  if (state.offline) return;
   const newClient = clientForChain(switchedChainId, state.transports);
   if (newClient) {
     state.client = newClient;
@@ -789,9 +794,11 @@ export async function walkCommandsForBindings(
               cache,
               commandNode: c,
               resolveNode,
+              offline: state.offline,
             };
-            const newBindings =
-              (await customType.resolve(argNode.value, ctx)) ?? [];
+            const newBindings = state.offline
+              ? []
+              : ((await customType.resolve(argNode.value, ctx)) ?? []);
             for (const b of newBindings) {
               try {
                 bindings.setBinding(

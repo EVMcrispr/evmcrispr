@@ -16,7 +16,7 @@ import {
   BindingsManager,
   BindingsSpace,
   calculateCurrentArgIndex,
-  completionsForType,
+  completionsForType as completionsForTypeImpl,
   findAbiArgForRest,
   getDeepestNodeWithArgs,
   hasCommandsBlock,
@@ -346,17 +346,34 @@ export async function getCompletions(
   resolveHelper?: HelperResolver,
   transports?: Record<number, Transport>,
   initialChainId: number = mainnet.id,
+  /** Nothing may reach the network: no client, no helper resolved, and no
+   *  module code asked for suggestions (a module's own completions may
+   *  fetch whatever the text names). What is left is what the schemas and
+   *  the text itself give. */
+  offline = false,
 ): Promise<CompletionItem[]> {
+  if (offline) {
+    resolveHelper = undefined;
+    transports = undefined;
+  }
+  const customTypesOf = (b: BindingsManager) =>
+    offline ? {} : collectCustomTypes(b);
+  // Every suggestion by type goes through here, so the context a type
+  // sees always says whether it may fetch.
+  const completionsForType: typeof completionsForTypeImpl = (
+    type,
+    ctx,
+    types,
+  ) => completionsForTypeImpl(type, { ...ctx, offline }, types);
   // The walk starts on the caller-provided chain (defaults to mainnet)
   // and advances `state` in place when it sees a `switch` command, so
   // completions for code under a `switch optimism` block will see
   // chain id 10. The caller (EvmlWorkspace) typically passes its own
   // `#chainId` so completions match what the script actually runs
   // against (e.g. tests forking gnosis pass 100).
-  const client: PublicClient | undefined = clientForChain(
-    initialChainId,
-    transports,
-  );
+  const client: PublicClient | undefined = offline
+    ? undefined
+    : clientForChain(initialChainId, transports);
   // 1. Parse the full script
   const scriptLines = script.split("\n");
   const currentLineContent = scriptLines[position.line - 1] ?? "";
@@ -561,7 +578,7 @@ export async function getCompletions(
       ? resolveHelperArgDef(argDefs, helperNode.args, deepestResult.argIndex)
       : undefined;
     if (argDef && !isBuiltinType(argDef.type)) {
-      const customTypes = collectCustomTypes(bindings);
+      const customTypes = customTypesOf(bindings);
       const customType = customTypes[argDef.type as string];
       if (!customType?.completions) {
         return [];
@@ -581,6 +598,7 @@ export async function getCompletions(
     chainId: initialChainId,
     client,
     transports,
+    offline,
   };
 
   const resolveNode = createNodeResolver(
@@ -728,7 +746,7 @@ export async function getCompletions(
           cache: moduleCache,
           resolveNode,
         };
-        const customTypes = collectCustomTypes(bindings);
+        const customTypes = customTypesOf(bindings);
         const typeDrivenItems = await completionsForType(
           effectiveType,
           ctx,
@@ -779,7 +797,7 @@ export async function getCompletions(
         cache: moduleCache,
         resolveNode,
       };
-      const customTypes = collectCustomTypes(bindings);
+      const customTypes = customTypesOf(bindings);
       const typeDrivenItems = await completionsForType(
         effectiveType,
         ctx,
@@ -830,7 +848,7 @@ export async function getCompletions(
             commandNode: currentCommandNode,
             resolveNode,
           };
-          const customTypes = collectCustomTypes(bindings);
+          const customTypes = customTypesOf(bindings);
           const typeDrivenItems = await completionsForType(
             optDef.type,
             ctx,
@@ -875,7 +893,7 @@ export async function getCompletions(
         // (number helpers, variables, ...).
         let overrideItems: CompletionItem[] = [];
         let overrideType: string | string[] | undefined;
-        if (command.completions?.[argDef.name]) {
+        if (!offline && command.completions?.[argDef.name]) {
           overrideItems = await command.completions[argDef.name](ctx);
           const nonCommand = Array.isArray(argDef.type)
             ? argDef.type.filter((t) => t !== "command")
@@ -905,7 +923,7 @@ export async function getCompletions(
         }
 
         // Type-driven completions + filtered helpers + filtered variables
-        const customTypes = collectCustomTypes(bindings);
+        const customTypes = customTypesOf(bindings);
         const typeDrivenItems = await completionsForType(
           effectiveType,
           ctx,

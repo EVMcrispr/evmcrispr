@@ -594,6 +594,10 @@ export class EvmlWorkspace {
       this.#createHelperResolver(),
       this.#transports,
       this.#chainId,
+      // A text the host does not let fetch gets what is known offline
+      // (see `prewarm`): helpers, a module's own suggestions and the
+      // chain may all ask the network for what the text names.
+      !this.#mayFetchRemoteModules(script),
     );
   }
 
@@ -620,6 +624,15 @@ export class EvmlWorkspace {
       this.#scriptChainId != null && this.#scriptClient
         ? this.#scriptClient
         : this.#client;
+    // A text the host does not let fetch is described from the schemas
+    // alone: no chain or explorer is read, and no value another text
+    // resolved is shown as its own.
+    if (!this.#mayFetchRemoteModules(script))
+      return getHoverInfoImpl(script, position, {
+        moduleCache: this.#moduleCache,
+        chainId: this.#chainId,
+        offline: true,
+      });
     return getHoverInfoImpl(script, position, {
       moduleCache: this.#moduleCache,
       scriptBindings: this.#scriptBindings,
@@ -637,10 +650,23 @@ export class EvmlWorkspace {
    * can render rich values (e.g. the address card under `@ens(vitalik.eth)`
    * or under a `$dao` variable) without making any new RPC calls.
    *
+   * A text the host does not let fetch its external modules (see
+   * `setRemoteModules`) has none of its helpers resolved either, since a
+   * helper may ask the network for whatever the text names: what an
+   * earlier text resolved is dropped, and hovers show no values.
+   *
    * Always resolves; failures during parsing or lookup are swallowed.
    */
   async prewarm(script: string): Promise<void> {
     const sequence = ++this.#prewarmSequence;
+    if (!this.#mayFetchRemoteModules(script)) {
+      this.#scriptBindings = undefined;
+      this.#variableHistory = undefined;
+      this.#prewarmSnapshot = undefined;
+      this.#scriptChainId = undefined;
+      this.#scriptClient = undefined;
+      return;
+    }
     try {
       await this.#ensureModulesInCache(this.#extractLoadModuleNames(script));
       await this.#ensureScriptDerivedModules(script);

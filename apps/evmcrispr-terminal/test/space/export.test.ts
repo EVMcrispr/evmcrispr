@@ -97,7 +97,23 @@ describe("an export", () => {
   test("holds the id, the document and the timeline, and nothing private", async () => {
     const { app, id, space } = await written();
     await app.chats.ready;
+    // A link made here stays here: its entry holds the link's key.
+    space.commit({
+      entries: [
+        {
+          kind: "share",
+          id: uuid(9),
+          ts: 1,
+          author: me,
+          revisionId: head(space.timeline.getState())!.id,
+          cid: "QmZYrSACX7w6DbPg2SRJ4JrKkZpHbg86mqQ27xvChTCRry",
+          key: "K".repeat(43),
+        },
+      ],
+    });
     const payload = snapshotSpace(space);
+    expect(JSON.stringify(payload.timeline)).not.toContain('"share"');
+    expect(JSON.stringify(payload)).not.toContain("K".repeat(43));
     expect(Object.keys(payload).sort()).toEqual([
       "id",
       "kind",

@@ -36,6 +36,9 @@ export interface CompletionContext {
   /** Async node resolver that handles literals, variables, and helper
    *  expressions (via cache + RPC). Returns undefined on failure. */
   resolveNode?: (node: Node) => Promise<any>;
+  /** Nothing may reach the network: suggest from what is already held
+   *  (schemas, bindings, the cache) and fetch nothing. */
+  offline?: boolean;
 }
 
 export type ArgCompletionFn = (

@@ -76,7 +76,9 @@ describe("evml > validate > external modules", () => {
     await workspace.getSignatureHelp(SCRIPT, position);
     await workspace.prewarm(SCRIPT);
     expect(requests).to.deep.equal([]);
-    expect(asked).to.have.length(6);
+    // Once by each path for the modules, and once more by the two that
+    // could resolve a helper or read a chain (completions, hover).
+    expect(asked).to.have.length(8);
     expect(new Set(asked)).to.deep.equal(new Set([SCRIPT]));
 
     // The answer is of the text, not of the moment the function was
@@ -87,6 +89,27 @@ describe("evml > validate > external modules", () => {
     expect(requests).to.deep.equal([]);
     expect(workspace.unfetchedModules).to.deep.equal(["lib"]);
     await workspace.getFullDiagnostics(SCRIPT);
+    expect(requests.some((url) => url.includes(CID))).to.equal(true);
+  });
+
+  it("resolves no helper of a text the host does not let fetch", async () => {
+    const helper = `set $x @ipfs.get("${CID}")`;
+    const workspace = createEvml().workspace();
+    workspace.setRemoteModules(false);
+    await workspace.prewarm(helper);
+    const end = { line: 2, col: 5 };
+    await workspace.getCompletions(`${helper}\nexec `, end);
+    await workspace.getHoverInfo(helper, { line: 1, col: 6 });
+    expect(requests).to.deep.equal([]);
+
+    // Nor after a `switch`, nor for the functions of a contract it names.
+    const call = "switch 100\nexec 0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d ";
+    await workspace.getCompletions(call, { line: 2, col: call.length - 11 });
+    await workspace.getHoverInfo(call, { line: 2, col: 10 });
+    expect(requests).to.deep.equal([]);
+
+    workspace.setRemoteModules(true);
+    await workspace.prewarm(helper);
     expect(requests.some((url) => url.includes(CID))).to.equal(true);
   });
 

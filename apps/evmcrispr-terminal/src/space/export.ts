@@ -38,15 +38,23 @@ export interface SpaceExport extends SpaceCopy {
  *  decrypts to is smaller still, so this bounds what is parsed too. */
 export const MAX_EXPORT_CHARS = 8_000_000;
 
-/** Everything in the space except what is private to this browser. */
+/** Everything in the space except what is private to this browser, and
+ *  what no copy takes in: links made here (an entry holds its link's key)
+ *  and the accounts of clearings. */
 export function snapshotSpace(space: LiveSpace): SpacePayload {
   const script = space.getText();
+  const timeline = toPatch(space.timeline.getState());
   return {
     kind: "space",
     id: space.id,
     title: deriveTitle(script),
     script,
-    timeline: toPatch(space.timeline.getState()),
+    timeline: {
+      ...timeline,
+      entries: timeline.entries.filter(
+        (e) => e.kind !== "share" && e.kind !== "cleared",
+      ),
+    },
   };
 }
 
