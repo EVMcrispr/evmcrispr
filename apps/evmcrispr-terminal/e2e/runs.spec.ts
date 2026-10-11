@@ -20,7 +20,7 @@ const execute = (page: Page) => page.getByRole("button", { name: "Execute" });
 /** Opens another space in this tab, and comes back to `id`. */
 async function leave(page: Page) {
   // A new space is made from the list of spaces.
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Back to Spaces" }).click();
   await page.getByRole("button", { name: "New", exact: true }).click();
   await expect(page.locator(".monaco-editor .view-lines")).toContainText(
@@ -28,7 +28,7 @@ async function leave(page: Page) {
   );
 }
 async function comeBack(page: Page, title: string) {
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Spaces" }).click();
   await page
     .getByRole("list", { name: "Spaces" })
@@ -47,7 +47,7 @@ test("a run is a card that survives a reload", async ({ page }) => {
   await expect(card(page)).toContainText("hello-from-run");
   await expect(card(page)).toContainText("Done");
   await page.reload();
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await expect(card(page)).toContainText("Run");
   await expect(card(page)).toContainText("hello-from-run");
   await card(page).getByRole("button", { name: "View script" }).click();

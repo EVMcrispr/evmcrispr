@@ -11,6 +11,7 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/solid";
 import { cn } from "../ui/cn";
+import { PROSE } from "../ui/prose";
 import { ConsoleMarkdown, httpsUrl } from "./ConsoleMarkdown";
 import { countdownText, type Segment, segments, useNow } from "./countdown";
 
@@ -110,7 +111,7 @@ export function BoxCard({ box, markdown = false }: BoxCardProps) {
               </span>
             )}
           </div>
-          <div className="prose prose-invert prose-sm max-w-none wrap-break-word text-body text-fg-muted">
+          <div className={PROSE}>
             <ConsoleMarkdown markdown={markdown}>{box.detail}</ConsoleMarkdown>
           </div>
           {box.progress && total > 0 && (

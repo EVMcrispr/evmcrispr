@@ -30,8 +30,9 @@ interface OverlayProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   /** Colours the title and the frame: `warning` for a caution,
-   *  `danger` for a destructive confirm. */
-  tone?: "neutral" | "warning" | "danger";
+   *  `danger` for a destructive confirm, `brand` for the app's own
+   *  places (its menu, its docs). */
+  tone?: "neutral" | "brand" | "warning" | "danger";
   /** Buttons, last one the main action. */
   footer?: ReactNode;
   /** Forces the form. Left out, the screen width decides. */
@@ -50,12 +51,14 @@ interface OverlayProps {
 
 const TITLE = {
   neutral: "text-fg",
+  brand: "text-heading",
   warning: "text-warning",
   danger: "text-danger",
 };
 
 const EDGE = {
   neutral: "border-edge [--shadow-color:var(--edge-shadow)]",
+  brand: "border-success [--shadow-color:var(--success-line)]",
   warning: "border-warning [--shadow-color:var(--warning-line)]",
   danger: "border-danger [--shadow-color:var(--danger-line)]",
 };

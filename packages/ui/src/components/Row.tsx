@@ -127,6 +127,10 @@ export function Row({
         {href ? (
           <a
             href={href}
+            // Another site opens beside the app, not over it.
+            {...(/^https?:/.test(href)
+              ? { target: "_blank", rel: "noreferrer" }
+              : {})}
             aria-current={active ? "true" : undefined}
             className={cn(MAIN, INTERACTIVE)}
           >

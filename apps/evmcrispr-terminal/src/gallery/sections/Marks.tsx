@@ -5,6 +5,7 @@ import {
   DiffStat,
   Dot,
   duration,
+  PixelArt,
   Time,
 } from "@repo/ui";
 import { useState } from "react";
@@ -109,6 +110,17 @@ export function Marks() {
               <AuthorLabel name="An export" claimed="You" /> edited the script
             </span>
           </span>
+        </Example>
+        <Example label="pixel art: the drawing of a screen with nothing to show">
+          <PixelArt name="helix" />
+          <PixelArt name="broken-vial" />
+          <PixelArt name="sealed-vial" />
+          <PixelArt name="crate" />
+          <PixelArt name="flatline" />
+          <PixelArt name="bug" />
+        </Example>
+        <Example label="pixel art, turning: something is being fetched">
+          <PixelArt name="helix" turning label="Fetching" />
         </Example>
       </Both>
     </Section>

@@ -127,6 +127,13 @@ export function Review({
   const ready = simulation.status === "ready";
   const busy =
     simulation.status === "validating" || simulation.status === "simulating";
+  // Nothing simulated yet, on text nobody approved: Simulate is offered
+  // beside Approve.
+  const offered =
+    review.unreviewed &&
+    current &&
+    !busy &&
+    (simulation.status === "idle" || simulation.status === "valid");
   const count = ready ? countActions(simulation.actions) : 0;
   const start = () => {
     void execute(review.text);
@@ -150,11 +157,7 @@ export function Review({
         Show the run
       </Button>
     </>
-  ) : review.unreviewed ? (
-    <p className="m-0 font-sans text-caption text-fg-muted">
-      Approve the changes above before your wallet is asked for anything.
-    </p>
-  ) : (
+  ) : review.unreviewed ? undefined : (
     <div className="flex w-full flex-col gap-2.5">
       {!wallet.address ? (
         <Button
@@ -219,11 +222,13 @@ export function Review({
             approval={approval}
             onApproved={onApproved}
             onAsked={() => void review.validate()}
+            onSimulate={offered ? () => void review.simulate() : undefined}
           />
         )}
         <SimulationView
           review={review}
           stale={!current}
+          offered={offered}
           summary={ready ? <Summary actions={simulation.actions} /> : null}
         />
       </div>

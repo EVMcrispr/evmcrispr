@@ -1,6 +1,6 @@
 import { fetchNexusBalance } from "@evmcrispr/ai";
 import { BackButton, Badge, Button, Overlay, Row } from "@repo/ui";
-import { FileText, List, Settings } from "@repo/ui/icons";
+import { FileText, ListTree, Settings } from "@repo/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { useEffect, useState } from "react";
@@ -24,11 +24,12 @@ export function MobileMenu({
   /** Goes to the list of spaces. */
   onOpenSpaces: () => void;
   /** Page shown when the drawer opens, e.g. jumping straight to the
-   *  reference tab from an "Open in reference" hover action. */
+   *  reference tab from an "Open in docs" hover action. */
   initialPage?: MenuPage;
 }) {
   const { address, connectWallet, disconnect } = useWallet();
   const [page, setPage] = useState<MenuPage>(initialPage);
+  const [entryOpen, setEntryOpen] = useState(false);
   // Passive reader of the balance ChatPanel fetches (shared query key).
   const { data: balanceCents } = useQuery({
     queryKey: ["nexus-balance"],
@@ -42,32 +43,34 @@ export function MobileMenu({
     if (open) setPage(initialPage);
   }, [open, initialPage]);
 
-  const pageTitle = page === "reference" ? "EVML reference" : "Workspace";
+  const pageTitle = page === "reference" ? "EVML docs" : "EVMcrispr";
 
   return (
     <Overlay
       open={open}
       onOpenChange={onOpenChange}
       sheet
+      tone="brand"
       title={pageTitle}
-      description="Spaces, EVML reference and chat settings."
-      closeLabel="Close workspace menu"
+      description="Spaces, EVML docs and chat settings."
+      closeLabel="Close menu"
     >
       {page === "reference" ? (
         <>
-          <div>
-            <BackButton
-              label="workspace menu"
-              onClick={() => setPage("menu")}
-            />
-          </div>
-          <ReferenceTab />
+          {/* An entry has its own way back, to the list. This one stands
+              where that one does. */}
+          {!entryOpen && (
+            <div className="flex min-h-11 shrink-0 items-center py-1.5">
+              <BackButton label="Menu" onClick={() => setPage("menu")} />
+            </div>
+          )}
+          <ReferenceTab flush onEntryChange={setEntryOpen} />
         </>
       ) : (
         <>
           <section aria-label="Spaces" className="flex flex-col gap-2">
             <Row
-              leading={<List aria-hidden className="size-4" />}
+              leading={<ListTree aria-hidden className="size-4 text-success" />}
               title="Spaces"
               onClick={onOpenSpaces}
             />
@@ -76,12 +79,12 @@ export function MobileMenu({
 
           <div className="flex flex-col gap-2">
             <Row
-              leading={<FileText aria-hidden className="size-4" />}
-              title="EVML reference"
+              leading={<FileText aria-hidden className="size-4 text-success" />}
+              title="EVML docs"
               onClick={() => setPage("reference")}
             />
             <Row
-              leading={<Settings aria-hidden className="size-4" />}
+              leading={<Settings aria-hidden className="size-4 text-success" />}
               title="Chat settings"
               meta={
                 balanceCents != null ? (
@@ -115,7 +118,8 @@ export function MobileMenu({
             </div>
             <Button
               type="button"
-              variant="neutral"
+              // Connecting is what the menu asks for; disconnecting is not.
+              variant={address ? "neutral" : "primary"}
               size="sm"
               className="shrink-0"
               onClick={() => {

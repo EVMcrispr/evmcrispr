@@ -20,7 +20,7 @@ type HoverPopoverProps = {
   containerRef: RefObject<HTMLElement | null>;
   /** Memoised hover lookup from `useScriptAnalysis`. */
   getHoverInfo: (position: Position) => Promise<HoverInfo | null>;
-  /** Renders an "Open in reference" button in the popover when the hovered
+  /** Renders an "Open in docs" button in the popover when the hovered
    *  token is a command/helper (`info.ref` set). Omit to hide the button. */
   onOpenDocs?: (ref: HoverRef) => void;
 };
@@ -279,7 +279,7 @@ export function HoverPopover({
             onClick={handleOpenDocsClick}
             className="mt-2 w-full rounded border border-evm-green-300/40 px-2 py-1 text-xs font-medium text-evm-green-300 transition-colors hover:bg-evm-green-300/10"
           >
-            Open in reference
+            Open in docs
           </button>
         )}
       </Popover.Content>

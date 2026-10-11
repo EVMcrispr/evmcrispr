@@ -18,12 +18,13 @@ export { Menu } from "./components/Menu";
 export { Notice } from "./components/Notice";
 export { Overlay } from "./components/Overlay";
 export { BackButton, PanelHeader } from "./components/PanelHeader";
+export { PixelArt } from "./components/PixelArt";
 export { Popover } from "./components/Popover";
 export { Row } from "./components/Row";
 
 export { Spinner } from "./components/Spinner";
 export { Switch } from "./components/Switch";
-export { Tabs, tabsListVariants } from "./components/Tabs";
+export { Tabs } from "./components/Tabs";
 export { Textarea } from "./components/Textarea";
 export { Time } from "./components/Time";
 export { Toaster, toast } from "./components/Toast";

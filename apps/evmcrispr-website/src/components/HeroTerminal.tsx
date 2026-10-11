@@ -79,8 +79,7 @@ export default function HeroTerminal() {
           setMode("view");
         }}
       >
-        {/* The bottom margin keeps the triggers' hanging underline
-            (mb-[-2px]) visible and gives the script some air. */}
+        {/* The bottom margin gives the script some air. */}
         <Tabs.List className="mb-3 w-full">
           {EXAMPLES.map((_, i) => (
             // The list is static and the index IS the tab identity.

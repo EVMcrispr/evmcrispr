@@ -133,10 +133,13 @@ test("an assistant edit turns Execute into Review changes; the review shows the 
   expect(t.evml.source).toBe("");
   expect(t.runsOf("simulated")).toHaveLength(0);
   expect(within(dialog).queryByRole("list", { name: "Actions" })).toBeNull();
-  expect(dialog.textContent).toContain("Simulating runs the script");
+  // Simulating text nobody approved is said to run it.
+  expect(dialog.textContent).toContain(
+    "They can make web requests and load modules",
+  );
   // The simulation is asked for: a simulated run of the space, of the
   // text shown.
-  await click("Simulate to see what it would send");
+  await click("Simulate");
   expect(t.evml.source).toBe("print 1\nprint 666");
   expect(t.runsOf("simulated")).toHaveLength(1);
   const actions = within(dialog).getByRole("list", { name: "Actions" });
@@ -234,7 +237,7 @@ test("Approve is allowed when the simulation fails, and does not wait for it", a
   );
   act(() => void turn(space, "t1", "print 22"));
   await click("Review changes");
-  await click("Simulate to see what it would send");
+  await click("Simulate");
   expect(screen.getByRole("dialog").textContent).toContain(
     "reverted: no funds",
   );
@@ -338,7 +341,7 @@ test("a real run asked for from anywhere is refused and opens the review; a simu
   expect(t.runsOf("real")).toHaveLength(0);
   await click("Review changes");
   expect(t.runsOf("simulated")).toHaveLength(0);
-  await click("Simulate to see what it would send");
+  await click("Simulate");
   expect(t.runsOf("simulated")).toHaveLength(1);
 });
 

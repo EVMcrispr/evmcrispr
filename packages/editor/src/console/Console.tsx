@@ -5,6 +5,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { cn } from "../ui/cn";
+import { PROSE } from "../ui/prose";
 import { BoxCard } from "./BoxCard";
 import { ConsoleMarkdown } from "./ConsoleMarkdown";
 import type { ConsoleEntry } from "./entries";
@@ -86,9 +87,7 @@ function Line({
           aria-label={statusLabel[tone]}
         />
       )}
-      <div className="prose prose-invert prose-sm min-w-0 max-w-none flex-1 wrap-break-word text-body text-fg-muted">
-        {children}
-      </div>
+      <div className={`${PROSE} min-w-0 flex-1`}>{children}</div>
     </div>
   );
 }

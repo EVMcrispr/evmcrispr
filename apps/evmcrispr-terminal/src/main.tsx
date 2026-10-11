@@ -8,6 +8,7 @@ import "./index.css";
 
 import { relayNexusCallback } from "@evmcrispr/ai";
 import { boot } from "./app/boot";
+import { BootFailed } from "./app/Crash";
 
 if (!relayNexusCallback()) {
   const root = document.getElementById("root") as HTMLElement;
@@ -21,10 +22,6 @@ if (!relayNexusCallback()) {
         </React.StrictMode>,
       ),
     // Never a blank page: say what happened. Old scripts are untouched.
-    (error) => {
-      root.textContent = `EVMcrispr could not start (${
-        error instanceof Error ? error.message : String(error)
-      }). Reload the page to try again.`;
-    },
+    (error) => ReactDOM.createRoot(root).render(<BootFailed error={error} />),
   );
 }

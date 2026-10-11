@@ -4,6 +4,7 @@ import { useTimeline } from "../app/SpaceContext";
 import { byOthers, revisionLabel } from "../space/revision-label";
 import { ChangesDiff } from "./ChangesDiff";
 import { RevisionActions } from "./RevisionActions";
+import { SIMULATING_RUNS } from "./SimulationView";
 import type { Approval } from "./useReview";
 
 /**
@@ -18,7 +19,11 @@ export function WhatChanged({
   approval,
   onApproved,
   onAsked,
+  onSimulate,
 }: {
+  /** Given while nothing was simulated yet: the way to ask for it sits
+   *  beside Approve, with what running unapproved text can do. */
+  onSimulate?(): void;
   approval: Approval;
   onApproved?(): void;
   /** The user asked to be shown the changes as they are now. */
@@ -106,24 +111,40 @@ export function WhatChanged({
           again and retry.
         </Notice>
       )}
-      <div className="flex items-center justify-between gap-3">
-        <p className="m-0 font-sans text-caption text-fg-faint">
-          To reject a change, revert it or restore the script to before it.
-        </p>
-        <Button
-          type="button"
-          variant="primary"
-          size="md"
-          // Not live until what it approves has been on screen a moment.
-          disabled={!approval.armed}
-          onClick={() => {
-            // Closes only on an approval that was made.
-            if (approval.approve() === true) onApproved?.();
-            else setFailedOn(shown);
-          }}
-        >
-          Approve
-        </Button>
+      <div className="flex flex-wrap items-start justify-end gap-3">
+        {onSimulate && (
+          <p className="m-0 min-w-48 flex-1 font-sans text-caption text-fg-faint">
+            {SIMULATING_RUNS}
+          </p>
+        )}
+        {/* The two stay together: where the row is too narrow for the
+            text beside them, it goes above. */}
+        <div className="flex shrink-0 items-center gap-3">
+          {onSimulate && (
+            <Button
+              type="button"
+              variant="neutral"
+              size="md"
+              onClick={onSimulate}
+            >
+              Simulate
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            // Not live until what it approves has been on screen a moment.
+            disabled={!approval.armed}
+            onClick={() => {
+              // Closes only on an approval that was made.
+              if (approval.approve() === true) onApproved?.();
+              else setFailedOn(shown);
+            }}
+          >
+            Approve
+          </Button>
+        </div>
       </div>
     </section>
   );

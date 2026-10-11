@@ -18,14 +18,18 @@ export function ScriptSheet({
   entryIntent,
   sharedEncrypted = false,
   reviewState,
-  onBackToChat,
+  onBack,
+  onAsk,
   onReview,
   onOpenDocs,
 }: {
   entryIntent: "author" | "recipient";
   sharedEncrypted?: boolean;
   reviewState: Simulation;
-  onBackToChat: () => void;
+  /** To the timeline of the space, where the script was opened from. */
+  onBack: () => void;
+  /** To the chat, to ask about the script. */
+  onAsk: () => void;
   onReview: () => void;
   onOpenDocs?: (ref: HoverRef) => void;
 }) {
@@ -40,9 +44,7 @@ export function ScriptSheet({
     >
       <div className="flex shrink-0 flex-col gap-2 px-3 pt-3 pb-2">
         <div className="flex items-center gap-2">
-          {entryIntent === "author" && (
-            <BackButton label="chat" onClick={onBackToChat} />
-          )}
+          <BackButton label="timeline" onClick={onBack} />
           <div className="min-w-0 flex-1">
             <h1 className="m-0 truncate font-head text-display font-bold text-heading">
               {title || "Untitled script"}
@@ -108,12 +110,7 @@ export function ScriptSheet({
       </div>
 
       <div className="mobile-safe-bottom grid shrink-0 grid-cols-2 gap-3 px-3 pt-2 pb-3">
-        <Button
-          type="button"
-          variant="neutral"
-          size="sm"
-          onClick={onBackToChat}
-        >
+        <Button type="button" variant="neutral" size="sm" onClick={onAsk}>
           <Sparkles aria-hidden data-icon="inline-start" />
           Ask about script
         </Button>

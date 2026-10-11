@@ -8,7 +8,14 @@ import {
   Tooltip,
   toast,
 } from "@repo/ui";
-import { Ellipsis, History, Share2 } from "@repo/ui/icons";
+import {
+  Ellipsis,
+  FileText,
+  History,
+  ListTree,
+  MessagesSquare,
+  Share2,
+} from "@repo/ui/icons";
 import { useState } from "react";
 import { Example, Section } from "../kit";
 
@@ -20,39 +27,44 @@ export function Primitives() {
       title="Menus, tabs, tooltips, toasts"
       note="The primitives the app already uses, now on Base UI: adapted from RetroUI, and from neobrutalism.dev for the drawer and the toasts."
     >
-      <Example label="tabs: the active tab a filled block">
-        <Tabs defaultValue="space" className="w-full max-w-md">
-          <Tabs.List className="w-full">
-            <Tabs.Trigger value="space" className="flex-1">
-              Space
-            </Tabs.Trigger>
-            <Tabs.Trigger value="agents" className="flex-1">
-              Agents
-            </Tabs.Trigger>
-            <Tabs.Trigger value="reference" className="flex-1">
-              Reference
-            </Tabs.Trigger>
-          </Tabs.List>
-          <Tabs.Content value="space">
-            <p className="m-0 font-sans text-body text-fg-muted">
-              The timeline of the open space.
-            </p>
-          </Tabs.Content>
-          <Tabs.Content value="agents">
-            <p className="m-0 font-sans text-body text-fg-muted">
-              Your chats with the assistant.
-            </p>
-          </Tabs.Content>
-          <Tabs.Content value="reference">
-            <p className="m-0 font-sans text-body text-fg-muted">
-              Commands and helpers.
-            </p>
-          </Tabs.Content>
-        </Tabs>
+      <Example label="tabs: a bar under the active one">
+        <div className="w-full max-w-md border-2 border-edge bg-surface-1 p-2">
+          <Tabs defaultValue="space">
+            <Tabs.List className="w-full">
+              <Tabs.Trigger value="space" className="flex-1">
+                <ListTree aria-hidden className="size-4" />
+                Spaces
+              </Tabs.Trigger>
+              <Tabs.Trigger value="agents" className="flex-1">
+                <MessagesSquare aria-hidden className="size-4" />
+                Agents
+              </Tabs.Trigger>
+              <Tabs.Trigger value="reference" className="flex-1">
+                <FileText aria-hidden className="size-4" />
+                Docs
+              </Tabs.Trigger>
+            </Tabs.List>
+            <Tabs.Content value="space">
+              <p className="m-0 p-2 font-sans text-body text-fg-muted">
+                The timeline of the open space.
+              </p>
+            </Tabs.Content>
+            <Tabs.Content value="agents">
+              <p className="m-0 p-2 font-sans text-body text-fg-muted">
+                Your chats with the assistant.
+              </p>
+            </Tabs.Content>
+            <Tabs.Content value="reference">
+              <p className="m-0 p-2 font-sans text-body text-fg-muted">
+                Commands and helpers.
+              </p>
+            </Tabs.Content>
+          </Tabs>
+        </div>
       </Example>
-      <Example label="tabs, line: for a quieter place">
+      <Example label="tabs, sized to their words">
         <Tabs defaultValue="all" className="w-full max-w-md">
-          <Tabs.List variant="line" className="w-full justify-start">
+          <Tabs.List className="w-full justify-start">
             <Tabs.Trigger value="all">All</Tabs.Trigger>
             <Tabs.Trigger value="commands">Commands</Tabs.Trigger>
             <Tabs.Trigger value="helpers">Helpers</Tabs.Trigger>

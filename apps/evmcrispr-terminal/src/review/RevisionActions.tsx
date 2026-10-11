@@ -79,7 +79,8 @@ export function RevisionActions({
         <Notice
           tone="warning"
           urgent
-          className="w-full"
+          // After whatever else the row offers (its menu).
+          className="order-last w-full"
           action={
             refused === "conflict" ? (
               <RowAction

@@ -1,4 +1,4 @@
-import { Spinner } from "@repo/ui";
+import { PixelArt } from "@repo/ui";
 import type { SpaceRoute } from "../../app/useSpaceRoute";
 import { RestorePrompt } from "../../panel/space/RestorePrompt";
 import ScriptNotFound from "../scripts/ScriptNotFound";
@@ -35,7 +35,7 @@ export function ScriptLoadState({ route }: { route: SpaceRoute }) {
           role="status"
           aria-live="polite"
         >
-          <Spinner />
+          <PixelArt name="helix" turning />
           <p className="m-0 font-head text-body tracking-wide">
             Fetching DNA sequence from IPFS...
           </p>

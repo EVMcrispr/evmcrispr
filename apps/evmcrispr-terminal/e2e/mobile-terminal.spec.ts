@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 const CID = "QmZYrSACX7w6DbPg2SRJ4JrKkZpHbg86mqQ27xvChTCRry";
 
@@ -32,7 +32,7 @@ for (const viewport of [
     ).toBeVisible();
     await expect(page.getByText("DappNode Nexus")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Open script" }).click();
+    await openScript(page);
     await expect(
       page.getByRole("region", { name: "Script review" }),
     ).toBeVisible();
@@ -41,6 +41,14 @@ for (const viewport of [
     ).toBeVisible();
     await expect(page.locator(".monaco-editor")).toHaveCount(0);
   });
+}
+
+/** From the chat to the script: the space's name opens its timeline, and
+ *  the timeline leads to the script. */
+async function openScript(page: Page) {
+  await page.getByRole("button", { name: "Open space" }).click();
+  // The space, at the top of its timeline: its name and when it changed.
+  await page.getByRole("button", { name: /Updated/ }).click();
 }
 
 test("received CID links land on the read-only script", async ({ page }) => {
@@ -92,13 +100,13 @@ test("first run without an API key can still reach the script", async ({
   await page.goto("/");
 
   await expect(page.getByText("Chat settings")).toBeVisible();
-  const scriptButton = page.getByRole("button", { name: "Open script" });
+  const scriptButton = page.getByRole("button", { name: "Open space" });
   await expect(scriptButton).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Open transaction review" }),
   ).toBeVisible();
 
-  await scriptButton.click();
+  await openScript(page);
   await expect(
     page.getByRole("region", { name: "Script review" }),
   ).toBeVisible();
@@ -119,7 +127,7 @@ test("chat composer state survives a surface switch", async ({ page }) => {
   const composer = page.getByPlaceholder("Describe what to do…");
   await composer.fill("send 1 xdai to vitalik.eth");
 
-  await page.getByRole("button", { name: "Open script" }).click();
+  await openScript(page);
   await expect(
     page.getByRole("region", { name: "Script review" }),
   ).toBeVisible();
@@ -142,9 +150,10 @@ test("reduced motion preference is honored in drawers", async ({ page }) => {
 
   await page.getByRole("button", { name: "Open navigation" }).click();
   // The kill-switch rule must beat the mobile 120ms button transition rule.
-  await expect(
-    page.getByRole("button", { name: "EVML reference" }),
-  ).not.toHaveCSS("transition-duration", "0.12s");
+  await expect(page.getByRole("button", { name: "EVML docs" })).not.toHaveCSS(
+    "transition-duration",
+    "0.12s",
+  );
 });
 
 test("the on-screen keyboard shrinks the shell instead of scrolling it", async ({
@@ -219,7 +228,7 @@ test("desktop breakpoint keeps the editor-first shell", async ({ page }) => {
   await expect(
     page.locator(".monaco-editor .evml-title-line").first(),
   ).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Space" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Spaces" })).toBeVisible();
   await expect(page.locator(".monaco-editor")).toBeVisible();
 });
 
@@ -254,24 +263,22 @@ test("mobile menu and script surface never expose Monaco", async ({ page }) => {
 
   await page.getByRole("button", { name: "Open navigation" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "EVML reference" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "EVML docs" })).toBeVisible();
   // The menu leads to the list of spaces; the list itself is the Space
   // surface.
   await expect(page.getByRole("region", { name: "Spaces" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Spaces" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "New script" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New space" })).toBeVisible();
   await expect(
     page.getByRole("status", { name: "Wallet connection" }),
   ).toContainText("Not connected");
   await expect(
     page.getByRole("button", { name: "Connect wallet" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Close workspace menu" }).click();
+  await page.getByRole("button", { name: "Close menu" }).click();
 
   // The title is the script's first comment: shown, never a field.
-  await page.getByRole("button", { name: "Open script" }).click();
+  await openScript(page);
   await expect(page.getByRole("heading", { name: "Untitled" })).toBeVisible();
   await expect(page.getByLabel("Script title")).toHaveCount(0);
   await expect(page.locator(".monaco-editor")).toHaveCount(0);
@@ -373,7 +380,7 @@ test("chats belong to the browser: all are listed, labelled with where they star
 
   // A new script: the same chat stays open, and the list is the same.
   await page.getByRole("button", { name: "Open navigation" }).click();
-  await page.getByRole("button", { name: "New script" }).click();
+  await page.getByRole("button", { name: "New space" }).click();
   await expect(page.getByText("Untitled", { exact: true })).toBeVisible();
   await expect(page.getByText("said in chat-a")).toBeVisible();
   await page.getByRole("button", { name: "Previous chats" }).click();
@@ -414,7 +421,7 @@ test("the Space surface shows the timeline and the list of spaces, and leads bac
   });
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Open timeline" }).click();
+  await page.getByRole("button", { name: "Open space" }).click();
   await expect(page.getByRole("list", { name: "Timeline" })).toContainText(
     "created the script",
   );

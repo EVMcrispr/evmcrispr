@@ -1,5 +1,5 @@
 import { deriveTitle, emptyTimeline, mergeable } from "@evmcrispr/space";
-import { Button, Notice } from "@repo/ui";
+import { Button, Notice, PixelArt } from "@repo/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useStore } from "zustand";
@@ -54,7 +54,8 @@ export function RestorePrompt({ exported }: { exported: SpaceExport }) {
   const [next] = useStore(spaces.index);
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 px-6 animate-fade-in">
-      <div className="flex max-w-xl flex-col gap-3 font-sans text-body text-fg-muted">
+      <PixelArt name="crate" />
+      <div className="flex max-w-xl flex-col gap-3 text-center font-sans text-body text-fg-muted">
         <h2 className="m-0 font-head text-display font-bold text-heading">
           This link holds a whole space
         </h2>

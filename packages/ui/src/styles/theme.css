@@ -4,6 +4,17 @@
    imports this file imports too. */
 @import "@evmcrispr/editor/styles/theme.css";
 
+@theme {
+  /* The helix of PixelArt, slid up one period in whole pixels. */
+  --animate-helix-turn: helix-turn 1.2s steps(8) infinite;
+
+  @keyframes helix-turn {
+    to {
+      transform: translateY(-16px);
+    }
+  }
+}
+
 :root {
   --wcm-z-index: 20000;
 }

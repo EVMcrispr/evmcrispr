@@ -1,45 +1,10 @@
-import { Button } from "@repo/ui";
+import { Button, PixelArt } from "@repo/ui";
 import { useNavigate } from "react-router";
-
-const DNA_HELIX = `    ╱╲
-   ╱  ╲
-  ╱ ×× ╲
-  ╲ ×× ╱
-   ╲  ╱
-    ╲╱
-    ╱╲
-   ╱  ╲
-  ╱ ×× ╲
-  ╲ ×× ╱
-   ╲  ╱
-    ╲╱`;
-
-const BROKEN_VIAL = `    ┌──┐
-    │  │
-    │~~│
-    │  │
-    └┐ │
-     │╱
-     ╳
-    ╱ ╲
-   ╱   ╲
-  ~ ~ ~ ~`;
-
-const SEALED_VIAL = `    ┌──┐
-   ┌┤××├┐
-   ││  ││
-   ││~~││
-   ││~~││
-   ││  ││
-   └┴──┴┘
-    ╔══╗
-    ║ ○║
-    ╚══╝`;
 
 const variants = {
   uuid: {
     title: "404: Alien DNA Detected",
-    art: DNA_HELIX,
+    art: "helix",
     lines: [
       "This script sequence doesn't exist in your local gene pool.",
       "Ask your friend to share a valid link with you.",
@@ -47,7 +12,7 @@ const variants = {
   },
   ipfs: {
     title: "Broken Vial Detected",
-    art: BROKEN_VIAL,
+    art: "broken-vial",
     lines: [
       "The DNA sample couldn't be transmitted from the remote gene bank.",
       "The IPFS link may be expired or the gateway unreachable.",
@@ -55,7 +20,7 @@ const variants = {
   },
   "encrypted-missing-key": {
     title: "Sealed Vial Detected",
-    art: SEALED_VIAL,
+    art: "sealed-vial",
     lines: [
       "This script is encrypted, but the link is missing its decryption key.",
       "Ask the sender for the full link, including the part after the last #.",
@@ -63,7 +28,7 @@ const variants = {
   },
   "encrypted-invalid-key": {
     title: "Key Rejected",
-    art: SEALED_VIAL,
+    art: "sealed-vial",
     lines: [
       "The decryption key in this link doesn't match the sealed script.",
       "The link may have been truncated or altered — ask the sender to reshare it.",
@@ -71,7 +36,7 @@ const variants = {
   },
   "encrypted-needs-upgrade": {
     title: "Future Formula Detected",
-    art: SEALED_VIAL,
+    art: "sealed-vial",
     lines: [
       "This script was sealed with a newer version of EVMcrispr.",
       "Update EVMcrispr to open it.",
@@ -79,7 +44,7 @@ const variants = {
   },
   "export-refused": {
     title: "Sample Rejected",
-    art: BROKEN_VIAL,
+    art: "broken-vial",
     lines: [
       "This link holds an exported space that this version of EVMcrispr does not take in.",
       "Nothing was restored or changed.",
@@ -113,9 +78,7 @@ export default function ScriptNotFound({
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8 px-6 select-none animate-fade-in">
-      <pre className="text-heading text-body leading-tight font-mono opacity-60">
-        {art}
-      </pre>
+      <PixelArt name={art} />
 
       <div className="flex flex-col items-center gap-3 max-w-md text-center">
         <h2 className="m-0 text-heading font-head text-display tracking-wide">
@@ -129,7 +92,7 @@ export default function ScriptNotFound({
       </div>
 
       <Button variant="neutral" onClick={() => navigate("/")}>
-        New Script
+        New space
       </Button>
     </div>
   );

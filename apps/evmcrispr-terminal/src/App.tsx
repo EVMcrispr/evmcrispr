@@ -14,6 +14,7 @@ import {
 import { RouterProvider } from "react-router/dom";
 import { AppProvider } from "./app/AppContext";
 import type { App as AppObject } from "./app/boot";
+import { RouteError } from "./app/Crash";
 import Terminal from "./app/Terminal";
 import { AssistantProvider } from "./assistant/AssistantProvider";
 import { transports } from "./config/wagmi";
@@ -22,11 +23,11 @@ import { WalletProvider } from "./wallet/WalletContext";
 
 const router = createHashRouter(
   createRoutesFromElements(
-    <>
+    <Route errorElement={<RouteError />}>
       <Route index element={<Terminal />} />
       <Route path=":scriptId" element={<Terminal />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </>,
+    </Route>,
   ),
 );
 

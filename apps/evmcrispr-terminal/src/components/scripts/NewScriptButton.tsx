@@ -21,8 +21,8 @@ export default function NewScriptButton({
   if (showLabel) {
     return (
       <Row
-        leading={<Plus aria-hidden className="size-4" />}
-        title="New script"
+        leading={<Plus aria-hidden className="size-4 text-success" />}
+        title="New space"
         onClick={handleClick}
       />
     );
@@ -30,7 +30,7 @@ export default function NewScriptButton({
 
   return (
     <IconButton
-      aria-label="New script"
+      aria-label="New space"
       variant="ghost"
       onClick={handleClick}
       size="md"

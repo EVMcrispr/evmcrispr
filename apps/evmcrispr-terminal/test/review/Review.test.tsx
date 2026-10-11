@@ -119,9 +119,6 @@ for (const sheet of [false, true]) {
     const dialog = screen.getByRole("dialog", { name: "Review changes" });
     expect(dialog.textContent).toContain("added: print 2");
     expect(screen.getByRole("button", { name: "Approve" })).toBeTruthy();
-    expect(dialog.textContent).toContain(
-      "Approve the changes above before your wallet is asked for anything.",
-    );
     expect(screen.queryByRole("button", { name: /Confirm/ })).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Run script without simulation" }),

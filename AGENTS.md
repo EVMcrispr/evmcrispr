@@ -37,7 +37,7 @@ general smart contract interaction. Scripts run in a web terminal
   - `runs/`: the run manager, one worker per run
   - `assistant/`: the built-in agent's host on spaces
   - `review/`: review before signing
-  - `panel/`: the side panel (Space, Agents, Reference)
+  - `panel/`: the side panel (Spaces, Agents, Docs)
   - `mobile/`, `app/` (composition, routing), `wallet/`
 - `apps/evmcrispr-website`: Astro landing page + docs
 

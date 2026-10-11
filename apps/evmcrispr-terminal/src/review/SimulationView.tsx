@@ -3,9 +3,10 @@ import type { ReactNode } from "react";
 import { ActionList } from "./ActionList";
 import type { Review } from "./useReview";
 
-/** Said wherever a simulation of a script is offered. */
+/** Said beside the way to simulate a script that was not reviewed:
+ *  simulating runs it. */
 export const SIMULATING_RUNS =
-  "Simulating runs the script on a copy of the chain. Nothing is sent from your wallet, but the script may make web requests and load what it names.";
+  "Simulating runs these unapproved changes. They can make web requests and load modules, but nothing is sent from your wallet.";
 
 /** Said when a check left external modules unfetched. */
 export function UnfetchedNote({ modules }: { modules: string[] }) {
@@ -28,7 +29,10 @@ export function SimulationView({
   review,
   stale = false,
   summary,
+  offered = false,
 }: {
+  /** The way to simulate is beside Approve: not repeated here. */
+  offered?: boolean;
   review: Review;
   /** Said above the actions of a simulation that passed. */
   summary?: ReactNode;
@@ -40,6 +44,7 @@ export function SimulationView({
   const { simulation } = review;
   const busy =
     simulation.status === "validating" || simulation.status === "simulating";
+  const fresh = simulation.status === "idle" || simulation.status === "valid";
   if (stale)
     return (
       <section
@@ -59,27 +64,38 @@ export function SimulationView({
       aria-label="What the script would do"
       className="flex flex-col gap-2"
     >
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="m-0 font-head text-body font-bold text-fg">
-          What the script would do now
-        </h3>
-        {!busy && (
-          <Button
-            type="button"
-            variant="neutral"
-            size="sm"
-            onClick={() => void review.simulate()}
-          >
-            {simulation.status === "idle" || simulation.status === "valid"
-              ? "Simulate to see what it would send"
-              : "Simulate again"}
-          </Button>
-        )}
-      </div>
-      {(simulation.status === "idle" || simulation.status === "valid") && (
-        <p className="m-0 font-sans text-caption text-fg-faint">
-          {SIMULATING_RUNS}
-        </p>
+      {/* Before anything was simulated there is nothing to say: only the
+          way to ask for it. */}
+      {fresh ? (
+        !busy &&
+        !offered && (
+          <div>
+            <Button
+              type="button"
+              variant="neutral"
+              size="sm"
+              onClick={() => void review.simulate()}
+            >
+              Simulate
+            </Button>
+          </div>
+        )
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="m-0 font-head text-body font-bold text-fg">
+            What the script would do now
+          </h3>
+          {!busy && (
+            <Button
+              type="button"
+              variant="neutral"
+              size="sm"
+              onClick={() => void review.simulate()}
+            >
+              Simulate again
+            </Button>
+          )}
+        </div>
       )}
       <UnfetchedNote modules={review.unfetched} />
       {busy && (

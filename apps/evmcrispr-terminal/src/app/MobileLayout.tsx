@@ -1,5 +1,6 @@
 import type { HoverRef } from "@evmcrispr/core";
-import { BackButton } from "@repo/ui";
+import { IconButton } from "@repo/ui";
+import { MessagesSquare } from "@repo/ui/icons";
 import { useEffect, useRef, useState } from "react";
 import { ScriptLoadState } from "../components/terminal/ScriptLoadState";
 import {
@@ -12,6 +13,10 @@ import { MobileMenu } from "../mobile/MobileMenu";
 import { ScriptContextBar } from "../mobile/ScriptContextBar";
 import { ScriptSheet } from "../mobile/ScriptSheet";
 import { AgentsTab } from "../panel/agents/AgentsTab";
+import {
+  HeaderActionProvider,
+  ScriptLinkProvider,
+} from "../panel/space/HeaderAction";
 import { SpacesList } from "../panel/space/SpacesList";
 import { SpaceTab } from "../panel/space/SpaceTab";
 import { Review } from "../review/Review";
@@ -169,10 +174,17 @@ function MobileSpace({
     if (previewing) setSurface("script");
   }, [previewing, setSurface]);
 
-  /** A run is followed in its card, in the space's timeline. */
-  const showRun = () => {
+  /** The space, as a phone shows it: its timeline. */
+  const showTimeline = () => {
     setUi({ spaceView: "timeline" });
     setSurface("space");
+  };
+  /** A run is followed in its card, in the space's timeline. */
+  const showRun = showTimeline;
+  /** The script as it is now, not a revision that was being looked at. */
+  const openCurrentScript = () => {
+    setUi({ previewRevisionId: null });
+    setSurface("script");
   };
 
   // The timeline comes up by itself when the run of this space needs the
@@ -204,11 +216,11 @@ function MobileSpace({
         <ScriptContextBar
           reviewState={review.simulation}
           reviewUnseen={reviewReady && !reviewSeen}
-          onOpenScript={() => setSurface("script")}
-          onOpenTimeline={() => {
-            setUi({ spaceView: "timeline" });
+          onOpenSpaces={() => {
+            setUi({ spaceView: "list" });
             setSurface("space");
           }}
+          onOpenSpace={showTimeline}
           onOpenReview={openReview}
         />
       )}
@@ -224,19 +236,33 @@ function MobileSpace({
               entryIntent={route.intent}
               sharedEncrypted={route.sharedEncrypted}
               reviewState={review.simulation}
-              onBackToChat={() => setSurface("agents")}
+              onBack={showTimeline}
+              onAsk={() => setSurface("agents")}
               onReview={openReview}
               onOpenDocs={openDocs}
             />
           ))}
         {surface === "space" && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="shrink-0 px-1 pt-1">
-              <BackButton label="chat" onClick={() => setSurface("agents")} />
-            </div>
-            <div className="min-h-0 flex-1">
-              <SpaceTab />
-            </div>
+          <div className="min-h-0 flex-1">
+            {/* The way back to the chat is in the header of whichever view
+                of the tab is on screen, not in a row of its own. */}
+            <HeaderActionProvider
+              value={
+                <IconButton
+                  type="button"
+                  variant="quiet"
+                  size="sm"
+                  aria-label="Back to chat"
+                  onClick={() => setSurface("agents")}
+                >
+                  <MessagesSquare aria-hidden />
+                </IconButton>
+              }
+            >
+              <ScriptLinkProvider value={openCurrentScript}>
+                <SpaceTab />
+              </ScriptLinkProvider>
+            </HeaderActionProvider>
           </div>
         )}
         {/* The chat owns the conversation state (useChatAgent) — keep it

@@ -10,7 +10,7 @@ import {
 import { type CSSProperties, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { markdownComponents } from "../reference/MarkdownComponents";
+import { markdownComponents, PROSE } from "../reference/MarkdownComponents";
 import { ChatSuggestions } from "./ChatSuggestions";
 import { type CardActions, ToolCard } from "./ToolCards";
 import { useStickToBottom } from "./useStickToBottom";
@@ -37,9 +37,6 @@ const WORKING_STATUSES = [
   "BUIDLing...",
 ];
 
-const PROSE_CLASSES =
-  "prose prose-invert prose-base max-w-none wrap-break-word prose-headings:text-fg prose-strong:text-fg prose-code:text-unverified prose-code:bg-surface-active prose-code:px-1 prose-code:py-0.5 prose-code:text-caption prose-code:wrap-break-word prose-code:before:content-none prose-code:after:content-none prose-pre:bg-surface-well prose-pre:border-2 prose-pre:border-line prose-pre:overflow-x-auto prose-li:text-fg-muted";
-
 function CopyButton({
   text,
   alwaysVisible,
@@ -56,7 +53,7 @@ function CopyButton({
       variant="quiet"
       size="sm"
       className={cn(
-        "absolute top-0 right-0 transition-opacity",
+        "transition-opacity",
         alwaysVisible
           ? "opacity-70"
           : "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100",
@@ -162,30 +159,35 @@ export function ChatMessageList({
             );
           }
           return (
-            <div key={i} className="group relative">
-              <CopyButton text={item.text} alwaysVisible={mobile} />
-              <div className={PROSE_CLASSES}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={markdownComponents}
-                >
-                  {item.text}
-                </ReactMarkdown>
-              </div>
-              {i === lastAssistantIdx &&
-                i === items.length - 1 &&
-                !isRunning && (
-                  <IconButton
-                    type="button"
-                    aria-label="Regenerate response"
-                    variant="quiet"
-                    size="sm"
-                    className="mt-1"
-                    onClick={onRegenerate}
+            <div key={i} className="group flex flex-col items-start">
+              {/* What the assistant said: a framed block on its side. */}
+              <div className="max-w-full border-2 border-line bg-surface-1 px-2.5 py-2">
+                <div className={PROSE}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={markdownComponents}
                   >
-                    <RefreshCw aria-hidden />
-                  </IconButton>
-                )}
+                    {item.text}
+                  </ReactMarkdown>
+                </div>
+              </div>
+              {/* Under the block, not over its text. */}
+              <div className="mt-1 flex items-center gap-1">
+                <CopyButton text={item.text} alwaysVisible={mobile} />
+                {i === lastAssistantIdx &&
+                  i === items.length - 1 &&
+                  !isRunning && (
+                    <IconButton
+                      type="button"
+                      aria-label="Regenerate response"
+                      variant="quiet"
+                      size="sm"
+                      onClick={onRegenerate}
+                    >
+                      <RefreshCw aria-hidden />
+                    </IconButton>
+                  )}
+              </div>
             </div>
           );
         })}

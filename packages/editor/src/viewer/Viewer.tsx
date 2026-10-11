@@ -40,7 +40,7 @@ export interface ViewerProps {
   /** Called when the user taps/clicks the script body (outside hover
    *  targets and text selections). Hosts typically flip into edit mode. */
   onActivateEdit?: () => void;
-  /** Forwarded to the hover popover's "Open in reference" button. Omit to
+  /** Forwarded to the hover popover's "Open in docs" button. Omit to
    *  hide the button. */
   onOpenDocs?: (ref: HoverRef) => void;
 }

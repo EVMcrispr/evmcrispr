@@ -87,8 +87,8 @@ test("an assistant edit asks for a review before Execute; approving restores it;
   // Looking at the change ran nothing. What the script would do is asked
   // for: a simulated run, recorded like any other.
   expect(await runs(page)).toEqual([]);
-  await page
-    .getByRole("button", { name: "Simulate to see what it would send" })
+  await dialog(page)
+    .getByRole("button", { name: "Simulate", exact: true })
     .click();
   await expect(
     dialog(page).getByRole("region", { name: "What the script would do" }),
@@ -163,7 +163,7 @@ test("Revert takes one change out and keeps later typing; Ctrl+Z brings it back 
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.insertText("\nprint four");
 
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page
     .getByRole("button", { name: /Assistant Said one in Spanish\./ })
     .click();
@@ -227,9 +227,7 @@ test("on mobile the sheet shows what changed above the transactions; no run can 
   // Opening the sheet on an unreviewed script ran nothing. Simulating is
   // one tap away, and not blocked.
   expect(await runs(page)).toEqual([]);
-  await sheet
-    .getByRole("button", { name: "Simulate to see what it would send" })
-    .click();
+  await sheet.getByRole("button", { name: "Simulate", exact: true }).click();
   await expect(sheet).toContainText("Simulation passed");
   expect(await runs(page)).toEqual(["simulated"]);
   // Nothing on the sheet leads to the wallet or to a run.

@@ -70,7 +70,7 @@ export interface EditorProps {
    *  exact text being analysed, and nothing is fetched if it throws.
    *  Default true. */
   remoteModules?: boolean | ((script: string) => boolean);
-  /** Fired when the user clicks the "Open in reference" link in a hover
+  /** Fired when the user clicks the "Open in docs" link in a hover
    *  card over a command or `@helper` name. */
   onOpenDocs?: (ref: HoverRef) => void;
   /** Escape hatch for hosts that manage Monaco models themselves (the
@@ -244,7 +244,7 @@ function Editor({
   }, [monaco, evm]);
 
   // ── Hover provider ──
-  // Commands/helpers get a trailing "Open in reference" command link so the
+  // Commands/helpers get a trailing "Open in docs" command link so the
   // side panel can be opened explicitly instead of auto-activating whenever
   // the cursor happens to land on a recognised name.
   useEffect(() => {
@@ -269,7 +269,7 @@ function Editor({
         if (info.ref) {
           const args = encodeURIComponent(JSON.stringify(info.ref));
           contents.push({
-            value: `[Open in reference](command:${OPEN_DOCS_COMMAND_ID}?${args})`,
+            value: `[Open in docs](command:${OPEN_DOCS_COMMAND_ID}?${args})`,
             isTrusted: true,
           });
         }

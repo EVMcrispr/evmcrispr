@@ -7,6 +7,7 @@ import { useApp } from "../../app/AppContext";
 import { useMaybeSpace } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
 import { Confirm, LeftBehind } from "./Confirm";
+import { useHeaderAction } from "./HeaderAction";
 import { SpaceRow } from "./SpaceRow";
 
 /** A title as the search compares it. */
@@ -19,6 +20,7 @@ const slug = (title: string) =>
 /** Every space of this browser, with what goes on inside each. */
 export function SpacesList() {
   const { spaces } = useApp();
+  const headerAction = useHeaderAction();
   const index = useStore(spaces.index);
   const current = useMaybeSpace()?.id;
   const navigate = useNavigate();
@@ -56,6 +58,7 @@ export function SpacesList() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        {headerAction}
         <Button
           type="button"
           variant="neutral"

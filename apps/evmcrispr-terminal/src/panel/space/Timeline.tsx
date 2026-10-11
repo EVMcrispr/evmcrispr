@@ -1,7 +1,8 @@
 import { isReviewed } from "@evmcrispr/space";
-import { Button, Chip, EmptyState, Row, Time } from "@repo/ui";
-import { Trash2 } from "@repo/ui/icons";
+import { Badge, Button, Chip, EmptyState, Row, Time } from "@repo/ui";
+import { ChevronRight, Trash2 } from "@repo/ui/icons";
 import { useMemo, useState } from "react";
+import { useStore } from "zustand";
 import { useApp } from "../../app/AppContext";
 import {
   useMarkers,
@@ -12,6 +13,7 @@ import {
 import { removeEntry, showEarlier } from "../../space/cleaning";
 import { useStickToBottom } from "../agents/useStickToBottom";
 import { Confirm, LeftBehind } from "./Confirm";
+import { useScriptLink } from "./HeaderAction";
 import { PinnedRuns } from "./PinnedRuns";
 import { RevisionGroup, RevisionRow } from "./RevisionRow";
 import { RunCard } from "./RunCard";
@@ -33,12 +35,12 @@ export function Timeline() {
 }
 
 function TimelineOf() {
-  const { me } = useApp();
+  const { me, spaces } = useApp();
   const space = useSpace();
   const [removing, setRemoving] = useState<string | null>(null);
   const state = useTimeline((timeline) => timeline);
   const markers = useMarkers();
-  const { text } = useScript();
+  const { text, title } = useScript();
   const [filter, setFilter] = useState<Filter>("all");
   const [shown, setShown] = useState(WINDOW);
   const reviewed = isReviewed(text, markers.approvedText);
@@ -46,18 +48,53 @@ function TimelineOf() {
     () => timelineRows(state, markers, { filter, shown, reviewed }),
     [state, markers, filter, shown, reviewed],
   );
+  const openScript = useScriptLink();
+  const updatedAt = useStore(
+    spaces.index,
+    (index) => index.find((meta) => meta.id === space.id)?.updatedAt,
+  );
   const { listRef, onScroll } = useStickToBottom(rows, false);
 
   return (
     <div className="flex h-full flex-col">
       <TimelineHeader />
+      {/* Where the script is not beside the timeline, the space leads with
+          it: its name, as in the list of spaces, opens it. */}
+      {openScript && (
+        <div className="shrink-0 px-2.5 pt-2.5">
+          <Row
+            active
+            emphasis="title"
+            title={title || "Untitled"}
+            meta={
+              <>
+                {updatedAt !== undefined && (
+                  <span>
+                    Updated <Time at={updatedAt} format="day" />
+                  </span>
+                )}
+                {!reviewed && (
+                  <Badge tone="unverified" dot>
+                    unreviewed
+                  </Badge>
+                )}
+              </>
+            }
+            onClick={openScript}
+            actions={
+              <ChevronRight aria-hidden className="mr-2 size-4 text-fg-faint" />
+            }
+          />
+        </div>
+      )}
       <fieldset className="m-0 flex shrink-0 gap-2 border-0 p-2.5">
         <legend className="sr-only">Show</legend>
         {FILTERS.map(({ value, label }) => (
           <Chip
             key={value}
             selected={filter === value}
-            onSelectedChange={() => setFilter(value)}
+            // Pressing the chosen filter again goes back to everything.
+            onSelectedChange={(on) => setFilter(on ? value : "all")}
           >
             {label}
           </Chip>

@@ -66,7 +66,7 @@ test("the first comment is the title, in the editor, the tab and the list", asyn
   await page.keyboard.press("End");
   await page.keyboard.type(" treasury");
   await expect(page).toHaveTitle("Untitled treasury - EVMcrispr Terminal");
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Spaces" }).click();
   await expect(page.getByRole("list", { name: "Spaces" })).toContainText(
     "Untitled treasury",
@@ -141,7 +141,7 @@ test("scripts stored before spaces are listed after the update", async ({
   await page.goto(`/#/${id}`);
   await expect(lines(page)).toContainText("# Pay the team");
   await expect(lines(page)).toContainText("print 1");
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Spaces" }).click();
   await expect(page.getByRole("list", { name: "Spaces" })).toContainText(
     "Pay the team",

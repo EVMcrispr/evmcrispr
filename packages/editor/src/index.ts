@@ -56,6 +56,7 @@ export type { ActionsPreviewProps } from "./preview/ActionsPreview";
 export { ActionsPreview } from "./preview/ActionsPreview";
 export type { DecodedAction, DecodedArg } from "./preview/decodeAction";
 export { decodeAction } from "./preview/decodeAction";
+export { PROSE } from "./ui/prose";
 export { DiagnosticsChip } from "./viewer/DiagnosticsChip";
 export { HoverPopover } from "./viewer/HoverPopover";
 export { evmlTwoslashTransformer } from "./viewer/twoslashTransformer";

@@ -6,7 +6,7 @@ import { ReferenceTab } from "./reference/ReferenceTab";
 import { SpaceTab } from "./space/SpaceTab";
 
 const TABS = [
-  { value: "space", label: "Space", Icon: ListTree, Content: SpaceTab },
+  { value: "space", label: "Spaces", Icon: ListTree, Content: SpaceTab },
   {
     value: "agents",
     label: "Agents",
@@ -15,7 +15,7 @@ const TABS = [
   },
   {
     value: "reference",
-    label: "Reference",
+    label: "Docs",
     Icon: FileText,
     Content: ReferenceTab,
   },
@@ -36,9 +36,9 @@ export function SidePanel() {
           <Tabs.Trigger
             key={value}
             value={value}
-            className="flex-1 gap-1.5 px-0"
+            className="flex-1 gap-2 px-0 py-2.5 text-title"
           >
-            <Icon aria-hidden className="size-4 shrink-0" />
+            <Icon aria-hidden className="size-5 shrink-0" />
             {label}
           </Tabs.Trigger>
         ))}

@@ -343,3 +343,18 @@ test("Undo this change on an assistant's row takes that change out and keeps wha
     screen.getByRole("button", { name: "Restore to before" }),
   ).toBeTruthy();
 });
+
+test("pressing the chosen filter again goes back to All", async () => {
+  const t = await setup();
+  t.render();
+  const chip = (name: string) => screen.getByRole("button", { name });
+  fireEvent.click(chip("Revisions"));
+  expect(chip("Revisions")).toHaveAttribute("aria-pressed", "true");
+  expect(chip("All")).toHaveAttribute("aria-pressed", "false");
+  fireEvent.click(chip("Revisions"));
+  expect(chip("Revisions")).toHaveAttribute("aria-pressed", "false");
+  expect(chip("All")).toHaveAttribute("aria-pressed", "true");
+  // All itself stays on.
+  fireEvent.click(chip("All"));
+  expect(chip("All")).toHaveAttribute("aria-pressed", "true");
+});

@@ -20,6 +20,7 @@ import {
 } from "../../space/cleaning";
 import { Confirm, LeftBehind } from "./Confirm";
 import { ExportDialog } from "./ExportDialog";
+import { useHeaderAction, useScriptLink } from "./HeaderAction";
 
 /** The way back to the list, the space's title, the share link of its
  *  script, and its menu: export and the cleaning actions. The count says how many other spaces have a run
@@ -41,12 +42,22 @@ export function TimelineHeader() {
       index.filter((meta) => meta.run === "paused" && meta.id !== space.id)
         .length,
   );
+  const headerAction = useHeaderAction();
+  const named = useScriptLink() !== null;
   return (
     <>
       <PanelHeader
         className="shrink-0"
         emphasis="title"
-        title={title || "Untitled"}
+        // Where the timeline leads with the space's name in a box of its
+        // own, the header does not say it twice.
+        title={
+          named ? (
+            <span className="sr-only">{title || "Untitled"}</span>
+          ) : (
+            title || "Untitled"
+          )
+        }
         back={
           <BackButton
             label="Spaces"
@@ -63,6 +74,7 @@ export function TimelineHeader() {
                 </Badge>
               </span>
             )}
+            {headerAction}
             <ShareScriptButton />
             <Menu>
               <Menu.Trigger

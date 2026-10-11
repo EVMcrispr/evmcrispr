@@ -81,7 +81,7 @@ function ipfs() {
 }
 
 const menu = async (page: Page, item: string) => {
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Space menu" }).click();
   await page.getByRole("menuitem", { name: item }).click();
 };
@@ -154,7 +154,7 @@ test("export a space, then restore it in a browser that does not have it: the sa
   expect(
     kept.entries.filter((e) => e.kind === "revision" && !e.unverified),
   ).toHaveLength(1);
-  await there.getByRole("tab", { name: "Space" }).click();
+  await there.getByRole("tab", { name: "Spaces" }).click();
   await expect(there.getByText("From an export").first()).toBeVisible();
   // Reviewed: Execute is Execute.
   await expect(
@@ -206,7 +206,7 @@ test("an export link opened where the space is asks first, by name; Merge replac
   ).toBeVisible();
   // What was approved did not move.
   expect((await stored(page, id)).approvedText).toContain("print second");
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await expect(
     page.getByText("replaced the script with the one from a link"),
   ).toBeVisible();
@@ -234,7 +234,7 @@ test("Open as copy makes another space; a wrong key and a broken export make non
   await page.getByRole("button", { name: "Open as copy" }).click();
   await expect(lines(page)).toContainText("print copied");
   expect(spaceId(page)).not.toBe(id);
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Spaces" }).click();
   await expect(
     page.getByRole("list", { name: "Spaces" }).getByRole("listitem"),
@@ -251,7 +251,7 @@ test("share from a revision row: it reads shared, Copy link gives the same link,
   await page.goto("/");
   await expect(lines(page)).toContainText("Untitled");
   const address = page.url();
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   // A script is shared from the header; its row then hands the link back.
   await page.getByRole("button", { name: "Share script" }).click();
   await expect(page.getByText("shared", { exact: true })).toBeVisible();

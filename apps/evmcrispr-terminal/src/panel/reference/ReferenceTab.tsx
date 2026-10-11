@@ -6,12 +6,14 @@ import {
 import {
   BackButton,
   Badge,
+  cn,
   EmptyState,
+  IconButton,
   Input,
   PanelHeader,
   Row,
 } from "@repo/ui";
-import { FlaskConical } from "@repo/ui/icons";
+import { BookOpen, ExternalLink, FlaskConical } from "@repo/ui/icons";
 import {
   useCallback,
   useDeferredValue,
@@ -33,13 +35,15 @@ import {
   referenceEntries,
   resolveDocLinkEntry,
 } from "../../data/reference-data";
+import { DOCS_URL, docsPage, SITE_URL } from "../../data/site";
 import { useFocusOnTab } from "../../hooks/useFocusOnTab";
 import {
   createMarkdownComponents,
   type DocLinkResolution,
+  PROSE,
   rehypeExperimentalFlask,
 } from "./MarkdownComponents";
-import { ReferenceItem } from "./ReferenceItem";
+import { kindLabel, ReferenceItem } from "./ReferenceItem";
 
 const EMPTY_USAGE: ScriptUsage = {
   commands: new Set(),
@@ -75,9 +79,6 @@ function ConfigRow({ mod, entry }: { mod: string; entry: ConfigEntry }) {
   );
 }
 
-const PROSE =
-  "prose prose-invert prose-base max-w-none leading-tight prose-p:leading-tight prose-li:leading-tight prose-headings:leading-tight prose-headings:text-fg prose-h1:text-display prose-h2:text-title prose-h2:text-heading prose-h2:border-b-2 prose-h2:border-line prose-h2:pb-1 prose-h3:text-title prose-strong:text-fg prose-code:text-unverified prose-code:bg-surface-active prose-code:px-1 prose-code:py-0.5 prose-code:text-caption prose-code:before:content-none prose-code:after:content-none prose-pre:bg-surface-well prose-pre:border-2 prose-pre:border-line prose-th:text-fg-muted prose-td:text-fg-muted prose-li:text-fg-muted prose-hr:border-line";
-
 const GROUP =
   "m-0 flex items-center gap-1.5 px-1 py-1 font-head text-caption uppercase";
 
@@ -100,13 +101,30 @@ function resolveCursorEntry(
   const bound = ref.module
     ? { module: ref.module, name: ref.name }
     : (bindings.get(ref.name) ?? { module: "std", name: ref.name });
+  // An on-chain face is on its helper's entry.
+  const plain = bound.name.replace(/!$/, "");
   return (
     entryByKey.get(`${ref.kind}:${bound.module}:${bound.name}`) ??
-    referenceEntries.find((e) => e.kind === ref.kind && e.name === ref.name)
+    entryByKey.get(`${ref.kind}:${bound.module}:${plain}`) ??
+    referenceEntries.find(
+      (e) =>
+        e.kind === ref.kind &&
+        (e.name === ref.name || e.name === ref.name.replace(/!$/, "")),
+    )
   );
 }
 
-export function ReferenceTab() {
+export function ReferenceTab({
+  onEntryChange,
+  flush = false,
+}: {
+  /** Inside something that already has side padding (a sheet): the panel
+   *  adds none, so its lines and its text share the same edges. */
+  flush?: boolean;
+  /** Told whether an entry is open: the host may then drop its own way
+   *  back, since the entry has one to the list. */
+  onEntryChange?(open: boolean): void;
+} = {}) {
   // Mounted also while a space loads: no script then.
   const script = useSpaceText(useMaybeSpace());
   const docsRequest = useUi((s) => s.docsRequest);
@@ -114,6 +132,12 @@ export function ReferenceTab() {
   const searchRef = useFocusOnTab<HTMLInputElement>("reference");
   const [selectedItem, setSelectedItem] = useState<ReferenceEntry | null>(null);
   const [markdownContent, setMarkdownContent] = useState<string | null>(null);
+  const entryOpen = selectedItem !== null;
+  useEffect(() => {
+    onEntryChange?.(entryOpen);
+    // Gone from the screen, no entry is open.
+    return () => onEntryChange?.(false);
+  }, [entryOpen, onEntryChange]);
   // Track the last opened request's nonce so the same docsRequest object
   // (e.g. re-rendered with unrelated store updates) doesn't re-trigger.
   const lastRequestTsRef = useRef<number | null>(null);
@@ -141,11 +165,13 @@ export function ReferenceTab() {
 
   const usedEntries = useMemo(
     () =>
-      filteredEntries.filter((e) =>
-        (e.kind === "command" ? usage.commands : usage.helpers).has(
-          `${e.module}:${e.name}`,
-        ),
-      ),
+      filteredEntries.filter((e) => {
+        const used = e.kind === "command" ? usage.commands : usage.helpers;
+        return (
+          used.has(`${e.module}:${e.name}`) ||
+          (e.onchain === true && used.has(`${e.module}:${e.name}!`))
+        );
+      }),
     [filteredEntries, usage],
   );
 
@@ -216,7 +242,7 @@ export function ReferenceTab() {
   }, []);
 
   // Open the detail view when the user explicitly asks to see docs for a
-  // command/helper — clicking "Open in reference" in a hover card (desktop
+  // command/helper — clicking "Open in docs" in a hover card (desktop
   // edit mode) or the equivalent button in the view-mode/mobile hover
   // popover. The `ts` nonce lets the same entry be re-requested (e.g. the
   // user navigated away and re-clicks the same hover link).
@@ -237,7 +263,8 @@ export function ReferenceTab() {
     return (
       <div className="flex h-full flex-col">
         <PanelHeader
-          back={<BackButton label="Reference" onClick={handleBack} />}
+          className={flush ? "px-0 touch:px-0" : undefined}
+          back={<BackButton label="Docs" onClick={handleBack} />}
           title={
             selectedItem.kind === "helper"
               ? `@${selectedItem.name}`
@@ -247,17 +274,27 @@ export function ReferenceTab() {
             <>
               <Badge
                 variant="tag"
-                tone={selectedItem.kind === "command" ? "info" : "warning"}
+                tone={selectedItem.kind === "command" ? "success" : "warning"}
               >
-                {selectedItem.kind === "command" ? "command" : "helper"}
+                {kindLabel(selectedItem, true)}
               </Badge>
               <Badge variant="tag">{selectedItem.module}</Badge>
+              <IconButton
+                variant="quiet"
+                size="sm"
+                aria-label="Open on the website"
+                onClick={() =>
+                  window.open(docsPage(selectedItem), "_blank", "noreferrer")
+                }
+              >
+                <ExternalLink aria-hidden />
+              </IconButton>
             </>
           }
         />
         <div
           key={`${selectedItem.kind}:${selectedItem.module}:${selectedItem.name}`}
-          className="flex-1 overflow-y-auto px-3 pt-3 pb-4"
+          className={cn("flex-1 overflow-y-auto pt-3 pb-4", !flush && "px-3")}
         >
           {markdownContent === null ? (
             <p className="m-0 font-sans text-body text-fg-faint">Loading...</p>
@@ -284,7 +321,21 @@ export function ReferenceTab() {
   // List view
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 p-2">
+      <div
+        className={cn("flex shrink-0 flex-col gap-2 py-2", !flush && "px-2")}
+      >
+        {/* Where to start reading: the one row here that stands out. */}
+        <Row
+          href={DOCS_URL}
+          active
+          emphasis="title"
+          leading={<BookOpen aria-hidden className="size-4 text-success" />}
+          title="Guides and the full docs"
+          meta={new URL(SITE_URL).host}
+          actions={
+            <ExternalLink aria-hidden className="mr-2 size-4 text-success" />
+          }
+        />
         <Input
           ref={searchRef}
           variant="search"
@@ -293,7 +344,12 @@ export function ReferenceTab() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
-      <div className="flex flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-2 pb-3">
+      <div
+        className={cn(
+          "flex flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto pb-3",
+          !flush && "px-2",
+        )}
+      >
         {(usedEntries.length > 0 || usedConfigs.length > 0) && (
           <div className="flex flex-col gap-1.5">
             <h3 className={`${GROUP} text-heading`}>Used in Script</h3>
@@ -315,7 +371,7 @@ export function ReferenceTab() {
         )}
         {[...entriesByModule.entries()].map(([mod, entries]) => (
           <div key={mod} className="flex flex-col gap-1.5">
-            <h3 className={`${GROUP} text-fg-faint`}>
+            <h3 className={`${GROUP} text-success`}>
               {mod}
               {experimentalModules.has(mod) && (
                 <span title="Experimental" className="shrink-0">

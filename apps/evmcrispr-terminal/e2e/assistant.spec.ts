@@ -121,7 +121,7 @@ test("the chat survives a reload and reopens; it stays open in another space and
 
   // Another space: the same chat, still open.
   // A new space is made from the list of spaces.
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Back to Spaces" }).click();
   await page.getByRole("button", { name: "New", exact: true }).click();
   await expect(lines(page)).toContainText("Example");
@@ -213,7 +213,7 @@ test("an edit to a space that is not on screen waits for the user's word, then m
   await expect(lines(page)).toContainText("Treasury swap");
   const other = spaceId(page);
   // A new space is made from the list of spaces.
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Back to Spaces" }).click();
   await page.getByRole("button", { name: "New", exact: true }).click();
   await expect(lines(page)).toContainText("Example");
@@ -248,7 +248,7 @@ test("an edit to a space that is not on screen waits for the user's word, then m
   expect(spaceId(page)).toBe(here);
   expect(await unreviewed(page, here)).toBe(false);
 
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Spaces" }).click();
   const row = page
     .getByRole("list", { name: "Spaces" })
@@ -316,7 +316,7 @@ test("without a Nexus key the Space tab works in full and the Agents tab shows t
   ).toBeVisible();
   await expect(composer(page)).toHaveCount(0);
 
-  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Spaces" }).click();
   await expect(page.getByRole("list", { name: "Spaces" })).toBeVisible();
 });

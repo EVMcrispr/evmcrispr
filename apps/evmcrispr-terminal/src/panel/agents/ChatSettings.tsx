@@ -1,17 +1,12 @@
 import { loginWithNexus } from "@evmcrispr/ai";
 import { BackButton, Button, Notice } from "@repo/ui";
 import { useState } from "react";
+import { SITE_URL } from "../../data/site";
 
 export const NEXUS_URL =
   "https://nexus.dappnode.com/?utm_source=evmcrispr2026-07&utm_medium=referral";
 export const RECHARGE_URL =
   "https://nexus.dappnode.com/billing?utm_source=evmcrispr2026-07&utm_medium=referral";
-
-/** Website/docs site this build links to — same PUBLIC_SITE_URL the
- *  website build uses; the experimental deploy overrides it with
- *  next-docs. */
-const SITE_URL: string =
-  import.meta.env.PUBLIC_SITE_URL ?? "https://evmcrispr.com";
 
 export function ChatSettings({
   onSave,

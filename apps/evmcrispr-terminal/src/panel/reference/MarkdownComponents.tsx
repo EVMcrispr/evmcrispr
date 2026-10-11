@@ -1,3 +1,4 @@
+import { PROSE } from "@evmcrispr/editor";
 import { Button, CodeBlock } from "@repo/ui";
 import { FlaskConical } from "@repo/ui/icons";
 import type { Components } from "react-markdown";
@@ -99,7 +100,7 @@ function Pre({ children }: React.ComponentProps<"pre">) {
 function InlineCode({ children, ...props }: React.ComponentProps<"code">) {
   return (
     <code
-      className="bg-surface-active px-1 py-0.5 text-caption text-unverified"
+      className="rounded-(--radius) bg-surface-active px-1 py-0.5 font-mono text-caption text-fg"
       {...props}
     >
       {children}
@@ -123,8 +124,8 @@ function Anchor({ href, children, ...props }: React.ComponentProps<"a">) {
 
 function Table({ children, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="overflow-x-auto">
-      <table className="text-caption" {...props}>
+    <div className="my-2 overflow-x-auto rounded-(--radius) border-2 border-line">
+      <table className="m-0 w-full text-caption" {...props}>
         {children}
       </table>
     </div>
@@ -172,3 +173,5 @@ export function createMarkdownComponents(
 }
 
 export const markdownComponents: Components = createMarkdownComponents();
+
+export { PROSE };

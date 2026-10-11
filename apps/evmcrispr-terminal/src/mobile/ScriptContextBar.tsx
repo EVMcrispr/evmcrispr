@@ -1,5 +1,5 @@
-import { Button, cn, Dot, type Tone } from "@repo/ui";
-import { Code, ListTree, ShieldCheck } from "@repo/ui/icons";
+import { Button, cn, Dot, IconButton, type Tone } from "@repo/ui";
+import { ListTree, ShieldCheck } from "@repo/ui/icons";
 import { useScript } from "../app/SpaceContext";
 import type { Simulation } from "../review/useReview";
 
@@ -32,14 +32,16 @@ const TONE: Partial<Record<Tone, string>> = {
 export function ScriptContextBar({
   reviewState,
   reviewUnseen,
-  onOpenScript,
-  onOpenTimeline,
+  onOpenSpaces,
+  onOpenSpace,
   onOpenReview,
 }: {
+  /** To the list of every space. */
+  onOpenSpaces: () => void;
   reviewState: Simulation;
   reviewUnseen: boolean;
-  onOpenScript: () => void;
-  onOpenTimeline: () => void;
+  /** The name is the space: it opens its timeline, where the script is. */
+  onOpenSpace: () => void;
   onOpenReview: () => void;
 }) {
   const { title } = useScript();
@@ -47,52 +49,51 @@ export function ScriptContextBar({
 
   return (
     <nav
-      aria-label="Script workspace"
-      className="mx-3 mt-2 mb-1 flex shrink-0 items-center gap-1.5 rounded-(--radius) border-2 border-edge bg-surface-1 p-1"
+      aria-label="Space"
+      className="mx-3 mt-2 mb-1 flex shrink-0 items-stretch gap-2"
     >
-      <Button
+      <IconButton
         type="button"
-        variant="ghost"
+        variant="neutral"
         size="sm"
-        aria-label="Open script"
-        className="min-w-0 flex-1 justify-start gap-2 px-2 text-fg"
-        onClick={onOpenScript}
+        aria-label="All spaces"
+        tooltip={false}
+        onClick={onOpenSpaces}
       >
-        <Code aria-hidden data-icon="inline-start" className="text-fg-faint" />
-        <span className={cn("truncate", !title && "text-fg-faint")}>
-          {title || "Untitled script"}
-        </span>
-      </Button>
+        <ListTree aria-hidden />
+      </IconButton>
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-(--radius) border-2 border-edge bg-surface-1 p-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label="Open space"
+          className="min-w-0 flex-1 justify-start px-2 text-fg"
+          onClick={onOpenSpace}
+        >
+          <span className={cn("truncate", !title && "text-fg-faint")}>
+            {title || "Untitled"}
+          </span>
+        </Button>
 
-      <Button
-        type="button"
-        variant="quiet"
-        size="sm"
-        aria-label="Open timeline"
-        className="gap-1.5 px-2"
-        onClick={onOpenTimeline}
-      >
-        <ListTree aria-hidden className="size-4" />
-        <span className="hidden min-[400px]:inline">Timeline</span>
-      </Button>
-
-      <Button
-        type="button"
-        variant="quiet"
-        size="sm"
-        aria-label="Open transaction review"
-        className={cn("relative gap-1.5 px-2", TONE[review.tone])}
-        onClick={onOpenReview}
-      >
-        <ShieldCheck
-          aria-hidden
-          className={cn("size-4", review.pulse && "animate-pulse")}
-        />
-        <span className="hidden min-[360px]:inline">{review.label}</span>
-        {reviewUnseen && (
-          <Dot tone="success" className="absolute -top-1 -right-1" />
-        )}
-      </Button>
+        <Button
+          type="button"
+          variant="quiet"
+          size="sm"
+          aria-label="Open transaction review"
+          className={cn("relative gap-1.5 px-2", TONE[review.tone])}
+          onClick={onOpenReview}
+        >
+          <ShieldCheck
+            aria-hidden
+            className={cn("size-4", review.pulse && "animate-pulse")}
+          />
+          <span className="hidden min-[360px]:inline">{review.label}</span>
+          {reviewUnseen && (
+            <Dot tone="success" className="absolute -top-1 -right-1" />
+          )}
+        </Button>
+      </div>
     </nav>
   );
 }

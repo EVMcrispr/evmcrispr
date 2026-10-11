@@ -16,7 +16,7 @@ describe("NewScriptButton", () => {
         </MemoryRouter>
       </Tooltip.Provider>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "New script" }));
+    fireEvent.click(screen.getByRole("button", { name: "New space" }));
     expect(screen.getByText("the placeholder space")).toBeInTheDocument();
   });
 });
