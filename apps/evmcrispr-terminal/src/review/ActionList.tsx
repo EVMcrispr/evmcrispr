@@ -24,15 +24,15 @@ export function countActions(actions: Action[]): number {
 export function ActionList({ actions }: { actions: Action[] }) {
   if (actions.length === 0)
     return (
-      <p className="font-sans text-xs text-foreground/55">
+      <p className="m-0 font-sans text-caption text-fg-faint">
         The script asks the wallet for nothing.
       </p>
     );
   return (
-    <ol aria-label="Actions" className="flex flex-col gap-2">
+    <ol aria-label="Actions" className="m-0 flex list-none flex-col gap-2 p-0">
       {actions.map((action, index) => (
         <li key={index} className="flex gap-2">
-          <span className="mt-1.5 w-5 shrink-0 text-right font-mono text-xs text-primary">
+          <span className="mt-1.5 w-5 shrink-0 text-right font-mono text-caption text-primary">
             {index + 1}
           </span>
           <div className="min-w-0 flex-1">

@@ -1,4 +1,5 @@
-import { Button } from "@repo/ui";
+import { Button, Notice } from "@repo/ui";
+import type { ReactNode } from "react";
 import { ActionList } from "./ActionList";
 import type { Review } from "./useReview";
 
@@ -10,12 +11,12 @@ export const SIMULATING_RUNS =
 export function UnfetchedNote({ modules }: { modules: string[] }) {
   if (modules.length === 0) return null;
   return (
-    <p className="font-sans text-xs text-evm-yellow-300">
+    <Notice tone="warning" layout="inline">
       {modules.length === 1
         ? `The module "${modules[0]}" is loaded from elsewhere. It was not fetched and its commands were not checked`
         : `The modules ${modules.map((name) => `"${name}"`).join(", ")} are loaded from elsewhere. They were not fetched and their commands were not checked`}
       : that happens when you simulate, or once the script is approved.
-    </p>
+    </Notice>
   );
 }
 
@@ -26,10 +27,14 @@ export function UnfetchedNote({ modules }: { modules: string[] }) {
 export function SimulationView({
   review,
   stale = false,
+  summary,
 }: {
   review: Review;
-  /** The surface shows an earlier text than the script: nothing is
-   *  simulated beside it until the user looks at the new one. */
+  /** Said above the actions of a simulation that passed. */
+  summary?: ReactNode;
+  /** The user is not looking at the script's changes as they are now
+   *  (not shown yet, or the script moved on): nothing is checked or
+   *  simulated beside them until they are. */
   stale?: boolean;
 }) {
   const { simulation } = review;
@@ -41,11 +46,11 @@ export function SimulationView({
         aria-label="What the script would do"
         className="flex flex-col gap-2"
       >
-        <h3 className="font-sans text-sm font-semibold">
+        <h3 className="m-0 font-head text-body font-bold text-fg">
           What the script would do now
         </h3>
-        <p className="font-sans text-xs text-foreground/60">
-          The script changed. Show the new changes to check or simulate it.
+        <p className="m-0 font-sans text-caption text-fg-faint">
+          Show the changes as they are now to check or simulate the script.
         </p>
       </section>
     );
@@ -55,13 +60,13 @@ export function SimulationView({
       className="flex flex-col gap-2"
     >
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-sans text-sm font-semibold">
+        <h3 className="m-0 font-head text-body font-bold text-fg">
           What the script would do now
         </h3>
         {!busy && (
           <Button
             type="button"
-            variant="outline"
+            variant="neutral"
             size="sm"
             onClick={() => void review.simulate()}
           >
@@ -72,36 +77,37 @@ export function SimulationView({
         )}
       </div>
       {(simulation.status === "idle" || simulation.status === "valid") && (
-        <p className="font-sans text-xs text-foreground/60">
+        <p className="m-0 font-sans text-caption text-fg-faint">
           {SIMULATING_RUNS}
         </p>
       )}
       <UnfetchedNote modules={review.unfetched} />
       {busy && (
-        <p role="status" className="font-sans text-xs text-foreground/60">
+        <Notice tone="info" layout="inline" live>
           {simulation.status === "validating"
             ? "Checking the script…"
             : "Running on a simulated copy of the chain. Nothing is sent…"}
-        </p>
+        </Notice>
       )}
       {simulation.status === "error" && (
-        <p role="alert" className="font-sans text-xs text-destructive">
+        <Notice tone="danger" layout="inline">
           {simulation.message}
-        </p>
+        </Notice>
       )}
       {simulation.diagnostics.map((diagnostic, index) => (
-        <p key={index} className="font-sans text-xs text-foreground/65">
-          <span className="mr-2 font-mono text-destructive">
+        <p key={index} className="m-0 font-sans text-caption text-fg-muted">
+          <span className="mr-2 font-mono text-danger">
             L{diagnostic.line}:{diagnostic.col}
           </span>
           {diagnostic.message}
         </p>
       ))}
       {simulation.status === "ready" && (
-        <p className="font-sans text-xs text-primary">
+        <p className="m-0 font-sans text-caption text-success">
           Simulation passed. Nothing real moved.
         </p>
       )}
+      {summary}
       {(simulation.status === "ready" ||
         (simulation.status === "error" && simulation.actions.length > 0)) && (
         <ActionList actions={simulation.actions} />

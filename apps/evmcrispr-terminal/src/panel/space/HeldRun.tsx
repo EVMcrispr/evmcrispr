@@ -1,4 +1,6 @@
 import { useNow } from "@evmcrispr/editor";
+import { Button, duration } from "@repo/ui";
+import type { ReactNode } from "react";
 import { useApp } from "../../app/AppContext";
 import { ActionDetails } from "../../components/execution/ActionDetails";
 import { actionSummary } from "../../runs/action-summary";
@@ -17,36 +19,45 @@ const WHY = {
  * is read from the held action itself, never from a simulation or the
  * script, so it cannot describe anything but what Resume sends.
  */
-export function HeldRun({ run }: { run: LiveRun }) {
+export function HeldRun({
+  run,
+  controls,
+}: {
+  run: LiveRun;
+  /** What else can be done with the run, beside Resume. */
+  controls?: ReactNode;
+}) {
   const { runs } = useApp();
   const held = run.held;
   const now = useNow(held !== null);
   if (!held) return null;
-  const minutes = Math.max(0, Math.floor((now * 1000 - held.since) / 60_000));
+  const heldFor = Math.max(0, now * 1000 - held.since);
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: a labelled group, not a form's fieldset
     <div
       role="group"
       aria-label="Held action"
-      className="flex flex-col gap-1.5 font-sans text-sm"
+      className="flex flex-col gap-2.5 font-sans text-body text-fg-muted"
     >
-      <p>
+      <p className="m-0">
         Paused: {WHY[held.reason]}
-        <span className="text-foreground/50">
+        <span className="text-fg-faint">
           {" "}
-          · {minutes < 1 ? "just now" : `${minutes} min ago`}
+          · {heldFor < 60_000 ? "just now" : `${duration(heldFor)} ago`}
         </span>
       </p>
       <ActionDetails description={actionSummary(held.action)} />
-      <div className="flex justify-end">
-        <button
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {controls}
+        <Button
           type="button"
-          className="cursor-pointer rounded-(--radius) border border-primary px-2 py-0.5 font-sans text-xs text-primary outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+          variant="primary"
+          size="sm"
           onClick={() => runs.resume(run.record.id)}
         >
           Resume
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
+import { Row } from "@repo/ui";
 import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useApp } from "../../app/AppContext";
 import { useTimeline } from "../../app/SpaceContext";
 import { isUnfinished, type Run } from "../../runs/run-manager";
-import { RunControls, runLabel, STATUS } from "./RunCard";
+import { RunControls, runLabel, StatusBadge } from "./RunCard";
 
 /** The runs of this space that are not over, always in sight above the
  *  entries, whichever tab runs them. A row leads to its card; a paused
@@ -24,30 +25,26 @@ export function PinnedRuns() {
   return (
     <ul
       aria-label="Unfinished runs"
-      className="flex shrink-0 flex-col gap-1 px-2 pb-2"
+      className="m-0 flex shrink-0 list-none flex-col gap-2 px-2.5 pb-2.5"
     >
       {unfinished.map((record) => (
-        <li
+        <Row
           key={record.id}
-          className="flex items-center gap-2 border border-primary/35 bg-primary/5 px-2 py-1"
-        >
-          <button
-            type="button"
-            className="min-w-0 flex-1 cursor-pointer truncate text-left font-sans text-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() =>
-              document
-                .getElementById(`run-${record.id}`)
-                ?.scrollIntoView({ block: "nearest" })
-            }
-          >
-            <span className="font-semibold">{runLabel(record)}</span>{" "}
-            <span className="text-foreground/65">{STATUS[record.status]}</span>
-            {record.status === "paused" && (
-              <span className="text-primary"> · see what it holds</span>
-            )}
-          </button>
-          <RunControls record={record} mine={!!live[record.id]} />
-        </li>
+          as="li"
+          title={
+            <span className="flex flex-wrap items-center gap-x-2">
+              <span className="font-bold text-fg">{runLabel(record)}</span>{" "}
+              <StatusBadge record={record} />
+            </span>
+          }
+          meta={record.status === "paused" ? "See what it holds" : undefined}
+          onClick={() =>
+            document
+              .getElementById(`run-${record.id}`)
+              ?.scrollIntoView({ block: "nearest" })
+          }
+          actions={<RunControls record={record} mine={!!live[record.id]} />}
+        />
       ))}
     </ul>
   );

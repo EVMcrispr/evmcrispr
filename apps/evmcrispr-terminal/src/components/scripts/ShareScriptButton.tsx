@@ -1,6 +1,6 @@
 import { head } from "@evmcrispr/space";
-import { ShareIcon } from "@heroicons/react/24/solid";
-import { Button, IconButton, Tooltip, toast } from "@repo/ui";
+import { IconButton, Row, Spinner, toast } from "@repo/ui";
+import { Share2 } from "@repo/ui/icons";
 import { useEffect, useState } from "react";
 
 import pinJSON from "../../api/pinata/pin-json";
@@ -75,60 +75,27 @@ export default function ShareButton({
       ? "Link copied to clipboard!"
       : "Generate link";
 
-  if (mobile) {
-    // No hover tooltips on touch — a toast explains the title requirement.
+  if (showLabel)
     return (
-      <IconButton
-        type="button"
-        aria-label="Share encrypted link"
-        variant="outline"
-        size="sm"
-        className="min-h-9 min-w-9 shadow-none"
+      <Row
+        leading={<Share2 aria-hidden />}
+        title={isLoading ? "Encrypting link…" : "Share encrypted link"}
         disabled={!!url || isLoading}
         onClick={() => void handleShare()}
-      >
-        {isLoading ? (
-          <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        ) : (
-          <ShareIcon className="size-4" />
-        )}
-      </IconButton>
+      />
     );
-  }
 
-  if (showLabel) {
-    return (
-      <Button
-        type="button"
-        variant="ghost"
-        className="min-h-11 w-full justify-start gap-3 px-3 font-sans text-xs shadow-none"
-        onClick={() => void handleShare()}
-        disabled={!!url || isLoading}
-      >
-        <ShareIcon data-icon="inline-start" />
-        {isLoading ? "Encrypting link…" : "Share encrypted link"}
-      </Button>
-    );
-  }
-
+  // In the header of the space's timeline.
   return (
-    <Tooltip>
-      <Tooltip.Trigger asChild>
-        <IconButton
-          aria-label="Share script"
-          variant="ghost"
-          onClick={handleShare}
-          size="md"
-          disabled={!!url || isLoading}
-        >
-          {isLoading ? (
-            <span className="animate-spin w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
-          ) : (
-            <ShareIcon className="w-5 h-5" />
-          )}
-        </IconButton>
-      </Tooltip.Trigger>
-      <Tooltip.Content side="top">{tooltipLabel}</Tooltip.Content>
-    </Tooltip>
+    <IconButton
+      aria-label={mobile ? "Share encrypted link" : "Share script"}
+      tooltip={mobile ? false : tooltipLabel}
+      variant="quiet"
+      size="sm"
+      onClick={handleShare}
+      disabled={!!url || isLoading}
+    >
+      {isLoading ? <Spinner label="Encrypting link" /> : <Share2 aria-hidden />}
+    </IconButton>
   );
 }

@@ -3,9 +3,15 @@ import {
   type HoverRef,
   type ScriptUsage,
 } from "@evmcrispr/core";
-import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-import { Input } from "@repo/ui";
-import { FlaskConical, Search } from "@repo/ui/icons";
+import {
+  BackButton,
+  Badge,
+  EmptyState,
+  Input,
+  PanelHeader,
+  Row,
+} from "@repo/ui";
+import { FlaskConical } from "@repo/ui/icons";
 import {
   useCallback,
   useDeferredValue,
@@ -46,29 +52,34 @@ const EMPTY_USAGE: ScriptUsage = {
 function ConfigRow({ mod, entry }: { mod: string; entry: ConfigEntry }) {
   return (
     <div
-      className="px-3 py-2 leading-tight"
       title={
         entry.default
           ? `${entry.description} Default: ${entry.default}`
           : entry.description
       }
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-mono text-lg text-foreground truncate">
-          ${mod}:{entry.name}
-        </span>
-        <span className="text-sm text-evm-green-300">config</span>
-        <span className="text-sm text-foreground/40">{entry.type}</span>
-        {mod !== "std" && (
-          <span className="text-sm text-foreground/40">{mod}</span>
-        )}
-      </div>
-      <p className="text-base text-foreground/60 truncate mt-0.5">
-        {entry.description}
-      </p>
+      <Row
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-mono text-fg">
+              ${mod}:{entry.name}
+            </span>
+            <Badge tone="success">config</Badge>
+            <Badge>{entry.type}</Badge>
+            {mod !== "std" && <Badge>{mod}</Badge>}
+          </span>
+        }
+        meta={<span className="truncate">{entry.description}</span>}
+      />
     </div>
   );
 }
+
+const PROSE =
+  "prose prose-invert prose-base max-w-none leading-tight prose-p:leading-tight prose-li:leading-tight prose-headings:leading-tight prose-headings:text-fg prose-h1:text-display prose-h2:text-title prose-h2:text-heading prose-h2:border-b-2 prose-h2:border-line prose-h2:pb-1 prose-h3:text-title prose-strong:text-fg prose-code:text-unverified prose-code:bg-surface-active prose-code:px-1 prose-code:py-0.5 prose-code:text-caption prose-code:before:content-none prose-code:after:content-none prose-pre:bg-surface-well prose-pre:border-2 prose-pre:border-line prose-th:text-fg-muted prose-td:text-fg-muted prose-li:text-fg-muted prose-hr:border-line";
+
+const GROUP =
+  "m-0 flex items-center gap-1.5 px-1 py-1 font-head text-caption uppercase";
 
 /** Lookup map: (kind + module + name) -> ReferenceEntry. */
 const entryByKey = new Map<string, ReferenceEntry>(
@@ -224,50 +235,38 @@ export function ReferenceTab() {
   // Detail view
   if (selectedItem) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="px-2 py-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="flex items-center gap-1 text-sm text-foreground/60 hover:text-foreground transition-colors"
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Back to list
-          </button>
-        </div>
-        <div className="px-2 py-2 shrink-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="font-mono text-lg text-foreground">
-              {selectedItem.kind === "helper"
-                ? `@${selectedItem.name}`
-                : selectedItem.name}
-            </h2>
-            <span
-              className={`text-xs px-1.5 py-0.5 rounded ${
-                selectedItem.kind === "command"
-                  ? "bg-evm-blue-300/20 text-evm-blue-300"
-                  : "bg-evm-orange-300/20 text-evm-orange-300"
-              }`}
-            >
-              {selectedItem.kind === "command" ? "command" : "helper"}
-            </span>
-            <span className="text-xs px-1.5 py-0.5 rounded bg-foreground/10 text-foreground/60">
-              {selectedItem.module}
-            </span>
-          </div>
-        </div>
+      <div className="flex h-full flex-col">
+        <PanelHeader
+          back={<BackButton label="Reference" onClick={handleBack} />}
+          title={
+            selectedItem.kind === "helper"
+              ? `@${selectedItem.name}`
+              : selectedItem.name
+          }
+          actions={
+            <>
+              <Badge
+                variant="tag"
+                tone={selectedItem.kind === "command" ? "info" : "warning"}
+              >
+                {selectedItem.kind === "command" ? "command" : "helper"}
+              </Badge>
+              <Badge variant="tag">{selectedItem.module}</Badge>
+            </>
+          }
+        />
         <div
           key={`${selectedItem.kind}:${selectedItem.module}:${selectedItem.name}`}
-          className="flex-1 overflow-y-auto px-2 pb-4"
+          className="flex-1 overflow-y-auto px-3 pt-3 pb-4"
         >
           {markdownContent === null ? (
-            <p className="text-foreground/40 text-sm">Loading...</p>
+            <p className="m-0 font-sans text-body text-fg-faint">Loading...</p>
           ) : markdownContent === "" ? (
-            <p className="text-foreground/40 text-base">
+            <p className="m-0 font-sans text-body text-fg-muted">
               {selectedItem.description}
             </p>
           ) : (
-            <div className="prose prose-invert prose-base max-w-none leading-tight prose-p:leading-tight prose-li:leading-tight prose-headings:leading-tight prose-headings:text-foreground prose-h1:text-2xl prose-h2:text-xl prose-h2:text-evm-green-300 prose-h2:border-b prose-h2:border-foreground/10 prose-h2:pb-1 prose-h3:text-lg prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-th:text-foreground/70 prose-td:text-foreground/80 prose-li:text-foreground/80 prose-hr:border-foreground/10">
+            <div className={PROSE}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeExperimentalFlask]}
@@ -284,50 +283,43 @@ export function ReferenceTab() {
 
   // List view
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-2 py-4 shrink-0">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/45" />
-          <Input
-            ref={searchRef}
-            placeholder="Search commands & helpers"
-            className="text-base pl-10 border border-evm-gray-800 hover:border-primary focus:border-primary focus:ring-0 transition-colors"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 p-2">
+        <Input
+          ref={searchRef}
+          variant="search"
+          placeholder="Search commands & helpers"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
-      <div className="overflow-y-auto overflow-x-hidden flex-1 px-2">
+      <div className="flex flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-2 pb-3">
         {(usedEntries.length > 0 || usedConfigs.length > 0) && (
-          <div className="mb-3">
-            <h3 className="text-xs font-head uppercase text-evm-green-300 px-3 py-1">
-              Used in Script
-            </h3>
-            <div className="border-l-2 border-evm-green-300/40 ml-2">
-              {usedEntries.map((e) => (
-                <ReferenceItem
-                  key={`used-${e.module}-${e.name}`}
-                  entry={e}
-                  onClick={() => handleItemClick(e)}
-                />
-              ))}
-              {usedConfigs.map(({ mod, entry }) => (
-                <ConfigRow
-                  key={`used-${mod}-cfg-${entry.name}`}
-                  mod={mod}
-                  entry={entry}
-                />
-              ))}
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <h3 className={`${GROUP} text-heading`}>Used in Script</h3>
+            {usedEntries.map((e) => (
+              <ReferenceItem
+                key={`used-${e.module}-${e.name}`}
+                entry={e}
+                onClick={() => handleItemClick(e)}
+              />
+            ))}
+            {usedConfigs.map(({ mod, entry }) => (
+              <ConfigRow
+                key={`used-${mod}-cfg-${entry.name}`}
+                mod={mod}
+                entry={entry}
+              />
+            ))}
           </div>
         )}
         {[...entriesByModule.entries()].map(([mod, entries]) => (
-          <div key={mod} className="mb-3">
-            <h3 className="flex items-center gap-1.5 text-xs font-head uppercase text-foreground/40 px-3 py-1">
+          <div key={mod} className="flex flex-col gap-1.5">
+            <h3 className={`${GROUP} text-fg-faint`}>
               {mod}
               {experimentalModules.has(mod) && (
                 <span title="Experimental" className="shrink-0">
-                  <FlaskConical className="w-3.5 h-3.5" />
+                  <FlaskConical aria-hidden className="size-3.5" />
                 </span>
               )}
             </h3>
@@ -347,9 +339,7 @@ export function ReferenceTab() {
           </div>
         ))}
         {filteredEntries.length === 0 && (
-          <p className="text-lg text-evm-yellow-300 font-head px-4">
-            No matches found.
-          </p>
+          <EmptyState>No matches found.</EmptyState>
         )}
       </div>
     </div>

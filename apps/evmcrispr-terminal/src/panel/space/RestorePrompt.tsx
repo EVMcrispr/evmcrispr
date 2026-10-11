@@ -1,5 +1,5 @@
 import { deriveTitle, emptyTimeline, mergeable } from "@evmcrispr/space";
-import { Button } from "@repo/ui";
+import { Button, Notice } from "@repo/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useStore } from "zustand";
@@ -54,8 +54,8 @@ export function RestorePrompt({ exported }: { exported: SpaceExport }) {
   const [next] = useStore(spaces.index);
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 px-6 animate-fade-in">
-      <div className="flex max-w-xl flex-col gap-3 font-sans text-sm text-foreground/80">
-        <h2 className="font-head text-2xl tracking-wide text-evm-green-300">
+      <div className="flex max-w-xl flex-col gap-3 font-sans text-body text-fg-muted">
+        <h2 className="m-0 font-head text-display font-bold text-heading">
           This link holds a whole space
         </h2>
         <p>
@@ -66,13 +66,13 @@ export function RestorePrompt({ exported }: { exported: SpaceExport }) {
             ` A space keeps ${kept} revisions from links: the latest are taken.`}
         </p>
         {mine ? (
-          <p role="alert" className="border border-evm-yellow-300/50 p-2">
+          <Notice tone="warning" urgent>
             This link goes into a space you already have: “{mine.title}”.{" "}
             <strong>Merge</strong> replaces its script with the one in the link
             and adds the link's revisions and runs to yours, marked as from an
             export. Nothing you recorded is removed, and you will be asked to
             review the new script before it can run or be shared.
-          </p>
+          </Notice>
         ) : (
           <p>
             <strong>Restore</strong> brings it into this browser as it is. Its
@@ -84,15 +84,16 @@ export function RestorePrompt({ exported }: { exported: SpaceExport }) {
           <strong>Open as copy</strong> makes a new space from its script alone.
         </p>
         {note && (
-          <p role="alert" className="text-evm-yellow-300">
+          <Notice tone="warning" layout="inline" urgent>
             {note}
-          </p>
+          </Notice>
         )}
       </div>
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="flex flex-wrap justify-center gap-3">
         {mine ? (
           <Button
             type="button"
+            variant="primary"
             disabled={busy}
             onClick={() => void act("merge")}
           >
@@ -101,6 +102,7 @@ export function RestorePrompt({ exported }: { exported: SpaceExport }) {
         ) : (
           <Button
             type="button"
+            variant="primary"
             disabled={busy}
             onClick={() => void act("restore")}
           >
@@ -109,7 +111,7 @@ export function RestorePrompt({ exported }: { exported: SpaceExport }) {
         )}
         <Button
           type="button"
-          variant="outline"
+          variant="neutral"
           disabled={busy}
           onClick={() => void act("copy")}
         >
@@ -117,7 +119,7 @@ export function RestorePrompt({ exported }: { exported: SpaceExport }) {
         </Button>
         <Button
           type="button"
-          variant="ghost"
+          variant="quiet"
           disabled={busy}
           onClick={() =>
             navigate(next ? `/${next.id}` : "/", { replace: true })

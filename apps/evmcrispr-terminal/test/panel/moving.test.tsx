@@ -80,31 +80,58 @@ const menu = async (item: string) => {
   await click(screen.getByRole("menuitem", { name: item }));
 };
 
-test("share from a revision row: the row reads shared, the same link is copied again, and the address does not change", async () => {
+/** Picks an item of a row's or a card's "⋯" menu: the first one open. */
+const more = async (item: string) => {
+  await act(async () => {
+    const [trigger] = screen.getAllByRole("button", { name: "More actions" });
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    await settle();
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("menuitem", { name: item }));
+    await settle();
+  });
+};
+
+test("sharing the script: its row reads shared, the row hands the same link back, and the address does not change", async () => {
   const { space } = await setup();
   const address = screen.getByTestId("address").textContent;
   const revision = head(space.timeline.getState())!;
-  await click(screen.getByText("created the script"));
-  await click(screen.getByRole("button", { name: "Share" }));
+  // A script is shared from the header; a row only gives its link back.
+  await click(screen.getByRole("button", { name: "Share script" }));
   expect(pinned).toHaveLength(1);
   expect(shareOf(space.timeline.getState(), revision.id)?.cid).toBe("QmPin1");
   expect(copied[0]).toMatch(/#\/QmPin1#[\w-]{43}$/);
   expect(screen.getByText("shared")).toBeDefined();
+  await click(screen.getByText("created the script"));
   expect(screen.queryByRole("button", { name: "Share" })).toBeNull();
-  await click(screen.getByRole("button", { name: "Copy link" }));
+  await more("Copy link");
+  await act(settle);
   expect(copied[1]).toBe(copied[0]);
   expect(pinned).toHaveLength(1);
   expect(screen.getByTestId("address").textContent).toBe(address);
 });
 
-test("Share on a row whose text is not approved shares nothing: it opens the review, or is not offered", async () => {
+test("Share on a script that is not approved shares nothing: it opens the review; its row offers no link", async () => {
   const { space } = await setup();
   act(() => {
     space.editAsTurn("t", { kind: "write", text: "# Pay\nexec 666" });
     space.endTurn("t", "Changed the amount.");
   });
   await click(screen.getByText("Changed the amount."));
-  await click(screen.getByRole("button", { name: "Share" }));
+  await act(async () => {
+    const [trigger] = screen.getAllByRole("button", { name: "More actions" });
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    await settle();
+  });
+  expect(screen.queryByRole("menuitem", { name: "Copy link" })).toBeNull();
+  await act(async () => {
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: "Escape",
+    });
+    await settle();
+  });
+  await click(screen.getByRole("button", { name: "Share script" }));
   expect(pinned).toHaveLength(0);
   expect(surfaceNow().open).toBe(true);
   expect(surfaceNow().shown?.text).toBe("# Pay\nexec 666");
@@ -120,7 +147,7 @@ test("Remove asks first, names the entry, and takes only it", async () => {
   });
   const before = revisions(space.timeline.getState()).length;
   await click(screen.getByText("Pasted a secret."));
-  await click(screen.getByRole("button", { name: "Remove" }));
+  await more("Remove…");
   expect(revisions(space.timeline.getState())).toHaveLength(before);
   const question = screen.getByRole("dialog");
   expect(question.textContent).toContain("Pasted a secret.");
@@ -355,7 +382,7 @@ test("the Remove dialog counts the other revisions that hold the same text, and 
   );
   const rows = screen.getAllByText("created the script");
   await click(rows[0]);
-  await click(screen.getAllByRole("button", { name: "Remove" })[0]);
+  await more("Remove…");
   const text = screen.getByRole("dialog").textContent;
   expect(text).toContain("1 other revision holds exactly this text and stays");
   expect(text).toContain("1 run of this text keeps what it printed");

@@ -1,5 +1,4 @@
-import { ShieldExclamationIcon } from "@heroicons/react/24/solid";
-import { Button } from "@repo/ui";
+import { Button, Card } from "@repo/ui";
 import { useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { useApp } from "../../app/AppContext";
@@ -42,56 +41,53 @@ export function PermissionPrompt({
       : `Let the assistant edit “${title ?? "a space that is no longer here"}”? You are not looking at it.`;
 
   return (
-    <article className="border border-evm-orange-300/50 bg-card/45 p-3">
-      <div className="flex items-start gap-3">
-        <ShieldExclamationIcon className="size-5 shrink-0 text-evm-orange-300" />
-        <p className="min-w-0 flex-1 wrap-break-word font-sans text-sm text-foreground">
-          {question}
-        </p>
-      </div>
-      {allowed ? (
-        <p className="mt-2 font-sans text-xs text-foreground/60">
-          Allowed for this chat. Ask the assistant to go on.
-        </p>
-      ) : (
-        !gone && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+    <Card as="article" tone="warning">
+      <Card.Header title="The assistant asks" />
+      <Card.Body>
+        <p className="m-0 wrap-break-word text-fg">{question}</p>
+        {allowed && (
+          <p className="m-0 text-caption text-fg-faint">
+            Allowed for this chat. Ask the assistant to go on.
+          </p>
+        )}
+      </Card.Body>
+      {!allowed && !gone && (
+        <Card.Footer>
+          {declined ? (
+            <span className="font-sans text-caption text-fg-faint">
+              Not allowed.
+            </span>
+          ) : (
             <Button
               type="button"
               size="sm"
-              variant="outline"
+              variant="quiet"
               onClick={() =>
-                chats.grant(
-                  chatId,
-                  ask.what === "web"
-                    ? { webWithSpaces: true }
-                    : { edit: ask.space },
-                )
+                ask.what === "web"
+                  ? chats.grant(chatId, { webWithSpaces: false })
+                  : setLater(true)
               }
             >
-              Allow for this chat
+              Not now
             </Button>
-            {declined ? (
-              <span className="font-sans text-xs text-foreground/60">
-                Not allowed.
-              </span>
-            ) : (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  ask.what === "web"
-                    ? chats.grant(chatId, { webWithSpaces: false })
-                    : setLater(true)
-                }
-              >
-                Not now
-              </Button>
-            )}
-          </div>
-        )
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="neutral"
+            onClick={() =>
+              chats.grant(
+                chatId,
+                ask.what === "web"
+                  ? { webWithSpaces: true }
+                  : { edit: ask.space },
+              )
+            }
+          >
+            Allow for this chat
+          </Button>
+        </Card.Footer>
       )}
-    </article>
+    </Card>
   );
 }

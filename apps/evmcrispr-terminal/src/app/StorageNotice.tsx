@@ -1,3 +1,4 @@
+import { Button, Notice } from "@repo/ui";
 import { useStore } from "zustand";
 import { useApp } from "./AppContext";
 
@@ -9,29 +10,29 @@ export function StorageNotice() {
 
   if (isOutdated)
     return (
-      <div
-        role="alert"
-        className="flex shrink-0 items-center justify-center gap-3 bg-evm-yellow-300 px-4 py-1.5 font-sans text-xs text-evm-gray-900"
+      <Notice
+        tone="warning"
+        layout="strip"
+        urgent
+        action={
+          <Button
+            variant="quiet"
+            size="row"
+            onClick={() => window.location.reload()}
+          >
+            Reload
+          </Button>
+        }
       >
         A newer version of EVMcrispr is open in another tab.
-        <button
-          type="button"
-          className="underline"
-          onClick={() => window.location.reload()}
-        >
-          Reload
-        </button>
-      </div>
+      </Notice>
     );
   if (!storage.persistent)
     return (
-      <div
-        role="status"
-        className="shrink-0 bg-evm-pink-300 px-4 py-1.5 text-center font-sans text-xs text-evm-gray-900"
-      >
+      <Notice tone="warning" layout="strip" live>
         This browser is not letting EVMcrispr store anything. Nothing will be
         saved when you close this tab.
-      </div>
+      </Notice>
     );
   return null;
 }

@@ -124,7 +124,10 @@ test("an assistant edit turns Execute into Review changes; the review shows the 
   const recorded = within(dialog).getByRole("list", {
     name: "Recorded changes",
   });
-  expect(recorded.textContent).toContain("Assistant Pays the grant +1 −1");
+  expect(recorded.textContent).toContain("Assistant Pays the grant");
+  expect(
+    within(recorded).getByLabelText("1 lines added, 1 removed"),
+  ).toBeTruthy();
   // Opening the review ran nothing: no run, and the worker was not given
   // the script. The check, which only reads it, was made.
   expect(t.evml.source).toBe("");
@@ -268,7 +271,7 @@ test("Revert in the review takes one change out and keeps later typing; an overl
       ),
   );
   await click("Review changes");
-  await click("Revert this change");
+  await click("Undo this change");
   expect(t.space.getText()).toBe("print 1\nprint 2\nprint 3\nprint 4");
   expect(head(t.space.timeline.getState())).toMatchObject({
     source: "revert",
@@ -296,7 +299,7 @@ test("Revert in the review takes one change out and keeps later typing; an overl
   await click("Show the new changes");
   // The assistant's change is the first listed; the typed line overlaps it.
   const [revert] = screen.getAllByRole("button", {
-    name: "Revert this change",
+    name: "Undo this change",
   });
   await act(async () => void fireEvent.click(revert));
   expect(t.space.getText()).toBe("print 1\nprint 9\nprint 3\nprint 4");
@@ -309,9 +312,10 @@ test("Revert in the review takes one change out and keeps later typing; an overl
   await act(async () => void fireEvent.click(restore));
   expect(t.space.getText()).toBe("print 1\nprint 2\nprint 3");
   expect(reviewed(t.space)).toBe(true);
-  expect(screen.getByRole("dialog").textContent).toContain(
-    "There is nothing to review",
-  );
+  // Nothing is left to approve: the review is of what the script would
+  // send, as for any approved script.
+  const dialog = screen.getByRole("dialog", { name: "Review transactions" });
+  expect(within(dialog).queryByRole("button", { name: "Approve" })).toBeNull();
 });
 
 test("Share leads to the review while unreviewed, and pins nothing", async () => {
@@ -354,7 +358,7 @@ test("approving in one tab closes the gate's mark in the other", async () => {
   expect(names()).toEqual(["Review changes"]);
   t.space.approve("print 22");
   await act(settle);
-  expect(names()).toEqual(["Execute"]);
+  expect(names()).toEqual(["Simulate", "Execute"]);
 });
 
 test("Approve is not live the instant the review appears, nor right after new changes are shown, and never has the focus", async () => {

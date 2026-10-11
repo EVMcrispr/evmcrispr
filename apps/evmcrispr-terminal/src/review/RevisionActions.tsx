@@ -1,3 +1,5 @@
+import { Button, Notice } from "@repo/ui";
+import { History, Undo2 } from "@repo/ui/icons";
 import { type ReactNode, useState } from "react";
 import { useSpace } from "../app/SpaceContext";
 import { setUi } from "../app/ui-store";
@@ -7,35 +9,45 @@ import {
   type UndoOutcome,
 } from "./undo-revision";
 
-/** A small action of a revision's row. */
+/** A small action of a revision's row. With an icon, it is that icon
+ *  alone on touch. */
 export const RowAction = ({
   onClick,
+  icon,
   children,
 }: {
   onClick(): void;
+  icon?: ReactNode;
   children: ReactNode;
 }) => (
-  <button
+  <Button
     type="button"
-    className="cursor-pointer rounded-(--radius) border border-foreground/20 px-2 py-0.5 font-sans text-xs text-foreground/75 outline-hidden hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+    variant="quiet"
+    size="row"
+    icon={icon}
     onClick={onClick}
   >
     {children}
-  </button>
+  </Button>
 );
 
 const REFUSED = {
   conflict:
-    "Later edits touch the same lines, so this change cannot be taken out on its own. Restore to before goes back to the script as it was before it.",
+    "Later edits touch the same lines, so this change cannot be taken out on its own.",
   "no-parent": "The script from before this change is no longer kept.",
 };
 
 /**
- * The two ways to take a recorded change back, wherever its revision is
- * listed: the timeline's row and the review. Offer it only for a revision
- * whose text from before is still kept. Either is an ordinary edit of the
- * script: Ctrl+Z undoes it, and whether the script is reviewed afterwards
- * is judged from the text it leaves, like any load.
+ * Takes a recorded change back, wherever its revision is listed: the
+ * timeline's row and the review. Offer it only for a revision whose text
+ * from before is still kept.
+ *
+ * "Undo this change" takes that one change out and keeps what was made
+ * after it. When later edits touch the same lines it cannot: it says so,
+ * and offers to go back to the script as it was before the change
+ * instead. Either is an ordinary edit of the script: Ctrl+Z undoes it,
+ * and whether the script is reviewed afterwards is judged from the text
+ * it leaves, like any load.
  */
 export function RevisionActions({
   revisionId,
@@ -57,19 +69,30 @@ export function RevisionActions({
   };
   return (
     <>
-      <RowAction onClick={run(() => revertRevision(space, revisionId))}>
-        Revert this change
-      </RowAction>
-      <RowAction onClick={run(() => restoreBefore(space, revisionId))}>
-        Restore to before
+      <RowAction
+        icon={<Undo2 />}
+        onClick={run(() => revertRevision(space, revisionId))}
+      >
+        Undo this change
       </RowAction>
       {refused && (
-        <p
-          role="alert"
-          className="w-full font-sans text-xs text-evm-yellow-300"
+        <Notice
+          tone="warning"
+          urgent
+          className="w-full"
+          action={
+            refused === "conflict" ? (
+              <RowAction
+                icon={<History />}
+                onClick={run(() => restoreBefore(space, revisionId))}
+              >
+                Restore to before
+              </RowAction>
+            ) : undefined
+          }
         >
           {REFUSED[refused]}
-        </p>
+        </Notice>
       )}
     </>
   );

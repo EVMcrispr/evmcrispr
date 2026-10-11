@@ -1,6 +1,6 @@
 import { fetchNexusBalance, logoutNexus } from "@evmcrispr/ai";
-import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/solid";
-import { IconButton } from "@repo/ui";
+import { IconButton, Notice } from "@repo/ui";
+import { MessagesSquare } from "@repo/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -135,12 +135,11 @@ export function AgentsTab({
     <IconButton
       type="button"
       aria-label="Previous chats"
-      variant="outline"
-      size="lg"
-      className="min-h-12 min-w-12 self-end border-foreground/15 shadow-none"
+      variant="neutral"
+      size="md"
       onClick={() => setHistoryOpen(true)}
     >
-      <ChatBubbleLeftRightIcon className="size-5 text-foreground/70" />
+      <MessagesSquare aria-hidden className="size-4" />
     </IconButton>
   ) : undefined;
 
@@ -169,12 +168,11 @@ export function AgentsTab({
         mobile={mobile}
       />
       {busyElsewhere && (
-        <p
-          role="status"
-          className="shrink-0 px-3 pb-1 font-sans text-xs text-foreground/60"
-        >
-          Answering in another tab…
-        </p>
+        <div className="shrink-0 px-2.5 pb-1.5">
+          <Notice tone="info" layout="inline" live>
+            Answering in another tab…
+          </Notice>
+        </div>
       )}
       <ChatInput
         isRunning={isRunning}

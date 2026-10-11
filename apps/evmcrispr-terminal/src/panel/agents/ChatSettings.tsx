@@ -1,6 +1,5 @@
 import { loginWithNexus } from "@evmcrispr/ai";
-import { ArrowLeftIcon } from "@heroicons/react/24/solid";
-import { Button } from "@repo/ui";
+import { BackButton, Button, Notice } from "@repo/ui";
 import { useState } from "react";
 
 export const NEXUS_URL =
@@ -45,51 +44,44 @@ export function ChatSettings({
   };
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-5 overflow-y-auto">
+    <div className="flex flex-col gap-4 overflow-y-auto p-4">
       {onBack && (
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1 text-sm text-foreground/60 hover:text-foreground transition-colors self-start"
-        >
-          <ArrowLeftIcon className="w-4 h-4" />
-          Back
-        </button>
+        <div>
+          <BackButton label="chat" onClick={onBack} />
+        </div>
       )}
-      <h2 className="text-xl font-head text-foreground">Chat settings</h2>
+      <h2 className="m-0 font-head text-display font-bold text-fg">
+        Chat settings
+      </h2>
 
       <section className="flex flex-col gap-3">
-        <h3 className="mt-3 flex items-center gap-2 text-base font-head text-evm-green-300">
-          <img src="/dappnode-logo.svg" alt="" className="w-5 h-5" />
+        <h3 className="m-0 mt-3 flex items-center gap-2 font-head text-title font-bold text-primary">
+          <img src="/dappnode-logo.svg" alt="" className="size-5" />
           DappNode Nexus assistant
         </h3>
-        <p className="text-sm text-foreground/70">
+        <p className="m-0 font-sans text-body text-fg-muted">
           Chat with a built-in assistant that can read, edit, validate and
           simulate the script in the editor — powered by your{" "}
           <a
             href={NEXUS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-evm-green-300 hover:underline"
+            className="text-primary underline-offset-2 hover:underline"
           >
             DappNode Nexus account
           </a>
           .
         </p>
-        {notice && (
-          <p className="rounded-md border border-red-400/40 bg-red-400/10 px-3 py-2 text-sm text-red-300">
-            {notice}
-          </p>
-        )}
+        {notice && <Notice tone="danger">{notice}</Notice>}
         {onDisconnect ? (
           <>
             {balanceCents != null && (
-              <p className="text-sm text-foreground/70">
+              <p className="m-0 font-sans text-body text-fg-muted">
                 Balance: €{(balanceCents / 100).toFixed(2)}
               </p>
             )}
-            <div className="flex gap-2">
-              <Button asChild size="sm">
+            <div className="flex gap-3">
+              <Button asChild variant="primary" size="sm">
                 <a
                   href={RECHARGE_URL}
                   target="_blank"
@@ -100,7 +92,7 @@ export function ChatSettings({
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="neutral"
                 size="sm"
                 onClick={onDisconnect}
               >
@@ -110,41 +102,51 @@ export function ChatSettings({
           </>
         ) : (
           <>
-            <p className="text-sm text-foreground/70">
+            <p className="m-0 font-sans text-body text-fg-muted">
               New to DappNode Nexus? Sign up through the login and you get 5€ in
               free AI tokens.
             </p>
-            <Button
-              type="button"
-              onClick={login}
-              disabled={loggingIn}
-              className="self-start"
-            >
-              {loggingIn ? "Waiting for login..." : "Login with Dappnode Nexus"}
-            </Button>
-            {loginError && <p className="text-sm text-red-400">{loginError}</p>}
+            <div className="flex">
+              <Button
+                type="button"
+                variant="primary"
+                onClick={login}
+                loading={loggingIn}
+              >
+                {loggingIn
+                  ? "Waiting for login..."
+                  : "Login with Dappnode Nexus"}
+              </Button>
+            </div>
+            {loginError && (
+              <Notice tone="danger" layout="inline">
+                {loginError}
+              </Notice>
+            )}
           </>
         )}
       </section>
 
       <section className="flex flex-col gap-3">
-        <h3 className="mt-3 flex items-center gap-2 text-base font-head text-evm-green-300">
-          <img src="/mcp-logo.svg" alt="" className="w-5 h-5" />
+        <h3 className="m-0 mt-3 flex items-center gap-2 font-head text-title font-bold text-primary">
+          <img src="/mcp-logo.svg" alt="" className="size-5" />
           Use your own AI
         </h3>
-        <p className="text-sm text-foreground/70">
+        <p className="m-0 font-sans text-body text-fg-muted">
           Already use ChatGPT, Claude, or Cursor? Point it at EVMcrispr's MCP
           server and it can write, validate and simulate scripts for you.
         </p>
-        <Button asChild size="sm" className="self-start">
-          <a
-            href={`${SITE_URL}/guides/mcp/`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read the MCP guide
-          </a>
-        </Button>
+        <div className="flex">
+          <Button asChild variant="neutral" size="sm">
+            <a
+              href={`${SITE_URL}/guides/mcp/`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Read the MCP guide
+            </a>
+          </Button>
+        </div>
       </section>
     </div>
   );

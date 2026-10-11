@@ -1,30 +1,30 @@
 "use client";
 
-import * as TabsPrimitive from "@radix-ui/react-tabs";
+// Adapted from the neobrutalism.dev Tabs (MIT), which is built on
+// Base UI: the active tab is a filled block. The list has no frame of
+// its own.
+import { Tabs as BaseTabs } from "@base-ui/react/tabs";
 import { cva, type VariantProps } from "class-variance-authority";
-import { type ComponentPropsWithoutRef, forwardRef } from "react";
 
 import { cn } from "../utils";
 
-const Tabs = forwardRef<
-  HTMLDivElement,
-  ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Root
-    ref={ref}
-    className={cn("flex flex-col gap-2", className)}
+const Tabs = ({ className, ...props }: BaseTabs.Root.Props) => (
+  <BaseTabs.Root
+    className={cn(
+      "flex flex-col gap-2 data-[orientation=vertical]:flex-row data-[orientation=vertical]:items-start",
+      className,
+    )}
     {...props}
   />
-));
-Tabs.displayName = "Tabs";
+);
 
 const tabsListVariants = cva(
-  "inline-flex w-fit items-center justify-center rounded-(--radius) text-foreground font-head",
+  "group/tabs-list inline-flex w-fit items-center justify-center text-fg font-head data-[orientation=vertical]:h-fit data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch",
   {
     variants: {
       variant: {
-        default: "border-b-2 border-border",
-        line: "gap-1 bg-transparent border-b-2 border-border",
+        default: "gap-1",
+        line: "gap-1 border-b-2 border-edge bg-transparent data-[orientation=vertical]:border-r-2 data-[orientation=vertical]:border-b-0",
       },
     },
     defaultVariants: {
@@ -33,51 +33,43 @@ const tabsListVariants = cva(
   },
 );
 
-const TabsList = forwardRef<
-  HTMLDivElement,
-  ComponentPropsWithoutRef<typeof TabsPrimitive.List> &
-    VariantProps<typeof tabsListVariants>
->(({ className, variant, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
+const TabsList = ({
+  className,
+  variant = "default",
+  ...props
+}: BaseTabs.List.Props & VariantProps<typeof tabsListVariants>) => (
+  <BaseTabs.List
+    data-variant={variant}
     className={cn(tabsListVariants({ variant }), className)}
     {...props}
   />
-));
-TabsList.displayName = "TabsList";
+);
 
-const TabsTrigger = forwardRef<
-  HTMLButtonElement,
-  ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Trigger
-    ref={ref}
+const TabsTrigger = ({ className, ...props }: BaseTabs.Tab.Props) => (
+  <BaseTabs.Tab
     className={cn(
-      "inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-head",
-      "whitespace-nowrap cursor-pointer transition-colors",
-      "border-b-2 border-b-transparent mb-[-2px]",
-      "text-foreground/60 hover:text-foreground",
-      "data-[state=active]:text-evm-green-300 data-[state=active]:border-b-evm-green-300",
-      "disabled:pointer-events-none disabled:opacity-50",
-      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+      "relative inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-(--radius) border-2 border-transparent px-3 py-1 text-sm font-head font-medium text-fg-muted outline-hidden transition-all hover:text-fg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background touch:min-h-11",
+      "data-disabled:pointer-events-none data-disabled:opacity-50",
+      "data-active:border-primary data-active:bg-primary data-active:text-primary-foreground",
+      "data-[orientation=vertical]:w-full data-[orientation=vertical]:justify-start [&_svg]:pointer-events-none [&_svg]:shrink-0",
+      // The `line` list marks the active tab with a bar, not a fill.
+      "after:pointer-events-none after:absolute after:hidden after:bg-primary after:opacity-0 after:transition-opacity group-data-[variant=line]/tabs-list:after:block data-[orientation=horizontal]:after:inset-x-0 data-[orientation=horizontal]:after:-bottom-1 data-[orientation=horizontal]:after:h-1",
+      "group-data-[variant=line]/tabs-list:data-active:border-transparent group-data-[variant=line]/tabs-list:data-active:bg-transparent group-data-[variant=line]/tabs-list:data-active:text-fg group-data-[variant=line]/tabs-list:data-active:after:opacity-100",
       className,
     )}
     {...props}
   />
-));
-TabsTrigger.displayName = "TabsTrigger";
+);
 
-const TabsContent = forwardRef<
-  HTMLDivElement,
-  ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn("flex-1 outline-none", className)}
+const TabsContent = ({ className, ...props }: BaseTabs.Panel.Props) => (
+  <BaseTabs.Panel
+    className={cn(
+      "flex-1 outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
+      className,
+    )}
     {...props}
   />
-));
-TabsContent.displayName = "TabsContent";
+);
 
 const TabsComponent = Object.assign(Tabs, {
   List: TabsList,

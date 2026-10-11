@@ -1,6 +1,5 @@
-import { PlusIcon } from "@heroicons/react/24/solid";
-import { Button, Input } from "@repo/ui";
-import { Search } from "@repo/ui/icons";
+import { Button, EmptyState, Input } from "@repo/ui";
+import { Plus } from "@repo/ui/icons";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useStore } from "zustand";
@@ -49,35 +48,32 @@ export function SpacesList() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center gap-2 px-2 py-3">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/45" />
-          <Input
-            placeholder="Search"
-            aria-label="Search spaces"
-            className="h-10 border border-evm-gray-800 pl-10 text-sm transition-colors hover:border-primary focus:border-primary focus:ring-0"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+      <div className="flex shrink-0 items-center gap-2.5 p-2.5">
+        <Input
+          variant="search"
+          placeholder="Search"
+          aria-label="Search spaces"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <Button
           type="button"
-          variant="outline"
+          variant="neutral"
           size="sm"
-          className="h-10 shrink-0 gap-1.5 shadow-none"
+          className="shrink-0"
           onClick={() => {
             // The route makes, or reuses, the placeholder space.
             navigate("/");
             setUi({ spaceView: "timeline" });
           }}
         >
-          <PlusIcon className="size-4" />
+          <Plus data-icon aria-hidden />
           New
         </Button>
       </div>
       <ul
         aria-label="Spaces"
-        className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-2 pb-3"
+        className="m-0 flex min-h-0 flex-1 list-none flex-col gap-2 overflow-y-auto px-2.5 pt-0.5 pb-3"
       >
         {shown.map((meta) => (
           <SpaceRow
@@ -89,8 +85,10 @@ export function SpacesList() {
           />
         ))}
         {shown.length === 0 && (
-          <li className="px-2 font-sans text-sm text-muted-foreground">
-            {index.length === 0 ? "No spaces yet." : "No space matches."}
+          <li>
+            <EmptyState>
+              {index.length === 0 ? "No spaces yet." : "No space matches."}
+            </EmptyState>
           </li>
         )}
       </ul>

@@ -1,4 +1,5 @@
-/** How long ago, in the fewest words. `now` and `then` in milliseconds. */
+/** How long ago, in the fewest words. `now` and `then` in milliseconds.
+ *  A moment ahead of `now` (another device's clock) is "just now". */
 export function ago(then: number, now: number): string {
   const seconds = Math.max(0, Math.round((now - then) / 1000));
   if (seconds < 45) return "just now";
@@ -9,7 +10,7 @@ export function ago(then: number, now: number): string {
   return day(then);
 }
 
-/** A day as the list of spaces writes it: "Oct 11, 2026". */
+/** A day: "Oct 11, 2026". */
 export function day(time: number): string {
   return new Date(time).toLocaleDateString("en", {
     month: "short",
@@ -28,4 +29,14 @@ export function clock(time: number, now: number): string {
   return at.toDateString() === new Date(now).toDateString()
     ? hour
     : `${day(time)}, ${hour}`;
+}
+
+/** A length of time: "7 min", "2 h 5 min". */
+export function duration(ms: number): string {
+  const minutes = Math.floor(Math.max(0, ms) / 60_000);
+  if (minutes < 1) return "under a minute";
+  if (minutes < 60) return `${minutes} min`;
+  const rest = minutes % 60;
+  const hours = Math.floor(minutes / 60);
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
 }

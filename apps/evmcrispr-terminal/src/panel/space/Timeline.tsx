@@ -1,5 +1,6 @@
 import { isReviewed } from "@evmcrispr/space";
-import { cn } from "@repo/ui";
+import { Button, Chip, EmptyState, Row, Time } from "@repo/ui";
+import { Trash2 } from "@repo/ui/icons";
 import { useMemo, useState } from "react";
 import { useApp } from "../../app/AppContext";
 import {
@@ -17,7 +18,6 @@ import { RunCard } from "./RunCard";
 import { type Filter, timelineRows, WINDOW } from "./rows";
 import { StdinRow } from "./StdinRow";
 import { TimelineHeader } from "./TimelineHeader";
-import { clock } from "./time";
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "All" },
@@ -51,44 +51,42 @@ function TimelineOf() {
   return (
     <div className="flex h-full flex-col">
       <TimelineHeader />
-      <fieldset className="flex shrink-0 gap-1.5 px-2 py-2">
+      <fieldset className="m-0 flex shrink-0 gap-2 border-0 p-2.5">
         <legend className="sr-only">Show</legend>
         {FILTERS.map(({ value, label }) => (
-          <button
+          <Chip
             key={value}
-            type="button"
-            aria-pressed={filter === value}
-            className={cn(
-              "cursor-pointer rounded-full border px-2.5 py-0.5 font-sans text-xs outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-              filter === value
-                ? "border-primary text-primary"
-                : "border-foreground/20 text-foreground/60 hover:text-foreground",
-            )}
-            onClick={() => setFilter(value)}
+            selected={filter === value}
+            onSelectedChange={() => setFilter(value)}
           >
             {label}
-          </button>
+          </Chip>
         ))}
       </fieldset>
       <PinnedRuns />
       <div
         ref={listRef}
         onScroll={onScroll}
-        className="min-h-0 flex-1 overflow-y-auto px-2 pb-2"
+        className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3"
       >
         {earlier > 0 && (
-          <button
+          <Button
             type="button"
-            className="mb-1 w-full cursor-pointer py-1 text-center font-sans text-xs text-foreground/55 hover:text-foreground"
+            variant="link"
+            size="row"
+            className="mb-2 w-full"
             onClick={() =>
               // What Clear for me hid comes back first.
               hidden > 0 ? void showEarlier(space) : setShown((n) => n + WINDOW)
             }
           >
             Show earlier ({earlier})
-          </button>
+          </Button>
         )}
-        <ol aria-label="Timeline" className="flex flex-col gap-1.5">
+        <ol
+          aria-label="Timeline"
+          className="m-0 flex list-none flex-col gap-2 p-0"
+        >
           {rows.map((row) =>
             row.kind === "revision" ? (
               <li key={row.entry.id}>
@@ -99,28 +97,33 @@ function TimelineOf() {
                 <RevisionGroup rows={row.rows} />
               </li>
             ) : row.kind === "run" ? (
-              <li key={row.entry.id}>
+              // Room for the card's shadow.
+              <li key={row.entry.id} className="pr-1 pb-1">
                 <RunCard runId={row.entry.runId} open={row.expanded} />
               </li>
             ) : (
-              <li
+              <Row
                 key={row.entry.id}
-                className="px-2 py-1 font-sans text-xs text-foreground/45"
-              >
-                You cleared the timeline · {clock(row.entry.ts, Date.now())}{" "}
-                <button
-                  type="button"
-                  className="cursor-pointer underline hover:text-foreground"
-                  onClick={() => setRemoving(row.entry.id)}
-                >
-                  Remove
-                </button>
-              </li>
+                as="li"
+                title="You cleared the timeline"
+                meta={<Time at={row.entry.ts} format="clock" />}
+                actions={
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    size="row"
+                    icon={<Trash2 />}
+                    onClick={() => setRemoving(row.entry.id)}
+                  >
+                    Remove
+                  </Button>
+                }
+              />
             ),
           )}
           {rows.length === 0 && (
-            <li className="px-2 py-4 font-sans text-sm text-foreground/45">
-              Nothing here yet.
+            <li>
+              <EmptyState>Nothing here yet.</EmptyState>
             </li>
           )}
         </ol>

@@ -112,7 +112,7 @@ body {
 }
 
 @media (max-width: 767px) {
-  /* On :root, not .App — vaul drawers portal to document.body and must
+  /* On :root, not .App — drawers portal to document.body and must
      inherit the mobile sans font too. */
   :root {
     --font-sans:
@@ -182,7 +182,7 @@ body {
   }
 
   .mobile-terminal button,
-  [data-vaul-drawer] button {
+  [data-slot="drawer-popup"] button {
     touch-action: manipulation;
     transform: none;
     transition-duration: 120ms;
@@ -192,15 +192,15 @@ body {
 
   .mobile-terminal button:hover,
   .mobile-terminal button:active,
-  [data-vaul-drawer] button:hover,
-  [data-vaul-drawer] button:active {
+  [data-slot="drawer-popup"] button:hover,
+  [data-slot="drawer-popup"] button:active {
     transform: none;
   }
 
   .mobile-terminal button:focus-visible,
-  [data-vaul-drawer] button:focus-visible,
+  [data-slot="drawer-popup"] button:focus-visible,
   .mobile-terminal textarea:focus-visible,
-  [data-vaul-drawer] input:focus-visible {
+  [data-slot="drawer-popup"] input:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
@@ -229,16 +229,16 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* `.mobile-terminal button` / `[data-vaul-drawer] button` are listed
+  /* `.mobile-terminal button` / `[data-slot="drawer-popup"] button` are listed
      explicitly: they match the specificity of the 120ms transition rule
      above, and this block comes later in the cascade, so it wins. */
   .App *,
   .App *::before,
   .App *::after,
   .mobile-terminal button,
-  [data-vaul-drawer],
-  [data-vaul-drawer] *,
-  [data-vaul-drawer] button,
+  [data-slot="drawer-popup"],
+  [data-slot="drawer-popup"] *,
+  [data-slot="drawer-popup"] button,
   [data-vaul-overlay] {
     scroll-behavior: auto;
     animation-duration: 0.01ms;

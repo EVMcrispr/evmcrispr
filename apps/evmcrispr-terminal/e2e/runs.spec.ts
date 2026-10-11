@@ -19,7 +19,10 @@ const execute = (page: Page) => page.getByRole("button", { name: "Execute" });
 
 /** Opens another space in this tab, and comes back to `id`. */
 async function leave(page: Page) {
-  await page.getByRole("button", { name: "New script" }).click();
+  // A new space is made from the list of spaces.
+  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("button", { name: "Back to Spaces" }).click();
+  await page.getByRole("button", { name: "New", exact: true }).click();
   await expect(page.locator(".monaco-editor .view-lines")).toContainText(
     "Example",
   );

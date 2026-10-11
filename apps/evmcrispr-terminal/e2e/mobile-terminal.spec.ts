@@ -33,7 +33,9 @@ for (const viewport of [
     await expect(page.getByText("DappNode Nexus")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Open script" }).click();
-    await expect(page.getByText("READ ONLY")).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Script review" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Review & execute" }),
     ).toBeVisible();
@@ -97,7 +99,9 @@ test("first run without an API key can still reach the script", async ({
   ).toBeVisible();
 
   await scriptButton.click();
-  await expect(page.getByText("READ ONLY")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Script review" }),
+  ).toBeVisible();
 
   // And back again — no dead end in either direction.
   await page.getByRole("button", { name: "Ask about script" }).click();
@@ -116,7 +120,9 @@ test("chat composer state survives a surface switch", async ({ page }) => {
   await composer.fill("send 1 xdai to vitalik.eth");
 
   await page.getByRole("button", { name: "Open script" }).click();
-  await expect(page.getByText("READ ONLY")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Script review" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Ask about script" }).click();
 
   // The chat panel stayed mounted, so the draft is still there.
@@ -419,7 +425,9 @@ test("the Space surface shows the timeline and the list of spaces, and leads bac
     "Viewing a revision",
   );
   await page.getByRole("button", { name: "Back to current" }).click();
-  await expect(page.getByText("READ ONLY")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Script review" }),
+  ).toBeVisible();
   await expect(page.locator(".monaco-editor")).toHaveCount(0);
 
   // The menu leads to the list of spaces.

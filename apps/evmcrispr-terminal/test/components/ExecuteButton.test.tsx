@@ -31,10 +31,10 @@ async function setup(wallet: Parameters<typeof fakeEvml>[1]) {
 
 beforeEach(() => setUi({ activeTab: "reference", spaceView: "list" }));
 
-test("Execute starts a run and shows its timeline; Cancel ends it", async () => {
+test("Execute starts a run and shows its timeline; Stop ends it", async () => {
   const t = await setup(() => new Promise(() => {}));
   renderInSpace(<ExecuteButton />, t);
-  expect(names()).toEqual(["Execute"]);
+  expect(names()).toEqual(["Simulate", "Execute"]);
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: "Execute" }));
     await settle();
@@ -43,12 +43,12 @@ test("Execute starts a run and shows its timeline; Cancel ends it", async () => 
     activeTab: "space",
     spaceView: "timeline",
   });
-  expect(names()).toEqual(["Cancel"]);
+  expect(names()).toEqual(["Stop"]);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Stop" }));
     await settle();
   });
-  expect(names()).toEqual(["Execute"]);
+  expect(names()).toEqual(["Simulate", "Execute"]);
 });
 
 test("a paused run offers the way to its card, where Resume is, and Cancel", async () => {

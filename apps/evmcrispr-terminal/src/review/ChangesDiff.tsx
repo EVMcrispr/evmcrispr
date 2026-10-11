@@ -1,5 +1,5 @@
 import type { DiffLine } from "@evmcrispr/space";
-import { cn } from "@repo/ui";
+import { Button, cn } from "@repo/ui";
 import { useState } from "react";
 
 /** Unchanged lines kept around a change; a longer run of them is folded. */
@@ -48,9 +48,9 @@ function Line({ line }: { line: DiffLine }) {
     <div
       className={cn(
         "flex gap-2 px-2 whitespace-pre-wrap break-all",
-        line.kind === "added" && "bg-evm-green-300/10 text-evm-green-300",
-        line.kind === "removed" && "bg-evm-pink-300/10 text-evm-pink-300",
-        line.kind === "same" && "text-foreground/45",
+        line.kind === "added" && "bg-success-surface text-added",
+        line.kind === "removed" && "bg-danger-surface text-removed",
+        line.kind === "same" && "text-fg-faint",
       )}
     >
       <span aria-hidden className="shrink-0 select-none">
@@ -68,13 +68,15 @@ function Fold({ lines }: { lines: DiffLine[] }) {
   const [open, setOpen] = useState(false);
   if (open) return lines.map((line, index) => <Line key={index} line={line} />);
   return (
-    <button
+    <Button
       type="button"
-      className="w-full cursor-pointer px-2 py-0.5 text-left font-sans text-xs text-foreground/45 hover:text-foreground"
+      variant="link"
+      size="row"
+      className="w-full justify-start text-fg-faint"
       onClick={() => setOpen(true)}
     >
       ⋯ {lines.length} unchanged lines
-    </button>
+    </Button>
   );
 }
 
@@ -86,7 +88,7 @@ export function ChangesDiff({ diff }: { diff: DiffLine[] }) {
     <div
       role="group"
       aria-label="Changes"
-      className="max-h-72 overflow-auto border border-foreground/12 bg-black/55 py-1 font-mono text-xs leading-relaxed"
+      className="max-h-72 overflow-auto border-2 border-line bg-surface-well py-1 font-mono text-caption leading-relaxed"
     >
       {foldUnchanged(diff).map((part, index) =>
         part.kind === "fold" ? (

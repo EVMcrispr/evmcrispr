@@ -1,3 +1,5 @@
+@import "./tokens.css";
+
 /* ── @evmcrispr/editor component styles ──────────────────────────
    Plain CSS (no Tailwind directives) shared by the prebuilt
    `@evmcrispr/editor/style.css` bundle and by apps that compile
@@ -7,35 +9,6 @@
    package components render — so embedding never touches the host
    page's `:root`, `body` or element styles. Portaled surfaces (the
    hover popover) re-apply `.evmcrispr-root` on themselves. */
-
-/* ── Design tokens (scoped, not :root) ───────────────────────── */
-.evmcrispr-root {
-  --radius: 7px;
-  --background: #000000;
-  --foreground: #f5f5f5;
-  --card: #292929;
-  --card-foreground: #f5f5f5;
-  --primary: #8cf467;
-  --primary-hover: #4bee11;
-  --primary-foreground: #121212;
-  --secondary: #1919b3;
-  --secondary-foreground: #8cf467;
-  --muted: #4d4d4d;
-  --muted-foreground: #adadad;
-  --accent: #8cf467;
-  --accent-foreground: #121212;
-  --destructive: #f467c4;
-  --destructive-foreground: #ffffff;
-  --ring: #8cf467;
-  --shadow-color: rgba(140, 244, 103, 0.5);
-  --shadow-color-secondary: rgba(72, 72, 229, 0.5);
-
-  /* Editor / viewer / hover all share the same mono stack so that
-     toggling between view ↔ edit and opening a hover popover never
-     reflows. */
-  --terminal-font-mono:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
 
 .evmcrispr-root,
 .evmcrispr-root *,

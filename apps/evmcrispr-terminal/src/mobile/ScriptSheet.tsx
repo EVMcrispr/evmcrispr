@@ -1,12 +1,6 @@
 import type { HoverRef } from "@evmcrispr/core";
-import {
-  ArrowLeftIcon,
-  CheckCircleIcon,
-  ClipboardDocumentIcon,
-  LockClosedIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/outline";
-import { Button, IconButton, toast } from "@repo/ui";
+import { BackButton, Badge, Button, IconButton, Notice, toast } from "@repo/ui";
+import { ClipboardCopy, Lock, Sparkles } from "@repo/ui/icons";
 import { useScript } from "../app/SpaceContext";
 import ShareScriptButton from "../components/scripts/ShareScriptButton";
 import { ScriptView } from "../editor/ScriptView";
@@ -44,35 +38,26 @@ export function ScriptSheet({
       className="flex min-h-0 flex-1 flex-col"
       aria-label="Script review"
     >
-      <div className="shrink-0 px-4 pb-3 pt-4">
-        <div className="flex items-start gap-3">
+      <div className="flex shrink-0 flex-col gap-2 px-3 pt-3 pb-2">
+        <div className="flex items-center gap-2">
           {entryIntent === "author" && (
-            <IconButton
-              type="button"
-              aria-label="Back to chat"
-              variant="ghost"
-              size="lg"
-              className="min-h-11 min-w-11"
-              onClick={onBackToChat}
-            >
-              <ArrowLeftIcon className="size-5" />
-            </IconButton>
+            <BackButton label="chat" onClick={onBackToChat} />
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-sans text-2xl font-semibold tracking-tight text-foreground">
+            <h1 className="m-0 truncate font-head text-display font-bold text-heading">
               {title || "Untitled script"}
             </h1>
             {entryIntent === "recipient" ? (
-              <p className="mt-1 flex items-center gap-1.5 font-sans text-xs text-foreground/50">
+              <p className="m-0 flex items-center gap-1.5 font-sans text-caption text-fg-faint">
                 {/* Only encrypted share envelopes may claim encryption —
                     plain pins and bare JSON envelopes are public. */}
-                {sharedEncrypted && <LockClosedIcon className="size-3.5" />}
+                {sharedEncrypted && <Lock aria-hidden className="size-3.5" />}
                 {sharedEncrypted
                   ? "Shared with you · Encrypted link"
                   : "Shared with you"}
               </p>
             ) : (
-              <p className="mt-1 font-sans text-xs text-foreground/45">
+              <p className="m-0 font-sans text-caption text-fg-faint">
                 Read-only here · edit through chat
               </p>
             )}
@@ -81,34 +66,28 @@ export function ScriptSheet({
           <IconButton
             type="button"
             aria-label="Copy script"
-            variant="outline"
+            variant="quiet"
             size="sm"
-            className="min-h-9 min-w-9 shadow-none"
+            tooltip={false}
             onClick={() => {
               void navigator.clipboard.writeText(script);
               toast.success("Script copied");
             }}
           >
-            <ClipboardDocumentIcon className="size-4" />
+            <ClipboardCopy aria-hidden className="size-4" />
           </IconButton>
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           {reviewState.status !== "error" && (
-            <div
-              className={`flex min-h-9 items-center gap-1.5 border px-2.5 font-sans text-xs ${
-                isReady
-                  ? "border-primary/40 text-primary"
-                  : "border-foreground/15 text-foreground/55"
-              }`}
-              role="status"
-            >
-              <CheckCircleIcon className="size-4" />
-              {reviewLabel(reviewState)}
-            </div>
+            <span role="status">
+              <Badge variant="tag" tone={isReady ? "success" : "neutral"} dot>
+                {reviewLabel(reviewState)}
+              </Badge>
+            </span>
           )}
           {reviewState.status === "ready" && (
-            <span className="font-sans text-xs text-foreground/45">
+            <span className="font-sans text-caption text-fg-faint">
               {reviewState.actions.length} resolved action
               {reviewState.actions.length === 1 ? "" : "s"}
             </span>
@@ -116,40 +95,32 @@ export function ScriptSheet({
         </div>
       </div>
 
-      <div className="mx-4 flex min-h-0 flex-1 flex-col overflow-hidden border border-foreground/15 bg-black/55 shadow-[0_18px_70px_rgba(0,0,0,0.38)]">
-        <div className="flex h-9 items-center justify-between border-b border-foreground/10 bg-foreground/[0.035] px-3">
-          <span className="font-mono text-xs font-semibold text-primary">
-            EVML SCRIPT
-          </span>
-          <span className="font-mono text-[10px] text-foreground/35">
-            READ ONLY
-          </span>
-        </div>
+      <div className="mx-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-(--radius) border-2 border-edge bg-surface-well">
         <div className="min-h-0 flex-1">
           <ScriptView onOpenDocs={onOpenDocs} />
         </div>
       </div>
 
-      <div className="mx-4 mt-3 flex shrink-0 items-center gap-2 border border-primary/25 bg-primary/5.5 px-3 py-2">
-        <CheckCircleIcon className="size-5 shrink-0 text-primary" />
-        <p className="font-sans text-xs text-foreground/65">
+      <div className="mx-3 mt-2 shrink-0">
+        <Notice tone="neutral" layout="inline">
           Nothing is sent until you review and confirm in your wallet.
-        </p>
+        </Notice>
       </div>
 
-      <div className="mobile-safe-bottom grid shrink-0 grid-cols-2 gap-2 px-4 pb-3 pt-3">
+      <div className="mobile-safe-bottom grid shrink-0 grid-cols-2 gap-3 px-3 pt-2 pb-3">
         <Button
           type="button"
-          variant="outline"
-          className="min-h-12 gap-2 border-foreground/20 px-3 font-sans text-xs shadow-none"
+          variant="neutral"
+          size="sm"
           onClick={onBackToChat}
         >
-          <SparklesIcon data-icon="inline-start" />
+          <Sparkles aria-hidden data-icon="inline-start" />
           Ask about script
         </Button>
         <Button
           type="button"
-          className="min-h-12 px-3 font-sans text-xs shadow-none"
+          variant="primary"
+          size="sm"
           onClick={onReview}
           disabled={
             reviewState.status === "validating" ||

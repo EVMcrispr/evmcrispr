@@ -4,8 +4,6 @@ import { lazy, Suspense, useEffect } from "react";
 import { ExecuteButton } from "../components/execution/ExecuteButton";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
-import NewScriptButton from "../components/scripts/NewScriptButton";
-import ShareScriptButton from "../components/scripts/ShareScriptButton";
 import { ScriptLoadState } from "../components/terminal/ScriptLoadState";
 import {
   RevisionPreview,
@@ -43,11 +41,11 @@ export function DesktopLayout({ route }: { route: SpaceRoute }) {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <StorageNotice />
-      <div className="w-full shrink-0 bg-evm-gray-900 px-6 py-6">
+      <div className="w-full shrink-0 bg-surface-0 px-6 py-6">
         <Header />
       </div>
 
-      <main className="flex min-h-0 flex-1 overflow-hidden bg-evm-gray-900 pl-2">
+      <main className="flex min-h-0 flex-1 overflow-hidden bg-surface-0 pl-2">
         {route.status === "ready" ? (
           <>
             <section className={SCRIPT_AREA}>
@@ -71,32 +69,25 @@ export function DesktopLayout({ route }: { route: SpaceRoute }) {
         )}
       </main>
 
-      <div className="shrink-0 bg-evm-gray-900">
+      <div className="shrink-0 bg-surface-0">
         <Footer />
       </div>
     </div>
   );
 }
 
-const SCRIPT_AREA = "flex basis-[70%] flex-col overflow-hidden bg-black pb-3";
-const PANEL_AREA = "flex basis-[30%] flex-col overflow-hidden bg-evm-gray-900";
+const SCRIPT_AREA =
+  "flex basis-[70%] flex-col overflow-hidden bg-surface-well pb-3";
+const PANEL_AREA = "flex basis-[30%] flex-col overflow-hidden bg-surface-0";
 
-/** The script area of the space on screen: its toolbar, the script as an
- *  editor or a view, and the run button. */
+/** The script area of the space on screen: the script as an editor or a
+ *  view, and the run button. A new space and the share link are in the
+ *  Space tab. */
 function DesktopSpace() {
   const { viewMode, setViewMode } = useViewMode();
   const previewed = usePreviewedRevision();
   return (
     <>
-      <div className="shrink-0 px-4 py-3">
-        <div className="flex w-full justify-end">
-          <div className="flex items-center gap-1">
-            <NewScriptButton />
-            <ShareScriptButton />
-          </div>
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-hidden px-4 pt-2 animate-fade-in">
         {previewed ? (
           <RevisionPreview revision={previewed} onOpenDocs={openDocs} />
@@ -109,7 +100,7 @@ function DesktopSpace() {
           <Suspense
             fallback={
               <div
-                className="flex h-full items-center justify-center text-sm text-foreground/40"
+                className="flex h-full items-center justify-center font-sans text-body text-fg-faint"
                 role="status"
               >
                 Loading editor…

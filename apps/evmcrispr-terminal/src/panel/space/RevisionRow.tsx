@@ -1,6 +1,22 @@
-import { isReviewed } from "@evmcrispr/space";
-import { ChevronRightIcon } from "@heroicons/react/24/solid";
-import { cn, toast } from "@repo/ui";
+import {
+  AuthorLabel,
+  Badge,
+  DiffStat,
+  IconButton,
+  Row as ListRow,
+  Menu,
+  Time,
+  toast,
+} from "@repo/ui";
+import {
+  CopyPlus,
+  Ellipsis,
+  Eye,
+  Link,
+  MessageSquare,
+  SquarePen,
+  Trash2,
+} from "@repo/ui/icons";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import pinJSON from "../../api/pinata/pin-json";
@@ -11,14 +27,12 @@ import {
   RowAction as Action,
   RevisionActions,
 } from "../../review/RevisionActions";
-import { askForReview } from "../../review/surface";
 import { removeEntry } from "../../space/cleaning";
 import { spaceFromEntry } from "../../space/derive";
 import { shareRevision } from "../../space/links";
 import { byOthers, revisionLabel } from "../../space/revision-label";
 import { Confirm, LeftBehind } from "./Confirm";
 import type { RevisionRow as Row } from "./rows";
-import { ago } from "./time";
 
 /** One recorded state of the script: who made it, what changed, and the
  *  ways to look at it or go back to it. */
@@ -30,33 +44,26 @@ export function RevisionRow({ row }: { row: Row }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [sharing, setSharing] = useState(false);
   const viewMode = useUi((s) => s.viewMode);
-  const markers = useMarkers();
   const { entry, parent } = row;
-  // Only the approved text is shared. A row holding it shares at once; a
-  // row holding the script as it is leads to the review first; any other
-  // text has to be loaded and reviewed before it can be shared.
-  const approved = isReviewed(entry.text, markers.approvedText);
-  const current = entry.text === space.getText();
-  const share = async () => {
-    setSharing(true);
+  // A revision that was shared hands its link back: the same one, made
+  // again of nothing. A script is shared from the header, once reviewed.
+  const copyLink = async () => {
     try {
       const shared = await shareRevision(space, entry.id, {
         pin: pinJSON,
         origin: window.location.origin,
         viewMode,
       });
-      if (shared.ok) {
-        await navigator.clipboard.writeText(shared.url);
-        toast.success("The link is copied to the clipboard");
-      } else if (shared.reason === "unreviewed")
-        toast("Review the script before sharing it");
+      if (!shared.ok) return;
+      await navigator.clipboard.writeText(shared.url);
+      toast.success("The link is copied to the clipboard");
     } catch {
       toast.error("The script could not be saved to IPFS");
     }
-    setSharing(false);
   };
+  // Never for what an export brought: its id is the export's.
+  const chat = !entry.unverified && chatId && chats.getChat(chatId);
   const { who, what, claimed } = revisionLabel(
     entry,
     useTimeline((timeline) => timeline.entries),
@@ -70,61 +77,32 @@ export function RevisionRow({ row }: { row: Row }) {
   };
 
   return (
-    <div className="bg-evm-gray-800">
-      <button
-        type="button"
-        aria-expanded={open}
-        className="flex w-full cursor-pointer items-start gap-1.5 px-2 py-1.5 text-left outline-hidden hover:bg-evm-gray-700 focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => setOpen(!open)}
-      >
-        <ChevronRightIcon
-          className={cn(
-            "mt-1 size-3 shrink-0 text-foreground/40 transition-transform",
-            open && "rotate-90",
-          )}
-        />
-        <span className="min-w-0 flex-1 font-sans text-sm">
-          <span
-            className={cn(
-              "font-semibold",
-              claimed ? "text-evm-orange-300" : "text-foreground/85",
-            )}
-          >
-            {who}
-          </span>{" "}
-          {claimed && (
-            <span className="text-foreground/45">(it names {claimed}) </span>
-          )}
-          <span className="text-foreground/70">{what}</span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-foreground/45">
-            <span>
-              <span className="text-evm-green-300">+{row.added}</span>{" "}
-              <span className="text-evm-pink-300">−{row.removed}</span>
-            </span>
-            <span>{ago(entry.ts, Date.now())}</span>
-            {row.shared && <span>shared</span>}
-            {row.unreviewed && (
-              <span className="text-evm-orange-300">unreviewed</span>
-            )}
-          </span>
-        </span>
-      </button>
-      {open && (
-        <div className="flex flex-wrap gap-1.5 px-7 pb-2">
-          <Action onClick={() => setUi({ previewRevisionId: entry.id })}>
-            View
-          </Action>
-          <Action onClick={() => load(entry.text, entry.id)}>
-            Load in editor
-          </Action>
-          {/* Offered for what someone else wrote, while the text before
-              it is still kept. */}
-          {byOthers(entry) && parent && (
-            <RevisionActions revisionId={entry.id} />
-          )}
-          {/* Never for what an export brought: its id is the export's. */}
-          {!entry.unverified && chatId && chats.getChat(chatId) && (
-            <Action
+    <>
+      <ListRow
+        wrap
+        open={open}
+        onOpenChange={setOpen}
+        title={
+          <>
+            <AuthorLabel name={who} claimed={claimed} /> {what}
+          </>
+        }
+        meta={
+          <>
+            <DiffStat added={row.added} removed={row.removed} />
+            <Time at={entry.ts} />
+            {row.shared && <Badge>shared</Badge>}
+            {row.unreviewed && <Badge tone="unverified">unreviewed</Badge>}
+          </>
+        }
+        // The way from a change to the chat it came from, while kept.
+        actions={
+          chat ? (
+            <IconButton
+              type="button"
+              variant="quiet"
+              size="sm"
+              aria-label="Open chat"
               onClick={() =>
                 setUi({
                   activeTab: "agents",
@@ -132,34 +110,61 @@ export function RevisionRow({ row }: { row: Row }) {
                 })
               }
             >
-              Open chat
-            </Action>
-          )}
-          <Action
-            onClick={async () => {
-              // Approved there, approved here; otherwise unreviewed.
-              const id = await spaceFromEntry(spaces, space, entry.text);
-              navigate(`/${id}`);
-            }}
+              <MessageSquare aria-hidden />
+            </IconButton>
+          ) : undefined
+        }
+      >
+        <Action
+          icon={<Eye />}
+          onClick={() => setUi({ previewRevisionId: entry.id })}
+        >
+          View
+        </Action>
+        {/* Offered for what someone else wrote, while the text before it
+            is still kept. */}
+        {byOthers(entry) && parent && <RevisionActions revisionId={entry.id} />}
+        <Menu>
+          <Menu.Trigger
+            render={
+              <IconButton
+                type="button"
+                variant="quiet"
+                size="sm"
+                aria-label="More actions"
+              />
+            }
           >
-            Open in new space
-          </Action>
-          {row.shared ? (
-            <Action onClick={() => void share()}>Copy link</Action>
-          ) : approved ? (
-            <Action onClick={() => !sharing && void share()}>
-              {sharing ? "Sharing…" : "Share"}
-            </Action>
-          ) : (
-            current && (
-              // The handler of the user's click, nothing awaited: the
-              // review opens on the script as it is now.
-              <Action onClick={() => askForReview(space)}>Share</Action>
-            )
-          )}
-          <Action onClick={() => setRemoving(true)}>Remove</Action>
-        </div>
-      )}
+            <Ellipsis aria-hidden />
+          </Menu.Trigger>
+          <Menu.Content align="start">
+            <Menu.Item onClick={() => load(entry.text, entry.id)}>
+              <SquarePen aria-hidden />
+              Load in editor
+            </Menu.Item>
+            <Menu.Item
+              onClick={async () => {
+                // Approved there, approved here; otherwise unreviewed.
+                const id = await spaceFromEntry(spaces, space, entry.text);
+                navigate(`/${id}`);
+              }}
+            >
+              <CopyPlus aria-hidden />
+              Open in new space
+            </Menu.Item>
+            {row.shared && (
+              <Menu.Item onClick={() => void copyLink()}>
+                <Link aria-hidden />
+                Copy link
+              </Menu.Item>
+            )}
+            <Menu.Item onClick={() => setRemoving(true)}>
+              <Trash2 aria-hidden />
+              Remove…
+            </Menu.Item>
+          </Menu.Content>
+        </Menu>
+      </ListRow>
       {removing && (
         <Confirm
           title="Remove this revision"
@@ -170,7 +175,7 @@ export function RevisionRow({ row }: { row: Row }) {
           <RemovalNotes entry={entry} label={`${who}, ${what}`} />
         </Confirm>
       )}
-    </div>
+    </>
   );
 }
 
@@ -241,31 +246,20 @@ function RemovalNotes({
 export function RevisionGroup({ rows }: { rows: Row[] }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="bg-evm-gray-800">
-      <button
-        type="button"
-        aria-expanded={open}
-        className="flex w-full cursor-pointer items-center gap-1.5 px-2 py-1.5 text-left font-sans text-sm outline-hidden hover:bg-evm-gray-700 focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => setOpen(!open)}
-      >
-        <ChevronRightIcon
-          className={cn(
-            "size-3 shrink-0 text-foreground/40 transition-transform",
-            open && "rotate-90",
-          )}
-        />
-        <span className="font-semibold text-foreground/85">You</span>
-        <span className="text-foreground/70">
-          edited the script · {rows.length} revisions
-        </span>
-      </button>
-      {open && (
-        <div className="flex flex-col gap-px pl-3">
-          {rows.map((row) => (
-            <RevisionRow key={row.entry.id} row={row} />
-          ))}
-        </div>
-      )}
-    </div>
+    <ListRow
+      open={open}
+      onOpenChange={setOpen}
+      title={
+        <>
+          <AuthorLabel name="You" /> edited the script · {rows.length} revisions
+        </>
+      }
+    >
+      <div className="flex w-full flex-col gap-2">
+        {rows.map((row) => (
+          <RevisionRow key={row.entry.id} row={row} />
+        ))}
+      </div>
+    </ListRow>
   );
 }

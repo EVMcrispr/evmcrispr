@@ -1,7 +1,7 @@
 import type { HoverRef } from "@evmcrispr/core";
 import { Viewer } from "@evmcrispr/editor";
 import { type RevisionEntry, titleLine } from "@evmcrispr/space";
-import { Button } from "@repo/ui";
+import { Button, Notice, Time } from "@repo/ui";
 import { useIsApprovedText, useSpace, useTimeline } from "../app/SpaceContext";
 import { setUi, useUi } from "../app/ui-store";
 
@@ -28,37 +28,31 @@ export function RevisionPreview({
   const back = () => setUi({ previewRevisionId: null });
   return (
     <div className="flex h-full flex-col">
-      <div
-        role="status"
-        className="flex shrink-0 flex-wrap items-center gap-2 border border-evm-yellow-300/40 bg-evm-yellow-300/5 px-3 py-1.5 font-sans text-sm"
+      <Notice
+        tone="warning"
+        layout="strip"
+        live
+        className="shrink-0"
+        action={
+          <>
+            <Button
+              variant="quiet"
+              size="row"
+              onClick={() => {
+                space.load(revision.text, "load", revision.id);
+                back();
+              }}
+            >
+              Load in editor
+            </Button>
+            <Button variant="quiet" size="row" onClick={back}>
+              Back to current
+            </Button>
+          </>
+        }
       >
-        <span className="min-w-0 flex-1 text-foreground/80">
-          Viewing a revision from{" "}
-          {new Date(revision.ts).toLocaleString("en", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shadow-none"
-          onClick={() => {
-            space.load(revision.text, "load", revision.id);
-            back();
-          }}
-        >
-          Load in editor
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="shadow-none"
-          onClick={back}
-        >
-          Back to current
-        </Button>
-      </div>
+        Viewing a revision from <Time at={revision.ts} format="clock" />
+      </Notice>
       <div className="min-h-0 flex-1">
         <Viewer
           script={revision.text}

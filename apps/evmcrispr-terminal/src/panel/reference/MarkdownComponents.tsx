@@ -1,4 +1,4 @@
-import { CodeBlock } from "@repo/ui";
+import { Button, CodeBlock } from "@repo/ui";
 import { FlaskConical } from "@repo/ui/icons";
 import type { Components } from "react-markdown";
 
@@ -49,7 +49,7 @@ export function rehypeExperimentalFlask() {
 function ExperimentalFlask() {
   return (
     <span title="Experimental" className="inline-block align-text-bottom">
-      <FlaskConical className="w-3.5 h-3.5" />
+      <FlaskConical aria-hidden className="size-3.5" />
     </span>
   );
 }
@@ -85,12 +85,12 @@ function Pre({ children }: React.ComponentProps<"pre">) {
       <CodeBlock
         code={codeProps.code}
         lang={codeProps.lang}
-        className="rounded-md border border-foreground/10 text-xs [&_pre]:p-3! [&_pre]:m-0! [&_pre]:bg-foreground/5! [&_code]:text-xs! [&_code]:bg-transparent! [&_code]:py-0.5! overflow-x-auto"
+        className="overflow-x-auto border-2 border-line text-caption [&_code]:bg-transparent! [&_code]:py-0.5! [&_code]:text-caption! [&_pre]:m-0! [&_pre]:bg-surface-well! [&_pre]:p-3!"
       />
     );
   }
   return (
-    <pre className="bg-foreground/5 border border-foreground/10 rounded-md p-3 overflow-x-auto text-xs">
+    <pre className="overflow-x-auto rounded-(--radius) border-2 border-line bg-surface-well p-3 text-caption">
       {children}
     </pre>
   );
@@ -99,7 +99,7 @@ function Pre({ children }: React.ComponentProps<"pre">) {
 function InlineCode({ children, ...props }: React.ComponentProps<"code">) {
   return (
     <code
-      className="text-evm-orange-300 bg-foreground/10 px-1 py-0.5 rounded text-xs"
+      className="bg-surface-active px-1 py-0.5 text-caption text-unverified"
       {...props}
     >
       {children}
@@ -113,7 +113,7 @@ function Anchor({ href, children, ...props }: React.ComponentProps<"a">) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-evm-green-300 underline"
+      className="text-success underline"
       {...props}
     >
       {children}
@@ -124,7 +124,7 @@ function Anchor({ href, children, ...props }: React.ComponentProps<"a">) {
 function Table({ children, ...props }: React.ComponentProps<"table">) {
   return (
     <div className="overflow-x-auto">
-      <table className="text-xs" {...props}>
+      <table className="text-caption" {...props}>
         {children}
       </table>
     </div>
@@ -148,13 +148,15 @@ export function createMarkdownComponents(
       const resolution = href ? (resolveDocLink?.(href) ?? null) : null;
       if (typeof resolution === "function") {
         return (
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="row"
+            className="inline-flex"
             onClick={resolution}
-            className="text-evm-green-300 underline"
           >
             {children}
-          </button>
+          </Button>
         );
       }
       if (resolution === "plain") return <span>{children}</span>;

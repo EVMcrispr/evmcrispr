@@ -1,12 +1,12 @@
 import type { ChatErrorInfo, ChatItem } from "@evmcrispr/ai";
+import { Button, cn, IconButton, Notice } from "@repo/ui";
 import {
-  ArrowDownIcon,
-  ArrowPathIcon,
-  CheckIcon,
-  ClipboardIcon,
-  Cog6ToothIcon,
-} from "@heroicons/react/24/solid";
-import { cn, IconButton } from "@repo/ui";
+  ArrowDown,
+  Check,
+  Clipboard,
+  RefreshCw,
+  Settings,
+} from "@repo/ui/icons";
 import { type CSSProperties, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -38,7 +38,7 @@ const WORKING_STATUSES = [
 ];
 
 const PROSE_CLASSES =
-  "prose prose-invert prose-base max-w-none wrap-break-word prose-headings:text-foreground prose-strong:text-foreground prose-code:text-evm-orange-300 prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:wrap-break-word prose-code:before:content-none prose-code:after:content-none prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10 prose-pre:rounded-md prose-pre:overflow-x-auto prose-li:text-foreground/80";
+  "prose prose-invert prose-base max-w-none wrap-break-word prose-headings:text-fg prose-strong:text-fg prose-code:text-unverified prose-code:bg-surface-active prose-code:px-1 prose-code:py-0.5 prose-code:text-caption prose-code:wrap-break-word prose-code:before:content-none prose-code:after:content-none prose-pre:bg-surface-well prose-pre:border-2 prose-pre:border-line prose-pre:overflow-x-auto prose-li:text-fg-muted";
 
 function CopyButton({
   text,
@@ -53,13 +53,13 @@ function CopyButton({
     <IconButton
       type="button"
       aria-label="Copy message"
-      variant="ghost"
+      variant="quiet"
       size="sm"
       className={cn(
-        "absolute right-0 top-0 transition-opacity",
+        "absolute top-0 right-0 transition-opacity",
         alwaysVisible
           ? "opacity-70"
-          : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+          : "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100",
       )}
       onClick={() => {
         void navigator.clipboard.writeText(text);
@@ -68,9 +68,9 @@ function CopyButton({
       }}
     >
       {copied ? (
-        <CheckIcon className="w-4 h-4 text-evm-green-300" />
+        <Check aria-hidden className="text-success" />
       ) : (
-        <ClipboardIcon className="w-4 h-4" />
+        <Clipboard aria-hidden />
       )}
     </IconButton>
   );
@@ -120,21 +120,18 @@ export function ChatMessageList({
       <div
         ref={listRef}
         onScroll={onScroll}
-        className={cn(
-          "h-full min-w-0 overflow-y-auto overflow-x-hidden px-2 py-2",
-          mobile ? "flex flex-col gap-4 px-4 py-5" : "flex flex-col gap-3",
-        )}
+        className="flex h-full min-w-0 flex-col gap-3.5 overflow-x-hidden overflow-y-auto p-2.5 touch:gap-4 touch:px-4 touch:py-5"
       >
         {items.length === 0 && (
           <div className="flex h-full flex-col">
-            <p className="font-sans text-xl font-semibold leading-tight text-foreground">
+            <p className="m-0 font-head text-display font-bold text-fg">
               What do you want to do on-chain?
             </p>
-            <p className="mt-2 max-w-sm font-sans text-sm leading-relaxed text-foreground/55">
+            <p className="m-0 mt-2 max-w-sm font-sans text-body text-fg-muted">
               Describe it in plain words. I’ll write the script, check it, and
               simulate it before anything runs for real.
             </p>
-            <p className="mt-3 border-l-2 border-primary/50 pl-3 font-sans text-xs text-foreground/45">
+            <p className="m-0 mt-3 border-l-2 border-primary pl-3 font-sans text-caption text-fg-faint">
               Nothing reaches your wallet until you review and confirm.
             </p>
             <div className="mt-auto pt-3">
@@ -147,7 +144,8 @@ export function ChatMessageList({
             return (
               <div
                 key={i}
-                className="rounded-md bg-foreground/10 px-3 py-2 text-base text-foreground whitespace-pre-wrap wrap-break-word"
+                // What the user said: a framed block on their side.
+                className="max-w-4/5 self-end whitespace-pre-wrap wrap-break-word border-2 border-edge bg-surface-active px-2.5 py-1.5 font-sans text-body text-fg"
               >
                 {item.text}
               </div>
@@ -180,19 +178,19 @@ export function ChatMessageList({
                   <IconButton
                     type="button"
                     aria-label="Regenerate response"
-                    variant="ghost"
+                    variant="quiet"
                     size="sm"
-                    className="mt-1 text-foreground/50"
+                    className="mt-1"
                     onClick={onRegenerate}
                   >
-                    <ArrowPathIcon className="w-4 h-4" />
+                    <RefreshCw aria-hidden />
                   </IconButton>
                 )}
             </div>
           );
         })}
         {isRunning && (
-          <div className="flex items-center gap-2 text-sm text-foreground/60">
+          <div className="flex items-center gap-2 font-sans text-body text-fg-muted">
             <span className="dappnode-tumble size-5" aria-hidden="true">
               {LOGO_LAYERS.flatMap((i) => [
                 <img
@@ -215,40 +213,41 @@ export function ChatMessageList({
           </div>
         )}
         {error && (
-          <p className="text-base text-red-400 wrap-break-word">
-            {error.message}
-            {/* An auth failure drops the key, so the panel has already
-                swapped to the settings screen — the only banner that still
-                needs a way out is the empty-balance one, and Recharge lives
-                in the same place. */}
-            {error.kind === "balance" && (
-              <>
-                {" "}
-                Recharge in{" "}
-                <button
+          <Notice
+            tone="danger"
+            // An auth failure drops the key, so the panel has already
+            // swapped to the settings screen: the only error that still
+            // needs a way out is the empty balance, and Recharge lives in
+            // the same place.
+            action={
+              error.kind === "balance" ? (
+                <Button
                   type="button"
+                  variant="quiet"
+                  size="sm"
                   onClick={onShowSettings}
-                  className="inline-flex items-center gap-1 align-baseline text-evm-green-300 hover:underline"
                 >
-                  <Cog6ToothIcon className="w-4 h-4" />
+                  <Settings data-icon aria-hidden />
                   Chat Settings
-                </button>
-                .
-              </>
-            )}
-          </p>
+                </Button>
+              ) : undefined
+            }
+          >
+            {error.message}
+            {error.kind === "balance" && " Recharge in Chat Settings."}
+          </Notice>
         )}
       </div>
       {!isAtBottom && items.length > 0 && (
         <IconButton
           type="button"
           aria-label="Scroll to bottom"
-          variant="outline"
+          variant="neutral"
           size="sm"
-          className="absolute bottom-3 right-3 rounded-full bg-background/90"
+          className="absolute right-3 bottom-3"
           onClick={scrollToBottom}
         >
-          <ArrowDownIcon className="w-4 h-4" />
+          <ArrowDown aria-hidden />
         </IconButton>
       )}
     </div>

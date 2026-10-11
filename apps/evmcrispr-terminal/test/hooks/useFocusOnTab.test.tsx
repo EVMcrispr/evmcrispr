@@ -27,10 +27,10 @@ function Panel() {
         <Tabs.Trigger value="space">Library</Tabs.Trigger>
         <Tabs.Trigger value="agents">Chat</Tabs.Trigger>
       </Tabs.List>
-      <Tabs.Content value="space" forceMount hidden={activeTab !== "space"}>
+      <Tabs.Content value="space" keepMounted>
         <LibInput />
       </Tabs.Content>
-      <Tabs.Content value="agents" forceMount hidden={activeTab !== "agents"}>
+      <Tabs.Content value="agents" keepMounted>
         <ChatBox />
       </Tabs.Content>
     </Tabs>

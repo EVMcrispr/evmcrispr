@@ -68,7 +68,7 @@ export default function HeroTerminal() {
     // stripped via className below.
     <div
       ref={containerRef}
-      className="flex-1 flex flex-col min-h-0 rounded-(--radius) border-2 border-evm-gray-800/75 bg-evm-gray-900 overflow-hidden"
+      className="flex-1 flex flex-col min-h-0 rounded-(--radius) border-2 border-edge bg-surface-1 shadow [--shadow-color:var(--edge-shadow)] overflow-hidden"
     >
       <Tabs
         value={String(active)}
@@ -81,7 +81,7 @@ export default function HeroTerminal() {
       >
         {/* The bottom margin keeps the triggers' hanging underline
             (mb-[-2px]) visible and gives the script some air. */}
-        <Tabs.List className="w-full border-b-0 mb-3">
+        <Tabs.List className="mb-3 w-full">
           {EXAMPLES.map((_, i) => (
             // The list is static and the index IS the tab identity.
             <Tabs.Trigger key={i} value={String(i)} className="flex-1">
@@ -110,7 +110,7 @@ export default function HeroTerminal() {
         // Monaco needs the frame's gray as a concrete color — it can't
         // inherit a background, and a transparent one breaks its overlay
         // features. Keep in sync with the `hero-terminal` CSS override.
-        editorBackground="#121212"
+        editorBackground="#111111"
         // Match the docs code blocks: gray surface instead of the default
         // black + green frame. The gray background comes from the
         // `hero-terminal` override in index.css (the editor package's

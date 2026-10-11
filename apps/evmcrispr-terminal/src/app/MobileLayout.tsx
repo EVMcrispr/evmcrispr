@@ -1,36 +1,24 @@
 import type { HoverRef } from "@evmcrispr/core";
-import { consoleEntries } from "@evmcrispr/editor";
-import { ChevronLeftIcon } from "@heroicons/react/24/outline";
-import { Button } from "@repo/ui";
+import { BackButton } from "@repo/ui";
 import { useEffect, useRef, useState } from "react";
-import { ScriptIO } from "../components/execution/ScriptIO";
 import { ScriptLoadState } from "../components/terminal/ScriptLoadState";
 import {
   RevisionPreview,
   usePreviewedRevision,
 } from "../editor/RevisionPreview";
 import { useKeyboardInsets } from "../hooks/useKeyboardInsets";
-import { useScriptInput } from "../hooks/useScriptInput";
 import { MobileHeader } from "../mobile/MobileHeader";
 import { MobileMenu } from "../mobile/MobileMenu";
-import { type ExecutionPhase, ReviewSheet } from "../mobile/ReviewSheet";
 import { ScriptContextBar } from "../mobile/ScriptContextBar";
 import { ScriptSheet } from "../mobile/ScriptSheet";
 import { AgentsTab } from "../panel/agents/AgentsTab";
-import { HeldRun } from "../panel/space/HeldRun";
 import { SpacesList } from "../panel/space/SpacesList";
 import { SpaceTab } from "../panel/space/SpaceTab";
-import {
-  askForReview,
-  closeReview,
-  showReview,
-  useSurface,
-} from "../review/surface";
+import { Review } from "../review/Review";
+import { askForReview, useSurface } from "../review/surface";
 import { useApproval, useReview } from "../review/useReview";
-import { followedBoxes } from "../runs/run-manager";
-import { useActiveRun, useExecute, useLatestRun } from "../runs/useRun";
+import { useLatestRun } from "../runs/useRun";
 import { useWallet } from "../wallet/WalletContext";
-import { useApp } from "./AppContext";
 import { useDocumentTitle } from "./DesktopLayout";
 import { useSpace } from "./SpaceContext";
 import { StorageNotice } from "./StorageNotice";
@@ -124,19 +112,14 @@ function MobileSpace({
   onChatSettingsOpenChange: (open: boolean) => void;
   onOpenReference: () => void;
 }) {
-  const { runs } = useApp();
   const space = useSpace();
-  const wallet = useWallet();
   const review = useReview();
-  const { input, setInput } = useScriptInput(space.id);
-  const execute = useExecute();
-  const active = useActiveRun();
   const run = useLatestRun();
   const previewed = usePreviewedRevision();
   const reviewOpen = useSurface().open;
-  // The sheet also comes up by itself (a run needs the user, or Execute
-  // was refused): only the user asking for the review, in `openReview`,
-  // puts changes and an Approve on it.
+  // The review also comes up by itself (Execute was refused): only the
+  // user asking for it, in `openReview`, puts changes and an Approve on
+  // it.
   const approval = useApproval();
 
   // Share-link recipients land on a read-only script: it is checked for
@@ -186,32 +169,27 @@ function MobileSpace({
     if (previewing) setSurface("script");
   }, [previewing, setSurface]);
 
-  // The run the sheet follows: its phase while the script runs, else how
-  // it stands or ended.
-  const phase: ExecutionPhase = !run
-    ? "idle"
-    : run.record.status === "running"
-      ? (run.phase ?? "running")
-      : run.record.status;
-  // The sheet opens by itself when the run of this space needs the user
-  // or ends, not for a run found there on arriving.
+  /** A run is followed in its card, in the space's timeline. */
+  const showRun = () => {
+    setUi({ spaceView: "timeline" });
+    setSurface("space");
+  };
+
+  // The timeline comes up by itself when the run of this space needs the
+  // user (it paused) or ends, not for a run found there on arriving.
+  const status = run?.record.status ?? null;
   const followed = useRef<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on a change of status
   useEffect(() => {
     const arrived = followed.current !== space.id;
     followed.current = space.id;
     if (arrived) return;
-    if (phase !== "idle" && phase !== "preparing" && phase !== "running")
-      showReview();
-  }, [space.id, phase]);
+    if (status !== null && status !== "running") showRun();
+  }, [space.id, status]);
 
-  const openReview = () => {
-    askForReview(space);
-    // A script the user approved is simulated for them. One they have not
-    // reviewed is only checked: simulating runs it, so that waits for
-    // their tap on the sheet.
-    if (review.unreviewed) void review.validate();
-    else if (review.simulation.status !== "ready") void review.simulate();
-  };
+  // The review opens on what the script is now. What it then does (check
+  // it, or simulate it when it is approved) is the review's.
+  const openReview = () => askForReview(space);
 
   const openDocs = (ref: HoverRef) => {
     setUi({ docsRequest: { ...ref, ts: Date.now() } });
@@ -254,15 +232,7 @@ function MobileSpace({
         {surface === "space" && (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="shrink-0 px-1 pt-1">
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-11 gap-1 px-2 font-sans text-xs shadow-none"
-                onClick={() => setSurface("agents")}
-              >
-                <ChevronLeftIcon data-icon="inline-start" />
-                Back to chat
-              </Button>
+              <BackButton label="chat" onClick={() => setSurface("agents")} />
             </div>
             <div className="min-h-0 flex-1">
               <SpaceTab />
@@ -288,35 +258,9 @@ function MobileSpace({
         </div>
       </main>
 
-      <ReviewSheet
-        open={reviewOpen}
-        onOpenChange={(open) => (open ? showReview() : closeReview())}
-        review={review}
-        approval={approval}
-        chainName={wallet.chainName}
-        address={wallet.address}
-        executionPhase={phase}
-        entries={run ? consoleEntries(run.record.console) : []}
-        followingBoxes={run ? followedBoxes(run.record.console) : 0}
-        ioControl={
-          <ScriptIO
-            key={space.id}
-            input={input}
-            disabled={active !== null}
-            onChange={setInput}
-            output={run?.record.output}
-          />
-        }
-        errors={run?.record.errors ?? []}
-        executed={run?.executed ?? []}
-        onCancel={() => active && runs.cancel(active.record.id)}
-        heldRun={active && <HeldRun run={active} />}
-        onExecute={(shown) => void execute(shown)}
-        onConnect={() => {
-          closeReview();
-          wallet.connectWallet();
-        }}
-      />
+      {reviewOpen && (
+        <Review sheet review={review} approval={approval} onRun={showRun} />
+      )}
     </>
   );
 }

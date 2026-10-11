@@ -1,3 +1,4 @@
+import { Button, Notice } from "@repo/ui";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   type ActionDescription,
@@ -5,8 +6,11 @@ import {
   chainLabel,
 } from "../../runs/action-summary";
 
-const mono = "break-all font-mono text-[11px] text-foreground/70";
-const label = "shrink-0 font-sans text-[11px] text-foreground/45";
+const mono = "break-all font-mono text-caption text-fg-muted";
+const label = "shrink-0 font-sans text-caption text-fg-faint";
+const block =
+  "m-0 max-h-48 overflow-auto whitespace-pre-wrap rounded-(--radius) border-2 border-line bg-surface-well p-2 font-mono text-caption text-fg-muted";
+const said = "m-0 font-sans text-caption text-fg-muted";
 
 /** A value shown whole, with a way to copy it exactly. */
 function Copyable({ value }: { value: string }) {
@@ -19,9 +23,11 @@ function Copyable({ value }: { value: string }) {
   return (
     <span className={mono}>
       {value}{" "}
-      <button
+      <Button
         type="button"
-        className="cursor-pointer font-sans text-[11px] text-primary underline-offset-2 hover:underline"
+        variant="link"
+        size="row"
+        className="inline-flex"
         aria-label={`Copy ${value}`}
         onClick={() => {
           void navigator.clipboard?.writeText(value);
@@ -29,13 +35,13 @@ function Copyable({ value }: { value: string }) {
         }}
       >
         {copied ? "copied" : "copy"}
-      </button>
+      </Button>
     </span>
   );
 }
 
 const Row = ({ name, children }: { name: string; children: ReactNode }) => (
-  <p className="flex gap-2">
+  <p className="m-0 flex gap-2">
     <span className={label}>{name}</span>
     <span className="min-w-0">{children}</span>
   </p>
@@ -44,24 +50,18 @@ const Row = ({ name, children }: { name: string; children: ReactNode }) => (
 /** Something long, closed by default and opened to its exact value. */
 const Expand = ({ summary, value }: { summary: string; value: string }) => (
   <details>
-    <summary className="cursor-pointer font-sans text-[11px] text-foreground/55">
+    <summary className="cursor-pointer font-sans text-caption text-fg-muted">
       {summary}
     </summary>
-    <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all bg-black/40 p-1.5 font-mono text-[11px] text-foreground/70">
-      {value}
-    </pre>
+    <pre className={`${block} break-all`}>{value}</pre>
   </details>
 );
 
 function Warnings({ warnings }: { warnings: string[] }) {
   return warnings.map((warning) => (
-    <p
-      key={warning}
-      role="alert"
-      className="font-sans text-xs text-evm-yellow-300"
-    >
+    <Notice key={warning} tone="warning" layout="inline" urgent>
       {warning}
-    </p>
+    </Notice>
   ));
 }
 
@@ -90,8 +90,7 @@ function Call({
       {call.value && (
         <Row name="value">
           <span className={mono} title={`${call.wei} wei`}>
-            {call.value}{" "}
-            <span className="text-foreground/45">({call.wei} wei)</span>
+            {call.value} <span className="text-fg-faint">({call.wei} wei)</span>
           </span>
         </Row>
       )}
@@ -124,32 +123,30 @@ export function ActionDetails({
 }) {
   const { calls, signing, steps, notes, chainId } = description;
   return (
-    <div className="flex flex-col gap-1.5 border border-foreground/12 bg-foreground/2.5 px-2 py-1.5">
-      <p className="flex items-baseline justify-between gap-3 font-sans text-sm">
-        <span className="font-semibold">{description.title}</span>
+    <div className="flex flex-col gap-1.5 rounded-(--radius) border-2 border-line bg-surface-1 px-2.5 py-2">
+      <p className="m-0 flex items-baseline justify-between gap-3 font-sans text-body">
+        <span className="font-semibold text-fg">{description.title}</span>
         {chainId !== undefined && (
-          <span className="shrink-0 text-xs text-foreground/60">
+          <span className="shrink-0 text-caption text-fg-muted">
             {chainLabel(chainId)}
           </span>
         )}
       </p>
       {calls.length === 0 && !signing && !steps && (
-        <p className={mono}>{description.detail}</p>
+        <p className={`m-0 ${mono}`}>{description.detail}</p>
       )}
       {calls.length > 1 && (
-        <p className="font-sans text-xs text-foreground/60">
-          {calls.length} calls, sent together:
-        </p>
+        <p className={said}>{calls.length} calls, sent together:</p>
       )}
       {calls.map((call, index) => (
         <div
           key={index}
           className={
-            calls.length > 1 ? "border-l border-foreground/15 pl-2" : undefined
+            calls.length > 1 ? "border-l-2 border-line pl-2" : undefined
           }
         >
           {calls.length > 1 && (
-            <p className="font-sans text-xs text-foreground/60">
+            <p className={said}>
               {index + 1}. {call.title}
             </p>
           )}
@@ -160,9 +157,7 @@ export function ActionDetails({
       {signing?.kind === "message" && (
         <>
           {signing.text !== undefined && (
-            <pre className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word bg-black/40 p-1.5 font-mono text-[11px] text-foreground/80">
-              {signing.text}
-            </pre>
+            <pre className={`${block} wrap-break-word`}>{signing.text}</pre>
           )}
           <Expand summary="The bytes to sign" value={signing.hex} />
         </>
@@ -193,22 +188,20 @@ export function ActionDetails({
           <Row name="method">
             <span className={mono}>{signing.method}</span>
           </Row>
-          <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all bg-black/40 p-1.5 font-mono text-[11px] text-foreground/70">
-            {signing.raw}
-          </pre>
+          <pre className={`${block} break-all`}>{signing.raw}</pre>
         </>
       )}
 
       {steps && (
-        <ol className="flex flex-col gap-1">
+        <ol className="m-0 flex list-none flex-col gap-1 p-0">
           <li className={mono}>{description.detail}</li>
           {steps.map((step, index) => (
-            <li key={index} className="border-l border-foreground/15 pl-2">
-              <p className="font-sans text-xs text-foreground/60">
+            <li key={index} className="border-l-2 border-line pl-2">
+              <p className={said}>
                 {index + 1}. {step.label}
               </p>
               {step.call && <Call call={step.call} showChain={false} />}
-              {step.note && <p className={mono}>{step.note}</p>}
+              {step.note && <p className={`m-0 ${mono}`}>{step.note}</p>}
             </li>
           ))}
         </ol>
@@ -218,13 +211,13 @@ export function ActionDetails({
         <Warnings warnings={[description.warning]} />
       )}
       {(calls.length > 0 || steps) && (
-        <p className="font-sans text-[11px] text-foreground/45">
+        <p className="m-0 font-sans text-caption text-fg-faint">
           Only a few risky calls are recognised here: no warning does not mean a
           call is safe.
         </p>
       )}
       {notes.map((note) => (
-        <p key={note} className="font-sans text-xs text-foreground/60">
+        <p key={note} className={said}>
           {note}
         </p>
       ))}

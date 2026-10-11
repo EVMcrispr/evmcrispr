@@ -73,8 +73,8 @@ function EditorDropZone({
     >
       {children}
       {isDragging && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-evm-green-300 bg-evm-gray-900/80 animate-fade-in">
-          <span className="font-mono text-evm-green-300">
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-success bg-surface-0 opacity-90 animate-fade-in">
+          <span className="font-mono text-success">
             Drop file to upload to IPFS
           </span>
         </div>

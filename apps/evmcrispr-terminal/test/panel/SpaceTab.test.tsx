@@ -47,6 +47,19 @@ async function setup(
 
 beforeEach(() => setUi({ spaceView: "timeline", previewRevisionId: null }));
 
+/** Picks an item of a row's or a card's "⋯" menu: the first one open. */
+const more = async (item: string) => {
+  await act(async () => {
+    const [trigger] = screen.getAllByRole("button", { name: "More actions" });
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    await settle();
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("menuitem", { name: item }));
+    await settle();
+  });
+};
+
 test("lists spaces with their marks, opens one and removes one", async () => {
   const t = await setup();
   const other = await t.app.spaces.create({ text: "# Other", source: "user" });
@@ -133,7 +146,7 @@ test("shows a revision per assistant turn with its explanation, and collapses th
   expect(turn.textContent).toContain("unreviewed");
 });
 
-test("Load in editor loads an assistant's revision without approving it; Restore to before goes back reviewed", async () => {
+test("Undo this change on an assistant's row goes back reviewed; Load in editor loads its revision without approving it", async () => {
   const t = await setup("# Pay\nexec 1");
   t.space.editAsTurn("t", { kind: "write", text: "# Pay\nexec evil" });
   t.space.endTurn("t", "Changed the target.");
@@ -143,22 +156,18 @@ test("Load in editor loads an assistant's revision without approving it; Restore
 
   fireEvent.click(screen.getByText("Changed the target."));
   await act(async () =>
-    fireEvent.click(screen.getByRole("button", { name: "Restore to before" })),
+    fireEvent.click(screen.getByRole("button", { name: "Undo this change" })),
   );
   expect(t.space.getText()).toBe("# Pay\nexec 1");
   expect(reviewed()).toBe(true);
-  expect(
-    screen.getByText("restored the script to before a change"),
-  ).toBeTruthy();
+  expect(screen.getByText("reverted a change")).toBeTruthy();
 
-  await act(async () =>
-    fireEvent.click(screen.getByRole("button", { name: "Load in editor" })),
-  );
+  await more("Load in editor");
   expect(t.space.getText()).toBe("# Pay\nexec evil");
   expect(reviewed()).toBe(false);
 });
 
-test("Restore to before is offered only for what someone else wrote", async () => {
+test("Undo this change is offered only for what someone else wrote", async () => {
   const t = await setup();
   applyText(t.space.text, "# Pay\nexec 2", ORIGIN.user);
   t.space.record("user");
@@ -168,12 +177,15 @@ test("Restore to before is offered only for what someone else wrote", async () =
   fireEvent.click(screen.getByText("edited the script · 2 revisions"));
   for (const what of ["created the script", "edited the script"])
     fireEvent.click(screen.getByText(what));
-  expect(
-    screen.queryByRole("button", { name: "Restore to before" }),
-  ).toBeNull();
-  expect(screen.getAllByRole("button", { name: "Load in editor" }).length).toBe(
+  expect(screen.queryByRole("button", { name: "Undo this change" })).toBeNull();
+  // Each open row has its menu, where Load in editor is.
+  expect(screen.getAllByRole("button", { name: "More actions" }).length).toBe(
     2,
   );
+  fireEvent.click(screen.getByText("By the assistant."));
+  expect(
+    screen.getAllByRole("button", { name: "Undo this change" }),
+  ).toHaveLength(1);
 });
 
 test("View shows a revision without loading it", async () => {
@@ -186,7 +198,7 @@ test("View shows a revision without loading it", async () => {
   expect(t.space.getText()).toBe("# Pay\nexec 1");
 });
 
-test("a run is a card, pinned while it runs, with Resume and Cancel when paused", async () => {
+test("a run is a card, pinned while it runs, with Resume and Cancel when paused and Stop while it runs", async () => {
   let confirm!: (value: unknown) => void;
   const t = await setup(
     "print 1",
@@ -198,7 +210,9 @@ test("a run is a card, pinned while it runs, with Resume and Cancel when paused"
   if (!started.ok) throw new Error(started.reason);
   await act(settle);
   const pinned = () => screen.getByRole("list", { name: "Unfinished runs" });
-  expect(pinned().textContent).toContain("Run Running");
+  expect(
+    within(pinned()).getByRole("button", { name: /^Run\s*Running/ }),
+  ).toBeTruthy();
 
   // The user leaves; the prompt already open is confirmed; the next waits.
   await act(async () => {
@@ -211,7 +225,9 @@ test("a run is a card, pinned while it runs, with Resume and Cancel when paused"
   expect(card.textContent).toContain("Paused: you opened another space");
   expect(card.textContent).toContain("Contract call");
   expect(card.textContent).toContain(to);
-  expect(pinned().textContent).toContain("Run Paused");
+  expect(
+    within(pinned()).getByRole("button", { name: /^Run\s*Paused/ }),
+  ).toBeTruthy();
   // The pinned row leads to the card; it has no Resume of its own.
   expect(within(pinned()).queryByRole("button", { name: "Resume" })).toBeNull();
   expect(t.evml.attempts).toBe(1);
@@ -224,7 +240,7 @@ test("a run is a card, pinned while it runs, with Resume and Cancel when paused"
   expect(screen.getByRole("region", { name: "Run, Running" })).toBeTruthy();
 
   await act(async () => {
-    fireEvent.click(within(pinned()).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(within(pinned()).getByRole("button", { name: "Stop" }));
     await started.ended;
   });
   expect(screen.queryByRole("list", { name: "Unfinished runs" })).toBeNull();
@@ -293,13 +309,15 @@ test("‹ Spaces goes to the list and counts runs paused in other spaces", async
   t.app.changes.announce({ store: "spaces", key: other });
   t.render();
   await act(settle);
-  const back = screen.getByRole("button", { name: /Spaces/ });
-  expect(back.textContent).toContain("1");
+  const back = screen.getByRole("button", { name: "Back to Spaces" });
+  expect(
+    screen.getByTitle("Runs paused in other spaces").textContent,
+  ).toContain("1");
   fireEvent.click(back);
   expect(screen.getByRole("list", { name: "Spaces" })).toBeTruthy();
 });
 
-test("Revert this change on an assistant's row takes that change out and keeps what was typed after", async () => {
+test("Undo this change on an assistant's row takes that change out and keeps what was typed after; when it cannot, Restore to before is offered", async () => {
   const t = await setup("# Pay\nexec 1\nexec 2");
   t.space.editAsTurn("t", { kind: "write", text: "# Pay\nexec evil\nexec 2" });
   t.space.endTurn("t", "Changed the target.");
@@ -307,7 +325,7 @@ test("Revert this change on an assistant's row takes that change out and keeps w
   t.render();
   fireEvent.click(screen.getByText("Changed the target."));
   await act(async () =>
-    fireEvent.click(screen.getByRole("button", { name: "Revert this change" })),
+    fireEvent.click(screen.getByRole("button", { name: "Undo this change" })),
   );
   expect(t.space.getText()).toBe("# Pay\nexec 1\nexec 2\nexec 3");
   expect(screen.getByText("reverted a change")).toBeTruthy();
@@ -315,7 +333,7 @@ test("Revert this change on an assistant's row takes that change out and keeps w
   act(() => void t.space.undo.undo());
   applyText(t.space.text, "# Pay\nexec mine\nexec 2\nexec 3", ORIGIN.user);
   await act(async () =>
-    fireEvent.click(screen.getByRole("button", { name: "Revert this change" })),
+    fireEvent.click(screen.getByRole("button", { name: "Undo this change" })),
   );
   expect(t.space.getText()).toBe("# Pay\nexec mine\nexec 2\nexec 3");
   expect(screen.getByRole("alert").textContent).toContain(

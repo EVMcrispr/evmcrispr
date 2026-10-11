@@ -1,13 +1,18 @@
 import {
-  ChevronLeftIcon,
-  EllipsisVerticalIcon,
-} from "@heroicons/react/24/solid";
-import { Menu, toast } from "@repo/ui";
+  BackButton,
+  Badge,
+  IconButton,
+  Menu,
+  PanelHeader,
+  toast,
+} from "@repo/ui";
+import { EllipsisVertical } from "@repo/ui/icons";
 import { useState } from "react";
 import { useStore } from "zustand";
 import { useApp } from "../../app/AppContext";
 import { useScript, useSpace, useTimeline } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
+import ShareScriptButton from "../../components/scripts/ShareScriptButton";
 import {
   clearForMe,
   clearTimeline,
@@ -16,8 +21,8 @@ import {
 import { Confirm, LeftBehind } from "./Confirm";
 import { ExportDialog } from "./ExportDialog";
 
-/** The way back to the list, the space's title, and its menu: export and
- *  the cleaning actions. The count says how many other spaces have a run
+/** The way back to the list, the space's title, the share link of its
+ *  script, and its menu: export and the cleaning actions. The count says how many other spaces have a run
  *  waiting for the user. */
 export function TimelineHeader() {
   const { spaces, me } = useApp();
@@ -37,59 +42,66 @@ export function TimelineHeader() {
         .length,
   );
   return (
-    <div className="flex shrink-0 items-center gap-2 px-2 pt-3">
-      <button
-        type="button"
-        className="flex shrink-0 cursor-pointer items-center gap-0.5 font-sans text-sm text-foreground/70 outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => setUi({ spaceView: "list" })}
-      >
-        <ChevronLeftIcon className="size-4" />
-        Spaces
-        {pausedElsewhere > 0 && (
-          <span
-            className="ml-1 rounded-full bg-evm-yellow-300 px-1.5 text-xs font-semibold text-evm-gray-900"
-            title="Runs paused in other spaces"
-          >
-            <span className="sr-only">Runs paused in other spaces: </span>
-            {pausedElsewhere}
-          </span>
-        )}
-      </button>
-      <h2 className="min-w-0 flex-1 truncate text-right font-head text-base text-evm-yellow-300">
-        {title || "Untitled"}
-      </h2>
-      <Menu>
-        <Menu.Trigger asChild>
-          <button
-            type="button"
-            aria-label="Space menu"
-            className="shrink-0 cursor-pointer p-1 text-foreground/60 outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <EllipsisVerticalIcon className="size-5" />
-          </button>
-        </Menu.Trigger>
-        <Menu.Content align="end">
-          <Menu.Item onSelect={() => setAsking("export")}>
-            Export space…
-          </Menu.Item>
-          <Menu.Item
-            onSelect={() => {
-              void clearForMe(space, Date.now());
-              toast("Hidden for you. Show earlier brings it back.");
-            }}
-          >
-            Clear for me
-          </Menu.Item>
-          <Menu.Item onSelect={() => setAsking("clear")}>
-            Clear timeline…
-          </Menu.Item>
-          {imported > 0 && (
-            <Menu.Item onSelect={() => setAsking("imported")}>
-              Remove imported records…
-            </Menu.Item>
-          )}
-        </Menu.Content>
-      </Menu>
+    <>
+      <PanelHeader
+        className="shrink-0"
+        emphasis="title"
+        title={title || "Untitled"}
+        back={
+          <BackButton
+            label="Spaces"
+            onClick={() => setUi({ spaceView: "list" })}
+          />
+        }
+        actions={
+          <>
+            {pausedElsewhere > 0 && (
+              <span title="Runs paused in other spaces">
+                <Badge variant="count" tone="warning">
+                  <span className="sr-only">Runs paused in other spaces: </span>
+                  {pausedElsewhere}
+                </Badge>
+              </span>
+            )}
+            <ShareScriptButton />
+            <Menu>
+              <Menu.Trigger
+                render={
+                  <IconButton
+                    type="button"
+                    variant="quiet"
+                    size="sm"
+                    aria-label="Space menu"
+                  />
+                }
+              >
+                <EllipsisVertical aria-hidden />
+              </Menu.Trigger>
+              <Menu.Content align="end">
+                <Menu.Item onClick={() => setAsking("export")}>
+                  Export space…
+                </Menu.Item>
+                <Menu.Item
+                  onClick={() => {
+                    void clearForMe(space, Date.now());
+                    toast("Hidden for you. Show earlier brings it back.");
+                  }}
+                >
+                  Clear for me
+                </Menu.Item>
+                <Menu.Item onClick={() => setAsking("clear")}>
+                  Clear timeline…
+                </Menu.Item>
+                {imported > 0 && (
+                  <Menu.Item onClick={() => setAsking("imported")}>
+                    Remove imported records…
+                  </Menu.Item>
+                )}
+              </Menu.Content>
+            </Menu>
+          </>
+        }
+      />
       {asking === "export" && <ExportDialog onClose={() => setAsking(null)} />}
       {asking === "clear" && (
         <Confirm
@@ -129,6 +141,6 @@ export function TimelineHeader() {
           <LeftBehind action="removeImported" />
         </Confirm>
       )}
-    </div>
+    </>
   );
 }

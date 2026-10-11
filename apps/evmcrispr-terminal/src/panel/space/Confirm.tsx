@@ -1,4 +1,4 @@
-import { Button, Dialog } from "@repo/ui";
+import { Button, Overlay } from "@repo/ui";
 import type { ReactNode } from "react";
 import { type CleaningAction, leftBehind } from "../../space/cleaning";
 
@@ -21,40 +21,32 @@ export function Confirm({
   onClose(): void;
 }) {
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Content
-        size="sm"
-        className="border-evm-pink-300 outline-hidden"
-        tabIndex={-1}
-        onOpenAutoFocus={(event: Event) => {
-          event.preventDefault();
-          (event.currentTarget as HTMLElement).focus();
-        }}
-      >
-        <Dialog.Header className="border-evm-pink-300 bg-black text-evm-pink-300">
-          {title}
-        </Dialog.Header>
-        <div className="flex flex-col gap-3 px-4 pb-4 font-sans text-sm text-foreground/80">
-          {children}
-          <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className="bg-evm-pink-300 text-black"
-              onClick={() => {
-                onConfirm();
-                onClose();
-              }}
-            >
-              {action}
-            </Button>
-          </div>
-        </div>
-      </Dialog.Content>
-    </Dialog>
+    <Overlay
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={title}
+      tone="danger"
+      footer={
+        <>
+          <Button type="button" variant="neutral" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+          >
+            {action}
+          </Button>
+        </>
+      }
+    >
+      {children}
+    </Overlay>
   );
 }
 
@@ -62,7 +54,7 @@ export function Confirm({
  *  what each reaches (`REACH`). */
 export function LeftBehind({ action }: { action: CleaningAction }) {
   return (
-    <div className="text-evm-yellow-300">
+    <div className="text-warning">
       <p>What this does not reach:</p>
       <ul className="list-disc pl-5">
         {leftBehind(action).map((line) => (

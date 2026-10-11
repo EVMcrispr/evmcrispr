@@ -1,3 +1,4 @@
+import { Badge, Row } from "@repo/ui";
 import { FlaskConical } from "@repo/ui/icons";
 import type { ReferenceEntry } from "../../data/reference-data";
 
@@ -9,32 +10,25 @@ export function ReferenceItem({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <Row
       onClick={onClick}
-      className="w-full text-left px-3 py-2 rounded hover:bg-foreground/5 transition-colors leading-tight"
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-mono text-lg text-foreground truncate">
-          {entry.kind === "helper" ? `@${entry.name}` : entry.name}
-        </span>
-        {entry.experimental && (
-          <span title="Experimental" className="shrink-0">
-            <FlaskConical className="w-4 h-4" />
+      title={
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate font-mono text-fg">
+            {entry.kind === "helper" ? `@${entry.name}` : entry.name}
           </span>
-        )}
-        <span
-          className={`text-sm ${entry.kind === "command" ? "text-evm-blue-300" : "text-evm-orange-300"}`}
-        >
-          {entry.kind === "command" ? "cmd" : "@helper"}
+          {entry.experimental && (
+            <span title="Experimental" className="shrink-0">
+              <FlaskConical aria-hidden className="size-3.5" />
+            </span>
+          )}
+          <Badge tone={entry.kind === "command" ? "info" : "warning"}>
+            {entry.kind === "command" ? "cmd" : "@helper"}
+          </Badge>
+          {entry.module !== "std" && <Badge>{entry.module}</Badge>}
         </span>
-        {entry.module !== "std" && (
-          <span className="text-sm text-foreground/40">{entry.module}</span>
-        )}
-      </div>
-      <p className="text-base text-foreground/60 truncate mt-0.5">
-        {entry.description}
-      </p>
-    </button>
+      }
+      meta={<span className="truncate">{entry.description}</span>}
+    />
   );
 }

@@ -197,7 +197,6 @@ test("the review is live for approving only when the user asked: it has one open
     "app/MobileLayout.tsx",
     "components/execution/ExecuteButton.tsx",
     "components/scripts/ShareScriptButton.tsx",
-    "panel/space/RevisionRow.tsx",
     "review/useReview.ts",
   ]);
 });

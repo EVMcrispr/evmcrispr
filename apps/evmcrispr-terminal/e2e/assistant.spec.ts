@@ -120,7 +120,10 @@ test("the chat survives a reload and reopens; it stays open in another space and
   await expect(page.getByText("Hello from the model.")).toBeVisible();
 
   // Another space: the same chat, still open.
-  await page.getByRole("button", { name: "New script" }).click();
+  // A new space is made from the list of spaces.
+  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("button", { name: "Back to Spaces" }).click();
+  await page.getByRole("button", { name: "New", exact: true }).click();
   await expect(lines(page)).toContainText("Example");
   expect(spaceId(page)).not.toBe(first);
   await agents(page).click();
@@ -209,7 +212,10 @@ test("an edit to a space that is not on screen waits for the user's word, then m
   await setScript(page, "# Treasury swap\nprint 1");
   await expect(lines(page)).toContainText("Treasury swap");
   const other = spaceId(page);
-  await page.getByRole("button", { name: "New script" }).click();
+  // A new space is made from the list of spaces.
+  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("button", { name: "Back to Spaces" }).click();
+  await page.getByRole("button", { name: "New", exact: true }).click();
   await expect(lines(page)).toContainText("Example");
   const here = spaceId(page);
 

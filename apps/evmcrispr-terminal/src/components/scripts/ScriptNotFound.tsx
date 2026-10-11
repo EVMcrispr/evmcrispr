@@ -113,22 +113,22 @@ export default function ScriptNotFound({
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8 px-6 select-none animate-fade-in">
-      <pre className="text-evm-green-300 text-sm leading-tight font-mono opacity-60">
+      <pre className="text-heading text-body leading-tight font-mono opacity-60">
         {art}
       </pre>
 
       <div className="flex flex-col items-center gap-3 max-w-md text-center">
-        <h2 className="text-evm-green-300 font-head text-2xl tracking-wide">
+        <h2 className="m-0 text-heading font-head text-display tracking-wide">
           {title}
         </h2>
         {lines.map((line) => (
-          <p key={line} className="text-foreground/60 font-mono text-sm">
+          <p key={line} className="m-0 text-fg-muted font-mono text-body">
             {line}
           </p>
         ))}
       </div>
 
-      <Button variant="outline" onClick={() => navigate("/")}>
+      <Button variant="neutral" onClick={() => navigate("/")}>
         New Script
       </Button>
     </div>

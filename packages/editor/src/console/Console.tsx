@@ -1,11 +1,10 @@
 import {
   CheckCircleIcon,
   ClockIcon,
-  InformationCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { useEffect, useMemo, useRef } from "react";
-import { Alert } from "../ui/Alert";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
+import { cn } from "../ui/cn";
 import { BoxCard } from "./BoxCard";
 import { ConsoleMarkdown } from "./ConsoleMarkdown";
 import type { ConsoleEntry } from "./entries";
@@ -32,37 +31,75 @@ const stripString = (log: string): string => {
         : log;
 };
 
+// A line is a framed block like a status box (see BoxCard). A plain one
+// has no colour and no icon: it is what the script printed. The marked
+// ones take the tone of what they report. Written out in full for
+// Tailwind to find.
+const lineFrame: Record<LogStatus, string> = {
+  info: "border-edge bg-surface-2",
+  success: "border-success bg-success-surface",
+  error: "border-danger bg-danger-surface",
+  warning: "border-info bg-info-surface",
+};
+
 const statusColorClass: Record<LogStatus, string> = {
-  error: "text-evm-orange-300",
-  success: "text-evm-green-300",
-  warning: "text-evm-blue-300",
-  info: "text-evm-yellow-300",
+  info: "",
+  success: "text-success",
+  error: "text-danger",
+  warning: "text-info",
 };
 
-const statusIcon: Record<LogStatus, typeof XCircleIcon> = {
-  error: XCircleIcon,
+const statusIcon: Record<LogStatus, typeof XCircleIcon | null> = {
+  info: null,
   success: CheckCircleIcon,
+  error: XCircleIcon,
   warning: ClockIcon,
-  info: InformationCircleIcon,
 };
 
-/** One plain log line, styled by its `:success:` / `:error:` / `:waiting:`
- *  prefix. */
-function LogLine({ log, markdown }: { log: string; markdown: boolean }) {
-  const _status = status(log);
-  const colorClass = statusColorClass[_status];
-  const IconComp = statusIcon[_status];
+const statusLabel: Record<LogStatus, string> = {
+  info: "",
+  success: "Passed",
+  error: "Failed",
+  warning: "Waiting",
+};
+
+/** One framed line of output. */
+function Line({
+  status: tone,
+  children,
+}: {
+  status: LogStatus;
+  children: ReactNode;
+}) {
+  const IconComp = statusIcon[tone];
   return (
-    <Alert status={_status} variant="solid">
-      <div className="flex items-start gap-2">
-        <IconComp className={`w-5 h-5 shrink-0 ${colorClass}`} />
-        <Alert.Description className="text-base prose prose-invert prose-base max-w-none">
-          <ConsoleMarkdown markdown={markdown}>
-            {stripString(log)}
-          </ConsoleMarkdown>
-        </Alert.Description>
+    <div
+      data-line-status={tone}
+      className={cn(
+        "flex w-full items-start gap-2 border-2 px-2.5 py-2 font-sans text-fg",
+        lineFrame[tone],
+      )}
+    >
+      {IconComp && (
+        <IconComp
+          className={`mt-0.5 size-4 shrink-0 ${statusColorClass[tone]}`}
+          aria-label={statusLabel[tone]}
+        />
+      )}
+      <div className="prose prose-invert prose-sm min-w-0 max-w-none flex-1 wrap-break-word text-body text-fg-muted">
+        {children}
       </div>
-    </Alert>
+    </div>
+  );
+}
+
+/** One plain log line, in the tone of its `:success:` / `:error:` /
+ *  `:waiting:` prefix. */
+function LogLine({ log, markdown }: { log: string; markdown: boolean }) {
+  return (
+    <Line status={status(log)}>
+      <ConsoleMarkdown markdown={markdown}>{stripString(log)}</ConsoleMarkdown>
+    </Line>
   );
 }
 
@@ -109,9 +146,9 @@ export function Console({
   }, [entries, errors.length]);
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto px-4 py-3 gap-2">
+    <div className="flex h-full flex-col gap-2 overflow-y-auto px-4 py-3">
       {!hasContent && (
-        <p className="text-foreground/40 font-head text-base p-4">
+        <p className="m-0 p-3 font-sans text-body text-fg-faint">
           {placeholder}
         </p>
       )}
@@ -129,14 +166,9 @@ export function Console({
         );
       })}
       {errors.map((e, i) => (
-        <Alert key={`err-${i}`} status="error">
-          <div className="flex items-start gap-2">
-            <XCircleIcon className="w-5 h-5 shrink-0 text-white" />
-            <Alert.Description className="break-all text-base">
-              {e}
-            </Alert.Description>
-          </div>
-        </Alert>
+        <Line key={`err-${i}`} status="error">
+          {e}
+        </Line>
       ))}
       <div ref={bottomRef} />
     </div>

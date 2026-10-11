@@ -9,7 +9,7 @@ export function StdinRow() {
   const { input, setInput } = useScriptInput(space.id);
   const running = useActiveRun() !== null;
   return (
-    <div className="shrink-0 border-t border-foreground/10 px-4 py-2">
+    <div className="shrink-0 border-t-2 border-line px-2.5 py-2">
       <ScriptIO
         key={space.id}
         input={input}

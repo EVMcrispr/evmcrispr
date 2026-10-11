@@ -4,7 +4,7 @@ import type {
   ParseDiagnostic,
 } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
-import MonacoEditorBase, { loader, useMonaco } from "@monaco-editor/react";
+import MonacoEditorBase, { loader } from "@monaco-editor/react";
 
 // Monaco is self-hosted: the AMD build is served from /vs on the app's own
 // origin (dev middleware + build copy in the terminal's vite config) rather
@@ -34,6 +34,7 @@ import {
   loadingPreview,
   peekIpfsPreview,
 } from "./ipfs-preview";
+import { useLoadedMonaco } from "./load-monaco";
 import { registerNoirLanguage } from "./noir-language";
 import { patchEmbeddedSolidity } from "./solidity-patch";
 import { theme, themeWithBackground } from "./theme";
@@ -110,7 +111,9 @@ function Editor({
   readOnly,
   height = "100%",
 }: EditorProps) {
-  const monaco = useMonaco();
+  // Typed from monaco-editor itself: the loader's own `Monaco` type
+  // does not resolve against this version and comes out as `any`.
+  const monaco = useLoadedMonaco<typeof import("monaco-editor")>(loader);
   const tag = useEvmlTag();
 
   const evm = useMemo(() => tag.workspace(), [tag]);

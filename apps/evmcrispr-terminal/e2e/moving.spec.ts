@@ -252,13 +252,15 @@ test("share from a revision row: it reads shared, Copy link gives the same link,
   await expect(lines(page)).toContainText("Untitled");
   const address = page.url();
   await page.getByRole("tab", { name: "Space" }).click();
-  await page.getByText("created the script").click();
-  await page.getByRole("button", { name: "Share", exact: true }).click();
+  // A script is shared from the header; its row then hands the link back.
+  await page.getByRole("button", { name: "Share script" }).click();
   await expect(page.getByText("shared", { exact: true })).toBeVisible();
+  await page.getByText("created the script").click();
   const first = await page.evaluate(() => navigator.clipboard.readText());
   expect(first).toMatch(/#\/Qm\w+#[\w-]{43}$/);
   await page.evaluate(() => navigator.clipboard.writeText(""));
-  await page.getByRole("button", { name: "Copy link" }).click();
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Copy link" }).click();
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toBe(first);
@@ -283,7 +285,9 @@ test("Clear for me and Show earlier; Clear timeline leaves one revision and a no
   await expect(page.getByText("created the script")).toBeVisible();
 
   await menu(page, "Clear timeline…");
-  const question = page.getByRole("dialog");
+  // By name: the toast of "Clear for me" is still up, and a toast is a
+  // (non-modal) dialog too.
+  const question = page.getByRole("dialog", { name: "Clear timeline" });
   await expect(question).toContainText(
     "Exports and share links made earlier still contain what they contained",
   );
@@ -299,7 +303,7 @@ test("Clear for me and Show earlier; Clear timeline leaves one revision and a no
 
   await page.getByRole("button", { name: "Spaces" }).click();
   await page.getByRole("button", { name: /^Remove / }).click();
-  const sure = page.getByRole("dialog");
+  const sure = page.getByRole("dialog", { name: "Remove this space" });
   await expect(sure).toContainText("from this browser, for good");
   await sure.getByRole("button", { name: "Cancel" }).click();
   await expect(

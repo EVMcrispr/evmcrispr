@@ -38,8 +38,10 @@ function chainOf(chainId: number | undefined): Chain | undefined {
   );
 }
 
-export function shortAddress(value: string | undefined) {
-  return value ? `${value.slice(0, 6)}…${value.slice(-4)}` : "Created contract";
+/** An address in short. Without one there is nothing to shorten: `none`
+ *  says what that means where it is shown. */
+export function shortAddress(value: string | undefined, none = "") {
+  return value ? `${value.slice(0, 6)}…${value.slice(-4)}` : none;
 }
 
 export function chainLabel(chainId: number): string {

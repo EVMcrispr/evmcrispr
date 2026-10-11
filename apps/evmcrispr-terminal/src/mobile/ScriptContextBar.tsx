@@ -1,46 +1,33 @@
-import {
-  CodeBracketIcon,
-  QueueListIcon,
-  ShieldCheckIcon,
-} from "@heroicons/react/24/outline";
-import { Button, cn } from "@repo/ui";
+import { Button, cn, Dot, type Tone } from "@repo/ui";
+import { Code, ListTree, ShieldCheck } from "@repo/ui/icons";
 import { useScript } from "../app/SpaceContext";
 import type { Simulation } from "../review/useReview";
 
 function chip(state: Simulation): {
   label: string;
-  className: string;
+  tone: Tone;
   pulse: boolean;
 } {
   switch (state.status) {
     case "validating":
     case "simulating":
-      return {
-        label: "Checking…",
-        className: "border-foreground/15 text-foreground/65",
-        pulse: true,
-      };
+      return { label: "Checking…", tone: "neutral", pulse: true };
     case "valid":
     case "ready":
-      return {
-        label: "Ready",
-        className: "border-primary/40 text-primary",
-        pulse: false,
-      };
+      return { label: "Ready", tone: "success", pulse: false };
     case "error":
-      return {
-        label: "Error",
-        className: "border-destructive/50 text-destructive",
-        pulse: false,
-      };
+      return { label: "Error", tone: "danger", pulse: false };
     default:
-      return {
-        label: "Review",
-        className: "border-foreground/15 text-foreground/65",
-        pulse: false,
-      };
+      return { label: "Review", tone: "neutral", pulse: false };
   }
 }
+
+// Written out in full: Tailwind finds class names by reading the source.
+const TONE: Partial<Record<Tone, string>> = {
+  neutral: "text-fg-muted",
+  success: "text-success",
+  danger: "text-danger",
+};
 
 export function ScriptContextBar({
   reviewState,
@@ -61,51 +48,49 @@ export function ScriptContextBar({
   return (
     <nav
       aria-label="Script workspace"
-      className="mx-3 mb-1 mt-2 flex min-h-12 shrink-0 items-center gap-1 border border-foreground/15 bg-foreground/4 px-1.5 backdrop-blur"
+      className="mx-3 mt-2 mb-1 flex shrink-0 items-center gap-1.5 rounded-(--radius) border-2 border-edge bg-surface-1 p-1"
     >
       <Button
         type="button"
         variant="ghost"
+        size="sm"
         aria-label="Open script"
-        className="min-h-11 min-w-0 flex-1 justify-start gap-2 px-2 font-sans text-sm text-foreground shadow-none"
+        className="min-w-0 flex-1 justify-start gap-2 px-2 text-fg"
         onClick={onOpenScript}
       >
-        <CodeBracketIcon
-          data-icon="inline-start"
-          className="shrink-0 text-foreground/65"
-        />
-        <span className={cn("truncate", !title && "text-foreground/50")}>
+        <Code aria-hidden data-icon="inline-start" className="text-fg-faint" />
+        <span className={cn("truncate", !title && "text-fg-faint")}>
           {title || "Untitled script"}
         </span>
       </Button>
 
       <Button
         type="button"
-        variant="ghost"
+        variant="quiet"
+        size="sm"
         aria-label="Open timeline"
-        className="min-h-8 gap-1.5 border border-foreground/15 px-2 py-1 font-sans text-xs text-foreground/65 shadow-none"
+        className="gap-1.5 px-2"
         onClick={onOpenTimeline}
       >
-        <QueueListIcon className="size-4" />
+        <ListTree aria-hidden className="size-4" />
         <span className="hidden min-[400px]:inline">Timeline</span>
       </Button>
 
       <Button
         type="button"
-        variant="ghost"
+        variant="quiet"
+        size="sm"
         aria-label="Open transaction review"
-        className={cn(
-          "relative min-h-8 gap-1.5 border px-2 py-1 font-sans text-xs shadow-none",
-          review.className,
-        )}
+        className={cn("relative gap-1.5 px-2", TONE[review.tone])}
         onClick={onOpenReview}
       >
-        <ShieldCheckIcon
+        <ShieldCheck
+          aria-hidden
           className={cn("size-4", review.pulse && "animate-pulse")}
         />
         <span className="hidden min-[360px]:inline">{review.label}</span>
         {reviewUnseen && (
-          <span className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-primary" />
+          <Dot tone="success" className="absolute -top-1 -right-1" />
         )}
       </Button>
     </nav>

@@ -1,5 +1,5 @@
-import { PaperAirplaneIcon, StopIcon } from "@heroicons/react/24/solid";
 import { cn, IconButton, Textarea } from "@repo/ui";
+import { Send, Square } from "@repo/ui/icons";
 import { type ReactNode, useState } from "react";
 
 import { useFocusOnTab } from "../../hooks/useFocusOnTab";
@@ -45,9 +45,9 @@ export function ChatInput({
   return (
     <form
       className={cn(
-        "flex shrink-0 gap-2 border-t border-foreground/10 px-2 py-2 pb-5",
-        mobile &&
-          "mobile-chat-composer items-end border-foreground/10 bg-background/95 px-3 pt-3 backdrop-blur",
+        "flex shrink-0 items-end gap-2.5 border-t-2 border-line bg-surface-0 p-2.5 touch:px-3",
+        // Its bottom padding follows the keyboard and the safe area.
+        mobile && "mobile-chat-composer",
       )}
       onSubmit={(e) => {
         e.preventDefault();
@@ -84,36 +84,29 @@ export function ChatInput({
                 : "Ask about the script..."
         }
         disabled={isRunning || blocked !== undefined}
-        className={cn(
-          "flex-1 overflow-y-auto",
-          // h-12 pins the rest height to exactly match the 48px buttons
-          // beside it (auto height would be 50px: 24px line + py-3 + border);
-          // the autogrow inline style still wins once typing wraps.
-          mobile &&
-            "h-12 min-h-12 resize-none border-foreground/15 bg-foreground/4 px-4 py-2.5 font-sans text-base shadow-none",
-        )}
+        variant="quiet"
+        className="flex-1 overflow-y-auto"
         style={{ maxHeight: MAX_HEIGHT_PX }}
       />
       {isRunning ? (
         <IconButton
           type="button"
           aria-label="Stop"
-          variant="outline"
-          size={mobile ? "lg" : "md"}
+          variant="neutral"
+          size="md"
           onClick={onStop}
-          className={cn("self-end", mobile && "min-h-12 min-w-12")}
         >
-          <StopIcon className="w-5 h-5" />
+          <Square aria-hidden />
         </IconButton>
       ) : (
         <IconButton
           type="submit"
           aria-label="Send"
-          size={mobile ? "lg" : "md"}
+          variant="primary"
+          size="md"
           disabled={!input.trim() || blocked !== undefined}
-          className={cn("self-end", mobile && "min-h-12 min-w-12")}
         >
-          <PaperAirplaneIcon className="w-5 h-5" />
+          <Send aria-hidden className="size-4" />
         </IconButton>
       )}
     </form>

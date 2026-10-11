@@ -1,12 +1,6 @@
 import { fetchNexusBalance } from "@evmcrispr/ai";
-import {
-  ArrowLeftIcon,
-  Cog6ToothIcon,
-  DocumentTextIcon,
-  QueueListIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
-import { Button, Drawer, IconButton } from "@repo/ui";
+import { BackButton, Badge, Button, Overlay, Row } from "@repo/ui";
+import { FileText, List, Settings } from "@repo/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { useEffect, useState } from "react";
@@ -51,137 +45,90 @@ export function MobileMenu({
   const pageTitle = page === "reference" ? "EVML reference" : "Workspace";
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} direction="bottom" modal>
-      <Drawer.Content
-        side="bottom"
-        className="h-[92dvh] border-foreground/15 bg-[#0b0d0c]"
-      >
-        <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-foreground/25" />
-        <Drawer.Header className="border-foreground/10">
-          <div className="flex items-center gap-2">
-            {page !== "menu" && (
-              <IconButton
-                type="button"
-                aria-label="Back to workspace menu"
-                variant="ghost"
-                size="lg"
-                className="min-h-11 min-w-11"
-                onClick={() => setPage("menu")}
-              >
-                <ArrowLeftIcon className="size-5" />
-              </IconButton>
-            )}
-            <div>
-              <Drawer.Title className="font-sans text-lg">
-                {pageTitle}
-              </Drawer.Title>
-              <Drawer.Description className="sr-only">
-                Spaces, EVML reference and chat settings.
-              </Drawer.Description>
-            </div>
+    <Overlay
+      open={open}
+      onOpenChange={onOpenChange}
+      sheet
+      title={pageTitle}
+      description="Spaces, EVML reference and chat settings."
+      closeLabel="Close workspace menu"
+    >
+      {page === "reference" ? (
+        <>
+          <div>
+            <BackButton
+              label="workspace menu"
+              onClick={() => setPage("menu")}
+            />
           </div>
-          <Drawer.Close asChild>
-            <IconButton
-              type="button"
-              aria-label="Close workspace menu"
-              variant="ghost"
-              size="lg"
-              className="min-h-11 min-w-11"
+          <ReferenceTab />
+        </>
+      ) : (
+        <>
+          <section aria-label="Spaces" className="flex flex-col gap-2">
+            <Row
+              leading={<List aria-hidden className="size-4" />}
+              title="Spaces"
+              onClick={onOpenSpaces}
+            />
+            <NewScriptButton showLabel onCreated={() => onOpenChange(false)} />
+          </section>
+
+          <div className="flex flex-col gap-2">
+            <Row
+              leading={<FileText aria-hidden className="size-4" />}
+              title="EVML reference"
+              onClick={() => setPage("reference")}
+            />
+            <Row
+              leading={<Settings aria-hidden className="size-4" />}
+              title="Chat settings"
+              meta={
+                balanceCents != null ? (
+                  <Badge>€{(balanceCents / 100).toFixed(2)}</Badge>
+                ) : undefined
+              }
+              onClick={onOpenChatSettings}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 border-t-2 border-line pt-3">
+            <div
+              role="status"
+              aria-label="Wallet connection"
+              className="flex min-w-0 flex-1 items-center gap-2 font-sans text-caption"
             >
-              <XMarkIcon className="size-5" />
-            </IconButton>
-          </Drawer.Close>
-        </Drawer.Header>
-
-        <div className="min-h-0 flex-1 overflow-hidden">
-          {page === "reference" ? (
-            <ReferenceTab />
-          ) : (
-            <div className="flex h-full flex-col overflow-hidden px-4 py-3">
-              <section
-                aria-label="Spaces"
-                className="flex shrink-0 flex-col gap-1"
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-11 justify-start gap-3 px-3 font-sans text-xs shadow-none"
-                  onClick={onOpenSpaces}
-                >
-                  <QueueListIcon data-icon="inline-start" />
-                  Spaces
-                </Button>
-                <NewScriptButton
-                  showLabel
-                  onCreated={() => onOpenChange(false)}
-                />
-              </section>
-
-              <div className="mt-2 flex shrink-0 flex-col gap-1 border-t border-foreground/10 pt-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-11 justify-start gap-3 px-3 font-sans text-xs shadow-none"
-                  onClick={() => setPage("reference")}
-                >
-                  <DocumentTextIcon data-icon="inline-start" />
-                  EVML reference
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-11 justify-start gap-3 px-3 font-sans text-xs shadow-none"
-                  onClick={onOpenChatSettings}
-                >
-                  <Cog6ToothIcon data-icon="inline-start" />
-                  Chat settings
-                  {balanceCents != null && (
-                    <span className="ml-auto tabular-nums text-muted-foreground">
-                      €{(balanceCents / 100).toFixed(2)}
-                    </span>
-                  )}
-                </Button>
-              </div>
-
-              <div className="mt-2 flex shrink-0 items-center gap-3 border-t border-foreground/10 pt-3">
-                <div
-                  role="status"
-                  aria-label="Wallet connection"
-                  className="flex min-w-0 flex-1 items-center gap-2 px-2 font-sans text-xs"
-                >
-                  {address ? (
-                    <>
-                      <img
-                        src={makeBlockie(address.toLowerCase())}
-                        alt=""
-                        className="size-6 rounded-sm"
-                      />
-                      <span className="truncate font-mono text-xs text-foreground/80">
-                        {ensName ??
-                          `${address.slice(0, 6)}…${address.slice(-4)}`}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">Not connected</span>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-h-11 shrink-0 px-3 font-sans text-xs shadow-none"
-                  onClick={() => {
-                    if (address) disconnect();
-                    else connectWallet();
-                    onOpenChange(false);
-                  }}
-                >
-                  {address ? "Disconnect" : "Connect wallet"}
-                </Button>
-              </div>
+              {address ? (
+                <>
+                  <img
+                    src={makeBlockie(address.toLowerCase())}
+                    alt=""
+                    className="size-6"
+                  />
+                  <span className="truncate font-mono text-fg-muted">
+                    {ensName ?? `${address.slice(0, 6)}…${address.slice(-4)}`}
+                  </span>
+                </>
+              ) : (
+                <span className="text-fg-faint">Not connected</span>
+              )}
             </div>
-          )}
-        </div>
-      </Drawer.Content>
-    </Drawer>
+            <Button
+              type="button"
+              variant="neutral"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                if (address) disconnect();
+                else connectWallet();
+                onOpenChange(false);
+              }}
+            >
+              {address ? "Disconnect" : "Connect wallet"}
+            </Button>
+          </div>
+        </>
+      )}
+    </Overlay>
   );
 }

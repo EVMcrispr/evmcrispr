@@ -167,7 +167,7 @@ test("Revert takes one change out and keeps later typing; Ctrl+Z brings it back 
   await page
     .getByRole("button", { name: /Assistant Said one in Spanish\./ })
     .click();
-  await page.getByRole("button", { name: "Revert this change" }).click();
+  await page.getByRole("button", { name: "Undo this change" }).click();
   await expect(lines(page)).toContainText("print one");
   await expect(lines(page)).toContainText("print four");
   await expect(lines(page)).not.toContainText("print uno");
@@ -188,7 +188,7 @@ test("Revert takes one change out and keeps later typing; Ctrl+Z brings it back 
     page,
     "# Counting\nprint eins\nprint two\nprint three\nprint four",
   );
-  await page.getByRole("button", { name: "Revert this change" }).click();
+  await page.getByRole("button", { name: "Undo this change" }).click();
   await expect(
     page.getByText("Later edits touch the same lines"),
   ).toBeVisible();
@@ -227,7 +227,9 @@ test("on mobile the sheet shows what changed above the transactions; no run can 
   // Opening the sheet on an unreviewed script ran nothing. Simulating is
   // one tap away, and not blocked.
   expect(await runs(page)).toEqual([]);
-  await sheet.getByRole("button", { name: "Check & simulate" }).click();
+  await sheet
+    .getByRole("button", { name: "Simulate to see what it would send" })
+    .click();
   await expect(sheet).toContainText("Simulation passed");
   expect(await runs(page)).toEqual(["simulated"]);
   // Nothing on the sheet leads to the wallet or to a run.

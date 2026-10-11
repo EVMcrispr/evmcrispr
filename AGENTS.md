@@ -109,6 +109,31 @@ after a migration, an upgrade or a rotation cannot satisfy.
   `space/export.ts` before use. `test/app/foreign-writers.test.ts` pins
   both from the import graph: extend it when adding an entry point.
 
+## Terminal UI
+
+- **Looks come from `packages/ui`; app code chooses layout.** A screen
+  in `apps/evmcrispr-terminal/src` is composed from `@repo/ui`
+  components (`Button`, `IconButton`, `Row`, `Card`, `Notice`, `Badge`,
+  `Overlay`, `Menu`, `PanelHeader`, `Input`…), colours are the tokens of
+  `packages/editor/src/styles/tokens.css` by their meaning (`text-fg`,
+  `bg-surface-1`, `border-line`, `text-danger`), type is one of
+  `text-caption | body | title | display`, and icons are imported from
+  `@repo/ui/icons`.
+- **A new visual element is added to `packages/ui` and to the gallery
+  first** (`apps/evmcrispr-terminal/src/gallery/`, served in dev at
+  `/gallery.html`), in every state, then used. Look at it there at
+  desktop width and in the touch frame before using it.
+- **Desktop and phone are one app.** A component adapts through the
+  `touch:` variant inside `packages/ui`; a call site passes no
+  touch-target, shadow, font or radius classes. Something that opens
+  over the page is an `Overlay` (dialog on desktop, sheet on a phone).
+- **A button without words has a name**, which `IconButton` shows as a
+  tooltip. A row's or a card's secondary actions go behind its "⋯"
+  `Menu`; at most two stay visible.
+- `test/app/ui-conventions.test.ts` pins all of this over every `.tsx`
+  in `src/` (brand marks in `components/icons/` aside). When it fails,
+  change the code or extend `packages/ui`: do not add an exception.
+
 ## Common Tasks
 
 - **Add a command**: create `modules/<mod>/src/commands/<name>.ts`, run build

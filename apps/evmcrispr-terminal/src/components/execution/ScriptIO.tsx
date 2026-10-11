@@ -1,13 +1,13 @@
+import { Button, cn, IconButton, Input } from "@repo/ui";
 import {
-  ArrowDownTrayIcon,
-  CheckIcon,
-  ClipboardDocumentIcon,
-  DocumentIcon,
-  LinkIcon,
-  PlusIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
-import { cn, IconButton } from "@repo/ui";
+  Check,
+  ClipboardCopy,
+  Download,
+  File as FileIcon,
+  Link,
+  Plus,
+  X,
+} from "@repo/ui/icons";
 import { useEffect, useRef, useState } from "react";
 import type { ScriptInputValue } from "../../app/ui-store";
 import { downloadOutput } from "../../utils/download-output";
@@ -67,13 +67,13 @@ export function ScriptIO({
 
   const locked = disabled || reading;
   const lines = output.split("\n").length - (output.endsWith("\n") ? 1 : 0);
-  const SourceIcon = input?.source === "url" ? LinkIcon : DocumentIcon;
+  const SourceIcon = input?.source === "url" ? Link : FileIcon;
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1 font-head text-xs">
+    <div className="flex min-w-0 flex-1 flex-col gap-1 font-head text-caption">
       {/* stdout drops to its own line rather than squeezing the file name */}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <input
+        <Input
           ref={picker}
           type="file"
           className="hidden"
@@ -101,62 +101,61 @@ export function ScriptIO({
           }}
         />
         <div className="flex min-w-0 max-w-full items-center gap-2">
-          <span className="shrink-0 text-foreground/40">stdin</span>
+          <span className="shrink-0 text-fg-faint">stdin</span>
           <div
             className={cn(
               "flex min-w-0 items-center rounded-(--radius) border",
-              input
-                ? "border-foreground/20"
-                : "border-dashed border-foreground/30",
+              input ? "border-line" : "border-dashed border-edge",
             )}
           >
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="row"
               disabled={locked}
               title={disabled ? LOCKED : undefined}
               aria-label={
                 input ? `Replace stdin file ${input.name}` : "Choose stdin file"
               }
               onClick={() => picker.current?.click()}
-              className="flex min-w-0 cursor-pointer items-center gap-1.5 px-2 py-1 text-foreground/70 outline-hidden transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-w-0 text-fg-muted"
             >
               {input ? (
                 <>
-                  <SourceIcon className="size-3.5 shrink-0" />
+                  <SourceIcon aria-hidden className="size-3.5 shrink-0" />
                   <span className="truncate" title={input.name}>
                     {input.source === "url" ? "from URL" : input.name}
                   </span>
-                  <span className="shrink-0 text-foreground/40">
+                  <span className="shrink-0 text-fg-faint">
                     {formatBytes(byteLength(input.text))}
                   </span>
                 </>
               ) : (
                 <>
-                  <PlusIcon className="size-3.5 shrink-0" />
+                  <Plus aria-hidden className="size-3.5 shrink-0" />
                   <span>{reading ? "reading…" : "input file"}</span>
                 </>
               )}
-            </button>
+            </Button>
             {input && (
               <IconButton
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="shrink-0 p-1"
                 aria-label="Clear stdin"
-                title={disabled ? LOCKED : "Clear stdin"}
+                tooltip={disabled ? LOCKED : "Clear stdin"}
                 disabled={locked}
                 onClick={() => onChange(undefined)}
               >
-                <XMarkIcon className="size-3.5" />
+                <X aria-hidden className="size-3.5" />
               </IconButton>
             )}
           </div>
         </div>
         {output && (
           <div className="flex shrink-0 items-center gap-2">
-            <span className="text-foreground/40">stdout</span>
-            <span className="text-foreground/40">
+            <span className="text-fg-faint">stdout</span>
+            <span className="text-fg-faint">
               {`${formatBytes(byteLength(output))} · ${lines} ${lines === 1 ? "line" : "lines"}`}
             </span>
             <div className="flex items-center">
@@ -165,16 +164,16 @@ export function ScriptIO({
                 variant="ghost"
                 size="sm"
                 aria-label={copied ? "Copied stdout" : "Copy stdout"}
-                title={copied ? "Copied" : "Copy stdout"}
+                tooltip={copied ? "Copied" : "Copy stdout"}
                 onClick={() => {
                   void navigator.clipboard.writeText(output);
                   setCopied(true);
                 }}
               >
                 {copied ? (
-                  <CheckIcon className="size-4 text-primary" />
+                  <Check aria-hidden className="size-4 text-success" />
                 ) : (
-                  <ClipboardDocumentIcon className="size-4" />
+                  <ClipboardCopy aria-hidden className="size-4" />
                 )}
               </IconButton>
               <IconButton
@@ -182,17 +181,17 @@ export function ScriptIO({
                 variant="ghost"
                 size="sm"
                 aria-label="Download stdout"
-                title="Download stdout as output.txt"
+                tooltip="Download stdout as output.txt"
                 onClick={() => downloadOutput(output)}
               >
-                <ArrowDownTrayIcon className="size-4" />
+                <Download aria-hidden className="size-4" />
               </IconButton>
             </div>
           </div>
         )}
       </div>
       {error && (
-        <p role="alert" className="text-destructive">
+        <p role="alert" className="m-0 text-danger">
           {error}
         </p>
       )}

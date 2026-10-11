@@ -1,4 +1,4 @@
-import { Button, Input } from "@repo/ui";
+import { Button, Input, Notice } from "@repo/ui";
 import { useState } from "react";
 
 import { useMaybeSpace } from "../../app/SpaceContext";
@@ -34,11 +34,10 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
           setSafeAddress(e.target.value);
           setAttemptedConnect(false);
         }}
-        className="text-xl"
       />
       <div className="flex justify-center mt-4 mb-2">
         <Button
-          variant="default"
+          variant="primary"
           size="sm"
           onClick={() => {
             setAttemptedConnect(true);
@@ -52,7 +51,9 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
         </Button>
       </div>
       {error && (
-        <p className="text-center text-evm-red-400 font-head">{error}</p>
+        <Notice tone="danger" layout="inline">
+          {error}
+        </Notice>
       )}
     </>
   );

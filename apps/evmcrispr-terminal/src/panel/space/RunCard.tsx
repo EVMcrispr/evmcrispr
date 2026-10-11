@@ -1,7 +1,15 @@
-import { Console, consoleEntries } from "@evmcrispr/editor";
+import { Console, type ConsoleEntry, consoleEntries } from "@evmcrispr/editor";
 import type { RunStatus } from "@evmcrispr/space";
-import { ChevronRightIcon } from "@heroicons/react/24/solid";
-import { cn } from "@repo/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  IconButton,
+  Menu,
+  Time,
+  type Tone,
+} from "@repo/ui";
+import { Download, Ellipsis, Eye, Trash2 } from "@repo/ui/icons";
 import { useEffect, useState } from "react";
 import { useApp } from "../../app/AppContext";
 import { useSpace, useTimeline } from "../../app/SpaceContext";
@@ -12,7 +20,6 @@ import { removeEntry } from "../../space/cleaning";
 import { downloadOutput } from "../../utils/download-output";
 import { Confirm, LeftBehind } from "./Confirm";
 import { HeldRun } from "./HeldRun";
-import { clock } from "./time";
 
 export const STATUS: Record<RunStatus, string> = {
   running: "Running",
@@ -32,33 +39,59 @@ const WHY = {
 export const runLabel = (record: Run) =>
   record.mode === "simulated" ? "Simulation" : "Run";
 
-const control =
-  "cursor-pointer rounded-(--radius) border px-2 py-0.5 font-sans text-xs outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
+/** What a status says about the run: going on, needs the user, over. */
+const TONE: Record<RunStatus, Tone> = {
+  running: "success",
+  paused: "warning",
+  watching: "info",
+  success: "success",
+  error: "danger",
+  cancelled: "neutral",
+  interrupted: "neutral",
+};
 
-/** Cancel, for a run this tab is running. A run of another tab can only
- *  be watched from here. Resume is not here: it lives with the held
- *  action it sends (`HeldRun`). */
+/** A run's status as a mark, with a dot while it is not over. */
+export function StatusBadge({ record }: { record: Run }) {
+  return (
+    <Badge tone={TONE[record.status]} dot={isUnfinished(record)}>
+      {STATUS[record.status]}
+    </Badge>
+  );
+}
+
+/** Stops a run this tab is running. A run of another tab can only be
+ *  watched from here. Resume is not here: it lives with the held action
+ *  it sends (`HeldRun`). */
 export function RunControls({ record, mine }: { record: Run; mine: boolean }) {
   const { runs } = useApp();
   if (!isUnfinished(record)) return null;
-  if (!mine)
-    return (
-      <span className="shrink-0 font-sans text-xs text-foreground/50">
-        in another tab
-      </span>
-    );
+  if (!mine) return <Badge>in another tab</Badge>;
   return (
-    <button
+    <Button
       type="button"
-      className={cn(
-        control,
-        "shrink-0 border-foreground/25 text-foreground/75",
-      )}
+      variant="neutral"
+      size="sm"
+      className="shrink-0"
       onClick={() => runs.cancel(record.id)}
     >
-      {record.status === "watching" ? "Stop following" : "Cancel"}
-    </button>
+      {record.status === "watching"
+        ? "Stop following"
+        : record.status === "paused"
+          ? "Cancel"
+          : "Stop"}
+    </Button>
   );
+}
+
+const MARKS = [":success:", ":error:", ":waiting:"];
+
+/** The last thing a run printed, in one line. */
+function latestLine(entries: ConsoleEntry[]): string | undefined {
+  const last = entries.at(-1);
+  if (!last) return undefined;
+  if (last.kind === "box") return `${last.box.title}: ${last.box.detail}`;
+  const mark = MARKS.find((prefix) => last.text.startsWith(prefix));
+  return (mark ? last.text.slice(mark.length) : last.text).trim();
 }
 
 /** One run of the space: what it is, how it stands, and its console. */
@@ -85,71 +118,57 @@ export function RunCard({
   if (!run) return null;
   const { record, live } = run;
   const paused = record.status === "paused";
+  const entries = consoleEntries(record.console);
+  const controls = <RunControls record={record} mine={!!live} />;
 
   return (
-    <section
-      id={`run-${runId}`}
-      aria-label={`${runLabel(record)}, ${STATUS[record.status]}`}
-      className={cn(
-        "border bg-evm-gray-800",
-        paused ? "border-evm-yellow-300/60" : "border-foreground/10",
-      )}
-    >
-      <div className="flex items-center gap-2 pr-2">
-        <button
-          type="button"
-          aria-expanded={open}
-          className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-2 py-1.5 text-left font-sans text-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={() => setOpen(!open)}
-        >
-          <ChevronRightIcon
-            className={cn(
-              "size-3 shrink-0 text-foreground/40 transition-transform",
-              open && "rotate-90",
-            )}
-          />
-          <span className="font-semibold">{runLabel(record)}</span>
-          {record.unverified && (
-            <span className="text-evm-orange-300">from an export</span>
-          )}
-          <span
-            className={cn(
-              record.status === "error"
-                ? "text-evm-pink-300"
-                : record.status === "paused"
-                  ? "text-evm-yellow-300"
-                  : "text-foreground/65",
-            )}
-          >
-            {STATUS[record.status]}
-          </span>
-          <span className="ml-auto shrink-0 text-xs text-foreground/45">
-            {clock(record.startedAt, Date.now())}
-          </span>
-        </button>
-        {!paused && <RunControls record={record} mine={!!live} />}
-      </div>
+    <>
+      <Card
+        id={`run-${runId}`}
+        aria-label={`${runLabel(record)}, ${STATUS[record.status]}`}
+        // The frame speaks only when the run needs the user or failed.
+        tone={
+          paused
+            ? "warning"
+            : record.status === "error"
+              ? "danger"
+              : record.unverified
+                ? "unverified"
+                : "neutral"
+        }
+        open={open}
+        onOpenChange={setOpen}
+      >
+        <Card.Header
+          title={runLabel(record)}
+          status={
+            <>
+              {record.unverified && (
+                <Badge tone="unverified">from an export</Badge>
+              )}
+              <StatusBadge record={record} />
+            </>
+          }
+          time={<Time at={record.startedAt} format="clock" />}
+        />
 
-      {paused && (
-        <div className="flex flex-col gap-1.5 border-t border-foreground/10 px-3 py-2">
-          {live?.held ? (
-            <HeldRun run={live} />
-          ) : (
-            <p className="font-sans text-sm">
-              Paused: {WHY[record.pausedBy ?? "left"]}
-            </p>
-          )}
-          <div className="flex justify-end">
-            <RunControls record={record} mine={!!live} />
+        {paused && (
+          <div className="border-t-2 border-line p-2.5">
+            {live?.held ? (
+              <HeldRun run={live} controls={controls} />
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3 font-sans text-body text-fg-muted">
+                <p className="m-0">Paused: {WHY[record.pausedBy ?? "left"]}</p>
+                {controls}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {open && (
-        <div className="border-t border-foreground/10">
+        <Card.Body className="gap-0 p-0">
           <div className="max-h-[60vh] overflow-y-auto">
             <Console
-              entries={consoleEntries(record.console)}
+              entries={entries}
               errors={record.errors}
               // The one place output is rendered as markdown: a run made
               // by this browser. One an export brought is plain text,
@@ -160,50 +179,61 @@ export function RunCard({
               }
             />
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
-            {record.output && (
-              <button
-                type="button"
-                className={cn(
-                  control,
-                  "border-foreground/20 text-foreground/75",
-                )}
-                onClick={() => downloadOutput(record.output)}
-              >
-                Download output
-              </button>
-            )}
+          <div className="flex flex-wrap items-center gap-2 border-t-2 border-line p-2.5">
             {kept ? (
-              <button
+              <Button
                 type="button"
-                className={cn(
-                  control,
-                  "border-foreground/20 text-foreground/75",
-                )}
+                variant="quiet"
+                size="row"
+                icon={<Eye />}
                 onClick={() => setUi({ previewRevisionId: record.revisionId })}
               >
                 View script
-              </button>
+              </Button>
             ) : (
-              <span className="font-sans text-xs text-foreground/45">
-                script no longer kept
-              </span>
+              <Badge>script no longer kept</Badge>
             )}
-            {!isUnfinished(record) && (
-              <button
-                type="button"
-                className={cn(
-                  control,
-                  "border-foreground/20 text-foreground/75",
-                )}
-                onClick={() => setRemoving(true)}
-              >
-                Remove
-              </button>
+            {(record.output || !isUnfinished(record)) && (
+              <Menu>
+                <Menu.Trigger
+                  render={
+                    <IconButton
+                      type="button"
+                      variant="quiet"
+                      size="sm"
+                      aria-label="More actions"
+                    />
+                  }
+                >
+                  <Ellipsis aria-hidden />
+                </Menu.Trigger>
+                <Menu.Content align="start">
+                  {record.output && (
+                    <Menu.Item onClick={() => downloadOutput(record.output)}>
+                      <Download aria-hidden />
+                      Download output
+                    </Menu.Item>
+                  )}
+                  {!isUnfinished(record) && (
+                    <Menu.Item onClick={() => setRemoving(true)}>
+                      <Trash2 aria-hidden />
+                      Remove…
+                    </Menu.Item>
+                  )}
+                </Menu.Content>
+              </Menu>
             )}
           </div>
-        </div>
-      )}
+        </Card.Body>
+
+        {/* While it goes on: the last line it printed, which opens the
+            card, and the way to stop it. */}
+        {isUnfinished(record) && !paused && (
+          <Card.Footer summary={latestLine(entries) ?? "Nothing printed yet."}>
+            {controls}
+          </Card.Footer>
+        )}
+      </Card>
       {removing && (
         <Confirm
           title="Remove this run"
@@ -218,6 +248,6 @@ export function RunCard({
           <LeftBehind action="remove" />
         </Confirm>
       )}
-    </section>
+    </>
   );
 }

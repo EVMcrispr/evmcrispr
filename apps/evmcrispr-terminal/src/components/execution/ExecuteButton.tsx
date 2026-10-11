@@ -11,12 +11,14 @@ import {
 
 /**
  * The one button under the script. What it is, first match wins:
- *  1. this tab runs the space: Cancel, and "Show paused run" while paused
+ *  1. this tab runs the space: Stop (Cancel while paused, where nothing
+ *     is going on to stop), and "Show paused run" while paused
  *     (that run executes the text it was started on, which was reviewed);
  *  2. the script is not the approved text: "Review changes", which opens
  *     the review;
  *  3. the space runs in another tab: Execute, disabled, saying so;
- *  4. Execute.
+ *  4. Simulate, which opens the review on a simulation of the script,
+ *     and Execute, which starts the run at once.
  * The button only chooses what to offer. Whether a run may start is
  * decided where it starts (`runs.start`), whatever was clicked.
  */
@@ -34,7 +36,7 @@ export function ExecuteButton() {
         {/* Resume is offered where the held action is shown: the card. */}
         {run.record.status === "paused" && (
           <Button
-            variant="default"
+            variant="primary"
             size="md"
             onClick={() => {
               setUi({ activeTab: "space", spaceView: "timeline" });
@@ -49,34 +51,45 @@ export function ExecuteButton() {
           </Button>
         )}
         <Button
-          variant="outline"
+          variant="neutral"
           size="md"
           onClick={() => runs.cancel(run.record.id)}
         >
-          Cancel
+          {run.record.status === "paused"
+            ? "Cancel"
+            : run.record.status === "watching"
+              ? "Stop following"
+              : "Stop"}
         </Button>
       </>
     );
   if (unreviewed)
     return (
-      <Button variant="default" size="md" onClick={() => askForReview(space)}>
+      <Button variant="primary" size="md" onClick={() => askForReview(space)}>
         Review changes
       </Button>
     );
   return (
-    <span title={elsewhere ? "Running in another tab" : undefined}>
-      <Button
-        variant="default"
-        size="md"
-        disabled={elsewhere}
-        onClick={() => {
-          // The run shows in the timeline, as it showed in the console.
-          setUi({ activeTab: "space", spaceView: "timeline" });
-          void execute();
-        }}
-      >
-        Execute
+    <>
+      {/* The review opens on a simulation of the script: what it would
+          send, before anything is. */}
+      <Button variant="neutral" size="md" onClick={() => askForReview(space)}>
+        Simulate
       </Button>
-    </span>
+      <span title={elsewhere ? "Running in another tab" : undefined}>
+        <Button
+          variant="primary"
+          size="md"
+          disabled={elsewhere}
+          onClick={() => {
+            // The run shows in the timeline, as it showed in the console.
+            setUi({ activeTab: "space", spaceView: "timeline" });
+            void execute();
+          }}
+        >
+          Execute
+        </Button>
+      </span>
+    </>
   );
 }

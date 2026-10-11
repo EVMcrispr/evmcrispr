@@ -1,6 +1,6 @@
 import { fetchNexusBalance } from "@evmcrispr/ai";
-import { Bars3Icon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { Button, IconButton } from "@repo/ui";
+import { ChevronDown, Menu } from "@repo/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { Link } from "react-router";
@@ -26,16 +26,16 @@ export function MobileHeader({
     address && `${address.slice(0, 5)}…${address.slice(-4)}`;
 
   return (
-    <header className="mobile-safe-top flex min-h-14 shrink-0 items-center gap-2 border-b border-foreground/10 bg-background/92 px-3 backdrop-blur">
+    <header className="mobile-safe-top flex min-h-14 shrink-0 items-center gap-2 border-b-2 border-line bg-surface-0 px-3">
       <IconButton
         type="button"
         aria-label="Open navigation"
         variant="ghost"
         size="lg"
-        className="min-h-11 min-w-11"
+        tooltip={false}
         onClick={onOpenMenu}
       >
-        <Bars3Icon className="size-5" />
+        <Menu aria-hidden className="size-5" />
       </IconButton>
 
       <Link
@@ -49,7 +49,7 @@ export function MobileHeader({
       <div className="flex-1" />
 
       {balanceCents != null && (
-        <div className="hidden min-h-10 items-center gap-1.5 border border-foreground/15 bg-foreground/[0.035] px-2.5 font-sans text-xs tabular-nums text-foreground/70 min-[360px]:flex">
+        <div className="hidden min-h-10 items-center gap-1.5 rounded-(--radius) border-2 border-line bg-surface-1 px-2.5 font-sans text-caption tabular-nums text-fg-muted min-[360px]:flex">
           <img
             src="/dappnode-logo.svg"
             alt="DappNode Nexus"
@@ -62,27 +62,22 @@ export function MobileHeader({
       {address ? (
         <Button
           type="button"
-          variant="outline"
+          variant="quiet"
           size="sm"
-          className="min-h-11 gap-2 border-foreground/15 px-2.5 font-sans text-xs shadow-none"
+          className="gap-2 px-2.5"
           onClick={onOpenMenu}
           aria-label={`Wallet ${shortenedAddress}`}
         >
           <img
             src={makeBlockie(address.toLowerCase())}
             alt=""
-            className="size-5 rounded-sm"
+            className="size-5"
           />
           <span className="hidden min-[390px]:inline">{shortenedAddress}</span>
-          <ChevronDownIcon data-icon="inline-end" />
+          <ChevronDown aria-hidden data-icon="inline-end" />
         </Button>
       ) : (
-        <Button
-          type="button"
-          size="sm"
-          className="min-h-11 px-3 font-sans text-xs shadow-none"
-          onClick={onConnect}
-        >
+        <Button type="button" variant="primary" size="sm" onClick={onConnect}>
           Connect
         </Button>
       )}

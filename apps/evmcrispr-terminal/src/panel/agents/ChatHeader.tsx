@@ -1,5 +1,5 @@
-import { Cog6ToothIcon, PlusIcon } from "@heroicons/react/24/solid";
-import { IconButton } from "@repo/ui";
+import { Badge, IconButton, PanelHeader } from "@repo/ui";
+import { Plus, Settings } from "@repo/ui/icons";
 
 import { ChatHistoryPopover } from "./ChatHistoryPopover";
 import { NEXUS_URL } from "./ChatSettings";
@@ -22,54 +22,53 @@ export function ChatHeader({
   onShowSettings: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b border-foreground/10 px-3 py-2 text-sm text-foreground/60">
-      <img src="/dappnode-logo.svg" alt="" className="w-5 h-5" />
-      <a
-        href={NEXUS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-foreground/80 hover:underline"
-      >
-        DappNode Nexus
-      </a>
-      {balanceCents != null && (
-        <span className="ml-auto rounded-full bg-foreground/10 px-2.5 py-0.5 tabular-nums">
-          €{(balanceCents / 100).toFixed(2)}
+    <PanelHeader
+      className="shrink-0"
+      title={
+        <span className="flex items-center gap-2">
+          <img src="/dappnode-logo.svg" alt="" className="size-5" />
+          <a
+            href={NEXUS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="truncate text-fg underline-offset-2 hover:underline"
+          >
+            DappNode Nexus
+          </a>
         </span>
-      )}
-      <div
-        className={
-          balanceCents != null
-            ? "flex items-center"
-            : "ml-auto flex items-center"
-        }
-      >
-        <IconButton
-          type="button"
-          aria-label="New chat"
-          variant="ghost"
-          size="sm"
-          disabled={isRunning}
-          onClick={onNewChat}
-        >
-          <PlusIcon className="w-4 h-4" />
-        </IconButton>
-        <ChatHistoryPopover
-          activeId={conversationId}
-          onOpenChat={onOpenChat}
-          onDeleteChat={onDeleteChat}
-          disabled={isRunning}
-        />
-        <IconButton
-          type="button"
-          aria-label="Chat settings"
-          variant="ghost"
-          size="sm"
-          onClick={onShowSettings}
-        >
-          <Cog6ToothIcon className="w-4 h-4" />
-        </IconButton>
-      </div>
-    </div>
+      }
+      actions={
+        <>
+          {balanceCents != null && (
+            <Badge variant="count">€{(balanceCents / 100).toFixed(2)}</Badge>
+          )}
+          <IconButton
+            type="button"
+            aria-label="New chat"
+            variant="quiet"
+            size="sm"
+            disabled={isRunning}
+            onClick={onNewChat}
+          >
+            <Plus aria-hidden />
+          </IconButton>
+          <ChatHistoryPopover
+            activeId={conversationId}
+            onOpenChat={onOpenChat}
+            onDeleteChat={onDeleteChat}
+            disabled={isRunning}
+          />
+          <IconButton
+            type="button"
+            aria-label="Chat settings"
+            variant="quiet"
+            size="sm"
+            onClick={onShowSettings}
+          >
+            <Settings aria-hidden />
+          </IconButton>
+        </>
+      }
+    />
   );
 }

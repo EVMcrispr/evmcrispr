@@ -40,40 +40,35 @@ export default function TerminalHeader() {
             <span className="hidden md:inline">
               <TypeWriter
                 text={`${codename ? ` "${codename}"` : null} v${version}`}
-                className="text-evm-green-300"
+                className="text-heading"
               />
             </span>
             <span className="md:hidden">
-              <TypeWriter text={`v${version}`} className="text-evm-green-300" />
+              <TypeWriter text={`v${version}`} className="text-heading" />
             </span>
           </div>
         </div>
         {address ? (
-          <div className="flex items-center gap-3 mb-[-20px]">
-            <div className="flex items-center border border-evm-green-300 px-2 py-0.5">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-(--radius) border-2 border-edge bg-surface-1 px-2.5 py-1">
               <img
                 src={makeBlockie(address.toLowerCase())}
-                alt="blockie"
-                className="w-4 h-4"
+                alt=""
+                className="size-4"
               />
-              <span className="ml-3 text-white text-lg font-head mt-0.5">
+              <span className="font-head text-body text-fg">
                 {addressShortened}
               </span>
             </div>
             {!safeConnector && (
-              <Button
-                variant="default"
-                className="bg-evm-pink-400 text-evm-gray-900 border-evm-pink-400 hover:bg-evm-pink-300 shadow-destructive"
-                onClick={onDisconnect}
-                size="sm"
-              >
+              <Button variant="quiet" onClick={onDisconnect} size="sm">
                 Disconnect
               </Button>
             )}
           </div>
         ) : (
           <Button
-            variant="default"
+            variant="primary"
             onClick={
               safeConnector
                 ? () => connect({ connector: safeConnector })

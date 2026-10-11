@@ -12,7 +12,7 @@ export default function CopyCode({ code }: { code: string }) {
 
   return (
     <div className="flex mb-2">
-      <Button variant="outline" size="sm" onClick={onCopy}>
+      <Button variant="quiet" size="sm" onClick={onCopy}>
         {hasCopied ? "Copied!" : "Copy"}
       </Button>
     </div>

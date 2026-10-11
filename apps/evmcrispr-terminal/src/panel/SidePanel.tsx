@@ -1,26 +1,22 @@
-import {
-  ChatBubbleLeftRightIcon,
-  DocumentTextIcon,
-  QueueListIcon,
-} from "@heroicons/react/24/solid";
 import { Tabs } from "@repo/ui";
+import { FileText, ListTree, MessagesSquare } from "@repo/ui/icons";
 import { type PanelTab, setUi, useUi } from "../app/ui-store";
 import { AgentsTab } from "./agents/AgentsTab";
 import { ReferenceTab } from "./reference/ReferenceTab";
 import { SpaceTab } from "./space/SpaceTab";
 
 const TABS = [
-  { value: "space", label: "Space", Icon: QueueListIcon, Content: SpaceTab },
+  { value: "space", label: "Space", Icon: ListTree, Content: SpaceTab },
   {
     value: "agents",
     label: "Agents",
-    Icon: ChatBubbleLeftRightIcon,
+    Icon: MessagesSquare,
     Content: AgentsTab,
   },
   {
     value: "reference",
     label: "Reference",
-    Icon: DocumentTextIcon,
+    Icon: FileText,
     Content: ReferenceTab,
   },
 ] as const;
@@ -35,14 +31,14 @@ export function SidePanel() {
       onValueChange={(v) => setUi({ activeTab: v as PanelTab })}
       className="h-full flex flex-col"
     >
-      <Tabs.List className="@container w-full shrink-0 px-3 border-b-0">
+      <Tabs.List className="@container w-full shrink-0">
         {TABS.map(({ value, label, Icon }) => (
           <Tabs.Trigger
             key={value}
             value={value}
-            className="flex-1 min-w-0 px-0 gap-1 @lg:gap-1.5 text-xs @md:text-base @lg:text-xl"
+            className="flex-1 gap-1.5 px-0"
           >
-            <Icon className="w-3.5 h-3.5 @md:w-4 @md:h-4 @lg:w-5 @lg:h-5 shrink-0" />
+            <Icon aria-hidden className="size-4 shrink-0" />
             {label}
           </Tabs.Trigger>
         ))}
@@ -51,9 +47,8 @@ export function SidePanel() {
         <Tabs.Content
           key={value}
           value={value}
-          className="flex-1 min-h-0 overflow-hidden"
-          forceMount
-          hidden={activeTab !== value}
+          className="flex-1 overflow-hidden"
+          keepMounted
         >
           <Content />
         </Tabs.Content>
