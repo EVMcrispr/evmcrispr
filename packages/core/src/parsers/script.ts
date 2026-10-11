@@ -26,16 +26,19 @@ const COMMA_HINT =
  *  error's position contains a bare comma, append a targeted hint. Quoted
  *  tokens are exempt — commas are legal inside strings, and an unclosed
  *  quote is a different mistake. */
-const withCommaHint =
-  (script: string) =>
-  (error: string): string => {
+const withCommaHint = (script: string) => {
+  // Split once for all the errors of a script, and only if it has any.
+  let lines: string[] | undefined;
+  return (error: string): string => {
     const m = error.match(ERROR_POSITION_RE);
     if (!m) return error;
-    const line = script.split(/\r?\n/)[Number(m[1]) - 1] ?? "";
+    lines ??= script.split(/\r?\n/);
+    const line = lines[Number(m[1]) - 1] ?? "";
     const token = line.slice(Number(m[2])).match(/^\S*/)?.[0] ?? "";
     if (!token.includes(",") || /^["']/.test(token)) return error;
     return `${error} — ${COMMA_HINT}`;
   };
+};
 
 /** The scripts parsed last, by their text. A keystroke has the same text
  *  parsed by every tool that reads it (diagnostics, hover, completions,

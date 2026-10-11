@@ -673,6 +673,26 @@ describe("Parsers - call expression (::! read hops)", () => {
     });
   });
 
+  it("reads a method name the same way at every hop", () => {
+    const methods = (script: string): string[] => {
+      const names: string[] = [];
+      for (
+        let n = runParser(callExpressionParser, script);
+        n?.method;
+        n = n.target
+      )
+        names.unshift(n.method);
+      return names;
+    };
+
+    expect(methods("$a::f()")).to.deep.equal(["f"]);
+    expect(methods("$a::get_v2()::token0()::f()")).to.deep.equal([
+      "get_v2",
+      "token0",
+      "f",
+    ]);
+  });
+
   it("rejects the named-method form after ::! with a clear error", () => {
     const error = runParser(callExpressionParser, `$a::!fee()`);
     expect(String(error)).to.include("CallParserError");

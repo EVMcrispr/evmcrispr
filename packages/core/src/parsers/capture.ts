@@ -6,12 +6,18 @@ import type {
   NodeParser,
   TxCaptureNode,
 } from "@evmcrispr/sdk";
-import { buildParserError, NodeType, regex } from "@evmcrispr/sdk";
+import {
+  balancedParens,
+  buildParserError,
+  NodeType,
+  regex,
+} from "@evmcrispr/sdk";
 import {
   char,
   choice,
   coroutine,
   lookAhead,
+  many,
   possibly,
   recursiveParser,
   sequenceOf,
@@ -53,9 +59,12 @@ const eventNameParser = regex(/^[a-zA-Z_][a-zA-Z0-9_]*/);
 const eventParamsParser = coroutine((run) => {
   run(char("("));
 
+  // Each tuple is read once, whatever its depth. One pattern for the whole
+  // list had to try every way of splitting an unclosed tuple, which is the
+  // state every tuple is in while it is being typed.
   const innerContent: string = run(
-    regex(/^(?:[^()]*(?:\((?:[^()]*(?:\([^()]*\))*[^()]*)*\))*[^()]*)*/),
-  );
+    many(choice([balancedParens, regex(/^[^()]+/)])),
+  ).join("");
   run(char(")"));
 
   const params: string[] = [];

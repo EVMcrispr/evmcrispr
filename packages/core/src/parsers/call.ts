@@ -16,7 +16,6 @@ import {
   char,
   choice,
   coroutine,
-  letters,
   lookAhead,
   possibly,
   recursiveParser,
@@ -88,7 +87,7 @@ type InlineAbiResult = {
   args: CallExpressionNode["args"];
 };
 
-const inlineAbiMethodNameRegex = /^[a-zA-Z_][a-zA-Z0-9_]*/;
+const methodNameRegex = /^[a-zA-Z_][a-zA-Z0-9_]*/;
 
 export const CALL_PARSER_ERROR = "CallParserError";
 
@@ -101,7 +100,7 @@ const _inlineAbiCallParser: NodeParser<InlineAbiResult> = recursiveParser(() =>
   coroutine((run) => {
     run(char("{"));
 
-    const method: string = run(regex(inlineAbiMethodNameRegex));
+    const method: string = run(regex(methodNameRegex));
     const inputTypes: string = run(balancedParens);
     const outputTypes: string = run(balancedParens);
 
@@ -144,7 +143,7 @@ const chainedCallExpressionParser = (
         : run(possibly(char("{")));
 
       if (isInlineAbi !== null) {
-        const method: string = run(regex(inlineAbiMethodNameRegex));
+        const method: string = run(regex(methodNameRegex));
         const inputTypes: string = run(balancedParens);
         const outputTypes: string = run(balancedParens);
 
@@ -170,7 +169,9 @@ const chainedCallExpressionParser = (
           loc: createNodeLocation(initialContext, finalContext),
         };
       } else {
-        const method: CallExpressionNode["method"] = run(letters);
+        const method: CallExpressionNode["method"] = run(
+          regex(methodNameRegex),
+        );
         const args: CallExpressionNode["args"] = run(argumentsParser);
         const finalContext: LocationData = run(currentContexDataParser);
         n = {
@@ -235,7 +236,7 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
         : run(possibly(char("{")));
 
       if (isInlineAbi !== null) {
-        const method: string = run(regex(inlineAbiMethodNameRegex));
+        const method: string = run(regex(methodNameRegex));
         const inputTypes: string = run(balancedParens);
         const outputTypes: string = run(balancedParens);
 
@@ -261,8 +262,9 @@ export const callExpressionParser: NodeParser<CallExpressionNode> =
           loc: createNodeLocation(initialContext, finalContext),
         };
       } else {
-        const methodRegex = /^[a-zA-Z_{1}][a-zA-Z0-9_]+/;
-        const method: CallExpressionNode["method"] = run(regex(methodRegex));
+        const method: CallExpressionNode["method"] = run(
+          regex(methodNameRegex),
+        );
         const args: CallExpressionNode["args"] = run(
           argumentsParser.errorMap((err) => buildParserError(err, "")),
         );

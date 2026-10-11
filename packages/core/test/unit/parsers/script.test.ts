@@ -1037,6 +1037,49 @@ print @helper(
       expect(time(2000)).to.be.lessThan(time(500) * 8);
     });
 
+    it("reads a chain of calls no more times on a longer script", () => {
+      const script = (lines: number) =>
+        Array(lines).fill("set $a $b::getToken(1)::approve(@me 1)").join("\n");
+      const perByte = (lines: number) =>
+        bytesRead(script(lines)) / script(lines).length;
+
+      expect(parseScript(script(2)).errors).to.deep.equal([]);
+      expect(perByte(400)).to.be.lessThan(perByte(50) * 1.5);
+    });
+
+    it("splits a script into lines once for all of its errors", () => {
+      const script = Array(50).fill("set $a @id(1, 2)").join("\n");
+      const split = String.prototype.split;
+      let splits = 0;
+      String.prototype.split = function (this: string, ...args: any[]) {
+        if (String(this) === script) splits++;
+        return (split as any).apply(this, args);
+      } as typeof split;
+      let errors: string[];
+      try {
+        errors = parseScript(script).errors;
+      } finally {
+        String.prototype.split = split;
+      }
+
+      expect(
+        errors.filter((e) => e.includes("remove the comma")),
+      ).to.have.length.greaterThan(1);
+      expect(splits).to.equal(1);
+    });
+
+    it("parses an event tuple that is still open without trying every way to close it", () => {
+      // What is on screen while `-> Evt(uint256,(address,uint256,bytes32))`
+      // is being typed. One pattern over the whole list took seconds here.
+      const script =
+        'exec $a "f()" -> Evt(uint256,(address,uint256,bytes32,(uint256,address';
+      const start = performance.now();
+      const { errors } = parseScript(script);
+
+      expect(errors).to.not.be.empty;
+      expect(performance.now() - start).to.be.lessThan(250);
+    });
+
     it("does not parse again a script it has just parsed", () => {
       const script = 'set $a 1\nprint "parsed once"';
       parseScript(script);

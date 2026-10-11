@@ -24,6 +24,17 @@ describe("Parsers - event capture", () => {
       expect(result.occurrence).to.be.undefined;
     });
 
+    it("should parse tuples nested to any depth in the event params", () => {
+      const result = runParser(
+        eventCaptureParser,
+        "-> Evt(uint,((address,(bytes32,uint)[]),uint)) [$x]",
+      );
+      expect(result.eventParams).to.deep.equal([
+        "uint",
+        "((address,(bytes32,uint)[]),uint)",
+      ]);
+    });
+
     it("should parse a capture with a hole (skip position 0)", () => {
       const result = runParser(
         eventCaptureParser,
