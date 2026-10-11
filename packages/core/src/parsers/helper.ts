@@ -19,6 +19,7 @@ import {
   enclosingLookaheadParser,
   locate,
   openingCharParser,
+  remembered,
 } from "./utils";
 
 export const HELPER_PARSER_ERROR = "HelperParserError";
@@ -67,7 +68,7 @@ const renameNameParser = takeLeft(
   ),
 );
 
-export const helperFunctionParser: NodeParser<HelperFunctionNode> =
+export const helperFunctionParser: NodeParser<HelperFunctionNode> = remembered(
   recursiveParser(() =>
     locate<HelperFunctionNode>(
       coroutine((run) => {
@@ -122,4 +123,5 @@ export const helperFunctionParser: NodeParser<HelperFunctionNode> =
         }),
       }),
     ),
-  );
+  ),
+);

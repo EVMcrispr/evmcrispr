@@ -1080,6 +1080,15 @@ print @helper(
       expect(performance.now() - start).to.be.lessThan(250);
     });
 
+    it("parses a helper once, however deep it is nested in others", () => {
+      const nested = (depth: number) =>
+        `set $a ${"@id(".repeat(depth)}1${")".repeat(depth)}`;
+
+      expect(parseScript(nested(3)).errors).to.deep.equal([]);
+      // Parsed twice per level, the deeper one would not finish.
+      expect(bytesRead(nested(40))).to.be.lessThan(bytesRead(nested(10)) * 6);
+    });
+
     it("does not parse again a script it has just parsed", () => {
       const script = 'set $a 1\nprint "parsed once"';
       parseScript(script);

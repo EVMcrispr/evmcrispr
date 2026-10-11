@@ -6,7 +6,7 @@ import type {
   NodeParserState,
 } from "@evmcrispr/sdk";
 import { buildParserError, everyCharUntil, regex } from "@evmcrispr/sdk";
-import type { Ok, Parser } from "arcsecond";
+import type { Ok } from "arcsecond";
 import {
   between,
   char,
@@ -16,6 +16,7 @@ import {
   endOfInput,
   getData,
   lookAhead,
+  Parser,
   possibly,
   recursiveParser,
   sequenceOf,
@@ -286,6 +287,40 @@ export const emptyLine = sequenceOf([optionalWhitespace, endLine])
   .errorMap((err) =>
     buildParserError(err, "LineParserError", "Expecting empty line"),
   );
+
+/**
+ * `parser`, remembering what it last gave and where.
+ *
+ * For a parser that a choice reaches twice at one position: a helper is
+ * tried as the head of a call, and when no `::` follows it, again as a
+ * helper. Parsed twice, so are its arguments, each twice in turn, and the
+ * time doubles with every level of nesting. The second attempt starts from
+ * the same input, position and state as the first, so it gives the same.
+ */
+export const remembered = <T>(
+  parser: Parser<T, string, NodeParserState>,
+): Parser<T, string, NodeParserState> => {
+  type State = Parameters<typeof parser.p>[0];
+  let last: { from: State; out: ReturnType<typeof parser.p> } | undefined;
+
+  return new Parser((state) => {
+    if (state.isError) return state;
+    if (
+      last &&
+      last.from.dataView === state.dataView &&
+      last.from.index === state.index &&
+      last.from.data === state.data
+    )
+      // A failure carries the result it was reached with.
+      return last.out.isError
+        ? { ...last.out, result: state.result }
+        : last.out;
+
+    const out = parser.p(state);
+    last = { from: state, out };
+    return out;
+  });
+};
 
 export const locate = <N extends Node = Node>(
   p: Parser<any[], string, NodeParserState>,
