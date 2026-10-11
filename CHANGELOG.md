@@ -21,6 +21,28 @@
 - The mobile review's simulation is recorded as a simulated run.
 - `@evmcrispr/sdk`: `ActionReport.status?(state)` and `ActionHoldState`, for a host that holds an action. `@evmcrispr/core`: `ActionHandlerCtx.onStatus?`, the worker protocol's `action-status` message, and `ExecuteOptions.prepareChain` to hold the change of chain asked before a script starts. Errors thrown when the wallet cannot be aligned keep their message and gain a `cause`. Hosts that hold nothing see no change.
 
+### Terminal: the Agents tab, and an assistant that works across spaces
+
+- The Chat tab is the **Agents** tab. Its only agent for now is the built-in Dappnode Nexus assistant, so it opens straight into the chat.
+- Chats are stored in IndexedDB and belong to the browser, not to a script: there is no limit of 20 any more, a full storage no longer drops other chats, and existing chats are copied over on first load (the old storage is left in place). The last chat reopens on load, the open chat stays open when you move to another space, and each chat is labelled with the space it started in.
+- The assistant works on the space you were looking at when you sent the message, even if you move on meanwhile. It can list your spaces and read another one (`list_spaces`, `read_space`), and its script tools take an optional `space`.
+- Every edit carries a one-sentence explanation, shown on its card and, for the whole turn, on the revision in the timeline. The card links to the timeline; a revision made by the assistant offers **Open chat**.
+- A simulation card shows what ran: the code and its logs. A snippet can be loaded in the editor or opened as a new space.
+- The assistant asks before it edits a space that is not on screen (per space, per chat), and before it uses the web in a chat that has read other spaces, or the reverse. The answer is yours to give in the chat and is remembered for that chat.
+- A space opened from an assistant's card, or from a revision whose text was not approved, starts unreviewed.
+- What the assistant reads (scripts, timelines, web pages, contract source, simulation output) is handed to the model as marked, untrusted data.
+- The same chat open in two tabs answers one message at a time; the other tab shows "Answering in another tab…" and catches up when it ends.
+- `set_script_title` is gone: the title is the script's first comment.
+
+**Breaking, `@evmcrispr/ai`:**
+
+- The module-level `listChats`, `getChat`, `saveChat` and `removeChat` are removed: use `createChatStore()`, which returns the new `ChatStore` interface (also what `useChatAgent`'s `chatStore` option takes).
+- `ScriptToolsHost`: `getTitle` and `setTitle` are removed; `getScript(space?)` may return `null` (no such script) or a promise; `applyStrReplace` and `applyWrite` take a third argument `ScriptEditRequest { explanation, space? }` and may be asynchronous; optional `listSpaces`, `readSpace` and `revisionOf` are new.
+- `ScriptEditResult` no longer carries `revisionId`; a success may carry the `space` it landed in.
+- Tools: `set_script_title` is removed. `edit_script` and `write_script` require `explanation` (one plain line, at most 200 characters; longer is rejected). `get_script`, `validate_script` and `simulate_script` take an optional `space`. `get_script` no longer prints a `Title:` line. `get_script`, `read_space`, `search_web`, `fetch_page` and `get_contract` return their content inside an "untrusted content" block (`untrusted()`, with `UNTRUSTED_RULE` for the system prompt). `list_spaces` and `read_space` exist when the host provides them.
+- `ChatToolArtifact`: `script-change` loses `revisionId` and `undone` and gains `explanation` and `space`; `simulation` gains the optional `target`, `code`, `logs` and `revisionId`; a new `permission` kind is what a host returns when a call needs the user's word.
+- `useChatAgent`: the `undoScriptRevision` option and the returned `undoRevision` are removed. `send(text, context?)` and `regenerate(context?)` take `{ scope }`, which the turn callbacks receive. New options `initialChatId` (an id, or `"latest"`) and `acquireTurn`. `ChatErrorKind` gains `"busy"`.
+
 ### Smart block syntax
 
 Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:propose-offline`, and `safe:execute`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.

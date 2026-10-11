@@ -24,10 +24,36 @@ export interface StoredChat {
   messages: ModelMessage[];
 }
 
+/** Where `useChatAgent` keeps its conversations. Synchronous: a store on
+ *  slower storage holds the chats in memory and writes behind. */
+export interface ChatStore {
+  /** Stored conversations, most recently updated first; with a `scopeId`,
+   *  that scope's only. */
+  listChats(scopeId?: string): ChatMeta[];
+  getChat(id: string): StoredChat | null;
+  /** `scopeId` labels the chat with what it was started in. */
+  saveChat(
+    id: string,
+    title: string,
+    items: ChatItem[],
+    messages: ModelMessage[],
+    scopeId?: string,
+  ): void;
+  removeChat(id: string): void;
+  /** For a store whose chats can change under the hook (another tab of
+   *  the same browser): fires on every change. Such a store's `getChat`
+   *  must return the same object until that chat changes; the hook then
+   *  keeps the open chat in step with it while it is not answering. */
+  subscribe?(listener: () => void): () => void;
+  /** The chat that was open last, for `initialChatId: "latest"`. */
+  getLastChatId?(): string | undefined;
+  setLastChatId?(id: string): void;
+}
+
 /** Chat conversation persistence keyed by a host-namespace prefix, so
  *  multiple hosts on one origin (or one host with several chat surfaces)
  *  don't collide in `localStorage`. */
-export function createChatStore(namespace = "evmcrispr") {
+export function createChatStore(namespace = "evmcrispr"): ChatStore {
   const INDEX_KEY = `${namespace}:chats`;
   const CHAT_PREFIX = `${namespace}:chat:`;
 
@@ -140,10 +166,3 @@ export function deriveTitle(firstUserText: string): string {
     ? `${collapsed.slice(0, MAX_TITLE_LENGTH - 1)}…`
     : collapsed;
 }
-
-const defaultStore = createChatStore();
-
-export const listChats = defaultStore.listChats;
-export const getChat = defaultStore.getChat;
-export const saveChat = defaultStore.saveChat;
-export const removeChat = defaultStore.removeChat;

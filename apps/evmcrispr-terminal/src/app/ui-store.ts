@@ -42,6 +42,9 @@ export interface UiState {
   previewRevisionId: string | null;
   viewMode: ViewMode;
   docsRequest: DocsRequest | null;
+  /** A request to show a chat in the Agents tab (from a revision's row).
+   *  `ts` is a nonce, as in `DocsRequest`. */
+  chatRequest: { chatId: string; ts: number } | null;
   /** What the user chose as each space's stdin (not saved), with the
    *  address's own stdin it replaced: a new one in the address wins. */
   stdin: Record<
@@ -56,6 +59,7 @@ export const uiStore = createStore<UiState>(() => ({
   previewRevisionId: null,
   viewMode: resolveInitialViewMode(),
   docsRequest: null,
+  chatRequest: null,
   stdin: {},
 }));
 

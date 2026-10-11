@@ -15,6 +15,7 @@ import { RouterProvider } from "react-router/dom";
 import { AppProvider } from "./app/AppContext";
 import type { App as AppObject } from "./app/boot";
 import Terminal from "./app/Terminal";
+import { AssistantProvider } from "./assistant/AssistantProvider";
 import { transports } from "./config/wagmi";
 import Wagmi from "./providers/Wagmi";
 import { WalletProvider } from "./wallet/WalletContext";
@@ -37,7 +38,9 @@ const App = ({ app }: { app: AppObject }) => {
           <AppProvider app={app}>
             <EvmcrisprProvider evml={evml} transports={transports}>
               <WalletProvider>
-                <RouterProvider router={router} />
+                <AssistantProvider>
+                  <RouterProvider router={router} />
+                </AssistantProvider>
               </WalletProvider>
             </EvmcrisprProvider>
           </AppProvider>

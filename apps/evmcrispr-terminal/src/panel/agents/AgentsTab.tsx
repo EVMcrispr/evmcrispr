@@ -2,24 +2,37 @@ import { fetchNexusBalance, logoutNexus } from "@evmcrispr/ai";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/solid";
 import { IconButton } from "@repo/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { useTerminalChatAgent } from "../../ai/useTerminalChatAgent";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
+import { useApp } from "../../app/AppContext";
+import { useMaybeSpace } from "../../app/SpaceContext";
+import { setUi } from "../../app/ui-store";
+import { useAssistant } from "../../assistant/AssistantProvider";
+import { spaceFromProgram } from "../../space/derive";
 import { ChatHeader } from "./ChatHeader";
 import { ChatHistorySheet } from "./ChatHistorySheet";
 import { ChatInput } from "./ChatInput";
 import { ChatMessageList } from "./ChatMessageList";
 import { ChatSettings } from "./ChatSettings";
+import type { CardActions } from "./ToolCards";
 
-export function ChatPanel({
+/** The Agents tab. In this piece the only agent is the built-in Dappnode
+ *  Nexus assistant, so the tab opens straight into its chat; the list of
+ *  agents appears when there is a second one. The chat belongs to the
+ *  browser: it stays as it is when the space on screen changes. */
+export function AgentsTab({
   mobile = false,
   onOpenScript,
   onOpenReview,
+  onOpenTimeline,
   settingsOpen,
   onSettingsOpenChange,
 }: {
   mobile?: boolean;
   onOpenScript?: () => void;
   onOpenReview?: () => void;
+  /** Mobile: bring the Space surface forward. */
+  onOpenTimeline?: () => void;
   /** Controlled settings visibility (mobile: the menu opens settings). */
   settingsOpen?: boolean;
   onSettingsOpenChange?: (open: boolean) => void;
@@ -38,7 +51,39 @@ export function ChatPanel({
     openChat,
     deleteChat,
     regenerate,
-  } = useTerminalChatAgent();
+    busyElsewhere,
+  } = useAssistant();
+  const { spaces } = useApp();
+  const space = useMaybeSpace();
+  const navigate = useNavigate();
+
+  const cards = useMemo<CardActions>(
+    () => ({
+      onOpenScript,
+      onReview: onOpenReview,
+      onSeeInTimeline(id) {
+        setUi({ activeTab: "space", spaceView: "timeline" });
+        onOpenTimeline?.();
+        // The change may have landed in a space that is not on screen.
+        const listed = spaces.index.getState().some((meta) => meta.id === id);
+        if (id && listed && id !== spaces.onScreen.getState())
+          navigate(`/${id}`);
+      },
+      // What a program wrote is what a review is for: the new space
+      // starts unreviewed.
+      async onOpenInNewSpace(code) {
+        navigate(`/${await spaceFromProgram(spaces, code)}`);
+      },
+      // Like any load: recorded, undoable, and judged by where it lands.
+      onLoadInEditor: space
+        ? (code) => {
+            space.load(code, "load");
+            onOpenScript?.();
+          }
+        : undefined,
+    }),
+    [onOpenScript, onOpenReview, onOpenTimeline, spaces, space, navigate],
+  );
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const showSettings = settingsOpen ?? internalSettingsOpen;
@@ -118,15 +163,24 @@ export function ChatPanel({
         error={error}
         onShowSettings={() => setShowSettings(true)}
         onRegenerate={regenerate}
-        onSuggestion={(text) => void send(text)}
-        onOpenScript={onOpenScript}
-        onReview={onOpenReview}
+        onSuggestion={send}
+        cards={cards}
+        chatId={conversationId}
         mobile={mobile}
       />
+      {busyElsewhere && (
+        <p
+          role="status"
+          className="shrink-0 px-3 pb-1 font-sans text-xs text-foreground/60"
+        >
+          Answering in another tab…
+        </p>
+      )}
       <ChatInput
         isRunning={isRunning}
-        onSend={(text) => void send(text)}
+        onSend={send}
         onStop={stop}
+        blocked={busyElsewhere ? "Answering in another tab…" : undefined}
         mobile={mobile}
         leading={composerLeading}
       />

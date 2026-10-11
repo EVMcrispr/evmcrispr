@@ -1,11 +1,7 @@
-import { type ChatMeta, listChats } from "@evmcrispr/ai";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { Button, cn, Drawer, IconButton } from "@repo/ui";
-import { useEffect, useState } from "react";
-import { useStore } from "zustand";
-import { useApp } from "../../app/AppContext";
-import { relativeDate } from "./ChatHistoryPopover";
+import { chatByline, useChatList } from "./useChatList";
 
 export function ChatHistorySheet({
   open,
@@ -24,16 +20,7 @@ export function ChatHistorySheet({
   onDeleteChat: (id: string) => void;
   onNewChat: () => void;
 }) {
-  const [chats, setChats] = useState<ChatMeta[]>([]);
-  // Chats belong to the current script (script 1-N chats).
-  const currentScriptId = useStore(useApp().spaces.onScreen);
-
-  // The sheet is opened programmatically (the composer button), so the
-  // list must refresh on the `open` prop — vaul's onOpenChange only fires
-  // for internal dismissals.
-  useEffect(() => {
-    if (open) setChats(listChats(currentScriptId ?? undefined));
-  }, [open, currentScriptId]);
+  const chats = useChatList();
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="bottom" modal>
@@ -111,7 +98,7 @@ export function ChatHistorySheet({
                         {chat.title || "Untitled chat"}
                       </p>
                       <p className="font-sans text-xs text-muted-foreground">
-                        {relativeDate(chat.updatedAt)}
+                        {chatByline(chat)}
                       </p>
                     </div>
                     <IconButton
@@ -122,7 +109,6 @@ export function ChatHistorySheet({
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteChat(chat.id);
-                        setChats(listChats(currentScriptId ?? undefined));
                       }}
                     >
                       <TrashIcon className="size-4" />

@@ -59,14 +59,15 @@ const isMonaco = (spec: string) =>
 // Runs and the timeline's rows are among them: a run record or an entry
 // can come from another copy of the space.
 const handlesForeignContent = (file: string) =>
-  /^(ai|assistant|space|storage|runs|panel\/space)\//.test(file) ||
+  /^(assistant|space|storage|runs|panel\/(space|agents))\//.test(file) ||
   /transport/i.test(file);
 
 test("nothing that handles foreign content can reach the editor or Monaco", async () => {
   const graph = await importGraph();
   const roots = [...graph.keys()].filter(handlesForeignContent);
   // The assistant host, a transport and the space live there today.
-  expect(roots.some((file) => file.startsWith("ai/"))).toBe(true);
+  expect(roots).toContain("assistant/host.ts");
+  expect(roots).toContain("assistant/AssistantProvider.tsx");
   expect(roots).toContain("space/tab-transport.ts");
   expect(roots).toContain("space/live-space.ts");
   expect(roots).toContain("runs/run-manager.ts");
@@ -99,4 +100,28 @@ test("the script is written only by the space and by the editor binding", async 
     "editor/monaco-binding.ts",
     "space/live-space.ts",
   ]);
+});
+
+test("the assistant cannot approve: nothing of it names the approved text", async () => {
+  const graph = await importGraph();
+  const files = [...graph.keys()].filter((file) =>
+    /^(assistant|panel\/agents)\//.test(file),
+  );
+  expect(files).toContain("assistant/host.ts");
+  for (const file of files)
+    expect({
+      file,
+      approves: /approvedText/.test(
+        await Bun.file(path.join(SRC, file)).text(),
+      ),
+    }).toEqual({ file, approves: false });
+});
+
+test("a permission is given in one place: the prompt the user clicks", async () => {
+  const graph = await importGraph();
+  const granters: string[] = [];
+  for (const file of graph.keys())
+    if (/\.grant\(/.test(await Bun.file(path.join(SRC, file)).text()))
+      granters.push(file);
+  expect(granters).toEqual(["panel/agents/PermissionPrompt.tsx"]);
 });

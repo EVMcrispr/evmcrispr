@@ -6,6 +6,7 @@ import { createChanges } from "../../src/storage/changes";
 import { memoryStorage } from "../../src/storage/index";
 import { LockTable, localLocks } from "../../src/storage/locks";
 import { migrate } from "../../src/storage/migrate";
+import { local } from "../helpers/local";
 import { channelHub } from "../helpers/tabs";
 
 /** Today's localStorage, as `utils/local-storage.ts` wrote it. */
@@ -31,15 +32,6 @@ const fixture = () => ({
   }),
   "evmcrispr:edits:x": '{"base":"","ops":[]}',
 });
-
-function local(initial: Record<string, string>) {
-  const data = new Map(Object.entries(initial));
-  return {
-    data,
-    getItem: (k: string) => data.get(k) ?? null,
-    setItem: (k: string, v: string) => void data.set(k, v),
-  };
-}
 
 function setup(initial: Record<string, string>) {
   const storage = memoryStorage();

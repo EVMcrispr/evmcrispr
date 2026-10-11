@@ -1,7 +1,7 @@
 import { textHash, withTitle } from "@evmcrispr/space";
 import type { Spaces } from "../space/spaces";
 import { type Locks, lockNames } from "./locks";
-import type { Records } from "./records";
+import type { ChatRecord, Records } from "./records";
 
 const DONE = "evmcrispr:migrated:spaces";
 const SCRIPTS = "evmcrispr:scripts";
@@ -133,6 +133,78 @@ export async function migrate(deps: {
     }
 
     if (!failed && persistent) local.setItem(DONE, "1");
+  } finally {
+    release();
+  }
+}
+
+const CHATS_DONE = "evmcrispr:migrated:chats";
+const CHATS = "evmcrispr:chats";
+
+/** A chat as `createChatStore()` of @evmcrispr/ai kept it: a line of the
+ *  index under `evmcrispr:chats` and its content under its own key. */
+function storedChat(
+  local: Pick<Storage, "getItem">,
+  meta: unknown,
+): ChatRecord | undefined {
+  const { id, title, createdAt, updatedAt } = (meta ?? {}) as Record<
+    string,
+    unknown
+  >;
+  if (
+    typeof id !== "string" ||
+    typeof title !== "string" ||
+    typeof createdAt !== "string" ||
+    typeof updatedAt !== "string"
+  )
+    return undefined;
+  const chat = parse(local.getItem(`evmcrispr:chat:${id}`));
+  if (!chat || !Array.isArray(chat.items) || !Array.isArray(chat.messages))
+    return undefined;
+  return {
+    id,
+    meta: meta as ChatRecord["meta"],
+    chat: { id, items: chat.items, messages: chat.messages },
+  };
+}
+
+/**
+ * Copies the assistant chats kept in localStorage into the `chats` store,
+ * unchanged. A chat's `scopeId`, where it has one, already names the space
+ * it started in; one without is kept without a label. A chat already in
+ * the store is left as it is there. One that cannot be read is skipped and
+ * the flag waits, as it does in a browser that refused storage this time.
+ * Reads the old keys and never writes or deletes them.
+ */
+export async function migrateChats(deps: {
+  records: Records;
+  locks: Locks;
+  local: Pick<Storage, "getItem" | "setItem">;
+  persistent: boolean;
+}): Promise<void> {
+  const { records, locks, local, persistent } = deps;
+  if (local.getItem(CHATS_DONE)) return;
+  const release = await locks.hold(lockNames.migrate);
+  try {
+    if (local.getItem(CHATS_DONE)) return;
+    let index: unknown;
+    try {
+      index = JSON.parse(local.getItem(CHATS) ?? "[]");
+    } catch {
+      index = undefined;
+    }
+    let failed = !Array.isArray(index);
+    const known = new Set((await records.listChats()).map((chat) => chat.id));
+    for (const meta of Array.isArray(index) ? index : []) {
+      try {
+        const record = storedChat(local, meta);
+        if (!record) throw new Error("not a stored chat");
+        if (!known.has(record.id)) await records.putChat(record);
+      } catch {
+        failed = true;
+      }
+    }
+    if (!failed && persistent) local.setItem(CHATS_DONE, "1");
   } finally {
     release();
   }

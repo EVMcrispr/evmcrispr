@@ -5,7 +5,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { Tabs } from "@repo/ui";
 import { type PanelTab, setUi, useUi } from "../app/ui-store";
-import { ChatPanel } from "./agents/ChatPanel";
+import { AgentsTab } from "./agents/AgentsTab";
 import { ReferenceTab } from "./reference/ReferenceTab";
 import { SpaceTab } from "./space/SpaceTab";
 
@@ -15,7 +15,7 @@ const TABS = [
     value: "agents",
     label: "Agents",
     Icon: ChatBubbleLeftRightIcon,
-    Content: ChatPanel,
+    Content: AgentsTab,
   },
   {
     value: "reference",

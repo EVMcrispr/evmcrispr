@@ -54,7 +54,12 @@ export function fakeEvml(
   options: {
     hold?: boolean;
     resolveOnAbort?: boolean;
-    simulation?: { success: boolean; actions: Action[]; error?: string };
+    simulation?: Partial<{
+      success: boolean;
+      actions: Action[];
+      logs: string[];
+      error: string;
+    }>;
   } = {},
 ): FakeEvml {
   const asked = new Map<unknown, number>();

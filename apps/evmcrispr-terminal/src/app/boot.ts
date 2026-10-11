@@ -2,6 +2,7 @@ import type { WorkerEvml } from "@evmcrispr/core/worker-client";
 import type { Author } from "@evmcrispr/space";
 import { getConnection, getWalletClient } from "@wagmi/core";
 import { createStore, type StoreApi } from "zustand/vanilla";
+import { createIdbChatStore, type IdbChatStore } from "../assistant/chat-store";
 import { config as wagmiConfig } from "../config/wagmi";
 import { createRunManager, type RunManager } from "../runs/run-manager";
 import { createRunWorker } from "../runs/worker";
@@ -11,7 +12,7 @@ import { type Changes, createChanges } from "../storage/changes";
 import { openBroadcastChannel, openSilentChannel } from "../storage/channel";
 import { openStorage, type Storage } from "../storage/index";
 import { type Locks, localLocks, webLocks } from "../storage/locks";
-import { migrate } from "../storage/migrate";
+import { migrate, migrateChats } from "../storage/migrate";
 
 /** Everything the app shares, built once. React reads it from
  *  `<AppProvider>`; the rest receives what it needs as a parameter. */
@@ -21,6 +22,8 @@ export interface App {
   changes: Changes;
   spaces: Spaces;
   runs: RunManager;
+  /** The assistant's chats: this browser's, not a space's. */
+  chats: IdbChatStore;
   /** The worker the assistant simulates in. Its simulations are its
    *  working, not runs: they share one worker, spawned when first used. */
   assistantEvml(): WorkerEvml;
@@ -59,7 +62,15 @@ export async function boot(): Promise<App> {
     local: localStorage,
     persistent: storage.persistent,
   });
+  await migrateChats({
+    records: storage.records,
+    locks,
+    local: localStorage,
+    persistent: storage.persistent,
+  });
   await spaces.ready;
+  const chats = createIdbChatStore({ records: storage.records, changes });
+  await chats.ready;
   if (storage.persistent && navigator.storage?.persist)
     askToPersist(spaces, () => navigator.storage.persist());
   const runs = createRunManager({
@@ -86,7 +97,16 @@ export async function boot(): Promise<App> {
     assistant ??= createRunWorker();
     return assistant;
   };
-  return { storage, locks, changes, spaces, runs, assistantEvml, outdated };
+  return {
+    storage,
+    locks,
+    changes,
+    spaces,
+    runs,
+    chats,
+    assistantEvml,
+    outdated,
+  };
 }
 
 /** Asks the browser not to evict storage, once per page, when a space has

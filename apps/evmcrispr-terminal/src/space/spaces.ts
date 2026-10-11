@@ -111,7 +111,7 @@ export function createSpaces(deps: SpaceDeps & { locks: Locks }): Spaces {
         title: displayTitle(init.text),
         createdAt,
         updatedAt: init.ts ?? createdAt,
-        unreviewed: false,
+        unreviewed: init.unreviewed === true,
       });
       const entry = load(id, { ...init, createdAt });
       entry.holds++;

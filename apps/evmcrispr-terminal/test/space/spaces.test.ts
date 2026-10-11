@@ -459,3 +459,30 @@ describe("spaces", () => {
     expect((await b.storage.records.loadTimeline(id)).entries).toEqual([]);
   });
 });
+
+describe("a space that was let go, or removed", () => {
+  test("takes no edit, records nothing and keeps no mark from whoever still has it", async () => {
+    const b = browser();
+    const spaces = b.tab();
+    const id = await spaces.create({ text: "exec 1", source: "user" });
+    const space = (await spaces.acquire(id))!;
+    await spaces.remove(id);
+
+    expect(space.editAsTurn("t1", { kind: "write", text: "late" })).toEqual({
+      ok: false,
+      error: "This space was closed or removed.",
+    });
+    expect(space.getText()).toBe("exec 1");
+    expect(space.record("user", { summary: "late" })).toBeNull();
+    expect(space.endTurn("t1", "late")).toBeNull();
+    await space.setMarkers({
+      revisionChats: { x: "chat" },
+      approvedText: "late",
+    });
+    expect(space.markers.getState().revisionChats).toBeUndefined();
+    await settle();
+    expect(await b.storage.records.getMarkers(id)).toEqual({});
+    expect((await b.storage.records.loadTimeline(id)).entries).toEqual([]);
+    expect(await b.storage.records.getSpace(id)).toBeUndefined();
+  });
+});

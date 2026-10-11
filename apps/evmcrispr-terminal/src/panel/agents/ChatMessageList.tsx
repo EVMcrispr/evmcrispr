@@ -2,20 +2,17 @@ import type { ChatErrorInfo, ChatItem } from "@evmcrispr/ai";
 import {
   ArrowDownIcon,
   ArrowPathIcon,
-  BeakerIcon,
-  CheckCircleIcon,
   CheckIcon,
   ClipboardIcon,
-  CodeBracketIcon,
   Cog6ToothIcon,
-  ExclamationTriangleIcon,
 } from "@heroicons/react/24/solid";
-import { Button, cn, IconButton } from "@repo/ui";
+import { cn, IconButton } from "@repo/ui";
 import { type CSSProperties, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { markdownComponents } from "../reference/MarkdownComponents";
 import { ChatSuggestions } from "./ChatSuggestions";
+import { type CardActions, ToolCard } from "./ToolCards";
 import { useStickToBottom } from "./useStickToBottom";
 
 // Depth positions (0 = back, 1 = front) of the stacked copies that give the
@@ -79,160 +76,6 @@ function CopyButton({
   );
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  get_script: "Reading script",
-  edit_script: "Updating script",
-  write_script: "Writing script",
-  set_script_title: "Naming script",
-  validate_script: "Validating script",
-  simulate_script: "Simulating on a fork",
-  list_modules: "Checking modules",
-  describe_module: "Reading module reference",
-  get_docs: "Reading documentation",
-  get_contract: "Inspecting contract",
-  search_web: "Searching trusted sources",
-  fetch_page: "Reading source",
-};
-
-function ToolItem({
-  item,
-  onOpenScript,
-  onReview,
-}: {
-  item: Extract<ChatItem, { role: "tool" }>;
-  onOpenScript?: () => void;
-  onReview?: () => void;
-}) {
-  const artifact = item.artifact;
-
-  if (!artifact) {
-    return (
-      <div
-        className={cn(
-          "flex items-center gap-2 border border-foreground/10 bg-foreground/2.5 px-3 py-2 font-mono text-xs text-foreground/55",
-          item.phase === "error" && "border-destructive/50 text-destructive",
-        )}
-        role={item.phase === "error" ? "alert" : "status"}
-      >
-        <span
-          className={cn(
-            "size-1.5 rounded-full bg-foreground/30",
-            item.phase === "call" && "animate-pulse bg-primary",
-          )}
-        />
-        <span>{TOOL_LABELS[item.text] ?? item.text.replaceAll("_", " ")}</span>
-        {item.phase === "result" && (
-          <CheckIcon className="ml-auto size-3.5 text-primary" />
-        )}
-        {item.error && <span className="ml-auto truncate">{item.error}</span>}
-      </div>
-    );
-  }
-
-  if (artifact.kind === "script-change") {
-    const succeeded = artifact.ok && artifact.valid !== false;
-    return (
-      <article
-        className={cn(
-          "border bg-card/45 p-3",
-          succeeded ? "border-primary/40" : "border-destructive/50",
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center border border-foreground/15 bg-black/30">
-            <CodeBracketIcon className="size-5 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-sans text-sm font-semibold text-foreground">
-              {artifact.undone
-                ? "Script change undone"
-                : artifact.ok
-                  ? "Script updated"
-                  : "Script update failed"}
-            </p>
-            <p className="mt-0.5 font-sans text-xs text-foreground/55">
-              {artifact.error ??
-                (artifact.valid === false
-                  ? `${artifact.diagnosticsCount ?? 0} validation issue(s)`
-                  : "Validated and ready to inspect")}
-            </p>
-          </div>
-          {succeeded ? (
-            <CheckCircleIcon className="size-5 shrink-0 text-primary" />
-          ) : (
-            <ExclamationTriangleIcon className="size-5 shrink-0 text-destructive" />
-          )}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {artifact.ok && onOpenScript && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={onOpenScript}
-            >
-              View script
-            </Button>
-          )}
-        </div>
-      </article>
-    );
-  }
-
-  if (artifact.kind === "simulation") {
-    return (
-      <article
-        className={cn(
-          "border bg-card/45 p-3",
-          artifact.success ? "border-primary/40" : "border-destructive/50",
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <BeakerIcon className="size-6 text-primary" />
-          <div className="min-w-0 flex-1">
-            <p className="font-sans text-sm font-semibold text-foreground">
-              {artifact.success ? "Simulation passed" : "Simulation failed"}
-            </p>
-            <p className="font-sans text-xs text-foreground/55">
-              {artifact.error ??
-                `${artifact.actionCount} action${artifact.actionCount === 1 ? "" : "s"} resolved on a fork`}
-            </p>
-          </div>
-          {artifact.success && (
-            <CheckCircleIcon className="size-5 text-primary" />
-          )}
-        </div>
-        {artifact.success && onReview && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="mt-3"
-            onClick={onReview}
-          >
-            Review transactions
-          </Button>
-        )}
-      </article>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-2 border border-foreground/10 bg-card/35 px-3 py-2 font-sans text-sm">
-      {artifact.valid ? (
-        <CheckCircleIcon className="size-5 text-primary" />
-      ) : (
-        <ExclamationTriangleIcon className="size-5 text-destructive" />
-      )}
-      <span>
-        {artifact.valid
-          ? "Script is valid"
-          : `${artifact.diagnosticsCount} validation issue(s)`}
-      </span>
-    </div>
-  );
-}
-
 export function ChatMessageList({
   items,
   isRunning,
@@ -240,18 +83,18 @@ export function ChatMessageList({
   onShowSettings,
   onRegenerate,
   onSuggestion,
-  onOpenScript,
-  onReview,
+  cards,
+  chatId,
   mobile = false,
 }: {
+  chatId: string;
   items: ChatItem[];
   isRunning: boolean;
   error: ChatErrorInfo | null;
   onShowSettings: () => void;
   onRegenerate: () => void;
   onSuggestion: (text: string) => void;
-  onOpenScript?: () => void;
-  onReview?: () => void;
+  cards: CardActions;
   mobile?: boolean;
 }) {
   const [statusIdx, setStatusIdx] = useState(0);
@@ -312,11 +155,11 @@ export function ChatMessageList({
           }
           if (item.role === "tool") {
             return (
-              <ToolItem
+              <ToolCard
                 key={item.toolCallId ?? i}
                 item={item}
-                onOpenScript={onOpenScript}
-                onReview={onReview}
+                actions={cards}
+                chatId={chatId}
               />
             );
           }

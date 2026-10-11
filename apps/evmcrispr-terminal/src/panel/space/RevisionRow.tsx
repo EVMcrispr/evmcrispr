@@ -3,8 +3,9 @@ import { cn } from "@repo/ui";
 import { type ReactNode, useState } from "react";
 import { useNavigate } from "react-router";
 import { useApp } from "../../app/AppContext";
-import { useSpace } from "../../app/SpaceContext";
+import { useMarkers, useSpace } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
+import { spaceFromEntry } from "../../space/derive";
 import type { RevisionRow as Row } from "./rows";
 import { ago } from "./time";
 
@@ -34,8 +35,10 @@ const Action = ({
 /** One recorded state of the script: who made it, what changed, and the
  *  ways to look at it or go back to it. */
 export function RevisionRow({ row }: { row: Row }) {
-  const { spaces } = useApp();
+  const { spaces, chats } = useApp();
   const space = useSpace();
+  // Private to this browser: the chat this revision came from, while kept.
+  const chatId = useMarkers().revisionChats?.[row.entry.id];
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { entry, parent } = row;
@@ -96,12 +99,22 @@ export function RevisionRow({ row }: { row: Row }) {
               Restore to before
             </Action>
           )}
+          {chatId && chats.getChat(chatId) && (
+            <Action
+              onClick={() =>
+                setUi({
+                  activeTab: "agents",
+                  chatRequest: { chatId, ts: Date.now() },
+                })
+              }
+            >
+              Open chat
+            </Action>
+          )}
           <Action
             onClick={async () => {
-              const id = await spaces.create({
-                text: entry.text,
-                source: "import",
-              });
+              // Approved there, approved here; otherwise unreviewed.
+              const id = await spaceFromEntry(spaces, space, entry.text);
               navigate(`/${id}`);
             }}
           >

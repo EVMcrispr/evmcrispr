@@ -1,6 +1,7 @@
 import type { WorkerEvml } from "@evmcrispr/core/worker-client";
 import { createStore } from "zustand/vanilla";
 import type { App } from "../../src/app/boot";
+import { createIdbChatStore } from "../../src/assistant/chat-store";
 import { createRunManager, type Wallet } from "../../src/runs/run-manager";
 import { createSpaces } from "../../src/space/spaces";
 import { tabTransport } from "../../src/space/tab-transport";
@@ -73,6 +74,7 @@ export function testBrowser() {
         changes,
         spaces,
         runs,
+        chats: createIdbChatStore({ records: storage.records, changes }),
         assistantEvml: createWorker,
         outdated: createStore(() => false),
       };

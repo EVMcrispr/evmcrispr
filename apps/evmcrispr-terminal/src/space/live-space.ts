@@ -55,9 +55,14 @@ export interface SpaceDeps {
   me(): Author;
 }
 
-/** What a new space starts with. However it arrived, it starts approved. */
+/** What a new space starts with. A space the user makes, migrates or
+ *  opens from a link or an export starts approved. */
 export interface SpaceInit {
   text: string;
+  /** The one way to start with nothing approved: for a space made of
+   *  text from inside the app that is not approved where it comes from
+   *  (see `derive.ts`). The space is then unreviewed until a review. */
+  unreviewed?: true;
   source: "user" | "import";
   origin?: { cid: string };
   /** Time of the first revision (migration keeps the old `updatedAt`). */
@@ -82,6 +87,9 @@ export interface LiveSpace {
   readonly timeline: StoreApi<TimelineState>;
   readonly markers: StoreApi<Markers>;
   getText(): string;
+  /** Whether `text` is the approved script, or was while this space has
+   *  been loaded in this page. Never answered from a timeline entry. */
+  wasApproved(text: string): boolean;
   /** A local change to the timeline: memory, storage and the other copies. */
   commit(patch: TimelinePatch): void;
   setMarkers(patch: Partial<Markers>): Promise<void>;
@@ -155,6 +163,7 @@ export async function openLiveSpace(
   // the start of a step or through an undo or redo.
   const seen = approvedTexts();
   const setMarkers = async (patch: Partial<Markers>) => {
+    if (closed) return;
     markers.setState({ ...markers.getState(), ...patch }, true);
     syncIndex();
     await storage.records.patchMarkers(id, patch);
@@ -188,6 +197,7 @@ export async function openLiveSpace(
 
   // The only place a revision is made, and where the cap is applied.
   const record: LiveSpace["record"] = (source, extra = {}) => {
+    if (closed) return null;
     const entry = nextRevision(timeline.getState(), text.toString(), {
       source,
       author: source === "assistant" ? { kind: "assistant" } : me(),
@@ -215,7 +225,8 @@ export async function openLiveSpace(
         ts: init.ts ?? now(),
         ...(init.origin ? { origin: init.origin } : {}),
       });
-      await approve({ approvedText: text.toString() });
+      if (!init.unreviewed) await approve({ approvedText: text.toString() });
+      else syncIndex();
     }
   }
 
@@ -292,10 +303,16 @@ export async function openLiveSpace(
     timeline,
     markers,
     getText: () => text.toString(),
+    wasApproved: (candidate) =>
+      candidate === markers.getState().approvedText || seen.has(candidate),
     commit: (patch) => merge(patch, true),
     setMarkers: approve,
     record,
     editAsTurn(turnId, edit) {
+      // Whoever still has the object after it was let go, or its space
+      // removed, changes nothing with it.
+      if (closed)
+        return { ok: false, error: "This space was closed or removed." };
       if (!turns.has(turnId)) {
         turns.add(turnId);
         record("user");

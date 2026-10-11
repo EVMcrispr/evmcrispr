@@ -1,20 +1,7 @@
-import { type ChatMeta, listChats } from "@evmcrispr/ai";
 import { ClockIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { cn, IconButton, Popover } from "@repo/ui";
 import { useState } from "react";
-import { useStore } from "zustand";
-import { useApp } from "../../app/AppContext";
-
-export function relativeDate(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
+import { chatByline, useChatList } from "./useChatList";
 
 export function ChatHistoryPopover({
   activeId,
@@ -28,18 +15,10 @@ export function ChatHistoryPopover({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [chats, setChats] = useState<ChatMeta[]>([]);
-  // Chats belong to the current script (script 1-N chats).
-  const currentScriptId = useStore(useApp().spaces.onScreen);
+  const chats = useChatList();
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        if (next) setChats(listChats(currentScriptId ?? undefined));
-        setOpen(next);
-      }}
-    >
+    <Popover open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <IconButton
           type="button"
@@ -82,7 +61,7 @@ export function ChatHistoryPopover({
                   {chat.title || "Untitled chat"}
                 </span>
                 <span className="block text-xs text-foreground/50">
-                  {relativeDate(chat.updatedAt)}
+                  {chatByline(chat)}
                 </span>
               </button>
               <IconButton
@@ -91,10 +70,7 @@ export function ChatHistoryPopover({
                 variant="ghost"
                 size="sm"
                 className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-                onClick={() => {
-                  onDeleteChat(chat.id);
-                  setChats(listChats(currentScriptId ?? undefined));
-                }}
+                onClick={() => onDeleteChat(chat.id)}
               >
                 <TrashIcon className="w-4 h-4" />
               </IconButton>

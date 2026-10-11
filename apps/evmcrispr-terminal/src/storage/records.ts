@@ -1,3 +1,4 @@
+import type { ChatMeta, StoredChat } from "@evmcrispr/ai";
 import {
   emptyTimeline,
   type Markers,
@@ -8,6 +9,29 @@ import {
   toPatch,
 } from "@evmcrispr/space";
 import { ofSpace, request, transact } from "./db";
+
+/** One assistant chat as stored: its listing and its content together.
+ *  Private to this browser: never synced, never exported. `meta.scopeId`
+ *  is a label, the space the chat started in. */
+export interface ChatRecord {
+  id: string;
+  meta: ChatMeta;
+  chat: StoredChat;
+  permissions?: ChatPermissions;
+}
+
+/** What a chat has taken in, and what the user allowed it. Kept with the
+ *  chat, where no tool reaches: see `assistant/permit.ts`. */
+export interface ChatPermissions {
+  /** Spaces whose content the chat has read. */
+  read: string[];
+  /** It has used a tool that reaches outside the browser. */
+  web: boolean;
+  /** The user's answer to mixing the two; absent while never asked. */
+  webWithSpaces?: boolean;
+  /** Spaces, other than the one on screen, the user let it edit. */
+  edit: string[];
+}
 
 /** The records side of storage: everything except the Yjs documents. */
 export interface Records {
@@ -23,6 +47,10 @@ export interface Records {
   mergeTimeline(spaceId: string, patch: TimelinePatch): Promise<void>;
   getMarkers(spaceId: string): Promise<Markers>;
   patchMarkers(spaceId: string, patch: Partial<Markers>): Promise<Markers>;
+  listChats(): Promise<ChatRecord[]>;
+  getChat(id: string): Promise<ChatRecord | undefined>;
+  putChat(record: ChatRecord): Promise<void>;
+  deleteChat(id: string): Promise<void>;
   getPref<T>(name: string): Promise<T | undefined>;
   setPref(name: string, value: unknown): Promise<void>;
 }
@@ -127,6 +155,19 @@ export function idbRecords(db: IDBDatabase): Records {
         store.put(next);
         return strip(next);
       }),
+    listChats: () =>
+      transact(db, ["chats"], "readonly", (tx) =>
+        request<ChatRecord[]>(tx.objectStore("chats").getAll()),
+      ),
+    getChat: (id) => one<ChatRecord>("chats", id),
+    putChat: (record) =>
+      transact(db, ["chats"], "readwrite", (tx) => {
+        tx.objectStore("chats").put(record);
+      }),
+    deleteChat: (id) =>
+      transact(db, ["chats"], "readwrite", (tx) => {
+        tx.objectStore("chats").delete(id);
+      }),
     getPref: async <T>(name: string) =>
       (await one<{ value: T }>("prefs", name))?.value,
     setPref: (name, value) =>
@@ -143,7 +184,13 @@ export function memoryRecords(): Records {
   const timelines = new Map<string, TimelineState>();
   const markers = new Map<string, Markers>();
   const prefs = new Map<string, unknown>();
+  const chats = new Map<string, ChatRecord>();
   return {
+    listChats: async () => structuredClone([...chats.values()]),
+    getChat: async (id) => structuredClone(chats.get(id)),
+    putChat: async (record) =>
+      void chats.set(record.id, structuredClone(record)),
+    deleteChat: async (id) => void chats.delete(id),
     listSpaces: async () => [...spaces.values()],
     getSpace: async (id) => spaces.get(id),
     putSpace: async (meta) => void spaces.set(meta.id, meta),

@@ -13,7 +13,10 @@ export function ChatInput({
   onStop,
   mobile = false,
   leading,
+  blocked,
 }: {
+  /** Why nothing can be sent right now, when something else is in the way. */
+  blocked?: string;
   isRunning: boolean;
   onSend: (text: string) => void;
   onStop: () => void;
@@ -32,7 +35,7 @@ export function ChatInput({
 
   const submit = () => {
     const text = input.trim();
-    if (!text || isRunning) return;
+    if (!text || isRunning || blocked) return;
     setInput("");
     const el = textareaRef.current;
     if (el) el.style.height = "auto";
@@ -72,13 +75,15 @@ export function ChatInput({
           }
         }}
         placeholder={
-          isRunning
-            ? "Working..."
-            : mobile
-              ? "Describe what to do…"
-              : "Ask about the script..."
+          blocked
+            ? blocked
+            : isRunning
+              ? "Working..."
+              : mobile
+                ? "Describe what to do…"
+                : "Ask about the script..."
         }
-        disabled={isRunning}
+        disabled={isRunning || blocked !== undefined}
         className={cn(
           "flex-1 overflow-y-auto",
           // h-12 pins the rest height to exactly match the 48px buttons
@@ -105,7 +110,7 @@ export function ChatInput({
           type="submit"
           aria-label="Send"
           size={mobile ? "lg" : "md"}
-          disabled={!input.trim()}
+          disabled={!input.trim() || blocked !== undefined}
           className={cn("self-end", mobile && "min-h-12 min-w-12")}
         >
           <PaperAirplaneIcon className="w-5 h-5" />

@@ -7,9 +7,11 @@ import { APICallError } from "ai";
  *              login; re-provisioning is the only way forward.
  * - `balance` — the account is out of credit. The key is fine; logging in
  *              again would revoke a working key and change nothing.
+ * - `busy`   — the chat is being answered somewhere else (another tab);
+ *              nothing was sent.
  * - `other`  — everything else (rate limits, server errors, network).
  */
-export type ChatErrorKind = "auth" | "balance" | "other";
+export type ChatErrorKind = "auth" | "balance" | "busy" | "other";
 
 export interface ChatErrorInfo {
   kind: ChatErrorKind;
@@ -21,6 +23,7 @@ export const AUTH_ERROR_MESSAGE =
   "Your Nexus API key is no longer valid. Log in again to keep chatting.";
 export const BALANCE_ERROR_MESSAGE =
   "Your Nexus account is out of credit. Recharge it to keep chatting.";
+export const BUSY_ERROR_MESSAGE = "This chat is answering in another tab.";
 export const RATE_LIMIT_ERROR_MESSAGE =
   "Nexus is rate-limiting this account. Wait a moment and try again.";
 export const NETWORK_ERROR_MESSAGE =

@@ -8,6 +8,7 @@ import {
 } from "@evmcrispr/space";
 import { openDb } from "../../src/storage/db";
 import {
+  type ChatRecord,
   idbRecords,
   memoryRecords,
   type Records,
@@ -94,6 +95,30 @@ for (const [name, make] of backends)
       await r.setPref("lastChatId", "c1");
       expect(await r.getPref<string>("lastChatId")).toBe("c1");
       expect(await r.getPref("nope")).toBeUndefined();
+    });
+    test("chats: put, get, list, replace, delete", async () => {
+      const r = await make();
+      const chat = (id: string, title: string): ChatRecord => ({
+        id,
+        meta: {
+          id,
+          title,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+        chat: { id, items: [{ role: "user", text: title }], messages: [] },
+      });
+      await r.putChat(chat("c1", "one"));
+      await r.putChat(chat("c2", "two"));
+      await r.putChat(chat("c1", "one again"));
+      expect((await r.listChats()).map((c) => c.meta.title).sort()).toEqual([
+        "one again",
+        "two",
+      ]);
+      expect((await r.getChat("c1"))?.chat.items[0].text).toBe("one again");
+      await r.deleteChat("c2");
+      expect((await r.listChats()).length).toBe(1);
+      expect(await r.getChat("c2")).toBeUndefined();
     });
     test("two additions from two connections lose neither", async () => {
       const [a, b] = [await make(), name === "memory" ? null : await make()];

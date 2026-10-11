@@ -4,19 +4,13 @@ export type { ChatErrorInfo, ChatErrorKind } from "./chat-errors";
 export {
   AUTH_ERROR_MESSAGE,
   BALANCE_ERROR_MESSAGE,
+  BUSY_ERROR_MESSAGE,
   classifyChatError,
   NETWORK_ERROR_MESSAGE,
   RATE_LIMIT_ERROR_MESSAGE,
 } from "./chat-errors";
-export type { ChatMeta, StoredChat } from "./chat-store";
-export {
-  createChatStore,
-  deriveTitle,
-  getChat,
-  listChats,
-  removeChat,
-  saveChat,
-} from "./chat-store";
+export type { ChatMeta, ChatStore, StoredChat } from "./chat-store";
+export { createChatStore, deriveTitle } from "./chat-store";
 export type { NexusConfig } from "./config";
 export { DEFAULT_NEXUS_CONFIG, resolveNexusConfig } from "./config";
 // ── "Login with Dappnode Nexus" (PKCE) ──
@@ -55,12 +49,24 @@ export {
   MODULES,
 } from "./tools/docs";
 export type {
+  ScriptEditRequest,
   ScriptEditResult,
   ScriptToolsHost,
+  SpaceSummary,
 } from "./tools/script-tools";
 export { createScriptTools } from "./tools/script-tools";
+export {
+  MAX_EXPLANATION,
+  plainLine,
+  UNTRUSTED_RULE,
+  untrusted,
+} from "./tools/untrusted";
 export { createWebTools, PAGE_CHAR_BUDGET, truncate } from "./tools/web-tools";
 // ── Agent hook (headless) ──
 export type { ChatItem, ChatToolArtifact } from "./types";
-export type { UseChatAgentOptions } from "./useChatAgent";
+export type {
+  ChatTurn,
+  SendContext,
+  UseChatAgentOptions,
+} from "./useChatAgent";
 export { useChatAgent } from "./useChatAgent";

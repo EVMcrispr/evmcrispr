@@ -308,7 +308,7 @@ test("chat history sheet lists chats and starts a new one", async ({
   await expect(page.getByPlaceholder("Describe what to do…")).toBeVisible();
 });
 
-test("chats are scoped to their script; a new script starts fresh", async ({
+test("chats belong to the browser: all are listed, labelled with where they started, and the open one survives a change of space", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -316,7 +316,8 @@ test("chats are scoped to their script; a new script starts fresh", async ({
   await page.addInitScript(
     ({ scriptA }) => {
       localStorage.setItem("evmcrispr:nexusApiKey", "e2e-placeholder");
-      const now = new Date().toISOString();
+      if (localStorage.getItem("evmcrispr:chats")) return;
+      const now = Date.now();
       localStorage.setItem(
         "evmcrispr:scripts",
         JSON.stringify({
@@ -324,20 +325,28 @@ test("chats are scoped to their script; a new script starts fresh", async ({
             id: scriptA,
             title: "Script A",
             script: "switch gnosis",
-            createdAt: now,
-            updatedAt: now,
+            createdAt: new Date(now).toISOString(),
+            updatedAt: new Date(now).toISOString(),
           },
         }),
       );
       const chats = [
-        { id: "chat-a", title: "Chat for script A", scriptId: scriptA },
-        { id: "chat-x", title: "Chat for another script", scriptId: "other" },
-      ].map((c) => ({ ...c, createdAt: now, updatedAt: now }));
+        { id: "chat-a", title: "Chat for script A", scopeId: scriptA, at: 2 },
+        { id: "chat-x", title: "Chat from elsewhere", scopeId: "gone", at: 1 },
+      ].map(({ at, ...c }) => ({
+        ...c,
+        createdAt: new Date(now + at).toISOString(),
+        updatedAt: new Date(now + at).toISOString(),
+      }));
       localStorage.setItem("evmcrispr:chats", JSON.stringify(chats));
       for (const c of chats) {
         localStorage.setItem(
           `evmcrispr:chat:${c.id}`,
-          JSON.stringify({ id: c.id, items: [], messages: [] }),
+          JSON.stringify({
+            id: c.id,
+            items: [{ role: "user", text: `said in ${c.id}` }],
+            messages: [],
+          }),
         );
       }
     },
@@ -345,20 +354,28 @@ test("chats are scoped to their script; a new script starts fresh", async ({
   );
   await page.goto(`/#/${SCRIPT_A}`);
   await expect(page.getByPlaceholder("Describe what to do…")).toBeVisible();
+  // The most recent chat reopens.
+  await expect(page.getByText("said in chat-a")).toBeVisible();
 
-  // Only script A's chat is listed.
+  // Every chat is listed, whatever space it started in.
   await page.getByRole("button", { name: "Previous chats" }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet.getByText("Chat for script A")).toBeVisible();
-  await expect(sheet.getByText("Chat for another script")).toHaveCount(0);
+  await expect(sheet.getByText("Chat from elsewhere")).toBeVisible();
+  await expect(sheet.getByText(/started in Script A/)).toHaveCount(1);
   await sheet.getByRole("button", { name: "Close chats" }).click();
 
-  // A new script starts with no previous chats of its own.
+  // A new script: the same chat stays open, and the list is the same.
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("button", { name: "New script" }).click();
+  await expect(page.getByText("Untitled", { exact: true })).toBeVisible();
+  await expect(page.getByText("said in chat-a")).toBeVisible();
   await page.getByRole("button", { name: "Previous chats" }).click();
   await expect(
-    page.getByRole("dialog").getByText("No previous chats"),
+    page.getByRole("dialog").getByText("Chat from elsewhere"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByText("Chat for script A"),
   ).toBeVisible();
 });
 

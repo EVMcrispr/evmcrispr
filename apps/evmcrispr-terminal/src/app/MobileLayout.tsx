@@ -19,7 +19,7 @@ import {
   type ExecutionPhase,
   TransactionReviewSheet,
 } from "../mobile/TransactionReviewSheet";
-import { ChatPanel } from "../panel/agents/ChatPanel";
+import { AgentsTab } from "../panel/agents/AgentsTab";
 import { HeldRun } from "../panel/space/HeldRun";
 import { SpacesList } from "../panel/space/SpacesList";
 import { SpaceTab } from "../panel/space/SpaceTab";
@@ -31,7 +31,7 @@ import { useDocumentTitle } from "./DesktopLayout";
 import { useLegacy } from "./legacy-execution";
 import { useSpace } from "./SpaceContext";
 import { StorageNotice } from "./StorageNotice";
-import { setUi } from "./ui-store";
+import { setUi, useUi } from "./ui-store";
 import type { SpaceRoute } from "./useSpaceRoute";
 
 type Ready = Extract<SpaceRoute, { status: "ready" }>;
@@ -160,6 +160,12 @@ function MobileSpace({
     if (chatSettingsOpen) setSurface("agents");
   }, [chatSettingsOpen, setSurface]);
 
+  // A revision's row asked for its chat.
+  const chatRequest = useUi((s) => s.chatRequest);
+  useEffect(() => {
+    if (chatRequest) setSurface("agents");
+  }, [chatRequest, setSurface]);
+
   // A revision is viewed where the script is.
   const previewing = previewed !== null;
   useEffect(() => {
@@ -253,10 +259,11 @@ function MobileSpace({
             surface !== "agents" ? "hidden" : "flex min-h-0 flex-1 flex-col"
           }
         >
-          <ChatPanel
+          <AgentsTab
             mobile
             onOpenScript={() => setSurface("script")}
             onOpenReview={openReview}
+            onOpenTimeline={() => setSurface("space")}
             settingsOpen={chatSettingsOpen}
             onSettingsOpenChange={onChatSettingsOpenChange}
           />

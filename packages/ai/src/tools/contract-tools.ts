@@ -7,6 +7,7 @@ import {
 import { type ToolSet, tool } from "ai";
 import type { Address } from "viem";
 import { z } from "zod";
+import { untrusted } from "./untrusted";
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
@@ -55,7 +56,10 @@ export function createContractTools(
       if (!source)
         return `ERROR: no verified source for ${address} on chain ${chainId}. The contract may be unverified, the address may be an EOA, the chain may be unsupported by Etherscan, or the address may only be deployed on another chain — retry with the right \`chain\` if so.`;
 
-      return renderContractSource(source, { file });
+      return untrusted(
+        "a contract's verified source",
+        renderContractSource(source, { file }),
+      );
     },
   });
 

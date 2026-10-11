@@ -1,13 +1,21 @@
 import { type ModelMessage, stepCountIs, streamText, type ToolSet } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { type ChatErrorInfo, classifyChatError } from "./chat-errors";
-import { createChatStore, deriveTitle } from "./chat-store";
+import {
+  BUSY_ERROR_MESSAGE,
+  type ChatErrorInfo,
+  classifyChatError,
+} from "./chat-errors";
+import {
+  type ChatStore,
+  createChatStore,
+  deriveTitle,
+  type StoredChat,
+} from "./chat-store";
 import type { NexusConfig } from "./config";
 import { createNexusModel } from "./nexus-client";
 import { nowStamp } from "./prompt";
 import { type ChatStorage, createLocalStorageChatStorage } from "./storage";
-import type { ScriptEditResult } from "./tools/script-tools";
 import type { ChatItem, ChatToolArtifact } from "./types";
 
 export interface UseChatAgentOptions {
@@ -21,13 +29,14 @@ export interface UseChatAgentOptions {
    *  it, and changing scope swaps to that scope's latest chat (or a fresh
    *  one). Omit for hosts with a single chat surface. */
   scopeId?: string | null;
-  /** Undo a script revision recorded by the host's edit tools. Without it,
-   *  `undoRevision` reports that undo is unsupported. */
-  undoScriptRevision?: (revisionId: string) => ScriptEditResult;
+  /** The chat to start on: an id, or "latest" for the one that was open
+   *  last (else the most recent). Without it, or when there is none, a
+   *  fresh conversation. */
+  initialChatId?: string;
   /** API key persistence; defaults to namespaced `localStorage`. */
   storage?: ChatStorage;
   /** Conversation persistence; defaults to namespaced `localStorage`. */
-  chatStore?: ReturnType<typeof createChatStore>;
+  chatStore?: ChatStore;
   nexusConfig?: Partial<NexusConfig>;
   /** Appended to the last user turn each run so a long chat keeps a fresh
    *  clock. Defaults to `nowStamp()`; return "" to disable. */
@@ -37,12 +46,39 @@ export interface UseChatAgentOptions {
    *  an explicit modest cap is required. */
   maxOutputTokens?: number;
   maxSteps?: number;
-  /** A turn began: the user's message is in, the model has not answered. */
-  onTurnStart?: (turn: { id: string; chatId: string }) => void;
+  /** Takes the right to answer in a chat, for hosts where the same chat
+   *  can be open twice (two tabs). Resolves to what gives it back, or to
+   *  null when someone else is answering: nothing is sent then, and the
+   *  error is of kind `busy`. A host with a `subscribe`-able store brings
+   *  the chat up to date before resolving. */
+  acquireTurn?: (chatId: string) => Promise<(() => void) | null>;
+  /** A turn began: the user's message is in, the model has not answered.
+   *  `scope` is what `send` was given. */
+  onTurnStart?: (turn: ChatTurn) => void;
   /** The turn is over: answered, stopped or failed. Always follows its
    *  `onTurnStart`, once. */
-  onTurnEnd?: (turn: { id: string; chatId: string; stopped: boolean }) => void;
+  onTurnEnd?: (turn: ChatTurn & { stopped: boolean }) => void;
 }
+
+export interface ChatTurn {
+  id: string;
+  chatId: string;
+  /** Where the user was when they sent the message (for the terminal, the
+   *  space on screen). The host's tools act there. */
+  scope?: string;
+}
+
+/** What `send` takes besides the text. */
+export interface SendContext {
+  /** Handed to the turn callbacks; labels the chat when it starts one. */
+  scope?: string;
+}
+
+/** A simulation's output can be long; a chat keeps the end of it. */
+const MAX_LOG_LINES = 200;
+
+const optionalString = (value: unknown) =>
+  typeof value === "string" ? value : undefined;
 
 function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object"
@@ -67,10 +103,17 @@ function toolArtifact(output: unknown): ChatToolArtifact | undefined {
           ? validation.valid
           : undefined,
       diagnosticsCount: validation ? diagnostics.length : undefined,
-      revisionId:
-        typeof value.revisionId === "string" ? value.revisionId : undefined,
-      error: typeof value.error === "string" ? value.error : undefined,
+      explanation: optionalString(value.explanation),
+      space: optionalString(value.space),
+      error: optionalString(value.error),
     };
+  }
+
+  if (value.kind === "permission") {
+    if (value.what === "web") return { kind: "permission", what: "web" };
+    return value.what === "edit" && typeof value.space === "string"
+      ? { kind: "permission", what: "edit", space: value.space }
+      : undefined;
   }
 
   if (value.kind === "validation") {
@@ -100,7 +143,16 @@ function toolArtifact(output: unknown): ChatToolArtifact | undefined {
               : 1)
         );
       }, 0),
-      error: typeof value.error === "string" ? value.error : undefined,
+      error: optionalString(value.error),
+      target:
+        value.target === "script" || value.target === "snippet"
+          ? value.target
+          : undefined,
+      code: optionalString(value.code),
+      logs: Array.isArray(value.logs)
+        ? value.logs.slice(-MAX_LOG_LINES).map(String)
+        : undefined,
+      revisionId: optionalString(value.revisionId),
     };
   }
 
@@ -117,7 +169,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
     systemPrompt,
     tools,
     scopeId,
-    undoScriptRevision,
+    acquireTurn,
     nexusConfig,
     turnStamp = nowStamp,
     maxOutputTokens = 16384,
@@ -129,26 +181,41 @@ export function useChatAgent(options: UseChatAgentOptions) {
   const storageRef = useRef<ChatStorage | undefined>(undefined);
   storageRef.current ??= options.storage ?? createLocalStorageChatStorage();
   const storage = storageRef.current;
-  const chatStoreRef = useRef<ReturnType<typeof createChatStore> | undefined>(
-    undefined,
-  );
+  const chatStoreRef = useRef<ChatStore | undefined>(undefined);
   chatStoreRef.current ??= options.chatStore ?? createChatStore();
   const chats = chatStoreRef.current;
+  // The chat the page opens on, resolved once.
+  const initialRef = useRef<{ id: string; chat: StoredChat | null }>(undefined);
+  initialRef.current ??= (() => {
+    const wanted =
+      options.initialChatId === "latest"
+        ? [chats.getLastChatId?.(), chats.listChats()[0]?.id]
+        : [options.initialChatId];
+    for (const id of wanted) {
+      const chat = id ? chats.getChat(id) : null;
+      if (id && chat) return { id, chat };
+    }
+    return { id: crypto.randomUUID(), chat: null };
+  })();
+  const initial = initialRef.current;
 
   const [apiKey, setApiKeyState] = useState<string | null>(() =>
     storage.getApiKey(),
   );
-  const [items, setItems] = useState<ChatItem[]>([]);
+  const [items, setItems] = useState<ChatItem[]>(initial.chat?.items ?? []);
   const [isRunning, setIsRunning] = useState(false);
   // One piece of state, so the copy shown to the user and the kind of failure
   // it describes can never disagree — or outlive one another.
   const [error, setError] = useState<ChatErrorInfo | null>(null);
-  // Each page load starts a fresh conversation; old ones live in the history.
-  const [conversationId, setConversationId] = useState<string>(() =>
-    crypto.randomUUID(),
-  );
+  const [conversationId, setConversationId] = useState<string>(initial.id);
 
-  const historyRef = useRef<ModelMessage[]>([]);
+  const historyRef = useRef<ModelMessage[]>(initial.chat?.messages ?? []);
+  // The chat as the store last gave it to, or took it from, this hook. A
+  // different object there means it changed under us (another tab).
+  const syncedRef = useRef<StoredChat | null>(initial.chat);
+  // True from the moment a message is accepted until its turn is over,
+  // the wait for `acquireTurn` included (`isRunning` follows a render later).
+  const sendingRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const stoppedRef = useRef(false);
   // Read through refs so a host passing fresh closures every render does
@@ -165,8 +232,19 @@ export function useChatAgent(options: UseChatAgentOptions) {
   // executing script-editing tools with no visible chat or Stop button.
   useEffect(() => () => abortRef.current?.abort(), []);
   // Mirrors `items` so async persistence sees the latest render list.
-  const itemsRef = useRef<ChatItem[]>([]);
+  const itemsRef = useRef<ChatItem[]>(initial.chat?.items ?? []);
   const conversationIdRef = useRef(conversationId);
+
+  /** Shows another conversation: a stored one, or a fresh one. */
+  const show = useCallback((id: string, chat: StoredChat | null) => {
+    conversationIdRef.current = id;
+    setConversationId(id);
+    syncedRef.current = chat;
+    historyRef.current = chat?.messages ?? [];
+    itemsRef.current = chat?.items ?? [];
+    setItems(itemsRef.current);
+    setError(null);
+  }, []);
 
   const updateItems = useCallback(
     (updater: (prev: ChatItem[]) => ChatItem[]) => {
@@ -179,18 +257,42 @@ export function useChatAgent(options: UseChatAgentOptions) {
     [],
   );
 
-  const persist = useCallback(() => {
-    const current = itemsRef.current;
-    const firstUser = current.find((i) => i.role === "user");
-    if (!firstUser) return;
-    chats.saveChat(
-      conversationIdRef.current,
-      deriveTitle(firstUser.text),
-      current,
-      historyRef.current,
-      chatScopeIdRef.current ?? undefined,
-    );
-  }, [chats]);
+  const persist = useCallback(
+    (label?: string) => {
+      const current = itemsRef.current;
+      const firstUser = current.find((i) => i.role === "user");
+      if (!firstUser) return;
+      const id = conversationIdRef.current;
+      chats.saveChat(
+        id,
+        deriveTitle(firstUser.text),
+        current,
+        historyRef.current,
+        chatScopeIdRef.current ?? label,
+      );
+      syncedRef.current = chats.getChat(id);
+      chats.setLastChatId?.(id);
+    },
+    [chats],
+  );
+
+  /** Takes the open chat from a store that can change under the hook, if
+   *  it did: saved in another tab, or removed there. */
+  const follow = useCallback(() => {
+    if (!chats.subscribe) return;
+    const id = conversationIdRef.current;
+    const stored = chats.getChat(id);
+    if (stored === syncedRef.current) return;
+    // Removed elsewhere: what is on screen is no longer a kept chat.
+    show(stored ? id : crypto.randomUUID(), stored);
+  }, [chats, show]);
+  useEffect(
+    () =>
+      chats.subscribe?.(() => {
+        if (!sendingRef.current) follow();
+      }),
+    [chats, follow],
+  );
 
   const model = useMemo(
     () => createNexusModel(apiKey, nexusConfig),
@@ -215,19 +317,41 @@ export function useChatAgent(options: UseChatAgentOptions) {
   }, [storage]);
 
   const send = useCallback(
-    async (text: string) => {
-      if (!model || isRunning || !text.trim()) return;
-
+    async (text: string, context: SendContext = {}) => {
+      if (!model || sendingRef.current || !text.trim()) return;
+      sendingRef.current = true;
       setError(null);
+
+      // One turn at a time per chat, wherever it is open. Nothing is
+      // shown, saved or sent before the right to answer is held.
+      const chatId = conversationIdRef.current;
+      const release = acquireTurn
+        ? await acquireTurn(chatId).catch(() => null)
+        : () => {};
+      if (!release || chatId !== conversationIdRef.current) {
+        release?.();
+        sendingRef.current = false;
+        if (!release) setError({ kind: "busy", message: BUSY_ERROR_MESSAGE });
+        return;
+      }
+      // What another tab answered meanwhile comes first.
+      follow();
+
       setIsRunning(true);
       stoppedRef.current = false;
+      // A chat is labelled with where it started.
+      const label = itemsRef.current.length ? undefined : context.scope;
       updateItems((prev) => [...prev, { role: "user", text }]);
-      historyRef.current.push({ role: "user", content: text });
+      historyRef.current = [
+        ...historyRef.current,
+        { role: "user", content: text },
+      ];
       // Persist now so an aborted or failed run still keeps the user message.
-      persist();
-      const turn = {
+      persist(label);
+      const turn: ChatTurn = {
         id: crypto.randomUUID(),
         chatId: conversationIdRef.current,
+        scope: context.scope,
       };
       onTurnStartRef.current?.(turn);
 
@@ -338,7 +462,10 @@ export function useChatAgent(options: UseChatAgentOptions) {
         // Carry the assistant and tool turns over for the next user message.
         // (result.response only covers the final step; responseMessages
         // flattens every step's assistant/tool messages.)
-        historyRef.current.push(...(await result.responseMessages));
+        historyRef.current = [
+          ...historyRef.current,
+          ...(await result.responseMessages),
+        ];
       } catch (e) {
         console.error("[chat] agent error", e);
         if (!stoppedRef.current) {
@@ -372,12 +499,15 @@ export function useChatAgent(options: UseChatAgentOptions) {
           ),
         );
         setIsRunning(false);
-        persist();
+        persist(label);
+        sendingRef.current = false;
+        release();
       }
     },
     [
       model,
-      isRunning,
+      acquireTurn,
+      follow,
       tools,
       systemPrompt,
       turnStamp,
@@ -395,43 +525,36 @@ export function useChatAgent(options: UseChatAgentOptions) {
   }, []);
 
   const newChat = useCallback(() => {
-    if (isRunning) return;
-    const id = crypto.randomUUID();
-    conversationIdRef.current = id;
-    setConversationId(id);
-    historyRef.current = [];
-    itemsRef.current = [];
-    setItems([]);
-    setError(null);
-  }, [isRunning]);
+    if (sendingRef.current) return;
+    show(crypto.randomUUID(), null);
+  }, [show]);
 
   const openChat = useCallback(
     (id: string) => {
-      if (isRunning) return;
+      if (sendingRef.current) return;
       const stored = chats.getChat(id);
       if (!stored) return;
-      conversationIdRef.current = id;
-      setConversationId(id);
-      historyRef.current = stored.messages;
-      itemsRef.current = stored.items;
-      setItems(stored.items);
-      setError(null);
+      show(id, stored);
+      chats.setLastChatId?.(id);
     },
-    [isRunning, chats],
+    [chats, show],
   );
 
   const deleteChat = useCallback(
     (id: string) => {
-      if (isRunning && id === conversationIdRef.current) return;
+      const open = id === conversationIdRef.current;
+      if (sendingRef.current && open) return;
       chats.removeChat(id);
-      if (id === conversationIdRef.current) newChat();
+      if (open) show(crypto.randomUUID(), null);
     },
-    [isRunning, newChat, chats],
+    [chats, show],
   );
 
   // Chats follow the scope (scope 1-N chats): creating or switching scopes
   // swaps the conversation to that scope's latest chat, or a fresh one for
   // a scope with no chats yet.
+  // (A host whose chats are not tied to a scope passes none, and labels a
+  // chat through `send`'s context instead.)
   useEffect(() => {
     if (!scopeId || isRunning) return;
     if (chatScopeIdRef.current === undefined) {
@@ -448,49 +571,27 @@ export function useChatAgent(options: UseChatAgentOptions) {
   }, [scopeId, isRunning, openChat, newChat, chats]);
 
   /** Rewind to the last user message and run it again. */
-  const regenerate = useCallback(() => {
-    if (isRunning) return;
-    const current = itemsRef.current;
-    const lastUserIdx = current.map((i) => i.role).lastIndexOf("user");
-    if (lastUserIdx === -1) return;
-    const text = current[lastUserIdx].text;
+  const regenerate = useCallback(
+    (context?: SendContext) => {
+      if (sendingRef.current) return;
+      const current = itemsRef.current;
+      const lastUserIdx = current.map((i) => i.role).lastIndexOf("user");
+      if (lastUserIdx === -1) return;
+      const text = current[lastUserIdx].text;
 
-    const history = historyRef.current;
-    for (let i = history.length - 1; i >= 0; i--) {
-      if (history[i].role === "user") {
-        historyRef.current = history.slice(0, i);
-        break;
+      const history = historyRef.current;
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i].role === "user") {
+          historyRef.current = history.slice(0, i);
+          break;
+        }
       }
-    }
-    const trimmed = current.slice(0, lastUserIdx);
-    itemsRef.current = trimmed;
-    setItems(trimmed);
-    void send(text);
-  }, [isRunning, send]);
-
-  const undoRevision = useCallback(
-    (revisionId: string): ScriptEditResult => {
-      if (!undoScriptRevision)
-        return { ok: false, error: "Undo is not supported here." };
-      const result = undoScriptRevision(revisionId);
-      if (result.ok) {
-        updateItems((prev) =>
-          prev.map((item) =>
-            item.role === "tool" &&
-            item.artifact?.kind === "script-change" &&
-            item.artifact.revisionId === revisionId
-              ? {
-                  ...item,
-                  artifact: { ...item.artifact, undone: true },
-                }
-              : item,
-          ),
-        );
-        persist();
-      }
-      return result;
+      const trimmed = current.slice(0, lastUserIdx);
+      itemsRef.current = trimmed;
+      setItems(trimmed);
+      void send(text, context);
     },
-    [persist, updateItems, undoScriptRevision],
+    [send],
   );
 
   return {
@@ -507,6 +608,5 @@ export function useChatAgent(options: UseChatAgentOptions) {
     openChat,
     deleteChat,
     regenerate,
-    undoRevision,
   };
 }
