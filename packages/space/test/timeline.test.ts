@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { revisionId } from "../src/hash";
-import { followApproved, unreviewedRevisions } from "../src/review";
 import {
   head,
   MAX_REVISIONS,
@@ -115,6 +114,21 @@ describe("timeline", () => {
     expect(again.state).toBe(s);
     expect(again.changed.entries).toEqual([]);
   });
+  test("a revision whose id is not the hash of its text and parent is dropped", () => {
+    const a = rev(emptyTimeline, "a", "user", 1);
+    const s = add(emptyTimeline, a);
+    const b = rev(s, "b", "user", 2);
+    const forged = mergeTimeline(s, {
+      entries: [
+        { ...b, text: "not what was hashed" },
+        { ...b, id: "made-up" },
+        { ...b, parent: undefined },
+      ],
+    });
+    expect(forged.state).toBe(s);
+    expect(forged.changed.entries).toEqual([]);
+    expect(mergeTimeline(s, { entries: [b] }).changed.entries).toEqual([b]);
+  });
   test("a share is its own entry, found by the revision it names", () => {
     const a = rev(emptyTimeline, "a", "user", 1);
     const s = add(emptyTimeline, a);
@@ -160,44 +174,7 @@ describe("revisions", () => {
     }
     s = mergeTimeline(s, { runs: [run("x", 1, ids[0])] }).state;
     s = add(s, share(ids[1], "c", 999));
-    const removals = pruneRevisions(s, me, 999, new Set([ids[2]]));
-    expect(removals.map((r) => r.entryId)).toEqual([ids[3], ids[4]]);
-  });
-});
-
-describe("review", () => {
-  test("the marker follows the user's revisions and stops at anyone else's", () => {
-    const a = rev(emptyTimeline, "a", "user", 1);
-    let s = add(emptyTimeline, a);
-    const b = rev(s, "b", "user", 2);
-    s = add(s, b);
-    expect(followApproved(s, a.id)).toBe(b.id);
-    const c = rev(s, "c", "assistant", 3);
-    s = add(s, c);
-    const d = rev(s, "d", "user", 4);
-    s = add(s, d);
-    expect(followApproved(s, a.id)).toBe(b.id);
-    expect(unreviewedRevisions(s, a.id).map((r) => r.id)).toEqual([c.id, d.id]);
-    expect(unreviewedRevisions(s, d.id)).toEqual([]);
-    expect(unreviewedRevisions(s, undefined).length).toBe(4);
-  });
-  test("the author decides, whatever the source", () => {
-    let s = emptyTimeline;
-    const ids: string[] = [];
-    const sources = ["import", "user", "load", "revert"] as const;
-    for (const [i, source] of sources.entries()) {
-      const r = rev(s, source, source, i);
-      ids.push(r.id);
-      s = add(s, r);
-    }
-    expect(followApproved(s, ids[0])).toBe(ids.at(-1)!);
-    expect(unreviewedRevisions(s, ids[0])).toEqual([]);
-    // A load made by a program acting for the user is not the user's.
-    const loaded = rev(s, "by a program", "load", 9, bot);
-    s = add(s, loaded);
-    expect(followApproved(s, ids[0])).toBe(ids.at(-1)!);
-    expect(unreviewedRevisions(s, ids[0]).map((r) => r.id)).toEqual([
-      loaded.id,
-    ]);
+    const removals = pruneRevisions(s, me, 999);
+    expect(removals.map((r) => r.entryId)).toEqual([ids[2], ids[3], ids[4]]);
   });
 });

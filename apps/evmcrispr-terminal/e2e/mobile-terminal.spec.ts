@@ -20,7 +20,7 @@ for (const viewport of [
 
     // The script identity stays on screen while chatting — context card,
     // not a tray destination.
-    await expect(page.getByText("Untitled script")).toBeVisible();
+    await expect(page.getByText("Untitled", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Script", exact: true }),
     ).toHaveCount(0);
@@ -60,7 +60,13 @@ test("received CID links land on the read-only script", async ({ page }) => {
 
   await page.goto(`/#/${CID}`);
 
-  await expect(page.getByText("Treasury rebalance")).toBeVisible();
+  // The share's title arrives as the script's first comment.
+  await expect(
+    page.getByRole("heading", { name: "Treasury rebalance" }),
+  ).toBeVisible();
+  await expect(page.locator(".evml-viewer")).toContainText(
+    "# Treasury rebalance",
+  );
   // A bare (unencrypted) share envelope must not claim encryption.
   await expect(
     page.getByText("Shared with you", { exact: true }),
@@ -203,7 +209,10 @@ test("desktop breakpoint keeps the editor-first shell", async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 900 });
   await page.goto("/");
 
-  await expect(page.getByPlaceholder("Untitled script")).toBeVisible();
+  // The title is the script's first line; there is no title field.
+  await expect(
+    page.locator(".monaco-editor .evml-title-line").first(),
+  ).toBeVisible();
   await expect(page.getByText("Library", { exact: true })).toBeVisible();
   await expect(page.locator(".monaco-editor")).toBeVisible();
 });
@@ -230,7 +239,7 @@ test("mobile home has no serious accessibility violations", async ({
   expect(serious).toEqual([]);
 });
 
-test("mobile menu edits metadata without exposing Monaco", async ({ page }) => {
+test("mobile menu and script surface never expose Monaco", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     localStorage.setItem("evmcrispr:nexusApiKey", "e2e-placeholder");
@@ -255,15 +264,12 @@ test("mobile menu edits metadata without exposing Monaco", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Connect wallet" }),
   ).toBeVisible();
-  // Renaming lives on the script surface, not in the menu.
-  await expect(page.getByLabel("Script title")).toHaveCount(0);
   await page.getByRole("button", { name: "Close workspace menu" }).click();
 
+  // The title is the script's first comment: shown, never a field.
   await page.getByRole("button", { name: "Open script" }).click();
-  await page.getByLabel("Script title").fill("Mobile treasury batch");
-  await expect(page.getByLabel("Script title")).toHaveValue(
-    "Mobile treasury batch",
-  );
+  await expect(page.getByRole("heading", { name: "Untitled" })).toBeVisible();
+  await expect(page.getByLabel("Script title")).toHaveCount(0);
   await expect(page.locator(".monaco-editor")).toHaveCount(0);
 });
 

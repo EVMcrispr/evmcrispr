@@ -2,13 +2,18 @@ import { cn, Input } from "@repo/ui";
 import { Search } from "@repo/ui/icons";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { flushAutoSave } from "../../hooks/useAutoSave";
-import { disposeModel } from "../../hooks/useEditorModels";
+import { useStore } from "zustand";
+import { useApp } from "../../app/AppContext";
+import { useMaybeSpace } from "../../app/SpaceContext";
 import { useFocusOnTab } from "../../hooks/useFocusOnTab";
-import { useLibraryStore } from "../../stores/library-store";
-import { useTerminalStore } from "../../stores/terminal-store";
-import { removeScript, slug } from "../../utils";
 import { SavedScript } from "../scripts/SavedScript";
+
+/** A title as the search compares it. */
+const slug = (title: string) =>
+  title
+    .toLowerCase()
+    .replace(/ /g, "-")
+    .replace(/[^\w-]+/g, "");
 
 export function LibraryTab({
   onNavigate,
@@ -17,8 +22,9 @@ export function LibraryTab({
   onNavigate?: () => void;
   mobile?: boolean;
 } = {}) {
-  const scripts = useLibraryStore((s) => s.scripts);
-  const { currentScriptId, title: liveTitle, isSaving } = useTerminalStore();
+  const { spaces } = useApp();
+  const scripts = useStore(spaces.index);
+  const currentScriptId = useMaybeSpace()?.id;
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const searchRef = useFocusOnTab<HTMLInputElement>("library");
@@ -30,15 +36,11 @@ export function LibraryTab({
 
   const handleItemClick = (id: string) => {
     if (id === currentScriptId) return;
-    flushAutoSave();
     navigate(`/${id}`);
     onNavigate?.();
   };
 
-  const handleItemRemove = (id: string) => {
-    disposeModel(id);
-    removeScript(id);
-  };
+  const handleItemRemove = (id: string) => void spaces.remove(id);
 
   return (
     <div className="flex flex-col h-full">
@@ -63,10 +65,8 @@ export function LibraryTab({
             {filteredScripts.length > 0 ? (
               filteredScripts.map((s) => (
                 <SavedScript
-                  script={s}
+                  space={s}
                   isActive={s.id === currentScriptId}
-                  isSaving={s.id === currentScriptId && isSaving}
-                  liveTitle={s.id === currentScriptId ? liveTitle : undefined}
                   mobile={mobile}
                   onItemClick={handleItemClick}
                   onItemRemove={handleItemRemove}

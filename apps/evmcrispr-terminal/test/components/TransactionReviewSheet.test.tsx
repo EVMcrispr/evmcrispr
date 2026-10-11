@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { setUi } from "../../src/app/ui-store";
 import { TransactionReviewSheet } from "../../src/components/mobile/TransactionReviewSheet";
 import type { ExecutionPhase } from "../../src/hooks/useTransactionExecutor";
 import type { TransactionReviewState } from "../../src/hooks/useTransactionReview";
-import { terminalStoreActions } from "../../src/stores/terminal-store";
 
 const ready: TransactionReviewState = {
   status: "ready",
@@ -38,11 +38,11 @@ const sheet = (
   />
 );
 
-afterEach(() => terminalStoreActions("isLoading", false));
+afterEach(() => setUi({ isLoading: false }));
 
 describe("mobile review sheet run controls", () => {
   it("says the run follows boxes and offers to stop following", () => {
-    terminalStoreActions("isLoading", true);
+    setUi({ isLoading: true });
     const onCancel = mock(() => {});
     render(sheet("watching", ready, onCancel));
     const primary = screen.getByRole("button", {
@@ -56,7 +56,7 @@ describe("mobile review sheet run controls", () => {
   });
 
   it("keeps the cancel control when the review state reset mid-run", () => {
-    terminalStoreActions("isLoading", true);
+    setUi({ isLoading: true });
     const onCancel = mock(() => {});
     const { rerender } = render(
       sheet("running", { status: "idle", diagnostics: [] }, onCancel),

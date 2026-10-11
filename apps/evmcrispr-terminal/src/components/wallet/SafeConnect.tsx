@@ -1,7 +1,7 @@
 import { Button, Input } from "@repo/ui";
 import { useState } from "react";
 
-import { useTerminalStore } from "../../stores/terminal-store";
+import { useMaybeSpace } from "../../app/SpaceContext";
 
 export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
   const [safeAddress, setSafeAddress] = useState("");
@@ -16,12 +16,13 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
       ? "Invalid Safe address. Example: 'gno:0x1234...5678' or 'eth:my-account.eth'"
       : null;
 
-  const { title, script } = useTerminalStore();
+  // The inline link carries the script only: its title is its first line.
+  const script = useMaybeSpace()?.getText() ?? "";
 
   const url =
     `https://app.safe.global/apps/open?safe=${safeAddress}&appUrl=` +
     encodeURIComponent(
-      `${window.location.origin}/#/?title=${encodeURIComponent(title)}&script=${encodeURIComponent(script)}`,
+      `${window.location.origin}/#/?script=${encodeURIComponent(script)}`,
     );
   return (
     <>

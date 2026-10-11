@@ -27,6 +27,8 @@ export interface ViewerProps {
   fontSize?: number;
   /** 1-based line currently being executed — highlighted + scrolled into view. */
   executingLine?: number | null;
+  /** 0-based index of the line shown as the script's title. */
+  titleLine?: number | null;
   /** Called when the user taps/clicks the script body (outside hover
    *  targets and text selections). Hosts typically flip into edit mode. */
   onActivateEdit?: () => void;
@@ -45,6 +47,7 @@ export function Viewer({
   script,
   fontSize,
   executingLine,
+  titleLine,
   onActivateEdit,
   onOpenDocs,
 }: ViewerProps) {
@@ -121,6 +124,30 @@ export function Viewer({
     lineEl.classList.add("executing-line-highlight");
     lineEl.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [executingLine, html]);
+
+  // The title line gets the editor's treatment: a heading, its `#` dimmed.
+  // Re-applied whenever Shiki re-renders (the old `.line` nodes are gone).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see the executing-line effect
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root || titleLine == null) return;
+    const lineEl = root.querySelectorAll<HTMLElement>("code .line")[titleLine];
+    if (!lineEl || lineEl.classList.contains("evml-title-line")) return;
+    lineEl.classList.add("evml-title-line");
+    const first = document
+      .createTreeWalker(lineEl, NodeFilter.SHOW_TEXT)
+      .nextNode();
+    const hashes = first?.nodeValue
+      ? /^\s*#+\s*/.exec(first.nodeValue)?.[0]
+      : undefined;
+    if (first && hashes) {
+      const rest = (first as Text).splitText(hashes.length);
+      const dim = document.createElement("span");
+      dim.className = "evml-title-hash";
+      dim.textContent = hashes;
+      rest.parentNode?.replaceChild(dim, first);
+    }
+  }, [titleLine, html]);
 
   return (
     <div className="flex flex-col h-full min-h-0">

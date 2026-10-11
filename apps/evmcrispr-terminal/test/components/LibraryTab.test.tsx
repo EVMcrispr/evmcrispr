@@ -1,79 +1,50 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import { fireEvent, screen } from "@testing-library/react";
+import { describe, expect, test } from "bun:test";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { LibraryTab } from "../../src/components/panel/LibraryTab";
-import { useLibraryStore } from "../../src/stores/library-store";
-import {
-  createScript,
-  getAllScripts,
-  saveScript,
-} from "../../src/utils/local-storage";
-import { renderWithRouter } from "../setup/test-utils";
-
-let ids: string[];
-
-beforeEach(() => {
-  localStorage.clear();
-  useLibraryStore.setState({ scripts: [] });
-
-  ids = [
-    createScript("Alpha Script", "code alpha"),
-    createScript("Beta Script", "code beta"),
-    createScript("Gamma Script", "code gamma"),
-  ];
-
-  // Ensure distinct updatedAt by re-saving with tiny gaps
-  saveScript(ids[0], "Alpha Script", "code alpha");
-  saveScript(ids[1], "Beta Script", "code beta");
-  saveScript(ids[2], "Gamma Script", "code gamma");
-});
+import { testBrowser } from "../helpers/app";
+import { renderWithApp } from "../setup/test-utils";
 
 describe("LibraryTab", () => {
-  test("renders all scripts", () => {
-    renderWithRouter(<LibraryTab />);
+  test("lists the browser's spaces by title and filters them", async () => {
+    const app = testBrowser().tab();
+    await app.spaces.create({ text: "# Pay the team\nexec 1", source: "user" });
+    await app.spaces.create({ text: "exec 2", source: "user" });
+    renderWithApp(<LibraryTab />, { app });
 
-    expect(screen.getByText("Alpha Script")).toBeInTheDocument();
-    expect(screen.getByText("Beta Script")).toBeInTheDocument();
-    expect(screen.getByText("Gamma Script")).toBeInTheDocument();
-  });
+    expect(screen.getByText("Pay the team")).toBeInTheDocument();
+    expect(screen.getByText("Untitled · exec 2")).toBeInTheDocument();
 
-  test("filters scripts when typing in the search input", () => {
-    renderWithRouter(<LibraryTab />);
-
-    const searchInput = screen.getByPlaceholderText("Search");
-    fireEvent.change(searchInput, { target: { value: "beta" } });
-
-    expect(screen.getByText("Beta Script")).toBeInTheDocument();
-    expect(screen.queryByText("Alpha Script")).not.toBeInTheDocument();
-    expect(screen.queryByText("Gamma Script")).not.toBeInTheDocument();
-  });
-
-  test("removing a script removes it from localStorage and the list", () => {
-    renderWithRouter(<LibraryTab />);
-
-    // Find all remove buttons
-    const removeButtons = screen.getAllByRole("button", {
-      name: "Remove saved script",
+    fireEvent.change(screen.getByPlaceholderText("Search"), {
+      target: { value: "pay" },
     });
-    expect(removeButtons.length).toBe(3);
-
-    // Remove the first visible script
-    fireEvent.click(removeButtons[0]);
-
-    // Should now have 2 scripts in localStorage
-    expect(getAllScripts().length).toBe(2);
-
-    // The list should re-render with 2 items
-    const remainingButtons = screen.getAllByRole("button", {
-      name: "Remove saved script",
-    });
-    expect(remainingButtons.length).toBe(2);
+    expect(screen.queryByText("Untitled · exec 2")).not.toBeInTheDocument();
   });
 
-  test('shows "No scripts saved yet." when registry is empty', () => {
-    localStorage.clear();
-    useLibraryStore.setState({ scripts: [] });
-    renderWithRouter(<LibraryTab />);
+  test("removing a space removes it from the list and from storage", async () => {
+    const app = testBrowser().tab();
+    const id = await app.spaces.create({
+      text: "# Gone\nexec 1",
+      source: "user",
+    });
+    renderWithApp(<LibraryTab />, { app });
 
-    expect(screen.getByText("No scripts saved yet.")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Remove saved script"));
+    await waitFor(() =>
+      expect(screen.queryByText("Gone")).not.toBeInTheDocument(),
+    );
+    expect(await app.storage.records.getSpace(id)).toBeUndefined();
+  });
+
+  test("a space added in another tab appears", async () => {
+    const browser = testBrowser();
+    const [here, there] = [browser.tab(), browser.tab()];
+    renderWithApp(<LibraryTab />, { app: here });
+    await there.spaces.create({
+      text: "# From the other tab\nexec 1",
+      source: "user",
+    });
+    await waitFor(() =>
+      expect(screen.getByText("From the other tab")).toBeInTheDocument(),
+    );
   });
 });

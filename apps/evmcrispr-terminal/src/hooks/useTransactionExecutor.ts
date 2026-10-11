@@ -5,12 +5,10 @@ import type { Action, BoxSnapshot } from "@evmcrispr/sdk";
 import type SafeAppProvider from "@safe-global/safe-apps-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWalletClient } from "wagmi";
+import { setUi } from "../app/ui-store";
 import { browserSafeUrl } from "../config/browserSafeUrl";
 import { workerEvml } from "../evml/workerEvml";
-import {
-  terminalStoreActions,
-  useTerminalStore,
-} from "../stores/terminal-store";
+import type { LiveSpace } from "../space/live-space";
 
 /** Safe apps can't use EIP-5792 batching — route batched actions through
  *  the Safe SDK instead. Non-Safe runs use the core default handler. */
@@ -90,14 +88,12 @@ export function trackFollowedBoxes() {
 
 export function useTransactionExecutor(
   address: `0x${string}` | undefined,
-  script: string,
+  /** The space on screen, or null while there is none: nothing runs. */
+  space: LiveSpace | null,
   safeConnector?: any,
   options: { openConsoleOnExecute?: boolean; stdin?: string } = {},
 ) {
   const { data: walletClient } = useWalletClient();
-
-  const scriptRef = useRef(script);
-  scriptRef.current = script;
 
   const { entries, logs, logListener, boxListener, endLiveBoxes, clearLogs } =
     useExecutionLogs();
@@ -133,6 +129,11 @@ export function useTransactionExecutor(
     setPhase("idle");
   }, []);
 
+  // What a run reported belongs to the wallet that ran it.
+  useEffect(() => {
+    if (!address) clearErrors();
+  }, [address, clearErrors]);
+
   // The run in flight, if any. A run can follow live boxes for hours, so
   // it is the one thing that gates a new run, not the phase.
   const runRef = useRef<Run | null>(null);
@@ -145,7 +146,7 @@ export function useTransactionExecutor(
   // a run still in flight (it may be watching boxes for hours) and drops
   // its phase, logs and executed actions. Whatever the cancelled run still
   // reports while it unwinds is ignored.
-  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
+  const currentScriptId = space?.id ?? null;
   const prevScriptIdRef = useRef(currentScriptId);
   useEffect(() => {
     if (prevScriptIdRef.current === currentScriptId) return;
@@ -154,8 +155,8 @@ export function useTransactionExecutor(
     if (run) {
       runRef.current = null;
       run.controller.abort();
-      terminalStoreActions("isLoading", false);
-      terminalStoreActions("executingLine", null);
+      setUi({ isLoading: false });
+      setUi({ executingLine: null });
     }
     setErrors([]);
     setPhase("idle");
@@ -165,10 +166,23 @@ export function useTransactionExecutor(
     setOutput("");
   }, [currentScriptId, clearLogs, clearFollowed]);
 
+  // A run never outlives the view that can cancel it: when this unmounts
+  // the run in flight is aborted, and what it still reports is ignored.
+  useEffect(
+    () => () => {
+      const run = runRef.current;
+      if (!run) return;
+      runRef.current = null;
+      run.controller.abort();
+      setUi({ isLoading: false, executingLine: null });
+    },
+    [],
+  );
+
   const executeScript = useCallback(async () => {
     // One run at a time: a run still in flight (even one only watching
     // boxes) is cancelled first, never overlapped.
-    if (runRef.current) return false;
+    if (!space || runRef.current) return false;
     const run: Run = { controller: new AbortController() };
     runRef.current = run;
     const current = () => runRef.current === run;
@@ -187,9 +201,9 @@ export function useTransactionExecutor(
     clearErrors();
     setExecuted([]);
     setPhase("preparing");
-    terminalStoreActions("isLoading", true);
+    setUi({ isLoading: true });
     if (options.openConsoleOnExecute !== false) {
-      terminalStoreActions("activeTab", "console");
+      setUi({ activeTab: "console" });
     }
     clearLogs();
     clearFollowed();
@@ -201,6 +215,9 @@ export function useTransactionExecutor(
       // Local commands can run without a wallet. Wallet actions update the
       // phase separately when execution actually requests one.
       let sawExecution = false;
+      // A run starts: typing not yet recorded becomes a revision, so there
+      // is always a revision of exactly what ran.
+      space.record("user");
       const evmlScript = workerEvml
         .with({
           account: address,
@@ -210,7 +227,7 @@ export function useTransactionExecutor(
           onOutput,
           onLine: (line: number | null) => {
             if (!current()) return;
-            terminalStoreActions("executingLine", line);
+            setUi({ executingLine: line });
             if (line !== null && !sawExecution) {
               sawExecution = true;
               setPhase("running");
@@ -221,7 +238,7 @@ export function useTransactionExecutor(
               setPhase("watching");
           },
         })
-        .script(scriptRef.current);
+        .script(space.getText());
 
       const result = await evmlScript.execute(walletClient, {
         signal: abortSignal,
@@ -305,11 +322,12 @@ export function useTransactionExecutor(
     } finally {
       if (current()) {
         runRef.current = null;
-        terminalStoreActions("isLoading", false);
-        terminalStoreActions("executingLine", null);
+        setUi({ isLoading: false });
+        setUi({ executingLine: null });
       }
     }
   }, [
+    space,
     address,
     walletClient,
     safeConnector,

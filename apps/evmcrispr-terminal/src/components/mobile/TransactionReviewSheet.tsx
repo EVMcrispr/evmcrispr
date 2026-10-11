@@ -11,9 +11,9 @@ import { Button, Drawer, IconButton } from "@repo/ui";
 import type { ReactNode } from "react";
 import { type Chain, formatEther } from "viem";
 import * as viemChains from "viem/chains";
+import { useUi } from "../../app/ui-store";
 import type { ExecutionPhase } from "../../hooks/useTransactionExecutor";
 import type { TransactionReviewState } from "../../hooks/useTransactionReview";
-import { useTerminalStore } from "../../stores/terminal-store";
 
 const PHASE_COPY: Record<
   ExecutionPhase,
@@ -381,7 +381,7 @@ export function TransactionReviewSheet({
 }) {
   // A run in flight (even one only watching boxes) keeps the sheet busy,
   // whatever phase it shows.
-  const running = useTerminalStore((s) => s.isLoading);
+  const running = useUi((s) => s.isLoading);
   const inFlight =
     running ||
     executionPhase === "preparing" ||

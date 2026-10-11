@@ -37,6 +37,11 @@ export interface UseChatAgentOptions {
    *  an explicit modest cap is required. */
   maxOutputTokens?: number;
   maxSteps?: number;
+  /** A turn began: the user's message is in, the model has not answered. */
+  onTurnStart?: (turn: { id: string; chatId: string }) => void;
+  /** The turn is over: answered, stopped or failed. Always follows its
+   *  `onTurnStart`, once. */
+  onTurnEnd?: (turn: { id: string; chatId: string; stopped: boolean }) => void;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -146,6 +151,12 @@ export function useChatAgent(options: UseChatAgentOptions) {
   const historyRef = useRef<ModelMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const stoppedRef = useRef(false);
+  // Read through refs so a host passing fresh closures every render does
+  // not rebuild `send`.
+  const onTurnStartRef = useRef(options.onTurnStart);
+  onTurnStartRef.current = options.onTurnStart;
+  const onTurnEndRef = useRef(options.onTurnEnd);
+  onTurnEndRef.current = options.onTurnEnd;
   // A chat belongs to the scope it was started under (scope 1-N chats).
   // Captured here rather than read live so a run that outlasts a scope
   // switch still persists under its own scope.
@@ -214,6 +225,11 @@ export function useChatAgent(options: UseChatAgentOptions) {
       historyRef.current.push({ role: "user", content: text });
       // Persist now so an aborted or failed run still keeps the user message.
       persist();
+      const turn = {
+        id: crypto.randomUUID(),
+        chatId: conversationIdRef.current,
+      };
+      onTurnStartRef.current?.(turn);
 
       const abort = new AbortController();
       abortRef.current = abort;
@@ -340,6 +356,7 @@ export function useChatAgent(options: UseChatAgentOptions) {
           }
         }
       } finally {
+        onTurnEndRef.current?.({ ...turn, stopped: stoppedRef.current });
         abortRef.current = null;
         // A stop or stream error leaves tool items stuck at phase "call" —
         // persisted like that, they render as in-progress forever.

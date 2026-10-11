@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { BoxSnapshot } from "@evmcrispr/sdk";
+import { applyText, revisions } from "@evmcrispr/space";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 // mock.module is process-global in bun, and other suites reach wagmi
@@ -44,9 +45,15 @@ mock.module("../../src/evml/workerEvml", () => ({
 
 const { makeSafeBatchedHandler, trackFollowedBoxes, useTransactionExecutor } =
   await import("../../src/hooks/useTransactionExecutor");
-const { terminalStoreGet, terminalStoreActions } = await import(
-  "../../src/stores/terminal-store"
-);
+const { uiStore, setUi } = await import("../../src/app/ui-store");
+const { testBrowser } = await import("../helpers/app");
+const { ORIGIN } = await import("../../src/space/undo");
+
+/** A space holding `text`, in a browser of its own. */
+async function spaceOf(text: string) {
+  const { spaces } = testBrowser().tab();
+  return (await spaces.acquire(await spaces.create({ text, source: "user" })))!;
+}
 
 const snap = (over: Partial<BoxSnapshot> = {}): BoxSnapshot => ({
   id: "b1",
@@ -64,8 +71,7 @@ beforeEach(() => {
   fail = () => {};
   signal = undefined;
   runs = 0;
-  terminalStoreActions("currentScriptId", "script-a");
-  terminalStoreActions("isLoading", false);
+  setUi({ isLoading: false });
 });
 
 describe("trackFollowedBoxes", () => {
@@ -81,8 +87,10 @@ describe("trackFollowedBoxes", () => {
 
 describe("useTransactionExecutor watching phase", () => {
   test("enters watching when the script ends with a live box", async () => {
-    const { result } = renderHook(() =>
-      useTransactionExecutor(undefined, "safe:propose ..."),
+    const space = await spaceOf("safe:propose ...");
+    const { result } = renderHook(
+      ({ space }) => useTransactionExecutor(undefined, space),
+      { initialProps: { space } },
     );
     let run: Promise<boolean> | undefined;
     act(() => {
@@ -112,8 +120,10 @@ describe("useTransactionExecutor watching phase", () => {
   });
 
   test("stays running when only simulated boxes are live", async () => {
-    const { result } = renderHook(() =>
-      useTransactionExecutor(undefined, "sim:fork ..."),
+    const space = await spaceOf("sim:fork ...");
+    const { result } = renderHook(
+      ({ space }) => useTransactionExecutor(undefined, space),
+      { initialProps: { space } },
     );
     let run: Promise<boolean> | undefined;
     act(() => {
@@ -165,8 +175,10 @@ describe("makeSafeBatchedHandler", () => {
 
 describe("useTransactionExecutor stopped following", () => {
   test("cancel while watching keeps the run a success", async () => {
-    const { result } = renderHook(() =>
-      useTransactionExecutor(undefined, "swaps:twap ..."),
+    const space = await spaceOf("swaps:twap ...");
+    const { result } = renderHook(
+      ({ space }) => useTransactionExecutor(undefined, space),
+      { initialProps: { space } },
     );
     let run: Promise<boolean> | undefined;
     act(() => {
@@ -194,8 +206,10 @@ describe("useTransactionExecutor stopped following", () => {
 
 describe("useTransactionExecutor worker killed or crashed", () => {
   const startWatching = async () => {
-    const hook = renderHook(() =>
-      useTransactionExecutor(undefined, "safe:propose ..."),
+    const space = await spaceOf("safe:propose ...");
+    const hook = renderHook(
+      ({ space }) => useTransactionExecutor(undefined, space),
+      { initialProps: { space } },
     );
     let run: Promise<boolean> | undefined;
     act(() => {
@@ -226,7 +240,7 @@ describe("useTransactionExecutor worker killed or crashed", () => {
     });
     expect(result.current.phase).toBe("cancelled");
     expect(result.current.followingBoxes).toBe(0);
-    expect(terminalStoreGet("isLoading")).toBe(false);
+    expect(uiStore.getState().isLoading).toBe(false);
     expect(onlyBox(result.current.entries)).toMatchObject({
       state: "cancelled",
       detail: "Stopped following",
@@ -250,7 +264,7 @@ describe("useTransactionExecutor worker killed or crashed", () => {
     });
     expect(result.current.phase).toBe("cancelled");
     expect(result.current.errors).toEqual([]);
-    expect(terminalStoreGet("isLoading")).toBe(false);
+    expect(uiStore.getState().isLoading).toBe(false);
   });
 
   test("a worker crash ends the run in error and its boxes", async () => {
@@ -264,7 +278,7 @@ describe("useTransactionExecutor worker killed or crashed", () => {
       "EVML worker crashed: out of memory",
     ]);
     expect(result.current.followingBoxes).toBe(0);
-    expect(terminalStoreGet("isLoading")).toBe(false);
+    expect(uiStore.getState().isLoading).toBe(false);
     const box = onlyBox(result.current.entries);
     expect(box.state).toBe("cancelled");
     expect(box.detail).toStartWith("Stopped following");
@@ -273,8 +287,10 @@ describe("useTransactionExecutor worker killed or crashed", () => {
 
 describe("useTransactionExecutor script switch", () => {
   const startWatching = async () => {
-    const hook = renderHook(() =>
-      useTransactionExecutor(undefined, "safe:propose ..."),
+    const space = await spaceOf("safe:propose ...");
+    const hook = renderHook(
+      ({ space }) => useTransactionExecutor(undefined, space),
+      { initialProps: { space } },
     );
     let run: Promise<boolean> | undefined;
     act(() => {
@@ -291,13 +307,12 @@ describe("useTransactionExecutor script switch", () => {
   };
 
   test("switching scripts cancels the run and ignores its late callbacks", async () => {
-    const { result, run } = await startWatching();
+    const { result, run, rerender } = await startWatching();
     const old = config;
-    act(() => {
-      terminalStoreActions("currentScriptId", "script-b");
-    });
+    const other = await spaceOf("print 2");
+    act(() => rerender({ space: other }));
     expect(signal?.aborted).toBe(true);
-    expect(terminalStoreGet("isLoading")).toBe(false);
+    expect(uiStore.getState().isLoading).toBe(false);
     expect(result.current.phase).toBe("idle");
 
     // The old run keeps reporting while it unwinds: none of it reaches the
@@ -313,7 +328,7 @@ describe("useTransactionExecutor script switch", () => {
     expect(result.current.followingBoxes).toBe(0);
     expect(result.current.phase).toBe("idle");
     expect(result.current.executed).toEqual([]);
-    expect(terminalStoreGet("isLoading")).toBe(false);
+    expect(uiStore.getState().isLoading).toBe(false);
   });
 
   test("a second execute while a run is in flight starts nothing", async () => {
@@ -328,6 +343,68 @@ describe("useTransactionExecutor script switch", () => {
     // The first run is still the one Cancel stops.
     act(() => result.current.cancelExecution());
     expect(signal?.aborted).toBe(true);
+    await act(async () => {
+      finish();
+      await run;
+    });
+  });
+});
+
+describe("useTransactionExecutor lifetime", () => {
+  test("a run never outlives the view that can cancel it: unmounting aborts it", async () => {
+    const space = await spaceOf("safe:propose ...");
+    const { result, unmount } = renderHook(() =>
+      useTransactionExecutor(undefined, space),
+    );
+    let run: Promise<boolean> | undefined;
+    act(() => {
+      run = result.current.executeScript();
+    });
+    await waitFor(() => expect(runs).toBe(1));
+    expect(uiStore.getState().isLoading).toBe(true);
+    act(() => config.onLine?.(3));
+
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    expect(uiStore.getState().isLoading).toBe(false);
+    expect(uiStore.getState().executingLine).toBeNull();
+    // What the aborted run still reports changes nothing on screen.
+    config.onLine?.(4);
+    fail(new Error("aborted"));
+    await run;
+    expect(uiStore.getState().executingLine).toBeNull();
+    expect(uiStore.getState().isLoading).toBe(false);
+  });
+
+  test("with no space on screen there is nothing to run", async () => {
+    const { result } = renderHook(() =>
+      useTransactionExecutor(undefined, null),
+    );
+    let started: boolean | undefined;
+    await act(async () => {
+      started = await result.current.executeScript();
+    });
+    expect(started).toBe(false);
+    expect(runs).toBe(0);
+  });
+});
+
+describe("useTransactionExecutor and the timeline", () => {
+  test("a run records unrecorded typing as a revision first", async () => {
+    const space = await spaceOf("print 1");
+    const { result } = renderHook(() =>
+      useTransactionExecutor(undefined, space),
+    );
+    applyText(space.text, "print 2", ORIGIN.user);
+    let run: Promise<boolean> | undefined;
+    act(() => {
+      run = result.current.executeScript();
+    });
+    await waitFor(() => expect(runs).toBe(1));
+    expect(revisions(space.timeline.getState()).map((r) => r.text)).toEqual([
+      "print 1",
+      "print 2",
+    ]);
     await act(async () => {
       finish();
       await run;

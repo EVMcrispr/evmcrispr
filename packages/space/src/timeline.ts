@@ -1,3 +1,4 @@
+import { revisionId } from "./hash";
 import type { Removal, RunRecord, TimelineEntry } from "./types";
 
 export interface TimelineState {
@@ -26,9 +27,19 @@ export function isEmptyPatch(patch: TimelinePatch): boolean {
   );
 }
 
+/** The one check made on what is merged in: a revision's id has to be the
+ *  hash of its own text and parent. */
+function isGenuine(entry: TimelineEntry): boolean {
+  return (
+    entry.kind !== "revision" ||
+    entry.id === revisionId(entry.text, entry.parent)
+  );
+}
+
 /**
  * Merges `patch` into `state`. The same three rules everywhere:
- * entries are a union by id and are never rewritten; of two run records
+ * entries are a union by id and are never rewritten (a revision that is
+ * not what its id says is dropped); of two run records
  * the greater `updatedAt` wins; removals are a union, and a removed entry
  * loses its content (a removed run entry takes its record with it).
  *
@@ -57,6 +68,7 @@ export function mergeTimeline(
   }
   for (const entry of patch.entries ?? []) {
     if (removals.has(entry.id) || entries.has(entry.id)) continue;
+    if (!isGenuine(entry)) continue;
     entries.set(entry.id, entry);
     changed.entries.push(entry);
   }

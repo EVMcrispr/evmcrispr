@@ -1,11 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Tabs } from "@repo/ui";
 import { act, render } from "@testing-library/react";
+import { setUi, useUi } from "../../src/app/ui-store";
 import { useFocusOnTab } from "../../src/hooks/useFocusOnTab";
-import {
-  terminalStoreActions,
-  useTerminalStore,
-} from "../../src/stores/terminal-store";
 
 function LibInput() {
   const ref = useFocusOnTab<HTMLInputElement>("library");
@@ -20,13 +17,11 @@ function ChatBox() {
 /** Mirrors SidePanel's structure: forceMount + hidden keeps every tab
  *  mounted, so focus must react to reveals, not mounts. */
 function Panel() {
-  const activeTab = useTerminalStore().activeTab;
+  const activeTab = useUi((s) => s.activeTab);
   return (
     <Tabs
       value={activeTab}
-      onValueChange={(v) =>
-        terminalStoreActions("activeTab", v as "library" | "chat")
-      }
+      onValueChange={(v) => setUi({ activeTab: v as "library" | "chat" })}
     >
       <Tabs.List>
         <Tabs.Trigger value="library">Library</Tabs.Trigger>
@@ -43,14 +38,14 @@ function Panel() {
 }
 
 beforeEach(() => {
-  terminalStoreActions("activeTab", "library");
+  setUi({ activeTab: "library" });
 });
 
 /** The hook defers focus one frame (to outlast the tab click's own focus
  *  handling), so tests must let that frame elapse. */
 const switchTab = (tab: "library" | "chat") =>
   act(async () => {
-    terminalStoreActions("activeTab", tab);
+    setUi({ activeTab: tab });
     await new Promise<void>((r) =>
       requestAnimationFrame(() => requestAnimationFrame(() => r())),
     );

@@ -2,7 +2,8 @@ import { type ChatMeta, listChats } from "@evmcrispr/ai";
 import { ClockIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { cn, IconButton, Popover } from "@repo/ui";
 import { useState } from "react";
-import { useTerminalStore } from "../../../stores/terminal-store";
+import { useStore } from "zustand";
+import { useApp } from "../../../app/AppContext";
 
 export function relativeDate(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -29,7 +30,7 @@ export function ChatHistoryPopover({
   const [open, setOpen] = useState(false);
   const [chats, setChats] = useState<ChatMeta[]>([]);
   // Chats belong to the current script (script 1-N chats).
-  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
+  const currentScriptId = useStore(useApp().spaces.onScreen);
 
   return (
     <Popover

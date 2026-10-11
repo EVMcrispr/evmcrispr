@@ -68,12 +68,11 @@ export function nextRevision(
 }
 
 /** Removals that bring a space back to its latest `MAX_REVISIONS`. Spared:
- *  revisions a run points at, shared ones, and `keep` (the approved one). */
+ *  revisions a run points at and shared ones. */
 export function pruneRevisions(
   state: TimelineState,
   by: Author,
   ts: number,
-  keep: ReadonlySet<string> = new Set(),
 ): Removal[] {
   const all = revisions(state);
   const excess = all.length - MAX_REVISIONS;
@@ -81,7 +80,6 @@ export function pruneRevisions(
   const pinned = new Set([
     ...[...state.runs.values()].map((run) => run.revisionId),
     ...shares(state).map((share) => share.revisionId),
-    ...keep,
   ]);
   return all
     .slice(0, excess)

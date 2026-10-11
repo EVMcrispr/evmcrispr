@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Terminal: scripts become spaces
+
+- A script is now a **space**, stored in IndexedDB instead of localStorage. Existing scripts are migrated on first load; the old storage is left in place. The same space open in two tabs stays in sync. Nothing needs saving any more.
+- The title of a script is its first comment. The title field is gone, and a script no longer needs a title to be shared.
+- Ctrl+Z also undoes what the assistant changed, one step per message. Undo history no longer survives a reload. The chat's per-edit Undo button is gone.
+- Sharing a script no longer changes the address bar.
+- Editor: Monaco 0.57.0. Embedders must serve `monaco-editor@0.57.0/min/vs` at `/vs`.
+- New package `@evmcrispr/space`.
+
 ### Smart block syntax
 
 Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:propose-offline`, and `safe:execute`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.

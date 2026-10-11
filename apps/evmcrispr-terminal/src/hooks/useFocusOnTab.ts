@@ -1,19 +1,16 @@
 import { useEffect, useRef } from "react";
 
-import type { TerminalStoreState } from "../stores/terminal-store";
-import { useTerminalStore } from "../stores/terminal-store";
-
-type Tab = TerminalStoreState["activeTab"];
+import { type PanelTab, useUi } from "../app/ui-store";
 
 /** Focus the referenced element when the given side-panel tab is revealed.
  *  Tabs stay mounted but hidden (`forceMount`), so the native autoFocus
  *  attribute would fire only once at page load, on a hidden element.
  *  Only transitions into the tab count — the default tab must not grab
  *  focus on page load (on mobile that would pop the keyboard). */
-export function useFocusOnTab<T extends HTMLElement>(tab: Tab) {
+export function useFocusOnTab<T extends HTMLElement>(tab: PanelTab) {
   const ref = useRef<T | null>(null);
-  const activeTab = useTerminalStore().activeTab;
-  const prevTabRef = useRef<Tab | null>(null);
+  const activeTab = useUi((s) => s.activeTab);
+  const prevTabRef = useRef<PanelTab | null>(null);
 
   useEffect(() => {
     const prev = prevTabRef.current;

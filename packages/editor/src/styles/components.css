@@ -400,3 +400,25 @@
   /* biome-ignore lint/complexity/noImportantStyles: see above */
   line-height: 1.4 !important;
 }
+
+/* The script's title: its first comment, shown as a heading in the editor
+   and the viewer alike. */
+.evmcrispr-root .evml-viewer code .line.evml-title-line {
+  font-size: 1.35em;
+  font-weight: 700;
+  line-height: 1.8;
+}
+/* Monaco measures a line whose decoration declares a font (fontSize,
+   fontWeight in the decoration options) from the DOM; the font itself
+   comes from here. Keep both in step with TITLE_FONT_SIZE. */
+.monaco-editor .evml-title-line {
+  font-size: 1.35em;
+  font-weight: 700;
+}
+.evml-title-hash {
+  opacity: 0.35;
+}
+.evmcrispr-root .evml-viewer code .line.evml-title-line::before {
+  font-size: calc(1em / 1.35);
+  font-weight: 400;
+}

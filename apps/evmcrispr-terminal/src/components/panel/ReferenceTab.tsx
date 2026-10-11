@@ -16,6 +16,8 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useMaybeSpace, useSpaceText } from "../../app/SpaceContext";
+import { setUi, useUi } from "../../app/ui-store";
 import {
   type ConfigEntry,
   experimentalModules,
@@ -26,10 +28,6 @@ import {
   resolveDocLinkEntry,
 } from "../../data/reference-data";
 import { useFocusOnTab } from "../../hooks/useFocusOnTab";
-import {
-  terminalStoreActions,
-  useTerminalStore,
-} from "../../stores/terminal-store";
 import {
   createMarkdownComponents,
   type DocLinkResolution,
@@ -98,7 +96,9 @@ function resolveCursorEntry(
 }
 
 export function ReferenceTab() {
-  const { script, docsRequest } = useTerminalStore();
+  // Mounted also while a space loads: no script then.
+  const script = useSpaceText(useMaybeSpace());
+  const docsRequest = useUi((s) => s.docsRequest);
   const [query, setQuery] = useState("");
   const searchRef = useFocusOnTab<HTMLInputElement>("reference");
   const [selectedItem, setSelectedItem] = useState<ReferenceEntry | null>(null);
@@ -217,7 +217,7 @@ export function ReferenceTab() {
     const entry = resolveCursorEntry(docsRequest, usage);
     if (!entry) return;
 
-    terminalStoreActions("activeTab", "reference");
+    setUi({ activeTab: "reference" });
     openEntry(entry);
   }, [docsRequest, usage, openEntry]);
 

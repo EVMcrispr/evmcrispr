@@ -1,12 +1,6 @@
 import { Button } from "@repo/ui";
 import { useNavigate } from "react-router";
 
-import {
-  SCRIPT_PLACEHOLDER,
-  terminalStoreActions,
-} from "../../stores/terminal-store";
-import { getOrCreatePristineScript, setLastViewedScript } from "../../utils";
-
 const DNA_HELIX = `    ╱╲
    ╱  ╲
   ╱ ×× ╲
@@ -104,15 +98,6 @@ export default function ScriptNotFound({
         ]
       : defaultLines;
 
-  function handleNewScript() {
-    const id = getOrCreatePristineScript(SCRIPT_PLACEHOLDER);
-    terminalStoreActions("currentScriptId", id);
-    terminalStoreActions("title", "");
-    terminalStoreActions("script", SCRIPT_PLACEHOLDER);
-    setLastViewedScript(id);
-    navigate(`/${id}`);
-  }
-
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8 px-6 select-none animate-fade-in">
       <pre className="text-evm-green-300 text-sm leading-tight font-mono opacity-60">
@@ -130,7 +115,7 @@ export default function ScriptNotFound({
         ))}
       </div>
 
-      <Button variant="outline" onClick={handleNewScript}>
+      <Button variant="outline" onClick={() => navigate("/")}>
         New Script
       </Button>
     </div>

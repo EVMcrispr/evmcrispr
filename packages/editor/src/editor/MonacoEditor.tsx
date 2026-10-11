@@ -38,6 +38,10 @@ import { patchEmbeddedSolidity } from "./solidity-patch";
 import { theme, themeWithBackground } from "./theme";
 
 const SCRIPT_DEBOUNCE_MS = 300;
+/** The title line is a heading: larger and bold. The line height is a
+ *  multiple of the editor's own. */
+const TITLE_LINE_HEIGHT = 1.6;
+const TITLE_FONT_SIZE = "1.35em";
 const CHANGE_DEBOUNCE_MS = 150;
 
 /** Command id registered on Monaco for the hover panel's "Open in
@@ -52,6 +56,9 @@ export interface EditorProps {
   onChange?: (value: string) => void;
   /** 1-based line currently being executed — highlighted + revealed. */
   executingLine?: number | null;
+  /** 0-based index of the line shown as the script's title (its first
+   *  comment). The host decides which line that is. */
+  titleLine?: number | null;
   /** Fired when the user clicks the "Open in reference" link in a hover
    *  card over a command or `@helper` name. */
   onOpenDocs?: (ref: HoverRef) => void;
@@ -82,6 +89,7 @@ function Editor({
   defaultValue,
   onChange,
   executingLine,
+  titleLine,
   onOpenDocs,
   onMount,
   onDidPaste,
@@ -727,6 +735,54 @@ function Editor({
       decorationsRef.current.set([]);
     }
   }, [executingLine, monaco]);
+
+  // ── Title line: the first comment, shown as a heading. The `#` is
+  // dimmed, never hidden: Monaco cannot hide characters, and the cursor
+  // must not land in invisible text. ──
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editorInstance re-arms the listener on remount
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed || !monaco) return;
+    const collection = ed.createDecorationsCollection([]);
+    const refresh = () => {
+      const model = ed.getModel();
+      const line = titleLine == null ? 0 : titleLine + 1;
+      if (
+        !model ||
+        model.isDisposed() ||
+        line < 1 ||
+        line > model.getLineCount()
+      ) {
+        collection.set([]);
+        return;
+      }
+      const hashes =
+        /^\s*#+\s*/.exec(model.getLineContent(line))?.[0].length ?? 0;
+      collection.set([
+        {
+          range: new monaco.Range(line, 1, line, model.getLineMaxColumn(line)),
+          options: {
+            lineHeight: TITLE_LINE_HEIGHT,
+            fontSize: TITLE_FONT_SIZE,
+            fontWeight: "700",
+            inlineClassName: "evml-title-line",
+          },
+        },
+        {
+          range: new monaco.Range(line, 1, line, 1 + hashes),
+          options: { inlineClassName: "evml-title-hash" },
+        },
+      ]);
+    };
+    refresh();
+    const onContent = ed.onDidChangeModelContent(refresh);
+    const onModel = ed.onDidChangeModel(refresh);
+    return () => {
+      onContent.dispose();
+      onModel.dispose();
+      collection.clear();
+    };
+  }, [titleLine, monaco, editorInstance]);
 
   // ── Heredoc bar + tint (mirrors the Shiki viewer's heredoc transformer) ──
   // Refreshed on every edit (not debounced): the scan is a cheap line

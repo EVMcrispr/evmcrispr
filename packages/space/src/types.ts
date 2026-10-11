@@ -122,7 +122,9 @@ export interface SpaceMeta {
 
 /** One person's private marks on a space. Never synced, never exported. */
 export interface Markers {
-  approvedRevisionId?: string;
+  /** The script the user signed off, as text. Reviewed means the current
+   *  text equals it; see `review.ts`. */
+  approvedText?: string;
   hiddenBefore?: number;
   revisionChats?: Record<string, string>;
 }

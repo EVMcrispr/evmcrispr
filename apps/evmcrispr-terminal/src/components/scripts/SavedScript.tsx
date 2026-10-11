@@ -1,11 +1,9 @@
+import type { SpaceMeta } from "@evmcrispr/space";
 import { TrashIcon } from "@heroicons/react/24/solid";
-
 import { cn, IconButton, Tooltip } from "@repo/ui";
 
-import type { ScriptMeta } from "../../types/index";
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
+function formatDate(time: number) {
+  const d = new Date(time);
   return {
     month: d.toLocaleString("default", { month: "short" }).split(".")[0],
     day: d.getUTCDate(),
@@ -13,52 +11,24 @@ function formatDate(iso: string) {
   };
 }
 
-function SavingSpinner() {
-  return (
-    <svg
-      className="w-4 h-4 animate-spin text-evm-green-400 shrink-0"
-      viewBox="0 0 24 24"
-      fill="none"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="3"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
-    </svg>
-  );
-}
-
 type SavedScriptProps = {
-  script: ScriptMeta;
+  space: SpaceMeta;
   isActive?: boolean;
-  isSaving?: boolean;
-  liveTitle?: string;
   mobile?: boolean;
   onItemClick(id: string): void;
   onItemRemove(id: string): void;
 };
 
 export function SavedScript({
-  script,
+  space,
   isActive,
-  isSaving,
-  liveTitle,
   mobile = false,
   onItemRemove,
   onItemClick,
 }: SavedScriptProps) {
-  const { id, updatedAt } = script;
+  const { id, updatedAt } = space;
   const { day, month, year } = formatDate(updatedAt);
-  const displayTitle = (liveTitle ?? script.title) || "Untitled";
+  const displayTitle = space.title;
 
   if (mobile)
     return (
@@ -72,7 +42,6 @@ export function SavedScript({
         <div className="min-w-0 flex-1">
           <p className="flex min-w-0 items-center gap-2 font-sans text-sm text-foreground">
             <span className="truncate">{displayTitle}</span>
-            {isActive && isSaving && <SavingSpinner />}
           </p>
           <p className="font-sans text-xs text-muted-foreground">
             Updated <span className="capitalize">{month} </span>
@@ -104,11 +73,6 @@ export function SavedScript({
       onClick={() => onItemClick(id)}
     >
       <div className="flex items-start gap-3">
-        {isActive && isSaving && (
-          <div className="mt-1.5">
-            <SavingSpinner />
-          </div>
-        )}
         <div className="flex flex-col gap-3 items-start">
           <h3 className="text-xl text-evm-yellow-300 font-head font-bold">
             {displayTitle}

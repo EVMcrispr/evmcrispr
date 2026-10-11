@@ -1,6 +1,6 @@
 import { fetchNexusBalance, logoutNexus } from "@evmcrispr/ai";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/solid";
-import { IconButton, toast } from "@repo/ui";
+import { IconButton } from "@repo/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTerminalChatAgent } from "../../ai/useTerminalChatAgent";
@@ -38,7 +38,6 @@ export function ChatPanel({
     openChat,
     deleteChat,
     regenerate,
-    undoRevision,
   } = useTerminalChatAgent();
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -122,11 +121,6 @@ export function ChatPanel({
         onSuggestion={(text) => void send(text)}
         onOpenScript={onOpenScript}
         onReview={onOpenReview}
-        onUndoRevision={(revisionId) => {
-          const result = undoRevision(revisionId);
-          if (!result.ok) toast.error(result.error);
-          else toast.success("Script change undone");
-        }}
         mobile={mobile}
       />
       <ChatInput

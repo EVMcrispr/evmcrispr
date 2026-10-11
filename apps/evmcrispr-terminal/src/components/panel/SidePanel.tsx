@@ -1,4 +1,4 @@
-import { Console, type ConsoleEntry } from "@evmcrispr/editor";
+import { Console } from "@evmcrispr/editor";
 import {
   BookOpenIcon,
   ChatBubbleLeftRightIcon,
@@ -6,34 +6,25 @@ import {
   DocumentTextIcon,
 } from "@heroicons/react/24/solid";
 import { Tabs } from "@repo/ui";
-import type { ReactNode } from "react";
-import type { TerminalStoreState } from "../../stores/terminal-store";
-import {
-  terminalStoreActions,
-  useTerminalStore,
-} from "../../stores/terminal-store";
+import { useLegacy } from "../../app/legacy-execution";
+import { useSpace } from "../../app/SpaceContext";
+import { type PanelTab, setUi, useUi } from "../../app/ui-store";
+import { ScriptIO } from "../execution/ScriptIO";
 import { ChatPanel } from "./ChatPanel";
 import { LibraryTab } from "./LibraryTab";
 import { ReferenceTab } from "./ReferenceTab";
 
-export function SidePanel({
-  entries,
-  ioControl,
-  errors,
-}: {
-  /** Log lines and status boxes in order. */
-  entries: ConsoleEntry[];
-  ioControl?: ReactNode;
-  errors: string[];
-}) {
-  const activeTab = useTerminalStore().activeTab;
+/** The side panel of the space on screen. */
+export function SidePanel() {
+  const space = useSpace();
+  const activeTab = useUi((s) => s.activeTab);
+  const isLoading = useUi((s) => s.isLoading);
+  const { execution, input, setInput } = useLegacy();
 
   return (
     <Tabs
       value={activeTab}
-      onValueChange={(v) =>
-        terminalStoreActions("activeTab", v as TerminalStoreState["activeTab"])
-      }
+      onValueChange={(v) => setUi({ activeTab: v as PanelTab })}
       className="h-full flex flex-col"
     >
       <Tabs.List className="@container w-full shrink-0 px-3 border-b-0">
@@ -72,13 +63,17 @@ export function SidePanel({
         forceMount
         hidden={activeTab !== "console"}
       >
-        {ioControl && (
-          <div className="shrink-0 border-b border-foreground/10 px-4 py-2">
-            {ioControl}
-          </div>
-        )}
+        <div className="shrink-0 border-b border-foreground/10 px-4 py-2">
+          <ScriptIO
+            key={space.id}
+            input={input}
+            disabled={isLoading}
+            onChange={setInput}
+            output={execution.output}
+          />
+        </div>
         <div className="min-h-0 flex-1">
-          <Console entries={entries} errors={errors} />
+          <Console entries={execution.entries} errors={execution.errors} />
         </div>
       </Tabs.Content>
       <Tabs.Content

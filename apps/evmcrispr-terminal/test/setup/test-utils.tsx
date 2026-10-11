@@ -6,6 +6,8 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
+import { AppProvider } from "../../src/app/AppContext";
+import type { App } from "../../src/app/boot";
 
 function Providers({
   children,
@@ -38,5 +40,19 @@ export function renderWithProviders(
   return render(ui, {
     wrapper: ({ children }) => <Tooltip.Provider>{children}</Tooltip.Provider>,
     ...options,
+  });
+}
+
+/** Renders inside an App object, as the terminal's components expect. */
+export function renderWithApp(
+  ui: ReactNode,
+  { app, route = "/" }: { app: App; route?: string },
+): RenderResult {
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <AppProvider app={app}>
+        <Providers route={route}>{children}</Providers>
+      </AppProvider>
+    ),
   });
 }

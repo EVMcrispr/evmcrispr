@@ -38,8 +38,7 @@
     "wagmi": "^3.7.7",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.33",
-    "zustand": "^5.0.15",
-    "zustand-x": "^6.2.1"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

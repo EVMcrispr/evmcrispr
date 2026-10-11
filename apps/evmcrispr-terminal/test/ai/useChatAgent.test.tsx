@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import {
   AUTH_ERROR_MESSAGE,
   BALANCE_ERROR_MESSAGE,
+  type UseChatAgentOptions,
   useChatAgent,
 } from "@evmcrispr/ai";
 import { act, renderHook } from "@testing-library/react";
@@ -26,12 +27,13 @@ function rejection(status: number, error: Record<string, unknown>): Response {
   });
 }
 
-function renderAgent() {
+function renderAgent(options: Partial<UseChatAgentOptions> = {}) {
   return renderHook(() =>
     useChatAgent({
       systemPrompt: "test",
       tools: {},
       maxSteps: 1,
+      ...options,
     }),
   );
 }
@@ -128,5 +130,29 @@ describe("useChatAgent auth recovery", () => {
 
     expect(result.current.hasKey).toBe(false);
     expect(result.current.error).toBeNull();
+  });
+
+  test("reports the start and the end of a turn, also when it fails", async () => {
+    respond = () =>
+      rejection(401, {
+        message: "API key not found",
+        type: "authentication_error",
+        code: "invalid_api_key",
+      });
+    const seen: string[] = [];
+    const { result } = renderAgent({
+      onTurnStart: (turn) => seen.push(`start ${turn.id} ${turn.chatId}`),
+      onTurnEnd: (turn) => seen.push(`end ${turn.id} ${turn.stopped}`),
+    });
+    const chatId = result.current.conversationId;
+
+    await act(async () => {
+      await result.current.send("hello");
+    });
+
+    expect(seen.length).toBe(2);
+    const turnId = seen[0].split(" ")[1];
+    expect(seen[0]).toBe(`start ${turnId} ${chatId}`);
+    expect(seen[1]).toBe(`end ${turnId} false`);
   });
 });

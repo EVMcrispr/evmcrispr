@@ -96,16 +96,12 @@ const TOOL_LABELS: Record<string, string> = {
 
 function ToolItem({
   item,
-  latestRevisionId,
   onOpenScript,
   onReview,
-  onUndoRevision,
 }: {
   item: Extract<ChatItem, { role: "tool" }>;
-  latestRevisionId?: string;
   onOpenScript?: () => void;
   onReview?: () => void;
-  onUndoRevision: (revisionId: string) => void;
 }) {
   const artifact = item.artifact;
 
@@ -178,20 +174,6 @@ function ToolItem({
               View script
             </Button>
           )}
-          {/* Only the newest revision can actually be undone — older cards
-              would always error with "the script changed". */}
-          {artifact.revisionId &&
-            !artifact.undone &&
-            artifact.revisionId === latestRevisionId && (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => onUndoRevision(artifact.revisionId!)}
-              >
-                Undo change
-              </Button>
-            )}
         </div>
       </article>
     );
@@ -260,7 +242,6 @@ export function ChatMessageList({
   onSuggestion,
   onOpenScript,
   onReview,
-  onUndoRevision,
   mobile = false,
 }: {
   items: ChatItem[];
@@ -271,7 +252,6 @@ export function ChatMessageList({
   onSuggestion: (text: string) => void;
   onOpenScript?: () => void;
   onReview?: () => void;
-  onUndoRevision: (revisionId: string) => void;
   mobile?: boolean;
 }) {
   const [statusIdx, setStatusIdx] = useState(0);
@@ -291,13 +271,6 @@ export function ChatMessageList({
   }, [isRunning]);
 
   const lastAssistantIdx = items.map((i) => i.role).lastIndexOf("assistant");
-
-  let latestRevisionId: string | undefined;
-  for (let i = items.length - 1; i >= 0 && !latestRevisionId; i--) {
-    const it = items[i];
-    if (it.role === "tool" && it.artifact?.kind === "script-change")
-      latestRevisionId = it.artifact.revisionId;
-  }
 
   return (
     <div className="relative flex-1 min-h-0">
@@ -342,10 +315,8 @@ export function ChatMessageList({
               <ToolItem
                 key={item.toolCallId ?? i}
                 item={item}
-                latestRevisionId={latestRevisionId}
                 onOpenScript={onOpenScript}
                 onReview={onReview}
-                onUndoRevision={onUndoRevision}
               />
             );
           }

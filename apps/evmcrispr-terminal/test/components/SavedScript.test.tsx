@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import type { SpaceMeta } from "@evmcrispr/space";
 import { fireEvent, screen } from "@testing-library/react";
 import { SavedScript } from "../../src/components/scripts/SavedScript";
-import type { StoredScript } from "../../src/types/index";
 import { renderWithProviders } from "../setup/test-utils";
 
-const baseScript: StoredScript = {
+const baseScript: SpaceMeta = {
   id: "abc-123",
   title: "My Test Script",
-  script: "load aragonos",
-  createdAt: "2024-06-15T12:00:00.000Z",
-  updatedAt: "2024-06-15T12:00:00.000Z",
+  createdAt: Date.UTC(2024, 5, 15, 12),
+  updatedAt: Date.UTC(2024, 5, 15, 12),
+  unreviewed: false,
 };
 
 beforeEach(() => {
@@ -23,7 +23,7 @@ describe("SavedScript", () => {
 
     renderWithProviders(
       <SavedScript
-        script={baseScript}
+        space={baseScript}
         onItemClick={onClick}
         onItemRemove={onRemove}
       />,
@@ -32,29 +32,13 @@ describe("SavedScript", () => {
     expect(screen.getByText("My Test Script")).toBeInTheDocument();
   });
 
-  test('displays "Untitled" when title is empty', () => {
-    const untitled: StoredScript = { ...baseScript, title: "" };
-    const onClick = mock(() => {});
-    const onRemove = mock(() => {});
-
-    renderWithProviders(
-      <SavedScript
-        script={untitled}
-        onItemClick={onClick}
-        onItemRemove={onRemove}
-      />,
-    );
-
-    expect(screen.getByText("Untitled")).toBeInTheDocument();
-  });
-
   test("displays the formatted date", () => {
     const onClick = mock(() => {});
     const onRemove = mock(() => {});
 
     renderWithProviders(
       <SavedScript
-        script={baseScript}
+        space={baseScript}
         onItemClick={onClick}
         onItemRemove={onRemove}
       />,
@@ -69,7 +53,7 @@ describe("SavedScript", () => {
 
     renderWithProviders(
       <SavedScript
-        script={baseScript}
+        space={baseScript}
         onItemClick={onClick}
         onItemRemove={onRemove}
       />,
@@ -85,7 +69,7 @@ describe("SavedScript", () => {
 
     renderWithProviders(
       <SavedScript
-        script={baseScript}
+        space={baseScript}
         onItemClick={onClick}
         onItemRemove={onRemove}
       />,
@@ -105,7 +89,7 @@ describe("SavedScript", () => {
 
     renderWithProviders(
       <SavedScript
-        script={baseScript}
+        space={baseScript}
         onItemClick={onClick}
         onItemRemove={onRemove}
       />,

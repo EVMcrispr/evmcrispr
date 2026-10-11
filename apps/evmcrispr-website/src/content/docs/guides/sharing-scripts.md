@@ -16,9 +16,13 @@ link is copied to your clipboard and looks like:
 https://next.evmcrispr.com/#/<cid>#<key>
 ```
 
+The title of a script is its first line when that line is a comment
+(`# Pay the team`), so it travels with the script. The address bar of your
+own terminal does not change when you share.
+
 Behind the scenes the script is encrypted and pinned to IPFS:
 
-- The script (and its title) is encrypted in your browser with AES-256-GCM
+- The script is encrypted in your browser with AES-256-GCM
   before it is uploaded — IPFS and the pinning service only ever see
   ciphertext.
 - The decryption key is the final `#<key>` fragment of the link. URL

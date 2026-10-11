@@ -1,10 +1,6 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router";
-import {
-  terminalStoreActions,
-  useTerminalStore,
-  type ViewMode,
-} from "../stores/terminal-store";
+import { setUi, useUi, type ViewMode } from "../app/ui-store";
 import { persistViewMode } from "../utils/view-mode";
 
 /**
@@ -19,13 +15,13 @@ export function useViewMode(): {
   setViewMode: (next: ViewMode) => void;
   toggleViewMode: () => void;
 } {
-  const viewMode = useTerminalStore((s) => s.viewMode);
+  const viewMode = useUi((s) => s.viewMode);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const setViewMode = useCallback(
     (next: ViewMode) => {
       if (next === viewMode) return;
-      terminalStoreActions("viewMode", next);
+      setUi({ viewMode: next });
       persistViewMode(next);
       if (searchParams.has("mode")) {
         const nextParams = new URLSearchParams(searchParams);

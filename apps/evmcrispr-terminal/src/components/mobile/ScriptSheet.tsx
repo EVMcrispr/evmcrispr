@@ -1,5 +1,4 @@
 import type { HoverRef } from "@evmcrispr/core";
-import { Viewer } from "@evmcrispr/editor";
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -8,9 +7,9 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { Button, IconButton, toast } from "@repo/ui";
-import type { TerminalEntryIntent } from "../../hooks/useTerminalScript";
+import { useScript } from "../../app/SpaceContext";
+import { ScriptView } from "../../editor/ScriptView";
 import type { TransactionReviewState } from "../../hooks/useTransactionReview";
-import { terminalStoreActions } from "../../stores/terminal-store";
 import ShareScriptButton from "../scripts/ShareScriptButton";
 
 function reviewLabel(state: TransactionReviewState) {
@@ -22,9 +21,6 @@ function reviewLabel(state: TransactionReviewState) {
 }
 
 export function ScriptSheet({
-  title,
-  script,
-  executingLine,
   entryIntent,
   sharedEncrypted = false,
   reviewState,
@@ -32,16 +28,14 @@ export function ScriptSheet({
   onReview,
   onOpenDocs,
 }: {
-  title: string;
-  script: string;
-  executingLine: number | null;
-  entryIntent: TerminalEntryIntent;
+  entryIntent: "author" | "recipient";
   sharedEncrypted?: boolean;
   reviewState: TransactionReviewState;
   onBackToChat: () => void;
   onReview: () => void;
   onOpenDocs?: (ref: HoverRef) => void;
 }) {
+  const { title, text: script } = useScript();
   const isReady =
     reviewState.status === "valid" || reviewState.status === "ready";
 
@@ -65,21 +59,9 @@ export function ScriptSheet({
             </IconButton>
           )}
           <div className="min-w-0 flex-1">
-            {entryIntent === "author" ? (
-              <input
-                aria-label="Script title"
-                value={title}
-                placeholder="Untitled script"
-                className="w-full border-b border-transparent bg-transparent font-sans text-2xl font-semibold tracking-tight text-foreground outline-none placeholder:text-foreground/35 focus:border-foreground/30"
-                onChange={(event) =>
-                  terminalStoreActions("title", event.target.value)
-                }
-              />
-            ) : (
-              <h1 className="truncate font-sans text-2xl font-semibold tracking-tight text-foreground">
-                {title || "Untitled script"}
-              </h1>
-            )}
+            <h1 className="truncate font-sans text-2xl font-semibold tracking-tight text-foreground">
+              {title || "Untitled script"}
+            </h1>
             {entryIntent === "recipient" ? (
               <p className="mt-1 flex items-center gap-1.5 font-sans text-xs text-foreground/50">
                 {/* Only encrypted share envelopes may claim encryption —
@@ -95,7 +77,7 @@ export function ScriptSheet({
               </p>
             )}
           </div>
-          <ShareScriptButton mobile title={title} script={script} />
+          <ShareScriptButton mobile />
           <IconButton
             type="button"
             aria-label="Copy script"
@@ -144,11 +126,7 @@ export function ScriptSheet({
           </span>
         </div>
         <div className="min-h-0 flex-1">
-          <Viewer
-            script={script}
-            executingLine={executingLine}
-            onOpenDocs={onOpenDocs}
-          />
+          <ScriptView onOpenDocs={onOpenDocs} />
         </div>
       </div>
 

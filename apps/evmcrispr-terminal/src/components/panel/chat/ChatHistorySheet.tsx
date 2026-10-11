@@ -3,7 +3,8 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { Button, cn, Drawer, IconButton } from "@repo/ui";
 import { useEffect, useState } from "react";
-import { useTerminalStore } from "../../../stores/terminal-store";
+import { useStore } from "zustand";
+import { useApp } from "../../../app/AppContext";
 import { relativeDate } from "./ChatHistoryPopover";
 
 export function ChatHistorySheet({
@@ -25,7 +26,7 @@ export function ChatHistorySheet({
 }) {
   const [chats, setChats] = useState<ChatMeta[]>([]);
   // Chats belong to the current script (script 1-N chats).
-  const currentScriptId = useTerminalStore((s) => s.currentScriptId);
+  const currentScriptId = useStore(useApp().spaces.onScreen);
 
   // The sheet is opened programmatically (the composer button), so the
   // list must refresh on the `open` prop — vaul's onOpenChange only fires

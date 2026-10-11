@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { useEffect, useState } from "react";
 import { useEnsName } from "wagmi";
+import { useWallet } from "../../wallet/WalletContext";
 import { LibraryTab } from "../panel/LibraryTab";
 import { ReferenceTab } from "../panel/ReferenceTab";
 import NewScriptButton from "../scripts/NewScriptButton";
@@ -19,22 +20,17 @@ type MenuPage = "menu" | "reference";
 export function MobileMenu({
   open,
   onOpenChange,
-  address,
-  onConnect,
-  onDisconnect,
   onOpenChatSettings,
   initialPage = "menu",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  address: `0x${string}` | undefined;
-  onConnect: () => void;
-  onDisconnect: () => void;
   onOpenChatSettings: () => void;
   /** Page shown when the drawer opens, e.g. jumping straight to the
    *  reference tab from an "Open in reference" hover action. */
   initialPage?: MenuPage;
 }) {
+  const { address, connectWallet, disconnect } = useWallet();
   const [page, setPage] = useState<MenuPage>(initialPage);
   // Passive reader of the balance ChatPanel fetches (shared query key).
   const { data: balanceCents } = useQuery({
@@ -167,8 +163,8 @@ export function MobileMenu({
                   variant="outline"
                   className="min-h-11 shrink-0 px-3 font-sans text-xs shadow-none"
                   onClick={() => {
-                    if (address) onDisconnect();
-                    else onConnect();
+                    if (address) disconnect();
+                    else connectWallet();
                     onOpenChange(false);
                   }}
                 >

@@ -1,5 +1,6 @@
 import { CodeBracketIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { Button, cn } from "@repo/ui";
+import { useScript } from "../../app/SpaceContext";
 import type { TransactionReviewState } from "../../hooks/useTransactionReview";
 
 function chip(state: TransactionReviewState): {
@@ -38,18 +39,17 @@ function chip(state: TransactionReviewState): {
 }
 
 export function ScriptContextBar({
-  title,
   reviewState,
   reviewUnseen,
   onOpenScript,
   onOpenReview,
 }: {
-  title: string;
   reviewState: TransactionReviewState;
   reviewUnseen: boolean;
   onOpenScript: () => void;
   onOpenReview: () => void;
 }) {
+  const { title } = useScript();
   const review = chip(reviewState);
 
   return (

@@ -136,6 +136,14 @@ export function useTransactionReview(
     if (autoValidate) void validateRef.current();
   }, [fingerprint, autoValidate]);
 
+  // A check still in flight when this unmounts reports to nobody.
+  useEffect(
+    () => () => {
+      requestIdRef.current++;
+    },
+    [],
+  );
+
   const prepare = useCallback(async () => {
     const validated = await validate();
     if (!validated) return;

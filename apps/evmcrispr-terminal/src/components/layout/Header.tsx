@@ -7,6 +7,7 @@ import type { Connector } from "wagmi";
 import { useConnect, useConnectors, useDisconnect } from "wagmi";
 
 import logo from "../../assets/logo.svg";
+import { useWallet } from "../../wallet/WalletContext";
 import TypeWriter from "../animations/TypeWriter";
 import SelectWalletModal from "../wallet/SelectWalletModal";
 
@@ -15,13 +16,8 @@ const experimentalOn =
   import.meta.env.VITE_PUBLIC_EXPERIMENTAL === "1";
 const version = experimentalOn ? `${baseVersion}-experimental` : baseVersion;
 
-export default function TerminalHeader({
-  address,
-  onDisconnect: onDisconnectCallback,
-}: {
-  address: `0x${string}` | undefined;
-  onDisconnect?: () => void;
-}) {
+export default function TerminalHeader() {
+  const { address } = useWallet();
   const { mutate: disconnect } = useDisconnect();
   const { mutate: connect } = useConnect();
   const connectors = useConnectors();
@@ -29,10 +25,7 @@ export default function TerminalHeader({
 
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
 
-  async function onDisconnect() {
-    onDisconnectCallback?.();
-    disconnect();
-  }
+  const onDisconnect = () => disconnect();
   const addressShortened =
     address && `${address.slice(0, 6)}..${address.slice(-4)}`;
 

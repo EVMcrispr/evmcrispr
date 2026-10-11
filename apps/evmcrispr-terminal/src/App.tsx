@@ -12,9 +12,12 @@ import {
   Route,
 } from "react-router";
 import { RouterProvider } from "react-router/dom";
+import { AppProvider } from "./app/AppContext";
+import type { App as AppObject } from "./app/boot";
+import Terminal from "./app/Terminal";
 import { transports } from "./config/wagmi";
-import Terminal from "./pages/Terminal";
 import Wagmi from "./providers/Wagmi";
+import { WalletProvider } from "./wallet/WalletContext";
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -26,14 +29,18 @@ const router = createHashRouter(
   ),
 );
 
-const App = () => {
+const App = ({ app }: { app: AppObject }) => {
   return (
     <div className="App dark evmcrispr-root">
       <Tooltip.Provider>
         <Wagmi>
-          <EvmcrisprProvider evml={evml} transports={transports}>
-            <RouterProvider router={router} />
-          </EvmcrisprProvider>
+          <AppProvider app={app}>
+            <EvmcrisprProvider evml={evml} transports={transports}>
+              <WalletProvider>
+                <RouterProvider router={router} />
+              </WalletProvider>
+            </EvmcrisprProvider>
+          </AppProvider>
         </Wagmi>
       </Tooltip.Provider>
       <Toaster />

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+import { evml } from "@evmcrispr/core";
 import type { Action } from "@evmcrispr/sdk";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
@@ -10,14 +11,18 @@ type Deferred = {
 };
 let pendingValidations: Deferred[] = [];
 
+// Everything but validation stays the real tag's: other suites in this
+// process render components that read it.
+const tag = Object.assign(Object.create(evml), {
+  script: (source: string) => ({
+    validate: () =>
+      new Promise((resolve) => pendingValidations.push({ source, resolve })),
+  }),
+});
+
 mock.module("@evmcrispr/editor", () => ({
   ...editor,
-  useEvmlTag: () => ({
-    script: (source: string) => ({
-      validate: () =>
-        new Promise((resolve) => pendingValidations.push({ source, resolve })),
-    }),
-  }),
+  useEvmlTag: () => tag,
 }));
 
 mock.module("../../src/evml/workerEvml", () => ({
@@ -149,5 +154,18 @@ describe("useTransactionReview autoValidate", () => {
     await act(async () => {});
     expect(pendingValidations).toHaveLength(0);
     expect(result.current.state.status).toBe("idle");
+  });
+
+  test("a validation that resolves after unmount writes nothing", async () => {
+    const { result, unmount } = renderHook(() =>
+      useTransactionReview("print 1", undefined, { autoValidate: true }),
+    );
+    await waitFor(() => expect(pendingValidations.length).toBe(1));
+    const before = result.current.state;
+    unmount();
+    await act(async () => {
+      pendingValidations[0].resolve({ valid: true, diagnostics: [] });
+    });
+    expect(result.current.state).toBe(before);
   });
 });
