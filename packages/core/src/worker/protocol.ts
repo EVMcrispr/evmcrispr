@@ -1,5 +1,6 @@
 import type {
   Action,
+  ActionHoldState,
   BoxSnapshot,
   DeclaredErrorFieldValue,
 } from "@evmcrispr/sdk";
@@ -94,6 +95,13 @@ export type MainToWorkerMessage =
       id: string;
       actionId: number;
       hash: `0x${string}`;
+    }
+  | {
+      /** Where a held action stands (worker → `ActionReport.status`). */
+      kind: "action-status";
+      id: string;
+      actionId: number;
+      state: ActionHoldState;
     }
   | { kind: "abort"; id: string };
 

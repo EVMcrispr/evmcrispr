@@ -2,7 +2,6 @@ import { useEvmlTag } from "@evmcrispr/editor";
 import type { Action, BatchedAction } from "@evmcrispr/sdk";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { keccak256, toBytes } from "viem";
-import { workerEvml } from "../evml/workerEvml";
 
 export type ReviewDiagnostic = {
   line: number;
@@ -74,13 +73,23 @@ export function countReviewActions(actions: Action[]) {
 export function useTransactionReview(
   script: string,
   address: `0x${string}` | undefined,
-  options: { autoValidate?: boolean; stdin?: string } = {},
+  options: {
+    autoValidate?: boolean;
+    stdin?: string;
+    /** Simulates the script as it is now (a simulated run of its space). */
+    simulate: () => Promise<{
+      success: boolean;
+      actions: Action[];
+      logs: string[];
+      error?: string;
+    }>;
+  },
 ) {
   const tag = useEvmlTag();
   const requestIdRef = useRef(0);
   const [state, setState] = useState<TransactionReviewState>(EMPTY_STATE);
   const autoValidate = options.autoValidate ?? false;
-  const stdin = options.stdin;
+  const { stdin, simulate } = options;
 
   const fingerprint = useMemo(
     () =>
@@ -154,10 +163,7 @@ export function useTransactionReview(
     });
 
     try {
-      const result = await workerEvml
-        .with({ stdin })
-        .script(script)
-        .simulate({ from: address });
+      const result = await simulate();
       if (validated.requestId !== requestIdRef.current) return;
 
       if (!result.success) {
@@ -189,7 +195,7 @@ export function useTransactionReview(
         logs: [],
       });
     }
-  }, [address, fingerprint, script, stdin, validate]);
+  }, [fingerprint, simulate, validate]);
 
   const reset = useCallback(() => {
     requestIdRef.current++;

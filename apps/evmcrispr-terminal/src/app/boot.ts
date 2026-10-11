@@ -1,7 +1,10 @@
+import type { WorkerEvml } from "@evmcrispr/core/worker-client";
 import type { Author } from "@evmcrispr/space";
-import { getConnection } from "@wagmi/core";
+import { getConnection, getWalletClient } from "@wagmi/core";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { config as wagmiConfig } from "../config/wagmi";
+import { createRunManager, type RunManager } from "../runs/run-manager";
+import { createRunWorker } from "../runs/worker";
 import { createSpaces, type Spaces } from "../space/spaces";
 import { tabTransport } from "../space/tab-transport";
 import { type Changes, createChanges } from "../storage/changes";
@@ -17,6 +20,10 @@ export interface App {
   locks: Locks;
   changes: Changes;
   spaces: Spaces;
+  runs: RunManager;
+  /** The worker the assistant simulates in. Its simulations are its
+   *  working, not runs: they share one worker, spawned when first used. */
+  assistantEvml(): WorkerEvml;
   /** A newer version of the app took the database: this tab must reload. */
   outdated: StoreApi<boolean>;
 }
@@ -55,7 +62,31 @@ export async function boot(): Promise<App> {
   await spaces.ready;
   if (storage.persistent && navigator.storage?.persist)
     askToPersist(spaces, () => navigator.storage.persist());
-  return { storage, locks, changes, spaces, outdated };
+  const runs = createRunManager({
+    spaces,
+    locks,
+    records: storage.records,
+    changes,
+    now: Date.now,
+    me,
+    createWorker: createRunWorker,
+    wallet: async () => {
+      const { address, connector } = getConnection(wagmiConfig);
+      return {
+        client: address
+          ? await getWalletClient(wagmiConfig).catch(() => undefined)
+          : undefined,
+        address,
+        safe: connector?.id === "safe" ? connector : undefined,
+      };
+    },
+  });
+  let assistant: WorkerEvml | undefined;
+  const assistantEvml = () => {
+    assistant ??= createRunWorker();
+    return assistant;
+  };
+  return { storage, locks, changes, spaces, runs, assistantEvml, outdated };
 }
 
 /** Asks the browser not to evict storage, once per page, when a space has

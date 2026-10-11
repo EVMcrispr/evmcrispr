@@ -25,16 +25,7 @@ mock.module("@evmcrispr/editor", () => ({
   useEvmlTag: () => tag,
 }));
 
-mock.module("../../src/evml/workerEvml", () => ({
-  workerEvml: {
-    with() {
-      return this;
-    },
-    script: () => ({
-      simulate: async () => ({ success: true, actions: [], logs: [] }),
-    }),
-  },
-}));
+const simulate = async () => ({ success: true, actions: [], logs: [] });
 
 const { countReviewActions, useTransactionReview } = await import(
   "../../src/hooks/useTransactionReview"
@@ -72,7 +63,7 @@ describe("useTransactionReview autoValidate", () => {
         useTransactionReview(
           "load http\nprint @http:fetch(stdin:)",
           undefined,
-          { autoValidate: true, stdin },
+          { autoValidate: true, stdin, simulate },
         ),
       { initialProps: { stdin: "first" } },
     );
@@ -87,7 +78,10 @@ describe("useTransactionReview autoValidate", () => {
   });
   test("validates on mount and keeps the result", async () => {
     const { result } = renderHook(() =>
-      useTransactionReview("print 1", undefined, { autoValidate: true }),
+      useTransactionReview("print 1", undefined, {
+        autoValidate: true,
+        simulate,
+      }),
     );
 
     await waitFor(() => expect(pendingValidations).toHaveLength(1));
@@ -102,7 +96,10 @@ describe("useTransactionReview autoValidate", () => {
   test("revalidates when the script changes", async () => {
     const { result, rerender } = renderHook(
       ({ script }: { script: string }) =>
-        useTransactionReview(script, undefined, { autoValidate: true }),
+        useTransactionReview(script, undefined, {
+          autoValidate: true,
+          simulate,
+        }),
       { initialProps: { script: "print 1" } },
     );
 
@@ -125,7 +122,10 @@ describe("useTransactionReview autoValidate", () => {
   test("discards a stale validation that resolves after a script change", async () => {
     const { result, rerender } = renderHook(
       ({ script }: { script: string }) =>
-        useTransactionReview(script, undefined, { autoValidate: true }),
+        useTransactionReview(script, undefined, {
+          autoValidate: true,
+          simulate,
+        }),
       { initialProps: { script: "print 1" } },
     );
 
@@ -147,7 +147,7 @@ describe("useTransactionReview autoValidate", () => {
 
   test("does not validate without autoValidate", async () => {
     const { result } = renderHook(() =>
-      useTransactionReview("print 1", undefined),
+      useTransactionReview("print 1", undefined, { simulate }),
     );
 
     // Let effects flush; nothing should have been requested.
@@ -158,7 +158,10 @@ describe("useTransactionReview autoValidate", () => {
 
   test("a validation that resolves after unmount writes nothing", async () => {
     const { result, unmount } = renderHook(() =>
-      useTransactionReview("print 1", undefined, { autoValidate: true }),
+      useTransactionReview("print 1", undefined, {
+        autoValidate: true,
+        simulate,
+      }),
     );
     await waitFor(() => expect(pendingValidations.length).toBe(1));
     const before = result.current.state;

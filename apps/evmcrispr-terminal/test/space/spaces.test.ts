@@ -438,4 +438,24 @@ describe("spaces", () => {
     await settle();
     expect(two.index.getState().map((s) => s.id)).toEqual([y]);
   });
+
+  test("a space removed in another tab is closed here and writes nothing more", async () => {
+    const b = browser();
+    const [one, two] = [b.tab(), b.tab()];
+    const id = await one.create({ text: "x", source: "user" });
+    const mine = (await two.acquire(id))!;
+    two.show(id);
+    await one.remove(id);
+    await settle();
+    expect(two.onScreen.getState()).toBeNull();
+    expect(await two.acquire(id)).toBeNull();
+    // What this tab still holds of it can no longer bring it back.
+    mine.commit({
+      entries: [
+        { kind: "cleared", id: "late", ts: 1, author: { kind: "user" } },
+      ],
+    });
+    await settle();
+    expect((await b.storage.records.loadTimeline(id)).entries).toEqual([]);
+  });
 });

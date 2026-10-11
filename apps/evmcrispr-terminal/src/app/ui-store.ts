@@ -22,25 +22,41 @@ export type DocsRequest = {
 };
 
 export type ViewMode = "edit" | "view";
-export type PanelTab = "console" | "library" | "reference" | "chat";
+export type PanelTab = "space" | "agents" | "reference";
+
+/** What a run reads as stdin. */
+export interface ScriptInputValue {
+  name: string;
+  text: string;
+  /** Set when the input came from the `stdin` link parameter, not a file. */
+  source?: "url";
+}
 
 /** View state only. Nothing here is data: the script, the list of spaces
  *  and the runs live elsewhere and are read through hooks. */
 export interface UiState {
   activeTab: PanelTab;
+  /** The Space tab's two views. */
+  spaceView: "list" | "timeline";
+  /** A revision shown in the main area without loading it. */
+  previewRevisionId: string | null;
   viewMode: ViewMode;
   docsRequest: DocsRequest | null;
-  /** Until stage 2 moves runs out of React. */
-  isLoading: boolean;
-  executingLine: number | null;
+  /** What the user chose as each space's stdin (not saved), with the
+   *  address's own stdin it replaced: a new one in the address wins. */
+  stdin: Record<
+    string,
+    { urlInput: string | undefined; value: ScriptInputValue | undefined }
+  >;
 }
 
 export const uiStore = createStore<UiState>(() => ({
-  activeTab: "library",
+  activeTab: "space",
+  spaceView: "timeline",
+  previewRevisionId: null,
   viewMode: resolveInitialViewMode(),
   docsRequest: null,
-  isLoading: false,
-  executingLine: null,
+  stdin: {},
 }));
 
 export const useUi = <T>(selector: (state: UiState) => T): T =>

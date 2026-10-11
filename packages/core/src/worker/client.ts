@@ -1,4 +1,9 @@
-import type { Action, ActionReport, BoxSnapshot } from "@evmcrispr/sdk";
+import type {
+  Action,
+  ActionHoldState,
+  ActionReport,
+  BoxSnapshot,
+} from "@evmcrispr/sdk";
 import type { Transport, WalletClient } from "viem";
 import { http } from "viem";
 
@@ -264,6 +269,12 @@ class WorkerManager {
     this.#send({ kind: "action-progress", id, actionId, hash }).catch(() => {});
   }
 
+  /** Tell the worker where a proxied action stands while it is held. */
+  reportStatus(id: string, actionId: number, state: ActionHoldState): void {
+    if (!this.#pending.has(id)) return;
+    this.#send({ kind: "action-status", id, actionId, state }).catch(() => {});
+  }
+
   /** Reply to a proxied action. Falls back to an empty success when the
    *  handler's result isn't structured-cloneable. */
   replyAction(
@@ -397,6 +408,8 @@ function makeWorkerEvml(
                 onAction: (actionId, action) => {
                   const report: ActionReport = {
                     sent: (hash) => manager.reportSent(id, actionId, hash),
+                    status: (state) =>
+                      manager.reportStatus(id, actionId, state),
                   };
                   dispatch(action, report).then(
                     (value) =>

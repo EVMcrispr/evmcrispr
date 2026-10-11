@@ -56,8 +56,11 @@ const isMonaco = (spec: string) =>
 // transport, the loaded spaces themselves, storage) must not be able to
 // reach the editor or a Monaco model, where a change counts as the user's.
 // The modules are found by where they live, not listed.
+// Runs and the timeline's rows are among them: a run record or an entry
+// can come from another copy of the space.
 const handlesForeignContent = (file: string) =>
-  /^(ai|assistant|space|storage)\//.test(file) || /transport/i.test(file);
+  /^(ai|assistant|space|storage|runs|panel\/space)\//.test(file) ||
+  /transport/i.test(file);
 
 test("nothing that handles foreign content can reach the editor or Monaco", async () => {
   const graph = await importGraph();
@@ -66,6 +69,8 @@ test("nothing that handles foreign content can reach the editor or Monaco", asyn
   expect(roots.some((file) => file.startsWith("ai/"))).toBe(true);
   expect(roots).toContain("space/tab-transport.ts");
   expect(roots).toContain("space/live-space.ts");
+  expect(roots).toContain("runs/run-manager.ts");
+  expect(roots).toContain("panel/space/Timeline.tsx");
   for (const root of roots) {
     const { modules, packages } = reach(graph, root);
     expect({ root, editor: modules.filter(isEditor) }).toEqual({

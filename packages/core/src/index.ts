@@ -144,6 +144,7 @@ export type {
   ExecutionResult,
   ObserveTransactionParams,
   ObserveTransactionResult,
+  PrepareChain,
 } from "./evml/execute";
 export {
   executeScript,

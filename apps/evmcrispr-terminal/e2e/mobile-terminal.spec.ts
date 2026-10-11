@@ -213,7 +213,7 @@ test("desktop breakpoint keeps the editor-first shell", async ({ page }) => {
   await expect(
     page.locator(".monaco-editor .evml-title-line").first(),
   ).toBeVisible();
-  await expect(page.getByText("Library", { exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Space" })).toBeVisible();
   await expect(page.locator(".monaco-editor")).toBeVisible();
 });
 
@@ -251,12 +251,10 @@ test("mobile menu and script surface never expose Monaco", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "EVML reference" }),
   ).toBeVisible();
-  // Previous scripts fill the menu inline — no library sub-page, no
-  // redundant visible label (the section keeps an aria name).
-  await expect(
-    page.getByRole("region", { name: "Previous scripts" }),
-  ).toBeVisible();
-  await expect(page.getByPlaceholder("Search")).toBeVisible();
+  // The menu leads to the list of spaces; the list itself is the Space
+  // surface.
+  await expect(page.getByRole("region", { name: "Spaces" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Spaces" })).toBeVisible();
   await expect(page.getByRole("button", { name: "New script" })).toBeVisible();
   await expect(
     page.getByRole("status", { name: "Wallet connection" }),
@@ -382,4 +380,37 @@ test("context bar opens the review sheet", async ({ page }) => {
   await expect(
     page.getByText("Simulated first. Your wallet signs last."),
   ).toBeVisible();
+});
+
+test("the Space surface shows the timeline and the list of spaces, and leads back to the chat", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem("evmcrispr:nexusApiKey", "e2e-placeholder");
+  });
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Open timeline" }).click();
+  await expect(page.getByRole("list", { name: "Timeline" })).toContainText(
+    "edited the script",
+  );
+  // A revision is viewed where the script is, without Monaco.
+  await page.getByText("edited the script").click();
+  await page.getByRole("button", { name: "View", exact: true }).click();
+  await expect(page.getByRole("status").first()).toContainText(
+    "Viewing a revision",
+  );
+  await page.getByRole("button", { name: "Back to current" }).click();
+  await expect(page.getByText("READ ONLY")).toBeVisible();
+  await expect(page.locator(".monaco-editor")).toHaveCount(0);
+
+  // The menu leads to the list of spaces.
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("button", { name: "Spaces" }).click();
+  await expect(page.getByRole("list", { name: "Spaces" })).toContainText(
+    "Untitled",
+  );
+  await page.getByRole("button", { name: "Back to chat" }).click();
+  await expect(page.getByPlaceholder("Describe what to do…")).toBeVisible();
 });

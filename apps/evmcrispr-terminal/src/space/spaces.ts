@@ -46,8 +46,30 @@ export function createSpaces(deps: SpaceDeps & { locks: Locks }): Spaces {
       true,
     );
   const ready = refresh();
-  changes.subscribe((change) => {
-    if (change.store === "spaces") void refresh();
+
+  /** Lets go of a loaded space whatever holds it, without touching what
+   *  is stored. Whoever still has the object can read it; it writes
+   *  nothing any more. */
+  const close = async (id: string) => {
+    const entry = loaded.get(id);
+    if (onScreen.getState() === id) onScreen.setState(null, true);
+    if (!entry) return;
+    loaded.delete(id);
+    await (await entry.space).close().catch(() => {});
+    entry.presence?.();
+  };
+
+  changes.subscribe(async (change, local) => {
+    if (change.store !== "spaces") return;
+    // Removed in another tab: it is closed here too, or this tab would
+    // keep writing to a space that is gone.
+    if (
+      !local &&
+      loaded.has(change.key) &&
+      !(await storage.records.getSpace(change.key))
+    )
+      await close(change.key);
+    void refresh();
   });
 
   const load = (id: string, init?: SpaceInit): Loaded => {
@@ -129,15 +151,7 @@ export function createSpaces(deps: SpaceDeps & { locks: Locks }): Spaces {
       onScreen.setState(id, true);
     },
     async remove(id) {
-      const entry = loaded.get(id);
-      if (entry) {
-        entry.holds = 0;
-        entry.pinned = false;
-        loaded.delete(id);
-        await (await entry.space).close();
-        entry.presence?.();
-      }
-      if (onScreen.getState() === id) onScreen.setState(null, true);
+      await close(id);
       await storage.records.deleteSpace(id);
       await storage.deleteDoc(id);
       changes.announce({ store: "spaces", key: id });

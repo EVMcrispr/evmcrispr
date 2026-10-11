@@ -8,6 +8,8 @@ import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
 import { AppProvider } from "../../src/app/AppContext";
 import type { App } from "../../src/app/boot";
+import { SpaceProvider } from "../../src/app/SpaceContext";
+import type { LiveSpace } from "../../src/space/live-space";
 
 function Providers({
   children,
@@ -54,5 +56,15 @@ export function renderWithApp(
         <Providers route={route}>{children}</Providers>
       </AppProvider>
     ),
+  });
+}
+
+/** Renders with `space` on screen, as the terminal's route does. */
+export function renderInSpace(
+  ui: ReactNode,
+  { app, space }: { app: App; space: LiveSpace | null },
+): RenderResult {
+  return renderWithApp(<SpaceProvider value={space}>{ui}</SpaceProvider>, {
+    app,
   });
 }

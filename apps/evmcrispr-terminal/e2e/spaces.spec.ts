@@ -66,10 +66,11 @@ test("the first comment is the title, in the editor, the tab and the list", asyn
   await page.keyboard.press("End");
   await page.keyboard.type(" treasury");
   await expect(page).toHaveTitle("Untitled treasury - EVMcrispr Terminal");
-  await page.getByRole("tab", { name: "Library" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Untitled treasury" }),
-  ).toBeVisible();
+  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("button", { name: "Spaces" }).click();
+  await expect(page.getByRole("list", { name: "Spaces" })).toContainText(
+    "Untitled treasury",
+  );
 });
 
 test("what the person types stays reviewed, also after undo and redo", async ({
@@ -140,10 +141,11 @@ test("scripts stored before spaces are listed after the update", async ({
   await page.goto(`/#/${id}`);
   await expect(lines(page)).toContainText("# Pay the team");
   await expect(lines(page)).toContainText("print 1");
-  await page.getByRole("tab", { name: "Library" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Pay the team" }),
-  ).toBeVisible();
+  await page.getByRole("tab", { name: "Space" }).click();
+  await page.getByRole("button", { name: "Spaces" }).click();
+  await expect(page.getByRole("list", { name: "Spaces" })).toContainText(
+    "Pay the team",
+  );
   expect(
     await page.evaluate(() => localStorage.getItem("evmcrispr:scripts")),
   ).toContain("Pay the team");
@@ -158,7 +160,7 @@ test("view mode shows the title as a heading too", async ({ page }) => {
   await expect(page.locator(".evml-viewer .evml-title-hash")).toHaveText(/#/);
 });
 
-test("running a script still prints to the console", async ({ page }) => {
+test("running a script prints to its run's card", async ({ page }) => {
   await page.goto("/");
   await expect(lines(page)).toContainText("Untitled");
   await typeAtEnd(page, "\nprint 42");

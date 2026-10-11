@@ -1,24 +1,43 @@
 import type { HoverRef } from "@evmcrispr/core";
-import { useEffect, useState } from "react";
+import { consoleEntries } from "@evmcrispr/editor";
+import { ChevronLeftIcon } from "@heroicons/react/24/outline";
+import { Button } from "@repo/ui";
+import { useEffect, useRef, useState } from "react";
 import { ScriptIO } from "../components/execution/ScriptIO";
-import { MobileHeader } from "../components/mobile/MobileHeader";
-import { MobileMenu } from "../components/mobile/MobileMenu";
-import { ScriptContextBar } from "../components/mobile/ScriptContextBar";
-import { ScriptSheet } from "../components/mobile/ScriptSheet";
-import { TransactionReviewSheet } from "../components/mobile/TransactionReviewSheet";
-import { ChatPanel } from "../components/panel/ChatPanel";
 import { ScriptLoadState } from "../components/terminal/ScriptLoadState";
+import {
+  RevisionPreview,
+  usePreviewedRevision,
+} from "../editor/RevisionPreview";
 import { useKeyboardInsets } from "../hooks/useKeyboardInsets";
+import { useScriptInput } from "../hooks/useScriptInput";
+import { MobileHeader } from "../mobile/MobileHeader";
+import { MobileMenu } from "../mobile/MobileMenu";
+import { ScriptContextBar } from "../mobile/ScriptContextBar";
+import { ScriptSheet } from "../mobile/ScriptSheet";
+import {
+  type ExecutionPhase,
+  TransactionReviewSheet,
+} from "../mobile/TransactionReviewSheet";
+import { ChatPanel } from "../panel/agents/ChatPanel";
+import { HeldRun } from "../panel/space/HeldRun";
+import { SpacesList } from "../panel/space/SpacesList";
+import { SpaceTab } from "../panel/space/SpaceTab";
+import { followedBoxes } from "../runs/run-manager";
+import { useActiveRun, useExecute, useLatestRun } from "../runs/useRun";
 import { useWallet } from "../wallet/WalletContext";
+import { useApp } from "./AppContext";
 import { useDocumentTitle } from "./DesktopLayout";
 import { useLegacy } from "./legacy-execution";
 import { useSpace } from "./SpaceContext";
 import { StorageNotice } from "./StorageNotice";
-import { setUi, useUi } from "./ui-store";
+import { setUi } from "./ui-store";
 import type { SpaceRoute } from "./useSpaceRoute";
 
 type Ready = Extract<SpaceRoute, { status: "ready" }>;
 type MenuPage = "menu" | "reference";
+/** The three surfaces, matching the panel's tabs on desktop. */
+type Surface = "space" | "agents" | "script";
 
 /** The mobile screen. The header and the workspace menu are there
  *  whatever the address resolves to; the rest needs a space. */
@@ -27,6 +46,7 @@ export function MobileLayout({ route }: { route: SpaceRoute }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPage, setMenuPage] = useState<MenuPage>("menu");
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
+  const [surface, setSurface] = useState<Surface>("agents");
   useKeyboardInsets(true);
   useDocumentTitle();
 
@@ -47,13 +67,20 @@ export function MobileLayout({ route }: { route: SpaceRoute }) {
       {route.status === "ready" ? (
         <MobileSpace
           route={route}
+          surface={surface}
+          setSurface={setSurface}
           chatSettingsOpen={chatSettingsOpen}
           onChatSettingsOpenChange={setChatSettingsOpen}
           onOpenReference={() => openMenu("reference")}
         />
       ) : (
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ScriptLoadState route={route} />
+          {/* Without a space on screen the list of them stays reachable. */}
+          {surface === "space" ? (
+            <SpacesList />
+          ) : (
+            <ScriptLoadState route={route} />
+          )}
         </main>
       )}
 
@@ -67,6 +94,11 @@ export function MobileLayout({ route }: { route: SpaceRoute }) {
           setMenuOpen(false);
           setChatSettingsOpen(true);
         }}
+        onOpenSpaces={() => {
+          setMenuOpen(false);
+          setUi({ spaceView: "list" });
+          setSurface("space");
+        }}
         initialPage={menuPage}
       />
     </div>
@@ -76,22 +108,28 @@ export function MobileLayout({ route }: { route: SpaceRoute }) {
 /** Everything on the mobile screen that needs the space on screen. */
 function MobileSpace({
   route,
+  surface,
+  setSurface,
   chatSettingsOpen,
   onChatSettingsOpenChange,
   onOpenReference,
 }: {
   route: Ready;
+  surface: Surface;
+  setSurface: (surface: Surface | ((now: Surface) => Surface)) => void;
   chatSettingsOpen: boolean;
   onChatSettingsOpenChange: (open: boolean) => void;
   onOpenReference: () => void;
 }) {
+  const { runs } = useApp();
   const space = useSpace();
   const wallet = useWallet();
-  const { execution, review, input, setInput } = useLegacy();
-  const isLoading = useUi((s) => s.isLoading);
-  const [surface, setSurface] = useState<"chat" | "script">(
-    route.intent === "recipient" ? "script" : "chat",
-  );
+  const { review } = useLegacy();
+  const { input, setInput } = useScriptInput(space.id);
+  const execute = useExecute();
+  const active = useActiveRun();
+  const run = useLatestRun();
+  const previewed = usePreviewedRevision();
   const [reviewOpen, setReviewOpen] = useState(false);
 
   // Flag a ready review until the user has seen it. A review that finishes
@@ -104,22 +142,47 @@ function MobileSpace({
   }, [reviewReady, reviewOpen]);
 
   // Re-pick the surface on every navigation: a share link lands on the
-  // script, anything else on the chat.
+  // script, anything else on the chat. A space chosen from the list of
+  // spaces stays on the Space surface, now showing its timeline.
   useEffect(() => {
     void space.id;
-    setSurface(route.intent === "recipient" ? "script" : "chat");
-  }, [space.id, route.intent]);
+    setSurface((now) =>
+      now === "space"
+        ? now
+        : route.intent === "recipient"
+          ? "script"
+          : "agents",
+    );
+  }, [space.id, route.intent, setSurface]);
 
   // The chat's settings live on the chat surface.
   useEffect(() => {
-    if (chatSettingsOpen) setSurface("chat");
-  }, [chatSettingsOpen]);
+    if (chatSettingsOpen) setSurface("agents");
+  }, [chatSettingsOpen, setSurface]);
 
-  const phase = execution.phase;
+  // A revision is viewed where the script is.
+  const previewing = previewed !== null;
   useEffect(() => {
+    if (previewing) setSurface("script");
+  }, [previewing, setSurface]);
+
+  // The run the sheet follows: its phase while the script runs, else how
+  // it stands or ended.
+  const phase: ExecutionPhase = !run
+    ? "idle"
+    : run.record.status === "running"
+      ? (run.phase ?? "running")
+      : run.record.status;
+  // The sheet opens by itself when the run of this space needs the user
+  // or ends, not for a run found there on arriving.
+  const followed = useRef<string | null>(null);
+  useEffect(() => {
+    const arrived = followed.current !== space.id;
+    followed.current = space.id;
+    if (arrived) return;
     if (phase !== "idle" && phase !== "preparing" && phase !== "running")
       setReviewOpen(true);
-  }, [phase]);
+  }, [space.id, phase]);
 
   const openReview = () => {
     setReviewOpen(true);
@@ -135,32 +198,59 @@ function MobileSpace({
     <>
       {/* The script is the persistent subject of the session — keep its
           identity and state on screen while the user chats about it. */}
-      {surface === "chat" && (
+      {surface === "agents" && (
         <ScriptContextBar
           reviewState={review.state}
           reviewUnseen={reviewReady && !reviewSeen}
           onOpenScript={() => setSurface("script")}
+          onOpenTimeline={() => {
+            setUi({ spaceView: "timeline" });
+            setSurface("space");
+          }}
           onOpenReview={openReview}
         />
       )}
 
       <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        {surface === "script" && (
-          <ScriptSheet
-            entryIntent={route.intent}
-            sharedEncrypted={route.sharedEncrypted}
-            reviewState={review.state}
-            onBackToChat={() => setSurface("chat")}
-            onReview={openReview}
-            onOpenDocs={openDocs}
-          />
+        {surface === "script" &&
+          (previewed ? (
+            <div className="min-h-0 flex-1 p-2">
+              <RevisionPreview revision={previewed} onOpenDocs={openDocs} />
+            </div>
+          ) : (
+            <ScriptSheet
+              entryIntent={route.intent}
+              sharedEncrypted={route.sharedEncrypted}
+              reviewState={review.state}
+              onBackToChat={() => setSurface("agents")}
+              onReview={openReview}
+              onOpenDocs={openDocs}
+            />
+          ))}
+        {surface === "space" && (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="shrink-0 px-1 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 gap-1 px-2 font-sans text-xs shadow-none"
+                onClick={() => setSurface("agents")}
+              >
+                <ChevronLeftIcon data-icon="inline-start" />
+                Back to chat
+              </Button>
+            </div>
+            <div className="min-h-0 flex-1">
+              <SpaceTab />
+            </div>
+          </div>
         )}
         {/* The chat owns the conversation state (useChatAgent) — keep it
             mounted across surface switches or the thread and any in-flight
-            run are lost. */}
+            turn are lost. */}
         <div
           className={
-            surface !== "chat" ? "hidden" : "flex min-h-0 flex-1 flex-col"
+            surface !== "agents" ? "hidden" : "flex min-h-0 flex-1 flex-col"
           }
         >
           <ChatPanel
@@ -182,23 +272,24 @@ function MobileSpace({
         address={wallet.address}
         executionPhase={phase}
         canExecute={review.canExecute}
-        logs={execution.logs}
-        entries={execution.entries}
-        followingBoxes={execution.followingBoxes}
+        logs={[]}
+        entries={run ? consoleEntries(run.record.console) : []}
+        followingBoxes={run ? followedBoxes(run.record.console) : 0}
         ioControl={
           <ScriptIO
             key={space.id}
             input={input}
-            disabled={isLoading}
+            disabled={active !== null}
             onChange={setInput}
-            output={execution.output}
+            output={run?.record.output}
           />
         }
-        errors={execution.errors}
-        executed={execution.executed}
-        onCancel={execution.cancelExecution}
+        errors={run?.record.errors ?? []}
+        executed={run?.executed ?? []}
+        onCancel={() => active && runs.cancel(active.record.id)}
+        heldRun={active && <HeldRun run={active} />}
         onPrepare={() => void review.prepare()}
-        onExecute={() => void execution.executeScript()}
+        onExecute={() => void execute()}
         onConnect={() => {
           setReviewOpen(false);
           wallet.connectWallet();

@@ -116,9 +116,15 @@ export interface BoxHandle {
   ): Promise<void>;
 }
 
+/** Where an action stands while its host is holding it. */
+export type ActionHoldState = "waiting" | "paused" | "declined";
+
 /** Reported by a host while it sends an action. */
 export interface ActionReport {
   sent(hash: `0x${string}`): void;
+  /** The host is holding the action: passed to the wallet, paused before
+   *  it, or declined in it. Hosts that never hold an action never call it. */
+  status?(state: ActionHoldState): void;
 }
 
 export type BoxOpener = (options: BoxOptions) => BoxHandle;

@@ -5,7 +5,8 @@ import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useScript, useSpace } from "../app/SpaceContext";
-import { setUi, useUi } from "../app/ui-store";
+import { setUi } from "../app/ui-store";
+import { useExecutingLine } from "../runs/useRun";
 import EditorDropZone from "./EditorDropZone";
 import { interceptImagePaste } from "./file-upload";
 import { offloadPastedHex, trackOffloadBypassKeys } from "./hex-offload";
@@ -27,7 +28,7 @@ function offload(e: editor.IPasteEvent, ed: editor.IStandaloneCodeEditor) {
 function ScriptEditor() {
   const space = useSpace();
   const { text } = useScript();
-  const executingLine = useUi((s) => s.executingLine);
+  const executingLine = useExecutingLine();
   const [mounted, setMounted] = useState<{
     editor: editor.IStandaloneCodeEditor;
     monaco: Monaco;

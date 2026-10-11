@@ -8,6 +8,7 @@ import {
   withClock,
 } from "@evmcrispr/ai";
 import type { EvmlTag } from "@evmcrispr/core";
+import type { WorkerEvml } from "@evmcrispr/core/worker-client";
 import { useEvmlTag } from "@evmcrispr/editor";
 import { deriveTitle } from "@evmcrispr/space";
 import { getChainId, getConnection } from "@wagmi/core";
@@ -18,7 +19,6 @@ import { useApp } from "../app/AppContext";
 import { useMaybeSpace } from "../app/SpaceContext";
 import { EVMCRISPR_API_BASE } from "../config/api";
 import { config as wagmiConfig } from "../config/wagmi";
-import { workerEvml } from "../evml/workerEvml";
 import type { LiveSpace, ScriptEdit } from "../space/live-space";
 
 const SYSTEM_PROMPT = `You are an assistant embedded in the EVMcrispr terminal, an interface for EVML — a scripting language for batching EVM transactions. EVML scripts are line-based: commands like "switch <chain>", "load <module>", "set $var <value>", "exec <target> <signature> <args...>", module commands like "token:transfer", and inline helpers like @token(WETH), @me, @date(now). Comments start with #.
@@ -44,6 +44,7 @@ interface Turn {
  *  data. It never touches the editor: what it writes is not the user's. */
 function createTerminalHost(
   tag: EvmlTag,
+  evml: () => WorkerEvml,
   turn: () => Turn | null,
   onScreen: () => LiveSpace | null,
 ): ScriptToolsHost {
@@ -64,11 +65,13 @@ function createTerminalHost(
     // Runs in the EVML worker so a heavy fork simulation (ethereumjs VM)
     // can't freeze the UI while the chat waits on it.
     simulate: (script, { from, blockNumber }) =>
-      workerEvml.script(script).simulate({
-        from:
-          (from as Address | undefined) ?? getConnection(wagmiConfig).address,
-        blockNumber,
-      }),
+      evml()
+        .script(script)
+        .simulate({
+          from:
+            (from as Address | undefined) ?? getConnection(wagmiConfig).address,
+          blockNumber,
+        }),
   };
 }
 
@@ -76,7 +79,7 @@ function createTerminalHost(
  *  the space on screen, the EVML worker and the wagmi connection. */
 export function useTerminalChatAgent() {
   const tag = useEvmlTag();
-  const { spaces } = useApp();
+  const { spaces, assistantEvml } = useApp();
   const space = useMaybeSpace();
   const spaceRef = useRef(space);
   spaceRef.current = space;
@@ -87,6 +90,7 @@ export function useTerminalChatAgent() {
       ...createScriptTools(
         createTerminalHost(
           tag,
+          assistantEvml,
           () => turnRef.current,
           () => spaceRef.current,
         ),
@@ -95,7 +99,7 @@ export function useTerminalChatAgent() {
       ...createContractTools(() => getChainId(wagmiConfig)),
       ...createWebTools(EVMCRISPR_API_BASE),
     }),
-    [tag],
+    [tag, assistantEvml],
   );
 
   return useChatAgent({

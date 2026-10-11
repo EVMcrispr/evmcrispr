@@ -2,7 +2,7 @@ import type { HoverRef } from "@evmcrispr/core";
 import { Viewer } from "@evmcrispr/editor";
 import { titleLine } from "@evmcrispr/space";
 import { useScript } from "../app/SpaceContext";
-import { useUi } from "../app/ui-store";
+import { useExecutingLine } from "../runs/useRun";
 
 /** The space on screen, read-only: view mode on desktop, always on mobile.
  *  There is no editor here, so whoever changes the script writes the
@@ -15,7 +15,7 @@ export function ScriptView({
   onOpenDocs?: (ref: HoverRef) => void;
 }) {
   const { text } = useScript();
-  const executingLine = useUi((s) => s.executingLine);
+  const executingLine = useExecutingLine();
   return (
     <Viewer
       script={text}

@@ -110,6 +110,8 @@ export function useSpaceRoute(): SpaceRoute {
       }
       held = resolution.id;
       app.spaces.show(resolution.id);
+      // Runs left unfinished by a tab that is gone are interrupted.
+      void app.runs.adopt(space).catch(() => {});
       const from =
         received.current?.id === resolution.id ? received.current : null;
       received.current = null;
@@ -122,7 +124,12 @@ export function useSpaceRoute(): SpaceRoute {
     });
     return () => {
       live = false;
-      if (held) app.spaces.release(held);
+      if (!held) return;
+      // The address no longer names this space: it is off screen from
+      // now, whatever is still drawn while the next one loads. A run's
+      // wallet requests are held on exactly this.
+      if (app.spaces.onScreen.getState() === held) app.spaces.show(null);
+      app.spaces.release(held);
     };
   }, [app, scriptId, key]);
 
@@ -132,5 +139,8 @@ export function useSpaceRoute(): SpaceRoute {
       route.status !== "ready" ||
       list.some((meta) => meta.id === route.space.id),
   );
-  return listed ? route : { status: "removed" };
+  // While the address already names another space, this one is on its
+  // way out: its removal is not news.
+  const leaving = route.status === "ready" && route.space.id !== scriptId;
+  return listed || leaving ? route : { status: "removed" };
 }

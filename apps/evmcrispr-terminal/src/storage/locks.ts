@@ -14,7 +14,10 @@ export interface Locks {
 }
 
 export const lockNames = {
+  /** A real run is going on in this space: one per space. */
   run: (spaceId: string) => `evmcrispr:run:${spaceId}`,
+  /** Someone is still running this run, real or simulated. */
+  running: (runId: string) => `evmcrispr:running:${runId}`,
   open: (spaceId: string) => `evmcrispr:open:${spaceId}`,
   chat: (chatId: string) => `evmcrispr:chat:${chatId}`,
   migrate: "evmcrispr:migrate",

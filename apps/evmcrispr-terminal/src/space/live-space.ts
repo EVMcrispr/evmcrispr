@@ -116,7 +116,11 @@ export async function openLiveSpace(
   const timeline = createStore<TimelineState>(() => emptyTimeline);
   const markers = createStore<Markers>(() => ({}));
 
+  // Once closed (released, or removed) nothing is written any more: a
+  // late writer must not bring back the records of a deleted space.
+  let closed = false;
   const merge = (patch: TimelinePatch, local: boolean) => {
+    if (closed) return;
     const { state, changed } = mergeTimeline(timeline.getState(), patch);
     if (isEmptyPatch(changed)) return;
     timeline.setState(state, true);
@@ -322,6 +326,7 @@ export async function openLiveSpace(
       return record(source, from ? { from } : {});
     },
     async close() {
+      closed = true;
       if (indexTimer !== undefined) {
         clearTimeout(indexTimer);
         writeIndex();

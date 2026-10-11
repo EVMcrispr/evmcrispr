@@ -9,14 +9,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { cn, IconButton } from "@repo/ui";
 import { useEffect, useRef, useState } from "react";
+import type { ScriptInputValue } from "../../app/ui-store";
 import { downloadOutput } from "../../utils/download-output";
-
-export interface ScriptInputValue {
-  name: string;
-  text: string;
-  /** Set when the input came from the `stdin` link parameter, not a file. */
-  source?: "url";
-}
 
 const LOCKED = "stdin is locked while the script runs";
 const encoder = new TextEncoder();

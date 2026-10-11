@@ -11,6 +11,16 @@
 - Editor: Monaco 0.57.0. Embedders must serve `monaco-editor@0.57.0/min/vs` at `/vs`.
 - New package `@evmcrispr/space`.
 
+### Terminal: the Space tab, and runs that pause
+
+- The side panel has three tabs: **Space**, **Agents**, **Reference**. Space replaces Library and Console: the list of spaces, with marks for unreviewed changes and for a run in progress, paused or watching, and inside a space its **timeline** of revisions and runs.
+- A revision row offers View (without loading it), Load in editor, Open in new space and, for a change the assistant made, Restore to before. Loading or restoring a text that was not approved before leaves the script unreviewed.
+- A run is a card in its space's timeline, with its console, and survives a reload. A run left unfinished by a tab that was closed shows as interrupted.
+- A run no longer ends when you open another space or decline in your wallet: it **pauses**, holding its next wallet request, until you press Resume or Cancel. Resume is offered next to the held action: what it will send, to whom, and since when. A run that only follows status boxes, and simulations, keep going. Cancel always ends the run.
+- A space runs in one tab at a time; another tab shows the run and cannot start one. Each run has its own worker.
+- The mobile review's simulation is recorded as a simulated run.
+- `@evmcrispr/sdk`: `ActionReport.status?(state)` and `ActionHoldState`, for a host that holds an action. `@evmcrispr/core`: `ActionHandlerCtx.onStatus?`, the worker protocol's `action-status` message, and `ExecuteOptions.prepareChain` to hold the change of chain asked before a script starts. Errors thrown when the wallet cannot be aligned keep their message and gain a `cause`. Hosts that hold nothing see no change.
+
 ### Smart block syntax
 
 Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:propose-offline`, and `safe:execute`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.

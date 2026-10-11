@@ -230,10 +230,12 @@ export class Interpreter {
     // involved, and simulation output (CLI, MCP) stays unchanged. Their
     // outcomes still settle, so simulated followers work.
     const title = simulated ? undefined : this.#sendTitle(action);
+    const waiting = this.#waitingFor(action);
+    const held = { waiting, paused: "Paused", declined: "Declined in wallet" };
     const box = title
       ? this.#boxes.open({
           title,
-          detail: this.#waitingFor(action),
+          detail: waiting,
           simulated,
           realRun: () => this.#realRun,
         })
@@ -249,6 +251,9 @@ export class Interpreter {
           links: this.#txLink(hash, chainId),
         });
       },
+      // Where the action stands while the host holds it. The box stays
+      // live: the step is not over until it is sent or the run ends.
+      status: (state) => box?.update({ detail: held[state] }),
     };
     try {
       const result = await this.#untilCancelled(send(report));
