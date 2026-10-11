@@ -50,6 +50,33 @@ const CHANGE_DEBOUNCE_MS = 150;
  *  reference" link (see the hover provider effect below). */
 const OPEN_DOCS_COMMAND_ID = "evmcrispr.openDocs";
 
+/**
+ * Runs `work` once after the edits being reported, not inside each
+ * report. For a content-change listener that sets decorations: Monaco
+ * reports a batch of edits (text inserted as typing, a character at a
+ * time) one after another, and setting decorations inside a report
+ * delivers the next one from within it. A long enough insertion nests
+ * those calls until the stack runs out. Deferred to a microtask, the
+ * decorations are set once, after the last report, before any paint.
+ */
+function afterEdits(work: () => void) {
+  let waiting = false;
+  let cancelled = false;
+  return {
+    run() {
+      if (waiting || cancelled) return;
+      waiting = true;
+      queueMicrotask(() => {
+        waiting = false;
+        if (!cancelled) work();
+      });
+    },
+    cancel() {
+      cancelled = true;
+    },
+  };
+}
+
 export interface EditorProps {
   /** Initial script when the host isn't controlling the content. */
   defaultValue?: string;
@@ -792,9 +819,11 @@ function Editor({
       ]);
     };
     refresh();
-    const onContent = ed.onDidChangeModelContent(refresh);
+    const later = afterEdits(refresh);
+    const onContent = ed.onDidChangeModelContent(later.run);
     const onModel = ed.onDidChangeModel(refresh);
     return () => {
+      later.cancel();
       onContent.dispose();
       onModel.dispose();
       collection.clear();
@@ -829,8 +858,8 @@ function Editor({
   }, [changedLines, monaco, editorInstance]);
 
   // ── Heredoc bar + tint (mirrors the Shiki viewer's heredoc transformer) ──
-  // Refreshed on every edit (not debounced): the scan is a cheap line
-  // pass and the bar should follow the fence as it's typed.
+  // Refreshed on every edit (not debounced, see `afterEdits`): the scan is
+  // a cheap line pass and the bar should follow the fence as it's typed.
   // biome-ignore lint/correctness/useExhaustiveDependencies: editorInstance re-arms the listener on remount
   useEffect(() => {
     const ed = editorRef.current;
@@ -871,8 +900,10 @@ function Editor({
       );
     };
     refresh();
-    const disposable = ed.onDidChangeModelContent(refresh);
+    const later = afterEdits(refresh);
+    const disposable = ed.onDidChangeModelContent(later.run);
     return () => {
+      later.cancel();
       disposable.dispose();
       collection.clear();
     };

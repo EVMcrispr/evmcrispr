@@ -164,7 +164,7 @@ test("running a script prints to its run's card", async ({ page }) => {
   await page.goto("/");
   await expect(lines(page)).toContainText("Untitled");
   await typeAtEnd(page, "\nprint 42");
-  await page.getByRole("button", { name: /execute/i }).click();
+  await page.getByRole("button", { name: "Run", exact: true }).click();
   await expect(page.getByText("42", { exact: true })).toBeVisible();
 });
 
@@ -185,4 +185,27 @@ test("a browser that refuses storage still works and says nothing will be saved"
   );
   await typeAtEnd(page, "\nprint kept in memory");
   await expect(lines(page)).toContainText("print kept in memory");
+});
+
+test("text inserted all at once, however long, raises no error in the editor", async ({
+  page,
+}) => {
+  // Inserted as typing, a character per edit: the editor's decorations
+  // used to be set inside each edit's report, nesting until the stack
+  // ran out at a few hundred characters.
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await lines(page).first().click();
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.insertText(
+    `# Long\n${Array.from({ length: 60 }, (_, i) => `print "line ${i + 1} of the log"`).join("\n")}`,
+  );
+  await expect(lines(page)).toContainText("line 60 of the log");
+  // The first comment is still drawn as the title.
+  await page.keyboard.press("ControlOrMeta+Home");
+  await expect(page.locator(".monaco-editor .evml-title-line")).not.toHaveCount(
+    0,
+  );
+  expect(errors).toEqual([]);
 });
