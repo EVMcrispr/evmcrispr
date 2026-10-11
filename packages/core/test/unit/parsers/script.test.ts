@@ -990,4 +990,134 @@ print @helper(
       expect(errors.filter((e) => e.includes(HINT))).to.have.lengthOf(0);
     });
   });
+
+  describe("cost", () => {
+    /** The bytes the parser reads back out of its input while parsing. */
+    const bytesRead = (script: string): number => {
+      const decode = TextDecoder.prototype.decode;
+      let bytes = 0;
+      TextDecoder.prototype.decode = function (input, options) {
+        bytes += input?.byteLength ?? 0;
+        return decode.call(this, input, options);
+      };
+      try {
+        parseScript(script);
+      } finally {
+        TextDecoder.prototype.decode = decode;
+      }
+      return bytes;
+    };
+
+    it("reads its input a number of times that does not grow with the script", () => {
+      const script = (lines: number) =>
+        Array.from({ length: lines }, (_, i) =>
+          i % 2 ? `set $a${i} @id("x")` : "# a comment",
+        ).join("\n");
+      const perByte = (lines: number) =>
+        bytesRead(script(lines)) / script(lines).length;
+
+      expect(perByte(400)).to.be.lessThan(perByte(50) * 1.5);
+    });
+
+    it("takes four times as long, not sixteen, on four times the comments of wide characters", () => {
+      let parses = 0;
+      // The fastest of three, each on a text not parsed before.
+      const time = (lines: number) =>
+        Math.min(
+          ...[0, 1, 2].map(() => {
+            const script = `${Array(lines)
+              .fill(`# ${"═".repeat(70)}`)
+              .join("\n")}\n# ${parses++}`;
+            const start = performance.now();
+            parseScript(script);
+            return performance.now() - start;
+          }),
+        );
+
+      expect(time(2000)).to.be.lessThan(time(500) * 8);
+    });
+
+    it("does not parse again a script it has just parsed", () => {
+      const script = 'set $a 1\nprint "parsed once"';
+      parseScript(script);
+
+      expect(bytesRead(script)).to.equal(0);
+    });
+
+    it("gives each caller its own list of errors", () => {
+      const first = parseScript("set $t ((").errors;
+      first.length = 0;
+
+      expect(parseScript("set $t ((").errors).to.not.be.empty;
+    });
+  });
+
+  describe("characters wider than a byte", () => {
+    it("matches a token after them where it is", () => {
+      const { ast, errors } = parseScript(
+        '# ── título ──\nset $name "→ é" # ══\nset $other @id($name)',
+      );
+      const commands = ast.getAllCommandsUntilLine(Number.POSITIVE_INFINITY);
+
+      expect(errors).to.deep.equal([]);
+      expect(commands.map((c) => c.name)).to.deep.equal(["set", "set"]);
+      expect(commands[0].args.map((a) => a.value)).to.deep.equal([
+        "$name",
+        "→ é",
+      ]);
+      expect(commands[1].loc).to.deep.equal({
+        start: { line: 3, col: 0 },
+        end: { line: 3, col: 21 },
+      });
+    });
+
+    /** What a parse gives, as the grammar gave it before its `regex` was
+     *  replaced: commands with their place, and the errors. */
+    const outcome = (script: string) => {
+      const { ast, errors } = parseScript(script);
+      return {
+        commands: ast.body.map((c) => [c.name, c.loc?.start.line]),
+        errors,
+      };
+    };
+
+    it("ends on a script that opens with an empty line and comments in them", () => {
+      expect(outcome("\n# ══ título\nset $a 1")).to.deep.equal({
+        commands: [["set", 3]],
+        errors: [],
+      });
+      expect(outcome("\n\n# é\nset $a 1\n# ══\nprint 2")).to.deep.equal({
+        commands: [
+          ["set", 4],
+          ["print", 6],
+        ],
+        errors: [],
+      });
+    });
+
+    it("reads a comment with a character of four bytes", () => {
+      expect(outcome("# 😀 x\nset $a 1")).to.deep.equal({
+        commands: [["set", 2]],
+        errors: [],
+      });
+    });
+
+    it("reports a byte order mark as it always did", () => {
+      expect(outcome("\uFEFFset $a 1")).to.deep.equal({
+        commands: [],
+        errors: [
+          `CommandParserError(1:3): Expected a command name like "set" or "aragonos:connect" (letters and dashes, with an optional trailing !), got 'set $...'`,
+        ],
+      });
+      expect(outcome('set $a "x"\n# é\uFEFF\nprint 1')).to.deep.equal({
+        commands: [
+          ["set", 1],
+          ["print", 4],
+        ],
+        errors: [
+          `CommandParserError(3:0): Expected a command name like "set" or "aragonos:connect" (letters and dashes, with an optional trailing !), got '\uFFFD\uFFFD\npr...'`,
+        ],
+      });
+    });
+  });
 });

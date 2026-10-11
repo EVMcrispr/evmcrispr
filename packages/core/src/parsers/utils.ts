@@ -5,7 +5,7 @@ import type {
   NodeParser,
   NodeParserState,
 } from "@evmcrispr/sdk";
-import { buildParserError } from "@evmcrispr/sdk";
+import { buildParserError, everyCharUntil, regex } from "@evmcrispr/sdk";
 import type { Ok, Parser } from "arcsecond";
 import {
   between,
@@ -14,12 +14,10 @@ import {
   coroutine,
   either,
   endOfInput,
-  everyCharUntil,
   getData,
   lookAhead,
   possibly,
   recursiveParser,
-  regex,
   sequenceOf,
   setData,
   str,

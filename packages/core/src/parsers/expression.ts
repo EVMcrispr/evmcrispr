@@ -5,7 +5,7 @@ import type {
   EnclosingNodeParser,
   NodeParser,
 } from "@evmcrispr/sdk";
-import { buildParserError, NodeType } from "@evmcrispr/sdk";
+import { buildParserError, NodeType, regex } from "@evmcrispr/sdk";
 import {
   char,
   choice,
@@ -14,7 +14,6 @@ import {
   lookAhead,
   possibly,
   recursiveParser,
-  regex,
 } from "arcsecond";
 import { arrayExpressionParser } from "./array";
 import { blockExpressionParser } from "./block";

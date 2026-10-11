@@ -6,7 +6,7 @@ import type {
   NodeParser,
   TxCaptureNode,
 } from "@evmcrispr/sdk";
-import { buildParserError, NodeType } from "@evmcrispr/sdk";
+import { buildParserError, NodeType, regex } from "@evmcrispr/sdk";
 import {
   char,
   choice,
@@ -14,7 +14,6 @@ import {
   lookAhead,
   possibly,
   recursiveParser,
-  regex,
   sequenceOf,
   str,
 } from "arcsecond";

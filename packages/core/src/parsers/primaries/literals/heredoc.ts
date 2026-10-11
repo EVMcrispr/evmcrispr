@@ -3,8 +3,8 @@ import type {
   NodeParserState,
   StringLiteralNode,
 } from "@evmcrispr/sdk";
-import { buildParserError, NodeType } from "@evmcrispr/sdk";
-import { coroutine, getData, regex, setData, str } from "arcsecond";
+import { buildParserError, NodeType, regex } from "@evmcrispr/sdk";
+import { coroutine, getData, setData, str } from "arcsecond";
 import {
   createNodeLocation,
   currentContexDataParser,

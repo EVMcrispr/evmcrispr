@@ -3,15 +3,8 @@ import type {
   DestructureSlot,
   NodeParser,
 } from "@evmcrispr/sdk";
-import { NodeType } from "@evmcrispr/sdk";
-import {
-  char,
-  choice,
-  coroutine,
-  possibly,
-  recursiveParser,
-  regex,
-} from "arcsecond";
+import { NodeType, regex } from "@evmcrispr/sdk";
+import { char, choice, coroutine, possibly, recursiveParser } from "arcsecond";
 import { createNodeLocation, locate, optionalWhitespace } from "./utils";
 
 const destructureVariableParser = regex(/^\$(?:(?!::|--|\(|\)|\[|\]|,|\s).)+/);

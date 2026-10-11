@@ -3,7 +3,7 @@ import type {
   EnclosingNodeParser,
   VariableIdentifierNode,
 } from "@evmcrispr/sdk";
-import { buildParserError, NodeType } from "@evmcrispr/sdk";
+import { buildParserError, NodeType, regex } from "@evmcrispr/sdk";
 import type { Parser } from "arcsecond";
 import {
   char,
@@ -12,7 +12,6 @@ import {
   many1,
   possibly,
   recursiveParser,
-  regex,
   sequenceOf,
 } from "arcsecond";
 import { createNodeLocation, enclosingLookaheadParser, locate } from "../utils";

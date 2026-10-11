@@ -5,7 +5,12 @@ import type {
   NodeParser,
   NodeParserState,
 } from "@evmcrispr/sdk";
-import { balancedParens, buildParserError, NodeType } from "@evmcrispr/sdk";
+import {
+  balancedParens,
+  buildParserError,
+  NodeType,
+  regex,
+} from "@evmcrispr/sdk";
 import type { Parser } from "arcsecond";
 import {
   char,
@@ -15,7 +20,6 @@ import {
   lookAhead,
   possibly,
   recursiveParser,
-  regex,
   str,
 } from "arcsecond";
 import { argumentExpressionParser, argumentsParser } from "./expression";

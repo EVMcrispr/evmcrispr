@@ -6,10 +6,10 @@ import {
   endOfInput,
   many,
   recursiveParser,
-  regex,
 } from "arcsecond";
 import type { AbiFunction, AbiParameter } from "viem";
 import { parseAbiItem } from "viem";
+import { regex } from "./parsers";
 import type { ArgType } from "./schema";
 
 export const isFunctionSignature = (signature: string) => {

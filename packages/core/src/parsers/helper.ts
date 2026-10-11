@@ -3,14 +3,13 @@ import type {
   HelperFunctionNode,
   NodeParser,
 } from "@evmcrispr/sdk";
-import { buildParserError, NodeType } from "@evmcrispr/sdk";
+import { buildParserError, NodeType, regex } from "@evmcrispr/sdk";
 import {
   char,
   coroutine,
   lookAhead,
   possibly,
   recursiveParser,
-  regex,
   takeLeft,
 } from "arcsecond";
 import { argumentsParser } from "./expression";

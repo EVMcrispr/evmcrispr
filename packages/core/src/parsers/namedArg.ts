@@ -1,6 +1,6 @@
 import type { EnclosingNodeParser, NamedArgNode } from "@evmcrispr/sdk";
-import { NodeType } from "@evmcrispr/sdk";
-import { coroutine, recursiveParser, regex } from "arcsecond";
+import { NodeType, regex } from "@evmcrispr/sdk";
+import { coroutine, recursiveParser } from "arcsecond";
 import { argumentExpressionParser } from "./expression";
 import { createNodeLocation, locate } from "./utils";
 

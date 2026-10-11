@@ -1,8 +1,8 @@
+import { everyCharUntil } from "@evmcrispr/sdk";
 import {
   char,
   choice,
   endOfInput,
-  everythingUntil,
   recursiveParser,
   sequenceOf,
 } from "arcsecond";
@@ -12,6 +12,6 @@ export const commentParser = recursiveParser(() =>
   sequenceOf([
     optionalWhitespace,
     char("#"),
-    everythingUntil(choice([endOfInput, endLine])),
+    everyCharUntil(choice([endOfInput, endLine])),
   ]),
 );

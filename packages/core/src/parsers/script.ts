@@ -37,9 +37,18 @@ const withCommaHint =
     return `${error} — ${COMMA_HINT}`;
   };
 
+/** The scripts parsed last, by their text. A keystroke has the same text
+ *  parsed by every tool that reads it (diagnostics, hover, completions,
+ *  auto-import): they share one tree, which none of them writes to. */
+const parsed = new Map<string, { ast: EvmlAST; errors: string[] }>();
+const PARSED_KEPT = 8;
+
 export const parseScript = (
   script: string,
 ): { ast: EvmlAST; errors: string[] } => {
+  const known = parsed.get(script);
+  if (known) return { ast: known.ast, errors: [...known.errors] };
+
   const res = scriptParser.run(script);
 
   if (res.isError) {
@@ -48,8 +57,12 @@ export const parseScript = (
     );
   }
 
-  return {
+  const result = {
     ast: res.result,
     errors: res.data.errors.map(withCommaHint(script)),
   };
+  if (parsed.size >= PARSED_KEPT)
+    parsed.delete(parsed.keys().next().value as string);
+  parsed.set(script, result);
+  return { ast: result.ast, errors: [...result.errors] };
 };
