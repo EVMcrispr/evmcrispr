@@ -30,8 +30,11 @@ export type {
   ConsoleState,
 } from "./console/entries";
 export {
+  CONSOLE_LIMITS,
   consoleEntries,
+  consoleSize,
   emptyConsole,
+  parseConsole,
   reduceConsole,
 } from "./console/entries";
 export {

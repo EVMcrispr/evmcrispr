@@ -1,4 +1,5 @@
 import type { SpaceRoute } from "../../app/useSpaceRoute";
+import { RestorePrompt } from "../../panel/space/RestorePrompt";
 import ScriptNotFound from "../scripts/ScriptNotFound";
 
 /** What the script area shows while the address has no space on screen. */
@@ -11,6 +12,16 @@ export function ScriptLoadState({ route }: { route: SpaceRoute }) {
           requiredVersion={route.requiredVersion}
         />
       );
+    case "export":
+      // Keyed by the link: another link is another question.
+      return (
+        <RestorePrompt
+          key={`${route.exported.id}:${route.exported.cid}`}
+          exported={route.exported}
+        />
+      );
+    case "refused":
+      return <ScriptNotFound variant="export-refused" why={route.why} />;
     case "not-found":
       return <ScriptNotFound variant="uuid" />;
     case "ipfs-error":

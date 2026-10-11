@@ -44,6 +44,7 @@ const KINDS: Record<Filter, readonly TimelineEntry["kind"][]> = {
 
 const isTyping = (row: Row): row is RevisionRow =>
   row.kind === "revision" &&
+  !row.entry.unverified &&
   row.entry.source === "user" &&
   row.entry.author.kind === "user";
 
@@ -58,22 +59,39 @@ export function timelineRows(
     /** Whether the script is the approved text right now. */
     reviewed: boolean;
   },
-): { rows: Row[]; earlier: number } {
+): {
+  rows: Row[];
+  /** Entries not on the list: before the window, or hidden. */
+  earlier: number;
+  /** Of those, the ones Clear for me hid. */
+  hidden: number;
+} {
   const kept = orderedEntries(state).filter((entry): entry is Shown =>
     KINDS[options.filter].includes(entry.kind),
   );
   const visible = kept.filter(
     (entry) => entry.ts >= (markers.hiddenBefore ?? Number.NEGATIVE_INFINITY),
   );
-  const window = visible.slice(-options.shown);
   const pending = new Set(
     options.reviewed
       ? []
       : revisionsSinceApproved(state, markers.approvedText).map((r) => r.id),
   );
+  // The latest `shown`, and always back to the first revision recorded
+  // here since the script was last the approved text: however many
+  // entries arrive dated after it, an unreviewed change is on the list,
+  // not under "Show earlier".
+  const firstPending = visible.findIndex(
+    (entry) =>
+      entry.kind === "revision" && !entry.unverified && pending.has(entry.id),
+  );
+  const from = Math.max(0, visible.length - options.shown);
+  const window = visible.slice(
+    firstPending === -1 ? from : Math.min(from, firstPending),
+  );
   const shared = new Set(
     [...state.entries.values()].flatMap((entry) =>
-      entry.kind === "share" ? [entry.revisionId] : [],
+      entry.kind === "share" && !entry.unverified ? [entry.revisionId] : [],
     ),
   );
   const lastRun = window.findLast((entry) => entry.kind === "run");
@@ -104,5 +122,9 @@ export function timelineRows(
       grouped[grouped.length - 1] = { kind: "revisions", rows: [last, row] };
     else grouped.push(row);
   }
-  return { rows: grouped, earlier: kept.length - window.length };
+  return {
+    rows: grouped,
+    earlier: kept.length - window.length,
+    hidden: kept.length - visible.length,
+  };
 }

@@ -50,6 +50,39 @@ const backends: [string, () => Promise<Records>][] = [
 
 for (const [name, make] of backends)
   describe(`records (${name})`, () => {
+    test("a space is added only where none has its id", async () => {
+      const r = await make();
+      expect(await r.addSpace(meta("add-1"))).toBe(true);
+      expect(await r.addSpace({ ...meta("add-1"), title: "other" })).toBe(
+        false,
+      );
+      expect((await r.getSpace("add-1"))?.title).toBe("add-1");
+    });
+
+    test("what an export brought: a local revision takes its place, it is forgotten with no removal, and a local record is never forgotten", async () => {
+      const r = await make();
+      const theirs = { ...entry("squat"), unverified: true as const };
+      const other = { ...entry("other"), unverified: true as const };
+      const far = { ...run("far", 1), unverified: true as const };
+      await r.mergeTimeline("imp", {
+        entries: [theirs, other, entry("mine")],
+        runs: [far, run("near", 1)],
+      });
+      await r.mergeTimeline("imp", { entries: [entry("squat", 9)] });
+      await r.mergeTimeline("imp", {
+        forget: [other.id, "far", "near", entry("mine").id],
+      });
+      const stored = await r.loadTimeline("imp");
+      expect(stored.entries.map((e) => [e.id, e.unverified]).sort()).toEqual(
+        [
+          [entry("mine").id, undefined],
+          [theirs.id, undefined],
+        ].sort(),
+      );
+      expect(stored.runs.map((x) => x.id)).toEqual(["near"]);
+      expect(stored.removals).toEqual([]);
+    });
+
     test("spaces: put, patch, list, delete", async () => {
       const r = await make();
       await r.putSpace(meta("s1"));

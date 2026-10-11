@@ -217,7 +217,11 @@ function TerminalInner({
                     <ActionsPreview actions={interpreter.actions} />
                   )}
                   {(interpreter.entries.length > 0 || errors.length > 0) && (
-                    <Console entries={interpreter.entries} errors={errors} />
+                    <Console
+                      entries={interpreter.entries}
+                      errors={errors}
+                      markdown
+                    />
                   )}
                   {interpreter.actions.length === 0 &&
                     interpreter.entries.length === 0 &&
@@ -260,6 +264,7 @@ function TerminalInner({
             entries={interpreter.entries}
             errors={errors}
             placeholder="Console output will appear here during execution."
+            markdown
           />
         </div>
       )}

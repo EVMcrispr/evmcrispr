@@ -7,6 +7,7 @@ import { useStore } from "zustand";
 import { useApp } from "../../app/AppContext";
 import { useMaybeSpace } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
+import { Confirm, LeftBehind } from "./Confirm";
 import { SpaceRow } from "./SpaceRow";
 
 /** A title as the search compares it. */
@@ -23,6 +24,8 @@ export function SpacesList() {
   const current = useMaybeSpace()?.id;
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [removing, setRemoving] = useState<string | null>(null);
+  const doomed = index.find((meta) => meta.id === removing);
 
   const shown = useMemo(() => {
     const q = slug(query);
@@ -82,7 +85,7 @@ export function SpacesList() {
             meta={meta}
             active={meta.id === current}
             onOpen={open}
-            onRemove={remove}
+            onRemove={setRemoving}
           />
         ))}
         {shown.length === 0 && (
@@ -91,6 +94,25 @@ export function SpacesList() {
           </li>
         )}
       </ul>
+      {doomed && (
+        <Confirm
+          title="Remove this space"
+          action="Remove space"
+          onConfirm={() => void remove(doomed.id)}
+          onClose={() => setRemoving(null)}
+        >
+          <p>
+            This removes “{doomed.title}” from this browser, for good: its
+            script, its revisions and its runs.
+            {doomed.run && " A run of it is going on, and will be stopped."}
+          </p>
+          <p>
+            Undo and everything this browser stored of it go with it, in every
+            tab. Your other spaces are not touched.
+          </p>
+          <LeftBehind action="removeSpace" />
+        </Confirm>
+      )}
     </div>
   );
 }

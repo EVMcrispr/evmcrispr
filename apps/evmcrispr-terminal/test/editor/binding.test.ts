@@ -155,3 +155,17 @@ test("after any sequence the model equals the document", () => {
     expect(text.toString()).not.toContain("\r");
   }
 });
+
+test("forgetting the model's undo flushes the model with its own text: the script, and whose it is, do not change", () => {
+  const { text, model, binding, origins } = setup("exec 1");
+  const flushes: boolean[] = [];
+  model.onDidChangeContent((event) => flushes.push(event.isFlush));
+  origins.length = 0;
+  binding.forgetUndo();
+  // The model was replaced (which is what empties Monaco's stack)...
+  expect(flushes).toEqual([true]);
+  expect(model.getValue()).toBe("exec 1");
+  // ...and nothing was written to the document: no transaction at all.
+  expect(text.toString()).toBe("exec 1");
+  expect(origins).toEqual([]);
+});

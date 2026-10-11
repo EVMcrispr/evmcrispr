@@ -9,6 +9,21 @@ interface EntryBase {
   id: string;
   ts: number;
   author: Author;
+  /** The entry arrived from outside this browser (an export) and nothing
+   *  vouches for what it says: its author, its time, its explanation. Set
+   *  by whoever takes it in, never by what is taken in. It is shown as
+   *  such, and an entry recorded here takes its place when both have the
+   *  same id. Signed entries (a later piece) replace this mark. */
+  unverified?: true;
+  /** With `unverified`, and written the same way: when this browser took
+   *  the record in and how many characters it holds. What exports bring
+   *  has an allowance of its own (`mergeable`), counted from these. */
+  intake?: Intake;
+}
+
+export interface Intake {
+  at: number;
+  size: number;
 }
 
 export type RevisionSource =
@@ -16,7 +31,9 @@ export type RevisionSource =
   | "assistant"
   | "import"
   | "load"
-  | "revert";
+  | "revert"
+  /** An export was merged into a space that was already here. */
+  | "merge";
 
 export interface RevisionEntry extends EntryBase {
   kind: "revision";
@@ -76,6 +93,11 @@ export interface Removal {
   entryId: string;
   by: Author;
   ts: number;
+  /** What was removed was an unverified entry (one an export brought). It
+   *  stays gone if an export brings it again, and that is all: a revision
+   *  of the same id recorded here is kept, so nothing an export brings can
+   *  end, by being removed, as a hole in what the user records. */
+  unverified?: true;
 }
 
 export type RunStatus =
@@ -103,6 +125,9 @@ export interface RunRecord<Console = unknown> {
   executedCount: number;
   pausedBy?: "left" | "declined";
   updatedAt: number;
+  /** As on an entry: the record arrived from outside this browser. */
+  unverified?: true;
+  intake?: Intake;
 }
 
 export const UNFINISHED: readonly RunStatus[] = [

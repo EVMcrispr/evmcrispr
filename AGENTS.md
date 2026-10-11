@@ -19,7 +19,26 @@ general smart contract interaction. Scripts run in a web terminal
 - `modules/ens`: ENS domain operations
 - `modules/giveth`: Giveth protocol
 - `modules/http`: HTTP + JSON helpers
-- `apps/evmcrispr-terminal`: React + Monaco + Wagmi terminal app
+- `packages/space`: The space model shared by hosts (pure, no DOM): the
+  Yjs document layout, timeline entries, and the rules for merging,
+  recording, reviewing and importing them
+- `packages/editor`: Monaco language support, the read-only viewer, the
+  run console
+- `packages/ai`: The assistant's agent loop and tools
+- `apps/evmcrispr-terminal`: React + Monaco + Wagmi terminal app. A script
+  lives in a space (`@evmcrispr/space`); `src/` is laid out by
+  responsibility, each directory importing only from those before it:
+  - `storage/`: IndexedDB records, tab channel, locks, migration
+  - `space/`: loaded spaces. `live-space.ts` is the only writer of a
+    space and the only place that decides whether its script is
+    reviewed; `links.ts` (share), `export.ts` (export, restore),
+    `cleaning.ts`
+  - `editor/`: the script on screen (Monaco binding, viewer)
+  - `runs/`: the run manager, one worker per run
+  - `assistant/`: the built-in agent's host on spaces
+  - `review/`: review before signing
+  - `panel/`: the side panel (Space, Agents, Reference)
+  - `mobile/`, `app/` (composition, routing), `wallet/`
 - `apps/evmcrispr-website`: Astro landing page + docs
 
 ## Key Patterns
@@ -83,6 +102,12 @@ after a migration, an upgrade or a rotation cannot satisfy.
 - **Fixtures move with the contracts:** after `sync-assertions-bytecode.ts`,
   also run `sync-smart-dependency-hashes.ts`, or every smart-batch test
   fails with "unrecognized smart-batch bytecode".
+
+- Terminal: anything written by someone other than the user enters a
+  space through `LiveSpace` only (an assistant turn, another tab, an
+  export merged in), and data from a link is checked in
+  `space/export.ts` before use. `test/app/foreign-writers.test.ts` pins
+  both from the import graph: extend it when adding an entry point.
 
 ## Common Tasks
 

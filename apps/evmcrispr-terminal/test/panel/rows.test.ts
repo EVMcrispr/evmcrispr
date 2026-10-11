@@ -136,3 +136,30 @@ test("renders the latest 200 and counts the rest", () => {
       .earlier,
   ).toBe(0);
 });
+
+test("an unreviewed change stays on the list however many entries an export dates after it", () => {
+  let s = emptyTimeline;
+  s = add(s, rev(s, "a\n", "user", 1));
+  const change = rev(s, "a\nb\n", "assistant", 2);
+  s = add(s, change);
+  // What an export brought: more than the window, all dated later, one of
+  // them claiming the approved text.
+  const theirs = Array.from({ length: WINDOW + 50 }, (_, i) => ({
+    ...rev(emptyTimeline, i === 7 ? "a\n" : `t${i}\n`, "user", 1_000 + i),
+    unverified: true as const,
+  }));
+  s = mergeTimeline(s, { entries: theirs }).state;
+  const { rows, earlier } = timelineRows(
+    s,
+    { approvedText: "a\n" },
+    { ...all, reviewed: false },
+  );
+  const mine = rows.find(
+    (row) => row.kind === "revision" && row.entry.id === change.id,
+  );
+  expect(mine).toMatchObject({ unreviewed: true });
+  // Only what was recorded before the approved text is under "Show earlier".
+  expect(earlier).toBe(1);
+  // What an export brought is never grouped with, or shown as, the user's typing.
+  expect(rows.some((row) => row.kind === "revisions")).toBe(false);
+});

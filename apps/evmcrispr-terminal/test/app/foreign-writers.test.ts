@@ -197,6 +197,105 @@ test("the review is live for approving only when the user asked: it has one open
     "app/MobileLayout.tsx",
     "components/execution/ExecuteButton.tsx",
     "components/scripts/ShareScriptButton.tsx",
+    "panel/space/RevisionRow.tsx",
     "review/useReview.ts",
   ]);
+});
+
+/** The modules of the app whose source matches. */
+async function modulesWith(pattern: RegExp) {
+  const graph = await importGraph();
+  const found: string[] = [];
+  for (const file of graph.keys())
+    if (pattern.test(await Bun.file(path.join(SRC, file)).text()))
+      found.push(file);
+  return found.sort();
+}
+
+test("foreign content enters a space in three places, all in the space itself", async () => {
+  // An assistant turn, what a transport delivers, and an export merged in:
+  // each origin that is someone else's writing is named in one module.
+  expect(
+    await modulesWith(/,\s*ORIGIN\.(assistant|remote|copy),?\s*\)/),
+  ).toEqual(["space/live-space.ts"]);
+  // No document state from outside is ever applied: a document is filled
+  // from this browser's own storage and from its own tabs, nowhere else.
+  expect(await modulesWith(/\bapplyUpdate\(/)).toEqual([
+    "space/live-space.ts",
+    "storage/index.ts",
+  ]);
+  const live = await Bun.file(path.join(SRC, "space/live-space.ts")).text();
+  expect(live.match(/\bapplyUpdate\(/g)).toHaveLength(1);
+  expect(live).toMatch(/applyUpdate\(doc, message\.update, ORIGIN\.remote\)/);
+});
+
+test("an export is taken in through one door: checked in one module, applied by the space", async () => {
+  // The check: nothing else parses a timeline from outside, and nothing
+  // claims a timeline is checked without it having been.
+  expect(await modulesWith(/\bparseTimeline\(/)).toEqual(["space/export.ts"]);
+  expect(await modulesWith(/\bas CheckedTimeline\b/)).toEqual([]);
+  expect(await modulesWith(/\bdecryptPayload\(/)).toEqual(["space/links.ts"]);
+  expect(await modulesWith(/\breadExport\(/)).toEqual([
+    "space/export.ts",
+    "space/links.ts",
+  ]);
+  // The application: restoring and merging are asked for in one module,
+  // and that module is called from the prompt the user answers.
+  expect(await modulesWith(/\.(mergeCopy|restore)\(/)).toEqual([
+    "space/export.ts",
+  ]);
+  expect(await modulesWith(/\brestoreSpace\(/)).toEqual([
+    "panel/space/RestorePrompt.tsx",
+    "space/export.ts",
+  ]);
+  // Every path uses the one rule for what is kept of an export.
+  expect(await modulesWith(/\bmergeable\(/)).toEqual([
+    "panel/space/RestorePrompt.tsx",
+    "space/live-space.ts",
+  ]);
+  const live = await Bun.file(path.join(SRC, "space/live-space.ts")).text();
+  expect(live.match(/\bmergeable\(/g)).toHaveLength(2);
+  // An export is made in one place, and never holds the private marks.
+  expect(await modulesWith(/\bencryptPayload\(/)).toEqual(["space/export.ts"]);
+  const exporter = await Bun.file(path.join(SRC, "space/export.ts")).text();
+  expect(exporter).not.toMatch(
+    /\.markers\b|getMarkers|listChats|getChat|getPref/,
+  );
+});
+
+test("output is rendered as markdown in one place, and records are removed or forgotten from one module", async () => {
+  expect(await modulesWith(/<Console\b[^>]*\bmarkdown\b/s)).toEqual([
+    "panel/space/RunCard.tsx",
+  ]);
+  const card = await Bun.file(path.join(SRC, "panel/space/RunCard.tsx")).text();
+  expect(card).toMatch(/markdown=\{!record\.unverified\}/);
+  expect(await modulesWith(/\b(removals|forget):/)).toEqual([
+    "space/cleaning.ts",
+  ]);
+  // The cleaning actions are called from what the user clicks, each
+  // behind a confirmation where it cannot be undone.
+  expect(
+    await modulesWith(/\b(clearTimeline|removeEntry|removeImported)\(/),
+  ).toEqual([
+    "panel/space/RevisionRow.tsx",
+    "panel/space/RunCard.tsx",
+    "panel/space/Timeline.tsx",
+    "panel/space/TimelineHeader.tsx",
+    "space/cleaning.ts",
+  ]);
+  for (const file of [
+    "panel/space/RevisionRow.tsx",
+    "panel/space/RunCard.tsx",
+    "panel/space/Timeline.tsx",
+    "panel/space/TimelineHeader.tsx",
+  ]) {
+    const source = await Bun.file(path.join(SRC, file)).text();
+    for (const match of source.matchAll(
+      /\b(clearTimeline|removeEntry|removeImported)\(/g,
+    ))
+      expect({
+        file,
+        confirmed: /onConfirm=\{\(\) =>\s*$/.test(source.slice(0, match.index)),
+      }).toEqual({ file, confirmed: true });
+  }
 });

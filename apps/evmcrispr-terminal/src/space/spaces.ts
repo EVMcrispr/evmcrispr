@@ -4,6 +4,7 @@ import { type Locks, lockNames, type Release } from "../storage/locks";
 import {
   type LiveSpace,
   openLiveSpace,
+  type SpaceCopy,
   type SpaceDeps,
   type SpaceInit,
 } from "./live-space";
@@ -16,6 +17,11 @@ export interface Spaces {
   /** Resolves once `index` has been read from storage. */
   readonly ready: Promise<void>;
   create(init: SpaceInit, id?: string): Promise<string>;
+  /** Brings in a space this browser does not have, under the id its
+   *  export names, approved as it arrives. False, with nothing touched,
+   *  when a space of that id is here: that would be a merge into it, which
+   *  the user is asked about first (`LiveSpace.mergeCopy`). */
+  restore(id: string, copy: SpaceCopy): Promise<boolean>;
   /** Loads a space, or returns it if loaded, and keeps it until `release`. */
   acquire(id: string): Promise<LiveSpace | null>;
   release(id: string): void;
@@ -72,15 +78,15 @@ export function createSpaces(deps: SpaceDeps & { locks: Locks }): Spaces {
     void refresh();
   });
 
-  const load = (id: string, init?: SpaceInit): Loaded => {
+  const load = (id: string, init?: SpaceInit | { copy: SpaceCopy }): Loaded => {
     const open = async (entry: Loaded) => {
       // Typing left from a previous visit is recorded only by the first
       // tab to open the space: with another tab on it, it is not "left".
       const alone = !(await locks.isHeld(lockNames.open(id)));
       entry.presence = await locks.share(lockNames.open(id));
       const space = await openLiveSpace(id, deps, init);
-      // A space with no revision yet is being restored from an export:
-      // its text has not arrived, and there is nothing to compare with.
+      // A space with no revision yet was not finished being made: there
+      // is nothing to compare its text with.
       if (alone && !init && head(space.timeline.getState()))
         space.record("user");
       return space;
@@ -89,6 +95,27 @@ export function createSpaces(deps: SpaceDeps & { locks: Locks }): Spaces {
     entry.space = open(entry);
     loaded.set(id, entry);
     return entry;
+  };
+
+  /** Loads a space that was just listed, for the first time. */
+  const make = async (id: string, init: SpaceInit | { copy: SpaceCopy }) => {
+    const entry = load(id, init);
+    entry.holds++;
+    try {
+      await entry.space;
+    } catch (error) {
+      // Nothing half-made is left, listed or stored: the space can be
+      // made again.
+      loaded.delete(id);
+      entry.presence?.();
+      await storage.records.deleteSpace(id);
+      await storage.deleteDoc(id).catch(() => {});
+      throw error;
+    }
+    entry.holds--;
+    drop(id);
+    changes.announce({ store: "spaces", key: id });
+    await refresh();
   };
 
   const drop = (id: string) => {
@@ -113,22 +140,23 @@ export function createSpaces(deps: SpaceDeps & { locks: Locks }): Spaces {
         updatedAt: init.ts ?? createdAt,
         unreviewed: init.unreviewed === true,
       });
-      const entry = load(id, { ...init, createdAt });
-      entry.holds++;
-      try {
-        await entry.space;
-      } catch (error) {
-        // Nothing half-made is left listed: the space can be made again.
-        loaded.delete(id);
-        entry.presence?.();
-        await storage.records.deleteSpace(id);
-        throw error;
-      }
-      entry.holds--;
-      drop(id);
-      changes.announce({ store: "spaces", key: id });
-      await refresh();
+      await make(id, { ...init, createdAt });
       return id;
+    },
+    async restore(id, copy) {
+      const at = deps.now();
+      // Listed only if no space has the id, in one step: whether this is
+      // a new space is not asked now and acted on later.
+      const added = await storage.records.addSpace({
+        id,
+        title: displayTitle(copy.script),
+        createdAt: at,
+        updatedAt: at,
+        // Until its script is approved on arriving.
+        unreviewed: true,
+      });
+      if (added) await make(id, { copy });
+      return added;
     },
     async acquire(id) {
       let entry = loaded.get(id);

@@ -1,13 +1,16 @@
 import { isReviewed } from "@evmcrispr/space";
 import { cn } from "@repo/ui";
 import { useMemo, useState } from "react";
+import { useApp } from "../../app/AppContext";
 import {
   useMarkers,
   useScript,
   useSpace,
   useTimeline,
 } from "../../app/SpaceContext";
+import { removeEntry, showEarlier } from "../../space/cleaning";
 import { useStickToBottom } from "../agents/useStickToBottom";
+import { Confirm, LeftBehind } from "./Confirm";
 import { PinnedRuns } from "./PinnedRuns";
 import { RevisionGroup, RevisionRow } from "./RevisionRow";
 import { RunCard } from "./RunCard";
@@ -30,13 +33,16 @@ export function Timeline() {
 }
 
 function TimelineOf() {
+  const { me } = useApp();
+  const space = useSpace();
+  const [removing, setRemoving] = useState<string | null>(null);
   const state = useTimeline((timeline) => timeline);
   const markers = useMarkers();
   const { text } = useScript();
   const [filter, setFilter] = useState<Filter>("all");
   const [shown, setShown] = useState(WINDOW);
   const reviewed = isReviewed(text, markers.approvedText);
-  const { rows, earlier } = useMemo(
+  const { rows, earlier, hidden } = useMemo(
     () => timelineRows(state, markers, { filter, shown, reviewed }),
     [state, markers, filter, shown, reviewed],
   );
@@ -74,7 +80,10 @@ function TimelineOf() {
           <button
             type="button"
             className="mb-1 w-full cursor-pointer py-1 text-center font-sans text-xs text-foreground/55 hover:text-foreground"
-            onClick={() => setShown((n) => n + WINDOW)}
+            onClick={() =>
+              // What Clear for me hid comes back first.
+              hidden > 0 ? void showEarlier(space) : setShown((n) => n + WINDOW)
+            }
           >
             Show earlier ({earlier})
           </button>
@@ -98,7 +107,14 @@ function TimelineOf() {
                 key={row.entry.id}
                 className="px-2 py-1 font-sans text-xs text-foreground/45"
               >
-                You cleared the timeline · {clock(row.entry.ts, Date.now())}
+                You cleared the timeline · {clock(row.entry.ts, Date.now())}{" "}
+                <button
+                  type="button"
+                  className="cursor-pointer underline hover:text-foreground"
+                  onClick={() => setRemoving(row.entry.id)}
+                >
+                  Remove
+                </button>
               </li>
             ),
           )}
@@ -109,6 +125,17 @@ function TimelineOf() {
           )}
         </ol>
       </div>
+      {removing && (
+        <Confirm
+          title="Remove this entry"
+          action="Remove"
+          onConfirm={() => removeEntry(space, removing, me(), Date.now())}
+          onClose={() => setRemoving(null)}
+        >
+          <p>This removes the note that the timeline was cleared, for good.</p>
+          <LeftBehind action="remove" />
+        </Confirm>
+      )}
       <StdinRow />
     </div>
   );

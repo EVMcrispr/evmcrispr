@@ -15,6 +15,10 @@ export const ORIGIN = {
   neutral: "neutral",
   /** Another tab or (later) another member. Never undone here. */
   remote: "remote",
+  /** The script of a copy of the space from outside this browser (an
+   *  export), put in place of the one here. Someone else's writing: never
+   *  undone here, and passed on to the user's other tabs. */
+  copy: "copy",
 } as const;
 
 /** What a change tagged `origin` is to the review marker. Only typing
@@ -38,6 +42,8 @@ export interface SpaceUndo {
   endTurn(): void;
   /** An edit that is a step of its own (load, revert, restore). */
   asStep(edit: () => void): void;
+  /** Lets go of every step: nothing done before can be brought back. */
+  clear(): void;
   destroy(): void;
 }
 
@@ -94,6 +100,10 @@ export function createUndo(
       manager.stopCapturing();
       edit();
       manager.stopCapturing();
+      open = null;
+    },
+    clear() {
+      manager.clear();
       open = null;
     },
     destroy() {

@@ -1,4 +1,5 @@
 import { revisions, withTitle } from "@evmcrispr/space";
+import type { SpaceExport } from "../space/export";
 import { type EncryptedReason, fetchShared, isCID } from "../space/links";
 import type { App } from "./boot";
 import { SCRIPT_PLACEHOLDER } from "./ui-store";
@@ -18,7 +19,11 @@ export type Resolution =
   | { kind: "created"; id: string; received: boolean; encrypted: boolean }
   | { kind: "not-found" }
   | { kind: "ipfs-error" }
-  | { kind: "encrypted"; reason: EncryptedReason; requiredVersion?: string };
+  | { kind: "encrypted"; reason: EncryptedReason; requiredVersion?: string }
+  /** The address is an exported space. Nothing was made or merged: the
+   *  user is asked what to do with it. */
+  | { kind: "export"; exported: SpaceExport }
+  | { kind: "refused"; why: string };
 
 type Deps = Pick<App, "spaces" | "storage">;
 
@@ -40,7 +45,8 @@ async function placeholderSpace({ spaces, storage }: Deps): Promise<string> {
 }
 
 /** What the address means. Creates the space when the address asks for
- *  one (a share link, an inline link, no id); never opens it. A space
+ *  one (a share link, an inline link, no id); never opens it. An exported
+ *  space is only handed back: see `Resolution`. A space
  *  starts approved however it arrived: opening a script is accepting it
  *  as the starting point. Storage failing is an address that cannot be
  *  opened, not an exception: the screen always has something to show. */
@@ -83,6 +89,12 @@ async function resolve(
       const { status: _, ...refusal } = shared;
       return { kind: "encrypted", ...refusal };
     }
+    if (shared.status === "refused")
+      return { kind: "refused", why: shared.why };
+    // An export names the space it goes into, which may be one of the
+    // user's: opening the link never restores or merges by itself.
+    if (shared.status === "space")
+      return { kind: "export", exported: shared.exported };
     return created(
       await spaces.create({
         text: withTitle(shared.title, shared.script),

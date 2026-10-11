@@ -16,10 +16,13 @@ export function revisions(state: TimelineState): RevisionEntry[] {
   );
 }
 
-/** The latest revision: the one nothing else names as parent, newest
- *  first when two tabs raced. */
+/** The latest revision recorded here: the one nothing else names as
+ *  parent, newest first when two tabs raced. Unverified revisions (what an
+ *  export brought) are history to look at, never the state this copy
+ *  records on top of: a link cannot place itself at the head of the chain,
+ *  or stand in for the revision of a text the user arrives at. */
 export function head(state: TimelineState): RevisionEntry | undefined {
-  const all = revisions(state);
+  const all = revisions(state).filter((r) => !r.unverified);
   const parents = new Set(all.map((r) => r.parent));
   for (let i = all.length - 1; i >= 0; i--)
     if (!parents.has(all[i].id)) return all[i];
@@ -37,7 +40,10 @@ export function shareOf(
   state: TimelineState,
   revisionId: string,
 ): ShareEntry | undefined {
-  return shares(state).find((share) => share.revisionId === revisionId);
+  // A link made here: an entry from outside claiming one is not it.
+  return shares(state).find(
+    (share) => !share.unverified && share.revisionId === revisionId,
+  );
 }
 
 export interface RevisionInit {
@@ -67,19 +73,26 @@ export function nextRevision(
   };
 }
 
-/** Removals that bring a space back to its latest `MAX_REVISIONS`. Spared:
- *  revisions a run points at and shared ones. */
+/** Removals that bring a space back to its latest `MAX_REVISIONS`
+ *  recorded here. Spared: revisions a run made here points at, and shared
+ *  ones. What an export brought takes no part: it is not counted (it has
+ *  its own allowance, enforced when it arrives: `mergeable`), not removed,
+ *  and its runs and times spare or displace nothing. */
 export function pruneRevisions(
   state: TimelineState,
   by: Author,
   ts: number,
 ): Removal[] {
-  const all = revisions(state);
+  const all = revisions(state).filter((r) => !r.unverified);
   const excess = all.length - MAX_REVISIONS;
   if (excess <= 0) return [];
   const pinned = new Set([
-    ...[...state.runs.values()].map((run) => run.revisionId),
-    ...shares(state).map((share) => share.revisionId),
+    ...[...state.runs.values()]
+      .filter((run) => !run.unverified)
+      .map((run) => run.revisionId),
+    ...shares(state)
+      .filter((share) => !share.unverified)
+      .map((share) => share.revisionId),
   ]);
   return all
     .slice(0, excess)

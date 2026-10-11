@@ -74,6 +74,7 @@ export function testBrowser() {
         changes,
         spaces,
         runs,
+        me,
         chats: createIdbChatStore({ records: storage.records, changes }),
         assistantEvml: createWorker,
         outdated: createStore(() => false),

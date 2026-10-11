@@ -5,6 +5,7 @@ import {
   mergeTimeline,
   type SpaceMeta,
   type TimelinePatch,
+  type TimelineRecords,
   type TimelineState,
   toPatch,
 } from "@evmcrispr/space";
@@ -38,11 +39,14 @@ export interface Records {
   listSpaces(): Promise<SpaceMeta[]>;
   getSpace(id: string): Promise<SpaceMeta | undefined>;
   putSpace(meta: SpaceMeta): Promise<void>;
+  /** Lists a space only if none has its id: false, and nothing written,
+   *  when one does. One step, so two tabs cannot both make it. */
+  addSpace(meta: SpaceMeta): Promise<boolean>;
   /** Changes fields of one space's record; no-op when it does not exist. */
   patchSpace(id: string, patch: Partial<SpaceMeta>): Promise<void>;
   /** Removes the space's index record, timeline and markers. */
   deleteSpace(id: string): Promise<void>;
-  loadTimeline(spaceId: string): Promise<Required<TimelinePatch>>;
+  loadTimeline(spaceId: string): Promise<TimelineRecords>;
   /** Merges with the stored timeline by `mergeTimeline`'s rules, atomically. */
   mergeTimeline(spaceId: string, patch: TimelinePatch): Promise<void>;
   getMarkers(spaceId: string): Promise<Markers>;
@@ -78,6 +82,14 @@ export function idbRecords(db: IDBDatabase): Records {
       transact(db, ["spaces"], "readwrite", (tx) => {
         tx.objectStore("spaces").put(meta);
       }),
+    addSpace: (meta) =>
+      transact(db, ["spaces"], "readwrite", async (tx) => {
+        const store = tx.objectStore("spaces");
+        if (await request<SpaceMeta | undefined>(store.get(meta.id)))
+          return false;
+        store.put(meta);
+        return true;
+      }),
     patchSpace: (id, patch) =>
       transact(db, ["spaces"], "readwrite", async (tx) => {
         const store = tx.objectStore("spaces");
@@ -101,7 +113,7 @@ export function idbRecords(db: IDBDatabase): Records {
             ).map(strip),
           ),
         );
-        return { entries, runs, removals } as Required<TimelinePatch>;
+        return { entries, runs, removals } as TimelineRecords;
       }),
     mergeTimeline: (spaceId, patch) =>
       transact(db, [...TIMELINE], "readwrite", async (tx) => {
@@ -109,6 +121,7 @@ export function idbRecords(db: IDBDatabase): Records {
           ...(patch.entries ?? []).map((e) => e.id),
           ...(patch.runs ?? []).map((r) => r.id),
           ...(patch.removals ?? []).map((r) => r.entryId),
+          ...(patch.forget ?? []),
         ]);
         // Only the records the patch touches are read; the rules are the
         // package's, so storage and memory can never disagree.
@@ -127,11 +140,15 @@ export function idbRecords(db: IDBDatabase): Records {
               .map(strip),
           ),
         );
-        const stored = { entries, runs, removals } as Required<TimelinePatch>;
+        const stored = { entries, runs, removals } as TimelineRecords;
         const { changed } = mergeTimeline(
           mergeTimeline(emptyTimeline, stored).state,
           patch,
         );
+        for (const id of changed.forget) {
+          tx.objectStore("entries").delete([spaceId, id]);
+          tx.objectStore("runs").delete([spaceId, id]);
+        }
         for (const removal of changed.removals) {
           tx.objectStore("removals").put({ spaceId, ...removal });
           tx.objectStore("entries").delete([spaceId, removal.entryId]);
@@ -194,6 +211,11 @@ export function memoryRecords(): Records {
     listSpaces: async () => [...spaces.values()],
     getSpace: async (id) => spaces.get(id),
     putSpace: async (meta) => void spaces.set(meta.id, meta),
+    addSpace: async (meta) => {
+      if (spaces.has(meta.id)) return false;
+      spaces.set(meta.id, meta);
+      return true;
+    },
     patchSpace: async (id, patch) => {
       const current = spaces.get(id);
       if (current) spaces.set(id, { ...current, ...patch, id });

@@ -1,7 +1,7 @@
 import { Button } from "@repo/ui";
 import { useState } from "react";
 import { useTimeline } from "../app/SpaceContext";
-import { revisionLabel } from "../space/revision-label";
+import { byOthers, revisionLabel } from "../space/revision-label";
 import { ChangesDiff } from "./ChangesDiff";
 import { RevisionActions } from "./RevisionActions";
 import type { Approval } from "./useReview";
@@ -61,7 +61,7 @@ export function WhatChanged({
       {shown.revisions.length > 0 && (
         <ol aria-label="Recorded changes" className="flex flex-col gap-1.5">
           {shown.revisions.map(({ entry, parent, added, removed }) => {
-            const { who, what } = revisionLabel(entry, entries);
+            const { who, what, claimed } = revisionLabel(entry, entries);
             return (
               <li
                 key={entry.id}
@@ -71,6 +71,11 @@ export function WhatChanged({
                   <span className="font-semibold text-foreground/85">
                     {who}
                   </span>{" "}
+                  {claimed && (
+                    <span className="text-foreground/45">
+                      (it names {claimed}){" "}
+                    </span>
+                  )}
                   <span className="text-foreground/70">{what}</span>{" "}
                   <span className="text-xs">
                     <span className="text-evm-green-300">+{added}</span>{" "}
@@ -79,7 +84,7 @@ export function WhatChanged({
                 </p>
                 {/* Offered on the script these rows describe, not on one
                     that moved on since. */}
-                {!stale && entry.author.kind !== "user" && parent && (
+                {!stale && byOthers(entry) && parent && (
                   <div className="flex flex-wrap gap-1.5">
                     <RevisionActions
                       revisionId={entry.id}

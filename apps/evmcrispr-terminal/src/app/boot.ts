@@ -22,6 +22,8 @@ export interface App {
   changes: Changes;
   spaces: Spaces;
   runs: RunManager;
+  /** The person at this browser, as the author of what they record. */
+  me(): Author;
   /** The assistant's chats: this browser's, not a space's. */
   chats: IdbChatStore;
   /** The worker the assistant simulates in. Its simulations are its
@@ -103,6 +105,7 @@ export async function boot(): Promise<App> {
     changes,
     spaces,
     runs,
+    me,
     chats,
     assistantEvml,
     outdated,

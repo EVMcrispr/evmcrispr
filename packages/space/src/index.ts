@@ -1,6 +1,7 @@
 export * from "./diff";
 export * from "./doc";
 export * from "./hash";
+export * from "./import";
 export * from "./review";
 export * from "./revisions";
 export * from "./sync";

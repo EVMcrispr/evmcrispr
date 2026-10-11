@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { encryptPayload } from "@evmcrispr/core";
 import { head, isReviewed, revisions } from "@evmcrispr/space";
 import { type RouteInput, resolveRoute } from "../../src/app/space-route";
 import { SCRIPT_PLACEHOLDER } from "../../src/app/ui-store";
@@ -67,6 +68,50 @@ describe("resolveRoute", () => {
     expect(first.origin).toEqual({ cid: CID });
     expect(space.getText()).toBe("# Treasury\nexec 1");
     expect(reviewed(space)).toBe(true);
+  });
+
+  test("an export link is handed to the user to decide: the route makes, merges and fetches nothing more", async () => {
+    const app = testBrowser().tab();
+    const mine = await app.spaces.create({ text: "exec 1", source: "user" });
+    const { envelope, key } = await encryptPayload({
+      kind: "space",
+      id: mine,
+      title: "",
+      script: "exec 0xdead",
+      timeline: {},
+    });
+    let fetches = 0;
+    const serve = async () => {
+      fetches++;
+      return JSON.stringify(envelope);
+    };
+    const r = await resolveRoute(app, at({ id: CID, key }), serve);
+    if (r.kind !== "export") throw new Error("expected an export");
+    expect(r.exported).toMatchObject({ id: mine, script: "exec 0xdead" });
+    expect(fetches).toBe(1);
+    expect(app.spaces.index.getState()).toHaveLength(1);
+    const space = (await app.spaces.acquire(mine))!;
+    expect(space.getText()).toBe("exec 1");
+    expect(reviewed(space)).toBe(true);
+    // A wrong key, or an export that is not one, creates nothing either.
+    expect(
+      await resolveRoute(app, at({ id: CID, key: "AAAA" }), serve),
+    ).toEqual({ kind: "encrypted", reason: "invalid-key" });
+    const broken = await encryptPayload({
+      kind: "space",
+      id: "nope",
+      title: "",
+      script: "",
+      timeline: {},
+    });
+    expect(
+      (
+        await resolveRoute(app, at({ id: CID, key: broken.key }), async () =>
+          JSON.stringify(broken.envelope),
+        )
+      ).kind,
+    ).toBe("refused");
+    expect(app.spaces.index.getState()).toHaveLength(1);
   });
 
   test("a known id opens; an unknown one is not found", async () => {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { useStore } from "zustand";
 import fetchPin from "../api/pinata/fetch-pin";
+import type { SpaceExport } from "../space/export";
 import { type EncryptedReason, isCID } from "../space/links";
 import type { LiveSpace } from "../space/live-space";
 import { useApp } from "./AppContext";
@@ -19,6 +20,9 @@ export type SpaceRoute =
   | { status: "not-found" }
   | { status: "ipfs-error" }
   | { status: "encrypted"; reason: EncryptedReason; requiredVersion?: string }
+  /** An exported space was opened: the user decides what becomes of it. */
+  | { status: "export"; exported: SpaceExport }
+  | { status: "refused"; why: string }
   /** The space was deleted, here or in another tab, while on screen. */
   | { status: "removed" };
 

@@ -44,6 +44,7 @@ import type { Changes } from "../storage/changes";
 import { type Locks, lockNames, type Release } from "../storage/locks";
 import type { Records } from "../storage/records";
 import { normaliseAction } from "./action-summary";
+import { appendOutput, boundErrors } from "./bounds";
 import { createGate, type Gate, type Held } from "./gate";
 import { makeSafeBatchedHandler, reachesWallet } from "./handlers";
 import { guardWallet, type WalletGuard } from "./wallet-guard";
@@ -385,7 +386,10 @@ export function createRunManager(deps: RunDeps): RunManager {
         feed({ kind: "line", text });
         update(runId, (r) => ({
           ...r,
-          record: { ...r.record, output: `${r.record.output}${text}\n` },
+          record: {
+            ...r.record,
+            output: appendOutput(r.record.output, text),
+          },
         }));
       },
       onLine: (line) => {
@@ -421,7 +425,11 @@ export function createRunManager(deps: RunDeps): RunManager {
               : "Stopped following: the script stopped unexpectedly",
         });
       update(runId, (r) => ({ ...r, line: null, phase: null, held: null }));
-      setStatus(status, { errors, endedAt: now(), pausedBy: undefined });
+      setStatus(status, {
+        errors: boundErrors(errors),
+        endedAt: now(),
+        pausedBy: undefined,
+      });
       over = true;
       evml.terminate();
       alive();

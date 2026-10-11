@@ -11,7 +11,7 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/solid";
 import { Alert } from "../ui/Alert";
-import { ConsoleMarkdown } from "./ConsoleMarkdown";
+import { ConsoleMarkdown, httpsUrl } from "./ConsoleMarkdown";
 import { countdownText, type Segment, segments, useNow } from "./countdown";
 
 const boxStatus: Record<BoxState, "warning" | "success" | "error" | "info"> = {
@@ -45,12 +45,23 @@ const boxStateLabel: Record<BoxState, string> = {
 
 export interface BoxCardProps {
   box: BoxSnapshot;
+  /** The box is of a run this page made: its text is rendered as
+   *  markdown and its links are shown (see `ConsoleProps.markdown`).
+   *  Off unless asked for. */
+  markdown?: boolean;
 }
 
 /** One status box: title, live detail, progress, links and history. */
-export function BoxCard({ box }: BoxCardProps) {
+export function BoxCard({ box, markdown = false }: BoxCardProps) {
   const IconComp = boxIcon[box.state];
-  const links = Object.entries(box.links ?? {});
+  // A link is shown only for a run this page made, only to an `https:`
+  // address, and with the site it leads to in sight.
+  const links = markdown
+    ? Object.entries(box.links ?? {}).flatMap(([label, href]) => {
+        const url = httpsUrl(href);
+        return url ? [[label, url] as const] : [];
+      })
+    : [];
   const [done, total] = box.progress ?? [0, 0];
   const percent =
     total > 0 ? Math.min(100, Math.max(0, (done / total) * 100)) : 0;
@@ -77,27 +88,32 @@ export function BoxCard({ box }: BoxCardProps) {
             )}
           </div>
           <div className="text-base prose prose-invert prose-base max-w-none wrap-break-word">
-            <ConsoleMarkdown>{box.detail}</ConsoleMarkdown>
+            <ConsoleMarkdown markdown={markdown}>{box.detail}</ConsoleMarkdown>
           </div>
           {box.progress && total > 0 && (
             <BoxProgress
               progress={box.progress}
               countdown={box.state === "live" ? box.countdown : undefined}
-              steps={box.steps}
+              steps={box.steps?.map((step) =>
+                markdown && httpsUrl(step.href)
+                  ? step
+                  : { ...step, href: undefined },
+              )}
               percent={percent}
             />
           )}
           {links.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {links.map(([label, href]) => (
+              {links.map(([label, url]) => (
                 <a
                   key={label}
-                  href={href}
+                  href={url.href}
+                  title={url.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded border border-white/40 px-2 py-0.5 text-sm text-evm-green-300 hover:bg-white/10"
                 >
-                  {label} ↗
+                  {label} ↗ <span className="text-white/60">{url.host}</span>
                 </a>
               ))}
             </div>
@@ -110,7 +126,9 @@ export function BoxCard({ box }: BoxCardProps) {
               <ol className="mt-1 flex flex-col gap-1 pl-4 list-decimal">
                 {box.history.map((line, i) => (
                   <li key={`${box.id}-h-${i}`} className="wrap-break-word">
-                    <ConsoleMarkdown>{line}</ConsoleMarkdown>
+                    <ConsoleMarkdown markdown={markdown}>
+                      {line}
+                    </ConsoleMarkdown>
                   </li>
                 ))}
               </ol>
@@ -211,6 +229,7 @@ function SegmentBar({ part, step }: { part: Segment; step: number }) {
     return (
       <a
         href={part.href}
+        title={part.href}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Segment ${step}`}

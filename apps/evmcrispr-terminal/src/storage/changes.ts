@@ -1,8 +1,10 @@
 import type { OpenChannel } from "./channel";
 
-/** A private or index record changed. Views re-read it from storage. */
+/** A private or index record changed. Views re-read it from storage.
+ *  `history` is not a record: it says a space's undo histories were let
+ *  go of (`LiveSpace.forgetHistory`), for every tab to do the same. */
 export interface Change {
-  store: "spaces" | "markers" | "chats" | "prefs";
+  store: "spaces" | "markers" | "chats" | "prefs" | "history";
   key: string;
 }
 

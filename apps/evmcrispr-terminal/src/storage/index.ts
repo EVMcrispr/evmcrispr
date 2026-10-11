@@ -1,12 +1,18 @@
-import { IndexeddbPersistence } from "y-indexeddb";
+import { IndexeddbPersistence, storeState } from "y-indexeddb";
 import * as Y from "yjs";
 import { openDb } from "./db";
 import { idbRecords, memoryRecords, type Records } from "./records";
 
 export interface Storage {
   records: Records;
-  /** Fills `doc` from what is stored and keeps it saved from then on. */
-  persistDoc(spaceId: string, doc: Y.Doc): Promise<{ stop(): Promise<void> }>;
+  /** Fills `doc` from what is stored and keeps it saved from then on.
+   *  `compact` rewrites what is stored as the document's present state
+   *  alone: the log of every edit made since, which can hold text that
+   *  was typed and deleted, is dropped. */
+  persistDoc(
+    spaceId: string,
+    doc: Y.Doc,
+  ): Promise<{ stop(): Promise<void>; compact(): Promise<void> }>;
   deleteDoc(spaceId: string): Promise<void>;
   /** False when the browser refused storage: nothing outlives the tab. */
   persistent: boolean;
@@ -28,7 +34,10 @@ export async function openStorage(onOutdated: () => void): Promise<Storage> {
     async persistDoc(spaceId, doc) {
       const persistence = new IndexeddbPersistence(docName(spaceId), doc);
       await persistence.whenSynced;
-      return { stop: () => persistence.destroy() };
+      return {
+        stop: () => persistence.destroy(),
+        compact: async () => void (await storeState(persistence, true)),
+      };
     },
     async deleteDoc(spaceId) {
       await new IndexeddbPersistence(docName(spaceId), new Y.Doc()).clearData();
@@ -46,7 +55,11 @@ export function memoryStorage(): Storage {
       if (stored) Y.applyUpdate(doc, stored, "storage");
       const save = () => docs.set(spaceId, Y.encodeStateAsUpdate(doc));
       doc.on("update", save);
-      return { stop: async () => doc.off("update", save) };
+      // Memory only ever holds the present state.
+      return {
+        stop: async () => doc.off("update", save),
+        compact: async () => {},
+      };
     },
     async deleteDoc(spaceId) {
       docs.delete(spaceId);

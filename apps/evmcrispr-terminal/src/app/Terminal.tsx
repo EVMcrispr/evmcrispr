@@ -8,6 +8,7 @@ import { useWallet } from "../wallet/WalletContext";
 import { useApp } from "./AppContext";
 import { DesktopLayout } from "./DesktopLayout";
 import { MobileLayout } from "./MobileLayout";
+import { stopLookingAtRemoved } from "./removed";
 import { SpaceProvider } from "./SpaceContext";
 import { setUi } from "./ui-store";
 import { useSpaceRoute } from "./useSpaceRoute";
@@ -38,6 +39,9 @@ export default function Terminal() {
     setUi({ previewRevisionId: null });
     closeReview();
   }, [spaceId]);
+
+  const space = route.status === "ready" ? route.space : null;
+  useEffect(() => (space ? stopLookingAtRemoved(space) : undefined), [space]);
 
   const Layout = small ? MobileLayout : DesktopLayout;
 

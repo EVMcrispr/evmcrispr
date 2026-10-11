@@ -66,7 +66,11 @@ function ScriptEditor() {
     ed.setModel(model);
     ed.restoreViewState(viewStates.current.get(space.id) ?? null);
     const states = viewStates.current;
+    // The space's undo history was let go of (Clear timeline, here or in
+    // another tab): the model's own goes with it.
+    const stopForgetting = space.onHistoryCleared(() => binding.forgetUndo());
     return () => {
+      stopForgetting();
       states.set(space.id, ed.saveViewState());
       binding.dispose();
       model.dispose();

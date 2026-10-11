@@ -94,6 +94,7 @@ test("what each origin is to the review marker; an unknown one is foreign", () =
     neutral: "neutral",
     assistant: "foreign",
     remote: "foreign",
+    copy: "foreign",
   });
   expect([changeKind("made up"), changeKind(null)]).toEqual([
     "foreign",

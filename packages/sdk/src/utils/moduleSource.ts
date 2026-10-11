@@ -8,7 +8,8 @@ import { decryptScript, isEncryptedEnvelope } from "./shareEnvelope";
  * - plain EVML text (returned verbatim)
  * - an unencrypted share pin `{ title?, script }` → the `script` field
  * - an encrypted share envelope, when `decryptionKey` (the base64url key
- *   from the share link fragment) is provided → the decrypted `script`
+ *   from the share link fragment) is provided → the decrypted `script`.
+ *   An exported space is such an envelope too: its current script
  *
  * Encrypted envelopes without a key are rejected with a targeted error.
  */

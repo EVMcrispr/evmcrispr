@@ -1,3 +1,4 @@
+import { head } from "@evmcrispr/space";
 import { ShareIcon } from "@heroicons/react/24/solid";
 import { Button, IconButton, Tooltip, toast } from "@repo/ui";
 import { useEffect, useState } from "react";
@@ -6,7 +7,7 @@ import pinJSON from "../../api/pinata/pin-json";
 import { useScript, useSpace, useUnreviewed } from "../../app/SpaceContext";
 import { useUi } from "../../app/ui-store";
 import { askForReview, showReview } from "../../review/surface";
-import { shareScript } from "../../space/links";
+import { shareRevision } from "../../space/links";
 
 type ShareButtonProps = {
   showLabel?: boolean;
@@ -43,7 +44,11 @@ export default function ShareButton({
 
     setLoading(true);
     try {
-      const shared = await shareScript(space, text, {
+      // The script as it is, as a revision: the link is remembered on it,
+      // and sharing the same text again hands back the same link.
+      const revision = space.record("user") ?? head(space.timeline.getState());
+      if (revision?.text !== text) throw new Error("no revision to share");
+      const shared = await shareRevision(space, revision.id, {
         pin: pinJSON,
         origin: window.location.origin,
         viewMode,

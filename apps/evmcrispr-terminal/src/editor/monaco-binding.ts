@@ -84,7 +84,11 @@ export function bindMonaco(
   model: ModelLike,
   text: Y.Text,
   editors: () => EditorLike[],
-): Disposable {
+): Disposable & {
+  /** Empties the model's own undo stack (the one behind the editor's
+   *  menus), leaving its text as it is. */
+  forgetUndo(): void;
+} {
   const doc = text.doc as Y.Doc;
   // What the binding itself is doing, so that it knows its own echo: the
   // model events its writes to the model raise, and the document event of
@@ -211,6 +215,20 @@ export function bindMonaco(
   });
 
   return {
+    forgetUndo() {
+      // Replacing the content, even with itself, empties the model's own
+      // stack. It writes the model only: the script is not changed.
+      const selections = editors().map(
+        (editor) =>
+          [
+            editor,
+            editor.getModel() === model ? editor.getSelection() : null,
+          ] as const,
+      );
+      toModel(() => model.setValue(text.toString()));
+      for (const [editor, selection] of selections)
+        if (selection) editor.setSelection(selection as never);
+    },
     dispose() {
       onModel.dispose();
       text.unobserve(onText);

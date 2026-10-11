@@ -3,9 +3,11 @@
 // what each change to the script is, and that is settled here, never read
 // from a record and never guessed by the editor:
 //  - foreign: content written by anyone but the user. It enters only
-//    through this file: an assistant turn (`editAsTurn`) and what a
-//    transport delivers (`receive`). Reviewed after it only if the text is
-//    exactly the approved text.
+//    through this file, in three places: an assistant turn (`editAsTurn`),
+//    what a transport delivers (`receive`), and a copy of the space from
+//    outside this browser merged into it (`mergeCopy`: an export opened
+//    where the space already is, whose script replaces the one here).
+//    Reviewed after it only if the text is exactly the approved text.
 //  - neutral: undo, redo, the editor's content being replaced, and
 //    `load` (an entry loaded, a change reverted, a revision restored: the
 //    text comes from a record, whoever wrote it). Nobody wrote anything;
@@ -20,6 +22,7 @@ import {
   approvedAfter,
   approvedTexts,
   type ChangeKind,
+  type CheckedTimeline,
   displayTitle,
   type EditResult,
   emptyTimeline,
@@ -28,6 +31,7 @@ import {
   isEmptyPatch,
   isReviewed,
   type Markers,
+  mergeable,
   mergeTimeline,
   nextRevision,
   pruneRevisions,
@@ -68,6 +72,18 @@ export interface SpaceInit {
   /** Time of the first revision (migration keeps the old `updatedAt`). */
   ts?: number;
   createdAt?: number;
+}
+
+/** A copy of a space that arrived from outside this browser, checked:
+ *  what `readExport` makes of an export. Its timeline has been through
+ *  `parseTimeline`. Its script is text and nothing more: no document
+ *  state crosses over, so nothing of it can be aimed at this document's
+ *  history. */
+export interface SpaceCopy {
+  script: string;
+  timeline: CheckedTimeline;
+  /** The link it came from. */
+  cid?: string;
 }
 
 /** What a program acting for the user may do to the script. It hands the
@@ -120,13 +136,31 @@ export interface LiveSpace {
     source: "load" | "revert",
     from?: string,
   ): RevisionEntry | null;
+  /** Merges a copy of this space from outside this browser into it. Its
+   *  timeline only adds (`mergeable`). Its script, when it differs,
+   *  replaces the one here as one change, declared foreign: the approved
+   *  text does not move, so the script is then unreviewed, the review
+   *  shows the difference, and the change is one revision that Restore to
+   *  before takes back. Typing not yet recorded becomes the user's
+   *  revision first. An equal script changes nothing. */
+  mergeCopy(copy: SpaceCopy): void;
+  /** Lets go of the undo histories of this script, in every tab of this
+   *  browser: the space's own (Ctrl+Z), and through `onHistoryCleared`
+   *  the editor model's. Neither can bring deleted text back afterwards.
+   *  (The stored log of edits is not rewritten here: see where the space
+   *  is opened.) */
+  forgetHistory(): void;
+  /** Told when the undo history was let go of, in this tab or another:
+   *  whoever keeps an undo history of its own for this script (the
+   *  editor's model does) lets go of it too. */
+  onHistoryCleared(listener: () => void): () => void;
   close(): Promise<void>;
 }
 
 export async function openLiveSpace(
   id: string,
   deps: SpaceDeps,
-  init?: SpaceInit,
+  init?: SpaceInit | { copy: SpaceCopy },
 ): Promise<LiveSpace> {
   const { storage, changes, now, me } = deps;
   const doc = new Y.Doc();
@@ -142,6 +176,10 @@ export async function openLiveSpace(
     const { state, changed } = mergeTimeline(timeline.getState(), patch);
     if (isEmptyPatch(changed)) return;
     timeline.setState(state, true);
+    // A private mark that points at a revision that is gone goes with it
+    // (the tab that removed it writes the marks; the others re-read).
+    if (local && changed.removals.length + changed.forget.length > 0)
+      dropChatsOfRemoved(state);
     void storage.records.mergeTimeline(id, changed);
     if (local) link.send({ kind: "timeline", patch: changed });
     syncIndex();
@@ -219,6 +257,16 @@ export async function openLiveSpace(
     return setMarkers({ approvedText });
   };
 
+  const dropChatsOfRemoved = (state: TimelineState) => {
+    const chats = markers.getState().revisionChats;
+    if (!chats) return;
+    const kept = Object.entries(chats).filter(([revision]) =>
+      state.entries.has(revision),
+    );
+    if (kept.length < Object.keys(chats).length)
+      void setMarkers({ revisionChats: Object.fromEntries(kept) });
+  };
+
   // The list of spaces shows these without opening the space.
   let indexTimer: ReturnType<typeof setTimeout> | undefined;
   let touched = false;
@@ -255,6 +303,8 @@ export async function openLiveSpace(
     });
     if (!entry) return null;
     merge({ entries: [entry] }, true);
+    // A revision that was removed is not recorded again.
+    if (!timeline.getState().entries.has(entry.id)) return null;
     const removals = pruneRevisions(timeline.getState(), me(), now());
     if (removals.length) merge({ removals }, true);
     return entry;
@@ -263,7 +313,24 @@ export async function openLiveSpace(
   // A new space: its text, its first revision, and its text approved.
   // Each step is skipped when already made, so a creation that was
   // interrupted is completed by making the space again.
-  if (init) {
+  const origin = (copy: SpaceCopy) =>
+    copy.cid ? { origin: { cid: copy.cid } } : {};
+  if (init && "copy" in init) {
+    // A space this browser did not have, as an export holds it: its
+    // script, and what `mergeable` lets through of its timeline, the same
+    // rule as a merge into a space that is here. Everything it brings is
+    // marked as from an export; the chain recorded here starts with one
+    // revision of the script as it arrived. It starts approved like every
+    // space that arrives, on one condition: the script here is the script
+    // the user was told of. Anything else on arrival (a document left
+    // under that id) is left for a review.
+    const { copy } = init;
+    initSpaceDoc(doc, { text: copy.script, createdAt: now() }, "init");
+    merge(mergeable(timeline.getState(), copy.timeline), true);
+    record("import", origin(copy));
+    if (text.toString() === copy.script) await approve(copy.script);
+    else syncIndex();
+  } else if (init) {
     initSpaceDoc(
       doc,
       { text: init.text, createdAt: init.createdAt ?? now() },
@@ -350,14 +417,24 @@ export async function openLiveSpace(
     touched = true;
     syncIndex();
   });
+  const cleared = new Set<() => void>();
+  /** Lets go of every undo history of this script in this tab. */
+  const forget = () => {
+    undo.clear();
+    for (const listener of [...cleared]) listener();
+  };
   // Another tab moved a marker: it is re-read, never worked out here.
   const stopChanges = changes.subscribe(async (change, local) => {
+    if (!local && change.store === "history" && change.key === id) forget();
     if (!local && change.store === "markers" && change.key === id)
       await reread();
   });
 
   loaded = true;
   for (const message of early.splice(0)) receive(message);
+  // What is stored is rewritten as the document as it was just read:
+  // text typed and deleted in an earlier visit goes from the stored log.
+  void persistence.compact().catch(() => {});
 
   return {
     id,
@@ -418,6 +495,23 @@ export async function openLiveSpace(
       record("user");
       undo.asStep(() => void applyText(text, next, ORIGIN.load));
       return record(source, from ? { from } : {});
+    },
+    mergeCopy(copy) {
+      if (closed) return;
+      record("user");
+      merge(mergeable(timeline.getState(), copy.timeline), true);
+      if (applyText(text, copy.script, ORIGIN.copy))
+        record("merge", origin(copy));
+    },
+    forgetHistory() {
+      if (closed) return;
+      forget();
+      // Every other tab that has the space loaded does the same.
+      changes.announce({ store: "history", key: id });
+    },
+    onHistoryCleared(listener) {
+      cleared.add(listener);
+      return () => cleared.delete(listener);
     },
     async close() {
       closed = true;

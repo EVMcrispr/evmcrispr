@@ -77,6 +77,14 @@ const variants = {
       "Update EVMcrispr to open it.",
     ],
   },
+  "export-refused": {
+    title: "Sample Rejected",
+    art: BROKEN_VIAL,
+    lines: [
+      "This link holds an exported space that this version of EVMcrispr does not take in.",
+      "Nothing was restored or changed.",
+    ],
+  },
 } as const;
 
 export type ScriptNotFoundVariant = keyof typeof variants;
@@ -84,9 +92,12 @@ export type ScriptNotFoundVariant = keyof typeof variants;
 export default function ScriptNotFound({
   variant,
   requiredVersion,
+  why,
 }: {
   variant: ScriptNotFoundVariant;
   requiredVersion?: string;
+  /** For "export-refused": what is wrong with it, as text. */
+  why?: string;
 }) {
   const navigate = useNavigate();
   const { title, art, lines: defaultLines } = variants[variant];
@@ -96,7 +107,9 @@ export default function ScriptNotFound({
           defaultLines[0],
           `Update to EVMcrispr >= ${requiredVersion} to open it.`,
         ]
-      : defaultLines;
+      : variant === "export-refused" && why
+        ? [defaultLines[0], `The reason: ${why}.`, defaultLines[1]]
+        : defaultLines;
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-8 px-6 select-none animate-fade-in">

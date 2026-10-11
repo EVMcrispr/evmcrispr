@@ -76,5 +76,9 @@ export function revisionsSinceApproved(
   approvedText: string | undefined,
 ): RevisionEntry[] {
   const all = revisions(state);
-  return all.slice(all.findLastIndex((r) => r.text === approvedText) + 1);
+  // Counted from a revision recorded here: one an export brought, with
+  // whatever text and time it likes, does not move the starting point.
+  return all.slice(
+    all.findLastIndex((r) => !r.unverified && r.text === approvedText) + 1,
+  );
 }

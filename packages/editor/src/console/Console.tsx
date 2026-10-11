@@ -48,7 +48,7 @@ const statusIcon: Record<LogStatus, typeof XCircleIcon> = {
 
 /** One plain log line, styled by its `:success:` / `:error:` / `:waiting:`
  *  prefix. */
-function LogLine({ log }: { log: string }) {
+function LogLine({ log, markdown }: { log: string; markdown: boolean }) {
   const _status = status(log);
   const colorClass = statusColorClass[_status];
   const IconComp = statusIcon[_status];
@@ -57,16 +57,14 @@ function LogLine({ log }: { log: string }) {
       <div className="flex items-start gap-2">
         <IconComp className={`w-5 h-5 shrink-0 ${colorClass}`} />
         <Alert.Description className="text-base prose prose-invert prose-base max-w-none">
-          <ConsoleMarkdown>{stripString(log)}</ConsoleMarkdown>
+          <ConsoleMarkdown markdown={markdown}>
+            {stripString(log)}
+          </ConsoleMarkdown>
         </Alert.Description>
       </div>
     </Alert>
   );
 }
-
-const renderLine = (text: string, key: string) => (
-  <LogLine key={key} log={text} />
-);
 
 export interface ConsoleProps {
   /** Log lines and status boxes in order (from `useExecutionLogs`). */
@@ -76,6 +74,12 @@ export interface ConsoleProps {
   errors: string[];
   /** Shown when there are no logs or errors yet. */
   placeholder?: string;
+  /** Render the output as markdown (see `ConsoleMarkdown` for what that
+   *  allows). Off unless asked for: output is shown as plain text. Ask for
+   *  it only for a run this page made. An entry marked `unverified` (from
+   *  a console that arrived from outside) is plain text whatever this
+   *  says, and its boxes show no link. */
+  markdown?: boolean;
 }
 
 export function Console({
@@ -83,6 +87,7 @@ export function Console({
   logs,
   errors,
   placeholder = "Console output will appear here during execution.",
+  markdown = false,
 }: ConsoleProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -110,13 +115,19 @@ export function Console({
           {placeholder}
         </p>
       )}
-      {entries.map((entry, i) =>
-        entry.kind === "box" ? (
-          <BoxCard key={`box-${entry.box.id}`} box={entry.box} />
+      {entries.map((entry, i) => {
+        // Decided from the entry itself: no caller can ask for more.
+        const rich = markdown && !entry.unverified;
+        return entry.kind === "box" ? (
+          <BoxCard
+            key={`box-${entry.box.id}`}
+            box={entry.box}
+            markdown={rich}
+          />
         ) : (
-          renderLine(entry.text, `log-${i}`)
-        ),
-      )}
+          <LogLine key={`log-${i}`} log={entry.text} markdown={rich} />
+        );
+      })}
       {errors.map((e, i) => (
         <Alert key={`err-${i}`} status="error">
           <div className="flex items-start gap-2">

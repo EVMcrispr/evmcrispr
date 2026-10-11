@@ -56,3 +56,55 @@ test("a change is announced to this tab and to the others", async () => {
   await new Promise((resolve) => setTimeout(resolve, 20));
   expect(seen.sort()).toEqual(["a:spaces:s1:local", "b:spaces:s1:remote"]);
 });
+
+test("compacting drops the stored log of edits: text typed and deleted in an earlier visit is gone from IndexedDB", async () => {
+  const storage = await openStorage(() => {});
+  const raw = async () => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const open = indexedDB.open("evmcrispr-space-compact");
+      open.onsuccess = () => resolve(open.result);
+    });
+    const rows = await new Promise<Uint8Array[]>((resolve) => {
+      const all = db.transaction("updates").objectStore("updates").getAll();
+      all.onsuccess = () => resolve(all.result);
+    });
+    db.close();
+    return rows.map((row) => new TextDecoder().decode(row)).join("|");
+  };
+  const first = new Y.Doc();
+  const one = await storage.persistDoc("compact", first);
+  first.getText("script").insert(0, "exec 1 SECRET");
+  first.getText("script").delete(6, 7);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await one.stop();
+  expect(await raw()).toContain("SECRET");
+
+  // The next visit: the document read back no longer holds the deleted
+  // text, and compacting rewrites storage as that document alone.
+  const second = new Y.Doc();
+  const two = await storage.persistDoc("compact", second);
+  expect(second.getText("script").toString()).toBe("exec 1");
+  await two.compact();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(await raw()).not.toContain("SECRET");
+  await two.stop();
+  const third = new Y.Doc();
+  await storage.persistDoc("compact", third);
+  expect(third.getText("script").toString()).toBe("exec 1");
+  await storage.deleteDoc("compact");
+});
+
+test("deleting a document deletes its database", async () => {
+  const storage = await openStorage(() => {});
+  const doc = new Y.Doc();
+  const held = await storage.persistDoc("doomed", doc);
+  doc.getText("script").insert(0, "exec SECRET");
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await held.stop();
+  const names = async () =>
+    (await indexedDB.databases()).map((database) => database.name);
+  expect(await names()).toContain("evmcrispr-space-doomed");
+  await storage.deleteDoc("doomed");
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(await names()).not.toContain("evmcrispr-space-doomed");
+});

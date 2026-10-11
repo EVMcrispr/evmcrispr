@@ -4,11 +4,13 @@ import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { cn } from "@repo/ui";
 import { useEffect, useState } from "react";
 import { useApp } from "../../app/AppContext";
-import { useTimeline } from "../../app/SpaceContext";
+import { useSpace, useTimeline } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
 import { isUnfinished, type Run } from "../../runs/run-manager";
 import { useRunOf } from "../../runs/useRun";
+import { removeEntry } from "../../space/cleaning";
 import { downloadOutput } from "../../utils/download-output";
+import { Confirm, LeftBehind } from "./Confirm";
 import { HeldRun } from "./HeldRun";
 import { clock } from "./time";
 
@@ -69,11 +71,16 @@ export function RunCard({
 }) {
   const run = useRunOf(runId);
   const [open, setOpen] = useState(initially);
+  const [removing, setRemoving] = useState(false);
+  const space = useSpace();
+  const { me } = useApp();
   // The latest run opens by itself, and an earlier one closes when a
   // newer one takes its place.
   useEffect(() => setOpen(initially), [initially]);
   const kept = useTimeline((timeline) =>
-    run ? timeline.entries.has(run.record.revisionId) : false,
+    run
+      ? timeline.entries.get(run.record.revisionId)?.kind === "revision"
+      : false,
   );
   if (!run) return null;
   const { record, live } = run;
@@ -102,6 +109,9 @@ export function RunCard({
             )}
           />
           <span className="font-semibold">{runLabel(record)}</span>
+          {record.unverified && (
+            <span className="text-evm-orange-300">from an export</span>
+          )}
           <span
             className={cn(
               record.status === "error"
@@ -141,6 +151,10 @@ export function RunCard({
             <Console
               entries={consoleEntries(record.console)}
               errors={record.errors}
+              // The one place output is rendered as markdown: a run made
+              // by this browser. One an export brought is plain text,
+              // and its console says so itself whatever is asked here.
+              markdown={!record.unverified}
               placeholder={
                 isUnfinished(record) ? "Nothing printed yet." : "No output."
               }
@@ -175,8 +189,34 @@ export function RunCard({
                 script no longer kept
               </span>
             )}
+            {!isUnfinished(record) && (
+              <button
+                type="button"
+                className={cn(
+                  control,
+                  "border-foreground/20 text-foreground/75",
+                )}
+                onClick={() => setRemoving(true)}
+              >
+                Remove
+              </button>
+            )}
           </div>
         </div>
+      )}
+      {removing && (
+        <Confirm
+          title="Remove this run"
+          action="Remove"
+          onConfirm={() => removeEntry(space, runId, me(), Date.now())}
+          onClose={() => setRemoving(false)}
+        >
+          <p>
+            This removes this {runLabel(record).toLowerCase()} and everything it
+            printed from the timeline, for good.
+          </p>
+          <LeftBehind action="remove" />
+        </Confirm>
       )}
     </section>
   );

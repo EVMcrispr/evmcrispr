@@ -75,6 +75,27 @@ test("lists spaces with their marks, opens one and removes one", async () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove Pay" }));
     await settle();
   });
+  // Nothing goes before the user has said so, to a question that names it.
+  expect(t.app.spaces.index.getState()).toHaveLength(2);
+  const question = screen.getByRole("dialog");
+  expect(question.textContent).toContain("“Pay”");
+  await act(async () => {
+    fireEvent.click(within(question).getByRole("button", { name: "Cancel" }));
+    await settle();
+  });
+  expect(t.app.spaces.index.getState()).toHaveLength(2);
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Remove Pay" }));
+    await settle();
+  });
+  await act(async () => {
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Remove space",
+      }),
+    );
+    await settle();
+  });
   expect(screen.getByTestId("address").textContent).toBe(`/${other}`);
   expect(t.app.spaces.index.getState().map((meta) => meta.id)).toEqual([other]);
 });

@@ -154,4 +154,25 @@ describe("review", () => {
       true,
     ]);
   });
+
+  test("a revision an export brought does not move where the list starts", () => {
+    const me: Author = { kind: "user" };
+    let s = emptyTimeline;
+    const add = (text: string, source: "user" | "assistant", ts: number) => {
+      const entry = nextRevision(s, text, { source, author: me, ts });
+      if (entry) s = mergeTimeline(s, { entries: [entry] }).state;
+      return entry;
+    };
+    add("a", "user", 1);
+    const change = add("b", "assistant", 2);
+    if (!change) throw new Error("expected a revision");
+    // Claims the approved text, later than everything.
+    const child = nextRevision(s, "a", { source: "user", author: me, ts: 9 });
+    if (!child) throw new Error("expected a revision");
+    s = mergeTimeline(s, { entries: [{ ...child, unverified: true }] }).state;
+    expect(revisionsSinceApproved(s, "a").map((r) => r.id)).toEqual([
+      change.id,
+      child.id,
+    ]);
+  });
 });

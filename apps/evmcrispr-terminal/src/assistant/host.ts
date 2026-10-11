@@ -68,15 +68,20 @@ function line(entry: TimelineEntry, state: TimelineState): string | null {
         parent?.kind === "revision"
           ? lineStats(parent.text, entry.text)
           : { added: entry.text.split("\n").length, removed: 0 };
-      const what = `${when} revision by ${WHO[entry.author.kind]} (+${added} -${removed} lines): `;
+      // What an export brought is said to be so: who it names is its
+      // own claim, like everything else it says.
+      const by = entry.unverified
+        ? `from an export (unverified; says it was written by ${WHO[entry.author.kind]})`
+        : `by ${WHO[entry.author.kind]}`;
+      const what = `${when} revision ${by} (+${added} -${removed} lines): `;
       return entry.summary === undefined
         ? what + (VERB[entry.source] ?? "edited the script")
-        : `${what}explanation (untrusted) ${JSON.stringify(plainLine(entry.summary))}`;
+        : `${what}explanation (untrusted${entry.unverified ? ", from an export" : ""}) ${JSON.stringify(plainLine(entry.summary))}`;
     }
     case "run": {
       const run = state.runs.get(entry.runId);
       return run
-        ? `${when} ${run.mode === "simulated" ? "simulation" : "run"}: ${run.status}`
+        ? `${when} ${run.mode === "simulated" ? "simulation" : "run"}${run.unverified ? " from an export, unverified" : ""}: ${run.status}`
         : null;
     }
     case "share":
