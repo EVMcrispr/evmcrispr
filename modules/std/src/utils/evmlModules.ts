@@ -152,7 +152,7 @@ export async function loadExternalEvmlModule(
     );
   }
 
-  const raw = await module.ipfsResolver.text(m[1]);
+  const raw = await module.ipfsResolver.evml(m[1]);
   const source = await resolveModuleSource(raw, { decryptionKey: m[2] });
 
   let ast: AST;

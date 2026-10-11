@@ -65,8 +65,6 @@ export async function offloadPastedHex(
   bypassArmedAt = 0;
   if (bypassed) return;
 
-  if (!import.meta.env.VITE_PINATA_JWT) return;
-
   const model = ed.getModel();
   if (!model) return;
 

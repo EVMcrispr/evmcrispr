@@ -12,6 +12,10 @@ import { ErrorConnection, ErrorUnexpectedResult } from "../errors";
  * it cannot verify (unknown hash function, HAMT-sharded directories) is an
  * error, not an unverified pass-through. A gateway that cannot serve CARs
  * at all is retried on {@link TRUSTLESS_GATEWAYS} — never trusted as-is.
+ *
+ * A bare CID naming a file of one block needs no CAR: the block is a fixed
+ * wrapper around the file's bytes, so the plain file is fetched from any
+ * gateway and checked with {@link matchesSingleBlock} first.
  */
 
 const CODEC_RAW = 0x55;
@@ -226,6 +230,74 @@ function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
+}
+
+/**
+ * The most a file can hold and still be one block: the default chunk size
+ * of `ipfs add`, and of Pinata.
+ */
+export const SINGLE_BLOCK_LIMIT = 256 * 1024;
+
+function encodeVarint(n: number): number[] {
+  const out: number[] = [];
+  while (n >= 0x80) {
+    out.push((n & 0x7f) | 0x80);
+    n = Math.floor(n / 128);
+  }
+  out.push(n);
+  return out;
+}
+
+/** The dag-pb block of a UnixFS file whose content is one chunk. */
+function singleFileBlock(bytes: Uint8Array): Uint8Array {
+  const size = encodeVarint(bytes.length);
+  const unixfs = [
+    [0x08, UNIXFS_FILE], // Type
+    bytes.length ? [0x12, ...size] : [], // Data, omitted when empty
+    bytes,
+    [0x18, ...size], // filesize
+  ];
+  const unixfsLength = unixfs.reduce((n, part) => n + part.length, 0);
+  return concat(
+    [[0x0a, ...encodeVarint(unixfsLength)], ...unixfs].map((part) =>
+      part instanceof Uint8Array ? part : Uint8Array.from(part),
+    ),
+  );
+}
+
+/**
+ * True when `bytes` is exactly the single-block content `cid` names: a
+ * match proves what a CAR would, from the plain file. False says nothing
+ * about the bytes — a file over {@link SINGLE_BLOCK_LIMIT}, a directory, or
+ * a file added with other settings never matches, whatever is passed.
+ */
+export async function matchesSingleBlock(
+  cid: string | Cid,
+  bytes: Uint8Array,
+): Promise<boolean> {
+  if (bytes.length > SINGLE_BLOCK_LIMIT) return false;
+  const { codec, hashCode, digest } =
+    typeof cid === "string" ? parseCidString(cid) : cid;
+  let block: Uint8Array;
+  if (codec === CODEC_RAW) block = bytes;
+  else if (codec === CODEC_DAG_PB) block = singleFileBlock(bytes);
+  else return false;
+  if (hashCode === HASH_IDENTITY) return equalBytes(block, digest);
+  if (hashCode !== HASH_SHA2_256) return false;
+  return equalBytes(await sha256(block), digest);
+}
+
+/**
+ * The CID a default add (CIDv0, one chunk) gives `bytes`, or `undefined`
+ * for a file over {@link SINGLE_BLOCK_LIMIT}, whose address depends on how
+ * it is split.
+ */
+export async function singleBlockCid(
+  bytes: Uint8Array,
+): Promise<string | undefined> {
+  if (bytes.length > SINGLE_BLOCK_LIMIT) return undefined;
+  const digest = await sha256(singleFileBlock(bytes));
+  return base58Encode(concat([Uint8Array.of(HASH_SHA2_256, 0x20), digest]));
 }
 
 /** Index a CAR archive's sections by multihash. First occurrence wins. */
@@ -491,7 +563,14 @@ export interface VerifiedFetchOptions {
    */
   maxBytes?: number;
   signal?: AbortSignal;
+  /**
+   * How long each gateway gets to answer the plain request for a
+   * single-block file before the next one is tried.
+   */
+  plainTimeoutMs?: number;
 }
+
+const PLAIN_TIMEOUT_MS = 8_000;
 
 export type IpfsEntity =
   | {
@@ -521,6 +600,13 @@ export const TRUSTLESS_GATEWAYS = [
 ];
 
 /**
+ * Gateways known beforehand to serve plain files only: ours. Without this
+ * the first directory or large file of every session would spend a request
+ * finding it out.
+ */
+const PLAIN_ONLY_GATEWAYS = ["https://ipfs.blossom.software/ipfs/"];
+
+/**
  * Gateway bases caught answering a CAR request with something else. Support
  * is a property of the gateway, not of the CID, so one probe settles it for
  * the session and later fetches skip straight to a gateway that can serve
@@ -528,11 +614,12 @@ export const TRUSTLESS_GATEWAYS = [
  * round-trip. Only the wrong-format verdict is remembered; connection
  * errors and 404s are per-request and stay retried.
  */
-const nonTrustlessGateways = new Set<string>();
+const nonTrustlessGateways = new Set<string>(PLAIN_ONLY_GATEWAYS);
 
 /** Forget probed gateway capabilities (tests re-probe from a clean slate). */
 export function resetGatewayCapabilities(): void {
   nonTrustlessGateways.clear();
+  for (const gateway of PLAIN_ONLY_GATEWAYS) nonTrustlessGateways.add(gateway);
 }
 
 /**
@@ -562,6 +649,147 @@ export function primedIpfsContent(cidPath: string): Uint8Array | undefined {
 /** Forget primed uploads (tests start from a clean slate). */
 export function resetPrimedIpfsContent(): void {
   primedContent.clear();
+}
+
+/**
+ * Download the plain file behind `cidStr`, or `undefined` once it is known
+ * to hold more than {@link SINGLE_BLOCK_LIMIT} (the rest is left unread).
+ * Throws when the gateway does not answer with a file at all.
+ */
+async function fetchPlain(
+  cidStr: string,
+  gatewayBase: string,
+  signal?: AbortSignal,
+): Promise<Uint8Array | undefined> {
+  const url = `${gatewayBase}${cidStr}`;
+  let response: Response;
+  try {
+    response = await fetch(url, { signal });
+  } catch (_) {
+    throw new ErrorConnection(`Couldn't fetch ${url}.`);
+  }
+  if (!response.ok) {
+    throw new ErrorConnection(
+      `Couldn't fetch ${url} (${response.status} ${response.statusText}).`,
+    );
+  }
+  const reader = response.body?.getReader();
+  if (!reader) return new Uint8Array();
+  if (Number(response.headers.get("Content-Length")) > SINGLE_BLOCK_LIMIT) {
+    await reader.cancel().catch(() => {});
+    return undefined;
+  }
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return concat(chunks);
+      length += value.length;
+      if (length > SINGLE_BLOCK_LIMIT) {
+        await reader.cancel().catch(() => {});
+        return undefined;
+      }
+      chunks.push(value);
+    }
+  } catch (_) {
+    throw new ErrorConnection(`Couldn't fetch ${url}.`);
+  }
+}
+
+/** {@link fetchPlain}, given up on when the gateway takes too long. */
+async function fetchPlainInTime(
+  cidStr: string,
+  gatewayBase: string,
+  opts: VerifiedFetchOptions,
+): Promise<Uint8Array | undefined> {
+  // A gateway that stalls must not hold up whatever comes after it.
+  const attempt = new AbortController();
+  const giveUp = () => attempt.abort();
+  const timer = setTimeout(giveUp, opts.plainTimeoutMs ?? PLAIN_TIMEOUT_MS);
+  opts.signal?.addEventListener("abort", giveUp);
+  if (opts.signal?.aborted) giveUp();
+  try {
+    return await fetchPlain(cidStr, gatewayBase, attempt.signal);
+  } finally {
+    clearTimeout(timer);
+    opts.signal?.removeEventListener("abort", giveUp);
+  }
+}
+
+/**
+ * Fetch an EVML file — a shared script or a module file — by its bare CID:
+ * the plain file from `gatewayBase`, checked against the CID, and nothing
+ * else. These are pinned as a single block (uploads over
+ * {@link SINGLE_BLOCK_LIMIT} are refused), so there is no CAR to fall back
+ * to and no other gateway to ask: a file that is larger, or does not match,
+ * is not one of them.
+ */
+export async function verifiedEvmlFetch(
+  cid: string,
+  gatewayBase: string,
+  opts: Pick<VerifiedFetchOptions, "signal" | "plainTimeoutMs"> = {},
+): Promise<Uint8Array> {
+  const [cidStr, ...segments] = cid.split("/").filter(Boolean);
+  try {
+    if (segments.length) {
+      throw new ErrorUnexpectedResult(
+        "an EVML file is addressed by a bare CID, not a path inside one",
+      );
+    }
+    const parsed = parseCidString(cidStr ?? "");
+    const bytes = await fetchPlainInTime(cidStr, gatewayBase, opts);
+    if (!bytes) {
+      throw new ErrorUnexpectedResult(
+        "the file is larger than 256 KB, more than a script or module can be",
+      );
+    }
+    if (!(await matchesSingleBlock(parsed, bytes))) {
+      throw new ErrorUnexpectedResult(
+        "the downloaded content does not match its hash",
+      );
+    }
+    return bytes;
+  } catch (err) {
+    labelVerificationError(cid, err);
+  }
+}
+
+/**
+ * The file `cid` names, when it is a single block and a gateway's plain
+ * response proves it: one request, to a gateway that need not serve CARs.
+ * `undefined` settles nothing — the caller goes on to the CAR path — and
+ * bytes that do not match are never returned.
+ */
+async function fetchSingleBlock(
+  cid: Cid,
+  cidStr: string,
+  gatewayBase: string,
+  opts: VerifiedFetchOptions,
+): Promise<Uint8Array | undefined> {
+  // An identity address carries its content: nothing to ask anyone.
+  if (cid.hashCode === HASH_IDENTITY && cid.codec === CODEC_RAW) {
+    return cid.digest;
+  }
+  if (cid.hashCode !== HASH_SHA2_256) return undefined;
+  if (cid.codec !== CODEC_RAW && cid.codec !== CODEC_DAG_PB) return undefined;
+  // The check is on the content, so any gateway will do: when the caller's
+  // fails outright, ask the one our uploads are pinned to.
+  const gateways = new Set([gatewayBase, TRUSTLESS_GATEWAYS[0]]);
+  for (const gateway of gateways) {
+    let bytes: Uint8Array | undefined;
+    try {
+      bytes = await fetchPlainInTime(cidStr, gateway, opts);
+    } catch (err) {
+      if (opts.signal?.aborted) throw err;
+      continue;
+    }
+    // A gateway that answered settles this step, whatever it sent: a
+    // mismatch is a larger file, a directory, or a lie, and each of those
+    // is the CAR path's to tell apart.
+    return bytes && (await matchesSingleBlock(cid, bytes)) ? bytes : undefined;
+  }
+  return undefined;
 }
 
 /** Download `cidPath` as a CAR, or throw if this gateway can't serve one. */
@@ -603,6 +831,22 @@ async function fetchCar(
     );
   }
   return new Uint8Array(await response.arrayBuffer());
+}
+
+/**
+ * The plain-file shortcut for `cidPath`, taken only by a bare CID: a path
+ * inside one needs the directory's block to prove anything. A caller that
+ * wants no content (`maxBytes: 0`) is asking what the CID is, and the CAR
+ * path answers that from the root block alone.
+ */
+async function singleBlockFile(
+  cidPath: string,
+  gatewayBase: string,
+  opts: VerifiedFetchOptions,
+): Promise<Uint8Array | undefined> {
+  const [cidStr, ...segments] = cidPath.split("/").filter(Boolean);
+  if (segments.length || opts.maxBytes === 0) return undefined;
+  return fetchSingleBlock(parseCidString(cidStr), cidStr, gatewayBase, opts);
 }
 
 async function fetchVerifiedTarget(
@@ -652,14 +896,17 @@ function labelVerificationError(cidPath: string, err: unknown): never {
 
 /**
  * Fetch `cidPath` ("<cid>" or "<cid>/name/inside") through `gatewayBase`
- * (ending in "/ipfs/") as a CAR archive and return the verified file bytes.
+ * (ending in "/ipfs/") and return the verified file bytes: from the plain
+ * file when a bare CID names a single block, from a CAR archive otherwise.
  */
 export async function verifiedIpfsFetch(
   cidPath: string,
   gatewayBase: string,
-  opts: Pick<VerifiedFetchOptions, "signal"> = {},
+  opts: Pick<VerifiedFetchOptions, "signal" | "plainTimeoutMs"> = {},
 ): Promise<Uint8Array> {
   try {
+    const single = await singleBlockFile(cidPath, gatewayBase, opts);
+    if (single) return single;
     const { source, target } = await fetchVerifiedTarget(cidPath, gatewayBase, {
       signal: opts.signal,
     });
@@ -693,6 +940,21 @@ export async function verifiedIpfsEntity(
     };
   }
   try {
+    // A partial file cannot be checked against its CID, so a small one is
+    // fetched whole, verified, and only then cut to `maxBytes`.
+    const single = await singleBlockFile(cidPath, gatewayBase, opts);
+    if (single) {
+      const bytes =
+        opts.maxBytes !== undefined
+          ? single.subarray(0, opts.maxBytes)
+          : single;
+      return {
+        kind: "file",
+        bytes,
+        size: single.length,
+        complete: bytes.length === single.length,
+      };
+    }
     const { source, target } = await fetchVerifiedTarget(
       cidPath,
       gatewayBase,

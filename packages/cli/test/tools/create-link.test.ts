@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { decryptScript, isEncryptedEnvelope } from "@evmcrispr/core";
+import {
+  decryptScript,
+  isEncryptedEnvelope,
+  singleBlockCid,
+} from "@evmcrispr/core";
 import { createLink } from "../../src/tools/create-link.js";
 
-const CID = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
 const ARGS = {
   title: "Treasury payout",
   script: "load token\ntoken:transfer 100e18 DAI to @me",
@@ -11,17 +14,28 @@ const ARGS = {
 const originalFetch = globalThis.fetch;
 const originalJwt = process.env.VITE_PINATA_JWT;
 
+let pinnedUrl: string | undefined;
+let pinnedHeaders: Headers;
 let pinnedBody: any;
+/** The address of what was pinned: the client refuses any other. */
+let pinnedCid: string;
 
 beforeEach(() => {
   process.env.VITE_PINATA_JWT = "test-jwt";
   pinnedBody = undefined;
-  globalThis.fetch = mock(async (_url: any, init: any) => {
+  globalThis.fetch = mock(async (url: any, init: any) => {
+    pinnedUrl = String(url);
+    pinnedHeaders = new Headers(init.headers);
     pinnedBody = JSON.parse(init.body);
-    return {
-      ok: true,
-      json: async () => ({ IpfsHash: CID }),
-    };
+    pinnedCid = (await singleBlockCid(
+      new TextEncoder().encode(JSON.stringify(pinnedBody.pinataContent)),
+    )) as string;
+    // Pinata answers `IpfsHash`, the EVMcrispr API `cid`.
+    return Response.json(
+      pinnedUrl.includes("pinata")
+        ? { IpfsHash: pinnedCid }
+        : { cid: pinnedCid },
+    );
   }) as unknown as typeof fetch;
 });
 
@@ -53,9 +67,11 @@ describe("createLink", () => {
     const result = await createLink(ARGS);
 
     expect(result.url).toMatch(
-      new RegExp(`^https://next\\.evmcrispr\\.com/#/${CID}#[A-Za-z0-9_-]{43}$`),
+      new RegExp(
+        `^https://next\\.evmcrispr\\.com/#/${pinnedCid}#[A-Za-z0-9_-]{43}$`,
+      ),
     );
-    expect(result.cid).toBe(CID);
+    expect(result.cid).toBe(pinnedCid);
     expect(result.key).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
 
@@ -69,10 +85,43 @@ describe("createLink", () => {
     expect(decrypted).toEqual(ARGS);
   });
 
-  it("fails without VITE_PINATA_JWT", async () => {
+  it("pins straight to Pinata with a token of its own", async () => {
+    await createLink(ARGS);
+    expect(pinnedUrl).toBe("https://api.pinata.cloud/pinning/pinJSONToIPFS");
+    expect(pinnedHeaders.get("Authorization")).toBe("Bearer test-jwt");
+  });
+
+  it("pins through the EVMcrispr API without a token", async () => {
     delete process.env.VITE_PINATA_JWT;
     const result = await createLink(ARGS);
+
+    expect(result.success).toBe(true);
+    expect(result.cid).toBe(pinnedCid);
+    expect(pinnedUrl).toBe("https://api.evmcrispr.com/ipfs/pin");
+    expect(pinnedHeaders.get("Authorization")).toBeNull();
+    expect(isEncryptedEnvelope(pinnedBody.pinataContent)).toBe(true);
+  });
+
+  it("refuses a link to anything but the envelope it pinned", async () => {
+    globalThis.fetch = mock(async () =>
+      // The address of some other content.
+      Response.json({ cid: "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o" }),
+    ) as unknown as typeof fetch;
+    const result = await createLink(ARGS);
     expect(result.success).toBe(false);
-    expect(result.error).toInclude("VITE_PINATA_JWT");
+    expect(result.url).toBeUndefined();
+    expect(result.error).toInclude("does not match the content");
+  });
+
+  it("reports a refused pin", async () => {
+    globalThis.fetch = mock(async () =>
+      Response.json(
+        { error: "too many pins; try again later" },
+        { status: 429 },
+      ),
+    ) as unknown as typeof fetch;
+    const result = await createLink(ARGS);
+    expect(result.success).toBe(false);
+    expect(result.error).toInclude("too many pins");
   });
 });

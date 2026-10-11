@@ -161,6 +161,8 @@ export {
   hasCommandsBlock,
 } from "./utils/ast";
 export * from "./utils/checkedArithmetic";
+export type { PinJsonBody, PinOptions } from "./utils/ipfsPin";
+export { ErrorTooLargeToPin, IPFS_PIN_URL, pinToIpfs } from "./utils/ipfsPin";
 export * from "./utils/modular";
 export type { NpmFileSpec } from "./utils/npmRegistry";
 export {
@@ -175,7 +177,11 @@ export {
 export { withSender } from "./utils/sender";
 export type { IpfsEntity } from "./utils/verifiedIpfs";
 export {
+  matchesSingleBlock,
   primeIpfsContent,
+  SINGLE_BLOCK_LIMIT,
+  singleBlockCid,
+  verifiedEvmlFetch,
   verifiedIpfsEntity,
   verifiedIpfsFetch,
 } from "./utils/verifiedIpfs";

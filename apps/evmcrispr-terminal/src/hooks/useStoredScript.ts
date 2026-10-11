@@ -62,10 +62,7 @@ export function useScriptFromId(
       setResult({ status: "loading" });
       (async () => {
         try {
-          const text = await fetchPin(
-            "https://ipfs.blossom.software",
-            scriptId,
-          );
+          const text = await fetchPin(scriptId);
           if (!text) {
             setResult({ status: "error", error: "Empty response from IPFS" });
             return;

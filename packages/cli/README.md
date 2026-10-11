@@ -47,7 +47,7 @@ $ echo "exec @token(DAI) transfer(address,uint256) vitalik.eth 1e18" | evmcrispr
 | Variable | Purpose |
 | --- | --- |
 | `VITE_DRPC_API_KEY` | DRPC API key for RPC access |
-| `VITE_PINATA_JWT` | Pinata JWT for IPFS pinning (`create-link`) |
+| `VITE_PINATA_JWT` | Optional: pin with your own Pinata JWT instead of through the EVMcrispr API (`create-link`, `publish-module`) |
 | `VITE_ETHERSCAN_API_KEY` | Etherscan V2 API key for verified-contract metadata |
 | `VITE_PUBLIC_EXPERIMENTAL` | Enable experimental features (same as `--experimental`) |
 | `EVMCRISPR_DEFAULT_CHAIN_ID` | Default chain ID (default: 1) |

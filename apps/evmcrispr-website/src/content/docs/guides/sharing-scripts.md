@@ -47,8 +47,8 @@ The same links can be produced outside the terminal:
 npx evmcrispr create-link "Q3 payout" payout.evml
 ```
 
-prints a share link for the script file (set `VITE_PINATA_JWT` for IPFS
-pinning). AI assistants connected to the [MCP server](mcp.md) can do the
+prints a share link for the script file (set `VITE_PINATA_JWT` to pin it
+with your own Pinata account). AI assistants connected to the [MCP server](mcp.md) can do the
 same with the `create-link` tool — a common flow is asking an assistant to
 write and simulate a script, then hand you the link to execute it.
 

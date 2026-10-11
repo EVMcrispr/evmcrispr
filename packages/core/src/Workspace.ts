@@ -326,7 +326,7 @@ export class EvmlWorkspace {
   ): Promise<ModuleData | undefined> {
     try {
       const raw = await Promise.race([
-        this.#ipfsResolver.text(cid),
+        this.#ipfsResolver.evml(cid),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("timeout")), 5_000),
         ),

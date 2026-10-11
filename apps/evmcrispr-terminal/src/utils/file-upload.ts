@@ -140,11 +140,6 @@ export async function uploadAt(
 ): Promise<void> {
   if (items.length === 0) return;
 
-  if (!import.meta.env.VITE_PINATA_JWT) {
-    toast.error("IPFS uploads are not configured (missing Pinata JWT)");
-    return;
-  }
-
   const model = ed.getModel();
   if (!model) return;
 

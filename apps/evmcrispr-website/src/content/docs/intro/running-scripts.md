@@ -33,7 +33,8 @@ npx evmcrispr create-link "My proposal" my-script.evml
 ```
 
 Configuration is via environment variables — set `VITE_DRPC_API_KEY` for
-RPC access, `VITE_PINATA_JWT` for IPFS pinning, and
+RPC access, optionally `VITE_PINATA_JWT` to pin to IPFS with your own
+Pinata account, and
 `EVMCRISPR_DEFAULT_CHAIN_ID` / `EVMCRISPR_RPC_URL` to control which chain
 scripts run against. Run `npx evmcrispr` with no arguments for the full
 list.

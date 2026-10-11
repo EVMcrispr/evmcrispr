@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { singleBlockCid } from "@evmcrispr/core";
 import { registerAllModules } from "../../src/lib/modules.js";
 import { publishModule } from "../../src/tools/publish-module.js";
 
 registerAllModules();
 
-const CID = "QmModulePinFixture1111111111111111111111111111";
 const MODULE_SOURCE = `def module math (
   def @double "$n: number -> number" @num($n * 2)
   def pause "$n: number" (
@@ -17,18 +17,23 @@ const originalJwt = process.env.VITE_PINATA_JWT;
 
 let pinnedUrl: string | undefined;
 let pinnedBody: FormData | undefined;
+/** The address of the module text: the client refuses any other. */
+let CID: string;
 
-beforeEach(() => {
+beforeEach(async () => {
   process.env.VITE_PINATA_JWT = "test-jwt";
+  CID = (await singleBlockCid(
+    new TextEncoder().encode(MODULE_SOURCE),
+  )) as string;
   pinnedUrl = undefined;
   pinnedBody = undefined;
   globalThis.fetch = mock(async (url: any, init: any) => {
     pinnedUrl = String(url);
     pinnedBody = init.body;
-    return {
-      ok: true,
-      json: async () => ({ IpfsHash: CID }),
-    };
+    // Pinata answers `IpfsHash`, the EVMcrispr API `cid`.
+    return Response.json(
+      pinnedUrl.includes("pinata") ? { IpfsHash: CID } : { cid: CID },
+    );
   }) as unknown as typeof fetch;
 });
 
@@ -74,10 +79,14 @@ describe("publishModule", () => {
     expect(result.diagnostics).toBeDefined();
   });
 
-  it("fails without a Pinata JWT", async () => {
+  it("pins through the EVMcrispr API without a Pinata JWT", async () => {
     delete process.env.VITE_PINATA_JWT;
     const result = await publishModule({ source: MODULE_SOURCE });
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("VITE_PINATA_JWT");
+
+    expect(result.success).toBe(true);
+    expect(result.cid).toBe(CID);
+    expect(pinnedUrl).toBe("https://api.evmcrispr.com/ipfs/pin");
+    const file = pinnedBody?.get("file") as Blob;
+    expect(await file.text()).toBe(MODULE_SOURCE);
   });
 });

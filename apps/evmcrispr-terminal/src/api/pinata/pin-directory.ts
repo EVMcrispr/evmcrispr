@@ -1,10 +1,4 @@
-import { primeIpfsContent } from "@evmcrispr/core";
-
-type Res = {
-  IpfsHash: string;
-  PinSize: number;
-  Timestamp: string;
-};
+import { pin, type Res } from "./pin";
 
 /**
  * Pin a folder to IPFS as a single directory (one CID). Each part's
@@ -14,9 +8,6 @@ type Res = {
 const pinDirectory = async (
   files: { file: File; path: string }[],
 ): Promise<Res> => {
-  const PINATA_JWT = import.meta.env.VITE_PINATA_JWT;
-  const url = "https://api.pinata.cloud/pinning/pinFileToIPFS";
-
   const body = new FormData();
   for (const { file, path } of files) {
     body.append("file", file, path);
@@ -33,38 +24,12 @@ const pinDirectory = async (
     }),
   );
 
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      body,
-      headers: {
-        Authorization: `Bearer ${PINATA_JWT}`,
-      },
-    });
-
-    if (response.status >= 400) {
-      throw new Error("Bad response from server");
-    }
-
-    const res: Res = await response.json();
-    // The returned CID is the root folder itself (Pinata strips the shared
-    // folder-name prefix), so each file lives at <cid>/<path minus root>.
-    // Remember the uploaded bytes so this session resolves them instantly
-    // instead of waiting for the pin to reach public gateways. If the
-    // layout assumption ever proved wrong, these keys would simply never
-    // be requested — a cache miss, not wrong content.
-    for (const { file, path } of files) {
-      const inside = path.split("/").slice(1).join("/");
-      if (!inside) continue;
-      primeIpfsContent(
-        `${res.IpfsHash}/${inside}`,
-        new Uint8Array(await file.arrayBuffer()),
-      );
-    }
-    return res;
-  } catch (_e) {
-    throw new Error("Bad response from server");
-  }
+  // The returned CID is the root folder itself (Pinata strips the shared
+  // folder-name prefix), so each file lives at <cid>/<path minus root>.
+  // Nothing here can check a directory's CID against the files sent, so
+  // they are not remembered under it: the folder is resolved like anyone
+  // else's, verified, from a gateway, and shows what the CID really holds.
+  return pin(body);
 };
 
 export default pinDirectory;

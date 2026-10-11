@@ -15,7 +15,7 @@ Options:
 
 Environment:
   VITE_DRPC_API_KEY          DRPC API key for RPC access
-  VITE_PINATA_JWT            Pinata JWT for IPFS pinning
+  VITE_PINATA_JWT            Optional: pin to IPFS with your own Pinata JWT
   VITE_ETHERSCAN_API_KEY     Etherscan V2 API key for verified-contract metadata
   VITE_PUBLIC_EXPERIMENTAL   Enable experimental features (same as --experimental)
   EVMCRISPR_DEFAULT_CHAIN_ID Default chain ID (default: 1)

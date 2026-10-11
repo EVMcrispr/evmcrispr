@@ -1,5 +1,9 @@
 import { ErrorConnection, ErrorUnexpectedResult } from "./errors";
-import { primedIpfsContent, verifiedIpfsFetch } from "./utils/verifiedIpfs";
+import {
+  primedIpfsContent,
+  verifiedEvmlFetch,
+  verifiedIpfsFetch,
+} from "./utils/verifiedIpfs";
 
 export const IPFS_GATEWAY = "https://ipfs.blossom.software/ipfs/"; // "https://gateway.pinata.cloud/ipfs/";
 
@@ -46,6 +50,28 @@ export class IPFSResolver {
       await this.bytes(cidPath, ipfsGateway),
     );
     this.#textCache.set(cidPath, text);
+    return text;
+  }
+
+  /**
+   * Fetch an EVML file (a shared script or a module file) as text. Unlike
+   * {@link text}, this only ever asks the gateway for the plain file and
+   * checks it against the CID: such files are pinned as a single block, so
+   * anything larger or not matching is refused instead of looked for
+   * elsewhere.
+   */
+  async evml(cid: string, ipfsGateway?: string): Promise<string> {
+    const cached = this.#textCache.get(cid);
+    if (cached !== undefined) return cached;
+
+    let bytes = primedIpfsContent(cid);
+    if (!bytes) {
+      bytes = IPFSResolver.trustGateway
+        ? await this.bytes(cid, ipfsGateway)
+        : await verifiedEvmlFetch(cid, this.#gatewayBase(ipfsGateway));
+    }
+    const text = new TextDecoder().decode(bytes);
+    this.#textCache.set(cid, text);
     return text;
   }
 

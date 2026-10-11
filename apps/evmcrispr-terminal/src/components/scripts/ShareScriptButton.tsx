@@ -1,4 +1,4 @@
-import { encryptScript } from "@evmcrispr/core";
+import { ErrorTooLargeToPin, encryptScript } from "@evmcrispr/core";
 import { ShareIcon } from "@heroicons/react/24/solid";
 import { Button, IconButton, Tooltip, toast } from "@repo/ui";
 import { useEffect, useState } from "react";
@@ -60,8 +60,12 @@ export default function ShareButton({
       setLoading(false);
       navigate(`/${hash}${modeSuffix}#${key}`, { replace: true });
       onShared?.();
-    } catch (_e) {
-      toast.error("The script could not be saved to IPFS");
+    } catch (e) {
+      toast.error(
+        e instanceof ErrorTooLargeToPin
+          ? "The script is too large to share (256 KB at most)"
+          : "The script could not be saved to IPFS",
+      );
       setLoading(false);
     }
   }

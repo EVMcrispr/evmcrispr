@@ -1,6 +1,4 @@
-import { evml, NodeType, parseScript } from "@evmcrispr/core";
-
-const PINATA_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS";
+import { evml, NodeType, parseScript, pinToIpfs } from "@evmcrispr/core";
 
 /**
  * Validate and pin a plain (unencrypted) EVML module file to IPFS byte-exact,
@@ -16,15 +14,6 @@ export async function publishModule(args: { source: string }): Promise<{
   error?: string;
   diagnostics?: unknown[];
 }> {
-  const jwt = process.env.VITE_PINATA_JWT;
-  if (!jwt) {
-    return {
-      success: false,
-      error:
-        "VITE_PINATA_JWT environment variable is not set. Get an API key from pinata.cloud.",
-    };
-  }
-
   // Structural validation: exactly one `module <name> ( ...defs )` command.
   let moduleName: string | undefined;
   try {
@@ -82,30 +71,20 @@ export async function publishModule(args: { source: string }): Promise<{
       }),
     );
 
-    const res = await fetch(PINATA_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-      },
-      body,
+    const cid = await pinToIpfs(body, {
+      // With a Pinata token of your own the pin goes straight there;
+      // without one, through the EVMcrispr API.
+      jwt: process.env.VITE_PINATA_JWT,
+      pinUrl: process.env.VITE_IPFS_PIN_URL,
+      // One block, so whoever opens it can check the plain file.
+      singleBlock: true,
     });
-
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `Pinata error ${res.status}: ${await res.text()}`,
-      };
-    }
-    const { IpfsHash } = (await res.json()) as { IpfsHash: string };
-    if (!IpfsHash) {
-      return { success: false, error: "Pinata returned no CID" };
-    }
     return {
       success: true,
-      cid: IpfsHash,
-      uri: `ipfs://${IpfsHash}`,
+      cid,
+      uri: `ipfs://${cid}`,
       moduleName,
-      loadLine: `load ${moduleName} --from ipfs://${IpfsHash}`,
+      loadLine: `load ${moduleName} --from ipfs://${cid}`,
     };
   } catch (err) {
     return { success: false, error: (err as Error).message };

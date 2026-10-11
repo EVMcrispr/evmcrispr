@@ -2,14 +2,14 @@ import { IPFSResolver } from "@evmcrispr/core";
 
 const resolver = new IPFSResolver();
 
-/** Fetch a pin's content from the gateway, hash-verified against its CID. */
-const fetchPin = async (
-  pinataUrl: string,
-  hashId?: string,
-): Promise<string | undefined> => {
+/**
+ * Fetch a shared script from the IPFS gateway: the plain file, checked
+ * against its CID in the browser.
+ */
+const fetchPin = async (hashId?: string): Promise<string | undefined> => {
   if (!hashId) return undefined;
 
-  return resolver.text(hashId, `${pinataUrl}/ipfs/`);
+  return resolver.evml(hashId);
 };
 
 export default fetchPin;
