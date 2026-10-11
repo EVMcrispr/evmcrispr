@@ -11,6 +11,8 @@ general smart contract interaction. Scripts run in a web terminal
 
 - `packages/core`: Parser, interpreter, AST, completions, hover docs
 - `packages/sdk`: Module SDK (`defineCommand`, `defineHelper`, `defineModule`)
+- `packages/space`: Space model — document layout, timeline entries,
+  merge/revision/review rules (pure, no DOM)
 - `modules/std`: Default module — always loaded
 - `modules/aragonos`: Aragon DAO operations
 - `modules/sim`: Chain fork simulation — anvil, hardhat, tenderly, ethereumjs

@@ -196,6 +196,10 @@ export default defineConfig({
         "../../packages/editor/src/index.ts",
       ),
       "@evmcrispr/ai": path.resolve(APP_DIR, "../../packages/ai/src/index.ts"),
+      "@evmcrispr/space": path.resolve(
+        APP_DIR,
+        "../../packages/space/src/index.ts",
+      ),
       // Sub-path exports before the base alias so they match first
       "@evmcrispr/core/worker-client": path.resolve(
         APP_DIR,
