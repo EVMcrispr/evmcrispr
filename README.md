@@ -85,7 +85,7 @@ Production is the default — the terminal ([app.evmcrispr.com](https://app.evmc
 | `PUBLIC_TERMINAL_URL` | `https://app.evmcrispr.com` | `https://next.evmcrispr.com` | website (landing-page terminal link) |
 | `VITE_PUBLIC_EXPERIMENTAL` | off | `true` | both — enables ⚗️ experimental modules, commands and docs pages |
 
-Service keys (terminal build): `VITE_WALLETCONNECT_PROJECT_ID`, `VITE_DRPC_API_KEY` (RPC), `VITE_ETHERSCAN_API_KEY` (verified contracts; falls back to Blockscout keyless), and optionally `VITE_EVMCRISPR_API_URL` (defaults to `https://api.evmcrispr.com`). The terminal pins to IPFS through that API (`/ipfs/pin`, or `VITE_IPFS_PIN_URL`), so no Pinata token goes into its bundle.
+Service keys (terminal build): `VITE_WALLETCONNECT_PROJECT_ID`, `VITE_DRPC_API_KEY` (RPC), and optionally `VITE_EVMCRISPR_API_URL` (defaults to `https://api.evmcrispr.com`). The terminal pins to IPFS through that API (`/ipfs/pin`, or `VITE_IPFS_PIN_URL`) and asks Etherscan through it (`/etherscan`), so neither a Pinata token nor an Etherscan key goes into its bundle. The CLI and the MCP server read `VITE_ETHERSCAN_API_KEY` from their own environment (verified contracts; falls back to Blockscout keyless).
 
 The MCP server is deployment-agnostic (`PORT`, `HOST`, `TRANSPORT`, `CORS_ORIGIN`, and optionally `VITE_PINATA_JWT` to pin with its own Pinata account); its share links intentionally point at next.evmcrispr.com while the MCP is experimental.
 

@@ -122,6 +122,7 @@ export {
   SINGLE_BLOCK_LIMIT,
   serializeEvmlValue,
   setChainUrlPolicy,
+  setEtherscanProxy,
   singleBlockCid,
   toViemChain,
   transformExperimentalMd,

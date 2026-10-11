@@ -2,9 +2,7 @@ import { getAddress } from "viem";
 
 import type { Address } from "../types";
 import { blockscoutApiUrl } from "./blockscout";
-import { readEtherscanApiKey } from "./contract-verification";
-
-const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
+import { etherscanUrl } from "./contract-verification";
 
 /**
  * One entry of an address's transaction history, as reported by the
@@ -104,11 +102,11 @@ function withTxlistParams(url: URL, address: Address, limit: number): URL {
 
 /**
  * Fetch an address's most recent transactions (newest first) from
- * Etherscan V2 (when `VITE_ETHERSCAN_API_KEY` is set), falling back to
- * the chain's Blockscout instance, which needs no key.
+ * Etherscan V2 (with a key, or through a proxy that holds one), falling
+ * back to the chain's Blockscout instance, which needs neither.
  *
- * Returns `null` when no source could answer (no key AND no Blockscout
- * host for the chain, or both requests failed) — distinct from an empty
+ * Returns `null` when no source could answer (no way to ask Etherscan AND
+ * no Blockscout host for the chain, or both requests failed) — distinct from an empty
  * array, which means the address genuinely has no transactions.
  */
 export async function fetchAddressTransactions(
@@ -124,12 +122,9 @@ export async function fetchAddressTransactions(
 
   let value: AddressTxSummary[] | null = null;
 
-  const apiKey = readEtherscanApiKey();
-  if (apiKey) {
-    const url = withTxlistParams(new URL(ETHERSCAN_V2_URL), normalized, limit);
-    url.searchParams.set("chainid", String(chainId));
-    url.searchParams.set("apikey", apiKey);
-    value = await fetchTxlist(url);
+  const etherscan = etherscanUrl(chainId, "account", "txlist");
+  if (etherscan) {
+    value = await fetchTxlist(withTxlistParams(etherscan, normalized, limit));
   }
 
   if (value === null) {

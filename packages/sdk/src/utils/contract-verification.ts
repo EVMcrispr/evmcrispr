@@ -93,27 +93,19 @@ export function clearContractVerificationCache(): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Pull the Etherscan API key from whichever runtime is hosting us:
- *  - In Vite-built browser bundles, `import.meta.env.VITE_ETHERSCAN_API_KEY`
- *    is statically replaced at build time.
- *  - In Node/Bun (CLI, MCP, tests), `process.env.VITE_ETHERSCAN_API_KEY`
- *    is read at runtime.
+ * The Etherscan API key of whoever runs this process: the CLI, the MCP
+ * server and tests read `process.env.VITE_ETHERSCAN_API_KEY` at runtime.
  *
- * Returns `undefined` when no key is configured, which makes
- * `fetchVerifiedContract` a no-op.
+ * A browser has no such thing, on purpose: a key compiled into a web
+ * bundle can be read out of it, so `import.meta.env` is never consulted.
+ * A web host reaches Etherscan through a proxy that holds the key instead
+ * (see {@link setEtherscanProxy}).
  */
 export function readEtherscanApiKey(): string | undefined {
-  let key: string | undefined;
-  try {
-    key = (
-      import.meta as unknown as { env?: Record<string, string | undefined> }
-    ).env?.VITE_ETHERSCAN_API_KEY;
-  } catch {
-    /* `import.meta.env` is undefined outside Vite — fall through. */
-  }
-  if (!key && typeof process !== "undefined") {
-    key = process.env?.VITE_ETHERSCAN_API_KEY;
-  }
+  const key =
+    typeof process !== "undefined"
+      ? process.env?.VITE_ETHERSCAN_API_KEY
+      : undefined;
   return key && key.length > 0 ? key : undefined;
 }
 
@@ -122,6 +114,49 @@ export function readEtherscanApiKey(): string | undefined {
 // ---------------------------------------------------------------------------
 
 const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
+
+/**
+ * The EVMcrispr API's Etherscan route: the same query as Etherscan's V2
+ * endpoint minus the key, which the service adds. A host that ships no key
+ * hands this to {@link setEtherscanProxy}.
+ */
+export const ETHERSCAN_PROXY_URL = "https://api.evmcrispr.com/etherscan";
+
+let etherscanProxy: string | undefined;
+
+/**
+ * Send keyless Etherscan requests through `url` from here on (`undefined`
+ * to stop). Nothing is set by default: without a key or a proxy, Etherscan
+ * is simply not asked and lookups fall back to Blockscout.
+ */
+export function setEtherscanProxy(url: string | undefined): void {
+  etherscanProxy = url;
+}
+
+/** Whether Etherscan can be asked at all: with a key, or through a proxy. */
+export function hasEtherscanAccess(): boolean {
+  return readEtherscanApiKey() !== undefined || etherscanProxy !== undefined;
+}
+
+/**
+ * The URL of an Etherscan V2 request for `module`/`action` on `chainId`,
+ * ready for its remaining parameters: straight to Etherscan with a key of
+ * one's own, through the proxy without. `undefined` when there is neither.
+ */
+export function etherscanUrl(
+  chainId: number,
+  module: string,
+  action: string,
+): URL | undefined {
+  const apiKey = readEtherscanApiKey();
+  if (!apiKey && !etherscanProxy) return undefined;
+  const url = new URL(apiKey ? ETHERSCAN_V2_URL : (etherscanProxy as string));
+  if (apiKey) url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("chainid", String(chainId));
+  url.searchParams.set("module", module);
+  url.searchParams.set("action", action);
+  return url;
+}
 
 /** Shape of a single result entry in `getsourcecode`. Etherscan returns
  *  every numeric field as a string, so we deliberately keep them as such
@@ -209,23 +244,18 @@ function entryToInfo(entry: EtherscanSourceResult): VerifiedContractInfo {
   };
 }
 
-/** Fetch a verified entry from Etherscan V2. Returns `null` when the key
- * is unset, the contract is unverified, the chain is unsupported, or the
- * request failed — callers fall back to Blockscout. */
+/** Fetch a verified entry from Etherscan V2. Returns `null` when Etherscan
+ * cannot be asked (no key, no proxy), the contract is unverified, the chain
+ * is unsupported, or the request failed — callers fall back to Blockscout. */
 async function fetchEtherscanEntry(
   chainId: number,
   address: Address,
 ): Promise<EtherscanSourceResult | null> {
-  const apiKey = readEtherscanApiKey();
-  if (!apiKey) return null;
+  const url = etherscanUrl(chainId, "contract", "getsourcecode");
+  if (!url) return null;
 
   try {
-    const url = new URL(ETHERSCAN_V2_URL);
-    url.searchParams.set("chainid", String(chainId));
-    url.searchParams.set("module", "contract");
-    url.searchParams.set("action", "getsourcecode");
     url.searchParams.set("address", getAddress(address));
-    url.searchParams.set("apikey", apiKey);
 
     const res = await fetch(url.toString());
     if (!res.ok) return null;
@@ -354,8 +384,8 @@ interface EtherscanCreationResponse {
  * appended by the deployer. Replaying this byte-for-byte on another
  * chain reproduces the original deployment.
  *
- * Returns `null` when `VITE_ETHERSCAN_API_KEY` is unset, the address
- * isn't found, the response omits `creationBytecode` (older Etherscan
+ * Returns `null` when Etherscan cannot be asked (no key, no proxy), the
+ * address isn't found, the response omits `creationBytecode` (older Etherscan
  * snapshots), or the request fails. Uncached for the same reason as
  * `fetchVerifiedContractFull` — bytecode payloads can be large and are
  * typically read once per `deploy --source-...`.
@@ -364,16 +394,11 @@ export async function fetchContractCreation(
   chainId: number,
   address: Address,
 ): Promise<EtherscanCreationResult | null> {
-  const apiKey = readEtherscanApiKey();
-  if (!apiKey) return null;
+  const url = etherscanUrl(chainId, "contract", "getcontractcreation");
+  if (!url) return null;
 
   try {
-    const url = new URL(ETHERSCAN_V2_URL);
-    url.searchParams.set("chainid", String(chainId));
-    url.searchParams.set("module", "contract");
-    url.searchParams.set("action", "getcontractcreation");
     url.searchParams.set("contractaddresses", getAddress(address));
-    url.searchParams.set("apikey", apiKey);
 
     const res = await fetch(url.toString());
     if (!res.ok) return null;

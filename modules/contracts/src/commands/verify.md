@@ -170,8 +170,9 @@ contracts:verify 0x44fA8E6f47987339850636F88629646662444217 --source '{
 - A command and all of its options must be written on a single line — EVML
   has no `\` line continuation. (Quoted strings may span lines, as in the
   inline `--source` example above.)
-- Requires the `VITE_ETHERSCAN_API_KEY` environment variable. The same key
-  is used by hover-card lookups; Etherscan V2's free tier covers 60+
+- Needs access to Etherscan. The terminal has it through the EVMcrispr
+  API; the CLI reads the `VITE_ETHERSCAN_API_KEY` environment variable.
+  Hover-card lookups go the same way; Etherscan V2's free tier covers 60+
   chains under one key.
 - The `deploy` transaction must be **mined** before `verify` runs — Etherscan
   reads the deployed runtime bytecode at `<address>`. In practice this

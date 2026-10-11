@@ -93,7 +93,8 @@ exec $token "transfer(address,uint256)" @me 1e18
   deployment. The fetched bytecode already includes the original ABI-encoded
   constructor arguments, so `--constructor` / `--constructor-args` are not
   allowed in this mode. Combine with `--create2` / `--create3` to pin the
-  cloned contract to a deterministic address. Requires
+  cloned contract to a deterministic address. Needs access to
+  Etherscan: the terminal has it through the EVMcrispr API, the CLI reads
   `VITE_ETHERSCAN_API_KEY`.
 
 ## Caveats

@@ -1,5 +1,5 @@
 // Importable from the EVML Web Worker: touches nothing but the API base.
-import { setChainUrlPolicy } from "@evmcrispr/core";
+import { setChainUrlPolicy, setEtherscanProxy } from "@evmcrispr/core";
 
 import { EVMCRISPR_API_BASE } from "./api";
 
@@ -16,7 +16,10 @@ export function browserSafeUrl(url: string): string {
 }
 
 /** Make every chain a module declares reachable from this origin — the
- *  registry hands out proxied RPC and explorer-API URLs from here on. */
+ *  registry hands out proxied RPC and explorer-API URLs from here on — and
+ *  send Etherscan requests through the API, which holds the key: none is
+ *  compiled into this app. */
 export function applyBrowserUrlPolicy(): void {
   setChainUrlPolicy(browserSafeUrl);
+  setEtherscanProxy(`${EVMCRISPR_API_BASE}/etherscan`);
 }

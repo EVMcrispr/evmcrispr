@@ -4,7 +4,7 @@ import {
   defineHelper,
   ErrorException,
   fetchAddressTransactions,
-  readEtherscanApiKey,
+  hasEtherscanAccess,
   resolveChainId,
 } from "@evmcrispr/sdk";
 import type Receipts from "..";
@@ -45,9 +45,8 @@ export default defineHelper<Receipts>({
       count,
     );
     if (txs === null) {
-      const hasKey = !!readEtherscanApiKey();
       throw new ErrorException(
-        hasKey
+        hasEtherscanAccess()
           ? `could not fetch the transaction history of ${address} on ${chainLabel(chainId)} — the explorer request failed`
           : `no explorer available for ${chainLabel(chainId)} — transaction history needs an Etherscan API key or a chain with a Blockscout instance`,
       );

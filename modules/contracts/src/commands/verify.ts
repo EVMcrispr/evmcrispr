@@ -4,8 +4,8 @@ import {
   defineCommand,
   ErrorException,
   encodeConstructorParams,
+  etherscanUrl,
   fetchVerifiedContractFull,
-  readEtherscanApiKey,
   registeredChain,
   resolveChainId,
 } from "@evmcrispr/sdk";
@@ -20,11 +20,10 @@ import {
   withDeployedBytecodeSelection,
 } from "../utils/verification";
 
-const ETHERSCAN_V2_URL = "https://api.etherscan.io/v2/api";
-
 /**
  * Where a chain's verification requests go. Chains viem knows use
- * Etherscan's multi-chain v2 API (key required); a chain some module
+ * Etherscan's multi-chain v2 API (with a key, or through the host's proxy,
+ * see `etherscanUrl`); a chain some module
  * declared (`ChainDef`) uses its own explorer's Etherscan-compatible API
  * (Blockscout's `<backend>/api`), which needs no key.
  */
@@ -34,10 +33,7 @@ interface VerifyEndpoint {
   statusUrl(guid: string): URL;
 }
 
-function verifyEndpoint(
-  chainId: number,
-  apiKey: string | undefined,
-): VerifyEndpoint {
+function verifyEndpoint(chainId: number): VerifyEndpoint {
   const explorerApi = registeredChain(chainId)?.explorerApiUrl;
   if (explorerApi) {
     const base = (action: string) => {
@@ -56,17 +52,13 @@ function verifyEndpoint(
       },
     };
   }
-  if (!apiKey) {
-    throw new ErrorException(
-      "verify: VITE_ETHERSCAN_API_KEY env var is required",
-    );
-  }
   const base = (action: string) => {
-    const url = new URL(ETHERSCAN_V2_URL);
-    url.searchParams.set("apikey", apiKey);
-    url.searchParams.set("chainid", String(chainId));
-    url.searchParams.set("module", "contract");
-    url.searchParams.set("action", action);
+    const url = etherscanUrl(chainId, "contract", action);
+    if (!url) {
+      throw new ErrorException(
+        "verify: no access to Etherscan — set the VITE_ETHERSCAN_API_KEY env var",
+      );
+    }
     return url;
   };
   return {
@@ -382,11 +374,10 @@ export default defineCommand<Contracts>({
   ],
   async run(module, { address }, { opts, interpreters }) {
     // Inside a sim:fork block verification becomes a local dry-run, which
-    // needs no Etherscan API key. Mirror-mode *fetching* is also keyless
-    // now (Blockscout fallback); only the real Etherscan submission needs
-    // the key.
+    // needs no access to Etherscan. Mirror-mode *fetching* is also keyless
+    // (Blockscout fallback); only the real Etherscan submission needs a key
+    // or the host's proxy.
     const simulation = interpreters.simulation === true;
-    const apiKey = readEtherscanApiKey();
 
     const targetAddress = getAddress(address as `0x${string}`);
     const targetChainId = await module.getChainId();
@@ -581,12 +572,13 @@ export default defineCommand<Contracts>({
       return [];
     }
 
-    // Etherscan V2 requires `apikey`, `chainid`, `module`, and `action`
-    // as URL query parameters even for POST. The actual contract payload
+    // Etherscan V2 requires `chainid`, `module`, and `action` (and the
+    // key, which the host's proxy adds when there is none here) as URL
+    // query parameters even for POST. The actual contract payload
     // (sourceCode etc.) is sent as the form body — `sourceCode` would
     // otherwise blow the URL length limit. Blockscout's compatible API
     // takes the same shape without a key.
-    const endpoint = verifyEndpoint(targetChainId, apiKey);
+    const endpoint = verifyEndpoint(targetChainId);
     const url = endpoint.submitUrl;
 
     const body = new URLSearchParams();

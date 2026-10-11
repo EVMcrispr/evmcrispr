@@ -7,7 +7,7 @@ import {
   encodeAction,
   encodeConstructorParams,
   fetchContractCreation,
-  readEtherscanApiKey,
+  hasEtherscanAccess,
   resolveChainId,
 } from "@evmcrispr/sdk";
 import {
@@ -209,9 +209,9 @@ export default defineCommand<Contracts>({
     let initCode: `0x${string}` | RuntimeValue;
 
     if (isMirror) {
-      if (!readEtherscanApiKey()) {
+      if (!hasEtherscanAccess()) {
         throw new ErrorException(
-          "deploy: VITE_ETHERSCAN_API_KEY env var is required to mirror an existing deployment via --mirror-address",
+          "deploy: mirroring an existing deployment via --mirror-address needs access to Etherscan — set the VITE_ETHERSCAN_API_KEY env var",
         );
       }
 
