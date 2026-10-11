@@ -10,11 +10,12 @@ import MonacoEditorBase, { loader, useMonaco } from "@monaco-editor/react";
 // origin (dev middleware + build copy in the terminal's vite config) rather
 // than a third-party CDN — injected <script> tags can't be hash-verified,
 // so CDN trust is removed instead. Apps embedding this editor must serve
-// monaco-editor@0.56.0/min/vs at /vs (or call loader.config to override).
+// monaco-editor@0.57.0/min/vs at /vs (or call loader.config to override).
 // monaco-editor is pinned exact. 0.53–0.55 swallowed the first keystroke
 // typed over a backward (right-to-left) selection on the textarea path
-// (vscode#273146); 0.56.0 ships the fix. When bumping, re-test backward
-// select + type in a browser without the EditContext API (e.g. Firefox).
+// (vscode#273146); 0.56.0 shipped the fix and 0.57.0 keeps it. When
+// bumping, re-test backward select + type in a browser without the
+// EditContext API (e.g. Firefox).
 /** Where the self-hosted monaco AMD build is served from. */
 const VS_BASE = "/vs";
 loader.config({ paths: { vs: VS_BASE } });
