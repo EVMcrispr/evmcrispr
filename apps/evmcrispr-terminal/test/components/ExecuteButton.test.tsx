@@ -31,12 +31,12 @@ async function setup(wallet: Parameters<typeof fakeEvml>[1]) {
 
 beforeEach(() => setUi({ activeTab: "reference", spaceView: "list" }));
 
-test("Execute starts a run and shows its timeline; Stop ends it", async () => {
+test("Run starts a run and shows its timeline; Stop ends it", async () => {
   const t = await setup(() => new Promise(() => {}));
   renderInSpace(<ExecuteButton />, t);
-  expect(names()).toEqual(["Simulate", "Execute"]);
+  expect(names()).toEqual(["Simulate", "Run"]);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Execute" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
     await settle();
   });
   expect(uiStore.getState()).toMatchObject({
@@ -48,7 +48,7 @@ test("Execute starts a run and shows its timeline; Stop ends it", async () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop" }));
     await settle();
   });
-  expect(names()).toEqual(["Simulate", "Execute"]);
+  expect(names()).toEqual(["Simulate", "Run"]);
 });
 
 test("a paused run offers the way to its card, where Resume is, and Cancel", async () => {
@@ -57,7 +57,7 @@ test("a paused run offers the way to its card, where Resume is, and Cancel", asy
   });
   renderInSpace(<ExecuteButton />, t);
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Execute" }));
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
     await settle();
   });
   expect(names()).toEqual(["Show paused run", "Cancel"]);
@@ -70,7 +70,7 @@ test("a paused run offers the way to its card, where Resume is, and Cancel", asy
   expect(t.evml.attempts).toBe(1);
 });
 
-test("while the space runs in another tab, Execute is disabled and says why", async () => {
+test("while the space runs in another tab, Run is disabled and says why", async () => {
   const t = await setup(() => new Promise(() => {}));
   await t.app.runs.start(t.id, { mode: "real" });
   await settle();
@@ -79,7 +79,7 @@ test("while the space runs in another tab, Execute is disabled and says why", as
   other.spaces.show(t.id);
   renderInSpace(<ExecuteButton />, { app: other, space });
   const execute = screen.getByRole("button", {
-    name: "Execute",
+    name: "Run",
   }) as HTMLButtonElement;
   expect(execute.disabled).toBe(true);
   expect(execute.parentElement?.title).toBe("Running in another tab");

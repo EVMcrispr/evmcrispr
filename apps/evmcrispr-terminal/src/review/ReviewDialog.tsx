@@ -17,7 +17,7 @@ function OpenReview() {
       approval={useApproval()}
       // The run shows in the timeline.
       onRun={() => setUi({ activeTab: "space", spaceView: "timeline" })}
-      // Execute is under the script, outside the review.
+      // Run is under the script, outside the review.
       onApproved={closeReview}
     />
   );

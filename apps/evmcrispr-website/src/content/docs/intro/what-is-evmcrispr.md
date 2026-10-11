@@ -16,7 +16,7 @@ Running a script goes through three steps:
 2. **Interpret** — commands run in order, resolving helpers like
    `@token(DAI)` against live chain state and collecting *actions*
    (transaction descriptors). Nothing is signed or sent yet.
-3. **Execute** — the collected actions are handed to your wallet for
+3. **Run** — the collected actions are handed to your wallet for
    signing, one transaction per action (or one for a whole
    [batch](/language/blocks-and-batching/)).
 

@@ -9,7 +9,7 @@ This page walks you through your first scripts in the web terminal — see
 ## Web Terminal
 
 Visit [next.evmcrispr.com](https://next.evmcrispr.com) to open the web terminal.
-Connect your wallet, write a script, and click Execute.
+Connect your wallet, write a script, and click Run.
 
 ## Active Chain
 

@@ -252,7 +252,7 @@ function TerminalInner({
               ? "Running…"
               : "Simulating…"
             : executeAction
-              ? "Execute"
+              ? "Run"
               : "Simulate"}
         </button>
       </div>
@@ -262,7 +262,7 @@ function TerminalInner({
           <Console
             entries={interpreter.entries}
             errors={errors}
-            placeholder="Console output will appear here during execution."
+            placeholder="Console output will appear here during the run."
             markdown
           />
         </div>

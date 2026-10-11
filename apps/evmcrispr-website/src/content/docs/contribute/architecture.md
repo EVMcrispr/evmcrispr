@@ -85,7 +85,7 @@ Script → Parser → AST → Interpreter → Action[] → Execution
 1. **Parse**: Text is parsed into an AST of command nodes, helper expressions, etc.
 2. **Interpret**: The interpreter walks the AST, resolving variables and helpers
 3. **Collect**: Commands produce Action arrays which are collected
-4. **Execute**: Actions are sent to the wallet (or simulation backend)
+4. **Run**: Actions are sent to the wallet (or simulation backend)
 
 ## Simulation
 

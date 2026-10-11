@@ -16,9 +16,9 @@ import {
  *     (that run executes the text it was started on, which was reviewed);
  *  2. the script is not the approved text: "Review changes", which opens
  *     the review;
- *  3. the space runs in another tab: Execute, disabled, saying so;
+ *  3. the space runs in another tab: Run, disabled, saying so;
  *  4. Simulate, which opens the review on a simulation of the script,
- *     and Execute, which starts the run at once.
+ *     and Run, which starts the run at once.
  * The button only chooses what to offer. Whether a run may start is
  * decided where it starts (`runs.start`), whatever was clicked.
  */
@@ -87,7 +87,7 @@ export function ExecuteButton() {
             void execute();
           }}
         >
-          Execute
+          Run
         </Button>
       </span>
     </>

@@ -3,7 +3,7 @@
 //  - What reaches the wallet goes through the run's gate (`gate.ts`), which
 //    holds it while the run's space is not the one on screen and after a
 //    refusal. Nothing else decides that.
-//  - What runs is the text of the space on screen when Execute was pressed.
+//  - What runs is the text of the space on screen when Run was pressed.
 //    Timeline entries and run records can arrive from other copies; they
 //    are shown, and never decide what is executed or signed.
 //  - What must happen once is asked of the locks: one real run per space,
@@ -579,7 +579,7 @@ export function createRunManager(deps: RunDeps): RunManager {
         if (classifyError(error).kind === "rejected")
           return finish("cancelled");
         if (cancelled || CANCELLED_MESSAGES.has(message))
-          return finish("cancelled", ["Script execution cancelled"]);
+          return finish("cancelled", ["Run cancelled"]);
         console.error(error);
         const hash = message.startsWith("transaction failed")
           ? message.split('"')[1]

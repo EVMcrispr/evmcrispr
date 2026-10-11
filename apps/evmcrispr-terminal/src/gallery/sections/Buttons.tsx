@@ -13,10 +13,10 @@ export function Buttons() {
         <Example label="primary: the one main action of a surface">
           <Button variant="primary">
             <Play data-icon aria-hidden />
-            Execute
+            Run
           </Button>
           <Button variant="primary" disabled>
-            Execute
+            Run
           </Button>
           <Button variant="primary" loading>
             Simulating
@@ -65,7 +65,7 @@ export function Buttons() {
         </Example>
         <Example label="link">
           <Button variant="link" size="row">
-            Show earlier
+            6 previous entries
           </Button>
         </Example>
         <Example label="icon buttons: neutral, quiet, destructive">

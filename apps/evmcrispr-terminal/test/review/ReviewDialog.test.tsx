@@ -109,12 +109,12 @@ beforeEach(() => {
   setUi({ activeTab: "space" });
 });
 
-test("an assistant edit turns Execute into Review changes; the review shows the diff, the revision with its explanation and the simulated actions; Approve restores Execute", async () => {
+test("an assistant edit turns Run into Review changes; the review shows the diff, the revision with its explanation and the simulated actions; Approve restores Run", async () => {
   const t = await setup();
   t.render();
-  expect(names()).toContain("Execute");
+  expect(names()).toContain("Run");
   act(() => void turn(t.space, "t1", "print 1\nprint 666", "Pays the grant"));
-  expect(names()).not.toContain("Execute");
+  expect(names()).not.toContain("Run");
   await click("Review changes");
 
   const dialog = screen.getByRole("dialog");
@@ -148,11 +148,11 @@ test("an assistant edit turns Execute into Review changes; the review shows the 
   await click("Approve");
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(reviewed(t.space)).toBe(true);
-  expect(names()).toContain("Execute");
+  expect(names()).toContain("Run");
   // A further assistant edit blocks again.
   act(() => void turn(t.space, "t2", "print 1\nprint 667"));
   expect(names()).toContain("Review changes");
-  expect(names()).not.toContain("Execute");
+  expect(names()).not.toContain("Run");
 });
 
 test("an edit landing while the review is open leaves the earlier diff on screen with Approve disabled; the new changes are shown, and can be approved, only when asked for", async () => {
@@ -216,7 +216,7 @@ test("a space with nothing approved shows the whole script as changed, and Appro
   expect(changes.textContent).toBe("+added: print 7+added: print 8");
   await click("Approve");
   expect(reviewed(t.space)).toBe(true);
-  expect(names()).toContain("Execute");
+  expect(names()).toContain("Run");
 });
 
 test("Approve is allowed when the simulation fails, and does not wait for it", async () => {
@@ -361,7 +361,7 @@ test("approving in one tab closes the gate's mark in the other", async () => {
   expect(names()).toEqual(["Review changes"]);
   t.space.approve("print 22");
   await act(settle);
-  expect(names()).toEqual(["Simulate", "Execute"]);
+  expect(names()).toEqual(["Simulate", "Run"]);
 });
 
 test("Approve is not live the instant the review appears, nor right after new changes are shown, and never has the focus", async () => {

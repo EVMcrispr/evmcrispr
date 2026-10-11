@@ -10,7 +10,7 @@ language — pick the surface that fits how you work.
 [next.evmcrispr.com](https://next.evmcrispr.com) is the primary way to use
 EVMcrispr: a browser editor with syntax highlighting, completions, inline
 diagnostics, and hover documentation. Connect your wallet, write a script,
-and click **Execute** — every transaction is shown to you for review and
+and click **Run** — every transaction is shown to you for review and
 signed by your own wallet.
 
 The terminal can also [share scripts as links](/guides/sharing-scripts/)
@@ -26,7 +26,7 @@ or sends anything, and it asks before editing a script you are not
 looking at, or before using the web in a chat that has read your other
 scripts.
 
-A script that is unreviewed cannot be executed or shared yet. Execute
+A script that is unreviewed cannot be run or shared yet. Run
 reads **Review changes**: the review shows what changed since the text
 you approved, who changed it and why. Nothing of the change is run by
 looking at it; you can ask for a simulation to see what the script

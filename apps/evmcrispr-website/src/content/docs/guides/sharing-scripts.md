@@ -76,7 +76,7 @@ A script you open from a link is yours to read before anything is signed:
 simulate it first (see [Simulation](simulation.md)). After that, the
 terminal asks for a review whenever someone other than you changes a
 script you had accepted: the assistant, or an exported space merged into
-yours. Until you approve the change, **Execute** reads **Review changes**
+yours. Until you approve the change, **Run** reads **Review changes**
 and nothing can be sent or shared. Your own typing never needs a review.
 
 ## Exporting a Whole Space
