@@ -134,10 +134,24 @@ function sniffImageType(head: Uint8Array, text: string): string | null {
   ) {
     return "image/webp";
   }
-  if (/^\s*(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/.test(text)) {
-    return "image/svg+xml";
-  }
+  if (opensAsSvg(text)) return "image/svg+xml";
   return null;
+}
+
+/** Whether `text` opens as an SVG document: an XML declaration if any,
+ *  then comments, then `<svg`. The comments are stepped over one at a time:
+ *  this reads content from the network, and one pattern for all of them
+ *  takes exponential time on a run of comments that no `<svg` follows. */
+export function opensAsSvg(text: string): boolean {
+  const lead = /^\s*(?:<\?xml[^>]*\?>\s*)?/.exec(text);
+  let at = lead ? lead[0].length : 0;
+  while (text.startsWith("<!--", at)) {
+    const end = text.indexOf("-->", at + 4);
+    if (end === -1) return false;
+    at = end + 3;
+    while (/\s/.test(text.charAt(at))) at++;
+  }
+  return /^<svg[\s>]/.test(text.slice(at, at + 5));
 }
 
 /** Recursion depth below the root shown in a folder preview. */
