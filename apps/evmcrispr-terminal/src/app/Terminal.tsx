@@ -3,10 +3,10 @@ import { useEffect } from "react";
 import { ScrollRestoration, useNavigate } from "react-router";
 import SelectWalletModal from "../components/wallet/SelectWalletModal";
 import { useSmallScreen } from "../hooks/useSmallScreen";
+import { closeReview } from "../review/surface";
 import { useWallet } from "../wallet/WalletContext";
 import { useApp } from "./AppContext";
 import { DesktopLayout } from "./DesktopLayout";
-import { LegacyExecution } from "./legacy-execution";
 import { MobileLayout } from "./MobileLayout";
 import { SpaceProvider } from "./SpaceContext";
 import { setUi } from "./ui-store";
@@ -31,11 +31,12 @@ export default function Terminal() {
     navigate(next ? `/${next.id}` : "/", { replace: true });
   }, [route.status, navigate, app]);
 
-  // A revision is viewed in its own space only.
+  // A revision is viewed, and a review is held, in its own space only.
   const spaceId = route.status === "ready" ? route.space.id : null;
   useEffect(() => {
     void spaceId;
     setUi({ previewRevisionId: null });
+    closeReview();
   }, [spaceId]);
 
   const Layout = small ? MobileLayout : DesktopLayout;
@@ -44,11 +45,7 @@ export default function Terminal() {
     <>
       <ScrollRestoration />
       <SpaceProvider value={route.status === "ready" ? route.space : null}>
-        <LegacyExecution
-          intent={route.status === "ready" ? route.intent : "author"}
-        >
-          <Layout route={route} />
-        </LegacyExecution>
+        <Layout route={route} />
       </SpaceProvider>
       {/* Desktop connects through Header's own modal; this one only serves
           the mobile flow (wallet.connectWallet). */}

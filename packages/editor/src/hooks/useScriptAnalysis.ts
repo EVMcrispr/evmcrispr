@@ -19,9 +19,16 @@ type Position = { line: number; col: number };
  * `evm.getHoverInfo` (not awaited on the prewarm promise), so a slow /
  * hung RPC inside `prewarm` cannot freeze every hover.
  */
-export function useScriptAnalysis(script: string) {
+export function useScriptAnalysis(
+  script: string,
+  remoteModules: boolean | ((script: string) => boolean) = true,
+) {
   const tag = useEvmlTag();
   const evm = useMemo(() => tag.workspace(), [tag]);
+  // Whether analysing may fetch the external modules a script names: the
+  // workspace asks at each analysis, of the text it analyses (which, being
+  // debounced, is not always the text of this render).
+  evm.setRemoteModules(remoteModules);
 
   const debouncedScript = useDebounce(script, SCRIPT_DEBOUNCE_MS);
 

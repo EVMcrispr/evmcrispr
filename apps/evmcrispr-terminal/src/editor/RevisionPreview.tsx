@@ -2,7 +2,7 @@ import type { HoverRef } from "@evmcrispr/core";
 import { Viewer } from "@evmcrispr/editor";
 import { type RevisionEntry, titleLine } from "@evmcrispr/space";
 import { Button } from "@repo/ui";
-import { useSpace, useTimeline } from "../app/SpaceContext";
+import { useIsApprovedText, useSpace, useTimeline } from "../app/SpaceContext";
 import { setUi, useUi } from "../app/ui-store";
 
 /** The revision being viewed, when it belongs to the space on screen. */
@@ -24,6 +24,7 @@ export function RevisionPreview({
   onOpenDocs?: (ref: HoverRef) => void;
 }) {
   const space = useSpace();
+  const isApproved = useIsApprovedText();
   const back = () => setUi({ previewRevisionId: null });
   return (
     <div className="flex h-full flex-col">
@@ -62,6 +63,9 @@ export function RevisionPreview({
         <Viewer
           script={revision.text}
           titleLine={titleLine(revision.text)}
+          // Looking at a recorded text that is not the approved script
+          // fetches nothing that text names.
+          remoteModules={isApproved}
           onOpenDocs={onOpenDocs}
         />
       </div>

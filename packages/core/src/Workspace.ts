@@ -111,6 +111,12 @@ export class EvmlWorkspace {
    *  recent `prewarm(script)` call. May differ from `#client` when the
    *  script `switch`ed chains. Always paired with `#scriptChainId`. */
   #scriptClient?: PublicClient;
+  /** Whether a `load --from ipfs://…` module not fetched before is fetched
+   *  to learn its schema, asked of the script being analysed. See
+   *  `setRemoteModules`. */
+  #fetchRemoteModules: boolean | ((script: string) => boolean) = true;
+  /** Aliases the latest analysis left unfetched because of it. */
+  #unfetchedModules: string[] = [];
   /** Monotonic guard so slower prewarm calls cannot publish stale state. */
   #prewarmSequence = 0;
   /** Per-command checkpoints from the most recent `prewarm(script)` walk.
@@ -225,7 +231,53 @@ export class EvmlWorkspace {
    *  externals (fetched by CID and cached forever — CIDs are immutable;
    *  fetch failures bind an opaque placeholder and are NOT cached). Stale
    *  synthetic names from earlier edits are nulled out. */
+  /**
+   * Whether analysing a script may fetch the external modules it names
+   * (`load <alias> --from ipfs://<cid>`), which is a request to an address
+   * the script's text chose. On by default. Give a function to decide per
+   * script: it is asked at each analysis (diagnostics, keywords,
+   * completions, hover, signature help, prewarm) with the exact text
+   * being analysed, so the answer cannot belong to another text; if it
+   * throws, nothing is fetched. Where the answer is no, a module that was
+   * not fetched before is bound as opaque (its commands and helpers are
+   * not checked) and listed in `unfetchedModules`; one this workspace
+   * already fetched is still used.
+   */
+  setRemoteModules(fetch: boolean | ((script: string) => boolean)): void {
+    this.#fetchRemoteModules = fetch;
+  }
+
+  #mayFetchRemoteModules(script: string): boolean {
+    const allowed = this.#fetchRemoteModules;
+    if (typeof allowed !== "function") return allowed === true;
+    try {
+      return allowed(script) === true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** The external modules the latest analysis did not fetch because
+   *  fetching is off: nothing of them was checked. */
+  get unfetchedModules(): string[] {
+    return [...this.#unfetchedModules];
+  }
+
   async #ensureScriptDerivedModules(script: string): Promise<void> {
+    const unfetched: string[] = [];
+    try {
+      await this.#bindScriptDerivedModules(script, unfetched);
+    } finally {
+      this.#unfetchedModules = unfetched;
+    }
+  }
+
+  async #bindScriptDerivedModules(
+    script: string,
+    unfetched: string[],
+  ): Promise<void> {
+    // Asked once, of this very text, before anything is awaited.
+    const mayFetch = this.#mayFetchRemoteModules(script);
     let ast: EvmlAST;
     try {
       ({ ast } = parseScript(script));
@@ -287,8 +339,10 @@ export class EvmlWorkspace {
         const cid = m?.[1];
         let data = cid ? this.#remoteModuleData.get(cid) : undefined;
         if (!data && cid) {
-          data = await this.#fetchRemoteModule(cid, m?.[2]);
-          if (data) this.#remoteModuleData.set(cid, data);
+          if (mayFetch) {
+            data = await this.#fetchRemoteModule(cid, m?.[2]);
+            if (data) this.#remoteModuleData.set(cid, data);
+          } else unfetched.push(alias);
         }
         this.#moduleCache.setBinding(
           alias,

@@ -328,14 +328,15 @@ export function useChatAgent(options: UseChatAgentOptions) {
       const release = acquireTurn
         ? await acquireTurn(chatId).catch(() => null)
         : () => {};
+      // What another tab answered meanwhile comes first. A chat removed
+      // there is not answered under the right taken for it.
+      if (release) follow();
       if (!release || chatId !== conversationIdRef.current) {
         release?.();
         sendingRef.current = false;
         if (!release) setError({ kind: "busy", message: BUSY_ERROR_MESSAGE });
         return;
       }
-      // What another tab answered meanwhile comes first.
-      follow();
 
       setIsRunning(true);
       stoppedRef.current = false;

@@ -24,6 +24,7 @@ import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
 import { findHeredocRanges, heredocKindClass } from "../heredocRanges";
+import { lineRuns } from "../lineRuns";
 import { toMonacoCompletionItem } from "./autocompletion";
 import { registerCircomLanguage } from "./circom-language";
 import { conf, contribution, createLanguage } from "./evml";
@@ -59,6 +60,15 @@ export interface EditorProps {
   /** 0-based index of the line shown as the script's title (its first
    *  comment). The host decides which line that is. */
   titleLine?: number | null;
+  /** 1-based lines that carry a mark in the margin: the host decides which
+   *  (lines that differ from a text it compares with). */
+  changedLines?: readonly number[];
+  /** Whether analysing the script (keywords, completions, hovers,
+   *  diagnostics, prewarm) may fetch the external modules it names with
+   *  `load --from ipfs://…`. A function is asked at each analysis with the
+   *  exact text being analysed, and nothing is fetched if it throws.
+   *  Default true. */
+  remoteModules?: boolean | ((script: string) => boolean);
   /** Fired when the user clicks the "Open in reference" link in a hover
    *  card over a command or `@helper` name. */
   onOpenDocs?: (ref: HoverRef) => void;
@@ -90,6 +100,8 @@ function Editor({
   onChange,
   executingLine,
   titleLine,
+  changedLines,
+  remoteModules = true,
   onOpenDocs,
   onMount,
   onDidPaste,
@@ -102,6 +114,8 @@ function Editor({
   const tag = useEvmlTag();
 
   const evm = useMemo(() => tag.workspace(), [tag]);
+  // The workspace asks it at each analysis, of the text it analyses.
+  evm.setRemoteModules(remoteModules);
 
   const [editorInstance, setEditorInstance] =
     useState<editor.IStandaloneCodeEditor | null>(null);
@@ -783,6 +797,33 @@ function Editor({
       collection.clear();
     };
   }, [titleLine, monaco, editorInstance]);
+
+  // ── Changed lines: a mark in the margin, one decoration per run of
+  // consecutive lines. Re-applied when the model is swapped. ──
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editorInstance re-arms the listener on remount
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed || !monaco) return;
+    const collection = ed.createDecorationsCollection([]);
+    const refresh = () => {
+      const count = ed.getModel()?.getLineCount() ?? 0;
+      collection.set(
+        lineRuns(changedLines ?? [], count).map(([from, to]) => ({
+          range: new monaco.Range(from, 1, to, 1),
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: "evml-changed-line",
+          },
+        })),
+      );
+    };
+    refresh();
+    const onModel = ed.onDidChangeModel(refresh);
+    return () => {
+      onModel.dispose();
+      collection.clear();
+    };
+  }, [changedLines, monaco, editorInstance]);
 
   // ── Heredoc bar + tint (mirrors the Shiki viewer's heredoc transformer) ──
   // Refreshed on every edit (not debounced): the scan is a cheap line

@@ -15,6 +15,7 @@ import { ScriptView } from "../editor/ScriptView";
 import { useViewMode } from "../hooks/useViewMode";
 import { SidePanel } from "../panel/SidePanel";
 import { SpacesList } from "../panel/space/SpacesList";
+import { ReviewDialog } from "../review/ReviewDialog";
 import { useMaybeSpace, useSpaceText } from "./SpaceContext";
 import { StorageNotice } from "./StorageNotice";
 import { setUi } from "./ui-store";
@@ -128,6 +129,7 @@ function DesktopSpace() {
           <ExecuteButton />
         </div>
       </div>
+      <ReviewDialog />
     </>
   );
 }

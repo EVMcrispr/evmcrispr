@@ -401,6 +401,24 @@
   line-height: 1.4 !important;
 }
 
+/* A line the host marks as changed (in the terminal: one that differs
+   from the text the user approved). A bar at the left edge of the margin,
+   in the editor and the viewer alike; it says the line differs, nothing
+   more. In Monaco it sits at the left of the line-decorations lane, where
+   the heredoc bar keeps the right. */
+.monaco-editor .evml-changed-line::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: #f29869;
+}
+.evmcrispr-root .evml-viewer code .line.evml-changed-line {
+  box-shadow: inset 3px 0 0 #f29869;
+}
+
 /* The script's title: its first comment, shown as a heading in the editor
    and the viewer alike. */
 .evmcrispr-root .evml-viewer code .line.evml-title-line {

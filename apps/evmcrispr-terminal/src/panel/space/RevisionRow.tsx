@@ -1,36 +1,18 @@
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { cn } from "@repo/ui";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useApp } from "../../app/AppContext";
-import { useMarkers, useSpace } from "../../app/SpaceContext";
+import { useMarkers, useSpace, useTimeline } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
+import {
+  RowAction as Action,
+  RevisionActions,
+} from "../../review/RevisionActions";
 import { spaceFromEntry } from "../../space/derive";
+import { revisionLabel } from "../../space/revision-label";
 import type { RevisionRow as Row } from "./rows";
 import { ago } from "./time";
-
-const AUTHOR = { user: "You", assistant: "Assistant", agent: "Agent" };
-const VERB: Partial<Record<Row["entry"]["source"], string>> = {
-  import: "opened the script",
-  load: "loaded a revision",
-  revert: "reverted a change",
-};
-
-const Action = ({
-  onClick,
-  children,
-}: {
-  onClick(): void;
-  children: ReactNode;
-}) => (
-  <button
-    type="button"
-    className="cursor-pointer rounded-(--radius) border border-foreground/20 px-2 py-0.5 font-sans text-xs text-foreground/75 outline-hidden hover:border-primary hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
-    onClick={onClick}
-  >
-    {children}
-  </button>
-);
 
 /** One recorded state of the script: who made it, what changed, and the
  *  ways to look at it or go back to it. */
@@ -42,6 +24,10 @@ export function RevisionRow({ row }: { row: Row }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const { entry, parent } = row;
+  const { who, what } = revisionLabel(
+    entry,
+    useTimeline((timeline) => timeline.entries),
+  );
 
   /** Puts a recorded text back as the script. Work is never lost: what
    *  was typed since is recorded first, and Ctrl+Z undoes the load. */
@@ -65,12 +51,8 @@ export function RevisionRow({ row }: { row: Row }) {
           )}
         />
         <span className="min-w-0 flex-1 font-sans text-sm">
-          <span className="font-semibold text-foreground/85">
-            {AUTHOR[entry.author.kind]}
-          </span>{" "}
-          <span className="text-foreground/70">
-            {entry.summary ?? VERB[entry.source] ?? "edited the script"}
-          </span>
+          <span className="font-semibold text-foreground/85">{who}</span>{" "}
+          <span className="text-foreground/70">{what}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-foreground/45">
             <span>
               <span className="text-evm-green-300">+{row.added}</span>{" "}
@@ -95,9 +77,7 @@ export function RevisionRow({ row }: { row: Row }) {
           {/* Offered for what someone else wrote, while the text before
               it is still kept. */}
           {entry.author.kind !== "user" && parent && (
-            <Action onClick={() => load(parent.text, parent.id)}>
-              Restore to before
-            </Action>
+            <RevisionActions revisionId={entry.id} />
           )}
           {chatId && chats.getChat(chatId) && (
             <Action

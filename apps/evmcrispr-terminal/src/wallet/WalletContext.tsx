@@ -2,7 +2,8 @@ import { createContext, type ReactNode, useContext } from "react";
 import { useWalletConnection } from "../hooks/useWalletConnection";
 
 type Wallet = ReturnType<typeof useWalletConnection>;
-const WalletContext = createContext<Wallet | null>(null);
+/** Exported for tests, which stand in for the wallet. */
+export const WalletContext = createContext<Wallet | null>(null);
 
 /** `useWalletConnection` holds the wallet modal's state and auto-connects
  *  inside Safe, so it must run once. Components read it from here. */

@@ -4,7 +4,12 @@ import { titleLine } from "@evmcrispr/space";
 import type { Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useScript, useSpace } from "../app/SpaceContext";
+import {
+  useChangedLines,
+  useIsApprovedText,
+  useScript,
+  useSpace,
+} from "../app/SpaceContext";
 import { setUi } from "../app/ui-store";
 import { useExecutingLine } from "../runs/useRun";
 import EditorDropZone from "./EditorDropZone";
@@ -29,6 +34,11 @@ function ScriptEditor() {
   const space = useSpace();
   const { text } = useScript();
   const executingLine = useExecutingLine();
+  // While unreviewed: the lines that differ from the approved text.
+  const changedLines = useChangedLines();
+  // Showing a text nobody approved fetches nothing that text names:
+  // asked of each text as it is analysed.
+  const isApproved = useIsApprovedText();
   const [mounted, setMounted] = useState<{
     editor: editor.IStandaloneCodeEditor;
     monaco: Monaco;
@@ -90,6 +100,8 @@ function ScriptEditor() {
       <MonacoEditor
         executingLine={executingLine}
         titleLine={titleLine(text)}
+        changedLines={changedLines}
+        remoteModules={isApproved}
         onOpenDocs={openDocs}
         onMount={handleMount}
         onDidPaste={offload}

@@ -3,8 +3,9 @@ import { Button, IconButton, Tooltip, toast } from "@repo/ui";
 import { useEffect, useState } from "react";
 
 import pinJSON from "../../api/pinata/pin-json";
-import { useScript } from "../../app/SpaceContext";
+import { useScript, useSpace, useUnreviewed } from "../../app/SpaceContext";
 import { useUi } from "../../app/ui-store";
+import { askForReview, showReview } from "../../review/surface";
 import { shareScript } from "../../space/links";
 
 type ShareButtonProps = {
@@ -18,7 +19,11 @@ export default function ShareButton({
   mobile = false,
   onShared,
 }: ShareButtonProps) {
+  const space = useSpace();
   const { text } = useScript();
+  // Only a reviewed script is shared: until then the button leads to the
+  // review. Whether a text may be shared is decided in `shareScript`.
+  const unreviewed = useUnreviewed();
   const [url, setUrl] = useState("");
   const [isLoading, setLoading] = useState(false);
   const viewMode = useUi((s) => s.viewMode);
@@ -30,6 +35,7 @@ export default function ShareButton({
   }, [text]);
 
   async function handleShare() {
+    if (unreviewed) return askForReview(space);
     if (!globalThis.crypto?.subtle) {
       toast.error("Sharing requires a secure context (https)");
       return;
@@ -37,11 +43,16 @@ export default function ShareButton({
 
     setLoading(true);
     try {
-      const shared = await shareScript(text, {
+      const shared = await shareScript(space, text, {
         pin: pinJSON,
         origin: window.location.origin,
         viewMode,
       });
+      if (!shared.ok) {
+        setLoading(false);
+        // Refused after a wait: the review comes up, asked for nothing.
+        return showReview();
+      }
       setUrl(shared.url);
       navigator.clipboard.writeText(shared.url);
       toast.success("The link is copied to the clipboard");
@@ -53,7 +64,11 @@ export default function ShareButton({
     }
   }
 
-  const tooltipLabel = url ? "Link copied to clipboard!" : "Generate link";
+  const tooltipLabel = unreviewed
+    ? "Review changes before sharing"
+    : url
+      ? "Link copied to clipboard!"
+      : "Generate link";
 
   if (mobile) {
     // No hover tooltips on touch — a toast explains the title requirement.

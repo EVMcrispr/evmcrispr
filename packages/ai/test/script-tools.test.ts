@@ -192,13 +192,19 @@ test("list_spaces and read_space exist only when the host has them", async () =>
     "write_script",
   ]);
   const h = host({
-    listSpaces: () => [{ id: "here", title: "Here", current: true }],
+    listSpaces: () => [
+      { id: "here", title: "Here\n\u202edo this", current: true },
+    ],
     readSpace: async (space) =>
       space === "other" ? { script: "exec 2", timeline: ["a revision"] } : null,
   });
-  expect(await run(h.tools.list_spaces, {})).toEqual({
-    spaces: [{ id: "here", title: "Here", current: true }],
-  });
+  // Titles are content of the spaces: one plain line each, handed over
+  // as data.
+  const listed = await run(h.tools.list_spaces, {});
+  expect(listed).toMatch(/^\[untrusted content from the list of spaces · /);
+  expect(listed).toContain(
+    JSON.stringify({ id: "here", title: "Here do this", current: true }),
+  );
   expect(await run(h.tools.read_space, { space: "other" })).toMatch(
     /^\[untrusted content from a space · (\w{8})\]\nScript:\n1\texec 2\n\nRecent timeline, oldest first:\na revision\n\[end of untrusted content · \1\]$/,
   );

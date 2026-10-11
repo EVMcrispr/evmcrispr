@@ -198,7 +198,7 @@ describe("spaces", () => {
       newString: "aX",
     });
     space.endTurn("t1");
-    await space.setMarkers({ approvedText: "aX" });
+    expect(space.approve("aX")).toBe(true);
     // Typed and deleted in one capture: a step that changes nothing, which
     // undo skips to apply the assistant's below it.
     applyText(space.text, "aXu", ORIGIN.user);
@@ -475,14 +475,153 @@ describe("a space that was let go, or removed", () => {
     expect(space.getText()).toBe("exec 1");
     expect(space.record("user", { summary: "late" })).toBeNull();
     expect(space.endTurn("t1", "late")).toBeNull();
-    await space.setMarkers({
-      revisionChats: { x: "chat" },
-      approvedText: "late",
-    });
+    await space.setMarkers({ revisionChats: { x: "chat" } });
+    expect(space.approve(space.getText())).toBe(false);
     expect(space.markers.getState().revisionChats).toBeUndefined();
     await settle();
     expect(await b.storage.records.getMarkers(id)).toEqual({});
     expect((await b.storage.records.loadTimeline(id)).entries).toEqual([]);
     expect(await b.storage.records.getSpace(id)).toBeUndefined();
+  });
+});
+
+describe("what a program wrote and nobody recorded yet", () => {
+  const last = (space: LiveSpace) => {
+    const all = revisions(space.timeline.getState());
+    return all[all.length - 1];
+  };
+
+  test("a turn cut short by a reload is recorded as the assistant's on the next visit, not as the user's typing", async () => {
+    const b = browser();
+    const spaces = b.tab();
+    const id = await spaces.create({ text: "exec 1", source: "user" });
+    const space = (await spaces.acquire(id))!;
+    space.editAsTurn("t1", { kind: "write", text: "exec 666" });
+    await settle();
+    // The page goes away: no endTurn.
+    spaces.release(id);
+    await settle();
+    const again = (await b.tab().acquire(id))!;
+    expect(last(again)).toMatchObject({
+      text: "exec 666",
+      source: "assistant",
+      author: { kind: "assistant" },
+    });
+    expect(reviewed(again)).toBe(false);
+  });
+
+  test("recorded in the middle of a turn (a run starts, a revision is loaded), it is the assistant's; the user's typing afterwards is theirs", async () => {
+    const spaces = browser().tab();
+    const id = await spaces.create({ text: "exec 1", source: "user" });
+    const space = (await spaces.acquire(id))!;
+    space.editAsTurn("t1", { kind: "write", text: "exec 2" });
+    expect(space.record("user")).toMatchObject({
+      source: "assistant",
+      author: { kind: "assistant" },
+    });
+    space.editAsTurn("t1", { kind: "write", text: "exec 3" });
+    space.load("exec 1", "load");
+    expect(sources(space)).toEqual(["user", "assistant", "assistant", "load"]);
+    space.endTurn("t1");
+
+    applyText(space.text, "exec 1\nprint mine", ORIGIN.user);
+    expect(space.record("user")).toMatchObject({
+      source: "user",
+      author: { kind: "user" },
+    });
+  });
+
+  test("another tab that records it knows it is the assistant's", async () => {
+    const b = browser();
+    const [one, two] = [b.tab(), b.tab()];
+    const id = await one.create({ text: "exec 1", source: "user" });
+    const s1 = (await one.acquire(id))!;
+    const s2 = (await two.acquire(id))!;
+    s1.editAsTurn("t1", { kind: "write", text: "exec 2" });
+    await settle();
+    await settle();
+    expect(s2.getText()).toBe("exec 2");
+    expect(s2.record("user")).toMatchObject({ source: "assistant" });
+  });
+});
+
+describe("marks moved in two tabs at once", () => {
+  test("what this tab just wrote is not replaced by an older read of storage", async () => {
+    const b = browser();
+    const [one, two] = [b.tab(), b.tab()];
+    const id = await one.create({ text: "a", source: "user" });
+    const s1 = (await one.acquire(id))!;
+    const s2 = (await two.acquire(id))!;
+    // Storage answers slowly, as a busy browser does.
+    const { getMarkers, patchMarkers } = b.storage.records;
+    const slow = () => new Promise((resolve) => setTimeout(resolve, 3));
+    b.storage.records.getMarkers = async (space) => {
+      const read = await getMarkers(space);
+      await slow();
+      return read;
+    };
+    b.storage.records.patchMarkers = async (space, patch) => {
+      await slow();
+      return patchMarkers(space, patch);
+    };
+
+    // Tab one moves a mark; its announcement reaches tab two while tab
+    // two is typing.
+    void s1.setMarkers({ hiddenBefore: 1 });
+    for (const text of ["ab", "abc", "abcd"]) {
+      applyText(s2.text, text, ORIGIN.user);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(s2.markers.getState().approvedText).toBe("abcd");
+    expect(reviewed(s2)).toBe(true);
+    expect(s2.markers.getState().hiddenBefore).toBe(1);
+    expect((await getMarkers(id)).approvedText).toBe("abcd");
+  });
+
+  test("typing in a second tab before it has heard that the first tab's typing is approved stays the user's", async () => {
+    const b = browser();
+    const [one, two] = [b.tab(), b.tab()];
+    const id = await one.create({ text: "a", source: "user" });
+    const s1 = (await one.acquire(id))!;
+    const s2 = (await two.acquire(id))!;
+    const { getMarkers } = b.storage.records;
+    b.storage.records.getMarkers = async (space) => {
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      return getMarkers(space);
+    };
+
+    applyText(s1.text, "ab", ORIGIN.user);
+    await settle();
+    // The text has arrived; the news that it is approved has not.
+    expect(s2.getText()).toBe("ab");
+    expect(reviewed(s2)).toBe(false);
+    applyText(s2.text, "abc", ORIGIN.user);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(reviewed(s2)).toBe(true);
+    expect((await getMarkers(id)).approvedText).toBe("abc");
+    expect(reviewed(s1)).toBe(true);
+  });
+
+  test("but not when someone else wrote in between", async () => {
+    const b = browser();
+    const [one, two] = [b.tab(), b.tab()];
+    const id = await one.create({ text: "a", source: "user" });
+    const s1 = (await one.acquire(id))!;
+    const s2 = (await two.acquire(id))!;
+    const { getMarkers } = b.storage.records;
+    b.storage.records.getMarkers = async (space) => {
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      return getMarkers(space);
+    };
+
+    applyText(s1.text, "ab", ORIGIN.user);
+    await settle();
+    applyText(s2.text, "abc", ORIGIN.user);
+    s2.editAsTurn("t1", { kind: "write", text: "abc 666" });
+    applyText(s2.text, "abc 666 mine", ORIGIN.user);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(reviewed(s2)).toBe(false);
+    expect((await getMarkers(id)).approvedText).toBe("ab");
   });
 });

@@ -205,3 +205,43 @@ test("what a chat took in and was allowed stays with it: across saves, tabs and 
   one.removeChat("c1");
   expect(one.getPermissions("c1")).toBeUndefined();
 });
+
+test("an answer given in one tab reaches the other, and is not lost when that one saves the chat", async () => {
+  const b = browser();
+  const [one, two] = [await b.tab(), await b.tab()];
+  one.saveChat("c1", "t", said("a"), []);
+  one.noteTaken("c1", { read: ["A"], web: false });
+  await one.flushed();
+  await settle();
+  const chat = one.getChat("c1");
+
+  two.grant("c1", { edit: "B" });
+  two.noteTaken("c1", { read: ["A", "C"], web: true });
+  await two.flushed();
+  await settle();
+  expect(one.getPermissions("c1")).toEqual({
+    read: ["A", "C"],
+    web: true,
+    edit: ["B"],
+  });
+  // Only what goes with the chat changed.
+  expect(one.getChat("c1")).toBe(chat);
+
+  one.saveChat("c1", "t", said("b"), []);
+  await one.flushed();
+  await settle();
+  expect(two.getPermissions("c1")?.edit).toEqual(["B"]);
+  expect((await b.records.getChat("c1"))?.permissions?.edit).toEqual(["B"]);
+});
+
+test("before the announcement arrives, refresh brings the other tab's answer", async () => {
+  const b = browser();
+  const [one, two] = [await b.tab(), await b.tab()];
+  one.saveChat("c1", "t", said("a"), []);
+  await one.flushed();
+  await settle();
+  two.grant("c1", { webWithSpaces: true });
+  await two.flushed();
+  await one.refresh("c1");
+  expect(one.getPermissions("c1")?.webWithSpaces).toBe(true);
+});

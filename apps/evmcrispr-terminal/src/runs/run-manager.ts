@@ -30,6 +30,7 @@ import type { Action } from "@evmcrispr/sdk";
 import {
   type Author,
   head,
+  isReviewed,
   type RunRecord,
   type RunStatus,
   UNFINISHED,
@@ -69,7 +70,24 @@ export interface LiveRun {
   };
 }
 
-type Refusal = "missing" | "off-screen" | "busy" | "elsewhere";
+type Refusal =
+  | "missing"
+  | "off-screen"
+  | "busy"
+  | "elsewhere"
+  /** The script is not the text the user approved: a real run waits for
+   *  the review. */
+  | "unreviewed"
+  /** The script is no longer the text the caller showed. */
+  | "changed";
+
+export interface StartOptions {
+  mode: "real" | "simulated";
+  stdin?: string;
+  /** The text the caller has on display. The run is refused ("changed")
+   *  unless that is the script, so what was shown is what runs. */
+  text?: string;
+}
 export type StartResult =
   | { ok: true; runId: string; ended: Promise<RunStatus> }
   | { ok: false; reason: Refusal };
@@ -85,11 +103,10 @@ export interface RunManager {
   /** Runs of this tab, by run id. Written only by the manager. */
   readonly store: StoreApi<Record<string, LiveRun>>;
   /** Starts a run of the space's script as it is now. A real run needs the
-   *  space on screen and nobody else running it. */
-  start(
-    spaceId: string,
-    options: { mode: "real" | "simulated"; stdin?: string },
-  ): Promise<StartResult>;
+   *  space on screen, nobody else running it, and the script reviewed: it
+   *  is the one way a real run starts, so the review cannot be gone
+   *  around. A simulated run is never refused for any of the three. */
+  start(spaceId: string, options: StartOptions): Promise<StartResult>;
   /** Passes a paused run's held action to the wallet. Only ever called
    *  from something the user just did. */
   resume(runId: string): void;
@@ -174,7 +191,7 @@ export function createRunManager(deps: RunDeps): RunManager {
 
   async function start(
     spaceId: string,
-    options: { mode: "real" | "simulated"; stdin?: string },
+    options: StartOptions,
   ): Promise<StartResult> {
     const real = options.mode === "real";
     const space = await spaces.acquire(spaceId).catch(() => null);
@@ -182,8 +199,10 @@ export function createRunManager(deps: RunDeps): RunManager {
 
     // Everything that decides whether this run may start, and the text it
     // will run, is settled here in one go, with nothing awaited in
-    // between: what is checked is what runs. Stage 4's review check
-    // belongs in this block, on `text`.
+    // between: what is checked is what runs. The review is asked of
+    // `text` itself, the very string handed to the interpreter below, and
+    // of the approved text alone: no entry, record or author is consulted.
+    const text = space.getText();
     const allowed = (): Refusal | null =>
       !real
         ? null
@@ -192,13 +211,19 @@ export function createRunManager(deps: RunDeps): RunManager {
           : mine(spaceId).length
             ? "busy"
             : null;
-    const refusal =
-      allowed() ?? (real && starting.has(spaceId) ? "busy" : null);
+    const refusal: Refusal | null =
+      allowed() ??
+      (real && starting.has(spaceId) ? "busy" : null) ??
+      (options.text !== undefined && options.text !== text
+        ? "changed"
+        : null) ??
+      (real && !isReviewed(text, space.markers.getState().approvedText)
+        ? "unreviewed"
+        : null);
     if (refusal) {
       spaces.release(spaceId);
       return { ok: false, reason: refusal };
     }
-    const text = space.getText();
     // A run starts: typing not yet recorded becomes a revision. It is
     // where the card finds the text again, and only that: the run executes
     // `text`, whatever the timeline holds.

@@ -4,8 +4,9 @@ import {
   isEncryptedEnvelope,
   unsupportedMinVersion,
 } from "@evmcrispr/core";
-import { deriveTitle } from "@evmcrispr/space";
+import { deriveTitle, isReviewed } from "@evmcrispr/space";
 import { cid } from "is-ipfs";
+import type { LiveSpace } from "./live-space";
 
 export function isCID(s: string | undefined): s is string {
   return !!s && !!cid(s);
@@ -71,19 +72,29 @@ export async function fetchShared(
   return { status: "error" };
 }
 
+export type Shared =
+  | { ok: true; url: string; cid: string; key: string }
+  /** `text` is not the script the user approved in that space. */
+  | { ok: false; reason: "unreviewed" };
+
 /**
- * Pins an encrypted copy of `text` and returns its link. The key travels
- * only in the link's fragment and must stay its LAST segment: react-router
- * splits the fragment on `#` before `?`.
+ * Pins an encrypted copy of `text`, a text of `space`, and returns its
+ * link. Only the approved text is shared: this is the one way a link is
+ * made, and the text checked is the text encrypted, before anything is
+ * awaited. The key travels only in the link's fragment and must stay its
+ * LAST segment: react-router splits the fragment on `#` before `?`.
  */
 export async function shareScript(
+  space: Pick<LiveSpace, "markers">,
   text: string,
   deps: {
     pin(envelope: unknown, name: string): Promise<{ IpfsHash: string }>;
     origin: string;
     viewMode: "edit" | "view";
   },
-): Promise<{ url: string; cid: string; key: string }> {
+): Promise<Shared> {
+  if (!isReviewed(text, space.markers.getState().approvedText))
+    return { ok: false, reason: "unreviewed" };
   // The envelope keeps its `title` for older clients and anything else
   // that reads it; it is always derived from the text.
   const { envelope, key } = await encryptScript({
@@ -93,6 +104,7 @@ export async function shareScript(
   const { IpfsHash } = await deps.pin(envelope, "EVMcrispr - encrypted script");
   const mode = deps.viewMode === "view" ? "?mode=view" : "";
   return {
+    ok: true,
     url: `${deps.origin}/#/${IpfsHash}${mode}#${key}`,
     cid: IpfsHash,
     key,

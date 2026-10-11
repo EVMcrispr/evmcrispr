@@ -13,22 +13,25 @@ import { useKeyboardInsets } from "../hooks/useKeyboardInsets";
 import { useScriptInput } from "../hooks/useScriptInput";
 import { MobileHeader } from "../mobile/MobileHeader";
 import { MobileMenu } from "../mobile/MobileMenu";
+import { type ExecutionPhase, ReviewSheet } from "../mobile/ReviewSheet";
 import { ScriptContextBar } from "../mobile/ScriptContextBar";
 import { ScriptSheet } from "../mobile/ScriptSheet";
-import {
-  type ExecutionPhase,
-  TransactionReviewSheet,
-} from "../mobile/TransactionReviewSheet";
 import { AgentsTab } from "../panel/agents/AgentsTab";
 import { HeldRun } from "../panel/space/HeldRun";
 import { SpacesList } from "../panel/space/SpacesList";
 import { SpaceTab } from "../panel/space/SpaceTab";
+import {
+  askForReview,
+  closeReview,
+  showReview,
+  useSurface,
+} from "../review/surface";
+import { useApproval, useReview } from "../review/useReview";
 import { followedBoxes } from "../runs/run-manager";
 import { useActiveRun, useExecute, useLatestRun } from "../runs/useRun";
 import { useWallet } from "../wallet/WalletContext";
 import { useApp } from "./AppContext";
 import { useDocumentTitle } from "./DesktopLayout";
-import { useLegacy } from "./legacy-execution";
 import { useSpace } from "./SpaceContext";
 import { StorageNotice } from "./StorageNotice";
 import { setUi, useUi } from "./ui-store";
@@ -124,17 +127,28 @@ function MobileSpace({
   const { runs } = useApp();
   const space = useSpace();
   const wallet = useWallet();
-  const { review } = useLegacy();
+  const review = useReview();
   const { input, setInput } = useScriptInput(space.id);
   const execute = useExecute();
   const active = useActiveRun();
   const run = useLatestRun();
   const previewed = usePreviewedRevision();
-  const [reviewOpen, setReviewOpen] = useState(false);
+  const reviewOpen = useSurface().open;
+  // The sheet also comes up by itself (a run needs the user, or Execute
+  // was refused): only the user asking for the review, in `openReview`,
+  // puts changes and an Approve on it.
+  const approval = useApproval();
+
+  // Share-link recipients land on a read-only script: it is checked for
+  // them, so its status means something without a tap.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per script arrived at
+  useEffect(() => {
+    if (route.intent === "recipient") void review.validate();
+  }, [space.id, route.intent]);
 
   // Flag a ready review until the user has seen it. A review that finishes
   // with the sheet open counts as seen; one that goes stale resets the flag.
-  const reviewReady = review.state.status === "ready";
+  const reviewReady = review.simulation.status === "ready";
   const [reviewSeen, setReviewSeen] = useState(false);
   useEffect(() => {
     if (!reviewReady) setReviewSeen(false);
@@ -187,12 +201,16 @@ function MobileSpace({
     followed.current = space.id;
     if (arrived) return;
     if (phase !== "idle" && phase !== "preparing" && phase !== "running")
-      setReviewOpen(true);
+      showReview();
   }, [space.id, phase]);
 
   const openReview = () => {
-    setReviewOpen(true);
-    if (!review.canExecute) void review.prepare();
+    askForReview(space);
+    // A script the user approved is simulated for them. One they have not
+    // reviewed is only checked: simulating runs it, so that waits for
+    // their tap on the sheet.
+    if (review.unreviewed) void review.validate();
+    else if (review.simulation.status !== "ready") void review.simulate();
   };
 
   const openDocs = (ref: HoverRef) => {
@@ -206,7 +224,7 @@ function MobileSpace({
           identity and state on screen while the user chats about it. */}
       {surface === "agents" && (
         <ScriptContextBar
-          reviewState={review.state}
+          reviewState={review.simulation}
           reviewUnseen={reviewReady && !reviewSeen}
           onOpenScript={() => setSurface("script")}
           onOpenTimeline={() => {
@@ -227,7 +245,7 @@ function MobileSpace({
             <ScriptSheet
               entryIntent={route.intent}
               sharedEncrypted={route.sharedEncrypted}
-              reviewState={review.state}
+              reviewState={review.simulation}
               onBackToChat={() => setSurface("agents")}
               onReview={openReview}
               onOpenDocs={openDocs}
@@ -270,16 +288,14 @@ function MobileSpace({
         </div>
       </main>
 
-      <TransactionReviewSheet
+      <ReviewSheet
         open={reviewOpen}
-        onOpenChange={setReviewOpen}
-        state={review.state}
-        actionCount={review.actionCount}
+        onOpenChange={(open) => (open ? showReview() : closeReview())}
+        review={review}
+        approval={approval}
         chainName={wallet.chainName}
         address={wallet.address}
         executionPhase={phase}
-        canExecute={review.canExecute}
-        logs={[]}
         entries={run ? consoleEntries(run.record.console) : []}
         followingBoxes={run ? followedBoxes(run.record.console) : 0}
         ioControl={
@@ -295,10 +311,9 @@ function MobileSpace({
         executed={run?.executed ?? []}
         onCancel={() => active && runs.cancel(active.record.id)}
         heldRun={active && <HeldRun run={active} />}
-        onPrepare={() => void review.prepare()}
-        onExecute={() => void execute()}
+        onExecute={(shown) => void execute(shown)}
         onConnect={() => {
-          setReviewOpen(false);
+          closeReview();
           wallet.connectWallet();
         }}
       />

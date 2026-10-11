@@ -126,7 +126,9 @@ test("Load in editor loads an assistant's revision without approving it; Restore
   );
   expect(t.space.getText()).toBe("# Pay\nexec 1");
   expect(reviewed()).toBe(true);
-  expect(screen.getByText("loaded a revision")).toBeTruthy();
+  expect(
+    screen.getByText("restored the script to before a change"),
+  ).toBeTruthy();
 
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Load in editor" })),
@@ -143,8 +145,8 @@ test("Restore to before is offered only for what someone else wrote", async () =
   t.space.endTurn("t", "By the assistant.");
   t.render();
   fireEvent.click(screen.getByText("edited the script · 2 revisions"));
-  for (const row of screen.getAllByText("edited the script"))
-    fireEvent.click(row);
+  for (const what of ["created the script", "edited the script"])
+    fireEvent.click(screen.getByText(what));
   expect(
     screen.queryByRole("button", { name: "Restore to before" }),
   ).toBeNull();
@@ -156,7 +158,7 @@ test("Restore to before is offered only for what someone else wrote", async () =
 test("View shows a revision without loading it", async () => {
   const t = await setup();
   t.render();
-  fireEvent.click(screen.getByText("edited the script"));
+  fireEvent.click(screen.getByText("created the script"));
   fireEvent.click(screen.getByRole("button", { name: "View" }));
   const { uiStore } = await import("../../src/app/ui-store");
   expect(uiStore.getState().previewRevisionId).toBeTruthy();
@@ -260,7 +262,7 @@ test("the filter chips narrow the rows", async () => {
   expect(rows()).toHaveLength(1);
   expect(rows()[0].textContent).toContain("Run");
   fireEvent.click(screen.getByRole("button", { name: "Revisions" }));
-  expect(rows()[0].textContent).toContain("edited the script");
+  expect(rows()[0].textContent).toContain("created the script");
 });
 
 test("‹ Spaces goes to the list and counts runs paused in other spaces", async () => {
@@ -274,4 +276,31 @@ test("‹ Spaces goes to the list and counts runs paused in other spaces", async
   expect(back.textContent).toContain("1");
   fireEvent.click(back);
   expect(screen.getByRole("list", { name: "Spaces" })).toBeTruthy();
+});
+
+test("Revert this change on an assistant's row takes that change out and keeps what was typed after", async () => {
+  const t = await setup("# Pay\nexec 1\nexec 2");
+  t.space.editAsTurn("t", { kind: "write", text: "# Pay\nexec evil\nexec 2" });
+  t.space.endTurn("t", "Changed the target.");
+  applyText(t.space.text, "# Pay\nexec evil\nexec 2\nexec 3", ORIGIN.user);
+  t.render();
+  fireEvent.click(screen.getByText("Changed the target."));
+  await act(async () =>
+    fireEvent.click(screen.getByRole("button", { name: "Revert this change" })),
+  );
+  expect(t.space.getText()).toBe("# Pay\nexec 1\nexec 2\nexec 3");
+  expect(screen.getByText("reverted a change")).toBeTruthy();
+  // Typing where the change was: it can no longer be taken out alone.
+  act(() => void t.space.undo.undo());
+  applyText(t.space.text, "# Pay\nexec mine\nexec 2\nexec 3", ORIGIN.user);
+  await act(async () =>
+    fireEvent.click(screen.getByRole("button", { name: "Revert this change" })),
+  );
+  expect(t.space.getText()).toBe("# Pay\nexec mine\nexec 2\nexec 3");
+  expect(screen.getByRole("alert").textContent).toContain(
+    "Later edits touch the same lines",
+  );
+  expect(
+    screen.getByRole("button", { name: "Restore to before" }),
+  ).toBeTruthy();
 });

@@ -1,5 +1,7 @@
 import {
+  changedLines,
   deriveTitle,
+  isReviewed,
   type Markers,
   type TimelineState,
 } from "@evmcrispr/space";
@@ -52,4 +54,41 @@ export function useTimeline<T>(selector: (state: TimelineState) => T): T {
 
 export function useMarkers(): Markers {
   return useStore(useSpace().markers);
+}
+
+/** Whether the script on screen is not the text the user approved. For
+ *  what a view shows: a run and a share ask again where they start. */
+export function useUnreviewed(): boolean {
+  const { text } = useScript();
+  return !isReviewed(text, useMarkers().approvedText);
+}
+
+/** The 1-based lines of the script on screen that differ from the approved
+ *  text, while it is unreviewed: every line when nothing is approved. */
+export function useChangedLines(): number[] {
+  const { text } = useScript();
+  const { approvedText } = useMarkers();
+  return useMemo(
+    () =>
+      isReviewed(text, approvedText)
+        ? []
+        : approvedText === undefined
+          ? text.split("\n").map((_, index) => index + 1)
+          : changedLines(approvedText, text),
+    [text, approvedText],
+  );
+}
+
+/**
+ * Whether a text is the approved script of the space on screen, asked at
+ * the moment of use with the very text in hand: for what must not be
+ * decided for one text and applied to another (the editor and the viewer
+ * fetch the modules a script names only for a text that passes).
+ */
+export function useIsApprovedText(): (text: string) => boolean {
+  const space = useSpace();
+  return useCallback(
+    (text) => isReviewed(text, space.markers.getState().approvedText),
+    [space],
+  );
 }

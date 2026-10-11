@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { ConsoleEntry } from "@evmcrispr/editor";
 import type { BoxSnapshot } from "@evmcrispr/sdk";
 import { render, screen } from "@testing-library/react";
-import { ActivityPanel } from "../../src/mobile/TransactionReviewSheet";
+import { ActivityPanel } from "../../src/mobile/ReviewSheet";
 
 const box = (over: Partial<BoxSnapshot> = {}): BoxSnapshot => ({
   id: "safe",

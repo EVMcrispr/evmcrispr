@@ -109,8 +109,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       const release = await locks.tryHold(lockNames.chat(chatId));
       if (!release) return null;
       holding.current.add(chatId);
-      // What another tab answered may not have been announced yet.
-      await chats.refresh(chatId);
+      try {
+        // What another tab answered may not have been announced yet.
+        await chats.refresh(chatId);
+      } catch (error) {
+        // Not answering after all: the chat is given back.
+        release();
+        holding.current.delete(chatId);
+        throw error;
+      }
       // Given back once what the turn saved is in storage, where the next
       // tab to answer reads it.
       return () =>

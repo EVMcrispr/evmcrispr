@@ -127,4 +127,8 @@ export interface Markers {
   approvedText?: string;
   hiddenBefore?: number;
   revisionChats?: Record<string, string>;
+  /** A program acting for the user has written to the script since the
+   *  last revision was recorded: the next one is the program's, whatever
+   *  triggers it (the turn ending, a run starting, the next visit). */
+  turnPending?: boolean;
 }

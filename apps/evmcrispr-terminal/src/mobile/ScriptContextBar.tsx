@@ -5,9 +5,9 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button, cn } from "@repo/ui";
 import { useScript } from "../app/SpaceContext";
-import type { TransactionReviewState } from "../hooks/useTransactionReview";
+import type { Simulation } from "../review/useReview";
 
-function chip(state: TransactionReviewState): {
+function chip(state: Simulation): {
   label: string;
   className: string;
   pulse: boolean;
@@ -49,7 +49,7 @@ export function ScriptContextBar({
   onOpenTimeline,
   onOpenReview,
 }: {
-  reviewState: TransactionReviewState;
+  reviewState: Simulation;
   reviewUnseen: boolean;
   onOpenScript: () => void;
   onOpenTimeline: () => void;

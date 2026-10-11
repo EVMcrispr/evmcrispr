@@ -10,9 +10,9 @@ import { Button, IconButton, toast } from "@repo/ui";
 import { useScript } from "../app/SpaceContext";
 import ShareScriptButton from "../components/scripts/ShareScriptButton";
 import { ScriptView } from "../editor/ScriptView";
-import type { TransactionReviewState } from "../hooks/useTransactionReview";
+import type { Simulation } from "../review/useReview";
 
-function reviewLabel(state: TransactionReviewState) {
+function reviewLabel(state: Simulation) {
   if (state.status === "validating") return "Validating";
   if (state.status === "simulating") return "Simulating";
   if (state.status === "ready") return "Simulation passed";
@@ -30,7 +30,7 @@ export function ScriptSheet({
 }: {
   entryIntent: "author" | "recipient";
   sharedEncrypted?: boolean;
-  reviewState: TransactionReviewState;
+  reviewState: Simulation;
   onBackToChat: () => void;
   onReview: () => void;
   onOpenDocs?: (ref: HoverRef) => void;

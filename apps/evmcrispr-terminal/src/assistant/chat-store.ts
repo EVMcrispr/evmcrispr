@@ -28,6 +28,26 @@ export interface IdbChatStore extends Required<ChatStore> {
 
 const NONE: ChatPermissions = { read: [], web: false, edit: [] };
 
+const same = (a: unknown, b: unknown) =>
+  JSON.stringify(a) === JSON.stringify(b);
+
+/** What this tab holds with what storage holds. What a chat has taken in
+ *  only grows, so a tab that knows less never clears it; an answer is
+ *  the one in storage, where the tab the user clicked in wrote it. */
+function merged(
+  mine: ChatPermissions | undefined,
+  stored: ChatPermissions | undefined,
+): ChatPermissions | undefined {
+  if (!mine || !stored) return stored ?? mine;
+  const webWithSpaces = stored.webWithSpaces ?? mine.webWithSpaces;
+  return {
+    read: [...new Set([...mine.read, ...stored.read])],
+    web: mine.web || stored.web,
+    edit: [...new Set([...mine.edit, ...stored.edit])],
+    ...(webWithSpaces === undefined ? {} : { webWithSpaces }),
+  };
+}
+
 const newestFirst = (a: ChatMeta, b: ChatMeta) =>
   Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
 
@@ -79,10 +99,22 @@ export function createIdbChatStore(deps: {
     if (waiting.has(id)) return;
     const stored = await records.getChat(id);
     const mine = chats.get(id);
-    if (waiting.has(id) || stored?.meta.updatedAt === mine?.meta.updatedAt)
-      return;
-    if (stored) chats.set(id, stored);
-    else chats.delete(id);
+    if (waiting.has(id)) return;
+    if (!stored || !mine) {
+      if (!stored && !mine) return;
+      if (stored) chats.set(id, stored);
+      else chats.delete(id);
+      return changed();
+    }
+    // The chat and what goes with it change apart: an answer given in
+    // another tab arrives with the same chat, and leaves ours as it is.
+    const sameChat = stored.meta.updatedAt === mine.meta.updatedAt;
+    const permissions = merged(mine.permissions, stored.permissions);
+    if (sameChat && same(permissions, mine.permissions)) return;
+    chats.set(id, {
+      ...(sameChat ? mine : stored),
+      ...(permissions ? { permissions } : {}),
+    });
     changed();
   };
   changes.subscribe((change, local) => {

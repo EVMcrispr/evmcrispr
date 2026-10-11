@@ -82,7 +82,7 @@ const dialogVariants = cva(
 );
 
 interface IDialogContentProps
-  extends HTMLAttributes<HTMLDivElement>,
+  extends ComponentPropsWithoutRef<typeof ReactDialog.Content>,
     VariantProps<typeof dialogVariants> {
   overlay?: IDialogBackgroupProps;
 }

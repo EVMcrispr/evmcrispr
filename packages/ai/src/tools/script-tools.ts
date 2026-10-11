@@ -271,7 +271,16 @@ export function createScriptTools(host: ScriptToolsHost): ToolSet {
       description:
         "List the user's spaces: id, title, which one the user was looking at (current), and whether each has unreviewed changes or a run in progress. A space is one script with its history.",
       inputSchema: z.object({}),
-      execute: async () => ({ spaces: await listSpaces() }),
+      // A title is the first line of a script: content, like the rest.
+      execute: async () =>
+        untrusted(
+          "the list of spaces",
+          (await listSpaces())
+            .map((space) =>
+              JSON.stringify({ ...space, title: plainLine(space.title) }),
+            )
+            .join("\n"),
+        ),
     });
   if (readSpace)
     tools.read_space = tool({

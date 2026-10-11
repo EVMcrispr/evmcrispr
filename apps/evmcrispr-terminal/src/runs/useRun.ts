@@ -4,6 +4,7 @@ import { useApp } from "../app/AppContext";
 import { useSpace, useTimeline } from "../app/SpaceContext";
 import { setUi } from "../app/ui-store";
 import { useScriptInput } from "../hooks/useScriptInput";
+import { showReview } from "../review/surface";
 import { isUnfinished, type LiveRun, type Run } from "./run-manager";
 
 /** The run of the space on screen that this tab is running: its
@@ -71,21 +72,28 @@ const REFUSED = {
   busy: "This space is already running",
   "off-screen": "Open the space to run its script",
   missing: "This space is no longer here",
+  changed: "The script changed: look at it again before running",
 };
 
-/** Starts a real run of the space on screen, with its stdin. Stage 4
- *  puts the review in front of this. */
-export function useExecute(): () => Promise<void> {
+/** Asks for a real run of the space on screen, with its stdin. Given the
+ *  text a surface has on display, the run is of that text or none. An
+ *  unreviewed script is refused where runs start; this opens its review. */
+export function useExecute(): (shown?: string) => Promise<void> {
   const { runs } = useApp();
   const space = useSpace();
   const { input } = useScriptInput(space.id);
-  return async () => {
+  return async (shown) => {
     // What runs is the script, not a revision being looked at.
     setUi({ previewRevisionId: null });
     const started = await runs.start(space.id, {
       mode: "real",
       stdin: input?.text,
+      ...(shown !== undefined ? { text: shown } : {}),
     });
-    if (!started.ok) toast.error(REFUSED[started.reason]);
+    if (started.ok) return;
+    // After a wait, so not as the user asking: it shows nothing to approve
+    // until they do.
+    if (started.reason === "unreviewed") showReview();
+    else toast.error(REFUSED[started.reason]);
   };
 }

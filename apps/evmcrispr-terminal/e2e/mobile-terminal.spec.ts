@@ -410,10 +410,10 @@ test("the Space surface shows the timeline and the list of spaces, and leads bac
 
   await page.getByRole("button", { name: "Open timeline" }).click();
   await expect(page.getByRole("list", { name: "Timeline" })).toContainText(
-    "edited the script",
+    "created the script",
   );
   // A revision is viewed where the script is, without Monaco.
-  await page.getByText("edited the script").click();
+  await page.getByText("created the script").click();
   await page.getByRole("button", { name: "View", exact: true }).click();
   await expect(page.getByRole("status").first()).toContainText(
     "Viewing a revision",

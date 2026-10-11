@@ -43,6 +43,18 @@
 - `ChatToolArtifact`: `script-change` loses `revisionId` and `undone` and gains `explanation` and `space`; `simulation` gains the optional `target`, `code`, `logs` and `revisionId`; a new `permission` kind is what a host returns when a call needs the user's word.
 - `useChatAgent`: the `undoScriptRevision` option and the returned `undoRevision` are removed. `send(text, context?)` and `regenerate(context?)` take `{ scope }`, which the turn callbacks receive. New options `initialChatId` (an id, or `"latest"`) and `acquireTurn`. `ChatErrorKind` gains `"busy"`.
 
+### Terminal: review before signing
+
+- A script the assistant changed (or that changed from anywhere but your own typing) has to be **reviewed** before it can be executed for real or shared. Execute reads **Review changes** and opens the review; the mobile sheet shows it above the transactions. Simulating is never blocked.
+- The review shows what changed since the text you approved, line by line, and the revisions recorded since then, with who made each and the assistant's explanation. It is a snapshot: if the script changes while the review is open, what you were reading stays on screen, **Approve** is disabled, and the new changes are shown when you ask for them. Approve approves exactly the text shown, and only after it has been on screen for a moment.
+- Looking at a change does not run it. The review checks the script without fetching anything it names (a module loaded with `--from ipfs://…` is reported as not checked), and what the script would send is behind **Simulate to see what it would send**: simulating runs the script, and is recorded in the timeline like any other run. While a script is unreviewed, the editor and the read-only view do not fetch the external modules it names either.
+- A space with no approved text (opened from an assistant's card, or from a revision that was not approved) shows its whole script as changed.
+- While a script is unreviewed, the lines that differ from the approved text carry a mark in the margin, in the editor and in the read-only view.
+- A change the assistant made offers **Revert this change** on its revision: that change is taken out and what was made after it is kept. If later edits touch the same lines it is refused, and **Restore to before** goes back wholesale. Both can be undone with Ctrl+Z, and the result is reviewed only if it is a text you approved.
+- A revision's row says what happened: created, edited, imported (from a link), loaded, restored, reverted.
+- `@evmcrispr/editor`: `MonacoEditor` and `Viewer` take `changedLines`, the 1-based lines that carry the mark, and `remoteModules` (default `true`): `false`, or a function of the analysed text that does not answer `true`, stops their analysis from fetching the external modules the script names.
+- `@evmcrispr/core`: `script.validate({ remoteModules: false })` and `workspace.setRemoteModules(false | (script) => boolean)` leave `load --from ipfs://…` modules unfetched and unchecked, listed in the result's new `unfetched` (and `workspace.unfetchedModules`). The default is unchanged.
+
 ### Smart block syntax
 
 Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:propose-offline`, and `safe:execute`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.

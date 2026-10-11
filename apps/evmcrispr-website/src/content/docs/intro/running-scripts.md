@@ -26,6 +26,14 @@ or sends anything, and it asks before editing a script you are not
 looking at, or before using the web in a chat that has read your other
 scripts.
 
+A script that is unreviewed cannot be executed or shared yet. Execute
+reads **Review changes**: the review shows what changed since the text
+you approved, who changed it and why. Nothing of the change is run by
+looking at it; you can ask for a simulation to see what the script
+would send. Approve it, or take a change back
+from its revision with **Revert this change** or **Restore to before**.
+Your own typing never needs a review, and simulating is never blocked.
+
 ## CLI
 
 The `evmcrispr` npm package runs scripts from your shell — useful for CI,

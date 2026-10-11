@@ -92,7 +92,17 @@ export interface LiveSpace {
   wasApproved(text: string): boolean;
   /** A local change to the timeline: memory, storage and the other copies. */
   commit(patch: TimelinePatch): void;
-  setMarkers(patch: Partial<Markers>): Promise<void>;
+  /** The user's review, and the only way a text is approved from outside
+   *  this file: `shown` becomes the approved text if it is the script
+   *  right now, and is refused (false) otherwise. Whoever asks hands over
+   *  the text the user was shown, so a script that changed since is never
+   *  approved unseen. Typing not yet recorded becomes a revision first. */
+  approve(shown: string): boolean;
+  /** The user's other private marks. The approved text is not among
+   *  them: it moves through `approve` and through this file's own rule. */
+  setMarkers(
+    patch: Partial<Pick<Markers, "hiddenBefore" | "revisionChats">>,
+  ): Promise<void>;
   /** Records a revision if the script differs from the last one. */
   record(
     source: RevisionEntry["source"],
@@ -162,18 +172,51 @@ export async function openLiveSpace(
   // enters when it is approved outright, and when the marker leaves it at
   // the start of a step or through an undo or redo.
   const seen = approvedTexts();
+  // What this tab is still writing is newer than what storage holds: a
+  // read of storage replaces the marks in memory only if nothing was
+  // written here since the read began, and is made again otherwise.
+  let moved = 0;
+  let writing = 0;
+  let stale = false;
+  const reread = async () => {
+    if (writing > 0) {
+      stale = true;
+      return;
+    }
+    const at = moved;
+    const stored = await storage.records.getMarkers(id);
+    if (closed) return;
+    if (writing > 0) stale = true;
+    else if (at !== moved) void reread();
+    else {
+      markers.setState(stored, true);
+      caughtUp();
+    }
+  };
+  // Set below, once the script is being watched.
+  let caughtUp = () => {};
   const setMarkers = async (patch: Partial<Markers>) => {
     if (closed) return;
     markers.setState({ ...markers.getState(), ...patch }, true);
     syncIndex();
-    await storage.records.patchMarkers(id, patch);
+    moved++;
+    writing++;
+    try {
+      await storage.records.patchMarkers(id, patch);
+    } finally {
+      writing--;
+    }
     changes.announce({ store: "markers", key: id });
+    if (writing === 0 && stale) {
+      stale = false;
+      void reread();
+    }
   };
 
   /** An approval made outright: a new space, or the user's review. */
-  const approve = (patch: Partial<Markers>) => {
-    if (patch.approvedText !== undefined) seen.add(patch.approvedText);
-    return setMarkers(patch);
+  const approve = (approvedText: string) => {
+    seen.add(approvedText);
+    return setMarkers({ approvedText });
   };
 
   // The list of spaces shows these without opening the space.
@@ -198,6 +241,12 @@ export async function openLiveSpace(
   // The only place a revision is made, and where the cap is applied.
   const record: LiveSpace["record"] = (source, extra = {}) => {
     if (closed) return null;
+    // What a program wrote is never recorded as the user's, whoever asks
+    // for the record: a turn that was cut short, a run started in the
+    // middle of one, another tab. The mark is this browser's own.
+    const pending = markers.getState().turnPending === true;
+    if (pending) void setMarkers({ turnPending: false });
+    if (pending && source === "user") source = "assistant";
     const entry = nextRevision(timeline.getState(), text.toString(), {
       source,
       author: source === "assistant" ? { kind: "assistant" } : me(),
@@ -225,7 +274,7 @@ export async function openLiveSpace(
         ts: init.ts ?? now(),
         ...(init.origin ? { origin: init.origin } : {}),
       });
-      if (!init.unreviewed) await approve({ approvedText: text.toString() });
+      if (!init.unreviewed) await approve(text.toString());
       else syncIndex();
     }
   }
@@ -258,6 +307,19 @@ export async function openLiveSpace(
     void setMarkers({ approvedText: next });
   };
   let known = text.toString();
+  // The text as it was after the last change that was not the user's own
+  // typing: everything since is theirs.
+  let ownSince = known;
+  // Another tab of the user approved a text, and this tab hears of it
+  // late, after the user typed on that very text here: the typing was on
+  // an approved text all along, so it takes the approved text along now.
+  caughtUp = () => {
+    const approved = markers.getState().approvedText;
+    if (approved === undefined || approved !== ownSince || known === ownSince)
+      return;
+    seen.add(approved);
+    void setMarkers({ approvedText: known });
+  };
   doc.on("afterTransaction", (transaction: Y.Transaction) => {
     const began = stepBegan;
     stepBegan = false;
@@ -265,6 +327,7 @@ export async function openLiveSpace(
     known = text.toString();
     if (known === before) return;
     const kind = changeKind(transaction.origin);
+    if (kind !== "own") ownSince = known;
     settle(before, known, kind, began || kind === "neutral");
   });
   // An undo or a redo writes nothing new: it is neutral, whoever made the
@@ -290,7 +353,7 @@ export async function openLiveSpace(
   // Another tab moved a marker: it is re-read, never worked out here.
   const stopChanges = changes.subscribe(async (change, local) => {
     if (!local && change.store === "markers" && change.key === id)
-      markers.setState(await storage.records.getMarkers(id), true);
+      await reread();
   });
 
   loaded = true;
@@ -306,7 +369,19 @@ export async function openLiveSpace(
     wasApproved: (candidate) =>
       candidate === markers.getState().approvedText || seen.has(candidate),
     commit: (patch) => merge(patch, true),
-    setMarkers: approve,
+    approve(shown) {
+      // One synchronous step: the text compared is the text approved.
+      if (closed || shown !== text.toString()) return false;
+      record("user");
+      void approve(shown);
+      return true;
+    },
+    // Only the marks named are taken from the patch, whatever it holds.
+    setMarkers: ({ hiddenBefore, revisionChats }) =>
+      setMarkers({
+        ...(hiddenBefore !== undefined ? { hiddenBefore } : {}),
+        ...(revisionChats !== undefined ? { revisionChats } : {}),
+      }),
     record,
     editAsTurn(turnId, edit) {
       // Whoever still has the object after it was let go, or its space
@@ -317,6 +392,8 @@ export async function openLiveSpace(
         turns.add(turnId);
         record("user");
       }
+      if (!markers.getState().turnPending)
+        void setMarkers({ turnPending: true });
       let result: EditResult = { ok: true };
       history.asTurn(turnId, () => {
         if (edit.kind === "replace")

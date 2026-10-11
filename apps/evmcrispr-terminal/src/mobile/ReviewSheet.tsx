@@ -9,12 +9,11 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button, Drawer, IconButton } from "@repo/ui";
 import type { ReactNode } from "react";
-import type { TransactionReviewState } from "../hooks/useTransactionReview";
-import {
-  actionSummary,
-  chainLabel,
-  shortAddress,
-} from "../runs/action-summary";
+import { ActionList, countActions } from "../review/ActionList";
+import { SIMULATING_RUNS, UnfetchedNote } from "../review/SimulationView";
+import type { Approval, Review } from "../review/useReview";
+import { WhatChanged } from "../review/WhatChanged";
+import { chainLabel, shortAddress } from "../runs/action-summary";
 
 /** Where the run the sheet follows stands: its phase while the script
  *  runs, else its status. */
@@ -264,19 +263,23 @@ function targetChainIds(actions: Action[]): number[] {
   return ids;
 }
 
-export function TransactionReviewSheet({
+/**
+ * The review on mobile: what changed since the approved text, when
+ * something did, above what the script would do and the run it leads to.
+ * It starts nothing by itself: Confirm asks for a run of the very text the
+ * simulation shown here was made of, and whether that run may start is
+ * decided where runs start.
+ */
+export function ReviewSheet({
   open,
   onOpenChange,
-  state,
-  actionCount,
+  review,
+  approval,
   chainName,
   address,
   executionPhase,
-  canExecute,
-  onPrepare,
   onExecute,
   onConnect,
-  logs,
   entries,
   followingBoxes = 0,
   ioControl,
@@ -287,16 +290,15 @@ export function TransactionReviewSheet({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  state: TransactionReviewState;
-  actionCount: number;
+  review: Review;
+  /** Which text the user asked to review on this sheet. */
+  approval: Approval;
   chainName: string | undefined;
   address: `0x${string}` | undefined;
   executionPhase: ExecutionPhase;
-  canExecute: boolean;
-  onPrepare: () => void;
-  onExecute: () => void;
+  /** Asks for a real run of `shown`, the text on display. */
+  onExecute: (shown: string) => void;
   onConnect: () => void;
-  logs: string[];
   entries?: ConsoleEntry[];
   followingBoxes?: number;
   ioControl?: ReactNode;
@@ -306,6 +308,15 @@ export function TransactionReviewSheet({
   /** A paused run's held action, with its Resume. */
   heldRun?: ReactNode;
 }) {
+  // Beside changes the user is not looking at as they are now (not asked
+  // for yet, or the script moved on), nothing is checked or simulated.
+  const current =
+    !review.unreviewed || (approval.shown !== null && !approval.stale);
+  const state: Review["simulation"] = current
+    ? review.simulation
+    : { status: "idle", diagnostics: [] };
+  const actionCount =
+    state.status === "ready" ? countActions(state.actions) : 0;
   // A run in flight (paused, or only watching boxes, included) keeps the
   // sheet busy.
   const inFlight =
@@ -316,8 +327,10 @@ export function TransactionReviewSheet({
     executionPhase === "watching";
   const busy =
     inFlight || state.status === "validating" || state.status === "simulating";
-  const actions = state.status === "ready" ? flattenActions(state.actions) : [];
-  const chainIds = targetChainIds(actions);
+  const chainIds =
+    state.status === "ready"
+      ? targetChainIds(flattenActions(state.actions))
+      : [];
   const multiChain = chainIds.length > 1;
   const networkLabel =
     chainIds.length === 0
@@ -325,6 +338,17 @@ export function TransactionReviewSheet({
       : multiChain
         ? `${chainIds.length} networks`
         : chainLabel(chainIds[0]);
+  const activity = (rawActions: unknown) => (
+    <ActivityPanel
+      phase={executionPhase}
+      logs={[]}
+      entries={entries}
+      followingBoxes={followingBoxes}
+      errors={errors}
+      executed={executed}
+      rawActions={rawActions}
+    />
+  );
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="bottom" modal>
@@ -356,7 +380,17 @@ export function TransactionReviewSheet({
         </Drawer.Header>
 
         {ioControl && <div className="px-4 pt-3">{ioControl}</div>}
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+          {/* Approve is in this section, not in the footer where the
+              wallet's confirmation is. */}
+          {review.unreviewed && (
+            <WhatChanged
+              approval={approval}
+              onAsked={() => void review.validate()}
+            />
+          )}
+
+          {current && <UnfetchedNote modules={review.unfetched} />}
           {(state.status === "validating" || state.status === "simulating") && (
             <div
               className="flex min-h-64 flex-col items-center justify-center gap-4"
@@ -384,7 +418,7 @@ export function TransactionReviewSheet({
                   <ExclamationTriangleIcon className="size-6 shrink-0 text-destructive" />
                   <div>
                     <p className="font-sans text-sm font-semibold">
-                      Review blocked
+                      The simulation did not pass
                     </p>
                     <p className="mt-1 font-sans text-xs leading-relaxed text-foreground/60">
                       {state.message}
@@ -406,6 +440,9 @@ export function TransactionReviewSheet({
                     </div>
                   ))}
                 </div>
+              )}
+              {state.actions.length > 0 && (
+                <ActionList actions={state.actions} />
               )}
             </div>
           )}
@@ -454,105 +491,7 @@ export function TransactionReviewSheet({
                 </div>
               </div>
 
-              {actions.map((action, index) => {
-                const summary = actionSummary(action);
-                const smartPlan =
-                  "executionPlan" in action && action.executionPlan
-                    ? action.executionPlan
-                    : "type" in action && action.type === "smartBatch"
-                      ? action.plan
-                      : undefined;
-                const chainId = actionChainId(action);
-                return (
-                  <article
-                    key={`${summary.detail}:${index}`}
-                    className="border border-foreground/12 bg-foreground/2.5 p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/45 font-mono text-xs text-primary">
-                        {index + 1}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-sans text-sm font-semibold">
-                          {summary.title}
-                        </p>
-                        <p className="truncate font-mono text-[11px] text-foreground/45">
-                          {summary.detail}
-                          {multiChain && chainId !== undefined && (
-                            <span className="ml-2 text-foreground/60">
-                              · {chainLabel(chainId)}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <span className="max-w-24 truncate text-right font-mono text-xs text-foreground/65">
-                        {summary.meta}
-                      </span>
-                    </div>
-                    {summary.warning && (
-                      <div className="mt-3 flex gap-2 border border-evm-yellow-300/35 bg-evm-yellow-300/4 p-2 font-sans text-[11px] text-evm-yellow-300">
-                        <ExclamationTriangleIcon className="size-4 shrink-0" />
-                        {summary.warning}
-                      </div>
-                    )}
-                    {smartPlan && (
-                      <ol className="mt-3 flex flex-col gap-2 font-mono text-xs text-foreground/65">
-                        {smartPlan.steps.map((step, stepIndex) => (
-                          <li key={stepIndex}>
-                            {stepIndex + 1}. {step.label}
-                            {step.kind === "transaction" && (
-                              <span className="block break-all">
-                                {step.action.to} ·{" "}
-                                {String(step.action.value ?? 0n)} wei
-                                {step.action.operation === 1
-                                  ? " · delegatecall"
-                                  : ""}
-                              </span>
-                            )}
-                            {step.kind === "composable" && step.call && (
-                              <span className="block break-all">
-                                {typeof step.call.target === "string"
-                                  ? step.call.target
-                                  : "runtime target"}{" "}
-                                · {step.call.abi.name}(
-                                {step.call.abi.inputs
-                                  .map((input) => input.type)
-                                  .join(", ")}
-                                )
-                              </span>
-                            )}
-                            {step.kind === "composable" &&
-                              !!step.dynamicFields?.length && (
-                                <span className="block">
-                                  Runtime: {step.dynamicFields.join(", ")}
-                                </span>
-                              )}
-                            {step.kind === "composable" &&
-                              !!step.reads?.length && (
-                                <span className="block">
-                                  Uses{" "}
-                                  {step.reads
-                                    .map(
-                                      (read) =>
-                                        `$${read.name} from step ${read.step + 1}`,
-                                    )
-                                    .join(", ")}
-                                </span>
-                              )}
-                            {smartPlan.captures
-                              .filter((capture) => capture.step === stepIndex)
-                              .map(
-                                (capture) =>
-                                  ` → $${capture.name} (${capture.type.type})`,
-                              )
-                              .join("")}
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-                  </article>
-                );
-              })}
+              <ActionList actions={state.actions} />
 
               <details
                 className="group border border-foreground/10"
@@ -562,49 +501,43 @@ export function TransactionReviewSheet({
                   Activity
                   <ChevronDownIcon className="size-4 group-open:rotate-180" />
                 </summary>
-                <ActivityPanel
-                  phase={executionPhase}
-                  logs={logs}
-                  entries={entries}
-                  followingBoxes={followingBoxes}
-                  errors={errors}
-                  executed={executed}
-                  rawActions={state.actions}
-                />
+                {activity(state.actions)}
               </details>
             </div>
           )}
 
-          {(state.status === "idle" || state.status === "valid") && (
-            <div className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
+          {current && (state.status === "idle" || state.status === "valid") && (
+            <div className="flex min-h-40 flex-col items-center justify-center gap-4 text-center">
               <p className="max-w-xs font-sans text-sm text-foreground/60">
                 Check and run the script on a simulated copy of the chain before
                 your wallet is asked to sign anything.
               </p>
+              {review.unreviewed && (
+                <p className="max-w-xs font-sans text-xs text-foreground/60">
+                  {SIMULATING_RUNS}
+                </p>
+              )}
               <Button
                 type="button"
                 className="min-h-12 font-sans shadow-none"
-                onClick={onPrepare}
+                onClick={() => void review.simulate()}
               >
                 Check & simulate
               </Button>
             </div>
           )}
-          {executionPhase !== "idle" && state.status !== "ready" && (
-            <ActivityPanel
-              phase={executionPhase}
-              logs={logs}
-              entries={entries}
-              followingBoxes={followingBoxes}
-              errors={errors}
-              executed={executed}
-              rawActions={executed.map(({ action }) => action)}
-            />
-          )}
+          {executionPhase !== "idle" &&
+            state.status !== "ready" &&
+            activity(executed.map(({ action }) => action))}
         </div>
 
         <Drawer.Footer className="mobile-safe-bottom border-t border-foreground/10 bg-background/95 px-4 pb-3 pt-3">
-          {state.status === "ready" ? (
+          {review.unreviewed && !inFlight ? (
+            <p className="font-sans text-xs text-foreground/60">
+              Approve the changes above before your wallet is asked for
+              anything.
+            </p>
+          ) : state.status === "ready" ? (
             !address ? (
               <Button
                 type="button"
@@ -617,8 +550,8 @@ export function TransactionReviewSheet({
               <Button
                 type="button"
                 className="min-h-12 font-sans shadow-none"
-                disabled={busy || !canExecute}
-                onClick={onExecute}
+                disabled={busy || !review.canExecute}
+                onClick={() => onExecute(review.text)}
               >
                 {executionPhase === "awaiting-wallet"
                   ? "Confirm in your wallet…"
@@ -632,15 +565,15 @@ export function TransactionReviewSheet({
               type="button"
               variant="outline"
               className="min-h-12 font-sans shadow-none"
-              onClick={onPrepare}
+              onClick={() => void review.simulate()}
             >
               Run the simulation again
             </Button>
           ) : null}
-          {/* Whatever the review state shows (it resets when the script
-              changes), a run in flight keeps its cancel control. Cancel
-              in the watching phase only stops following: it never touches
-              what was already sent. */}
+          {/* Whatever the review shows (its simulation is dropped when the
+              script changes), a run in flight keeps its cancel control.
+              Cancel in the watching phase only stops following: it never
+              touches what was already sent. */}
           {executionPhase === "paused" && heldRun}
           {inFlight && (
             <Button
@@ -654,16 +587,18 @@ export function TransactionReviewSheet({
                 : "Cancel execution"}
             </Button>
           )}
-          {!busy && (state.status !== "ready" || !address) && (
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-12 font-sans shadow-none"
-              onClick={onExecute}
-            >
-              Run script without simulation
-            </Button>
-          )}
+          {!busy &&
+            !review.unreviewed &&
+            (state.status !== "ready" || !address) && (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-12 font-sans shadow-none"
+                onClick={() => onExecute(review.text)}
+              >
+                Run script without simulation
+              </Button>
+            )}
         </Drawer.Footer>
       </Drawer.Content>
     </Drawer>

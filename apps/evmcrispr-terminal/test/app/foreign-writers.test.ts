@@ -59,7 +59,7 @@ const isMonaco = (spec: string) =>
 // Runs and the timeline's rows are among them: a run record or an entry
 // can come from another copy of the space.
 const handlesForeignContent = (file: string) =>
-  /^(assistant|space|storage|runs|panel\/(space|agents))\//.test(file) ||
+  /^(assistant|space|storage|runs|review|panel\/(space|agents))\//.test(file) ||
   /transport/i.test(file);
 
 test("nothing that handles foreign content can reach the editor or Monaco", async () => {
@@ -72,6 +72,7 @@ test("nothing that handles foreign content can reach the editor or Monaco", asyn
   expect(roots).toContain("space/live-space.ts");
   expect(roots).toContain("runs/run-manager.ts");
   expect(roots).toContain("panel/space/Timeline.tsx");
+  expect(roots).toContain("review/ReviewDialog.tsx");
   for (const root of roots) {
     const { modules, packages } = reach(graph, root);
     expect({ root, editor: modules.filter(isEditor) }).toEqual({
@@ -124,4 +125,78 @@ test("a permission is given in one place: the prompt the user clicks", async () 
     if (/\.grant\(/.test(await Bun.file(path.join(SRC, file)).text()))
       granters.push(file);
   expect(granters).toEqual(["panel/agents/PermissionPrompt.tsx"]);
+});
+
+test("a text is approved in one place: the review the user clicks Approve in", async () => {
+  const graph = await importGraph();
+  const approvers: string[] = [];
+  const setters: string[] = [];
+  for (const file of graph.keys()) {
+    const source = await Bun.file(path.join(SRC, file)).text();
+    if (/\.approve\(/.test(source)) approvers.push(file);
+    // The marker itself is written by the space alone: nothing else
+    // both names it and writes marks.
+    if (/approvedText/.test(source) && /\b(set|patch)Markers\(/.test(source))
+      setters.push(file);
+  }
+  // useReview hands the space the text; WhatChanged is the button.
+  expect(approvers.sort()).toEqual([
+    "review/WhatChanged.tsx",
+    "review/useReview.ts",
+  ]);
+  expect(setters).toEqual(["space/live-space.ts"]);
+});
+
+test("a run starts in one place, and a link is made in one place", async () => {
+  const graph = await importGraph();
+  const starters: string[] = [];
+  const sharers: string[] = [];
+  for (const file of graph.keys()) {
+    const source = await Bun.file(path.join(SRC, file)).text();
+    // The interpreter is handed a script to execute by the run manager
+    // only, behind its review check.
+    if (/\.execute\(/.test(source)) starters.push(file);
+    if (/\bencryptScript\(/.test(source)) sharers.push(file);
+  }
+  expect(starters).toEqual(["runs/run-manager.ts"]);
+  expect(sharers).toEqual(["space/links.ts"]);
+});
+
+test("the review is live for approving only when the user asked: it has one opener, called from handlers of their clicks", async () => {
+  const graph = await importGraph();
+  const askers: string[] = [];
+  for (const file of graph.keys()) {
+    const source = await Bun.file(path.join(SRC, file)).text();
+    if (/\baskForReview\(/.test(source) && file !== "review/surface.ts")
+      askers.push(file);
+    // Wherever it is called, nothing was awaited first in that handler.
+    for (const match of source.matchAll(/\baskForReview\(/g)) {
+      if (file === "review/surface.ts") continue;
+      const before = source.slice(0, match.index);
+      const handler = before.slice(
+        Math.max(
+          before.lastIndexOf("=> {"),
+          before.lastIndexOf("=>\n"),
+          before.lastIndexOf("=> "),
+          before.lastIndexOf("function "),
+        ),
+      );
+      expect({ file, awaited: /\bawait\b/.test(handler) }).toEqual({
+        file,
+        awaited: false,
+      });
+    }
+  }
+  const surface = await Bun.file(path.join(SRC, "review/surface.ts")).text();
+  // Its state is written by its own functions only: the store is not
+  // exported, and the view state anyone can set holds nothing of it.
+  expect(surface).not.toMatch(/export const store|export \{[^}]*\bstore\b/);
+  const ui = await Bun.file(path.join(SRC, "app/ui-store.ts")).text();
+  expect(ui).not.toMatch(/\breview/i);
+  expect(askers.sort()).toEqual([
+    "app/MobileLayout.tsx",
+    "components/execution/ExecuteButton.tsx",
+    "components/scripts/ShareScriptButton.tsx",
+    "review/useReview.ts",
+  ]);
 });
