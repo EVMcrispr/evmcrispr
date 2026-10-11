@@ -116,14 +116,49 @@ export interface ConsoleProps {
    *  a console that arrived from outside) is plain text whatever this
    *  says, and its boxes show no link. */
   markdown?: boolean;
+  /** Shows the first `head` and the last `tail` entries, and every status
+   *  box wherever it is, with one line in place of each stretch left
+   *  out: "… 480 more lines", which calls `onOpen` (the whole log is
+   *  somewhere else). For a console that must stay short, with no scroll
+   *  of its own. */
+  fold?: { head: number; tail: number; onOpen: () => void };
+  /** `false`: new output does not scroll anything into view. For a
+   *  console inside something else that scrolls. */
+  follow?: boolean;
+}
+
+/** An entry to draw, or the place of `count` entries left out. */
+type Shown =
+  | { entry: ConsoleEntry; index: number }
+  | { folded: number; index: number };
+
+/** What a folded console draws: see `ConsoleProps.fold`. Folding only
+ *  happens where it leaves out more than a line or two. */
+function folded(entries: ConsoleEntry[], fold: ConsoleProps["fold"]): Shown[] {
+  const all = entries.map((entry, index) => ({ entry, index }));
+  if (!fold || entries.length <= fold.head + fold.tail + 2) return all;
+  const shown: Shown[] = [];
+  for (const item of all) {
+    const kept =
+      item.index < fold.head ||
+      item.index >= entries.length - fold.tail ||
+      item.entry.kind === "box";
+    const last = shown.at(-1);
+    if (kept) shown.push(item);
+    else if (last && "folded" in last) last.folded += 1;
+    else shown.push({ folded: 1, index: item.index });
+  }
+  return shown;
 }
 
 export function Console({
   entries: entriesProp,
   logs,
   errors,
-  placeholder = "Console output will appear here during execution.",
+  placeholder = "Console output will appear here during the run.",
   markdown = false,
+  fold,
+  follow = true,
 }: ConsoleProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -140,18 +175,39 @@ export function Console({
   // array on every change). `block: "nearest"` keeps the scroll inside the
   // console's own container — never the embedding page.
   useEffect(() => {
+    if (!follow) return;
     if (entries.length === 0 && errors.length === 0) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [entries, errors.length]);
+  }, [entries, errors.length, follow]);
+
+  const shown = useMemo(() => folded(entries, fold), [entries, fold]);
 
   return (
-    <div className="flex h-full flex-col gap-2 overflow-y-auto px-4 py-3">
+    <div
+      className={
+        fold
+          ? "flex flex-col gap-2 px-4 py-3"
+          : "flex h-full flex-col gap-2 overflow-y-auto px-4 py-3"
+      }
+    >
       {!hasContent && (
         <p className="m-0 p-3 font-sans text-body text-fg-faint">
           {placeholder}
         </p>
       )}
-      {entries.map((entry, i) => {
+      {shown.map((item) => {
+        if ("folded" in item)
+          return (
+            <button
+              key={`fold-${item.index}`}
+              type="button"
+              onClick={fold?.onOpen}
+              className="cursor-pointer self-center rounded-(--radius) border-0 bg-transparent px-2 py-0.5 font-sans text-caption text-primary outline-hidden hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              … {item.folded} more {item.folded === 1 ? "line" : "lines"}
+            </button>
+          );
+        const { entry, index: i } = item;
         // Decided from the entry itself: no caller can ask for more.
         const rich = markdown && !entry.unverified;
         return entry.kind === "box" ? (

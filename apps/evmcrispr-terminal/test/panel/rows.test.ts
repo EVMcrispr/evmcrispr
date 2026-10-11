@@ -1,6 +1,11 @@
 import { expect, test } from "bun:test";
 import { emptyTimeline, mergeTimeline } from "@evmcrispr/space";
-import { type Row, timelineRows, WINDOW } from "../../src/panel/space/rows";
+import {
+  PAGE,
+  type Row,
+  timelineRows,
+  WINDOW,
+} from "../../src/panel/space/rows";
 import { add, rev, run } from "../helpers/timeline";
 
 const all = { filter: "all", shown: WINDOW } as const;
@@ -112,6 +117,41 @@ test("entries before the hidden mark are left out and counted", () => {
   );
   expect(kinds(rows)).toEqual(["run", "revisions"]);
   expect(earlier).toBe(2);
+});
+
+test("what was left out comes back a page at a time, the latest of it first, wherever it was left out", () => {
+  let s = emptyTimeline;
+  for (let i = 0; i < 30; i++) s = add(s, rev(s, `v${i}`, "assistant", i));
+  const at = (extra: number) =>
+    timelineRows(
+      s,
+      { hiddenBefore: 5 },
+      // The page loaded at 25: five entries are since.
+      { ...all, reviewed: true, since: 25, extra },
+    );
+  const texts = (extra: number) =>
+    at(extra).rows.map((row) => row.kind === "revision" && row.entry.text);
+  expect(texts(0)).toEqual(["v25", "v26", "v27", "v28", "v29"]);
+  expect(at(0).earlier).toBe(25);
+  // A page: the ten just before, and nothing moves among those listed.
+  expect(texts(PAGE).slice(0, 2)).toEqual(["v15", "v16"]);
+  expect(texts(PAGE).slice(-5)).toEqual(texts(0));
+  expect(at(PAGE).earlier).toBe(15);
+  // Past the page's start, into what Clear hid.
+  expect(texts(3 * PAGE)[0]).toBe("v0");
+  expect(at(3 * PAGE).earlier).toBe(0);
+});
+
+test("a run that was going on since the page loaded stays listed, though it began before", () => {
+  const options = { ...all, reviewed: true, since: 4 } as const;
+  expect(kinds(timelineRows(sample(), {}, options).rows)).toEqual([
+    "revisions",
+  ]);
+  expect(
+    kinds(
+      timelineRows(sample(), {}, { ...options, live: new Set(["r1"]) }).rows,
+    ),
+  ).toEqual(["run", "revisions"]);
 });
 
 test("a revision whose parent is gone has no parent to restore", () => {

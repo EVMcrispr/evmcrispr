@@ -33,7 +33,7 @@ const realFetch = globalThis.fetch;
 let pinned: any[] = [];
 let copied: string[] = [];
 beforeEach(() => {
-  setUi({ spaceView: "timeline", previewRevisionId: null });
+  setUi({ spaceView: "timeline", previewRevisionId: null, timelineSince: 0 });
   pinned = [];
   copied = [];
   globalThis.fetch = (async (url: string, init: RequestInit) => {
@@ -172,16 +172,16 @@ test("Remove asks first, names the entry, and takes only it", async () => {
   expect(reviewed(space)).toBe(false);
 });
 
-test("the menu: Clear for me and Show earlier; Clear timeline asks, says what it cannot reach, and leaves one revision and a note", async () => {
+test("Clear and the previous entries; in the menu, Clear timeline asks, says what it cannot reach, and leaves one revision and a note", async () => {
   const { space } = await setup();
   act(() => {
     applyText(space.text, "# Pay\nexec 2", ORIGIN.user);
     space.record("user");
   });
-  await menu("Clear for me");
+  await click(screen.getByRole("button", { name: "Clear" }));
   expect(screen.getByText("Nothing here yet.")).toBeDefined();
   expect(revisions(space.timeline.getState())).toHaveLength(2);
-  await click(screen.getByRole("button", { name: /Show earlier/ }));
+  await click(screen.getByRole("button", { name: /previous entr/ }));
   expect(screen.queryByText("Nothing here yet.")).toBeNull();
 
   await menu("Clear timeline…");

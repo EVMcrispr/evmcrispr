@@ -21,6 +21,7 @@ export { BackButton, PanelHeader } from "./components/PanelHeader";
 export { PixelArt } from "./components/PixelArt";
 export { Popover } from "./components/Popover";
 export { Row } from "./components/Row";
+export { ScriptFrame, ScriptPage } from "./components/ScriptPage";
 
 export { Spinner } from "./components/Spinner";
 export { Switch } from "./components/Switch";

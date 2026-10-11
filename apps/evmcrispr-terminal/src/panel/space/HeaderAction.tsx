@@ -1,13 +1,14 @@
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, useContext } from "react";
 
-const HeaderAction = createContext<ReactNode>(null);
+const ToChat = createContext<(() => void) | null>(null);
 
-/** Gives the Space tab one more action in its header, whichever of its
- *  views is on screen: on a phone, the way back to the chat. */
-export const HeaderActionProvider = HeaderAction.Provider;
+/** Where the chat is not on screen beside the Space tab (a phone), both
+ *  of the tab's views lead back to it: this goes there. Its presence is
+ *  also how those views know they are the whole screen. */
+export const ToChatProvider = ToChat.Provider;
 
-export function useHeaderAction(): ReactNode {
-  return useContext(HeaderAction);
+export function useToChat(): (() => void) | null {
+  return useContext(ToChat);
 }
 
 const ScriptLink = createContext<(() => void) | null>(null);

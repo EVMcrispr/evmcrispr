@@ -27,6 +27,7 @@ import {
   RowAction as Action,
   RevisionActions,
 } from "../../review/RevisionActions";
+import { UnreviewedBadge } from "../../review/state";
 import { removeEntry } from "../../space/cleaning";
 import { spaceFromEntry } from "../../space/derive";
 import { shareRevision } from "../../space/links";
@@ -92,7 +93,7 @@ export function RevisionRow({ row }: { row: Row }) {
             <DiffStat added={row.added} removed={row.removed} />
             <Time at={entry.ts} />
             {row.shared && <Badge>shared</Badge>}
-            {row.unreviewed && <Badge tone="unverified">unreviewed</Badge>}
+            {row.unreviewed && <UnreviewedBadge />}
           </>
         }
         // The way from a change to the chat it came from, while kept.

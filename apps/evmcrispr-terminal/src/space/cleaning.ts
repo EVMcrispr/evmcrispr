@@ -32,7 +32,7 @@ import type { LiveSpace } from "./live-space";
 export const clearForMe = (space: LiveSpace, now: number) =>
   space.setMarkers({ hiddenBefore: now });
 
-/** Brings back what Clear for me hid. */
+/** Brings back what Clear hid. */
 export const showEarlier = (space: LiveSpace) =>
   space.setMarkers({ hiddenBefore: 0 });
 

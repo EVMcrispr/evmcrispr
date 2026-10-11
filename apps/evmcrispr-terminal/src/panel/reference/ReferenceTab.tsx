@@ -324,18 +324,6 @@ export function ReferenceTab({
       <div
         className={cn("flex shrink-0 flex-col gap-2 py-2", !flush && "px-2")}
       >
-        {/* Where to start reading: the one row here that stands out. */}
-        <Row
-          href={DOCS_URL}
-          active
-          emphasis="title"
-          leading={<BookOpen aria-hidden className="size-4 text-success" />}
-          title="Guides and the full docs"
-          meta={new URL(SITE_URL).host}
-          actions={
-            <ExternalLink aria-hidden className="mr-2 size-4 text-success" />
-          }
-        />
         <Input
           ref={searchRef}
           variant="search"
@@ -346,7 +334,8 @@ export function ReferenceTab({
       </div>
       <div
         className={cn(
-          "flex flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto pb-3",
+          // Room under the last entry for the card that stays over the list.
+          "flex flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto pb-16",
           !flush && "px-2",
         )}
       >
@@ -397,6 +386,32 @@ export function ReferenceTab({
         {filteredEntries.length === 0 && (
           <EmptyState>No matches found.</EmptyState>
         )}
+      </div>
+      {/* Where to read more: it stays at the foot of the list, on a fade
+          of the surface behind it, so it is not taken for an entry. */}
+      <div
+        className={cn(
+          // Sticky, not absolute: in the phone's sheet it is the sheet
+          // that scrolls, and the card stays at its foot all the same.
+          "pointer-events-none sticky z-10 -mt-12 shrink-0 bg-linear-to-t via-65% to-transparent pt-12",
+          flush
+            ? // Down to the sheet's edge, over the padding under the list.
+              "-bottom-3 from-surface-sheet via-surface-sheet pb-5"
+            : "bottom-0 from-background via-background px-2 pb-2",
+        )}
+      >
+        <Row
+          className="pointer-events-auto"
+          href={DOCS_URL}
+          active
+          emphasis="title"
+          leading={<BookOpen aria-hidden className="size-4 text-heading" />}
+          title="Guides and the full docs"
+          meta={new URL(SITE_URL).host}
+          actions={
+            <ExternalLink aria-hidden className="mr-2 size-4 text-heading" />
+          }
+        />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { Collapsible } from "@base-ui/react/collapsible";
 import { ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "../utils";
 
 interface RowProps {
@@ -26,6 +26,15 @@ interface RowProps {
   /** Let the title wrap instead of truncating (a sentence, not a name). */
   wrap?: boolean;
   as?: "div" | "li";
+  /** Names the row for a view transition: what carries the same name
+   *  after the change is what the row becomes. */
+  transitionName?: string;
+  /** Names the title alone for a view transition: it travels by itself
+   *  to the title that carries the same name afterwards. */
+  titleTransitionName?: string;
+  /** A class of view transition the row takes part in, for the rows
+   *  that move the same way. Needs a `transitionName` of its own. */
+  transitionClass?: string;
   className?: string;
 }
 
@@ -52,8 +61,17 @@ export function Row({
   emphasis = "default",
   wrap = false,
   as: Comp = "div",
+  transitionName,
+  transitionClass,
+  titleTransitionName,
   className,
 }: RowProps) {
+  const style = transitionName
+    ? ({
+        viewTransitionName: transitionName,
+        viewTransitionClass: transitionClass,
+      } as CSSProperties)
+    : undefined;
   const expandable = open !== undefined;
   const interactive = expandable || !!(onClick || href);
 
@@ -70,6 +88,11 @@ export function Row({
       )}
       <span className="min-w-0 flex-1">
         <span
+          style={
+            titleTransitionName
+              ? { viewTransitionName: titleTransitionName }
+              : undefined
+          }
           className={cn(
             "block",
             wrap ? "wrap-break-word" : "truncate",
@@ -79,7 +102,14 @@ export function Row({
           {title}
         </span>
         {meta && (
-          <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption text-fg-faint">
+          <span
+            className={cn(
+              "mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption",
+              // On the active row's lighter surface the faint grey is
+              // too dim to read.
+              active ? "text-fg-muted" : "text-fg-faint",
+            )}
+          >
             {meta}
           </span>
         )}
@@ -107,6 +137,7 @@ export function Row({
         onOpenChange={(next) => onOpenChange?.(next)}
         disabled={disabled}
         render={<Comp />}
+        style={style}
         className={frame}
       >
         <div className="flex items-stretch">
@@ -122,7 +153,7 @@ export function Row({
     );
 
   return (
-    <Comp className={frame}>
+    <Comp style={style} className={frame}>
       <div className="flex items-stretch">
         {href ? (
           <a

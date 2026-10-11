@@ -45,7 +45,11 @@ async function setup(
   return { browser, app, evml, id, space, render };
 }
 
-beforeEach(() => setUi({ spaceView: "timeline", previewRevisionId: null }));
+// `timelineSince: 0`: these are about what the timeline lists, not about
+// the page starting with a clean one (which has its own test below).
+beforeEach(() =>
+  setUi({ spaceView: "timeline", previewRevisionId: null, timelineSince: 0 }),
+);
 
 /** Picks an item of a row's or a card's "⋯" menu: the first one open. */
 const more = async (item: string) => {
@@ -357,4 +361,27 @@ test("pressing the chosen filter again goes back to All", async () => {
   // All itself stays on.
   fireEvent.click(chip("All"));
   expect(chip("All")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("the page starts with a clean timeline: what was recorded before it loaded is behind the link to the previous entries, and Clear hides again", async () => {
+  const t = await setup();
+  // The page loaded after the space's first revision was recorded.
+  setUi({ timelineSince: Date.now() + 1 });
+  t.render();
+  expect(screen.getByText("Nothing here yet.")).toBeDefined();
+  expect(screen.queryByText(/created the script/)).toBeNull();
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: /previous entr/ }));
+    await settle();
+  });
+  expect(screen.getByText(/created the script/)).toBeDefined();
+  expect(screen.queryByRole("button", { name: /previous entr/ })).toBeNull();
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await settle();
+  });
+  expect(screen.getByText("Nothing here yet.")).toBeDefined();
+  expect(screen.getByRole("button", { name: /previous entr/ })).toBeDefined();
 });

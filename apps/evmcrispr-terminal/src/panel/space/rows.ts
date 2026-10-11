@@ -11,8 +11,10 @@ import {
 } from "@evmcrispr/space";
 
 export type Filter = "all" | "revisions" | "runs";
-/** How many entries the timeline renders before "Show earlier". */
+/** How many entries the timeline renders before the link to the previous entries. */
 export const WINDOW = 200;
+/** How many more each the link to the previous entries brings. */
+export const PAGE = 10;
 
 export interface RevisionRow {
   kind: "revision";
@@ -58,19 +60,31 @@ export function timelineRows(
     shown: number;
     /** Whether the script is the approved text right now. */
     reviewed: boolean;
+    /** When the page loaded: it starts with a clean timeline, so what
+     *  was recorded before is hidden as Clear hides it. */
+    since?: number;
+    /** Runs that were going on at some point since: they stay listed,
+     *  whenever they began. A run is not hidden from whoever follows it. */
+    live?: ReadonlySet<string>;
+    /** How many of the entries left out are listed all the same, the
+     *  latest of them first: what the link to the previous entries asked for. */
+    extra?: number;
   },
 ): {
   rows: Row[];
   /** Entries not on the list: before the window, or hidden. */
   earlier: number;
-  /** Of those, the ones Clear for me hid. */
+  /** Of those, the ones hidden: by Clear, or by the page starting clean. */
   hidden: number;
 } {
   const kept = orderedEntries(state).filter((entry): entry is Shown =>
     KINDS[options.filter].includes(entry.kind),
   );
   const visible = kept.filter(
-    (entry) => entry.ts >= (markers.hiddenBefore ?? Number.NEGATIVE_INFINITY),
+    (entry) =>
+      entry.ts >= (markers.hiddenBefore ?? Number.NEGATIVE_INFINITY) &&
+      (entry.ts >= (options.since ?? Number.NEGATIVE_INFINITY) ||
+        (entry.kind === "run" && !!options.live?.has(entry.runId))),
   );
   const pending = new Set(
     options.reviewed
@@ -80,15 +94,23 @@ export function timelineRows(
   // The latest `shown`, and always back to the first revision recorded
   // here since the script was last the approved text: however many
   // entries arrive dated after it, an unreviewed change is on the list,
-  // not under "Show earlier".
+  // not under the link to the previous entries.
   const firstPending = visible.findIndex(
     (entry) =>
       entry.kind === "revision" && !entry.unverified && pending.has(entry.id),
   );
   const from = Math.max(0, visible.length - options.shown);
-  const window = visible.slice(
-    firstPending === -1 ? from : Math.min(from, firstPending),
+  const latest = new Set(
+    visible.slice(firstPending === -1 ? from : Math.min(from, firstPending)),
   );
+  // What was asked for on top of that: the latest of what is left out,
+  // whatever left it out (the window, Clear, the page starting clean).
+  const asked = new Set(
+    options.extra
+      ? kept.filter((entry) => !latest.has(entry)).slice(-options.extra)
+      : [],
+  );
+  const window = kept.filter((entry) => latest.has(entry) || asked.has(entry));
   const shared = new Set(
     [...state.entries.values()].flatMap((entry) =>
       entry.kind === "share" && !entry.unverified ? [entry.revisionId] : [],

@@ -30,19 +30,6 @@ export function ChatHistorySheet({
       description="Start a new chat or reopen a previous one."
       closeLabel="Close chats"
     >
-      <Button
-        type="button"
-        variant="neutral"
-        className="w-full"
-        disabled={disabled}
-        onClick={() => {
-          onNewChat();
-          onOpenChange(false);
-        }}
-      >
-        <Plus data-icon aria-hidden />
-        New chat
-      </Button>
       <ChatList
         chats={chats}
         activeId={activeId}
@@ -53,6 +40,24 @@ export function ChatHistorySheet({
         }}
         onDeleteChat={onDeleteChat}
       />
+      {/* It stays at the foot of the sheet, on a fade of the sheet's own
+          surface, so a long list of chats goes under it, not beside it. */}
+      <div className="pointer-events-none sticky -bottom-3 z-10 -mt-3 bg-linear-to-t from-surface-sheet via-surface-sheet via-65% to-transparent pt-10 pb-5">
+        <Button
+          type="button"
+          // Starting one is what the sheet is most often opened for.
+          variant="primary"
+          className="pointer-events-auto w-full"
+          disabled={disabled}
+          onClick={() => {
+            onNewChat();
+            onOpenChange(false);
+          }}
+        >
+          <Plus data-icon aria-hidden />
+          New chat
+        </Button>
+      </div>
     </Overlay>
   );
 }

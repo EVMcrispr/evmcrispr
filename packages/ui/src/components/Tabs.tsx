@@ -16,14 +16,25 @@ const Tabs = ({ className, ...props }: BaseTabs.Root.Props) => (
   />
 );
 
-const TabsList = ({ className, ...props }: BaseTabs.List.Props) => (
+const TabsList = ({ className, children, ...props }: BaseTabs.List.Props) => (
   <BaseTabs.List
     className={cn(
-      "inline-flex w-fit items-center justify-center gap-1 border-b-2 border-edge font-head text-fg data-[orientation=vertical]:h-fit data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch data-[orientation=vertical]:border-r-2 data-[orientation=vertical]:border-b-0",
+      "relative inline-flex w-fit items-center justify-center gap-1 border-b-2 border-edge font-head text-fg data-[orientation=vertical]:h-fit data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch data-[orientation=vertical]:border-r-2 data-[orientation=vertical]:border-b-0",
       className,
     )}
     {...props}
-  />
+  >
+    {children}
+    {/* The bar under the active tab, drawn over the list's line. It is
+        one bar, so it travels from a tab to the next. */}
+    <BaseTabs.Indicator
+      className={cn(
+        "pointer-events-none absolute bg-primary transition-[translate,width,height] duration-300 ease-out",
+        "data-[orientation=horizontal]:-bottom-0.5 data-[orientation=horizontal]:left-0 data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-(--active-tab-width) data-[orientation=horizontal]:translate-x-(--active-tab-left)",
+        "data-[orientation=vertical]:top-0 data-[orientation=vertical]:-right-0.5 data-[orientation=vertical]:h-(--active-tab-height) data-[orientation=vertical]:w-1 data-[orientation=vertical]:translate-y-(--active-tab-top)",
+      )}
+    />
+  </BaseTabs.List>
 );
 
 const TabsTrigger = ({ className, ...props }: BaseTabs.Tab.Props) => (
@@ -32,8 +43,6 @@ const TabsTrigger = ({ className, ...props }: BaseTabs.Tab.Props) => (
       "relative inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-(--radius) px-3 py-1.5 text-sm font-head font-medium text-fg-muted outline-hidden transition-colors hover:text-fg focus-visible:ring-2 focus-visible:ring-ring touch:min-h-11",
       "data-disabled:pointer-events-none data-disabled:opacity-50 data-active:text-fg",
       "data-[orientation=vertical]:w-full data-[orientation=vertical]:justify-start [&_svg]:pointer-events-none [&_svg]:shrink-0",
-      // The bar under the active tab, drawn over the list's line.
-      "after:pointer-events-none after:absolute after:bg-primary after:opacity-0 after:transition-opacity data-active:after:opacity-100 data-[orientation=horizontal]:after:inset-x-0 data-[orientation=horizontal]:after:-bottom-0.5 data-[orientation=horizontal]:after:h-1 data-[orientation=vertical]:after:inset-y-0 data-[orientation=vertical]:after:-right-0.5 data-[orientation=vertical]:after:w-1",
       className,
     )}
     {...props}

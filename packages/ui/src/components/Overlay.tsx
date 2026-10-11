@@ -31,7 +31,8 @@ interface OverlayProps {
   title: string;
   /** Colours the title and the frame: `warning` for a caution,
    *  `danger` for a destructive confirm, `brand` for the app's own
-   *  places (its menu, its docs). */
+   *  places (its menu, its docs). A sheet with nothing to warn of is
+   *  always `brand`: every drawer of the app wears its colours. */
   tone?: "neutral" | "brand" | "warning" | "danger";
   /** Buttons, last one the main action. */
   footer?: ReactNode;
@@ -101,7 +102,8 @@ export function Overlay({
   const initialFocus = focus === "popup" ? popup : undefined;
   const change = (next: boolean) => onOpenChange(next);
 
-  if (sheet ?? small)
+  if (sheet ?? small) {
+    const look = tone === "neutral" ? "brand" : tone;
     return (
       <Drawer.Root open={open} onOpenChange={change} swipeDirection="down">
         <Drawer.Portal>
@@ -115,7 +117,7 @@ export function Overlay({
               data-slot="drawer-popup"
               className={cn(
                 "flex max-h-[96dvh] min-h-0 w-full flex-col rounded-t-(--radius) border-2 border-b-0 bg-surface-sheet outline-hidden transition-transform duration-300 [transform:translateY(var(--drawer-swipe-movement-y,0px))] data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:duration-0",
-                EDGE[tone],
+                EDGE[look],
               )}
             >
               <div
@@ -124,7 +126,7 @@ export function Overlay({
               />
               <div className={HEADER}>
                 <div className="min-w-0 flex-1">
-                  <Drawer.Title className={cn(HEADING, TITLE[tone])}>
+                  <Drawer.Title className={cn(HEADING, TITLE[look])}>
                     {title}
                   </Drawer.Title>
                   {description && (
@@ -153,6 +155,7 @@ export function Overlay({
         </Drawer.Portal>
       </Drawer.Root>
     );
+  }
 
   return (
     <Dialog.Root open={open} onOpenChange={change}>

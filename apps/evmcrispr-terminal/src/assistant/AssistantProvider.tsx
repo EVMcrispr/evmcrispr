@@ -134,7 +134,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     systemPrompt: () => withClock(SYSTEM_PROMPT),
     tools,
     chatStore: chats,
-    initialChatId: "latest",
+    // No `initialChatId`: the page opens on an empty chat, which is only
+    // kept once something is said in it. Earlier ones are in the history.
     acquireTurn,
     onTurnStart: host.beginTurn,
     onTurnEnd: ({ id }) => host.endTurn(id),

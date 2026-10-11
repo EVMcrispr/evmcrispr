@@ -6,11 +6,12 @@ import {
   Card,
   IconButton,
   Menu,
+  Overlay,
   Time,
   type Tone,
 } from "@repo/ui";
-import { Download, Ellipsis, Eye, Trash2 } from "@repo/ui/icons";
-import { useEffect, useState } from "react";
+import { Download, Ellipsis, Eye, ScrollText, Trash2 } from "@repo/ui/icons";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../../app/AppContext";
 import { useSpace, useTimeline } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
@@ -30,6 +31,11 @@ export const STATUS: Record<RunStatus, string> = {
   cancelled: "Cancelled",
   interrupted: "Interrupted",
 };
+
+/** How much of a long log the card shows: its start and its end. The
+ *  rest is behind "… N more lines", in the log opened by itself. */
+const HEAD = 3;
+const TAIL = 5;
 
 const WHY = {
   left: "you opened another space",
@@ -105,6 +111,12 @@ export function RunCard({
   const run = useRunOf(runId);
   const [open, setOpen] = useState(initially);
   const [removing, setRemoving] = useState(false);
+  // The whole log, opened over the page.
+  const [reading, setReading] = useState(false);
+  const fold = useMemo(
+    () => ({ head: HEAD, tail: TAIL, onOpen: () => setReading(true) }),
+    [],
+  );
   const space = useSpace();
   const { me } = useApp();
   // The latest run opens by itself, and an earlier one closes when a
@@ -166,10 +178,15 @@ export function RunCard({
         )}
 
         <Card.Body className="gap-0 p-0">
-          <div className="max-h-[60vh] overflow-y-auto">
+          {/* No scroll of its own inside the timeline's: a long log shows
+              its start and its end here, and all of it where it has the
+              screen to itself. */}
+          <div>
             <Console
               entries={entries}
               errors={record.errors}
+              fold={fold}
+              follow={false}
               // The one place output is rendered as markdown: a run made
               // by this browser. One an export brought is plain text,
               // and its console says so itself whatever is asked here.
@@ -180,6 +197,15 @@ export function RunCard({
             />
           </div>
           <div className="flex flex-wrap items-center gap-2 border-t-2 border-line p-2.5">
+            <Button
+              type="button"
+              variant="quiet"
+              size="row"
+              icon={<ScrollText />}
+              onClick={() => setReading(true)}
+            >
+              Open log
+            </Button>
             {kept ? (
               <Button
                 type="button"
@@ -234,6 +260,26 @@ export function RunCard({
           </Card.Footer>
         )}
       </Card>
+      {reading && (
+        <Overlay
+          open
+          onOpenChange={(open) => !open && setReading(false)}
+          size="lg"
+          title={runLabel(record)}
+          description={<StatusBadge record={record} />}
+          closeLabel="Close log"
+        >
+          {/* The whole log, and the one thing here that scrolls. */}
+          <Console
+            entries={entries}
+            errors={record.errors}
+            markdown={!record.unverified}
+            placeholder={
+              isUnfinished(record) ? "Nothing printed yet." : "No output."
+            }
+          />
+        </Overlay>
+      )}
       {removing && (
         <Confirm
           title="Remove this run"

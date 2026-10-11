@@ -45,6 +45,10 @@ export interface UiState {
   /** A request to show a chat in the Agents tab (from a revision's row).
    *  `ts` is a nonce, as in `DocsRequest`. */
   chatRequest: { chatId: string; ts: number } | null;
+  /** The timeline lists what was recorded since this moment: the page
+   *  starts with a clean one, and what came before is asked for. Kept
+   *  here, not saved: the next load starts clean again. */
+  timelineSince: number;
   /** What the user chose as each space's stdin (not saved), with the
    *  address's own stdin it replaced: a new one in the address wins. */
   stdin: Record<
@@ -60,6 +64,7 @@ export const uiStore = createStore<UiState>(() => ({
   viewMode: resolveInitialViewMode(),
   docsRequest: null,
   chatRequest: null,
+  timelineSince: Date.now(),
   stdin: {},
 }));
 

@@ -1,6 +1,4 @@
 import type { HoverRef } from "@evmcrispr/core";
-import { IconButton } from "@repo/ui";
-import { MessagesSquare } from "@repo/ui/icons";
 import { useEffect, useRef, useState } from "react";
 import { ScriptLoadState } from "../components/terminal/ScriptLoadState";
 import {
@@ -14,8 +12,8 @@ import { ScriptContextBar } from "../mobile/ScriptContextBar";
 import { ScriptSheet } from "../mobile/ScriptSheet";
 import { AgentsTab } from "../panel/agents/AgentsTab";
 import {
-  HeaderActionProvider,
   ScriptLinkProvider,
+  ToChatProvider,
 } from "../panel/space/HeaderAction";
 import { SpacesList } from "../panel/space/SpacesList";
 import { SpaceTab } from "../panel/space/SpaceTab";
@@ -25,6 +23,7 @@ import { useApproval, useReview } from "../review/useReview";
 import { useLatestRun } from "../runs/useRun";
 import { useWallet } from "../wallet/WalletContext";
 import { useDocumentTitle } from "./DesktopLayout";
+import { morph } from "./morph";
 import { useSpace } from "./SpaceContext";
 import { StorageNotice } from "./StorageNotice";
 import { setUi, useUi } from "./ui-store";
@@ -122,7 +121,7 @@ function MobileSpace({
   const run = useLatestRun();
   const previewed = usePreviewedRevision();
   const reviewOpen = useSurface().open;
-  // The review also comes up by itself (Execute was refused): only the
+  // The review also comes up by itself (Run was refused): only the
   // user asking for it, in `openReview`, puts changes and an Approve on
   // it.
   const approval = useApproval();
@@ -214,14 +213,16 @@ function MobileSpace({
           identity and state on screen while the user chats about it. */}
       {surface === "agents" && (
         <ScriptContextBar
-          reviewState={review.simulation}
-          reviewUnseen={reviewReady && !reviewSeen}
-          onOpenSpaces={() => {
-            setUi({ spaceView: "list" });
-            setSurface("space");
-          }}
-          onOpenSpace={showTimeline}
-          onOpenReview={openReview}
+          simulation={review.simulation}
+          resultUnseen={reviewReady && !reviewSeen}
+          onOpenSpaces={() =>
+            morph(() => {
+              setUi({ spaceView: "list" });
+              setSurface("space");
+            })
+          }
+          onOpenSpace={() => morph(showTimeline)}
+          onSimulate={openReview}
         />
       )}
 
@@ -235,10 +236,10 @@ function MobileSpace({
             <ScriptSheet
               entryIntent={route.intent}
               sharedEncrypted={route.sharedEncrypted}
-              reviewState={review.simulation}
-              onBack={showTimeline}
-              onAsk={() => setSurface("agents")}
-              onReview={openReview}
+              simulation={review.simulation}
+              onBack={() => morph(showTimeline)}
+              onAsk={() => morph(() => setSurface("agents"))}
+              onSimulate={openReview}
               onOpenDocs={openDocs}
             />
           ))}
@@ -246,23 +247,11 @@ function MobileSpace({
           <div className="min-h-0 flex-1">
             {/* The way back to the chat is in the header of whichever view
                 of the tab is on screen, not in a row of its own. */}
-            <HeaderActionProvider
-              value={
-                <IconButton
-                  type="button"
-                  variant="quiet"
-                  size="sm"
-                  aria-label="Back to chat"
-                  onClick={() => setSurface("agents")}
-                >
-                  <MessagesSquare aria-hidden />
-                </IconButton>
-              }
-            >
-              <ScriptLinkProvider value={openCurrentScript}>
+            <ToChatProvider value={() => morph(() => setSurface("agents"))}>
+              <ScriptLinkProvider value={() => morph(openCurrentScript)}>
                 <SpaceTab />
               </ScriptLinkProvider>
-            </HeaderActionProvider>
+            </ToChatProvider>
           </div>
         )}
         {/* The chat owns the conversation state (useChatAgent) — keep it

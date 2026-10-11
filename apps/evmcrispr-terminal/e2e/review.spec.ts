@@ -6,7 +6,7 @@ const lines = (page: Page) => page.locator(".monaco-editor .view-lines");
 const marks = (page: Page) => page.locator(".monaco-editor .evml-changed-line");
 const composer = (page: Page) => page.getByPlaceholder(/Ask about the script/);
 const execute = (page: Page) =>
-  page.getByRole("button", { name: "Execute", exact: true });
+  page.getByRole("button", { name: "Run", exact: true });
 const reviewChanges = (page: Page) =>
   page.getByRole("button", { name: "Review changes" });
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -53,7 +53,7 @@ function runs(page: Page) {
   );
 }
 
-test("an assistant edit asks for a review before Execute; approving restores it; an edit landing while the review is open is not approved; approving shows in another page", async ({
+test("an assistant edit asks for a review before Run; approving restores it; an edit landing while the review is open is not approved; approving shows in another page", async ({
   context,
 }) => {
   const nexus = await mockNexus(context);
@@ -72,7 +72,7 @@ test("an assistant edit asks for a review before Execute; approving restores it;
   await expect(page.getByText("Translated.")).toBeVisible();
   await expect(lines(page)).toContainText("print dos");
 
-  // Execute is gone, the changed line is marked, and nothing real ran.
+  // Run is gone, the changed line is marked, and nothing real ran.
   await expect(reviewChanges(page)).toBeVisible();
   await expect(execute(page)).toHaveCount(0);
   await expect(marks(page)).toHaveCount(1);
@@ -219,7 +219,7 @@ test("on mobile the sheet shows what changed above the transactions; no run can 
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Written.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Open transaction review" }).click();
+  await page.getByRole("button", { name: "Simulate & Run" }).click();
   const sheet = page.getByRole("dialog");
   const changed = sheet.getByRole("region", { name: "What changed" });
   await expect(changed).toContainText("print hola");

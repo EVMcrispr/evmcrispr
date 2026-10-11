@@ -26,7 +26,7 @@ export function MobileHeader({
     address && `${address.slice(0, 5)}…${address.slice(-4)}`;
 
   return (
-    <header className="mobile-safe-top flex min-h-14 shrink-0 items-center gap-2 border-b-2 border-line bg-surface-0 px-3">
+    <header className="mobile-safe-top [view-transition-name:panel-chrome] flex min-h-14 shrink-0 items-center gap-2 border-b-2 border-line bg-surface-0 px-3">
       <IconButton
         type="button"
         aria-label="Open navigation"

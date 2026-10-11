@@ -36,6 +36,9 @@ interface PanelHeaderProps {
   actions?: ReactNode;
   /** `title`: in the heading colour, for the name of a space. */
   emphasis?: "default" | "title";
+  /** Names the title alone for a view transition: it travels by itself
+   *  to the title that carries the same name afterwards. */
+  titleTransitionName?: string;
   className?: string;
 }
 
@@ -45,6 +48,7 @@ export function PanelHeader({
   back,
   actions,
   emphasis = "default",
+  titleTransitionName,
   className,
 }: PanelHeaderProps) {
   return (
@@ -56,6 +60,11 @@ export function PanelHeader({
     >
       {back}
       <h2
+        style={
+          titleTransitionName
+            ? { viewTransitionName: titleTransitionName }
+            : undefined
+        }
         className={cn(
           "m-0 min-w-0 flex-1 truncate font-head text-title font-bold",
           emphasis === "title" ? "text-heading" : "text-fg",

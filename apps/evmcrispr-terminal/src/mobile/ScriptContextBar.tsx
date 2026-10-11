@@ -1,68 +1,54 @@
-import { Button, cn, Dot, IconButton, type Tone } from "@repo/ui";
-import { ListTree, ShieldCheck } from "@repo/ui/icons";
+import { Button, cn, Dot, IconButton } from "@repo/ui";
+import { Boxes, FlaskConical } from "@repo/ui/icons";
+import { SCRIPT_MORPH, TITLE_MORPH } from "../app/morph";
 import { useScript } from "../app/SpaceContext";
 import type { Simulation } from "../review/useReview";
 
-function chip(state: Simulation): {
-  label: string;
-  tone: Tone;
-  pulse: boolean;
-} {
-  switch (state.status) {
-    case "validating":
-    case "simulating":
-      return { label: "Checking…", tone: "neutral", pulse: true };
-    case "valid":
-    case "ready":
-      return { label: "Ready", tone: "success", pulse: false };
-    case "error":
-      return { label: "Error", tone: "danger", pulse: false };
-    default:
-      return { label: "Review", tone: "neutral", pulse: false };
-  }
-}
-
-// Written out in full: Tailwind finds class names by reading the source.
-const TONE: Partial<Record<Tone, string>> = {
-  neutral: "text-fg-muted",
-  success: "text-success",
-  danger: "text-danger",
-};
-
 export function ScriptContextBar({
-  reviewState,
-  reviewUnseen,
+  simulation,
+  resultUnseen,
   onOpenSpaces,
   onOpenSpace,
-  onOpenReview,
+  onSimulate,
 }: {
   /** To the list of every space. */
   onOpenSpaces: () => void;
-  reviewState: Simulation;
-  reviewUnseen: boolean;
+  /** The check of the script as it is: only whether one is going on is
+   *  shown here. What it found is said where it is opened. */
+  simulation: Simulation;
+  /** A simulation finished that the user has not looked at. */
+  resultUnseen: boolean;
   /** The name is the space: it opens its timeline, where the script is. */
   onOpenSpace: () => void;
-  onOpenReview: () => void;
+  /** Opens the simulation of the script. (Reviewing a change is another
+   *  thing: approving text someone else wrote.) */
+  onSimulate: () => void;
 }) {
   const { title } = useScript();
-  const review = chip(reviewState);
+  const busy =
+    simulation.status === "validating" || simulation.status === "simulating";
 
   return (
     <nav
       aria-label="Space"
-      className="mx-3 mt-2 mb-1 flex shrink-0 items-stretch gap-2"
+      className="mx-3 mt-2 mb-1 flex shrink-0 items-stretch"
     >
-      <IconButton
-        type="button"
-        variant="neutral"
-        size="sm"
-        aria-label="All spaces"
-        tooltip={false}
-        onClick={onOpenSpaces}
+      <div
+        style={{ viewTransitionName: SCRIPT_MORPH }}
+        className="flex min-w-0 flex-1 items-center gap-1.5 rounded-(--radius) border-2 border-edge bg-surface-1 p-1"
       >
-        <ListTree aria-hidden />
-      </IconButton>
-      <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-(--radius) border-2 border-edge bg-surface-1 p-1">
+        {/* The mark of the space is the way to all of them: it says so
+            when pointed at. */}
+        <IconButton
+          type="button"
+          variant="quiet"
+          size="sm"
+          aria-label="All spaces"
+          className="hover:text-success"
+          onClick={onOpenSpaces}
+        >
+          <Boxes aria-hidden />
+        </IconButton>
         <Button
           type="button"
           variant="ghost"
@@ -71,25 +57,30 @@ export function ScriptContextBar({
           className="min-w-0 flex-1 justify-start px-2 text-fg"
           onClick={onOpenSpace}
         >
-          <span className={cn("truncate", !title && "text-fg-faint")}>
+          <span
+            style={{ viewTransitionName: TITLE_MORPH }}
+            className={cn("truncate", !title && "text-fg-faint")}
+          >
             {title || "Untitled"}
           </span>
         </Button>
 
+        {/* Always the same words: they say what the panel it opens is
+            for (a run can be started there with or without simulating),
+            not what the last simulation found. */}
         <Button
           type="button"
           variant="quiet"
           size="sm"
-          aria-label="Open transaction review"
-          className={cn("relative gap-1.5 px-2", TONE[review.tone])}
-          onClick={onOpenReview}
+          className="relative gap-1.5 px-2"
+          onClick={onSimulate}
         >
-          <ShieldCheck
+          <FlaskConical
             aria-hidden
-            className={cn("size-4", review.pulse && "animate-pulse")}
+            className={cn("size-4", busy && "animate-pulse")}
           />
-          <span className="hidden min-[360px]:inline">{review.label}</span>
-          {reviewUnseen && (
+          Simulate & Run
+          {resultUnseen && (
             <Dot tone="success" className="absolute -top-1 -right-1" />
           )}
         </Button>

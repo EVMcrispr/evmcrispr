@@ -9,10 +9,10 @@ import {
   toast,
 } from "@repo/ui";
 import {
+  Boxes,
   Ellipsis,
   FileText,
   History,
-  ListTree,
   MessagesSquare,
   Share2,
 } from "@repo/ui/icons";
@@ -32,7 +32,7 @@ export function Primitives() {
           <Tabs defaultValue="space">
             <Tabs.List className="w-full">
               <Tabs.Trigger value="space" className="flex-1">
-                <ListTree aria-hidden className="size-4" />
+                <Boxes aria-hidden className="size-4" />
                 Spaces
               </Tabs.Trigger>
               <Tabs.Trigger value="agents" className="flex-1">

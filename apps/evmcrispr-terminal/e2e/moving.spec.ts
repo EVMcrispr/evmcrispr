@@ -155,8 +155,10 @@ test("export a space, then restore it in a browser that does not have it: the sa
     kept.entries.filter((e) => e.kind === "revision" && !e.unverified),
   ).toHaveLength(1);
   await there.getByRole("tab", { name: "Spaces" }).click();
+  // What the export recorded predates this page: it is asked for.
+  await there.getByRole("button", { name: /previous entr/ }).click();
   await expect(there.getByText("From an export").first()).toBeVisible();
-  // Reviewed: Execute is Execute.
+  // Reviewed: Run is Run.
   await expect(
     there.getByRole("button", { name: "Review changes" }),
   ).toHaveCount(0);
@@ -268,7 +270,7 @@ test("share from a revision row: it reads shared, Copy link gives the same link,
   expect(page.url()).toBe(address);
 });
 
-test("Clear for me and Show earlier; Clear timeline leaves one revision and a note; removing a space asks first", async ({
+test("Clear and the previous entries; Clear timeline leaves one revision and a note; removing a space asks first", async ({
   page,
 }) => {
   await page.goto("/");
@@ -279,13 +281,13 @@ test("Clear for me and Show earlier; Clear timeline leaves one revision and a no
     .poll(async () => (await stored(page, id)).approvedText)
     .toContain("print kept");
 
-  await menu(page, "Clear for me");
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
   await expect(page.getByText("Nothing here yet.")).toBeVisible();
-  await page.getByRole("button", { name: /Show earlier/ }).click();
+  await page.getByRole("button", { name: /previous entr/ }).click();
   await expect(page.getByText("created the script")).toBeVisible();
 
   await menu(page, "Clear timeline…");
-  // By name: the toast of "Clear for me" is still up, and a toast is a
+  // By name: the toast of Clear is still up, and a toast is a
   // (non-modal) dialog too.
   const question = page.getByRole("dialog", { name: "Clear timeline" });
   await expect(question).toContainText(

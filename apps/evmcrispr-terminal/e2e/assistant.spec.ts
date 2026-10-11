@@ -100,7 +100,7 @@ test("ask for a change: one revision with the assistant's explanation in the tim
   await expect.poll(() => unreviewed(page, id)).toBe(false);
 });
 
-test("the chat survives a reload and reopens; it stays open in another space and is labelled with where it started", async ({
+test("the chat survives a reload: the page opens on an empty one and the history reopens it; it stays open in another space and is labelled with where it started", async ({
   page,
   context,
 }) => {
@@ -116,14 +116,19 @@ test("the chat survives a reload and reopens; it stays open in another space and
 
   await page.reload();
   await agents(page).click();
-  await expect(page.getByText("hello there")).toBeVisible();
+  // The page opens on an empty chat; the earlier one is in the history.
+  await expect(composer(page)).toBeVisible();
+  await expect(page.getByText("Hello from the model.")).toHaveCount(0);
+  await page.getByRole("button", { name: "Chat history" }).click();
+  await page.getByRole("button", { name: /hello there/ }).click();
+  await expect(page.getByText("hello there").first()).toBeVisible();
   await expect(page.getByText("Hello from the model.")).toBeVisible();
 
   // Another space: the same chat, still open.
   // A new space is made from the list of spaces.
   await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Back to Spaces" }).click();
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  await page.getByRole("button", { name: "New space", exact: true }).click();
   await expect(lines(page)).toContainText("Example");
   expect(spaceId(page)).not.toBe(first);
   await agents(page).click();
@@ -185,8 +190,9 @@ test("old chats are in the Agents tab after the update, and old storage is left 
   }, SCRIPT);
   await page.goto("/");
   await agents(page).click();
-  // The last chat reopens without being asked for.
-  await expect(page.getByText(/^said in chat-/)).toBeVisible();
+  // The page opens on an empty chat; the old ones are in the history.
+  await expect(composer(page)).toBeVisible();
+  await expect(page.getByText(/^said in chat-/)).toHaveCount(0);
 
   await page.getByRole("button", { name: "Chat history" }).click();
   await expect(page.getByText("About the old script")).toBeVisible();
@@ -215,7 +221,7 @@ test("an edit to a space that is not on screen waits for the user's word, then m
   // A new space is made from the list of spaces.
   await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Back to Spaces" }).click();
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  await page.getByRole("button", { name: "New space", exact: true }).click();
   await expect(lines(page)).toContainText("Example");
   const here = spaceId(page);
 
@@ -274,6 +280,9 @@ test("the same chat in two pages answers one turn at a time", async ({
   await two.setViewportSize(desktop);
   await two.goto(one.url());
   await agents(two).click();
+  // A page opens on an empty chat: the second one opens the same chat.
+  await two.getByRole("button", { name: "Chat history" }).click();
+  await two.getByRole("button", { name: /first question/ }).click();
   await expect(two.getByText("First answer.")).toBeVisible();
 
   // The first page asks, and its answer is held back.
@@ -285,7 +294,9 @@ test("the same chat in two pages answers one turn at a time", async ({
   await say(one, "second question");
   await expect(two.getByText("Answering in another tab…")).toBeVisible();
   await expect(two.getByText("second question")).toBeVisible();
-  await expect(two.getByRole("textbox")).toBeDisabled();
+  await expect(
+    two.getByPlaceholder("Answering in another tab…"),
+  ).toBeDisabled();
   const sent = nexus.requests.length;
 
   open();

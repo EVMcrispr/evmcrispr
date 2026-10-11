@@ -1,6 +1,6 @@
 import { fetchNexusBalance } from "@evmcrispr/ai";
 import { BackButton, Badge, Button, Overlay, Row } from "@repo/ui";
-import { FileText, ListTree, Settings } from "@repo/ui/icons";
+import { Boxes, FileText, Settings } from "@repo/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { useEffect, useState } from "react";
@@ -70,7 +70,7 @@ export function MobileMenu({
         <>
           <section aria-label="Spaces" className="flex flex-col gap-2">
             <Row
-              leading={<ListTree aria-hidden className="size-4 text-success" />}
+              leading={<Boxes aria-hidden className="size-4 text-fg-muted" />}
               title="Spaces"
               onClick={onOpenSpaces}
             />
@@ -79,12 +79,16 @@ export function MobileMenu({
 
           <div className="flex flex-col gap-2">
             <Row
-              leading={<FileText aria-hidden className="size-4 text-success" />}
+              leading={
+                <FileText aria-hidden className="size-4 text-fg-muted" />
+              }
               title="EVML docs"
               onClick={() => setPage("reference")}
             />
             <Row
-              leading={<Settings aria-hidden className="size-4 text-success" />}
+              leading={
+                <Settings aria-hidden className="size-4 text-fg-muted" />
+              }
               title="Chat settings"
               meta={
                 balanceCents != null ? (

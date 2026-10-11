@@ -1,4 +1,13 @@
-import { AuthorLabel, Badge, DiffStat, IconButton, Row, Time } from "@repo/ui";
+import {
+  AuthorLabel,
+  Badge,
+  DiffStat,
+  IconButton,
+  Row,
+  ScriptFrame,
+  ScriptPage,
+  Time,
+} from "@repo/ui";
 import { MessageSquare, Trash2 } from "@repo/ui/icons";
 import { useState } from "react";
 import { Both, Example, Section } from "../kit";
@@ -7,6 +16,13 @@ import { OpenChat, RevisionActions } from "../parts";
 const NOW = Date.now();
 const LONG =
   "Rebalance the treasury across three vaults and bridge the remainder to Gnosis before the vote";
+
+const SCRIPT = `# Fund the grants Safe
+load safe
+set $safe 0x1234567890123456789012345678901234567890
+exec @token(DAI) "transfer(address,uint256)" $safe 5000e18
+print "sent"
+print "done"`;
 
 function Remove({ name }: { name: string }) {
   return (
@@ -72,6 +88,58 @@ export function Rows() {
               actions={<Remove name="the long one" />}
             />
           </ul>
+        </Example>
+        <Example label="a script, above what happened to it: its first lines as the editor colours them; one with nothing written; the head alone">
+          <div className="flex w-full flex-col gap-2">
+            <ScriptPage
+              title="Fund the grants Safe"
+              text={SCRIPT}
+              meta={
+                <>
+                  <span>
+                    Updated <Time at={NOW - 600_000} now={NOW} format="day" />
+                  </span>
+                  <Badge tone="unverified" dot>
+                    unreviewed
+                  </Badge>
+                </>
+              }
+              onClick={() => {}}
+            />
+            <ScriptPage title="Untitled" text="" onClick={() => {}} />
+            <ScriptPage
+              compact
+              preview={false}
+              title="Script"
+              text={SCRIPT}
+              meta={<span>Updated today</span>}
+              onClick={() => {}}
+            />
+          </div>
+        </Example>
+        <Example label="the same script, opened: the page with all of it">
+          <ScriptFrame
+            className="h-64 w-full"
+            title="Fund the grants Safe"
+            meta={
+              <>
+                <span>Read-only here · edit through chat</span>
+                <Badge variant="tag" tone="success" dot>
+                  Valid
+                </Badge>
+              </>
+            }
+            actions={<Remove name="Fund the grants Safe" />}
+            footer={
+              <span className="text-fg-muted">
+                Nothing is sent until you review and confirm in your wallet.
+              </span>
+            }
+          >
+            <pre className="m-0 overflow-hidden p-3 font-mono text-caption text-fg-muted">
+              {SCRIPT}
+            </pre>
+          </ScriptFrame>
         </Example>
         <Example label="a revision: your own, an agent's (with the way to its chat), and one whose undo was refused">
           <div className="flex w-full flex-col gap-2">

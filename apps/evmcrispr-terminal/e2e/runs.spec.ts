@@ -15,14 +15,15 @@ async function setScript(page: Page, script: string) {
 const card = (page: Page) => page.locator('[id^="run-"]').last();
 const pinned = (page: Page) =>
   page.getByRole("list", { name: "Unfinished runs" });
-const execute = (page: Page) => page.getByRole("button", { name: "Execute" });
+const execute = (page: Page) =>
+  page.getByRole("button", { name: "Run", exact: true });
 
 /** Opens another space in this tab, and comes back to `id`. */
 async function leave(page: Page) {
   // A new space is made from the list of spaces.
   await page.getByRole("tab", { name: "Spaces" }).click();
   await page.getByRole("button", { name: "Back to Spaces" }).click();
-  await page.getByRole("button", { name: "New", exact: true }).click();
+  await page.getByRole("button", { name: "New space", exact: true }).click();
   await expect(page.locator(".monaco-editor .view-lines")).toContainText(
     "Example",
   );
@@ -48,6 +49,8 @@ test("a run is a card that survives a reload", async ({ page }) => {
   await expect(card(page)).toContainText("Done");
   await page.reload();
   await page.getByRole("tab", { name: "Spaces" }).click();
+  // The page starts with a clean timeline: the run is asked for.
+  await page.getByRole("button", { name: /previous entr/ }).click();
   await expect(card(page)).toContainText("Run");
   await expect(card(page)).toContainText("hello-from-run");
   await card(page).getByRole("button", { name: "View script" }).click();

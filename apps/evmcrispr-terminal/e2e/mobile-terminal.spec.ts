@@ -34,10 +34,10 @@ for (const viewport of [
 
     await openScript(page);
     await expect(
-      page.getByRole("region", { name: "Script review" }),
+      page.getByRole("region", { name: "Script", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Review & execute" }),
+      page.getByRole("button", { name: /^(Simulate & Run|Review changes)$/ }),
     ).toBeVisible();
     await expect(page.locator(".monaco-editor")).toHaveCount(0);
   });
@@ -83,10 +83,10 @@ test("received CID links land on the read-only script", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText("Encrypted link")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Ask about script" }),
+    page.getByRole("button", { name: "Back to chat" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Review & execute" }),
+    page.getByRole("button", { name: /^(Simulate & Run|Review changes)$/ }),
   ).toBeVisible();
   await expect(page.locator(".monaco-editor")).toHaveCount(0);
 });
@@ -103,16 +103,16 @@ test("first run without an API key can still reach the script", async ({
   const scriptButton = page.getByRole("button", { name: "Open space" });
   await expect(scriptButton).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Open transaction review" }),
+    page.getByRole("button", { name: "Simulate & Run" }),
   ).toBeVisible();
 
   await openScript(page);
   await expect(
-    page.getByRole("region", { name: "Script review" }),
+    page.getByRole("region", { name: "Script", exact: true }),
   ).toBeVisible();
 
   // And back again — no dead end in either direction.
-  await page.getByRole("button", { name: "Ask about script" }).click();
+  await page.getByRole("button", { name: "Back to chat" }).click();
   await expect(page.getByText("Chat settings")).toBeVisible();
   await expect(scriptButton).toBeVisible();
 });
@@ -129,9 +129,9 @@ test("chat composer state survives a surface switch", async ({ page }) => {
 
   await openScript(page);
   await expect(
-    page.getByRole("region", { name: "Script review" }),
+    page.getByRole("region", { name: "Script", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Ask about script" }).click();
+  await page.getByRole("button", { name: "Back to chat" }).click();
 
   // The chat panel stayed mounted, so the draft is still there.
   await expect(composer).toHaveValue("send 1 xdai to vitalik.eth");
@@ -367,8 +367,8 @@ test("chats belong to the browser: all are listed, labelled with where they star
   );
   await page.goto(`/#/${SCRIPT_A}`);
   await expect(page.getByPlaceholder("Describe what to do…")).toBeVisible();
-  // The most recent chat reopens.
-  await expect(page.getByText("said in chat-a")).toBeVisible();
+  // The page opens on an empty chat, though a space is on screen.
+  await expect(page.getByText("said in chat-a")).toHaveCount(0);
 
   // Every chat is listed, whatever space it started in.
   await page.getByRole("button", { name: "Previous chats" }).click();
@@ -376,7 +376,9 @@ test("chats belong to the browser: all are listed, labelled with where they star
   await expect(sheet.getByText("Chat for script A")).toBeVisible();
   await expect(sheet.getByText("Chat from elsewhere")).toBeVisible();
   await expect(sheet.getByText(/started in Script A/)).toHaveCount(1);
-  await sheet.getByRole("button", { name: "Close chats" }).click();
+  // One of them is opened from there.
+  await sheet.getByRole("button", { name: /Chat for script A/ }).click();
+  await expect(page.getByText("said in chat-a")).toBeVisible();
 
   // A new script: the same chat stays open, and the list is the same.
   await page.getByRole("button", { name: "Open navigation" }).click();
@@ -405,7 +407,7 @@ test("context bar opens the review sheet", async ({ page }) => {
     0,
   );
 
-  await page.getByRole("button", { name: "Open transaction review" }).click();
+  await page.getByRole("button", { name: "Simulate & Run" }).click();
   await expect(page.getByText("Review transactions")).toBeVisible();
   await expect(
     page.getByText("Simulated first. Your wallet signs last."),
@@ -433,7 +435,7 @@ test("the Space surface shows the timeline and the list of spaces, and leads bac
   );
   await page.getByRole("button", { name: "Back to current" }).click();
   await expect(
-    page.getByRole("region", { name: "Script review" }),
+    page.getByRole("region", { name: "Script", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".monaco-editor")).toHaveCount(0);
 

@@ -1,26 +1,23 @@
 import {
   BackButton,
   Badge,
+  Button,
   IconButton,
   Menu,
   PanelHeader,
-  toast,
 } from "@repo/ui";
-import { EllipsisVertical } from "@repo/ui/icons";
+import { Boxes, EllipsisVertical, MessagesSquare } from "@repo/ui/icons";
 import { useState } from "react";
 import { useStore } from "zustand";
 import { useApp } from "../../app/AppContext";
+import { morph, TITLE_MORPH } from "../../app/morph";
 import { useScript, useSpace, useTimeline } from "../../app/SpaceContext";
 import { setUi } from "../../app/ui-store";
 import ShareScriptButton from "../../components/scripts/ShareScriptButton";
-import {
-  clearForMe,
-  clearTimeline,
-  removeImported,
-} from "../../space/cleaning";
+import { clearTimeline, removeImported } from "../../space/cleaning";
 import { Confirm, LeftBehind } from "./Confirm";
 import { ExportDialog } from "./ExportDialog";
-import { useHeaderAction, useScriptLink } from "./HeaderAction";
+import { useToChat } from "./HeaderAction";
 
 /** The way back to the list, the space's title, the share link of its
  *  script, and its menu: export and the cleaning actions. The count says how many other spaces have a run
@@ -42,27 +39,32 @@ export function TimelineHeader() {
       index.filter((meta) => meta.run === "paused" && meta.id !== space.id)
         .length,
   );
-  const headerAction = useHeaderAction();
-  const named = useScriptLink() !== null;
+  const toChat = useToChat();
+  const toSpaces = () =>
+    morph(() => setUi({ spaceView: "list" }), undefined, "closing");
   return (
     <>
       <PanelHeader
         className="shrink-0"
         emphasis="title"
-        // Where the timeline leads with the space's name in a box of its
-        // own, the header does not say it twice.
-        title={
-          named ? (
-            <span className="sr-only">{title || "Untitled"}</span>
-          ) : (
-            title || "Untitled"
-          )
-        }
+        titleTransitionName={TITLE_MORPH}
+        title={title || "Untitled"}
         back={
-          <BackButton
-            label="Spaces"
-            onClick={() => setUi({ spaceView: "list" })}
-          />
+          toChat ? (
+            // On a phone the space was come to from the chat: the way
+            // back is the chat's own mark, which says where it goes.
+            <IconButton
+              type="button"
+              variant="quiet"
+              size="sm"
+              aria-label="Back to chat"
+              onClick={toChat}
+            >
+              <MessagesSquare aria-hidden />
+            </IconButton>
+          ) : (
+            <BackButton label="Spaces" onClick={toSpaces} />
+          )
         }
         actions={
           <>
@@ -74,8 +76,19 @@ export function TimelineHeader() {
                 </Badge>
               </span>
             )}
-            {headerAction}
-            <ShareScriptButton />
+            {toChat ? (
+              <Button
+                type="button"
+                variant="neutral"
+                size="sm"
+                onClick={toSpaces}
+              >
+                <Boxes aria-hidden data-icon="inline-start" />
+                Spaces
+              </Button>
+            ) : (
+              <ShareScriptButton />
+            )}
             <Menu>
               <Menu.Trigger
                 render={
@@ -92,14 +105,6 @@ export function TimelineHeader() {
               <Menu.Content align="end">
                 <Menu.Item onClick={() => setAsking("export")}>
                   Export space…
-                </Menu.Item>
-                <Menu.Item
-                  onClick={() => {
-                    void clearForMe(space, Date.now());
-                    toast("Hidden for you. Show earlier brings it back.");
-                  }}
-                >
-                  Clear for me
                 </Menu.Item>
                 <Menu.Item onClick={() => setAsking("clear")}>
                   Clear timeline…

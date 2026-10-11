@@ -1,7 +1,7 @@
 import { Button, cn, IconButton, Input } from "@repo/ui";
 import {
   Check,
-  ClipboardCopy,
+  Copy,
   Download,
   File as FileIcon,
   Link,
@@ -173,7 +173,7 @@ export function ScriptIO({
                 {copied ? (
                   <Check aria-hidden className="size-4 text-success" />
                 ) : (
-                  <ClipboardCopy aria-hidden className="size-4" />
+                  <Copy aria-hidden className="size-4" />
                 )}
               </IconButton>
               <IconButton

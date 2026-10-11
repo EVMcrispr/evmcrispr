@@ -21,7 +21,7 @@ export default function NewScriptButton({
   if (showLabel) {
     return (
       <Row
-        leading={<Plus aria-hidden className="size-4 text-success" />}
+        leading={<Plus aria-hidden className="size-4 text-fg-muted" />}
         title="New space"
         onClick={handleClick}
       />

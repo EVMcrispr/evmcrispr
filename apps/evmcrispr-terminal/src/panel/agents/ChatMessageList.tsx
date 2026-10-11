@@ -1,12 +1,6 @@
 import type { ChatErrorInfo, ChatItem } from "@evmcrispr/ai";
 import { Button, cn, IconButton, Notice } from "@repo/ui";
-import {
-  ArrowDown,
-  Check,
-  Clipboard,
-  RefreshCw,
-  Settings,
-} from "@repo/ui/icons";
+import { ArrowDown, Check, Copy, RefreshCw, Settings } from "@repo/ui/icons";
 import { type CSSProperties, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -67,7 +61,7 @@ function CopyButton({
       {copied ? (
         <Check aria-hidden className="text-success" />
       ) : (
-        <Clipboard aria-hidden />
+        <Copy aria-hidden />
       )}
     </IconButton>
   );

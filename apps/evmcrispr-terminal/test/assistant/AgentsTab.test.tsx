@@ -142,7 +142,7 @@ test("an edit is one revision with the assistant's explanation, shown on its car
   ).toBe(true);
 });
 
-test("the chat survives a reload and reopens; it stays open when the space changes; it is labelled with where it started", async () => {
+test("the chat survives a reload: the page opens on an empty one and the history reopens it; it stays open when the space changes; it is labelled with where it started", async () => {
   const app = tab();
   const a = await make(app, "# Space A\nexec 1");
   const b = await make(app, "# Space B\nexec 2");
@@ -156,6 +156,12 @@ test("the chat survives a reload and reopens; it stays open when the space chang
   // A reload: another App object on the same storage, another space.
   const reloaded = tab();
   const view = await show(reloaded, (await reloaded.spaces.acquire(b.id))!);
+  // The page opens on an empty chat, though a space is on screen.
+  expect(assistant.conversationId).not.toBe(chatId);
+  expect(screen.queryByText("hi from a")).toBeNull();
+  // Nothing was said in it: it is not kept, and the earlier one is.
+  expect(reloaded.chats.listChats().map((chat) => chat.id)).toEqual([chatId]);
+  await act(async () => assistant.openChat(chatId));
   expect(assistant.conversationId).toBe(chatId);
   expect(screen.getByText("hi from a")).toBeTruthy();
   expect(screen.getByText("Hello there.")).toBeTruthy();
@@ -297,6 +303,7 @@ test("the same chat in two tabs answers one turn at a time, and is not deleted u
   one.chats.setLastChatId("shared");
   await one.chats.flushed();
   await show(two, (await two.spaces.acquire(a.id))!);
+  await act(async () => assistant.openChat("shared"));
   expect(assistant.conversationId).toBe("shared");
 
   // The first tab is answering.
