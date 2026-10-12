@@ -1,37 +1,43 @@
-import { ErrorTooLargeToPin, encryptScript } from "@evmcrispr/core";
-import { ShareIcon } from "@heroicons/react/24/solid";
-import { Button, IconButton, Tooltip, toast } from "@repo/ui";
+import { ErrorTooLargeToPin } from "@evmcrispr/core";
+import { head } from "@evmcrispr/space";
+import { IconButton, Row, Spinner, toast } from "@repo/ui";
+import { Share2 } from "@repo/ui/icons";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
 
 import pinJSON from "../../api/pinata/pin-json";
-import { useTerminalStore } from "../../stores/terminal-store";
+import { useScript, useSpace, useUnreviewed } from "../../app/SpaceContext";
+import { useUi } from "../../app/ui-store";
+import { askForReview, showReview } from "../../review/surface";
+import { shareRevision } from "../../space/links";
 
 type ShareButtonProps = {
-  script: string;
-  title: string;
   showLabel?: boolean;
   mobile?: boolean;
   onShared?: () => void;
 };
 
 export default function ShareButton({
-  script,
-  title,
   showLabel = false,
   mobile = false,
   onShared,
 }: ShareButtonProps) {
-  const navigate = useNavigate();
+  const space = useSpace();
+  const { text } = useScript();
+  // Only a reviewed script is shared: until then the button leads to the
+  // review. Whether a text may be shared is decided in `shareScript`.
+  const unreviewed = useUnreviewed();
   const [url, setUrl] = useState("");
   const [isLoading, setLoading] = useState(false);
-  const viewMode = useTerminalStore((s) => s.viewMode);
+  const viewMode = useUi((s) => s.viewMode);
 
+  // A link is for one text: a changed script can be shared again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: text is the trigger
   useEffect(() => {
     setUrl("");
-  }, []);
+  }, [text]);
 
   async function handleShare() {
+    if (unreviewed) return askForReview(space);
     if (!globalThis.crypto?.subtle) {
       toast.error("Sharing requires a secure context (https)");
       return;
@@ -39,26 +45,24 @@ export default function ShareButton({
 
     setLoading(true);
     try {
-      // The pinned JSON is end-to-end encrypted; only the key carried in the
-      // link's fragment can decrypt it, so IPFS/Pinata never see the script.
-      const { envelope, key } = await encryptScript({ title, script });
-      const { IpfsHash: hash } = await pinJSON(
-        envelope,
-        "EVMcrispr - encrypted script",
-      );
-      // Carry the sender's current view preference into the share link so
-      // recipients open the same surface (viewer vs editor) the sharer
-      // was looking at when they hit Share. Recipients can still toggle.
-      // The key must stay the LAST segment: react-router's parsePath splits
-      // the fragment on `#` before `?`, so `?mode` after the key would be
-      // swallowed into the inner hash.
-      const modeSuffix = viewMode === "view" ? "?mode=view" : "";
-      const _url = `${window.location.origin}/#/${hash}${modeSuffix}#${key}`;
-      setUrl(_url);
-      navigator.clipboard.writeText(_url);
+      // The script as it is, as a revision: the link is remembered on it,
+      // and sharing the same text again hands back the same link.
+      const revision = space.record("user") ?? head(space.timeline.getState());
+      if (revision?.text !== text) throw new Error("no revision to share");
+      const shared = await shareRevision(space, revision.id, {
+        pin: pinJSON,
+        origin: window.location.origin,
+        viewMode,
+      });
+      if (!shared.ok) {
+        setLoading(false);
+        // Refused after a wait: the review comes up, asked for nothing.
+        return showReview();
+      }
+      setUrl(shared.url);
+      navigator.clipboard.writeText(shared.url);
       toast.success("The link is copied to the clipboard");
       setLoading(false);
-      navigate(`/${hash}${modeSuffix}#${key}`, { replace: true });
       onShared?.();
     } catch (e) {
       toast.error(
@@ -70,74 +74,33 @@ export default function ShareButton({
     }
   }
 
-  const tooltipLabel = title
-    ? url
+  const tooltipLabel = unreviewed
+    ? "Review changes before sharing"
+    : url
       ? "Link copied to clipboard!"
-      : "Generate link"
-    : "The script needs a title first";
+      : "Generate link";
 
-  if (mobile) {
-    // No hover tooltips on touch — a toast explains the title requirement.
+  if (showLabel)
     return (
-      <IconButton
-        type="button"
-        aria-label="Share encrypted link"
-        variant="outline"
-        size="sm"
-        className="min-h-9 min-w-9 shadow-none"
+      <Row
+        leading={<Share2 aria-hidden />}
+        title={isLoading ? "Encrypting link…" : "Share encrypted link"}
         disabled={!!url || isLoading}
-        onClick={() => {
-          if (!title) {
-            toast.error("The script needs a title first");
-            return;
-          }
-          void handleShare();
-        }}
-      >
-        {isLoading ? (
-          <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        ) : (
-          <ShareIcon className="size-4" />
-        )}
-      </IconButton>
-    );
-  }
-
-  if (showLabel) {
-    return (
-      <Button
-        type="button"
-        variant="ghost"
-        className="min-h-11 w-full justify-start gap-3 px-3 font-sans text-xs shadow-none"
         onClick={() => void handleShare()}
-        disabled={!!url || !title || isLoading}
-      >
-        <ShareIcon data-icon="inline-start" />
-        {isLoading ? "Encrypting link…" : "Share encrypted link"}
-      </Button>
+      />
     );
-  }
 
+  // In the header of the space's timeline.
   return (
-    <Tooltip>
-      <Tooltip.Trigger asChild>
-        <IconButton
-          aria-label="Share script"
-          variant="ghost"
-          onClick={handleShare}
-          size="md"
-          disabled={!!url || !title || isLoading}
-        >
-          {isLoading ? (
-            <span className="animate-spin w-5 h-5 border-2 border-current border-t-transparent rounded-full" />
-          ) : (
-            <ShareIcon className="w-5 h-5" />
-          )}
-        </IconButton>
-      </Tooltip.Trigger>
-      <Tooltip.Content variant={title ? "default" : "warning"} side="top">
-        {tooltipLabel}
-      </Tooltip.Content>
-    </Tooltip>
+    <IconButton
+      aria-label={mobile ? "Share encrypted link" : "Share script"}
+      tooltip={mobile ? false : tooltipLabel}
+      variant="quiet"
+      size="sm"
+      onClick={handleShare}
+      disabled={!!url || isLoading}
+    >
+      {isLoading ? <Spinner label="Encrypting link" /> : <Share2 aria-hidden />}
+    </IconButton>
   );
 }

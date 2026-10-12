@@ -217,6 +217,34 @@ describe("Interpreter - status boxes", () => {
     ).toBe("Rejected in wallet");
   });
 
+  it("a held action's box says where it stands and stays live", async () => {
+    let release!: () => void;
+    let held!: () => void;
+    const holding = new Promise<void>((r) => {
+      held = r;
+    });
+    const { done, snapshots } = run(EXEC, (_action, report) => {
+      report?.status?.("paused");
+      report?.status?.("declined");
+      report?.status?.("waiting");
+      held();
+      return new Promise((resolve) => {
+        release = () => resolve({ status: "success", blockNumber: 1n });
+      });
+    });
+    await holding;
+    expect(snapshots.map((s) => s.detail)).toEqual([
+      "Waiting for wallet…",
+      "Paused",
+      "Declined in wallet",
+      "Waiting for wallet…",
+    ]);
+    expect(snapshots.every((s) => s.state === "live")).toBe(true);
+    release();
+    await done;
+    expect(snapshots.at(-1)!.state).toBe("done");
+  });
+
   it("keeps the run open until a holding box ends", async () => {
     release = undefined;
     const { done, snapshots } = run(

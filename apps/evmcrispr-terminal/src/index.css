@@ -112,7 +112,7 @@ body {
 }
 
 @media (max-width: 767px) {
-  /* On :root, not .App — vaul drawers portal to document.body and must
+  /* On :root, not .App — drawers portal to document.body and must
      inherit the mobile sans font too. */
   :root {
     --font-sans:
@@ -182,7 +182,7 @@ body {
   }
 
   .mobile-terminal button,
-  [data-vaul-drawer] button {
+  [data-slot="drawer-popup"] button {
     touch-action: manipulation;
     transform: none;
     transition-duration: 120ms;
@@ -192,15 +192,15 @@ body {
 
   .mobile-terminal button:hover,
   .mobile-terminal button:active,
-  [data-vaul-drawer] button:hover,
-  [data-vaul-drawer] button:active {
+  [data-slot="drawer-popup"] button:hover,
+  [data-slot="drawer-popup"] button:active {
     transform: none;
   }
 
   .mobile-terminal button:focus-visible,
-  [data-vaul-drawer] button:focus-visible,
+  [data-slot="drawer-popup"] button:focus-visible,
   .mobile-terminal textarea:focus-visible,
-  [data-vaul-drawer] input:focus-visible {
+  [data-slot="drawer-popup"] input:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
@@ -229,20 +229,216 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* `.mobile-terminal button` / `[data-vaul-drawer] button` are listed
+  /* `.mobile-terminal button` / `[data-slot="drawer-popup"] button` are listed
      explicitly: they match the specificity of the 120ms transition rule
      above, and this block comes later in the cascade, so it wins. */
   .App *,
   .App *::before,
   .App *::after,
   .mobile-terminal button,
-  [data-vaul-drawer],
-  [data-vaul-drawer] *,
-  [data-vaul-drawer] button,
+  [data-slot="drawer-popup"],
+  [data-slot="drawer-popup"] *,
+  [data-slot="drawer-popup"] button,
   [data-vaul-overlay] {
     scroll-behavior: auto;
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
+  }
+}
+
+/* A space, or its script, carried from one view to the next: the box
+   grows or shrinks into its next form and shows each form at its own
+   size, from the top left, not stretched. */
+::view-transition-group(script-page) {
+  overflow: clip;
+  background: var(--background);
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-old(script-page),
+::view-transition-new(script-page) {
+  height: 100%;
+  object-fit: none;
+  object-position: top left;
+  animation-duration: 320ms;
+}
+/* What a space pushes away as it opens over the list, and what comes
+   back as it closes: each moves with the edge of the box that pushes it,
+   as far (the list says how far) and at the same pace. */
+::view-transition-group(.displaced-up),
+::view-transition-group(.displaced-down) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-old(.displaced-up):only-child {
+  animation: 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both displaced-up;
+}
+::view-transition-old(.displaced-down):only-child {
+  animation: 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both displaced-down;
+}
+::view-transition-new(.displaced-up):only-child {
+  animation: 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both displaced-up-in;
+}
+::view-transition-new(.displaced-down):only-child {
+  animation: 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both displaced-down-in;
+}
+/* What stands over the list stays over what leaves it. */
+::view-transition-group(panel-chrome) {
+  z-index: 1;
+  background: var(--background);
+}
+@keyframes displaced-up {
+  45%,
+  100% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(calc(-1 * var(--displace-up, 0px)));
+  }
+}
+@keyframes displaced-up-in {
+  0% {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--displace-up, 0px)));
+  }
+  55% {
+    opacity: 0;
+  }
+}
+@keyframes displaced-down-in {
+  0% {
+    opacity: 0;
+    transform: translateY(var(--displace-down, 0px));
+  }
+  55% {
+    opacity: 0;
+  }
+}
+@keyframes displaced-down {
+  45%,
+  100% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(var(--displace-down, 0px));
+  }
+}
+
+/* The frame of the box, which travels with it and lets go at the end. */
+::view-transition-image-pair(script-page) {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  animation: morph-frame 320ms both;
+}
+/* The name travels by itself, at the pace of the box it belongs to. */
+::view-transition-group(space-title) {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-old(space-title),
+::view-transition-new(space-title) {
+  height: 100%;
+  object-fit: none;
+  object-position: left center;
+  animation-duration: 120ms;
+}
+/* A space going back to its row: everything in it but its name is gone
+   at once, and the name is what is seen to go back. */
+:root[data-morph="closing"]::view-transition-old(script-page) {
+  animation: 70ms linear both morph-out;
+}
+/* A space going back to its row is not framed: nothing is opening. */
+:root[data-morph="closing"]::view-transition-image-pair(script-page) {
+  outline: none;
+  animation: none;
+}
+@keyframes morph-frame {
+  0%,
+  70% {
+    outline-color: var(--primary);
+  }
+  100% {
+    outline-color: transparent;
+  }
+}
+/* What it was lets go early, so two frames are not seen at once. */
+::view-transition-old(script-page) {
+  animation: 140ms linear both morph-out;
+}
+@keyframes morph-out {
+  to {
+    opacity: 0;
+  }
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+}
+/* The tabs are the same before and after: they are shown as they are,
+   so the bar under them is seen to travel, not to fade twice. */
+::view-transition-old(panel-chrome) {
+  display: none;
+}
+::view-transition-new(panel-chrome) {
+  animation: none;
+}
+
+/* From one panel of the side panel to another: the shared-axis pattern.
+   Both move a short way along the row of tabs, the way the bar goes; the
+   one that leaves fades first, the one that comes fades in after it.
+   Only the panels take part: nothing inside them travels by itself. */
+:root[data-morph^="panel-"] * {
+  /* biome-ignore lint/complexity/noImportantStyles: has to beat a name set inline */
+  view-transition-name: none !important;
+}
+:root[data-morph^="panel-"] [data-side-panels] {
+  /* biome-ignore lint/complexity/noImportantStyles: has to beat a name set inline */
+  view-transition-name: side-panel !important;
+}
+:root[data-morph^="panel-"] [role="tablist"] {
+  /* biome-ignore lint/complexity/noImportantStyles: has to beat a name set inline */
+  view-transition-name: panel-chrome !important;
+}
+::view-transition-group(side-panel) {
+  overflow: clip;
+}
+::view-transition-old(side-panel) {
+  animation:
+    90ms cubic-bezier(0.4, 0, 1, 1) both morph-out,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both panel-leave;
+}
+::view-transition-new(side-panel) {
+  animation:
+    210ms cubic-bezier(0, 0, 0.2, 1) 90ms both panel-appear,
+    300ms cubic-bezier(0.4, 0, 0.2, 1) both panel-arrive;
+}
+:root[data-morph="panel-forward"] {
+  --panel-shift: 30px;
+}
+:root[data-morph="panel-back"] {
+  --panel-shift: -30px;
+}
+@keyframes panel-appear {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes panel-leave {
+  to {
+    transform: translateX(calc(-1 * var(--panel-shift, 0px)));
+  }
+}
+@keyframes panel-arrive {
+  from {
+    transform: translateX(var(--panel-shift, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.01ms;
   }
 }

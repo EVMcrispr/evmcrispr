@@ -1,0 +1,74 @@
+/* ── Design tokens ───────────────────────────────────────────────
+   The one definition of every token value. Scoped to
+   `.evmcrispr-root`, never `:root`, so an embed leaves its host page
+   alone. Apps that own the page (the terminal, the website) put the
+   class on <html>, which also covers what is portaled to <body>.
+   The Tailwind names for these are in theme.css. */
+.evmcrispr-root {
+  --radius: 7px;
+  --background: #000000;
+  --foreground: #f5f5f5;
+  --card: #292929;
+  --card-foreground: #f5f5f5;
+  --primary: #8cf467;
+  --primary-hover: #4bee11;
+  --primary-foreground: #121212;
+  --secondary: #1919b3;
+  --secondary-foreground: #8cf467;
+  --muted: #4d4d4d;
+  --muted-foreground: #adadad;
+  --accent: #8cf467;
+  --accent-foreground: #121212;
+  --destructive: #f467c4;
+  --destructive-foreground: #ffffff;
+  --ring: #8cf467;
+  --shadow-color: rgba(140, 244, 103, 0.5);
+  --shadow-color-secondary: rgba(72, 72, 229, 0.5);
+
+  /* Editor / viewer / hover all share the same mono stack so that
+     toggling between view ↔ edit and opening a hover popover never
+     reflows. */
+  --terminal-font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Surfaces, darkest to lightest. */
+  --surface-0: #000000;
+  --surface-well: #070707;
+  --surface-sheet: #0b0d0c;
+  --surface-1: #111111;
+  --surface-2: #1a1a1a;
+  --surface-hover: #1f1f1f;
+  --surface-active: #262626;
+
+  /* Text. The faintest still passes 4.5:1 on --surface-2. */
+  --fg: #f5f5f5;
+  --fg-muted: #b4b4b4;
+  --fg-faint: #8a8a8a;
+
+  /* `line` separates inside a block; `edge` is the 2px frame of one,
+     and `edge-shadow` its hard shadow. */
+  --line: #2a2a2a;
+  --edge: #6b6b6b;
+  --edge-shadow: #3a3a3a;
+
+  --heading: #e2f962;
+  --added: #8cf467;
+  --removed: #f467c4;
+
+  /* Statuses: a colour for text, marks and frames, a fill, a shadow. */
+  --success: #8cf467;
+  --success-surface: color-mix(in srgb, var(--success) 10%, transparent);
+  --success-line: color-mix(in srgb, var(--success) 50%, transparent);
+  --warning: #e2f962;
+  --warning-surface: color-mix(in srgb, var(--warning) 10%, transparent);
+  --warning-line: color-mix(in srgb, var(--warning) 50%, transparent);
+  --danger: #f467c4;
+  --danger-surface: color-mix(in srgb, var(--danger) 10%, transparent);
+  --danger-line: color-mix(in srgb, var(--danger) 50%, transparent);
+  --info: #9898f1;
+  --info-surface: color-mix(in srgb, var(--info) 12%, transparent);
+  --info-line: color-mix(in srgb, var(--info) 50%, transparent);
+  --unverified: #f29869;
+  --unverified-surface: color-mix(in srgb, var(--unverified) 10%, transparent);
+  --unverified-line: color-mix(in srgb, var(--unverified) 50%, transparent);
+}

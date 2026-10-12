@@ -2,12 +2,19 @@ import { describe, it } from "bun:test";
 import { expect } from "@evmcrispr/test-utils";
 
 import {
+  decryptPayload,
   decryptScript,
+  encryptPayload,
   encryptScript,
+  fromBase64url,
   isEncryptedEnvelope,
   SHARE_FALLBACK_SCRIPT,
   SHARE_FALLBACK_TITLE,
   SHARE_MIN_VERSION,
+  SHARE_SUPPORTED_VERSION,
+  SPACE_FALLBACK_SCRIPT,
+  SPACE_MIN_VERSION,
+  toBase64url,
   unsupportedMinVersion,
 } from "../../src";
 
@@ -130,5 +137,111 @@ describe("shareEnvelope", () => {
     expect(isEncryptedEnvelope(CONTENT)).to.equal(false);
     expect(isEncryptedEnvelope(null)).to.equal(false);
     expect(isEncryptedEnvelope("Qm...")).to.equal(false);
+  });
+
+  describe("payload kinds", () => {
+    const SPACE = {
+      kind: "space",
+      id: "1b4e28ba-2fa1-41d2-883f-0016d3cca427",
+      title: "T",
+      script: "# T\nexec 1",
+      timeline: { entries: [], runs: [], removals: [] },
+    } as const;
+
+    it("the three versions: shares as before, exports newer, this client reads both", () => {
+      expect(SHARE_MIN_VERSION).to.equal("0.11.0");
+      expect(SPACE_MIN_VERSION).to.equal("0.12.0");
+      expect(SHARE_SUPPORTED_VERSION).to.equal(SPACE_MIN_VERSION);
+    });
+
+    it("a script payload round-trips and is stamped as before", async () => {
+      const payload = { kind: "script", ...CONTENT } as const;
+      const { envelope, key } = await encryptPayload(payload);
+      expect(envelope.minVersion).to.equal(SHARE_MIN_VERSION);
+      expect(envelope.script).to.equal(SHARE_FALLBACK_SCRIPT);
+      expect(await decryptPayload(envelope, key)).to.deep.equal(payload);
+    });
+
+    it("an envelope made before payloads had a kind is a script", async () => {
+      // What encryptScript wrote up to 0.11: JSON of { title, script }.
+      const { envelope, key } = await encryptScript(CONTENT);
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw",
+        fromBase64url(key),
+        { name: "AES-GCM" },
+        false,
+        ["encrypt"],
+      );
+      const data = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: fromBase64url(envelope.iv) },
+        cryptoKey,
+        new TextEncoder().encode(JSON.stringify(CONTENT)),
+      );
+      const old = { ...envelope, data: toBase64url(new Uint8Array(data)) };
+      expect(await decryptPayload(old, key)).to.deep.equal({
+        kind: "script",
+        ...CONTENT,
+      });
+    });
+
+    it("encryptScript still writes what a 0.11 client reads: no kind", async () => {
+      const { envelope, key } = await encryptScript(CONTENT);
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw",
+        fromBase64url(key),
+        { name: "AES-GCM" },
+        false,
+        ["decrypt"],
+      );
+      const plain = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: fromBase64url(envelope.iv) },
+        cryptoKey,
+        fromBase64url(envelope.data),
+      );
+      const { title, script } = JSON.parse(new TextDecoder().decode(plain));
+      expect({ title, script }).to.deep.equal(CONTENT);
+    });
+
+    it("a space payload round-trips and asks for the newer version", async () => {
+      const { envelope, key } = await encryptPayload(SPACE);
+      expect(envelope.minVersion).to.equal(SPACE_MIN_VERSION);
+      expect(envelope.script).to.equal(SPACE_FALLBACK_SCRIPT);
+      expect(JSON.stringify(envelope)).to.not.include("exec 1");
+      expect(await decryptPayload(envelope, key)).to.deep.equal(SPACE);
+      // Anything that only wants the script needs no Yjs.
+      expect(await decryptScript(envelope, key)).to.deep.equal({
+        title: "T",
+        script: "# T\nexec 1",
+      });
+    });
+
+    it("a space payload missing its id or script is refused", async () => {
+      for (const field of ["id", "script"] as const) {
+        const { envelope, key } = await encryptPayload({
+          ...SPACE,
+          [field]: 7,
+        } as never);
+        await expectRejection(
+          decryptPayload(envelope, key),
+          "Malformed space export",
+        );
+      }
+    });
+
+    it("an old client reports the version of an export, this one reads it", async () => {
+      const { envelope } = await encryptPayload(SPACE);
+      // A 0.11 client compares the envelope with its own SHARE_MIN_VERSION
+      // before anything else and reports what it finds.
+      expect(envelope.minVersion).to.equal("0.12.0");
+      expect(unsupportedMinVersion(envelope)).to.equal(undefined);
+      expect(unsupportedMinVersion({ minVersion: "0.12.1" })).to.equal(
+        "0.12.1",
+      );
+    });
+
+    it("base64url round-trips bytes", () => {
+      const bytes = new Uint8Array([0, 255, 62, 63, 1]);
+      expect([...fromBase64url(toBase64url(bytes))]).to.deep.equal([...bytes]);
+    });
   });
 });

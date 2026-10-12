@@ -2,6 +2,79 @@
 
 ## Unreleased
 
+### Terminal: scripts become spaces
+
+- A script is now a **space**, stored in IndexedDB instead of localStorage. Existing scripts are migrated on first load; the old storage is left in place. The same space open in two tabs stays in sync. Nothing needs saving any more.
+- The title of a script is its first comment. The title field is gone, and a script no longer needs a title to be shared.
+- Ctrl+Z also undoes what the assistant changed, one step per message. Undo history no longer survives a reload. The chat's per-edit Undo button is gone.
+- Sharing a script no longer changes the address bar.
+- Editor: Monaco 0.57.0. Embedders must serve `monaco-editor@0.57.0/min/vs` at `/vs`.
+- New package `@evmcrispr/space`.
+
+### Terminal: the Space tab, and runs that pause
+
+- The side panel has three tabs: **Space**, **Agents**, **Reference**. Space replaces Library and Console: the list of spaces, with marks for unreviewed changes and for a run in progress, paused or watching, and inside a space its **timeline** of revisions and runs.
+- A revision row offers View (without loading it), Load in editor, Open in new space and, for a change the assistant made, Restore to before. Loading or restoring a text that was not approved before leaves the script unreviewed.
+- A run is a card in its space's timeline, with its console, and survives a reload. A run left unfinished by a tab that was closed shows as interrupted.
+- A run no longer ends when you open another space or decline in your wallet: it **pauses**, holding its next wallet request, until you press Resume or Cancel. Resume is offered next to the held action: what it will send, to whom, and since when. A run that only follows status boxes, and simulations, keep going. Cancel always ends the run.
+- A space runs in one tab at a time; another tab shows the run and cannot start one. Each run has its own worker.
+- The mobile review's simulation is recorded as a simulated run.
+- `@evmcrispr/sdk`: `ActionReport.status?(state)` and `ActionHoldState`, for a host that holds an action. `@evmcrispr/core`: `ActionHandlerCtx.onStatus?`, the worker protocol's `action-status` message, and `ExecuteOptions.prepareChain` to hold the change of chain asked before a script starts. Errors thrown when the wallet cannot be aligned keep their message and gain a `cause`. Hosts that hold nothing see no change.
+
+### Terminal: the Agents tab, and an assistant that works across spaces
+
+- The Chat tab is the **Agents** tab. Its only agent for now is the built-in Dappnode Nexus assistant, so it opens straight into the chat.
+- Chats are stored in IndexedDB and belong to the browser, not to a script: there is no limit of 20 any more, a full storage no longer drops other chats, and existing chats are copied over on first load (the old storage is left in place). The last chat reopens on load, the open chat stays open when you move to another space, and each chat is labelled with the space it started in.
+- The assistant works on the space you were looking at when you sent the message, even if you move on meanwhile. It can list your spaces and read another one (`list_spaces`, `read_space`), and its script tools take an optional `space`.
+- Every edit carries a one-sentence explanation, shown on its card and, for the whole turn, on the revision in the timeline. The card links to the timeline; a revision made by the assistant offers **Open chat**.
+- A simulation card shows what ran: the code and its logs. A snippet can be loaded in the editor or opened as a new space.
+- The assistant asks before it edits a space that is not on screen (per space, per chat), and before it uses the web in a chat that has read other spaces, or the reverse. The answer is yours to give in the chat and is remembered for that chat.
+- A space opened from an assistant's card, or from a revision whose text was not approved, starts unreviewed.
+- What the assistant reads (scripts, timelines, web pages, contract source, simulation output) is handed to the model as marked, untrusted data.
+- The same chat open in two tabs answers one message at a time; the other tab shows "Answering in another tab…" and catches up when it ends.
+- `set_script_title` is gone: the title is the script's first comment.
+
+**Breaking, `@evmcrispr/ai`:**
+
+- The module-level `listChats`, `getChat`, `saveChat` and `removeChat` are removed: use `createChatStore()`, which returns the new `ChatStore` interface (also what `useChatAgent`'s `chatStore` option takes).
+- `ScriptToolsHost`: `getTitle` and `setTitle` are removed; `getScript(space?)` may return `null` (no such script) or a promise; `applyStrReplace` and `applyWrite` take a third argument `ScriptEditRequest { explanation, space? }` and may be asynchronous; optional `listSpaces`, `readSpace` and `revisionOf` are new.
+- `ScriptEditResult` no longer carries `revisionId`; a success may carry the `space` it landed in.
+- Tools: `set_script_title` is removed. `edit_script` and `write_script` require `explanation` (one plain line, at most 200 characters; longer is rejected). `get_script`, `validate_script` and `simulate_script` take an optional `space`. `get_script` no longer prints a `Title:` line. `get_script`, `read_space`, `search_web`, `fetch_page` and `get_contract` return their content inside an "untrusted content" block (`untrusted()`, with `UNTRUSTED_RULE` for the system prompt). `list_spaces` and `read_space` exist when the host provides them.
+- `ChatToolArtifact`: `script-change` loses `revisionId` and `undone` and gains `explanation` and `space`; `simulation` gains the optional `target`, `code`, `logs` and `revisionId`; a new `permission` kind is what a host returns when a call needs the user's word.
+- `useChatAgent`: the `undoScriptRevision` option and the returned `undoRevision` are removed. `send(text, context?)` and `regenerate(context?)` take `{ scope }`, which the turn callbacks receive. New options `initialChatId` (an id, or `"latest"`) and `acquireTurn`. `ChatErrorKind` gains `"busy"`.
+
+### Terminal: review before signing
+
+- A script the assistant changed (or that changed from anywhere but your own typing) has to be **reviewed** before it can be executed for real or shared. Execute reads **Review changes** and opens the review; the mobile sheet shows it above the transactions. Simulating is never blocked.
+- The review shows what changed since the text you approved, line by line, and the revisions recorded since then, with who made each and the assistant's explanation. It is a snapshot: if the script changes while the review is open, what you were reading stays on screen, **Approve** is disabled, and the new changes are shown when you ask for them. Approve approves exactly the text shown, and only after it has been on screen for a moment.
+- Looking at a change does not run it. The review checks the script without fetching anything it names (a module loaded with `--from ipfs://…` is reported as not checked), and what the script would send is behind **Simulate to see what it would send**: simulating runs the script, and is recorded in the timeline like any other run. While a script is unreviewed, the editor and the read-only view do not fetch the external modules it names either.
+- A space with no approved text (opened from an assistant's card, or from a revision that was not approved) shows its whole script as changed.
+- While a script is unreviewed, the lines that differ from the approved text carry a mark in the margin, in the editor and in the read-only view.
+- A change the assistant made offers **Revert this change** on its revision: that change is taken out and what was made after it is kept. If later edits touch the same lines it is refused, and **Restore to before** goes back wholesale. Both can be undone with Ctrl+Z, and the result is reviewed only if it is a text you approved.
+- A revision's row says what happened: created, edited, imported (from a link), loaded, restored, reverted.
+- `@evmcrispr/editor`: `MonacoEditor` and `Viewer` take `changedLines`, the 1-based lines that carry the mark, and `remoteModules` (default `true`): `false`, or a function of the analysed text that does not answer `true`, stops their analysis from fetching the external modules the script names.
+- `@evmcrispr/core`: `script.validate({ remoteModules: false })` and `workspace.setRemoteModules(false | (script) => boolean)` leave `load --from ipfs://…` modules unfetched and unchecked, listed in the result's new `unfetched` (and `workspace.unfetchedModules`). The default is unchanged.
+
+### Terminal: moving a space, sharing a revision, tidying a timeline
+
+- **Export space…**, in the new menu of the timeline's header, makes a link to an encrypted copy of a whole space: its script, the revisions kept and its runs with their output. Anyone with the link can read all of it, permanently. Chats with the assistant and what you approved are not in it. Exporting is never held back by the review.
+- Opening an export link asks before doing anything. **Restore** brings the space in where the browser does not have it; it starts approved, like a script opened from a share link. **Merge**, where you already have the space, replaces its script with the one in the link and adds the link's revisions and runs: the script is then unreviewed, and **Restore to before** on the merge's revision takes it back. **Open as copy** makes a new space from the script alone.
+- What a link brings is marked **from an export** and never shown as yours: nobody can vouch for who recorded it or when. It cannot remove, replace or crowd out anything recorded in the browser, the output of an imported run is shown as plain text without links, and **Remove imported records** takes all of it out. A space keeps at most 300 revisions and 300 runs from links; the oldest taken in give way to a newer import.
+- An export travels as the script's text and the timeline's records, not as the document's editing history. An export is refused, with the reason, when it is malformed or too large (about 6 MB encrypted).
+- **Share** is on every revision row whose text is the approved one, and the toolbar's Share shares the script as a revision. A shared revision reads **shared** and offers **Copy link**, which gives the same link without uploading again. A space opened from a share link records the link on its first revision.
+- The timeline's menu cleans: **Clear for me** hides what is there in this browser (Show earlier brings it back); **Clear timeline** removes every revision and finished run for good, keeping the script, unfinished runs and shared revisions; **Remove** on a revision or a run removes that entry. Each irreversible one asks first and says that exports and share links made earlier still contain what they contained.
+- Removing a revision says what it does not reach before it is done: other revisions with the same text (counted), runs of it, the script on screen, chats, and links made earlier. A view or a review showing a removed revision closes, in every tab. Clear timeline also empties undo, the space's and the editor's own, in every tab. The stored document is rewritten as its present state whenever a space is opened, so text typed and deleted in an earlier visit does not stay in the browser's storage; text deleted since the page was loaded stays until the next visit, and the dialogs say so.
+- Removing a space from the list asks first.
+- Console output is plain text unless the host asks for markdown, and markdown never loads an image, never renders HTML, and links only to `https:` addresses, with the address shown. A console keeps at most about a million characters: the oldest output is dropped, with a line saying so. A run's downloadable output stops growing at a million characters and says so.
+
+**Space exports need 0.12.0.** `load <module> --from "ipfs://<cid>#<key>"` reads the current script out of an export, so `@evmcrispr/sdk`, `@evmcrispr/core` and the CLI have to be released at 0.12.0 with this. Clients before 0.12.0 say an update is needed when they meet an export; script shares made by 0.12.0 still open in 0.11.
+
+- `@evmcrispr/sdk` (re-exported by `@evmcrispr/core`): `SharePayload` (a script, or a space: `id`, `title`, `script`, `timeline`), `encryptPayload`, `decryptPayload`, `SPACE_MIN_VERSION` (`0.12.0`, stamped on exports), `SHARE_SUPPORTED_VERSION` (what this client reads), `SPACE_FALLBACK_SCRIPT`, `toBase64url`, `fromBase64url`. `SHARE_MIN_VERSION` stays `0.11.0` and is still what script shares are stamped with. `encryptScript` and `decryptScript` are unchanged; `decryptScript` and `resolveModuleSource` also read the script of an export. `unsupportedMinVersion` now compares against `SHARE_SUPPORTED_VERSION`.
+- `@evmcrispr/space`: `parseTimeline`, `mergeable`, `CheckedTimeline`, `ImportRules`, `IMPORT_LIMITS`, `MAX_UNVERIFIED`, `MalformedExport`: the check of a timeline that arrives from outside and the rule for what a copy takes of it. Entries, run records and removals gain `unverified`, entries and runs `intake`; `RevisionSource` gains `"merge"`; `TimelinePatch` gains `forget`; `TimelineRecords` is the whole-timeline type `toPatch` returns. `mergeTimeline` lets a revision recorded locally replace an unverified one of the same id, never lets an unverified run replace a local one, and `head`, `shareOf`, `pruneRevisions` and `revisionsSinceApproved` no longer count unverified records.
+- `@evmcrispr/editor`: `parseConsole`, `consoleSize`, `CONSOLE_LIMITS`; `ConsoleState` gains `size`, `dropped`, `unverified`; `reduceConsole` keeps a state within `CONSOLE_LIMITS`.
+
+**Breaking, `@evmcrispr/editor`:** `<Console>` and `<BoxCard>` render output as plain text unless given `markdown`. Pass `markdown` to keep the previous rendering for runs your page made (the embeddable `EvmcrisprTerminal` does). In markdown, images are no longer rendered (their alt text is), links other than `https:` are shown as text, and a link is followed by its address; a box's links are shown only with `markdown`, only for `https:`, with their host.
+
 ### Smart block syntax
 
 Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:propose-offline`, and `safe:execute`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.

@@ -26,6 +26,7 @@ export type {
   Abi,
   AbiBinding,
   Action,
+  ActionHoldState,
   ActionOutcome,
   ActionReport,
   Address,

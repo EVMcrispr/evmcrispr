@@ -2,8 +2,6 @@ import { Button } from "@repo/ui";
 import { QRCodeSVG } from "qrcode.react";
 import CopyCode from "./CopyCode";
 
-const GREEN_300 = "#8CF467";
-
 export default function WalletConnectCode({
   wcUri,
   error,
@@ -20,7 +18,7 @@ export default function WalletConnectCode({
 }) {
   if (!wcUri) {
     return (
-      <p className="font-sans text-sm text-foreground/70">
+      <p className="m-0 font-sans text-body text-fg-muted">
         {error ? error.message : "Preparing connection..."}
       </p>
     );
@@ -31,14 +29,14 @@ export default function WalletConnectCode({
       {canReopenWallet && (
         <>
           <Button
-            variant="outline"
+            variant="neutral"
             size="lg"
             className="w-full"
             onClick={onReopenWallet}
           >
             Open {walletName ?? "wallet"}
           </Button>
-          <p className="text-center font-sans text-xs text-foreground/70">
+          <p className="m-0 text-center font-sans text-caption text-fg-muted">
             If {walletName ?? "your wallet"} did not open, copy the link below
             and paste it there.
           </p>
@@ -47,8 +45,8 @@ export default function WalletConnectCode({
       <QRCodeSVG
         value={wcUri}
         size={400}
-        bgColor="black"
-        fgColor={GREEN_300}
+        bgColor="var(--surface-0)"
+        fgColor="var(--success)"
         marginSize={8}
         level="H"
         className="h-auto w-full max-w-[400px]"
@@ -61,7 +59,7 @@ export default function WalletConnectCode({
       />
       <CopyCode code={wcUri} />
       {error && (
-        <p className="text-center font-sans text-xs text-destructive">
+        <p className="m-0 text-center font-sans text-caption text-danger">
           {error.message}
         </p>
       )}

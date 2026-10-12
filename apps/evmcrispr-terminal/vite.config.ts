@@ -87,6 +87,34 @@ function evmcrisprModules(modulesDir: string): Plugin {
 }
 
 // ---------------------------------------------------------------------------
+// Base UI, bundled up front
+// ---------------------------------------------------------------------------
+// @repo/ui is served from source, so the dev server only learns which
+// `@base-ui/react/*` modules exist as pages import them. Each discovery
+// re-bundles the dependencies and leaves open pages on stale ones: a blank
+// page until the server is restarted. Naming them up front avoids that. The
+// names are read from the package's own imports, so a component that starts
+// using another Base UI module needs nothing here.
+// ---------------------------------------------------------------------------
+
+function baseUiModules(uiSrc: string): string[] {
+  const names = new Set<string>();
+  const visit = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const file = path.resolve(dir, entry);
+      if (statSync(file).isDirectory()) visit(file);
+      else if (/\.tsx?$/.test(entry))
+        for (const [, name] of readFileSync(file, "utf-8").matchAll(
+          /from "(@base-ui\/react\/[\w-]+)"/g,
+        ))
+          names.add(name);
+    }
+  };
+  visit(uiSrc);
+  return [...names].sort().map((name) => `@repo/ui > ${name}`);
+}
+
+// ---------------------------------------------------------------------------
 // noir_wasm TDZ workaround
 // ---------------------------------------------------------------------------
 // j-toml (bundled inside @noir-lang/noir_wasm's webpack build) caches the
@@ -183,6 +211,14 @@ export default defineConfig({
         APP_DIR,
         "../../packages/core/package.json",
       ),
+      "@evmcrispr/editor/styles/theme.css": path.resolve(
+        APP_DIR,
+        "../../packages/editor/src/styles/theme.css",
+      ),
+      "@evmcrispr/editor/styles/tokens.css": path.resolve(
+        APP_DIR,
+        "../../packages/editor/src/styles/tokens.css",
+      ),
       "@evmcrispr/editor/styles/components.css": path.resolve(
         APP_DIR,
         "../../packages/editor/src/styles/components.css",
@@ -196,6 +232,10 @@ export default defineConfig({
         "../../packages/editor/src/index.ts",
       ),
       "@evmcrispr/ai": path.resolve(APP_DIR, "../../packages/ai/src/index.ts"),
+      "@evmcrispr/space": path.resolve(
+        APP_DIR,
+        "../../packages/space/src/index.ts",
+      ),
       // Sub-path exports before the base alias so they match first
       "@evmcrispr/core/worker-client": path.resolve(
         APP_DIR,
@@ -235,6 +275,7 @@ export default defineConfig({
     // build but bypasses plugins, so fixNoirWasmInfinityTdz can't reach it —
     // serve noir_wasm's (self-contained) bundle as-is instead.
     exclude: ["@noir-lang/noir_wasm"],
+    include: baseUiModules(path.resolve(APP_DIR, "../../packages/ui/src")),
   },
   plugins: [
     evmcrisprModules(path.resolve(APP_DIR, "../../modules")),

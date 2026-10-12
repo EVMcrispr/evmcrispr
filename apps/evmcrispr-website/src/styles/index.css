@@ -17,7 +17,8 @@
 }
 
 /* ── Hero terminal: match the docs code blocks ───────────────── */
-/* Starlight's expressive-code frames use --sl-color-gray-6 (#121212) as
+/* The terminal sits on the panel surface, a shade from the docs code
+   blocks (--sl-color-gray-6, #121212), as
    the code surface. `--color-background` is what `bg-background` reads,
    and overriding it here retints every surface inside the terminal (the
    viewer, Monaco — transparent bg — and the simulation drawer).
@@ -25,8 +26,8 @@
    Doubled selector outranks the token definitions in
    @evmcrispr/editor/styles/components.css, which is imported unlayered. */
 .evmcrispr-root.hero-terminal {
-  --background: #121212;
-  --color-background: #121212;
+  --background: var(--surface-1);
+  --color-background: var(--surface-1);
 }
 
 /* ── Staggered fade-in animations ────────────────────────────── */

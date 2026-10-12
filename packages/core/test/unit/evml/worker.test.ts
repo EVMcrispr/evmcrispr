@@ -229,6 +229,34 @@ describe("evml > worker", () => {
       // Cold worker spawn can exceed the 5s default under parallel turbo load.
     }, 15_000);
 
+    it("tells the worker where a held action stands", async () => {
+      const snapshots: BoxSnapshot[] = [];
+      await workerEvml
+        .with({ onBox: (s) => snapshots.push(s) })
+        .script(
+          "exec 0x1111111111111111111111111111111111111111 transfer(address,uint256) 0x2222222222222222222222222222222222222222 5",
+        )
+        .execute(stubWallet, {
+          prepareChains: false,
+          handlers: {
+            transaction: async (_action, ctx) => {
+              ctx.onStatus?.("paused");
+              ctx.onStatus?.("declined");
+              ctx.onStatus?.("waiting");
+              return { status: "success", blockNumber: 1n };
+            },
+          },
+        });
+      expect(snapshots.map((s) => s.detail)).to.deep.equal([
+        "Waiting for wallet…",
+        "Paused",
+        "Declined in wallet",
+        "Waiting for wallet…",
+        "Confirmed in block 1",
+      ]);
+      expect(snapshots.slice(0, 4).every((s) => s.state === "live")).to.be.true;
+    }, 15_000);
+
     it("streams the transaction box and the sent hash across the worker", async () => {
       const snapshots: BoxSnapshot[] = [];
       const tagged: string[] = [];

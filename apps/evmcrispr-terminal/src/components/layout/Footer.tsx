@@ -6,7 +6,7 @@ const Footer = () => {
       <a href="https://blossom.software" target="_blank" rel="noreferrer">
         <img src={Blossom} alt="Blossom" className="h-4" />
       </a>
-      <span className="text-evm-green-300 font-head text-sm">
+      <span className="font-head text-caption text-fg-faint">
         built by{" "}
         <a href="https://blossom.software" target="_blank" rel="noreferrer">
           blossom

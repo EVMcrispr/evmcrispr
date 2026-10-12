@@ -27,10 +27,20 @@ export interface ViewerProps {
   fontSize?: number;
   /** 1-based line currently being executed — highlighted + scrolled into view. */
   executingLine?: number | null;
+  /** 0-based index of the line shown as the script's title. */
+  titleLine?: number | null;
+  /** 1-based lines that carry a mark in the margin. */
+  changedLines?: readonly number[];
+  /** Whether analysing the script (keywords, completions, hovers,
+   *  diagnostics, prewarm) may fetch the external modules it names with
+   *  `load --from ipfs://…`. A function is asked at each analysis with the
+   *  exact text being analysed, and nothing is fetched if it throws.
+   *  Default true. */
+  remoteModules?: boolean | ((script: string) => boolean);
   /** Called when the user taps/clicks the script body (outside hover
    *  targets and text selections). Hosts typically flip into edit mode. */
   onActivateEdit?: () => void;
-  /** Forwarded to the hover popover's "Open in reference" button. Omit to
+  /** Forwarded to the hover popover's "Open in docs" button. Omit to
    *  hide the button. */
   onOpenDocs?: (ref: HoverRef) => void;
 }
@@ -45,13 +55,19 @@ export function Viewer({
   script,
   fontSize,
   executingLine,
+  titleLine,
+  changedLines,
+  remoteModules = true,
   onActivateEdit,
   onOpenDocs,
 }: ViewerProps) {
   const highlighter = useShiki();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { diagnostics, getHoverInfo } = useScriptAnalysis(script);
+  const { diagnostics, getHoverInfo } = useScriptAnalysis(
+    script,
+    remoteModules,
+  );
 
   // Tapping anywhere on the rendered script (other than a hover token, or
   // while the user is in the middle of a text-selection gesture) notifies
@@ -121,6 +137,44 @@ export function Viewer({
     lineEl.classList.add("executing-line-highlight");
     lineEl.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [executingLine, html]);
+
+  // The title line gets the editor's treatment: a heading, its `#` dimmed.
+  // Re-applied whenever Shiki re-renders (the old `.line` nodes are gone).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see the executing-line effect
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root || titleLine == null) return;
+    const lineEl = root.querySelectorAll<HTMLElement>("code .line")[titleLine];
+    if (!lineEl || lineEl.classList.contains("evml-title-line")) return;
+    lineEl.classList.add("evml-title-line");
+    const first = document
+      .createTreeWalker(lineEl, NodeFilter.SHOW_TEXT)
+      .nextNode();
+    const hashes = first?.nodeValue
+      ? /^\s*#+\s*/.exec(first.nodeValue)?.[0]
+      : undefined;
+    if (first && hashes) {
+      const rest = (first as Text).splitText(hashes.length);
+      const dim = document.createElement("span");
+      dim.className = "evml-title-hash";
+      dim.textContent = hashes;
+      rest.parentNode?.replaceChild(dim, first);
+    }
+  }, [titleLine, html]);
+
+  // The lines the host marks as changed. Re-applied whenever Shiki
+  // re-renders (the old `.line` nodes are gone).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see the executing-line effect
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    root
+      .querySelectorAll(".evml-changed-line")
+      .forEach((el) => el.classList.remove("evml-changed-line"));
+    const lineEls = root.querySelectorAll<HTMLElement>("code .line");
+    for (const line of changedLines ?? [])
+      lineEls[line - 1]?.classList.add("evml-changed-line");
+  }, [changedLines, html]);
 
   return (
     <div className="flex flex-col h-full min-h-0">

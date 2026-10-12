@@ -1,17 +1,20 @@
 "use client";
 
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+// Adapted from RetroUI's Tooltip (MIT, github.com/Logging-Studio/RetroUI),
+// which is built on Base UI.
+import { Tooltip as BaseTooltip } from "@base-ui/react/tooltip";
 import { cva, type VariantProps } from "class-variance-authority";
-import * as React from "react";
 
 import { cn } from "../utils";
 
 const tooltipContentVariants = cva(
-  "z-50 overflow-hidden border-2 border-border bg-background px-3 py-1.5 text-xs animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 rounded-(--radius) font-head",
+  "origin-(--transform-origin) overflow-hidden border-2 border-border bg-background px-3 py-1.5 text-xs rounded-(--radius) font-head transition-[opacity,scale] duration-100 data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0 data-instant:transition-none",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground",
+        // What a control without words does, said on hover.
+        plain: "border-edge bg-surface-sheet font-sans text-caption text-fg",
         warning: "bg-evm-orange-800 text-white border-evm-orange-400",
         solid: "bg-foreground text-background",
       },
@@ -22,25 +25,39 @@ const tooltipContentVariants = cva(
   },
 );
 
-const TooltipProvider = TooltipPrimitive.Provider;
-const Tooltip = TooltipPrimitive.Root;
-const TooltipTrigger = TooltipPrimitive.Trigger;
+const TooltipProvider = BaseTooltip.Provider;
+const Tooltip = BaseTooltip.Root;
+const TooltipTrigger = BaseTooltip.Trigger;
 
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> &
-    VariantProps<typeof tooltipContentVariants>
->(({ className, sideOffset = 4, variant, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
-    <TooltipPrimitive.Content
-      ref={ref}
+const TooltipContent = ({
+  className,
+  variant,
+  align = "center",
+  alignOffset = 0,
+  side = "top",
+  sideOffset = 4,
+  ...props
+}: BaseTooltip.Popup.Props &
+  Pick<
+    BaseTooltip.Positioner.Props,
+    "align" | "alignOffset" | "side" | "sideOffset"
+  > &
+  VariantProps<typeof tooltipContentVariants>) => (
+  <BaseTooltip.Portal>
+    <BaseTooltip.Positioner
+      align={align}
+      alignOffset={alignOffset}
+      side={side}
       sideOffset={sideOffset}
-      className={cn(tooltipContentVariants({ variant, className }))}
-      {...props}
-    />
-  </TooltipPrimitive.Portal>
-));
-TooltipContent.displayName = TooltipPrimitive.Content.displayName;
+      className="isolate z-50"
+    >
+      <BaseTooltip.Popup
+        className={cn(tooltipContentVariants({ variant }), className)}
+        {...props}
+      />
+    </BaseTooltip.Positioner>
+  </BaseTooltip.Portal>
+);
 
 const TooltipObject = Object.assign(Tooltip, {
   Trigger: TooltipTrigger,

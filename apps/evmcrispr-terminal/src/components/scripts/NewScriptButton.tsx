@@ -1,13 +1,6 @@
-import { PlusIcon } from "@heroicons/react/24/solid";
-import { Button, IconButton, Tooltip } from "@repo/ui";
+import { IconButton, Row } from "@repo/ui";
+import { Plus } from "@repo/ui/icons";
 import { useNavigate } from "react-router";
-
-import { flushAutoSave } from "../../hooks/useAutoSave";
-import {
-  SCRIPT_PLACEHOLDER,
-  terminalStoreActions,
-} from "../../stores/terminal-store";
-import { getOrCreatePristineScript, setLastViewedScript } from "../../utils";
 
 export default function NewScriptButton({
   showLabel = false,
@@ -18,46 +11,31 @@ export default function NewScriptButton({
 } = {}) {
   const navigate = useNavigate();
 
+  // The route makes, or reuses, the placeholder space.
   function handleClick() {
-    flushAutoSave();
-
-    // Reuse an existing untouched script instead of stacking up new ones
-    const id = getOrCreatePristineScript(SCRIPT_PLACEHOLDER);
-    terminalStoreActions("currentScriptId", id);
-    terminalStoreActions("title", "");
-    terminalStoreActions("script", SCRIPT_PLACEHOLDER);
-    setLastViewedScript(id);
-    navigate(`/${id}`);
+    navigate("/");
     onCreated?.();
   }
 
+  // A line of a menu.
   if (showLabel) {
     return (
-      <Button
-        type="button"
-        variant="ghost"
-        className="min-h-11 w-full justify-start gap-3 px-3 font-sans text-xs shadow-none"
+      <Row
+        leading={<Plus aria-hidden className="size-4 text-fg-muted" />}
+        title="New space"
         onClick={handleClick}
-      >
-        <PlusIcon data-icon="inline-start" />
-        New script
-      </Button>
+      />
     );
   }
 
   return (
-    <Tooltip>
-      <Tooltip.Trigger asChild>
-        <IconButton
-          aria-label="New script"
-          variant="ghost"
-          onClick={handleClick}
-          size="md"
-        >
-          <PlusIcon className="w-5 h-5" />
-        </IconButton>
-      </Tooltip.Trigger>
-      <Tooltip.Content side="top">New script</Tooltip.Content>
-    </Tooltip>
+    <IconButton
+      aria-label="New space"
+      variant="ghost"
+      onClick={handleClick}
+      size="md"
+    >
+      <Plus aria-hidden className="size-5" />
+    </IconButton>
   );
 }

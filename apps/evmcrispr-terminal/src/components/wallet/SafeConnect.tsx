@@ -1,7 +1,7 @@
-import { Button, Input } from "@repo/ui";
+import { Button, Input, Notice } from "@repo/ui";
 import { useState } from "react";
 
-import { useTerminalStore } from "../../stores/terminal-store";
+import { useMaybeSpace } from "../../app/SpaceContext";
 
 export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
   const [safeAddress, setSafeAddress] = useState("");
@@ -16,12 +16,13 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
       ? "Invalid Safe address. Example: 'gno:0x1234...5678' or 'eth:my-account.eth'"
       : null;
 
-  const { title, script } = useTerminalStore();
+  // The inline link carries the script only: its title is its first line.
+  const script = useMaybeSpace()?.getText() ?? "";
 
   const url =
     `https://app.safe.global/apps/open?safe=${safeAddress}&appUrl=` +
     encodeURIComponent(
-      `${window.location.origin}/#/?title=${encodeURIComponent(title)}&script=${encodeURIComponent(script)}`,
+      `${window.location.origin}/#/?script=${encodeURIComponent(script)}`,
     );
   return (
     <>
@@ -33,11 +34,10 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
           setSafeAddress(e.target.value);
           setAttemptedConnect(false);
         }}
-        className="text-xl"
       />
       <div className="flex justify-center mt-4 mb-2">
         <Button
-          variant="default"
+          variant="primary"
           size="sm"
           onClick={() => {
             setAttemptedConnect(true);
@@ -51,7 +51,9 @@ export default function SafeConnect({ onConnect }: { onConnect: () => void }) {
         </Button>
       </div>
       {error && (
-        <p className="text-center text-evm-red-400 font-head">{error}</p>
+        <Notice tone="danger" layout="inline">
+          {error}
+        </Notice>
       )}
     </>
   );

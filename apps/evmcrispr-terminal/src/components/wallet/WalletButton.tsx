@@ -17,11 +17,11 @@ export default function WalletButton({
     <Button
       disabled={disabled || isPending}
       onClick={onClick}
-      variant="outline"
+      variant="neutral"
       size="lg"
       className="w-full gap-2"
     >
-      <span className="w-6 h-6 shrink-0 flex items-center justify-center">
+      <span className="flex size-6 shrink-0 items-center justify-center">
         {leftIcon}
       </span>
       {isPending ? "Connecting..." : name}

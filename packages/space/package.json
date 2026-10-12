@@ -1,0 +1,45 @@
+{
+  "name": "@evmcrispr/space",
+  "version": "0.11.1",
+  "description": "The space model shared by EVMcrispr hosts: document layout, timeline entries and the rules for merging, recording and reviewing them",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "packages/space"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "lib0": "^0.2.119",
+    "node-diff3": "^3.2.1",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "lint": "biome check src test",
+    "test:unit": "bun test",
+    "type-check": "tsc --noEmit",
+    "build": "evmcrispr-build --bundle",
+    "types": "evmcrispr-build --types"
+  }
+}

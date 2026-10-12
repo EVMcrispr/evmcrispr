@@ -7,6 +7,9 @@ export type ReferenceEntry = {
   description: string;
   /** Item-level experimental flag (module-level is marked on the group). */
   experimental?: boolean;
+  /** The helper also has an on-chain face (`@name!`), read when the
+   *  transaction runs. One entry stands for both. */
+  onchain?: boolean;
   returnType?: string;
   argDefs?: Array<{
     name: string;
@@ -104,10 +107,17 @@ export function buildReferenceEntries(
         loadDocs: () => loadDoc(moduleName, "command", name).catch(() => ""),
       }));
 
+    // A helper and its on-chain face are one entry. A face that stands
+    // alone keeps its own, under its name.
+    const faces = new Set(
+      Object.keys(helpers).filter((name) => name.endsWith("!")),
+    );
     const helperEntries: ReferenceEntry[] = Object.entries(helpers)
       .filter(([, entry]) => includeExperimental || !entry.experimental)
+      .filter(([name]) => !(faces.has(name) && name.slice(0, -1) in helpers))
       .map(([name, entry]) => ({
         name,
+        onchain: faces.has(name) || faces.has(`${name}!`) || undefined,
         kind: "helper" as const,
         module: moduleName,
         description: entry.description ?? "",

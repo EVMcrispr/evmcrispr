@@ -82,16 +82,21 @@ export class EvmlScript {
   /** Full validation: syntactic parse diagnostics plus static semantic
    *  diagnostics (unknown commands/helpers/modules, wrong argument counts,
    *  unknown options, undefined variables, type mismatches, …). Loads the
-   *  modules the script `load`s to resolve their schemas; fully offline
-   *  (no RPC). Never throws. */
-  async validate(): Promise<{
+   *  modules the script `load`s to resolve their schemas; no RPC. An
+   *  external module (`load --from ipfs://…`) is fetched from IPFS unless
+   *  `remoteModules` is false: it is then left unchecked and its alias is
+   *  listed in `unfetched`. Never throws. */
+  async validate(options: { remoteModules?: boolean } = {}): Promise<{
     diagnostics: ParseDiagnostic[];
     valid: boolean;
+    /** External modules not fetched, so not checked. */
+    unfetched: string[];
   }> {
     const workspace = new EvmlWorkspace(this.#registry, this.#config);
+    workspace.setRemoteModules(options.remoteModules ?? true);
     const diagnostics = await workspace.getFullDiagnostics(this.source);
     const valid = diagnostics.every((d) => d.severity !== "error");
-    return { diagnostics, valid };
+    return { diagnostics, valid, unfetched: workspace.unfetchedModules };
   }
 
   /** Resolve the script into its list of actions (dry run: nothing is

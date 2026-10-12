@@ -5,7 +5,7 @@ import HeroTerminal from "../components/HeroTerminal";
 import Sponsors from "../components/Sponsors.astro";
 import Footer from "../components/Footer.astro";
 
-import { buttonVariants } from "@repo/ui";
+import { Badge, buttonVariants, Notice } from "@repo/ui";
 import { BookOpen, SquareTerminal } from "@repo/ui/icons";
 
 import logo from "../assets/logo.svg";
@@ -27,12 +27,12 @@ const TERMINAL_URL =
     >
       <img src={logo.src} alt="EVMcrispr Logo" width="284" />
 
-      <p class="font-clearer text-white text-center lg:text-left text-lg lg:text-xl">
-        <strong class="font-clearer text-evm-green-300">EVMcrispr</strong> is a
+      <p class="font-clearer text-fg text-center lg:text-left text-lg lg:text-xl">
+        <strong class="font-clearer text-success">EVMcrispr</strong> is a
         scripting language for Ethereum. Describe what you want to happen
         on-chain in a few readable lines, simulate it before it touches your
         wallet, and{" "}
-        <strong class="font-clearer text-evm-green-300">
+        <strong class="font-clearer text-success">
           share scripts anyone can read, review and run
         </strong>.
       </p>
@@ -42,7 +42,7 @@ const TERMINAL_URL =
         <a
           href={TERMINAL_URL}
           class={buttonVariants({
-            variant: "default",
+            variant: "primary",
             size: "lg",
             className: "gap-3 whitespace-nowrap",
           })}
@@ -53,9 +53,9 @@ const TERMINAL_URL =
         <a
           href="/intro/getting-started/"
           class={buttonVariants({
-            variant: "outline",
+            variant: "neutral",
             size: "lg",
-            className: "gap-3 text-primary whitespace-nowrap",
+            className: "gap-3 whitespace-nowrap",
           })}
         >
           <BookOpen className="size-5 shrink-0" />
@@ -78,35 +78,26 @@ const TERMINAL_URL =
   <main class="max-w-[956px] mx-auto">
     <!-- MCP notification banner -->
     <div class="flex justify-center px-6 mt-20 mb-8 fade-in fade-in-delay-3">
-      <div
-        class="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 border border-evm-yellow-300/50 bg-evm-yellow-300/5 rounded-(--radius) px-7 py-4 font-mono text-base lg:text-lg text-white/80 shadow-md"
-      >
-        <span class="flex items-center gap-3">
-          <span class="relative flex size-3">
-            <span
-              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-evm-green-300 opacity-75"
-            ></span>
-            <span
-              class="relative inline-flex size-3 rounded-full bg-evm-green-300"
-            ></span>
+      <Notice tone="success" className="max-w-full">
+        <span class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-title text-fg">
+          <Badge variant="tag" tone="success" dot>NEW</Badge>
+          <span>
+            EVMcrispr now works with{" "}
+            <strong class="font-bold text-success">AI agents</strong> via MCP
           </span>
-          <span class="font-bold text-evm-green-300">NEW</span>
-        </span>
-        <span class="text-center">
-          EVMcrispr now works with{" "}
-          <strong class="font-bold text-evm-green-300">AI agents</strong> via MCP
         </span>
         <a
+          slot="action"
           href="/guides/mcp/"
-          class="whitespace-nowrap border border-evm-green-300 rounded-(--radius) px-3 py-1 text-sm text-evm-green-300 hover:bg-accent hover:text-accent-foreground"
+          class={buttonVariants({ variant: "quiet", size: "sm" })}
         >
           Connect →
         </a>
-      </div>
+      </Notice>
     </div>
 
     <!-- Testimonials heading -->
-    <h1 class="pt-16 text-center text-2xl font-bold text-evm-green-300 font-head fade-in fade-in-delay-3">
+    <h1 class="pt-16 text-center text-2xl font-bold text-heading font-head fade-in fade-in-delay-3">
       Who's using EVMcrispr?
     </h1>
 

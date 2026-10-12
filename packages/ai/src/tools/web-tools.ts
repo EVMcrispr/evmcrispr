@@ -1,5 +1,6 @@
 import { type ToolSet, tool } from "ai";
 import { z } from "zod";
+import { untrusted } from "./untrusted";
 
 /** Character budget for a fetched page; keeps tool results model-sized. */
 export const PAGE_CHAR_BUDGET = 20_000;
@@ -45,12 +46,15 @@ export function createWebTools(apiBase = "https://api.evmcrispr.com"): ToolSet {
 
         const { results } = (await res.json()) as { results?: SearchResult[] };
         if (!results?.length) return `No results for "${query}".`;
-        return results
-          .map(
-            (r, i) =>
-              `${i + 1}. ${r.title ?? "(untitled)"}\n   ${r.url ?? ""}\n   ${r.description ?? ""}`,
-          )
-          .join("\n");
+        return untrusted(
+          "web search results",
+          results
+            .map(
+              (r, i) =>
+                `${i + 1}. ${r.title ?? "(untitled)"}\n   ${r.url ?? ""}\n   ${r.description ?? ""}`,
+            )
+            .join("\n"),
+        );
       } catch (err) {
         return `ERROR: could not reach the search service: ${err instanceof Error ? err.message : err}. The user may be offline; tell them web search is unavailable right now.`;
       }
@@ -79,7 +83,10 @@ export function createWebTools(apiBase = "https://api.evmcrispr.com"): ToolSet {
         const { content } = (await res.json()) as { content?: string };
         if (!content)
           return `ERROR: no readable content extracted from ${url}. Try another URL.`;
-        return truncate(`Source: ${url}\n\n${content}`);
+        return untrusted(
+          "a web page",
+          truncate(`Source: ${url}\n\n${content}`),
+        );
       } catch (err) {
         return `ERROR: could not read the page: ${err instanceof Error ? err.message : err}. The user may be offline; tell them web access is unavailable right now.`;
       }

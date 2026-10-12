@@ -11,13 +11,34 @@ general smart contract interaction. Scripts run in a web terminal
 
 - `packages/core`: Parser, interpreter, AST, completions, hover docs
 - `packages/sdk`: Module SDK (`defineCommand`, `defineHelper`, `defineModule`)
+- `packages/space`: Space model — document layout, timeline entries,
+  merge/revision/review rules (pure, no DOM)
 - `modules/std`: Default module — always loaded
 - `modules/aragonos`: Aragon DAO operations
 - `modules/sim`: Chain fork simulation — anvil, hardhat, tenderly, ethereumjs
 - `modules/ens`: ENS domain operations
 - `modules/giveth`: Giveth protocol
 - `modules/http`: HTTP + JSON helpers
-- `apps/evmcrispr-terminal`: React + Monaco + Wagmi terminal app
+- `packages/space`: The space model shared by hosts (pure, no DOM): the
+  Yjs document layout, timeline entries, and the rules for merging,
+  recording, reviewing and importing them
+- `packages/editor`: Monaco language support, the read-only viewer, the
+  run console
+- `packages/ai`: The assistant's agent loop and tools
+- `apps/evmcrispr-terminal`: React + Monaco + Wagmi terminal app. A script
+  lives in a space (`@evmcrispr/space`); `src/` is laid out by
+  responsibility, each directory importing only from those before it:
+  - `storage/`: IndexedDB records, tab channel, locks, migration
+  - `space/`: loaded spaces. `live-space.ts` is the only writer of a
+    space and the only place that decides whether its script is
+    reviewed; `links.ts` (share), `export.ts` (export, restore),
+    `cleaning.ts`
+  - `editor/`: the script on screen (Monaco binding, viewer)
+  - `runs/`: the run manager, one worker per run
+  - `assistant/`: the built-in agent's host on spaces
+  - `review/`: review before signing
+  - `panel/`: the side panel (Spaces, Agents, Docs)
+  - `mobile/`, `app/` (composition, routing), `wallet/`
 - `apps/evmcrispr-website`: Astro landing page + docs
 
 ## Key Patterns
@@ -81,6 +102,37 @@ after a migration, an upgrade or a rotation cannot satisfy.
 - **Fixtures move with the contracts:** after `sync-assertions-bytecode.ts`,
   also run `sync-smart-dependency-hashes.ts`, or every smart-batch test
   fails with "unrecognized smart-batch bytecode".
+
+- Terminal: anything written by someone other than the user enters a
+  space through `LiveSpace` only (an assistant turn, another tab, an
+  export merged in), and data from a link is checked in
+  `space/export.ts` before use. `test/app/foreign-writers.test.ts` pins
+  both from the import graph: extend it when adding an entry point.
+
+## Terminal UI
+
+- **Looks come from `packages/ui`; app code chooses layout.** A screen
+  in `apps/evmcrispr-terminal/src` is composed from `@repo/ui`
+  components (`Button`, `IconButton`, `Row`, `Card`, `Notice`, `Badge`,
+  `Overlay`, `Menu`, `PanelHeader`, `Input`…), colours are the tokens of
+  `packages/editor/src/styles/tokens.css` by their meaning (`text-fg`,
+  `bg-surface-1`, `border-line`, `text-danger`), type is one of
+  `text-caption | body | title | display`, and icons are imported from
+  `@repo/ui/icons`.
+- **A new visual element is added to `packages/ui` and to the gallery
+  first** (`apps/evmcrispr-terminal/src/gallery/`, served in dev at
+  `/gallery.html`), in every state, then used. Look at it there at
+  desktop width and in the touch frame before using it.
+- **Desktop and phone are one app.** A component adapts through the
+  `touch:` variant inside `packages/ui`; a call site passes no
+  touch-target, shadow, font or radius classes. Something that opens
+  over the page is an `Overlay` (dialog on desktop, sheet on a phone).
+- **A button without words has a name**, which `IconButton` shows as a
+  tooltip. A row's or a card's secondary actions go behind its "⋯"
+  `Menu`; at most two stay visible.
+- `test/app/ui-conventions.test.ts` pins all of this over every `.tsx`
+  in `src/` (brand marks in `components/icons/` aside). When it fails,
+  change the code or extend `packages/ui`: do not add an exception.
 
 ## Common Tasks
 

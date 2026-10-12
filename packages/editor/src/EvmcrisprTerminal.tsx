@@ -217,7 +217,11 @@ function TerminalInner({
                     <ActionsPreview actions={interpreter.actions} />
                   )}
                   {(interpreter.entries.length > 0 || errors.length > 0) && (
-                    <Console entries={interpreter.entries} errors={errors} />
+                    <Console
+                      entries={interpreter.entries}
+                      errors={errors}
+                      markdown
+                    />
                   )}
                   {interpreter.actions.length === 0 &&
                     interpreter.entries.length === 0 &&
@@ -234,22 +238,21 @@ function TerminalInner({
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-3 py-2 bg-evm-gray-900/50">
-        {/* Mirrors the RetroUI "default" button variant from @repo/ui:
-            flat green shadow that collapses as the button travels on
-            hover/press. */}
+      <div className="flex items-center justify-end gap-2 px-3 py-2">
+        {/* The primary button of @repo/ui, class for class: this package
+            is published on its own and cannot import it. */}
         <button
           type="button"
           onClick={run}
           disabled={interpreter.isRunning || script.trim().length === 0}
-          className="px-4 py-1.5 bg-evm-green-300 text-evm-gray-900 font-head text-sm rounded-(--radius) border-2 border-border shadow-md hover:shadow active:shadow-none hover:translate-y-1 active:translate-y-2 active:translate-x-1 transition-all duration-200 disabled:opacity-40 hover:bg-evm-green-500 cursor-pointer disabled:cursor-default"
+          className="cursor-pointer rounded-(--radius) border-2 border-primary bg-primary px-3 py-1 font-head text-sm font-medium text-primary-foreground shadow-sm transition-all duration-100 [--shadow-color:var(--success-line)] hover:translate-x-px hover:translate-y-px hover:bg-primary-hover hover:shadow-xs active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-sm"
         >
           {interpreter.isRunning
             ? executeAction
               ? "Running…"
               : "Simulating…"
             : executeAction
-              ? "Execute"
+              ? "Run"
               : "Simulate"}
         </button>
       </div>
@@ -259,7 +262,8 @@ function TerminalInner({
           <Console
             entries={interpreter.entries}
             errors={errors}
-            placeholder="Console output will appear here during execution."
+            placeholder="Console output will appear here during the run."
+            markdown
           />
         </div>
       )}

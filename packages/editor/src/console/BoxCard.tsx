@@ -10,15 +10,19 @@ import {
   NoSymbolIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { Alert } from "../ui/Alert";
-import { ConsoleMarkdown } from "./ConsoleMarkdown";
+import { cn } from "../ui/cn";
+import { PROSE } from "../ui/prose";
+import { ConsoleMarkdown, httpsUrl } from "./ConsoleMarkdown";
 import { countdownText, type Segment, segments, useNow } from "./countdown";
 
-const boxStatus: Record<BoxState, "warning" | "success" | "error" | "info"> = {
-  live: "warning",
-  done: "success",
-  failed: "error",
-  cancelled: "info",
+// A box is a framed block in the tone of its state, like a card of
+// @repo/ui (which this package cannot import): going on, done, failed,
+// stopped. Written out in full for Tailwind to find.
+const boxFrame: Record<BoxState, string> = {
+  live: "border-info bg-info-surface",
+  done: "border-success bg-success-surface",
+  failed: "border-danger bg-danger-surface",
+  cancelled: "border-edge bg-surface-2",
 };
 
 const boxIcon: Record<BoxState, typeof ClockIcon> = {
@@ -30,10 +34,13 @@ const boxIcon: Record<BoxState, typeof ClockIcon> = {
 };
 
 const boxIconClass: Record<BoxState, string> = {
-  live: "text-evm-blue-300 animate-spin",
-  done: "text-evm-green-300",
-  failed: "text-evm-orange-300",
-  cancelled: "text-white/70",
+  // On its own compositor layer: the browser then turns one drawing of
+  // the clock. Without it the glyph is drawn afresh at every angle,
+  // snapped to whole pixels each time, and seems to wander as it turns.
+  live: "text-info",
+  done: "text-success",
+  failed: "text-danger",
+  cancelled: "text-fg-faint",
 };
 
 const boxStateLabel: Record<BoxState, string> = {
@@ -45,80 +52,99 @@ const boxStateLabel: Record<BoxState, string> = {
 
 export interface BoxCardProps {
   box: BoxSnapshot;
+  /** The box is of a run this page made: its text is rendered as
+   *  markdown and its links are shown (see `ConsoleProps.markdown`).
+   *  Off unless asked for. */
+  markdown?: boolean;
 }
 
-/** One status box: title, live detail, progress, links and history. */
-export function BoxCard({ box }: BoxCardProps) {
+/** One status box: title, live detail, progress and links. What the
+ *  detail said before (`box.history`) is kept in the record, not shown. */
+export function BoxCard({ box, markdown = false }: BoxCardProps) {
   const IconComp = boxIcon[box.state];
-  const links = Object.entries(box.links ?? {});
+  // A link is shown only for a run this page made, only to an `https:`
+  // address, and with the site it leads to in sight.
+  const links = markdown
+    ? Object.entries(box.links ?? {}).flatMap(([label, href]) => {
+        const url = httpsUrl(href);
+        return url ? [[label, url] as const] : [];
+      })
+    : [];
   const [done, total] = box.progress ?? [0, 0];
   const percent =
     total > 0 ? Math.min(100, Math.max(0, (done / total) * 100)) : 0;
 
   return (
-    <Alert
-      status={boxStatus[box.state]}
-      variant="solid"
+    <div
+      className={cn(
+        "w-full border-2 px-2.5 py-2 font-sans text-fg",
+        boxFrame[box.state],
+      )}
       data-box-id={box.id}
       data-box-state={box.state}
     >
       <div className="flex items-start gap-2">
-        <IconComp
-          className={`w-5 h-5 shrink-0 ${boxIconClass[box.state]}`}
-          aria-label={boxStateLabel[box.state]}
-        />
-        <div className="flex min-w-0 flex-1 flex-col gap-2 px-2.5">
+        {/* The wrapper turns, on a layer of its own (`will-change`).
+            Turned directly, or without the layer, the clock circles a
+            point about a pixel beside its middle whenever it sits on
+            whole pixels: measured in Chrome, 2px of travel against
+            0.07px. */}
+        <span
+          className={cn(
+            "mt-0.5 block size-4 shrink-0",
+            box.state === "live" && "animate-spin will-change-transform",
+          )}
+        >
+          <IconComp
+            className={`block size-4 ${boxIconClass[box.state]}`}
+            aria-label={boxStateLabel[box.state]}
+          />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-bold text-base break-all">{box.title}</span>
+            <span className="font-head text-body font-bold wrap-break-word">
+              {box.title}
+            </span>
             {box.simulated && (
-              <span className="rounded border border-white/40 px-1.5 py-0.5 text-xs uppercase tracking-wide text-white/70">
+              <span className="rounded-(--radius) border-2 border-edge px-1.5 text-caption font-medium text-fg-muted">
                 simulated
               </span>
             )}
           </div>
-          <div className="text-base prose prose-invert prose-base max-w-none wrap-break-word">
-            <ConsoleMarkdown>{box.detail}</ConsoleMarkdown>
+          <div className={PROSE}>
+            <ConsoleMarkdown markdown={markdown}>{box.detail}</ConsoleMarkdown>
           </div>
           {box.progress && total > 0 && (
             <BoxProgress
               progress={box.progress}
               countdown={box.state === "live" ? box.countdown : undefined}
-              steps={box.steps}
+              steps={box.steps?.map((step) =>
+                markdown && httpsUrl(step.href)
+                  ? step
+                  : { ...step, href: undefined },
+              )}
               percent={percent}
             />
           )}
           {links.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {links.map(([label, href]) => (
+              {links.map(([label, url]) => (
                 <a
                   key={label}
-                  href={href}
+                  href={url.href}
+                  title={url.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded border border-white/40 px-2 py-0.5 text-sm text-evm-green-300 hover:bg-white/10"
+                  className="rounded-(--radius) border-2 border-edge bg-surface-1 px-2 py-0.5 text-caption font-medium text-primary no-underline hover:bg-surface-hover"
                 >
-                  {label} ↗
+                  {label} ↗ <span className="text-fg-faint">{url.host}</span>
                 </a>
               ))}
             </div>
           )}
-          {box.history.length > 0 && (
-            <details className="text-sm text-white/70">
-              <summary className="cursor-pointer select-none">
-                History ({box.history.length})
-              </summary>
-              <ol className="mt-1 flex flex-col gap-1 pl-4 list-decimal">
-                {box.history.map((line, i) => (
-                  <li key={`${box.id}-h-${i}`} className="wrap-break-word">
-                    <ConsoleMarkdown>{line}</ConsoleMarkdown>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          )}
         </div>
       </div>
-    </Alert>
+    </div>
   );
 }
 
@@ -160,14 +186,14 @@ function BoxProgress({
         </ol>
       ) : (
         <div
-          className="h-1.5 w-full overflow-hidden rounded bg-white/20"
+          className="h-2 w-full overflow-hidden bg-surface-active"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={total}
           aria-valuenow={done}
         >
           <div
-            className="h-full bg-evm-green-300 transition-[width]"
+            className="h-full bg-success transition-[width]"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -176,7 +202,7 @@ function BoxProgress({
         <p
           role="timer"
           aria-live="off"
-          className="self-end text-sm tabular-nums text-white/80"
+          className="m-0 self-end text-caption tabular-nums text-fg-muted"
         >
           {countdownText(countdown, now)}
         </p>
@@ -191,16 +217,16 @@ function BoxProgress({
 function SegmentBar({ part, step }: { part: Segment; step: number }) {
   const bar = (
     <span
-      className={`block h-1.5 overflow-hidden rounded-sm ${
+      className={`block h-2 overflow-hidden ${
         part.kind === "missed"
-          ? "bg-[repeating-linear-gradient(135deg,var(--color-evm-orange-300)_0_2px,transparent_2px_5px)] opacity-70"
-          : "bg-white/20"
+          ? "bg-[repeating-linear-gradient(135deg,var(--unverified)_0_2px,transparent_2px_5px)] opacity-80"
+          : "bg-surface-active"
       }`}
     >
       {(part.kind === "done" || part.kind === "open") && (
         <span
           className={`block h-full motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear ${
-            part.kind === "done" ? "bg-evm-green-300" : "bg-evm-green-300/40"
+            part.kind === "done" ? "bg-success" : "bg-success-line"
           }`}
           style={{ width: `${part.fill * 100}%` }}
         />
@@ -211,10 +237,11 @@ function SegmentBar({ part, step }: { part: Segment; step: number }) {
     return (
       <a
         href={part.href}
+        title={part.href}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Segment ${step}`}
-        className="block rounded-sm py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-evm-green-300"
+        className="block py-2 hover:brightness-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
       >
         {bar}
       </a>

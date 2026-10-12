@@ -1,41 +1,36 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Tabs } from "@repo/ui";
 import { act, render } from "@testing-library/react";
+import { setUi, useUi } from "../../src/app/ui-store";
 import { useFocusOnTab } from "../../src/hooks/useFocusOnTab";
-import {
-  terminalStoreActions,
-  useTerminalStore,
-} from "../../src/stores/terminal-store";
 
 function LibInput() {
-  const ref = useFocusOnTab<HTMLInputElement>("library");
+  const ref = useFocusOnTab<HTMLInputElement>("space");
   return <input ref={ref} placeholder="lib-search" />;
 }
 
 function ChatBox() {
-  const ref = useFocusOnTab<HTMLTextAreaElement>("chat");
+  const ref = useFocusOnTab<HTMLTextAreaElement>("agents");
   return <textarea ref={ref} placeholder="chat-box" />;
 }
 
 /** Mirrors SidePanel's structure: forceMount + hidden keeps every tab
  *  mounted, so focus must react to reveals, not mounts. */
 function Panel() {
-  const activeTab = useTerminalStore().activeTab;
+  const activeTab = useUi((s) => s.activeTab);
   return (
     <Tabs
       value={activeTab}
-      onValueChange={(v) =>
-        terminalStoreActions("activeTab", v as "library" | "chat")
-      }
+      onValueChange={(v) => setUi({ activeTab: v as "space" | "agents" })}
     >
       <Tabs.List>
-        <Tabs.Trigger value="library">Library</Tabs.Trigger>
-        <Tabs.Trigger value="chat">Chat</Tabs.Trigger>
+        <Tabs.Trigger value="space">Library</Tabs.Trigger>
+        <Tabs.Trigger value="agents">Chat</Tabs.Trigger>
       </Tabs.List>
-      <Tabs.Content value="library" forceMount hidden={activeTab !== "library"}>
+      <Tabs.Content value="space" keepMounted>
         <LibInput />
       </Tabs.Content>
-      <Tabs.Content value="chat" forceMount hidden={activeTab !== "chat"}>
+      <Tabs.Content value="agents" keepMounted>
         <ChatBox />
       </Tabs.Content>
     </Tabs>
@@ -43,14 +38,14 @@ function Panel() {
 }
 
 beforeEach(() => {
-  terminalStoreActions("activeTab", "library");
+  setUi({ activeTab: "space" });
 });
 
 /** The hook defers focus one frame (to outlast the tab click's own focus
  *  handling), so tests must let that frame elapse. */
-const switchTab = (tab: "library" | "chat") =>
+const switchTab = (tab: "space" | "agents") =>
   act(async () => {
-    terminalStoreActions("activeTab", tab);
+    setUi({ activeTab: tab });
     await new Promise<void>((r) =>
       requestAnimationFrame(() => requestAnimationFrame(() => r())),
     );
@@ -66,7 +61,7 @@ describe("useFocusOnTab", () => {
 
   test("focuses the chat box when the chat tab is revealed", async () => {
     render(<Panel />);
-    await switchTab("chat");
+    await switchTab("agents");
     expect(document.activeElement?.getAttribute("placeholder")).toBe(
       "chat-box",
     );
@@ -74,8 +69,8 @@ describe("useFocusOnTab", () => {
 
   test("focuses the library search when switching back", async () => {
     render(<Panel />);
-    await switchTab("chat");
-    await switchTab("library");
+    await switchTab("agents");
+    await switchTab("space");
     expect(document.activeElement?.getAttribute("placeholder")).toBe(
       "lib-search",
     );

@@ -142,6 +142,14 @@ export function exposeEvmlWorker(tag: EvmlTag): void {
         break;
       }
 
+      case "action-status": {
+        pendingActions
+          .get(msg.id)
+          ?.get(msg.actionId)
+          ?.report?.status?.(msg.state);
+        break;
+      }
+
       case "abort": {
         controllers.get(msg.id)?.abort();
         // Actions still on the main thread (a wallet prompt, a receipt

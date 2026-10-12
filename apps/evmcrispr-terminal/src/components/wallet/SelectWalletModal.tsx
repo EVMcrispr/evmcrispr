@@ -1,5 +1,4 @@
-import { XMarkIcon } from "@heroicons/react/24/outline";
-import { Dialog, Drawer, IconButton } from "@repo/ui";
+import { Overlay } from "@repo/ui";
 import { useCallback, useState } from "react";
 import { useConnect, useConnectors } from "wagmi";
 import { useWalletConnect } from "../../hooks/useWalletConnect";
@@ -143,61 +142,21 @@ export default function SelectWalletModal({
     }
   };
 
-  if (mobile) {
-    return (
-      <Drawer
-        open={isOpen}
-        onOpenChange={(open) => !open && handleModalClose()}
-        direction="bottom"
-        modal
-      >
-        <Drawer.Content
-          side="bottom"
-          className="max-h-[92dvh] border-evm-yellow-300 bg-[#0b0d0c]"
-        >
-          <div className="mx-auto mt-2 h-1 w-12 rounded-full bg-foreground/25" />
-          <Drawer.Header className="border-foreground/10">
-            <div>
-              <Drawer.Title className="font-sans text-xl text-evm-yellow-300">
-                {getModalTitle()}
-              </Drawer.Title>
-              <Drawer.Description className="font-sans text-xs">
-                Connect securely, then return to your review.
-              </Drawer.Description>
-            </div>
-            <Drawer.Close asChild>
-              <IconButton
-                type="button"
-                aria-label="Close wallet selection"
-                variant="ghost"
-                size="lg"
-                className="min-h-11 min-w-11"
-              >
-                <XMarkIcon className="size-5" />
-              </IconButton>
-            </Drawer.Close>
-          </Drawer.Header>
-          <div className="mobile-safe-bottom flex w-full flex-col items-center overflow-y-auto px-6 py-8">
-            {renderModalContent()}
-          </div>
-        </Drawer.Content>
-      </Drawer>
-    );
-  }
-
+  // A sheet where the layout is the phone's, a dialog otherwise.
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
-      <Dialog.Content
-        size="md"
-        className="border-evm-yellow-300 [--shadow-color:rgba(226,249,98,0.5)]"
-      >
-        <Dialog.Header className="bg-black text-evm-yellow-300 border-evm-yellow-300">
-          {getModalTitle()}
-        </Dialog.Header>
-        <div className="w-full flex justify-center items-center flex-col px-10 py-12">
-          {renderModalContent()}
-        </div>
-      </Dialog.Content>
-    </Dialog>
+    <Overlay
+      open={isOpen}
+      onOpenChange={(open) => !open && handleModalClose()}
+      sheet={mobile}
+      title={getModalTitle()}
+      description={
+        mobile ? "Connect securely, then return to your review." : undefined
+      }
+      closeLabel="Close wallet selection"
+    >
+      <div className="flex w-full flex-col items-center px-2 py-6">
+        {renderModalContent()}
+      </div>
+    </Overlay>
   );
 }

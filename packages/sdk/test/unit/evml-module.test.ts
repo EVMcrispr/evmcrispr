@@ -10,7 +10,7 @@ import type {
 import { BindingsSpace, resolveHelper } from "../../src/types";
 import { resolveModuleSource } from "../../src/utils/moduleSource";
 import { createOffchainOverlay } from "../../src/utils/offchain";
-import { encryptScript } from "../../src/utils/shareEnvelope";
+import { encryptPayload, encryptScript } from "../../src/utils/shareEnvelope";
 
 function fakeContext(): ModuleContext {
   const bm = new BindingsManager();
@@ -198,6 +198,22 @@ describe("resolveModuleSource", () => {
   it("decrypts encrypted share envelopes with the link key", async () => {
     const script = "module m (\n)";
     const { envelope, key } = await encryptScript({ title: "t", script });
+    expect(
+      await resolveModuleSource(JSON.stringify(envelope), {
+        decryptionKey: key,
+      }),
+    ).toBe(script);
+  });
+
+  it("load --from on a space export yields the script", async () => {
+    const script = "module m (\n)";
+    const { envelope, key } = await encryptPayload({
+      kind: "space",
+      id: "s1",
+      title: "m",
+      script,
+      timeline: {},
+    });
     expect(
       await resolveModuleSource(JSON.stringify(envelope), {
         decryptionKey: key,

@@ -10,11 +10,29 @@ language — pick the surface that fits how you work.
 [next.evmcrispr.com](https://next.evmcrispr.com) is the primary way to use
 EVMcrispr: a browser editor with syntax highlighting, completions, inline
 diagnostics, and hover documentation. Connect your wallet, write a script,
-and click **Execute** — every transaction is shown to you for review and
+and click **Run** — every transaction is shown to you for review and
 signed by your own wallet.
 
 The terminal can also [share scripts as links](/guides/sharing-scripts/)
 and simulate them on a forked chain before you commit to anything.
+
+Its **Agents** tab holds a built-in assistant (Dappnode Nexus) that can
+write, check and simulate scripts for you. Chats are kept in your browser
+and are not tied to a script: the open chat stays open when you move to
+another one, and the last chat reopens when you come back. Every change
+the assistant makes is recorded in the script's timeline with a one-line
+explanation, and leaves the script marked as unreviewed. It never signs
+or sends anything, and it asks before editing a script you are not
+looking at, or before using the web in a chat that has read your other
+scripts.
+
+A script that is unreviewed cannot be run or shared yet. Run
+reads **Review changes**: the review shows what changed since the text
+you approved, who changed it and why. Nothing of the change is run by
+looking at it; you can ask for a simulation to see what the script
+would send. Approve it, or take a change back
+from its revision with **Revert this change** or **Restore to before**.
+Your own typing never needs a review, and simulating is never blocked.
 
 ## CLI
 

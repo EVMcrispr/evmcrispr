@@ -4,17 +4,18 @@ import type {
   ParseDiagnostic,
 } from "@evmcrispr/core";
 import type { Monaco } from "@monaco-editor/react";
-import MonacoEditorBase, { loader, useMonaco } from "@monaco-editor/react";
+import MonacoEditorBase, { loader } from "@monaco-editor/react";
 
 // Monaco is self-hosted: the AMD build is served from /vs on the app's own
 // origin (dev middleware + build copy in the terminal's vite config) rather
 // than a third-party CDN — injected <script> tags can't be hash-verified,
 // so CDN trust is removed instead. Apps embedding this editor must serve
-// monaco-editor@0.56.0/min/vs at /vs (or call loader.config to override).
+// monaco-editor@0.57.0/min/vs at /vs (or call loader.config to override).
 // monaco-editor is pinned exact. 0.53–0.55 swallowed the first keystroke
 // typed over a backward (right-to-left) selection on the textarea path
-// (vscode#273146); 0.56.0 ships the fix. When bumping, re-test backward
-// select + type in a browser without the EditContext API (e.g. Firefox).
+// (vscode#273146); 0.56.0 shipped the fix and 0.57.0 keeps it. When
+// bumping, re-test backward select + type in a browser without the
+// EditContext API (e.g. Firefox).
 /** Where the self-hosted monaco AMD build is served from. */
 const VS_BASE = "/vs";
 loader.config({ paths: { vs: VS_BASE } });
@@ -23,6 +24,7 @@ import type { editor, IPosition, languages } from "monaco-editor";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEvmlTag } from "../context/EvmcrisprProvider";
 import { findHeredocRanges, heredocKindClass } from "../heredocRanges";
+import { lineRuns } from "../lineRuns";
 import { toMonacoCompletionItem } from "./autocompletion";
 import { registerCircomLanguage } from "./circom-language";
 import { conf, contribution, createLanguage } from "./evml";
@@ -32,16 +34,48 @@ import {
   loadingPreview,
   peekIpfsPreview,
 } from "./ipfs-preview";
+import { useLoadedMonaco } from "./load-monaco";
 import { registerNoirLanguage } from "./noir-language";
 import { patchEmbeddedSolidity } from "./solidity-patch";
 import { theme, themeWithBackground } from "./theme";
 
 const SCRIPT_DEBOUNCE_MS = 300;
+/** The title line is a heading: larger and bold. The line height is a
+ *  multiple of the editor's own. */
+const TITLE_LINE_HEIGHT = 1.6;
+const TITLE_FONT_SIZE = "1.35em";
 const CHANGE_DEBOUNCE_MS = 150;
 
 /** Command id registered on Monaco for the hover panel's "Open in
  *  reference" link (see the hover provider effect below). */
 const OPEN_DOCS_COMMAND_ID = "evmcrispr.openDocs";
+
+/**
+ * Runs `work` once after the edits being reported, not inside each
+ * report. For a content-change listener that sets decorations: Monaco
+ * reports a batch of edits (text inserted as typing, a character at a
+ * time) one after another, and setting decorations inside a report
+ * delivers the next one from within it. A long enough insertion nests
+ * those calls until the stack runs out. Deferred to a microtask, the
+ * decorations are set once, after the last report, before any paint.
+ */
+function afterEdits(work: () => void) {
+  let waiting = false;
+  let cancelled = false;
+  return {
+    run() {
+      if (waiting || cancelled) return;
+      waiting = true;
+      queueMicrotask(() => {
+        waiting = false;
+        if (!cancelled) work();
+      });
+    },
+    cancel() {
+      cancelled = true;
+    },
+  };
+}
 
 export interface EditorProps {
   /** Initial script when the host isn't controlling the content. */
@@ -51,7 +85,19 @@ export interface EditorProps {
   onChange?: (value: string) => void;
   /** 1-based line currently being executed — highlighted + revealed. */
   executingLine?: number | null;
-  /** Fired when the user clicks the "Open in reference" link in a hover
+  /** 0-based index of the line shown as the script's title (its first
+   *  comment). The host decides which line that is. */
+  titleLine?: number | null;
+  /** 1-based lines that carry a mark in the margin: the host decides which
+   *  (lines that differ from a text it compares with). */
+  changedLines?: readonly number[];
+  /** Whether analysing the script (keywords, completions, hovers,
+   *  diagnostics, prewarm) may fetch the external modules it names with
+   *  `load --from ipfs://…`. A function is asked at each analysis with the
+   *  exact text being analysed, and nothing is fetched if it throws.
+   *  Default true. */
+  remoteModules?: boolean | ((script: string) => boolean);
+  /** Fired when the user clicks the "Open in docs" link in a hover
    *  card over a command or `@helper` name. */
   onOpenDocs?: (ref: HoverRef) => void;
   /** Escape hatch for hosts that manage Monaco models themselves (the
@@ -81,6 +127,9 @@ function Editor({
   defaultValue,
   onChange,
   executingLine,
+  titleLine,
+  changedLines,
+  remoteModules = true,
   onOpenDocs,
   onMount,
   onDidPaste,
@@ -89,10 +138,14 @@ function Editor({
   readOnly,
   height = "100%",
 }: EditorProps) {
-  const monaco = useMonaco();
+  // Typed from monaco-editor itself: the loader's own `Monaco` type
+  // does not resolve against this version and comes out as `any`.
+  const monaco = useLoadedMonaco<typeof import("monaco-editor")>(loader);
   const tag = useEvmlTag();
 
   const evm = useMemo(() => tag.workspace(), [tag]);
+  // The workspace asks it at each analysis, of the text it analyses.
+  evm.setRemoteModules(remoteModules);
 
   const [editorInstance, setEditorInstance] =
     useState<editor.IStandaloneCodeEditor | null>(null);
@@ -218,7 +271,7 @@ function Editor({
   }, [monaco, evm]);
 
   // ── Hover provider ──
-  // Commands/helpers get a trailing "Open in reference" command link so the
+  // Commands/helpers get a trailing "Open in docs" command link so the
   // side panel can be opened explicitly instead of auto-activating whenever
   // the cursor happens to land on a recognised name.
   useEffect(() => {
@@ -243,7 +296,7 @@ function Editor({
         if (info.ref) {
           const args = encodeURIComponent(JSON.stringify(info.ref));
           contents.push({
-            value: `[Open in reference](command:${OPEN_DOCS_COMMAND_ID}?${args})`,
+            value: `[Open in docs](command:${OPEN_DOCS_COMMAND_ID}?${args})`,
             isTrusted: true,
           });
         }
@@ -727,9 +780,86 @@ function Editor({
     }
   }, [executingLine, monaco]);
 
+  // ── Title line: the first comment, shown as a heading. The `#` is
+  // dimmed, never hidden: Monaco cannot hide characters, and the cursor
+  // must not land in invisible text. ──
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editorInstance re-arms the listener on remount
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed || !monaco) return;
+    const collection = ed.createDecorationsCollection([]);
+    const refresh = () => {
+      const model = ed.getModel();
+      const line = titleLine == null ? 0 : titleLine + 1;
+      if (
+        !model ||
+        model.isDisposed() ||
+        line < 1 ||
+        line > model.getLineCount()
+      ) {
+        collection.set([]);
+        return;
+      }
+      const hashes =
+        /^\s*#+\s*/.exec(model.getLineContent(line))?.[0].length ?? 0;
+      collection.set([
+        {
+          range: new monaco.Range(line, 1, line, model.getLineMaxColumn(line)),
+          options: {
+            lineHeight: TITLE_LINE_HEIGHT,
+            fontSize: TITLE_FONT_SIZE,
+            fontWeight: "700",
+            inlineClassName: "evml-title-line",
+          },
+        },
+        {
+          range: new monaco.Range(line, 1, line, 1 + hashes),
+          options: { inlineClassName: "evml-title-hash" },
+        },
+      ]);
+    };
+    refresh();
+    const later = afterEdits(refresh);
+    const onContent = ed.onDidChangeModelContent(later.run);
+    const onModel = ed.onDidChangeModel(refresh);
+    return () => {
+      later.cancel();
+      onContent.dispose();
+      onModel.dispose();
+      collection.clear();
+    };
+  }, [titleLine, monaco, editorInstance]);
+
+  // ── Changed lines: a mark in the margin, one decoration per run of
+  // consecutive lines. Re-applied when the model is swapped. ──
+  // biome-ignore lint/correctness/useExhaustiveDependencies: editorInstance re-arms the listener on remount
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed || !monaco) return;
+    const collection = ed.createDecorationsCollection([]);
+    const refresh = () => {
+      const count = ed.getModel()?.getLineCount() ?? 0;
+      collection.set(
+        lineRuns(changedLines ?? [], count).map(([from, to]) => ({
+          range: new monaco.Range(from, 1, to, 1),
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: "evml-changed-line",
+          },
+        })),
+      );
+    };
+    refresh();
+    const onModel = ed.onDidChangeModel(refresh);
+    return () => {
+      onModel.dispose();
+      collection.clear();
+    };
+  }, [changedLines, monaco, editorInstance]);
+
   // ── Heredoc bar + tint (mirrors the Shiki viewer's heredoc transformer) ──
-  // Refreshed on every edit (not debounced): the scan is a cheap line
-  // pass and the bar should follow the fence as it's typed.
+  // Refreshed on every edit (not debounced, see `afterEdits`): the scan is
+  // a cheap line pass and the bar should follow the fence as it's typed.
   // biome-ignore lint/correctness/useExhaustiveDependencies: editorInstance re-arms the listener on remount
   useEffect(() => {
     const ed = editorRef.current;
@@ -770,8 +900,10 @@ function Editor({
       );
     };
     refresh();
-    const disposable = ed.onDidChangeModelContent(refresh);
+    const later = afterEdits(refresh);
+    const disposable = ed.onDidChangeModelContent(later.run);
     return () => {
+      later.cancel();
       disposable.dispose();
       collection.clear();
     };

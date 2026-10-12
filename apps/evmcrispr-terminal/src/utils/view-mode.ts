@@ -1,5 +1,5 @@
+import type { ViewMode } from "../app/ui-store";
 import { MOBILE_BREAKPOINT } from "../constants/layout";
-import type { ViewMode } from "../stores/terminal-store";
 
 const VIEW_MODE_KEY = "evmcrispr:viewMode";
 

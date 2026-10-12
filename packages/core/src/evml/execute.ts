@@ -1,5 +1,6 @@
 import type {
   Action,
+  ActionHoldState,
   ActionReport,
   BatchedAction,
   BoxSnapshot,
@@ -86,11 +87,21 @@ export interface ExecuteOptions {
   /** Align the wallet with the chains the script switches to before
    *  interpreting (default true). */
   prepareChains?: boolean;
+  /** Wraps each change of chain that alignment asks of the wallet, for a
+   *  host that can hold a wallet request and ask again (`align` may be
+   *  called more than once). Default: the change is asked once. */
+  prepareChain?: PrepareChain;
   /** Per-action-type overrides. `ctx.next(action)` delegates back to the
    *  built-in behavior — e.g. a Safe batch handler can fall through for
    *  the non-Safe case. */
   handlers?: Partial<ActionHandlers>;
 }
+
+/** One change of chain asked of the wallet before interpreting. */
+export type PrepareChain = (
+  chainId: number,
+  align: () => Promise<void>,
+) => Promise<void>;
 
 export interface ActionHandlerCtx {
   walletClient: WalletClient;
@@ -102,6 +113,9 @@ export interface ActionHandlerCtx {
   /** The host sent the action; the interpreter shows the hash on the
    *  action's transaction box. */
   onSent?(hash: Hash): void;
+  /** The host is holding the action (see `ActionReport.status`): tells
+   *  the interpreter where it stands, for the action's box. */
+  onStatus?(state: ActionHoldState): void;
   /** Delegate to the built-in handler for this action. */
   next(action: Action): Promise<unknown>;
 }
@@ -211,10 +225,13 @@ export async function switchOrAddChain(
         console.error("Failed to add or switch chain:", addError);
         throw new Error(
           `Failed to switch to chain ${chainId}. Please add it manually.`,
+          { cause: addError },
         );
       }
     } else {
-      throw new Error(`Chain with id ${chainId} not configured.`);
+      throw new Error(`Chain with id ${chainId} not configured.`, {
+        cause: _e,
+      });
     }
   }
 }
@@ -242,6 +259,7 @@ export async function prepareChainsForScript(
   walletClient: WalletClient,
   script: string,
   transports?: Record<number, Transport>,
+  prepareChain: PrepareChain = (_chainId, align) => align(),
 ): Promise<void> {
   let ast;
   try {
@@ -267,22 +285,28 @@ export async function prepareChainsForScript(
   const ensure = async (chain: number): Promise<void> => {
     if (chain === walletChainId) return;
     try {
-      await switchOrAddChain(walletClient, chain, transports);
+      await prepareChain(chain, () =>
+        switchOrAddChain(walletClient, chain, transports),
+      );
       walletChainId = chain;
-    } catch {
+    } catch (cause) {
+      // The cause is kept so a host can tell a refusal in the wallet from
+      // a wallet that cannot reach the chain; the message is the same.
       const walletSwitchArg = switchArgForChainId(walletChainId);
       if (uniqueChains.length === 1 && firstSwitchChainId === undefined) {
         throw new Error(
           `The script should start with \`switch ${walletSwitchArg}\`.`,
+          { cause },
         );
       }
       if (uniqueChains.length > 1) {
-        throw new Error(`Wallet only supports ${walletSwitchArg}.`);
+        throw new Error(`Wallet only supports ${walletSwitchArg}.`, { cause });
       }
       // uniqueChains.length === 1 && firstSwitchChainId !== undefined:
       // script explicitly targets a single chain the wallet can't reach.
       throw new Error(
         `Wallet only supports ${walletSwitchArg}, but the script targets ${switchArgForChainId(chain)}.`,
+        { cause },
       );
     }
   };
@@ -945,6 +969,7 @@ export async function executeScript(
       signal: handlerSignal,
       transports: config.transports,
       onSent: report ? (hash) => report.sent(hash) : undefined,
+      onStatus: report?.status ? (state) => report.status?.(state) : undefined,
       next: (action) => runDefault(action, ctx),
     };
     return ctx;
@@ -983,7 +1008,12 @@ export async function executeScript(
   };
 
   if (walletClient && (options.prepareChains ?? true)) {
-    await prepareChainsForScript(walletClient, source, config.transports);
+    await prepareChainsForScript(
+      walletClient,
+      source,
+      config.transports,
+      options.prepareChain,
+    );
   }
 
   const runInterpret: InterpretRunner =

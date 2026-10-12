@@ -62,6 +62,19 @@ export interface HoverContext {
   client?: PublicClient;
   /** Current chain id — used to fetch verified-contract data per chain. */
   chainId?: number;
+  /** Nothing may reach the network: no address card is made (it reads
+   *  the chain and an explorer, and what it finds is kept for later
+   *  hovers), so nothing made without them is kept either. */
+  offline?: boolean;
+}
+
+/** The card of an address, or none where the hover is offline. */
+function addressCard(
+  address: Address,
+  ctx: HoverContext,
+): Promise<HoverInfo | null> | null {
+  if (ctx.offline) return null;
+  return getAddressHoverInfo(address, ctx.client, ctx.chainId);
 }
 
 /**
@@ -416,7 +429,7 @@ export async function getHoverInfo(
 
   // --- address: 0x… ---
   if (token.kind === "address") {
-    return getAddressHoverInfo(token.value as Address, ctx.client, ctx.chainId);
+    return addressCard(token.value as Address, ctx);
   }
 
   // --- helper: @name / @module:name ---
@@ -567,11 +580,7 @@ export async function getHoverInfo(
     }
 
     if (typeof value === "string" && isAddress(value) && ctx.chainId != null) {
-      const info = await getAddressHoverInfo(
-        value as Address,
-        ctx.client,
-        ctx.chainId,
-      );
+      const info = await addressCard(value as Address, ctx);
       if (info && info.contents.length > 0) {
         sections.push(...info.contents);
       }
@@ -975,10 +984,6 @@ async function tryRenderAddressFromCache(
   const cached = await interpretNode(node);
   if (typeof cached !== "string" || !isAddress(cached)) return null;
 
-  const info = await getAddressHoverInfo(
-    cached as Address,
-    ctx.client,
-    ctx.chainId,
-  );
+  const info = await addressCard(cached as Address, ctx);
   return info?.contents ?? null;
 }

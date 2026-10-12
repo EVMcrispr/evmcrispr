@@ -386,6 +386,7 @@ export async function completionsForType(
       const key = abiBindingKey(ctx.chainId, targetAddress);
       let abi = ctx.bindings.getBindingValue(key, ABI);
       if (!abi) abi = ctx.cache.getBindingValue(key, ABI);
+      if (!abi && ctx.offline) return [];
       if (!abi) {
         try {
           const [, fetchedAbi, fetchedChainId] = await fetchAbi(
@@ -433,7 +434,7 @@ export async function completionsForType(
     default:
       if (!isBuiltinType(type)) {
         const customType = customTypes?.[type];
-        if (customType?.completions) {
+        if (customType?.completions && !ctx.offline) {
           return customType.completions(ctx);
         }
       }
