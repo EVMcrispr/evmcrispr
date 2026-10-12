@@ -14,12 +14,43 @@ const isLineWithinBlock = ({ type, loc }: Node, line: number) =>
     line <= loc.end.line
   );
 
+/** The block each nested command is written in. Kept beside the nodes,
+ *  not on them: parsed scripts are shared and never mutated. */
+const enclosingBlocks = new WeakMap<
+  CommandExpressionNode,
+  BlockExpressionNode
+>();
+
+function recordBlocks(
+  body: CommandExpressionNode[],
+  block: BlockExpressionNode | undefined,
+): void {
+  for (const c of body) {
+    if (block) enclosingBlocks.set(c, block);
+    for (const arg of c.args) {
+      if (arg.type === NodeType.BlockExpression) {
+        const inner = arg as BlockExpressionNode;
+        recordBlocks(inner.body, inner);
+      }
+    }
+  }
+}
+
+/** The block a command of a parsed script is written in, or undefined at
+ *  the script's top level. A bare `switch` lasts until the end of it. */
+export function enclosingBlock(
+  c: CommandExpressionNode,
+): BlockExpressionNode | undefined {
+  return enclosingBlocks.get(c);
+}
+
 export class EvmlAST implements AST {
   type: ASTType = ASTType.Program;
   body: CommandExpressionNode[];
 
   constructor(body: CommandExpressionNode[]) {
     this.body = body;
+    recordBlocks(body, undefined);
   }
 
   getCommandAtLine(line: number): CommandExpressionNode | undefined {

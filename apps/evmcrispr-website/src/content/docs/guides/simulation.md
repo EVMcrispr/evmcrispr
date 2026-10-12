@@ -55,7 +55,8 @@ sim:fork --block-number 18000000 (
 
 ## Impersonating Accounts
 
-Use `--from` to simulate as a specific address:
+Use `--as` to run the whole fork as a specific address. Inside it, `@me` is
+that address and every transaction is sent from it:
 
 ```evml
 load sim
@@ -63,11 +64,52 @@ load token
 
 # A well-stocked account whose balance we borrow for the simulation
 set $whale 0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf
+set $recipient 0x44fA8E6f47987339850636F88629646662444217
 
-sim:fork --from $whale (
-  exec @token(DAI) "transfer(address,uint256)" @me @token:amount(DAI 1000)
+sim:fork --as $whale (
+  exec @token(DAI) "transfer(address,uint256)" $recipient @token:amount(DAI 1000)
 )
 ```
+
+To act as someone else for a few steps only, use
+[`switch --as`](/reference/std/commands/switch/) with a block. The account is
+put back when the block ends:
+
+```evml
+load sim
+load token
+
+set $whale 0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf
+
+sim:fork (
+  # The whale funds us...
+  switch --as $whale (
+    exec @token(DAI) "transfer(address,uint256)" @sender @token:amount(DAI 1000)
+  )
+  # ...and we are ourselves again
+  print @balance(DAI @me)
+)
+```
+
+`--on` names the chain to fork, whatever chain the script is on, and ties
+`--block-number` to it:
+
+```evml
+load sim
+
+sim:fork --on gnosis --block-number 30000000 (
+  print @get(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d "totalSupply()(uint256)")
+)
+```
+
+The same `switch` works outside a simulation: `switch gnosis ( … )` runs a
+block on another chain and comes back. In a real run `--as` must name the
+connected account.
+
+Without a block of its own, a `switch` lasts until the end of the block it
+is written in: inside a `sim:fork` that is the fork, inside an `if` or a
+`loop` it is that block. Whatever a block changed is put back when it
+ends.
 
 ## Manipulating State
 

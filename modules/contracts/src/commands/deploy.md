@@ -30,7 +30,7 @@ contracts:deploy <variable> [bytecode]
 | `--create2` | `bytes32` | Build time | Salt for CREATE2 deployment. Defaults to the Arachnid deterministic deployer; override factory with --via. |
 | `--create3` | `bytes32` | Build time | Salt for CREATE3 deployment. Defaults to the CreateX factory; override with --via. |
 | `--via` | `address` | Build time | Override the default factory address used by --create2 / --create3. |
-| `--from` | `address` | Build time | Sender address. Defaults to the connected wallet. For plain CREATE this is also the prediction deployer. |
+| `--from` | `address` | Build time | Deprecated: run the command inside `switch --as <address> ( … )`. Sender address. Defaults to the acting account. For plain CREATE this is also the prediction deployer. |
 | `--value` | `number` | Runtime in smart blocks | ETH to send with the deployment (in wei) |
 | `--gas` | `number` | Build time | Gas limit |
 | `--max-fee-per-gas` | `number` | Build time | Max fee per gas (EIP-1559) |
@@ -74,18 +74,20 @@ exec $token "transfer(address,uint256)" @me 1e18
 
 ## Modes
 
-- **CREATE** (default): the EVM derives the address from `(--from, nonce)`. The
+- **CREATE** (default): the EVM derives the address from `(sender, nonce)`. The
+  sender is the acting account: the connected one, or the account of an
+  enclosing `switch --as <address> ( … )` or `sim:fork --as <address>`. The
   command uses an internal per-script nonce counter so multiple deploys in the
   same script chain correctly.
 - **CREATE2** (`--create2 <salt>`): tx is sent to a CREATE2 factory with calldata
   `salt(32) || initCode`. The default factory is the Arachnid deterministic
   deployer at `0x4e59b44847b379578588920ca78fbf26c0b4956c`. The predicted address
-  depends on `(factory, salt, initCode)` only, so changing `--from` does not
+  depends on `(factory, salt, initCode)` only, so the sender does not
   affect it.
 - **CREATE3** (`--create3 <salt>`): tx calls `deployCreate3(bytes32,bytes)` on a
   CreateX-compatible factory (default `0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed`).
   The deployed address depends only on `(factory, salt)`, not on the bytecode.
-  Permissioned salts (first 20 bytes equal `--from`, or zero-prefixed with
+  Permissioned salts (first 20 bytes equal the sender, or zero-prefixed with
   `0x01` in byte 20) are rejected so client-side prediction stays deterministic.
 - **Mirror** (`--mirror-address <addr> [--mirror-chain <id>]`): fetches the
   original creation bytecode of an existing deployment from Etherscan V2's
@@ -99,6 +101,8 @@ exec $token "transfer(address,uint256)" @me 1e18
 
 ## Caveats
 
+- `--from` is deprecated: to deploy from another account, run the command
+  inside `switch --as <address> ( … )`. The address prediction follows.
 - A command and all of its options must be written on a single line — EVML
   has no `\` line continuation.
 - A `deploy` action is a CREATE transaction (no `to` field) when neither

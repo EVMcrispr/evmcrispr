@@ -26,7 +26,8 @@ export function describeIntegrationBackendSuite(
   const FORK_OPTS = `--using ${mode} --block-number ${BLOCK}`;
 
   function script(body: string): string {
-    return `load sim\nload contracts\nload token\nsim:fork ${FORK_OPTS} (\n${body}\n)`;
+    // Every scenario runs as ADDR, the account its transactions are from.
+    return `load sim\nload contracts\nload token\nsim:fork ${FORK_OPTS} --as ${ADDR} (\n${body}\n)`;
   }
 
   function run(body: string, client: PublicClient) {
@@ -56,8 +57,18 @@ export function describeIntegrationBackendSuite(
         await interpreter.interpret();
       });
 
-      it("fork with --from sets the connected account", async () => {
-        const s = `load sim\nsim:fork --using ${mode} --block-number ${BLOCK} --from ${ADDR} (\n  sim:expect true\n)`;
+      it("fork with --as sets the connected account", async () => {
+        const s = `load sim\nsim:fork --using ${mode} --block-number ${BLOCK} --as ${ADDR} (\n  sim:expect @bool(@me == ${ADDR})\n)`;
+        const interpreter = createInterpreter(s, client);
+        await interpreter.interpret();
+      });
+
+      it("a deprecated exec --from still sends from that account", async () => {
+        const s = `load sim\nsim:fork --using ${mode} --block-number ${BLOCK} (
+  sim:set-balance ${ADDR} 50e18
+  exec ${WXDAI} "deposit()" --value 1e18 --from ${ADDR}
+  sim:expect @bool(@get(${WXDAI} "balanceOf(address)(uint256)" ${ADDR}) == 1e18)
+)`;
         const interpreter = createInterpreter(s, client);
         await interpreter.interpret();
       });
@@ -147,7 +158,7 @@ export function describeIntegrationBackendSuite(
 
       it("executes a state-changing tx (approve)", async () => {
         await run(
-          `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18 --from ${ADDR}`,
+          `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18`,
           client,
         );
       });
@@ -155,9 +166,9 @@ export function describeIntegrationBackendSuite(
       it("executes multiple transactions in sequence", async () => {
         await run(
           [
-            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18 --from ${ADDR}`,
-            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 2e18 --from ${ADDR}`,
-            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 3e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18`,
+            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 2e18`,
+            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 3e18`,
           ].join("\n"),
           client,
         );
@@ -166,7 +177,7 @@ export function describeIntegrationBackendSuite(
       it("reads state modified by a prior transaction (approve then check allowance)", async () => {
         await run(
           [
-            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18`,
             `  set $a @get(${WXDAI} "allowance(address,address)(uint256)" ${ADDR} ${DEAD})`,
             "  sim:expect @bool($a == 1e18)",
           ].join("\n"),
@@ -184,7 +195,7 @@ export function describeIntegrationBackendSuite(
         await run(
           [
             `  sim:set-balance ${ADDR} 50e18`,
-            `  exec ${WXDAI} "deposit()" --value 1e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "deposit()" --value 1e18`,
             `  set $b @get(${WXDAI} "balanceOf(address)(uint256)" ${ADDR})`,
             "  sim:expect @bool($b == 1e18)",
           ].join("\n"),
@@ -208,14 +219,14 @@ export function describeIntegrationBackendSuite(
           [
             `  sim:set-balance ${ADDR} 1000e18`,
             `  sim:expect @bool(@balance(XDAI ${ADDR}) > 0)`,
-            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 1e18`,
             "  wait 3600",
-            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 2e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 2e18`,
             "  wait 7200",
-            `  exec ${WXDAI} "deposit()" --value 5e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "deposit()" --value 5e18`,
             `  set $b @get(${WXDAI} "balanceOf(address)(uint256)" ${ADDR})`,
             "  sim:expect @bool($b == 5e18)",
-            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 10e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "approve(address,uint256)" ${DEAD} 10e18`,
             `  set $a @get(${WXDAI} "allowance(address,address)(uint256)" ${ADDR} ${DEAD})`,
             "  sim:expect @bool($a == 10e18)",
             "  sim:expect true",
@@ -245,7 +256,7 @@ export function describeIntegrationBackendSuite(
       it("reverting transaction throws", async () => {
         await expect(
           run(
-            `  exec ${WXDAI} "transfer(address,uint256)" ${DEAD} 999e18 --from ${ADDR}`,
+            `  exec ${WXDAI} "transfer(address,uint256)" ${DEAD} 999e18`,
             client,
           ),
         ).rejects.toThrow();

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { type Action, registerChains } from "@evmcrispr/sdk";
+import { createInterpreter } from "@evmcrispr/test-utils/evml";
 import {
   decodeAbiParameters,
   decodeFunctionData,
@@ -116,6 +117,29 @@ describe("eez utils", () => {
         /switch .*inside eez:on/,
       );
     });
+
+    // The commands themselves need the devnet (they read the proxies
+    // before the block is interpreted); what refuses a `switch` is this
+    // check on the actions the block produced, so it is fed real ones.
+    for (const [form, script] of [
+      ["a bare switch", "if true (\n  switch mainnet\n)"],
+      ["a switch with a block", "switch mainnet (\n  print 1\n)"],
+    ] as const) {
+      for (const command of ["eez:on", "eez:batch"]) {
+        it(`${command} refuses the actions of ${form}`, async () => {
+          const actions = await createInterpreter(
+            script,
+            undefined as never,
+          ).interpret();
+          expect(actions.length).toBeGreaterThan(0);
+          expect(() =>
+            assertCrossChainCalls(actions, command, {
+              flattenBatches: command === "eez:batch",
+            }),
+          ).toThrow(`switch cannot be used inside ${command}`);
+        });
+      }
+    }
 
     it("rejects a batch inside the block, pointing at the outer form", () => {
       const action: Action = {

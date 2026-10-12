@@ -115,7 +115,7 @@ describe("Sim > a simulated snippet cannot send", () => {
         .script(
           [
             "load sim",
-            `sim:fork --using ethereumjs --block-number ${FORK_BLOCK_NUMBER} --from ${FROM} (`,
+            `sim:fork --using ethereumjs --block-number ${FORK_BLOCK_NUMBER} --as ${FROM} (`,
             "  print inside",
             ")",
             `exec ${DEAD} "ping()"`,

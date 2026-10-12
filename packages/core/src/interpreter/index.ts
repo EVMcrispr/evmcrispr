@@ -42,6 +42,7 @@ import {
   captureListRequiresFailure,
   checkConfigAccess,
   ErrorException,
+  ExitSignal,
   ExpressionError,
   HelperFunctionError,
   isBatchedAction,
@@ -831,6 +832,17 @@ export function makeExecutionResolveCommand(
           provenance: frame,
         }),
         actionCallback,
+        dispatch: async (actions: Action[]) => {
+          // A captureless stand-in for the line: these sends are not what
+          // its captures observe.
+          await input.executeWithCaptures(
+            { ...c, eventCaptures: [], errorCaptures: [], txCaptures: [] },
+            actions,
+            actionCallback,
+            [],
+            simulated,
+          );
+        },
         box: (boxOptions: BoxOptions) =>
           input
             .boxes()
@@ -992,29 +1004,74 @@ export function makeExecutionResolveCallExpression(
   };
 }
 
+/**
+ * The acting context a block scopes: the chain and the acting account.
+ * A bare `switch` changes them until the end of the block it is written
+ * in, so every block remembers them on entry and puts them back on exit.
+ */
+export interface BlockContextScope {
+  /** What the block is entered with. */
+  enter(): unknown;
+  /** Put it back. Returns the action that moves the host back to the
+   *  chain, when the chain was changed inside the block. */
+  leave(entered: unknown): Action | undefined;
+  /** Send that action through the run's ordinary send path. */
+  dispatch(
+    action: Action,
+    actionCallback: ActionCallback,
+    simulated: boolean,
+  ): Promise<void>;
+}
+
 /** Block expression resolver — execution and DEF callers both share this. */
 export function makeResolveBlockExpression(
   bindings: BindingsManager,
+  scope?: BlockContextScope,
 ): InterpretCtx["resolveBlockExpression"] {
   return async (n, interpreters, options = {}) => {
+    const context = scope;
+    const bodyOptions = options;
+    const callback = options.actionCallback;
+    const simulated = options.simulation === true;
     bindings.enterScope();
+    const entered = context?.enter();
     const results: any[] = [];
     try {
       if (options.blockInitializer) await options.blockInitializer();
       for (const node of n.body) {
-        const r = await interpreters.interpretNode(node, options);
+        const r = await interpreters.interpretNode(node, bodyOptions);
         if (Array.isArray(r)) results.push(...r);
         else results.push(r);
       }
+      // The block ends and the script goes on: the host follows the
+      // interpreter back to the chain the block was entered on.
+      const back = context?.leave(entered);
+      if (back) {
+        if (callback) await context!.dispatch(back, callback, simulated);
+        results.push(back);
+      }
       return results.filter((r) => !!r);
     } catch (err) {
+      // Every exit puts the chain and the account back in the interpreter
+      // (a second `leave` after a failed send above finds nothing to do).
+      const back = context?.leave(entered);
       // A control-flow signal (`loop break`, `def return`, …) interrupts
       // the block mid-way. Prepend what this block already produced so the
       // construct that catches the signal can still return those actions
       // (in execution mode they were already streamed; in collection mode
       // this is the only copy).
       if (err instanceof ControlFlowSignal) {
-        err.actions = [...results.filter((r) => !!r), ...err.actions];
+        // After an `exit` nothing else runs, as after a failure: the host
+        // is only moved back when the script goes on. A failure of that
+        // send never replaces the signal.
+        const goesOn = back && !(err instanceof ExitSignal);
+        if (goesOn && callback)
+          await context!.dispatch(back, callback, simulated).catch(() => {});
+        err.actions = [
+          ...results.filter((r) => !!r),
+          ...err.actions,
+          ...(goesOn ? [back] : []),
+        ];
       }
       throw err;
     } finally {

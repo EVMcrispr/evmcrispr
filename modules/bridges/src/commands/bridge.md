@@ -97,7 +97,7 @@ sim:fork --using anvil (
 )
 ```
 
-A transfer whose destination chain the script never switches to is reported at the end of the fork, so a forgotten `switch` doesn't pass silently.
+A transfer whose destination chain the script never switches to is reported at the end of the fork, so a forgotten `switch` doesn't pass silently. The one exception is the chain the fork started on: the fork returns to it when its block ends, like any block does, so a transfer bridged back to it is delivered then.
 
 ## See Also
 

@@ -1,5 +1,5 @@
 import type { CustomArgTypes } from "@evmcrispr/sdk";
-import { ErrorException, fieldItem } from "@evmcrispr/sdk";
+import { chainArgType, ErrorException, fieldItem } from "@evmcrispr/sdk";
 
 export const SIMULATION_MODES = [
   "anvil",
@@ -11,6 +11,7 @@ export const SIMULATION_MODES = [
 ] as const;
 
 export const types: CustomArgTypes = {
+  chain: chainArgType,
   "simulation-mode": {
     validate(name, value) {
       if (

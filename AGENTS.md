@@ -169,6 +169,20 @@ after a migration, an upgrade or a rotation cannot satisfy.
 - **Lint**: `biome check .`
 - **Build all**: `bun run build` (uses turbo)
 
+## Commits
+
+- **Before pushing, regroup the commits by theme.** The steps a piece of
+  work was done in (one commit per task, a fix on top of a fix) are not
+  what the history should keep. Rewrite the unpushed commits into a few,
+  one per feature or concern, each with a message that says what it
+  brings. A reader of `git log` should see what changed, not how the
+  session went.
+- Where it is practical, each regrouped commit builds on its own.
+- Regrouping must not change the result: check that the tree after it is
+  the tree before it (`git diff <old tip> <new tip>` is empty).
+- Commits already pushed are rewritten only when the owner asks, and then
+  pushed with `--force-with-lease`.
+
 ## DSL Quick Reference
 
 ```
@@ -197,13 +211,26 @@ aragonos:connect <dao> (
   install <app> <params...>
 )
 
-# Simulate on a fork
-sim:fork 1 (
+# Change the acting context: the chain, the account, or both.
+# Without a block it lasts until the end of the enclosing block (of the
+# script, at the top level); with a block, for that block only.
+switch gnosis
+switch gnosis --as <address> (
+  exec ...
+)
+
+# Simulate on a fork (--as and --on are optional)
+sim:fork --as <address> --on mainnet (
   sim:set-balance @me 100e18
   exec ...
   sim:expect ...
 )
 ```
+
+`--from` as "transaction sender" (`exec`, `send`, `contracts:deploy`,
+`proxies:clone`, `sim:fork`) is deprecated: write `switch --as` /
+`sim:fork --as`. An option is deprecated with `deprecated: "<what to write
+instead>"` on its definition; the analysis pass warns on each use.
 
 ## Documentation
 

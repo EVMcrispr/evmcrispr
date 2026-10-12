@@ -34,7 +34,7 @@ describeCommand("send", {
       expectedActions: [{ to: target, data, value: 1000000000000000000n }],
     },
     {
-      name: "should set --from",
+      name: "should still honour the deprecated --from",
       script: `send ${target} --data ${data} --from ${from}`,
       expectedActions: [{ to: target, data, from }],
     },

@@ -154,21 +154,22 @@ describe("Completions – std commands", () => {
       const items = await evm.getCompletions(script, pos(script));
       // Should include opts since argIndex > rest arg index
       expect(hasLabel(items, "--value")).to.be.true;
-      expect(hasLabel(items, "--from")).to.be.true;
       expect(hasLabel(items, "--gas")).to.be.true;
+      // Deprecated: still accepted when written, no longer offered.
+      expect(hasLabel(items, "--from")).to.be.false;
     });
 
-    it("exec $c f(bool) false --<cursor> should show all 6 opts", async () => {
+    it("exec $c f(bool) false --<cursor> should show all 5 opts", async () => {
       const script = "exec $c f(bool) false --";
       const items = await evm.getCompletions(script, pos(script));
       const optLabels = labels(items);
       expect(optLabels).to.include("--value");
-      expect(optLabels).to.include("--from");
+      expect(optLabels).to.not.include("--from");
       expect(optLabels).to.include("--gas");
       expect(optLabels).to.include("--max-fee-per-gas");
       expect(optLabels).to.include("--max-priority-fee-per-gas");
       expect(optLabels).to.include("--nonce");
-      expect(items).to.have.lengthOf(6);
+      expect(items).to.have.lengthOf(5);
     });
 
     it("exec $c f(bool) false --value <cursor> should show only number-compatible items", async () => {
@@ -201,8 +202,8 @@ describe("Completions – std commands", () => {
       const script = "exec $c f() --value 1 --";
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "--value")).to.be.false;
-      expect(hasLabel(items, "--from")).to.be.true;
-      expect(items).to.have.lengthOf(5);
+      expect(hasLabel(items, "--from")).to.be.false;
+      expect(items).to.have.lengthOf(4);
     });
   });
 
@@ -224,7 +225,7 @@ describe("Completions – std commands", () => {
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "--data")).to.be.true;
       expect(hasLabel(items, "--value")).to.be.true;
-      expect(hasLabel(items, "--from")).to.be.true;
+      expect(hasLabel(items, "--from")).to.be.false;
       expect(hasLabel(items, "--gas")).to.be.true;
     });
 
@@ -233,7 +234,7 @@ describe("Completions – std commands", () => {
       const items = await evm.getCompletions(script, pos(script));
       expect(hasLabel(items, "--data")).to.be.true;
       expect(hasLabel(items, "--value")).to.be.true;
-      expect(hasLabel(items, "--from")).to.be.true;
+      expect(hasLabel(items, "--from")).to.be.false;
       expect(hasLabel(items, "--gas")).to.be.true;
       expect(hasLabel(items, "--max-fee-per-gas")).to.be.true;
       for (const item of items) {
@@ -391,7 +392,7 @@ describe("Completions – std commands", () => {
       expect(hasLabel(items, "$myVar")).to.be.true;
     });
 
-    it("--from <cursor> in exec should show address-compatible items", async () => {
+    it("deprecated --from <cursor> in exec still shows address-compatible items", async () => {
       const script = "exec $c f() --from ";
       const items = await evm.getCompletions(script, pos(script));
       // --from type is "address"

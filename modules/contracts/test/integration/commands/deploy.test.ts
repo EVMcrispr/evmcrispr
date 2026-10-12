@@ -109,7 +109,7 @@ describeCommand("deploy", {
       },
     },
     {
-      name: "plain CREATE with --from: uses the provided sender for prediction",
+      name: "plain CREATE with the deprecated --from: uses the provided sender for prediction",
       script: `contracts:deploy $addr ${BYTECODE} --from 0x000000000000000000000000000000000000beef`,
       expectedActions: [
         {

@@ -1,13 +1,17 @@
-import type { Action, Suggestion } from "@evmcrispr/sdk";
-import { ErrorException } from "@evmcrispr/sdk";
+import type { Action, CommandExpressionNode, Suggestion } from "@evmcrispr/sdk";
+import { BindingsManager, ErrorException, NodeType } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 
 import { Interpreter } from "../interpreter/Interpreter";
+import { parseScript } from "../parsers/script";
+import { resolveSwitchChainId } from "../scriptWalk";
 import type { ModuleRegistry } from "./registry";
 import type { EvmlConfig } from "./types";
 
 export interface SimulateOptions {
   blockNumber?: number;
+  /** Account the script is run by, passed as `sim:fork --as <from>`.
+   *  Without it, a literal `--as` on the script's leading `switch`. */
   from?: Address;
   /** Fork backend passed as `sim:fork --using <backend>`. */
   using?:
@@ -50,13 +54,52 @@ function needsSimWrap(script: string): boolean {
   return !(normalized.includes("load sim") && normalized.includes("sim:fork"));
 }
 
-function wrapScript(script: string, options: SimulateOptions): string {
+/** What a script's leading bare `switch` says, read from the text alone:
+ *  the chain as it is written (when it is a known chain) and a literal
+ *  `--as` address. Nothing for any other first statement. */
+function leadingSwitch(script: string): { on?: string; as?: string } {
+  let first: CommandExpressionNode | undefined;
+  try {
+    first = parseScript(script).ast.body[0];
+  } catch {
+    return {};
+  }
+  if (
+    first?.name !== "switch" ||
+    (first.module ?? "std") !== "std" ||
+    first.args.some((a) => a.type === NodeType.BlockExpression)
+  )
+    return {};
+  const chain = first.args[0];
+  const literalChain =
+    chain?.type === NodeType.Bareword || chain?.type === NodeType.NumberLiteral;
+  const as = first.opts.find((o) => o.name === "as")?.value;
+  return {
+    on:
+      literalChain &&
+      resolveSwitchChainId(first, new BindingsManager()) !== undefined
+        ? String(chain.value)
+        : undefined,
+    as: as?.type === NodeType.AddressLiteral ? String(as.value) : undefined,
+  };
+}
+
+/** The script as `simulateScript` runs it: inside a `sim:fork` built from
+ *  the options and from the script's leading bare `switch`, so the fork
+ *  starts on the chain and as the account the script says it runs with.
+ *  Exported for its test. */
+export function wrapScript(script: string, options: SimulateOptions): string {
+  const leading = leadingSwitch(script);
+  const as = options.from ?? leading.as;
   const forkOpts: string[] = [];
+  if (leading.on) {
+    forkOpts.push(`--on ${leading.on}`);
+  }
   if (options.blockNumber) {
     forkOpts.push(`--block-number ${options.blockNumber}`);
   }
-  if (options.from) {
-    forkOpts.push(`--from ${options.from}`);
+  if (as) {
+    forkOpts.push(`--as ${as}`);
   }
   if (options.using) {
     forkOpts.push(`--using ${options.using}`);

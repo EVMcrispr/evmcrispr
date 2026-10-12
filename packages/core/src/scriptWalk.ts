@@ -35,7 +35,7 @@ import { createPublicClient, http } from "viem";
 import * as viemChains from "viem/chains";
 import { mainnet } from "viem/chains";
 
-import type { EvmlAST } from "./EvmlAST";
+import { type EvmlAST, enclosingBlock } from "./EvmlAST";
 import { createInterpreter, type InterpretCtx } from "./interpreter";
 import { parseScript } from "./parsers/script";
 
@@ -112,8 +112,33 @@ export function resolveSwitchChainId(
   bindings: BindingsManager,
 ): number | undefined {
   if (commandNode.name !== "switch") return undefined;
-  const argNode = commandNode.args[0];
-  if (!argNode) return undefined;
+  return resolveChainNode(commandNode.args[0], bindings);
+}
+
+/** The chain a `sim:fork --on <chain>` names, or undefined. The command
+ *  is recognized by its qualified name; a renamed import is not followed. */
+export function resolveForkChainId(
+  commandNode: CommandExpressionNode,
+  bindings: BindingsManager,
+): number | undefined {
+  if (commandNode.module !== "sim" || commandNode.name !== "fork")
+    return undefined;
+  return resolveChainNode(
+    commandNode.opts.find((o) => o.name === "on")?.value,
+    bindings,
+  );
+}
+
+/** Whether a `switch` has a block: its change ends with the block. */
+function hasBlock(commandNode: CommandExpressionNode): boolean {
+  return commandNode.args.some((a) => a.type === NodeType.BlockExpression);
+}
+
+function resolveChainNode(
+  argNode: Node | undefined,
+  bindings: BindingsManager,
+): number | undefined {
+  if (!argNode || argNode.type === NodeType.BlockExpression) return undefined;
 
   if (argNode.type === NodeType.VariableIdentifier) {
     const key = argNode.value;
@@ -153,7 +178,13 @@ export function collectPreparedSwitchTargets(
   for (const c of allCommands) {
     tryApplyLiteralStdSet(bindings, c);
 
-    if (firstBodyStatement?.name === "switch" && c === firstBodyStatement) {
+    // Only a bare switch moves the script: a block-form one puts the
+    // chain back, so the script still starts where it would without it.
+    if (
+      firstBodyStatement?.name === "switch" &&
+      c === firstBodyStatement &&
+      !hasBlock(c)
+    ) {
       leadingSwitchChainId = resolveSwitchChainId(c, bindings);
     }
 
@@ -161,6 +192,9 @@ export function collectPreparedSwitchTargets(
       const id = resolveSwitchChainId(c, bindings);
       if (id !== undefined) orderedSwitchChainIds.push(id);
     }
+
+    const forked = resolveForkChainId(c, bindings);
+    if (forked !== undefined) orderedSwitchChainIds.push(forked);
   }
 
   return { orderedSwitchChainIds, leadingSwitchChainId };
@@ -386,6 +420,39 @@ export interface WalkChainState {
   /** Nothing of the walk may reach the network: no module code that
    *  resolves an argument is run. The caller gives no client either. */
   offline?: boolean;
+  /** The switches whose change ends with a block the walk is still inside
+   *  of (a block-form switch, `sim:fork --on`, a bare switch written in a
+   *  block), with the chain each one found: put back once the walk is
+   *  past that block. */
+  scopes?: {
+    node: Node;
+    chainId: number;
+    client: PublicClient | undefined;
+  }[];
+}
+
+/** Whether `c` starts after `scope` ends (the walk is in source order). */
+function isPast(c: CommandExpressionNode, scope: Node) {
+  const start = c.loc?.start;
+  const end = scope.loc?.end;
+  if (!start || !end) return false;
+  return (
+    start.line > end.line || (start.line === end.line && start.col >= end.col)
+  );
+}
+
+/** Leave the scoped switches that end before `line`: the walk stops at the
+ *  last command, which may be inside a block the reader is already past
+ *  (a cursor below it, or the end of the script). */
+export function leaveSwitchScopes(state: WalkChainState, line: number): void {
+  while (state.scopes?.length) {
+    const scope = state.scopes[state.scopes.length - 1];
+    const end = scope.node.loc?.end.line;
+    if (end === undefined || end >= line) break;
+    state.scopes.pop();
+    state.chainId = scope.chainId;
+    state.client = scope.client;
+  }
 }
 
 /** If `c` is a `switch <chain>` we can resolve, mutate `state` in place
@@ -399,8 +466,31 @@ export function applySwitch(
   c: CommandExpressionNode,
   bindings: BindingsManager,
 ): void {
-  const switchedChainId = resolveSwitchChainId(c, bindings);
+  // Leave the scoped switches the walk has moved past, innermost first.
+  while (state.scopes?.length) {
+    const scope = state.scopes[state.scopes.length - 1];
+    if (!isPast(c, scope.node)) break;
+    state.scopes.pop();
+    state.chainId = scope.chainId;
+    state.client = scope.client;
+  }
+
+  const forkedChainId = resolveForkChainId(c, bindings);
+  const switchedChainId = forkedChainId ?? resolveSwitchChainId(c, bindings);
   if (switchedChainId == null) return;
+  // Where the change ends: with the command's own block (block form,
+  // `sim:fork --on`), else with the block a bare switch is written in.
+  // At the top level it does not end.
+  const until =
+    forkedChainId !== undefined || hasBlock(c) ? c : enclosingBlock(c);
+  if (until) {
+    state.scopes ??= [];
+    state.scopes.push({
+      node: until,
+      chainId: state.chainId,
+      client: state.client,
+    });
+  }
   state.chainId = switchedChainId;
   // Offline, the walk has no client and a `switch` gives it none.
   if (state.offline) return;
@@ -979,6 +1069,20 @@ export async function walkScript(
     transports,
   };
   state.client = clientForChain(state.chainId, transports) ?? initialClient;
+  // The scoped switches the reused prefix is still inside of are not in
+  // its checkpoints: replay the prefix's switches (no network, no helper)
+  // to know which chain each one puts back.
+  if (prefixLen > 0) {
+    const replay: WalkChainState = {
+      chainId: initialChainId,
+      client: initialClient,
+      transports,
+    };
+    for (let i = 0; i < prefixLen; i++) {
+      applySwitch(replay, commandNodes[i], bindings);
+    }
+    state.scopes = replay.scopes;
+  }
 
   // Record the suffix walk: every bindings mutation goes into the current
   // command's checkpoint so the *next* walk can replay it.
@@ -1035,7 +1139,9 @@ export async function walkScript(
   currentDeltas = undefined;
 
   // Snapshot the end-of-walk chain so callers (EvmlWorkspace.prewarm) can
-  // pair the right client with the chainId in hover requests.
+  // pair the right client with the chainId in hover requests. The script
+  // is over: every scoped switch has put its chain back.
+  leaveSwitchScopes(state, Number.POSITIVE_INFINITY);
   const finalChainId = state.chainId;
   const finalClient = state.client;
 
@@ -1051,6 +1157,7 @@ export async function walkScript(
   // we revisit each command.
   state.chainId = initialChainId;
   state.client = initialClient;
+  state.scopes = undefined;
   await prewarmHelperExpressions(commandNodes, resolveNode, state, bindings);
 
   return {

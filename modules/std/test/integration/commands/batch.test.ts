@@ -170,7 +170,9 @@ batch (
       name: "should fail on non-batchable commands nested in control-flow blocks",
       script: `batch (
   if true (
-    switch 1
+    switch 1 (
+      print 1
+    )
   )
 )`,
       error: 'command "switch" cannot be used inside batch',

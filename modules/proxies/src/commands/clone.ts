@@ -45,7 +45,8 @@ export default defineCommand<Proxies>({
       name: "from",
       type: "address",
       description:
-        "Sender address. Defaults to the connected wallet. For plain CREATE this is also the prediction deployer.",
+        "Deprecated: run the command inside `switch --as <address> ( … )`. Sender address. Defaults to the acting account. For plain CREATE this is also the prediction deployer.",
+      deprecated: "Wrap the command in `switch --as <address> ( … )` instead.",
     },
   ],
   async run(module, { variable, implementation }, { opts }) {

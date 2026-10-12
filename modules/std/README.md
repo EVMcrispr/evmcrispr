@@ -27,7 +27,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [send](src/commands/send.md) | Send a low-level transaction. Provide [to] for a call/transfer, --data for raw calldata, --value for native value, or any combination. |
 | [set](src/commands/set.md) | Assign a value to a variable for use later in the script. |
 | [sign](src/commands/sign.md) | Sign a message or typed data with the connected wallet. |
-| [switch](src/commands/switch.md) | Switch the active chain by name or ID. |
+| [switch](src/commands/switch.md) | Change the acting context: the chain, the account (--as), or both. With a block, for that block; without one, until the end of the block it is written in. |
 | [wait](src/commands/wait.md) | Wait for a duration before executing the next action (fork simulations advance the chain's clock instead). |
 
 ## Helpers

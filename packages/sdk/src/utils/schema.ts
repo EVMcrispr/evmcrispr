@@ -132,6 +132,10 @@ export interface OptDef {
   description?: string;
   /** Only available when `VITE_PUBLIC_EXPERIMENTAL` is enabled. */
   experimental?: boolean;
+  /** The option still works but should no longer be written: what to
+   *  write instead, as a sentence. The analysis pass reports each use as
+   *  a warning carrying this text. */
+  deprecated?: string;
 }
 
 /**

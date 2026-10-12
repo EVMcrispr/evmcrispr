@@ -25,7 +25,7 @@ exec <contractAddress> <signature> [...params]
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--value` | `number` | Runtime in smart blocks | ETH to send with the call (in wei) |
-| `--from` | `address` | Build time | Sender address (requires simulation or connected wallet) |
+| `--from` | `address` | Build time | Deprecated: run the command inside `switch --as <address> ( … )`. Sender address (requires simulation or connected wallet) |
 | `--gas` | `number` | Build time | Gas limit |
 | `--max-fee-per-gas` | `number` | Build time | Max fee per gas (EIP-1559) |
 | `--max-priority-fee-per-gas` | `number` | Build time | Max priority fee per gas (EIP-1559) |
@@ -40,8 +40,12 @@ exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d068
 # Send ETH with the call
 exec 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d "deposit()" --value 1e18
 
-# Specify sender
-exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18 --from 0x44fA8E6f47987339850636F88629646662444217
+# Simulate the call as another account
+load sim
+sim:fork --using anvil --as 0x44fA8E6f47987339850636F88629646662444217 (
+  sim:set-balance @me 1e18
+  exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18
+)
 
 # Capture events from the transaction
 load sim
@@ -97,7 +101,9 @@ exec $c "maybeRevert()" -?!> Unauthorized() $e  # $e = "false" if tx succeeds or
 - The signature follows Solidity syntax: `"functionName(type1,type2)"`
 - Parameters are automatically ABI-encoded based on the signature
 - Use `--value` to send ETH with the call
-- Use `--from` to impersonate a sender (requires simulation mode)
+- To send from another account, run the command inside
+  [`switch --as <address> ( … )`](switch.md), or simulate with
+  `sim:fork --as <address>`. The `--from` option is deprecated.
 - Event captures (`->`) execute the transaction immediately and store decoded log values in variables
 - Revert captures (`-!>` / `-?!>`) catch and decode transaction reverts; refusal captures (`-/>` / `-?/>`) catch a failure raised before the send
 

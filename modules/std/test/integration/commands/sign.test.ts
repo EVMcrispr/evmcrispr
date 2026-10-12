@@ -169,3 +169,89 @@ set $ok @sigValid(@me '${typedData}' $sig)`;
     expect(evm.getBinding("$ok", BindingsSpace.USER)).to.equal("true");
   });
 });
+
+describe("Std > commands > sign > under switch --as", () => {
+  const WHO = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+  const CONNECTED = "0x1234567890abcdef1234567890abcdef12345678";
+
+  /** Runs `script` with a host that records what it is asked to sign. */
+  const run = async (script: string, account: `0x${string}` | undefined) => {
+    const evm = new Interpreter(evml.registry, {
+      account,
+      chainId: gnosis.id,
+      transports: getTransports(),
+    });
+    const asked: Action[] = [];
+    await evm.interpret(script, async (action) => {
+      asked.push(action);
+      return "0xsigned";
+    });
+    return asked.filter(isWalletAction);
+  };
+
+  it("with no account connected, asks the --as account for a personal signature", async () => {
+    const asked = await run(
+      `switch --as ${WHO} (\n  sign $sig "hello"\n)`,
+      undefined,
+    );
+    expect(asked).to.eql([
+      { type: "wallet", method: "personal_sign", params: ["hello", WHO] },
+    ]);
+  });
+
+  it("with no account connected, asks the --as account for a typed signature", async () => {
+    const typed = JSON.stringify({
+      types: { Test: [{ name: "value", type: "uint256" }] },
+      primaryType: "Test",
+      domain: { name: "Test" },
+      message: { value: "1" },
+    });
+    const asked = await run(
+      `switch --as ${WHO}\nsign $sig --typed '${typed}'`,
+      undefined,
+    );
+    expect(asked).to.have.length(1);
+    expect(asked[0].method).to.eq("eth_signTypedData_v4");
+    expect(asked[0].params[0]).to.eq(WHO);
+  });
+
+  it("with another account connected, stops at the switch and asks for nothing", async () => {
+    const asked: Action[] = [];
+    const evm = new Interpreter(evml.registry, {
+      account: CONNECTED,
+      chainId: gnosis.id,
+      transports: getTransports(),
+    });
+    let error: Error | undefined;
+    try {
+      await evm.interpret(
+        `switch --as ${WHO} (\n  sign $sig "hello"\n)`,
+        async (action) => {
+          asked.push(action);
+          return "0xsigned";
+        },
+      );
+    } catch (err) {
+      error = err as Error;
+    }
+    expect(error?.message).to.include(
+      "switch --as 0x7099...79C8: the connected account is 0x1234...5678",
+    );
+    expect(asked).to.eql([]);
+  });
+
+  it("in a simulation, signing is refused whoever acts", async () => {
+    let error: Error | undefined;
+    try {
+      await run(
+        `load sim\nsim:fork --using ethereumjs --as ${WHO} (\n  sign $sig "hello"\n)`,
+        CONNECTED,
+      );
+    } catch (err) {
+      error = err as Error;
+    }
+    expect(error?.message).to.include(
+      "sign cannot request wallet signatures during simulation",
+    );
+  }, 120000);
+});

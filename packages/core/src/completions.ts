@@ -46,6 +46,7 @@ import {
   clientForChain,
   collectCustomTypes,
   createNodeResolver,
+  leaveSwitchScopes,
   resolveCommandNode,
   seedBindings,
   type WalkChainState,
@@ -193,17 +194,21 @@ const buildOptCompletionItems = (
   currentCommandNode: CommandExpressionNode,
 ): CompletionItem[] => {
   const usedOpts = new Set(currentCommandNode.opts.map((o) => o.name));
-  return command.optDefs
-    .filter((o) => !usedOpts.has(o.name))
-    .filter((o) => !o.experimental || isExperimentalEnabled())
-    .map(
-      (o): CompletionItem => ({
-        label: `--${o.name}`,
-        insertText: `--${o.name} `,
-        kind: "field",
-        sortPriority: 4,
-      }),
-    );
+  return (
+    command.optDefs
+      .filter((o) => !usedOpts.has(o.name))
+      .filter((o) => !o.experimental || isExperimentalEnabled())
+      // A deprecated option still works when written, but is not offered.
+      .filter((o) => !o.deprecated)
+      .map(
+        (o): CompletionItem => ({
+          label: `--${o.name}`,
+          insertText: `--${o.name} `,
+          kind: "field",
+          sortPriority: 4,
+        }),
+      )
+  );
 };
 
 /** One item per declared config variable of every loaded module
@@ -654,6 +659,8 @@ export async function getCompletions(
     );
   }
 
+  // A switch scoped to a block that ended above the cursor no longer holds.
+  leaveSwitchScopes(state, position.line);
   const chainId = state.chainId;
   const effectiveClient = state.client;
 

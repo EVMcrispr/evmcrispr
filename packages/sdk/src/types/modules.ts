@@ -196,6 +196,11 @@ export type NodesInterpreters = {
    *  effects (API writes, wallet signatures). */
   simulation?: boolean;
   provenance?: ProvenanceFrame;
+  /** Send actions now, ahead of the command's return, through the same
+   *  path as returned actions: each is sent once, so the command may (and
+   *  should) still return them. Does nothing when the run only collects
+   *  actions. Absent outside commands. */
+  dispatch?(actions: Action[]): Promise<void>;
   /** Open a status box. Absent where boxes cannot exist (helpers). */
   box?: BoxOpener;
   /** Report the outcome of inner actions a wrapper carries without

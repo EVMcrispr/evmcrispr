@@ -27,7 +27,7 @@ proxies:clone <variable> <implementation>
 |------|------|------------|-------------|
 | `--salt` | `bytes32` | Build time | Salt for deterministic CREATE2 deployment through the Arachnid deployer (override with --via) |
 | `--via` | `address` | Build time | Override the CREATE2 factory address used with --salt |
-| `--from` | `address` | Build time | Sender address. Defaults to the connected wallet. For plain CREATE this is also the prediction deployer. |
+| `--from` | `address` | Build time | Deprecated: run the command inside `switch --as <address> ( … )`. Sender address. Defaults to the acting account. For plain CREATE this is also the prediction deployer. |
 
 <!-- HAND-WRITTEN -->
 
@@ -54,6 +54,9 @@ proxies:clone $vesting $vestingImplementation --salt 0x0000000000000000000000000
   commands in the same script can use it.
 - Plain CREATE clones cannot run inside a batch (the nonce-based prediction
   would drift) — use `--salt` there.
+- A plain CREATE clone is predicted from the acting account: the connected
+  one, or the account of an enclosing `switch --as <address> ( … )`. The
+  `--from` option is deprecated.
 
 ## See Also
 

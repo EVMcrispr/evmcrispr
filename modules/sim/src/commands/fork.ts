@@ -11,6 +11,7 @@ import {
   isTransactionAction,
   isWalletAction,
   RevertError,
+  resolveChainId,
 } from "@evmcrispr/sdk";
 import {
   type Address,
@@ -73,7 +74,24 @@ export default defineCommand<Sim>({
       type: "number",
       description: "Block number to fork from",
     },
-    { name: "from", type: "address", description: "Default sender address" },
+    {
+      name: "as",
+      type: "address",
+      description:
+        "Account the block is run by: `@me` inside the fork, impersonated for every transaction that names no other sender. Defaults to the connected account.",
+    },
+    {
+      name: "on",
+      type: "chain",
+      description:
+        "Chain to fork (name or id), and the chain --block-number is a block of. Defaults to the current chain.",
+    },
+    {
+      name: "from",
+      type: "address",
+      description: "Deprecated: use --as.",
+      deprecated: "Write `sim:fork --as <address>` instead.",
+    },
     {
       name: "auth-token",
       type: "string",
@@ -91,16 +109,23 @@ export default defineCommand<Sim>({
     const blockExpressionNode = block as BlockExpressionNode;
 
     const blockNumber = opts["block-number"];
-    const from = opts.from;
-    // The script's own account, restored once the fork ends; --from only
-    // overrides it inside the fork.
+    if (opts.as && opts.from) {
+      throw new ErrorException(
+        "--as and --from name the same thing: keep --as (--from is deprecated)",
+      );
+    }
+    const from = opts.as ?? opts.from;
+    // The script's own account and chain, restored once the fork ends:
+    // --as and --on only hold inside the fork.
     const previousAccount = await module
       .getConnectedAccount()
       .catch(() => undefined);
+    const previousChainId = await module.getChainId();
     const using = opts.using as SimMode | undefined;
     const tenderlyOpt = opts["auth-token"] as string | undefined;
 
-    const chainId = await module.getChainId();
+    const chainId =
+      opts.on === undefined ? previousChainId : resolveChainId(opts.on);
 
     const mode: SimMode = using ?? (tenderlyOpt ? "tenderly" : "ethereumjs");
     if (!SIMULATION_MODES.includes(mode)) {
@@ -637,7 +662,9 @@ export default defineCommand<Sim>({
       if (module.pendingDeliveries.length > 0) {
         const destinations = [
           ...new Set(module.pendingDeliveries.map((d) => d.dstChainId)),
-        ].join(", ");
+        ]
+          .map(chainLabel)
+          .join(", ");
         module.context.log(
           `:warning: ${module.pendingDeliveries.length} bridge transfer(s) were never delivered — ` +
             `the script did not switch to destination chain(s): ${destinations}`,
@@ -654,11 +681,12 @@ export default defineCommand<Sim>({
       // with it, not with the script.
       await module.context.endSimulatedBoxes?.("Simulation ended");
       // Restore the pre-fork chain so the rest of the script doesn't see the
-      // simulated client. `chainId` was captured at the top of `run()` from
-      // the script's chain at fork-entry time (preserves any preceding
-      // `switch` the script performed). `switchChainId` rebuilds the client
-      // from the configured transports for that chain.
-      module.context.switchChainId(chainId);
+      // simulated client. `previousChainId` was captured at the top of
+      // `run()` from the script's chain at fork-entry time (preserves any
+      // preceding `switch` the script performed, whatever --on forked).
+      // `switchChainId` rebuilds the client from the configured transports
+      // for that chain.
+      module.context.switchChainId(previousChainId);
       module.context.setConnectedAccount(previousAccount);
     }
 

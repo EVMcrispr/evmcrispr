@@ -24,7 +24,7 @@ send [to]
 |------|------|------------|-------------|
 | `--data` | `bytes` | Runtime in smart blocks | Pre-encoded calldata or init code; runtime calldata requires a fixed selector from @abi.encodeCall! |
 | `--value` | `number` | Runtime in smart blocks | Native value to send (in wei) |
-| `--from` | `address` | Build time | Sender address (requires simulation or connected wallet) |
+| `--from` | `address` | Build time | Deprecated: run the command inside `switch --as <address> ( … )`. Sender address (requires simulation or connected wallet) |
 | `--gas` | `number` | Build time | Gas limit |
 | `--max-fee-per-gas` | `number` | Build time | Max fee per gas (EIP-1559) |
 | `--max-priority-fee-per-gas` | `number` | Build time | Max priority fee per gas (EIP-1559) |
@@ -69,6 +69,10 @@ send $contract --data $calldata -?!> Unauthorized() $e
   deployment transaction. For deployments where you also want the predicted
   contract address bound to a variable, use the [deploy](../../../contracts/src/commands/deploy.md) command
   instead.
+
+- To send from another account, run the command inside
+  [`switch --as <address> ( … )`](switch.md). The `--from` option is
+  deprecated.
 
 ## See Also
 

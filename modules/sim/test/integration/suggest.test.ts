@@ -61,6 +61,20 @@ describe("Sim > suggested assertions", () => {
     expect(second.error).toBeUndefined();
   }, 120000);
 
+  it("still suggests for the starting chain when the script ends on another one", async () => {
+    // The fork returns to its starting chain when its block ends, so the
+    // run can be read back there.
+    const result = await tag.script(`${script}\nswitch mainnet`).simulate({
+      using: "ethereumjs",
+      from: TEST_ACCOUNT_ADDRESS,
+      suggest: { executor: SAFE },
+    });
+    expect(result.error).toBeUndefined();
+    expect(
+      result.suggestions!.filter((s) => s.event === "native"),
+    ).toHaveLength(1);
+  }, 120000);
+
   it("returns none when the run fails", async () => {
     const result = await tag
       .script(`exec ${SAFE} "nope()"\nassert @balance!(XDAI ${SAFE}) >= 1e30`)

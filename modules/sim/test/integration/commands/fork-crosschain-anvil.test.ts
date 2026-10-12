@@ -59,8 +59,9 @@ load testbridge
 sim:fork --using anvil (
   sim:set-code ${EMITTER} ${EMITTER_BYTECODE}
   testbridge:send 1 ${ADDR} 4242
-  switch 1
-  testbridge:assert-balance ${ADDR} 4242
+  switch 1 (
+    testbridge:assert-balance ${ADDR} 4242
+  )
 )`);
 
     expect(

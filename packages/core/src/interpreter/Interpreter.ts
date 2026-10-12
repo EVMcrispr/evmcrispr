@@ -170,7 +170,33 @@ export class Interpreter {
         std: () => this.#std,
         modules: () => this.#modules,
       }),
-      resolveBlockExpression: makeResolveBlockExpression(this.bindingsManager),
+      resolveBlockExpression: makeResolveBlockExpression(this.bindingsManager, {
+        enter: () => ({ chainId: this.#chainId, account: this.#account }),
+        leave: (entered) => {
+          const { chainId, account } = entered as {
+            chainId: number;
+            account: Address | undefined;
+          };
+          this.#account = account;
+          if (this.#chainId === chainId) return undefined;
+          this.switchChainId(chainId);
+          return {
+            type: "wallet",
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: `0x${chainId.toString(16)}` }],
+          };
+        },
+        dispatch: async (action, actionCallback, simulated) => {
+          // No line owns this send, so no capture observes it.
+          await this.#executeWithCaptures(
+            { eventCaptures: [], txCaptures: [] } as never,
+            [action],
+            actionCallback,
+            [],
+            simulated,
+          );
+        },
+      }),
       resolveCallExpression: makeExecutionResolveCallExpression({
         bindings: this.bindingsManager,
         getClient: () => this.#getClient(),
@@ -644,7 +670,14 @@ export class Interpreter {
   }
 
   setSender(sender: Address | undefined) {
-    this.#sender = sender;
+    // The connected account as sender is no sender block at all. Storing
+    // it would pin `@sender` to today's account: `withSender` restores
+    // "the previous sender", which outside any block is that account, and
+    // a later `switch --as` could no longer move it.
+    this.#sender =
+      sender && sender.toLowerCase() === this.#account?.toLowerCase()
+        ? undefined
+        : sender;
   }
 
   /** The account the current calls are sent from: the one a block command
@@ -656,7 +689,7 @@ export class Interpreter {
   async getConnectedAccount(_retreiveInjected = false): Promise<Address> {
     if (!this.#account) {
       throw Error(
-        "No connected account found. Connect a wallet or use --from to specify a sender address.",
+        "No connected account found. Connect a wallet, or name the account with `switch --as <address>`.",
       );
     }
     return this.#account;

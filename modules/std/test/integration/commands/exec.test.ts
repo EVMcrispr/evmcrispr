@@ -28,8 +28,7 @@ const resolvedParams = [
 const fnSig = "approve(address,uint256)";
 
 describeCommand("exec", {
-  describeName:
-    "Std > commands > exec <target> <fnSignature> [<...params>] [--from <sender>]",
+  describeName: "Std > commands > exec <target> <fnSignature> [<...params>]",
   cases: [
     {
       name: "should return a correct exec action",
@@ -46,14 +45,14 @@ describeCommand("exec", {
       ],
     },
     {
-      name: "should return a correct exec action with from address",
+      name: "should still honour the deprecated --from",
       script: `exec ${target} ${fnSig} ${params.join(" ")} --from ${target}`,
       expectedActions: [
         encodeAction(target, fnSig, resolvedParams, { from: target }),
       ],
     },
     {
-      name: "should return a correct exec action with value and from address",
+      name: "should still honour the deprecated --from together with a value",
       script: `exec ${target} ${fnSig} ${params.join(
         " ",
       )} --value 1e18 --from ${target}`,
@@ -129,8 +128,8 @@ describeCommand("exec", {
       code: `exec 0xe91d153e0b41518a2ce8dd3d7944fa863463a97d "deposit()" --value 1e18`,
     },
     {
-      description: "Specify sender",
-      code: `exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18 --from 0x44fA8E6f47987339850636F88629646662444217`,
+      description: "Simulate the call as another account",
+      code: `load sim\nsim:fork --using anvil --as 0x44fA8E6f47987339850636F88629646662444217 (\n  sim:set-balance @me 1e18\n  exec @token(DAI) "approve(address,uint256)" 0x64c007ba4ab6184753dc1e8e7263e8d06831c5f6 1200e18\n)`,
     },
     {
       description: "Capture events from the transaction",

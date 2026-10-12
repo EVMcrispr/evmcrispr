@@ -71,7 +71,7 @@ export const REVERT_CAPTURE_IN_BLOCK =
   "revert captures inside a block cannot observe the outer transaction; capture it on the block command instead";
 
 /**
- * Whether a std `if`/`loop` line executes a block while it is interpreted.
+ * Whether a std `if`/`loop`/block-form `switch` line executes a block while it is interpreted.
  * Such a line's transactions run inside the block, so an error capture on
  * it could never observe them. (Local `def` commands run their body the
  * same way; the caller knows which names are defs.)
@@ -83,7 +83,7 @@ export function runsBlockInline(
 ): boolean {
   return (
     owningModule === "std" &&
-    (localName === "if" || localName === "loop") &&
+    (localName === "if" || localName === "loop" || localName === "switch") &&
     c.args.some((a) => a.type === NodeType.BlockExpression)
   );
 }
@@ -120,7 +120,7 @@ export function captureStructureIssues(
     issues.push({
       node: errorCaps[0],
       code: "capture-on-block-command",
-      message: `Error captures (-/>, -?/>, -!>, -?!>) are not supported on block commands (if/loop/def): "${c.name}" runs its transactions inside the block; capture on the inner commands instead.`,
+      message: `Error captures (-/>, -?/>, -!>, -?!>) are not supported on block commands (if/loop/switch/def): "${c.name}" runs its transactions inside the block; capture on the inner commands instead.`,
     });
   }
 

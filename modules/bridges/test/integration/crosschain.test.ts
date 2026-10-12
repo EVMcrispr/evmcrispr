@@ -43,7 +43,7 @@ describe("Bridges > cross-chain simulation", () => {
 
     await evm.interpret(`load sim
 load bridges
-sim:fork --using anvil --from ${USDC_WHALE} (
+sim:fork --using anvil --as ${USDC_WHALE} (
   bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --using CCTPv2 --receiver ${recipient}
   switch base
   set $balance @get(${USDC_BASE} "balanceOf(address)(uint256)" ${recipient})
@@ -75,7 +75,7 @@ sim:fork --using anvil --from ${USDC_WHALE} (
     try {
       await evm.interpret(`load sim
 load bridges
-sim:fork --using ethereumjs --from ${broke} (
+sim:fork --using ethereumjs --as ${broke} (
   bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --using CCTPv2
 )`);
     } catch (e) {
@@ -91,12 +91,12 @@ sim:fork --using ethereumjs --from ${broke} (
 
     await evm.interpret(`load sim
 load bridges
-sim:fork --using anvil --from ${USDC_WHALE} (
+sim:fork --using anvil --as ${USDC_WHALE} (
   bridges:bridge ${AMOUNT} ${USDC_MAINNET} to base --using CCTPv2
 )`);
 
     expect(
-      logs.some((l) => l.includes("never delivered") && l.includes("8453")),
+      logs.some((l) => l.includes("never delivered") && l.includes("Base")),
     ).to.be.true;
   }, 180_000);
 });

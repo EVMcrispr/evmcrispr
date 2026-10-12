@@ -56,4 +56,64 @@ describe("prepareChainsForScript", () => {
     expect(asked).toEqual([100, 100, 100]);
     expect(await client.getChainId()).toBe(100);
   });
+
+  it("starts on the chain of a leading bare switch", async () => {
+    const { client, asked } = wallet([null, null]);
+    await prepareChainsForScript(client, "switch gnosis\nswitch optimism");
+    expect(asked).toEqual([100, 10, 100]);
+    expect(await client.getChainId()).toBe(100);
+  });
+
+  it("prepares the chain of a block-form switch and ends on the start chain", async () => {
+    const { client, asked } = wallet([null, null]);
+    await prepareChainsForScript(
+      client,
+      "switch gnosis --as @me (\n  print 1\n)\nprint 2",
+    );
+    // The block puts the chain back: the script starts, and ends, on mainnet.
+    expect(asked).toEqual([100, 1]);
+    expect(await client.getChainId()).toBe(1);
+  });
+
+  it("prepares a block-form switch nested in other blocks", async () => {
+    const { client, asked } = wallet([null, null]);
+    await prepareChainsForScript(
+      client,
+      "if true (\n  switch optimism (\n    print 1\n  )\n)",
+    );
+    expect(asked).toEqual([10, 1]);
+  });
+
+  it("asks nothing for a switch that only names an account", async () => {
+    const { client, asked } = wallet([]);
+    await prepareChainsForScript(client, "switch --as @me (\n  print 1\n)");
+    expect(asked).toEqual([]);
+  });
+
+  it("prepares the chain sim:fork --on names", async () => {
+    const { client, asked } = wallet([null, null]);
+    await prepareChainsForScript(
+      client,
+      "load sim\nsim:fork --on gnosis --block-number 123 (\n  print 1\n)",
+    );
+    expect(asked).toEqual([100, 1]);
+  });
+
+  it("prepares the chain of a bare switch inside a block, and ends on the start chain", async () => {
+    const { client, asked } = wallet([null, null, null]);
+    await prepareChainsForScript(
+      client,
+      "if true (\n  switch gnosis\n)\nload sim\nsim:fork (\n  switch optimism\n)",
+    );
+    expect(asked).toEqual([100, 10, 1]);
+  });
+
+  it("prepares the chains of bare switches in a loop and in a def body", async () => {
+    const { client, asked } = wallet([null, null, null]);
+    await prepareChainsForScript(
+      client,
+      'loop $i of [1 2] (\n  switch gnosis\n)\ndef there "" (\n  switch optimism\n)\nthere',
+    );
+    expect(asked).toEqual([100, 10, 1]);
+  });
 });

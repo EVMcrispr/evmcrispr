@@ -93,7 +93,7 @@ Some commands accept options with `--name value`:
 
 ```evml
 exec 0x44fA8E6f47987339850636F88629646662444217 "foo()" --value 1e18
-exec 0x44fA8E6f47987339850636F88629646662444217 "foo()" --from 0x4F2083f5fBede34C2714aFfb3105539775f7FE64
+exec 0x44fA8E6f47987339850636F88629646662444217 "foo()" --gas 300000
 ```
 
 A command and all of its options must be written on a single line — EVML

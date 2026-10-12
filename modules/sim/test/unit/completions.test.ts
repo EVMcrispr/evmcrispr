@@ -64,15 +64,17 @@ describe("Completions – sim commands", () => {
       expect(blockItem?.isSnippet).to.be.true;
     });
 
-    it("fork --<cursor> should show all 4 opts", async () => {
+    it("fork --<cursor> should show all 5 opts, and not the deprecated --from", async () => {
       const script = `${SIM}sim:fork --`;
       const items = await evm.getCompletions(script, pos(script, 2));
       const optLabels = labels(items);
       expect(optLabels).to.include("--block-number");
-      expect(optLabels).to.include("--from");
+      expect(optLabels).to.include("--as");
+      expect(optLabels).to.include("--on");
+      expect(optLabels).to.not.include("--from");
       expect(optLabels).to.include("--auth-token");
       expect(optLabels).to.include("--using");
-      expect(items).to.have.lengthOf(4);
+      expect(items).to.have.lengthOf(5);
     });
 
     it("fork --using <cursor> should show simulation-mode completions (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm)", async () => {

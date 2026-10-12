@@ -75,6 +75,17 @@
 
 **Breaking, `@evmcrispr/editor`:** `<Console>` and `<BoxCard>` render output as plain text unless given `markdown`. Pass `markdown` to keep the previous rendering for runs your page made (the embeddable `EvmcrisprTerminal` does). In markdown, images are no longer rendered (their alt text is), links other than `https:` are shown as text, and a link is followed by its address; a box's links are shown only with `markdown`, only for `https:`, with their host.
 
+### `switch`: one command for the acting context
+
+- `switch [<chain>] [--as <address>] [( … )]` changes the chain, the acting account, or both. With a block, the change holds inside the block and the chain and account are put back when it ends, also on a failure or a `loop break`. Inside `--as`, `@me` is that account; a simulation impersonates it, and a real run only accepts the connected account (it stops, naming both, for any other).
+- **Breaking:** a `switch` without a block now ends with the block it is written in. Inside an `if`, a `loop` iteration, a `def` body or a `sim:fork`, the chain and the account the block was entered with are back when it ends (in a real run the wallet is moved back too, unless the script stopped). A `def` can no longer leave its caller on another chain. At the top level of a script nothing changes: it lasts until the next bare `switch` or the end of the script.
+- A `sim:fork` whose block ends on another chain returns to its starting chain when the block ends. A transfer bridged back to that chain is delivered then, instead of being reported as never delivered; the warning stays for chains the fork is not on, and names them. Suggested assertions are now also reported for a run that ended on another chain.
+- `simulate()` starts its fork on the chain of the script's leading `switch` (`sim:fork --on`), and as its literal `--as` account when no `from` is given.
+- `sim:fork` takes the same two as options: `--as <address>` (what `--from` was) and `--on <chain>`, which forks the named chain whatever chain the script is on and ties `--block-number` to it.
+- **Deprecated:** `--from` as the transaction sender, on `exec`, `send`, `contracts:deploy`, `proxies:clone` and `sim:fork`. It still works; the editor and `validate` warn (`deprecated-option`) and say what to write: `switch --as <address> ( … )` or `sim:fork --as`. It is no longer offered by completions. `--from` on the superfluid commands and on `load` is unrelated and unchanged.
+- `simulate({ from })` wraps the script in `sim:fork --as`.
+- `@evmcrispr/sdk`: `OptDef.deprecated` (the replacement, as a sentence); `NodesInterpreters.dispatch(actions)` sends actions ahead of a command's return, once. `@sender` follows the account again after a sender block ends.
+
 ### Smart block syntax
 
 Smart payloads use `!(...)` with `batch`, `safe:propose`, `safe:propose-offline`, and `safe:execute`. Ordinary `(...)` blocks keep their existing semantics, including inherited smart execution for nested control flow.

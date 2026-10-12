@@ -39,7 +39,9 @@ export default defineCommand<Std>({
     {
       name: "from",
       type: "address",
-      description: "Sender address (requires simulation or connected wallet)",
+      description:
+        "Deprecated: run the command inside `switch --as <address> ( … )`. Sender address (requires simulation or connected wallet)",
+      deprecated: "Wrap the command in `switch --as <address> ( … )` instead.",
     },
     { name: "gas", type: "number", description: "Gas limit" },
     {

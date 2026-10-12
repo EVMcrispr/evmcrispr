@@ -30,6 +30,19 @@ class StubModule extends Module {
           opts: [{ name: "foo", type: "string" }],
           run: async () => [],
         }),
+        olddep: defineCommand({
+          name: "olddep",
+          args: [],
+          opts: [
+            { name: "foo", type: "string" },
+            {
+              name: "old",
+              type: "string",
+              deprecated: "Write --foo instead.",
+            },
+          ],
+          run: async () => [],
+        }),
         addrone: defineCommand({
           name: "addrone",
           args: [{ name: "x", type: "address" }],
@@ -342,6 +355,100 @@ describe("Analysis > semantic diagnostics", () => {
     it("does not flag a valid option", async () => {
       const ds = await semantic("load stub\nstub:optone --foo a");
       expect(codes(ds)).to.not.include("unknown-option");
+    });
+  });
+
+  describe("deprecated-option", () => {
+    const SENDER = "0x44fA8E6f47987339850636F88629646662444217";
+
+    it("warns on an option its command marks deprecated, saying what to write", async () => {
+      const ds = await semantic("load stub\nstub:olddep --old a");
+      const d = ds.find((x) => x.code === "deprecated-option");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("warning");
+      expect(d!.message).to.equal(
+        '--old is deprecated for "stub:olddep". Write --foo instead.',
+      );
+    });
+
+    it("does not warn on the other options of that command", async () => {
+      const ds = await semantic("load stub\nstub:olddep --foo a");
+      expect(codes(ds)).to.not.include("deprecated-option");
+    });
+
+    it("warns on exec --from and points at switch --as", async () => {
+      const ds = await semantic(`exec ${SENDER} "foo()" --from ${SENDER}`);
+      const d = ds.find((x) => x.code === "deprecated-option");
+      expect(d).to.exist;
+      expect(d!.severity).to.equal("warning");
+      expect(d!.message).to.include("switch --as <address> ( … )");
+    });
+
+    it("warns on send --from and points at switch --as", async () => {
+      const ds = await semantic(`send ${SENDER} --value 1 --from ${SENDER}`);
+      const d = ds.find((x) => x.code === "deprecated-option");
+      expect(d).to.exist;
+      expect(d!.message).to.include("switch --as <address> ( … )");
+    });
+
+    it("does not warn on load --from", async () => {
+      const ds = await semantic("load x --from ipfs://QmSomeCid");
+      expect(codes(ds)).to.not.include("deprecated-option");
+    });
+  });
+
+  describe("switch", () => {
+    it("accepts a bare switch at the top level", async () => {
+      const ds = await semantic("switch gnosis\nswitch --as @me");
+      expect(ds).to.eql([]);
+    });
+
+    it("accepts the block form anywhere", async () => {
+      const ds = await semantic(
+        "if true (\n  switch gnosis --as @me (\n    print 1\n  )\n)",
+      );
+      expect(ds).to.eql([]);
+    });
+
+    it("accepts a bare switch inside a block: it lasts until the block ends", async () => {
+      const ds = await semantic(
+        "if true (\n  switch gnosis\n)\nswitch gnosis (\n  switch --as @me\n)",
+      );
+      expect(ds).to.eql([]);
+    });
+
+    it("refuses both forms inside a batch", async () => {
+      for (const inner of [
+        "switch gnosis",
+        "switch gnosis (\n    print 1\n  )",
+      ]) {
+        const ds = await semantic(`batch (\n  ${inner}\n)`);
+        expect(codes(ds)).to.include("not-batchable");
+      }
+    });
+
+    it("refuses both forms inside a smart batch", async () => {
+      for (const inner of [
+        "switch gnosis",
+        "switch gnosis (\n    print 1\n  )",
+      ]) {
+        const ds = await semantic(`batch !(\n  ${inner}\n)`);
+        expect(codes(ds)).to.include("not-batchable");
+      }
+    });
+
+    it("refuses a switch with neither a chain nor --as", async () => {
+      expect(codes(await semantic("switch"))).to.include("switch-needs-target");
+      expect(codes(await semantic("switch (\n  print 1\n)"))).to.include(
+        "switch-needs-target",
+      );
+    });
+
+    it("lets a revert capture's structure rule see the block form", async () => {
+      const ds = await semantic(
+        'switch gnosis (\n  exec @me "foo()"\n) -?!> $failed',
+      );
+      expect(codes(ds)).to.include("capture-on-block-command");
     });
   });
 

@@ -847,6 +847,7 @@ class SemanticAnalyzer {
     const owningModule = c.module ?? imported?.module ?? "std";
 
     this.#checkCaptures(c, owningModule, batchStack);
+    if (owningModule === "std" && c.name === "switch") this.#checkSwitch(c);
 
     // 0. `load <module>`: target must be registered; import list must be
     //    well-formed and name real exports. With `--from`, the first arg is
@@ -1172,6 +1173,22 @@ class SemanticAnalyzer {
     }
   }
 
+  /** `switch [<chain>] [--as <address>] [( … )]`: it must name
+   *  something. */
+  #checkSwitch(c: CommandExpressionNode): void {
+    const chain = c.args.some((a) => a.type !== NodeType.BlockExpression);
+    const as = c.opts.some((o) => o.name === "as");
+    if (!chain && !as) {
+      this.#diagnostics.push(
+        diag(
+          c,
+          "switch needs a chain, --as <address>, or both.",
+          "switch-needs-target",
+        ),
+      );
+    }
+  }
+
   #checkArity(c: CommandExpressionNode, cmd: ICommand): void {
     const arity = computeCommandArity(cmd.argDefs, c.args);
     this.#checkSmartBlocks(c, cmd);
@@ -1257,6 +1274,19 @@ class SemanticAnalyzer {
             "warning",
           ),
         );
+      } else {
+        const deprecated = cmd.optDefs.find(
+          (o) => o.name === opt.name,
+        )?.deprecated;
+        if (deprecated)
+          this.#diagnostics.push(
+            diag(
+              opt,
+              `--${opt.name} is deprecated for "${this.#displayName(c)}". ${deprecated}`,
+              "deprecated-option",
+              "warning",
+            ),
+          );
       }
       seen.add(opt.name);
     }
@@ -2057,7 +2087,8 @@ class SemanticAnalyzer {
       // revert capture on one of them could never match.
       sendsNothing:
         owningModule === "std" &&
-        ["set", "print", "load", "switch"].includes(c.name),
+        ["set", "print", "load", "switch"].includes(c.name) &&
+        this.#blocks(c).length === 0,
     })) {
       this.#diagnostics.push(diag(issue.node, issue.message, issue.code));
     }

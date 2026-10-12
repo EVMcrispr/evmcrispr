@@ -587,7 +587,7 @@ load swaps
 set $safe 0x1111111111111111111111111111111111111111
 set $owner 0x5555555555555555555555555555555555555555
 
-sim:fork --from $owner (
+sim:fork --as $owner (
   safe:execute $safe (
     swaps:twap $order 12000e18 @token(DAI) to @token(WETH) --parts 12 --every 3600 --min 3e18 --offline true
   )

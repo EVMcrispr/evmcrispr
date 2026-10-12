@@ -118,7 +118,8 @@ export default defineCommand<Contracts>({
       name: "from",
       type: "address",
       description:
-        "Sender address. Defaults to the connected wallet. For plain CREATE this is also the prediction deployer.",
+        "Deprecated: run the command inside `switch --as <address> ( … )`. Sender address. Defaults to the acting account. For plain CREATE this is also the prediction deployer.",
+      deprecated: "Wrap the command in `switch --as <address> ( … )` instead.",
     },
     {
       name: "value",
@@ -306,7 +307,7 @@ export default defineCommand<Contracts>({
         saltSenderPrefix === ZERO_ADDR_BYTES20 && saltCrossChainByte === "0x01";
       if (isPermissioned || isZeroProtected) {
         throw new ErrorException(
-          "deploy --create3: permissioned salts are not supported (first 20 bytes of salt must not equal --from, and a zero-prefixed salt must not have 0x01 in byte 20)",
+          "deploy --create3: permissioned salts are not supported (first 20 bytes of salt must not equal the sender, and a zero-prefixed salt must not have 0x01 in byte 20)",
         );
       }
 
