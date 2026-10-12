@@ -1,3 +1,4 @@
+import { ErrorTooLargeToPin } from "@evmcrispr/core";
 import { head } from "@evmcrispr/space";
 import { IconButton, Row, Spinner, toast } from "@repo/ui";
 import { Share2 } from "@repo/ui/icons";
@@ -63,8 +64,12 @@ export default function ShareButton({
       toast.success("The link is copied to the clipboard");
       setLoading(false);
       onShared?.();
-    } catch (_e) {
-      toast.error("The script could not be saved to IPFS");
+    } catch (e) {
+      toast.error(
+        e instanceof ErrorTooLargeToPin
+          ? "The script is too large to share (256 KB at most)"
+          : "The script could not be saved to IPFS",
+      );
       setLoading(false);
     }
   }

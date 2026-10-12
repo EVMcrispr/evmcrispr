@@ -1,3 +1,4 @@
+import { singleBlockCid } from "@evmcrispr/core";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 
 const desktop = { width: 1440, height: 900 };
@@ -39,15 +40,9 @@ function stored(page: Page, id: string) {
   );
 }
 
-// Real CIDs, so the address is taken for a link. What each holds is
-// whatever was pinned under it: Pinata and the gateway are both played
-// here, and neither is ever called.
-const CIDS = [
-  "QmZYrSACX7w6DbPg2SRJ4JrKkZpHbg86mqQ27xvChTCRry",
-  "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG",
-  "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o",
-  "QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB",
-];
+// The pinning service (the EVMcrispr API) and the gateway are both played
+// here, and neither is ever called. The service answers with the address
+// of what it was sent, as the app checks it does.
 function ipfs() {
   const pins = new Map<string, string>();
   const requests: string[] = [];
@@ -57,12 +52,10 @@ function ipfs() {
         process: { env: { EVMCRISPR_TRUST_IPFS_GATEWAY: "true" } },
       });
     });
-    await context.route("https://api.pinata.cloud/**", async (route) => {
-      const cid = CIDS[pins.size];
-      pins.set(
-        cid,
-        JSON.stringify(route.request().postDataJSON().pinataContent),
-      );
+    await context.route("**/ipfs/pin", async (route) => {
+      const body = JSON.stringify(route.request().postDataJSON().pinataContent);
+      const cid = (await singleBlockCid(new TextEncoder().encode(body)))!;
+      pins.set(cid, body);
       await route.fulfill({
         contentType: "application/json",
         headers: { "access-control-allow-origin": "*" },

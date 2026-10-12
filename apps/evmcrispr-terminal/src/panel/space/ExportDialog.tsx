@@ -1,3 +1,4 @@
+import { ErrorTooLargeToPin } from "@evmcrispr/core";
 import { Button, Input, Notice, Overlay, toast } from "@repo/ui";
 import { useState } from "react";
 import pinJSON from "../../api/pinata/pin-json";
@@ -36,10 +37,13 @@ export function ExportDialog({ onClose }: { onClose(): void }) {
               why: `This space cannot be exported as it is: ${exported.why}. Clearing its timeline, or removing its largest runs, makes it fit.`,
             },
       );
-    } catch {
+    } catch (e) {
       setState({
         step: "failed",
-        why: "The space could not be saved to IPFS.",
+        why:
+          e instanceof ErrorTooLargeToPin
+            ? "The space is too large to export (256 KB at most). Clearing its timeline makes it smaller."
+            : "The space could not be saved to IPFS.",
       });
     }
   };

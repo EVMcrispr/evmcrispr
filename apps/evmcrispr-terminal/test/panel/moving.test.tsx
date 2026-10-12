@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { decryptPayload } from "@evmcrispr/core";
+import { decryptPayload, singleBlockCid } from "@evmcrispr/core";
 import {
   applyText,
   head,
@@ -32,15 +32,25 @@ const reviewed = (space: LiveSpace) =>
 const realFetch = globalThis.fetch;
 let pinned: any[] = [];
 let copied: string[] = [];
+// The address the pinning service gave each thing pinned.
+let cids: string[] = [];
 beforeEach(() => {
   setUi({ spaceView: "timeline", previewRevisionId: null, timelineSince: 0 });
   pinned = [];
+  cids = [];
   copied = [];
   globalThis.fetch = (async (url: string, init: RequestInit) => {
-    if (!String(url).startsWith("https://api.pinata.cloud/"))
+    // Pinning goes through the API, which answers with the address of
+    // what it was sent: the app checks that it is.
+    if (!String(url).endsWith("/ipfs/pin"))
       throw new Error(`unexpected request to ${url}`);
-    pinned.push(JSON.parse(String(init.body)).pinataContent);
-    return new Response(JSON.stringify({ IpfsHash: `QmPin${pinned.length}` }));
+    const content = JSON.parse(String(init.body)).pinataContent;
+    pinned.push(content);
+    const cid = await singleBlockCid(
+      new TextEncoder().encode(JSON.stringify(content)),
+    );
+    cids.push(cid!);
+    return new Response(JSON.stringify({ IpfsHash: cid }));
   }) as unknown as typeof fetch;
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
@@ -100,8 +110,8 @@ test("sharing the script: its row reads shared, the row hands the same link back
   // A script is shared from the header; a row only gives its link back.
   await click(screen.getByRole("button", { name: "Share script" }));
   expect(pinned).toHaveLength(1);
-  expect(shareOf(space.timeline.getState(), revision.id)?.cid).toBe("QmPin1");
-  expect(copied[0]).toMatch(/#\/QmPin1#[\w-]{43}$/);
+  expect(shareOf(space.timeline.getState(), revision.id)?.cid).toBe(cids[0]);
+  expect(copied[0]).toMatch(new RegExp(`#/${cids[0]}#[\\w-]{43}$`));
   expect(screen.getByText("shared")).toBeDefined();
   await click(screen.getByText("created the script"));
   expect(screen.queryByRole("button", { name: "Share" })).toBeNull();
@@ -216,7 +226,7 @@ test("Export: the dialog says the link gives permanent access to everything, pin
     ) as HTMLInputElement
   ).value;
   const [, cid, key] = url.match(/#\/(\w+)#([\w-]+)$/) ?? [];
-  expect(cid).toBe("QmPin1");
+  expect(cid).toBe(cids[0]);
   expect(await decryptPayload(pinned[0], key)).toMatchObject({
     kind: "space",
     id,

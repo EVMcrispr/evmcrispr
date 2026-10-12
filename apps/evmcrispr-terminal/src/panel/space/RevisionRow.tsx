@@ -1,3 +1,4 @@
+import { ErrorTooLargeToPin } from "@evmcrispr/core";
 import {
   AuthorLabel,
   Badge,
@@ -59,8 +60,12 @@ export function RevisionRow({ row }: { row: Row }) {
       if (!shared.ok) return;
       await navigator.clipboard.writeText(shared.url);
       toast.success("The link is copied to the clipboard");
-    } catch {
-      toast.error("The script could not be saved to IPFS");
+    } catch (e) {
+      toast.error(
+        e instanceof ErrorTooLargeToPin
+          ? "The script is too large to share (256 KB at most)"
+          : "The script could not be saved to IPFS",
+      );
     }
   };
   // Never for what an export brought: its id is the export's.

@@ -26,8 +26,7 @@ export type SpaceRoute =
   /** The space was deleted, here or in another tab, while on screen. */
   | { status: "removed" };
 
-const fetchText = (cid: string) =>
-  fetchPin("https://ipfs.blossom.software", cid);
+const fetchText = (cid: string) => fetchPin(cid);
 
 /** `?title=&script=` and `?stdin=` live inside the hash route's query. */
 function hashQuery(): URLSearchParams {
