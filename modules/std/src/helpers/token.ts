@@ -1,9 +1,10 @@
-import type { Address, Chain, Module } from "@evmcrispr/sdk";
+import type { Address, Chain, Module, TokenListEntry } from "@evmcrispr/sdk";
 import {
   chainLabel,
   defineHelper,
   ErrorException,
   readConfigValue,
+  tokenInList,
 } from "@evmcrispr/sdk";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import type Std from "..";
@@ -58,22 +59,18 @@ export const resolveToken = async (
     return zeroAddress;
   }
   const tokenList = await getTokenList(module, chainId);
-  const {
-    tokens,
-  }: { tokens: { symbol: string; chainId: number; address: string }[] } =
-    await fetch(tokenList).then((r) => r.json());
-  const tokenAddress = tokens.find(
-    (token) =>
-      token.symbol === tokenSymbolOrAddress && token.chainId === chainId,
-  )?.address;
+  const { tokens }: { tokens: TokenListEntry[] } = await fetch(tokenList).then(
+    (r) => r.json(),
+  );
+  const tokenAddress = tokenInList(tokens, chainId, tokenSymbolOrAddress);
 
-  if (!tokenAddress || !isAddress(tokenAddress)) {
+  if (!tokenAddress) {
     throw new ErrorException(
       `${tokenSymbolOrAddress} not supported in ${tokenList} on ${chainLabel(chainId)}.`,
     );
   }
 
-  return getAddress(tokenAddress);
+  return tokenAddress;
 };
 
 export default defineHelper<Std>({

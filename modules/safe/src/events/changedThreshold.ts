@@ -1,4 +1,10 @@
-import { defineEvent, stateCandidate, truncateAddress } from "@evmcrispr/sdk";
+import {
+  contract,
+  defineEvent,
+  line,
+  say,
+  stateCandidate,
+} from "@evmcrispr/sdk";
 
 export default defineEvent({
   name: "changedThreshold",
@@ -6,6 +12,7 @@ export default defineEvent({
   event: "event ChangedThreshold(uint256 threshold)",
   suggest: async (env, { emitter, logs }) => {
     const threshold = logs.at(-1)!.threshold as bigint;
+    const target = await contract(env, emitter, "contract");
     return stateCandidate(
       env,
       {
@@ -13,8 +20,8 @@ export default defineEvent({
         signature: "function getThreshold() view returns (uint256)",
         expect: threshold,
       },
-      `assert @safe:threshold!(${emitter}) == ${threshold}`,
-      `${truncateAddress(emitter)} needs ${threshold} signatures`,
+      line`assert @safe:threshold!(${target}) == ${threshold}`,
+      say`${target} has a threshold of ${threshold}`,
     );
   },
 });

@@ -1,5 +1,11 @@
-import { defineEvent, stateCandidate, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import {
+  account,
+  contract,
+  defineEvent,
+  line,
+  say,
+  stateCandidate,
+} from "@evmcrispr/sdk";
 
 export default defineEvent({
   name: "ownershipTransferred",
@@ -7,16 +13,17 @@ export default defineEvent({
   event:
     "event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)",
   suggest: async (env, { emitter, logs }) => {
-    const owner = getAddress(logs.at(-1)!.newOwner);
+    const owner = account(logs.at(-1)!.newOwner, "owner");
+    const target = await contract(env, emitter, "contract");
     return stateCandidate(
       env,
       {
         address: emitter,
         signature: "function owner() view returns (address)",
-        expect: owner,
+        expect: owner.address,
       },
-      `assert @acl:owner!(${emitter}) == ${owner}`,
-      `${truncateAddress(emitter)} is owned by ${truncateAddress(owner)}`,
+      line`assert @acl:owner!(${target}) == ${owner}`,
+      say`${target} is owned by ${owner}`,
     );
   },
 });

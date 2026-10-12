@@ -46,4 +46,5 @@ export * from "./sliceNodeText";
 export * from "./suggestions";
 export * from "./time";
 export * from "./token-holdings";
+export * from "./tokenlist";
 export * from "./web3";

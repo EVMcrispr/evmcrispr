@@ -1,27 +1,37 @@
 import {
   budgetedRead,
   collectSuggestions,
-  compactAmount,
   type EventImportMap,
+  GAS_ALLOWANCE_FACTOR,
   type IModuleConstructor,
   MAX_SUGGESTION_LOGS,
   MAX_SUGGESTION_READS,
   nativeFloor,
   type RawLog,
+  readConfigValue,
   type SuggestEnv,
   type Suggestion,
   safeSymbol,
-  truncateAddress,
+  symbolInList,
+  type TokenInfo,
+  type TokenListEntry,
+  toSuggestion,
+  variableNames,
 } from "@evmcrispr/sdk";
 import {
   type AbiFunction,
   type Address,
-  formatUnits,
   getAddress,
   type PublicClient,
   parseAbiItem,
 } from "viem";
 import type Sim from "..";
+
+/** How long a run waits for the token list before going without it. */
+const TOKEN_LIST_TIMEOUT = 5000;
+
+/** The code of an account that delegates to a contract (EIP-7702). */
+const DELEGATION = /^0xef0100[0-9a-f]{40}$/i;
 
 /** Every registered module's event declarations, std included. A module
  *  that cannot be loaded (experimental and switched off) declares none. */
@@ -58,6 +68,8 @@ export async function suggestFromRun(
     executor: Address;
     payer: Address | undefined;
     nativeBefore: bigint | undefined;
+    /** Gas the run used and what the fork charged for it. */
+    gas: { used: bigint; paid: bigint };
     tolerance: number;
   },
 ): Promise<{ suggestions: Suggestion[]; truncated: boolean }> {
@@ -76,73 +88,133 @@ export async function suggestFromRun(
       return undefined;
     }
   }, MAX_SUGGESTION_READS);
-  // What a description says about a token is read once per token and
-  // through the same budget as every other view, so naming things cannot
-  // cost more reads than the run was allowed.
-  const metas = new Map<
-    Address,
-    Promise<{ symbol: string; decimals: number } | undefined>
-  >();
-  const metaOf = (token: Address) => {
-    let meta = metas.get(token);
-    if (!meta) {
-      meta = (async () => {
-        const symbol = await budget.read(
-          token,
-          "function symbol() view returns (string)",
-        );
-        const decimals = await budget.read(
-          token,
-          "function decimals() view returns (uint8)",
-        );
-        const plain = typeof symbol === "string" && safeSymbol(symbol);
-        return plain && typeof decimals === "number"
-          ? { symbol: plain, decimals }
-          : undefined;
-      })();
-      metas.set(token, meta);
-    }
-    return meta;
+  // What is said of a token is read once per token and through the same
+  // budget as every other view, so naming things cannot cost more reads
+  // than the run was allowed.
+  const once = <T>(ask: (address: Address) => Promise<T>) => {
+    const asked = new Map<Address, Promise<T>>();
+    return (token: Address) => {
+      let answer = asked.get(token);
+      if (!answer) {
+        answer = ask(token);
+        asked.set(token, answer);
+      }
+      return answer;
+    };
   };
+  // A token names itself, so its symbol is kept only when it is short and
+  // plain; it is a name to show, beside the address, and names nothing in
+  // a line.
+  const symbolOf = once(async (token) => {
+    const raw = await budget.read(
+      token,
+      "function symbol() view returns (string)",
+    );
+    return typeof raw === "string" ? safeSymbol(raw) : undefined;
+  });
+  const nativeSymbol = chain?.nativeCurrency.symbol ?? "ETH";
+  // The chain's token list, fetched at most once per run and only when a
+  // token was seen. Without it (offline, a list that does not answer in
+  // time) no token is vouched for, and each variable is `$token`. The
+  // list only ever names a variable: the line holds the address, so a
+  // list that changes later cannot move what a line reads.
+  let list: Promise<TokenListEntry[]> | undefined;
+  const tokenList = () => {
+    list ??= (async () => {
+      const url = String(
+        readConfigValue(module.bindingsManager, "std", "tokenlist", {
+          chainId: input.chainId,
+        }),
+      );
+      if (!url.startsWith("https://")) return [];
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(TOKEN_LIST_TIMEOUT),
+      });
+      const { tokens } = (await response.json()) as {
+        tokens?: TokenListEntry[];
+      };
+      return Array.isArray(tokens) ? tokens : [];
+    })().catch(() => []);
+    return list;
+  };
+  const tokenOf = once(async (token): Promise<TokenInfo> => {
+    const symbol = await symbolOf(token);
+    const decimals = await budget.read(
+      token,
+      "function decimals() view returns (uint8)",
+    );
+    const listed = symbolInList(
+      await tokenList(),
+      input.chainId,
+      nativeSymbol,
+      token,
+    );
+    return {
+      ...(symbol ? { symbol } : {}),
+      ...(typeof decimals === "number" ? { decimals } : {}),
+      ...(listed ? { listed } : {}),
+    };
+  });
+  // Whether an address has code after the run: what names a variable that
+  // nothing else names. Out of the same budget as the views; an account
+  // that only delegates (EIP-7702) is still an account.
+  const hasCode = once(async (address): Promise<boolean | undefined> => {
+    if (!budget.charge()) return undefined;
+    try {
+      const code = await client.getCode({ address });
+      return !!code && code !== "0x" && !DELEGATION.test(code);
+    } catch {
+      return undefined;
+    }
+  });
   const env: SuggestEnv = {
     chainId: input.chainId,
     executor: getAddress(input.executor),
     payer: input.payer && getAddress(input.payer),
     tolerance: input.tolerance,
-    nativeSymbol: chain?.nativeCurrency.symbol ?? "ETH",
+    nativeSymbol,
+    // Only what the chain's definition says: an unknown chain keeps its
+    // native amounts in base units.
+    nativeDecimals: chain?.nativeCurrency.decimals,
     read: budget.read,
-    // A token names itself, so its symbol is shown only when it is short
-    // and plain, and never alone: the address beside it is what tells a
-    // token from one that borrowed its symbol.
-    formatAmount: async (token, amount) => {
-      const meta = await metaOf(token);
-      return meta
-        ? `${compactAmount(formatUnits(amount, meta.decimals))} ${meta.symbol} (${truncateAddress(token)})`
-        : `${amount} base units of ${truncateAddress(token)}`;
-    },
-    tokenName: async (token) => {
-      const meta = await metaOf(token);
-      return meta
-        ? `${meta.symbol} (${truncateAddress(token)})`
-        : truncateAddress(token);
-    },
+    emitterName: symbolOf,
+    token: tokenOf,
+    hasCode,
   };
+  // One run, one set of names: the native floor below shares them.
+  const names = variableNames(env.executor);
 
   const suggestions = await collectSuggestions({
     modules: await moduleEvents(module),
     logs: input.logs,
     env,
+    names,
   });
   if (input.nativeBefore !== undefined) {
     const nativeAfter = await client.getBalance({ address: env.executor });
-    const native = nativeFloor(env, input.nativeBefore, nativeAfter);
+    // The fee the real transaction is assumed to cost at most: the gas
+    // this run used at the current price, with room for a padded limit and
+    // a price that moved.
+    const gasPrice = await client.getGasPrice().catch(() => undefined);
+    const native = nativeFloor(
+      env,
+      input.nativeBefore,
+      nativeAfter,
+      gasPrice === undefined
+        ? undefined
+        : {
+            paid: input.gas.paid,
+            allowance: input.gas.used * gasPrice * GAS_ALLOWANCE_FACTOR,
+          },
+    );
     if (native) {
-      suggestions.push({
-        ...native,
-        module: "std",
-        event: "native",
-        emitter: env.executor,
-      });
+      suggestions.push(
+        toSuggestion(native, names, {
+          module: "std",
+          event: "native",
+          emitter: env.executor,
+        }),
+      );
     }
   }
   return {

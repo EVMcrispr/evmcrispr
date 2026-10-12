@@ -1,6 +1,6 @@
-import { describe, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { type Case, runCases } from "@evmcrispr/test-utils/evml";
-import { scriptParser } from "../../../src";
+import { parseScript, scriptParser } from "../../../src";
 
 describe("Parsers - comment", () => {
   it("should parse a comment correctly", () => {
@@ -332,5 +332,23 @@ describe("Parsers - comment", () => {
     ];
 
     runCases(c, scriptParser);
+  });
+  it("a comment after an assert changes nothing of what is parsed, at the top level or in a block", () => {
+    const plain = [
+      "assert @token:allowance!($weth $me $to) == 5",
+      "batch (",
+      "  assert @balance!(ETH $me) >= 5",
+      ")",
+    ];
+    const commented = [
+      `${plain[0]}  # base units of $weth`,
+      plain[1],
+      `${plain[2]}  # base units of ETH`,
+      plain[3],
+    ];
+    const a = parseScript(plain.join("\n"));
+    const b = parseScript(commented.join("\n"));
+    expect(b.errors).toEqual([]);
+    expect(JSON.stringify(b.ast.body)).toBe(JSON.stringify(a.ast.body));
   });
 });

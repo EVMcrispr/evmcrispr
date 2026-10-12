@@ -1,4 +1,11 @@
-import { type Candidate, defineEvent } from "@evmcrispr/sdk";
+import {
+  type Candidate,
+  contract,
+  defineEvent,
+  line,
+  say,
+} from "@evmcrispr/sdk";
+import type { Address } from "viem";
 import { balanceFloors, netByAccount } from "./_shared";
 
 export default defineEvent({
@@ -10,11 +17,12 @@ export default defineEvent({
     const moves = logs.flatMap((l) =>
       (l.ids as bigint[]).map((id, i) => ({
         id,
-        from: l.from,
-        to: l.to,
+        from: l.from as Address,
+        to: l.to as Address,
         value: (l.values as bigint[])[i],
       })),
     );
+    const collection = await contract(env, emitter, "token");
     const out: Candidate[] = [];
     for (const id of new Set(moves.map((m) => m.id))) {
       out.push(
@@ -27,9 +35,10 @@ export default defineEvent({
               "function balanceOf(address,uint256) view returns (uint256)",
               [account, id],
             ),
-          (account) =>
-            `${emitter}::!{balanceOf(address,uint256)(uint256) ${account} ${id}}`,
-          `${await env.tokenName(emitter)} #${id}`,
+          (who, floor) => ({
+            line: line`assert ${collection}::!{balanceOf(address,uint256)(uint256) ${who} ${id}} >= ${floor}`,
+            least: say`${floor} of token #${id} in ${collection}`,
+          }),
         )),
       );
     }

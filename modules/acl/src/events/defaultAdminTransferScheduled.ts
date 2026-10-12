@@ -1,5 +1,4 @@
-import { defineEvent, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import { account, contract, defineEvent, line, say } from "@evmcrispr/sdk";
 import { firstWordCandidate } from "./_shared";
 
 export default defineEvent({
@@ -8,17 +7,18 @@ export default defineEvent({
   event:
     "event DefaultAdminTransferScheduled(address indexed newAdmin, uint48 acceptSchedule)",
   suggest: async (env, { emitter, logs }) => {
-    const admin = getAddress(logs.at(-1)!.newAdmin);
+    const admin = account(logs.at(-1)!.newAdmin, "pendingAdmin");
+    const target = await contract(env, emitter, "contract");
     return firstWordCandidate(
       env,
       {
         address: emitter,
         signature:
           "function pendingDefaultAdmin() view returns (address, uint48)",
-        expect: admin,
+        expect: admin.address,
       },
-      `assert @acl:pendingDefaultAdmin!(${emitter}) == ${admin}`,
-      `${truncateAddress(admin)} is the pending default admin of ${truncateAddress(emitter)}`,
+      line`assert @acl:pendingDefaultAdmin!(${target}) == ${admin}`,
+      say`${admin} is the pending default admin of ${target}`,
     );
   },
 });

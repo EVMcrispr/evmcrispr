@@ -1,4 +1,4 @@
-import { defineEvent, truncateAddress } from "@evmcrispr/sdk";
+import { contract, defineEvent, line, say } from "@evmcrispr/sdk";
 import { firstWordCandidate } from "./_shared";
 
 export default defineEvent({
@@ -9,6 +9,7 @@ export default defineEvent({
     "event DefaultAdminDelayChangeScheduled(uint48 newDelay, uint48 effectSchedule)",
   suggest: async (env, { emitter, logs }) => {
     const delay = Number(logs.at(-1)!.newDelay);
+    const target = await contract(env, emitter, "contract");
     return firstWordCandidate(
       env,
       {
@@ -17,8 +18,8 @@ export default defineEvent({
           "function pendingDefaultAdminDelay() view returns (uint48, uint48)",
         expect: delay,
       },
-      `assert ${emitter}::!{pendingDefaultAdminDelay()(uint48,uint48)}[$ _] == ${delay}`,
-      `The pending default admin delay of ${truncateAddress(emitter)} is ${delay} seconds`,
+      line`assert ${target}::!{pendingDefaultAdminDelay()(uint48,uint48)}[$ _] == ${delay}`,
+      say`The pending default admin delay of ${target} is ${delay} seconds`,
     );
   },
 });

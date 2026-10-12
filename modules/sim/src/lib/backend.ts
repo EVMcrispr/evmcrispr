@@ -21,6 +21,9 @@ export interface SyntheticReceipt {
    * broadcast in-process, so this is an opaque identifier for tx captures
    * (`> $var`) — it does not resolve on any RPC. */
   transactionHash: `0x${string}`;
+  /** Gas the transaction used, as far as the backend can tell. Nothing is
+   * charged for it in-process; it is what a fee is estimated from. */
+  gasUsed?: bigint;
   logs: {
     address: `0x${string}`;
     topics: `0x${string}`[];

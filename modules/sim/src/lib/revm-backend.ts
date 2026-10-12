@@ -238,6 +238,7 @@ export async function createRevmBackend(
       status: "success",
       blockNumber: fork.blockNumber(),
       transactionHash: syntheticTxHash(action, txCounter++),
+      gasUsed: BigInt(env.gasUsed),
       logs: env.logs.map((log, logIndex) => ({ ...log, logIndex })),
     };
   }

@@ -225,6 +225,12 @@ export async function createEthereumJSBackend(
       status: "success",
       blockNumber: currentBlockNumber,
       transactionHash: syntheticTxHash(action, txCounter++),
+      // A call's execution gas, plus what a transaction pays before it
+      // runs: the base cost and its calldata, counted at the dearer rate.
+      gasUsed:
+        result.execResult.executionGasUsed +
+        21_000n +
+        16n * BigInt(action.data ? (action.data.length - 2) / 2 : 0),
       logs: (result.execResult.logs ?? []).map(
         ([address, topics, data], logIndex) => ({
           address: bytesToHex(address) as `0x${string}`,

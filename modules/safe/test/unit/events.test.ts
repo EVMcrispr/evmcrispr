@@ -1,9 +1,10 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
-import { collectSuggestions } from "@evmcrispr/sdk";
 import {
   eventLog,
+  literalLine,
   suggestEnv,
+  suggested,
   viewKey,
 } from "@evmcrispr/test-utils/suggestions";
 import { encodeAbiParameters, getAddress, keccak256, toHex } from "viem";
@@ -17,12 +18,12 @@ const lines = async (
   answers: Record<string, unknown>,
 ) =>
   (
-    await collectSuggestions({
+    await suggested({
       modules: [{ name: "safe", events }],
       logs,
       env: suggestEnv(answers),
     })
-  ).map((s) => s.line);
+  ).map(literalLine);
 
 describe("safe events", () => {
   for (const [sig, arg] of [

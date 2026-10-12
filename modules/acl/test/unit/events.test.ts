@@ -1,9 +1,10 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
-import { collectSuggestions } from "@evmcrispr/sdk";
 import {
   eventLog,
+  literalLine,
   suggestEnv,
+  suggested,
   viewKey,
 } from "@evmcrispr/test-utils/suggestions";
 import { getAddress, keccak256, toHex } from "viem";
@@ -18,13 +19,13 @@ const run = (
   logs: ReturnType<typeof eventLog>[],
   answers: Record<string, unknown>,
 ) =>
-  collectSuggestions({
+  suggested({
     modules: [{ name: "acl", events }],
     logs,
     env: suggestEnv(answers),
   });
 const lines = async (...a: Parameters<typeof run>) =>
-  (await run(...a)).map((s) => s.line);
+  (await run(...a)).map(literalLine);
 
 const GRANTED =
   "event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)";

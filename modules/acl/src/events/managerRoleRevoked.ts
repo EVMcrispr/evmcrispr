@@ -1,5 +1,4 @@
-import { defineEvent, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import { account, contract, defineEvent, line, say } from "@evmcrispr/sdk";
 import { firstWordCandidate, lastBy } from "./_shared";
 
 export default defineEvent({
@@ -8,12 +7,13 @@ export default defineEvent({
     "AccessManager: an account is no longer a member of the role revoked from it.",
   event: "event RoleRevoked(uint64 indexed roleId, address indexed account)",
   suggest: async (env, { emitter, logs }) => {
+    const target = await contract(env, emitter, "contract");
     const out = [];
-    for (const { roleId, account } of lastBy(
+    for (const { roleId, account: address } of lastBy(
       logs,
       (l) => `${l.roleId}:${l.account}`,
     )) {
-      const who = getAddress(account);
+      const who = account(address, "account");
       out.push(
         ...(await firstWordCandidate(
           env,
@@ -21,11 +21,11 @@ export default defineEvent({
             address: emitter,
             signature:
               "function hasRole(uint64,address) view returns (bool, uint32)",
-            args: [roleId, who],
+            args: [roleId, who.address],
             expect: false,
           },
-          `assert @acl:hasRole!(${emitter} ${roleId} ${who}) == false`,
-          `${truncateAddress(who)} is no longer a member of role ${roleId} on ${truncateAddress(emitter)}`,
+          line`assert @acl:hasRole!(${target} ${roleId} ${who}) == false`,
+          say`${who} is no longer a member of role ${roleId} on ${target}`,
         )),
       );
     }

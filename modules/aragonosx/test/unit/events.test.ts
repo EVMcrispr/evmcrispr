@@ -1,9 +1,10 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
-import { collectSuggestions } from "@evmcrispr/sdk";
 import {
   eventLog,
+  literalLine,
   suggestEnv,
+  suggested,
   viewKey,
 } from "@evmcrispr/test-utils/suggestions";
 import { getAddress, keccak256, toHex } from "viem";
@@ -21,12 +22,12 @@ const lines = async (
   answers: Record<string, unknown>,
 ) =>
   (
-    await collectSuggestions({
+    await suggested({
       modules: [{ name: "aragonosx", events }],
       logs,
       env: suggestEnv(answers),
     })
-  ).map((s) => s.line);
+  ).map(literalLine);
 
 describe("aragonosx events", () => {
   it("granted and revoked permissions are confirmed by isGranted", async () => {

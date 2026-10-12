@@ -1,5 +1,11 @@
-import { defineEvent, stateCandidate, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import {
+  account,
+  contract,
+  defineEvent,
+  line,
+  say,
+  stateCandidate,
+} from "@evmcrispr/sdk";
 
 export default defineEvent({
   name: "setPermission",
@@ -7,13 +13,14 @@ export default defineEvent({
   event:
     "event SetPermission(address indexed entity, address indexed app, bytes32 indexed role, bool allowed)",
   suggest: async (env, { emitter, logs }) => {
+    const acl = await contract(env, emitter, "contract");
     const last = new Map(
       logs.map((l) => [`${l.entity}:${l.app}:${l.role}`, l]),
     );
     const out = [];
     for (const { entity, app, role, allowed } of last.values()) {
-      const who = getAddress(entity);
-      const where = getAddress(app);
+      const who = account(entity, "entity");
+      const where = account(app, "target");
       out.push(
         ...(await stateCandidate(
           env,
@@ -21,11 +28,11 @@ export default defineEvent({
             address: emitter,
             signature:
               "function hasPermission(address,address,bytes32) view returns (bool)",
-            args: [who, where, role],
+            args: [who.address, where.address, role],
             expect: allowed,
           },
-          `assert ${emitter}::!{hasPermission(address,address,bytes32)(bool) ${who} ${where} ${role}} == ${allowed}`,
-          `${truncateAddress(who)} ${allowed ? "has" : "no longer has"} the permission on ${truncateAddress(where)}`,
+          line`assert ${acl}::!{hasPermission(address,address,bytes32)(bool) ${who} ${where} ${role}} == ${allowed}`,
+          say`${who} ${allowed ? "has" : "no longer has"} the permission on ${where}`,
         )),
       );
     }

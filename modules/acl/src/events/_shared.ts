@@ -1,6 +1,8 @@
 import {
   type Candidate,
   type CompanionView,
+  type LineTemplate,
+  type SentencePart,
   type SuggestEnv,
   sameValue,
 } from "@evmcrispr/sdk";
@@ -10,13 +12,13 @@ import {
 export async function firstWordCandidate(
   env: SuggestEnv,
   view: CompanionView,
-  line: string,
-  description: string,
+  line: LineTemplate,
+  sentence: SentencePart[],
 ): Promise<Candidate[]> {
   const got = await env.read(view.address, view.signature, view.args);
   const first = Array.isArray(got) ? got[0] : got;
   if (first === undefined || !sameValue(first, view.expect)) return [];
-  return [{ line, description, kind: "state" }];
+  return [{ line, sentence, kind: "state" }];
 }
 
 /** The last log per key: a run's final word on each subject. */

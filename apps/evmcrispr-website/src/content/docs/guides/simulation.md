@@ -189,26 +189,145 @@ sim:fork (
 A host can ask a simulation which checks would pin down what the run did:
 
 ```ts
+import { suggestionScript, suggestionSource } from "@evmcrispr/sdk";
+
 const result = await evml.script(script).simulate({ suggest: true });
-for (const { line, description } of result.suggestions ?? []) {
-  console.log(description, "\n ", line);
+for (const suggestion of result.suggestions ?? []) {
+  console.log(suggestion.description);
+  console.log(" ", suggestionSource(suggestion) ?? "");
+}
+// Everything needed to run them: loads, variables, then the lines.
+console.log(suggestionScript(result.suggestions ?? []));
+```
+
+Each suggestion comes from an event the run emitted and is only returned when
+the contract's own views confirm it: a role that was granted and is held, an
+owner that changed, a balance after a transfer. An event with no view to
+confirm it produces nothing.
+
+### The sentence
+
+`sentence` says what the suggestion checks, as parts a host can render:
+
+```ts
+[
+  { type: "address", address: "0x28C6…1d60" },
+  { type: "text", text: " keeps at least " },
+  {
+    type: "amount",
+    value: "51950298200",      // base units: exactly what the line asserts
+    bound: "floor",            // how it is asserted: floor, exact or ceiling
+    token: "0xA0b8…eB48",      // or "native"
+    symbol: "USDC",            // when the token has a short plain one
+    decimals: 6,               // when the token says
+    listed: true,              // the chain's token list gives it that symbol
+    text: "51,950.2982 USDC",
+  },
+]
+```
+
+- An `address` part is an account or a contract. Link it to a block explorer.
+  `name` is the short name a contract gives itself (a token's symbol): it is
+  the contract's own word, so the address stays one click away. `listed: true`
+  says the chain's token list gives that address that same name; without it,
+  only the contract vouches for its name.
+- An `amount` part carries the value the line asserts (a decimal string of
+  base units) and a `text` for reading. A floor (`bound: "floor"`, the right
+  side of a `>=`) is asserted at the precision it is said: four decimals
+  from 1 up, four significant digits below 1, rounded down. So `text`,
+  `value` and the number in the line are one number, and a suggested floor
+  can sit up to one unit of its last digit below what the simulation
+  computed, never above. An exact value (`"exact"`, an allowance) is given
+  and asserted in full, digit for digit. An upper bound (`"ceiling"`, the fee
+  left room for) is only said, rounded up. A host that formats `value`
+  itself needs no rounding for a floor or an exact value. Dust is given in base units
+  (`5 base units of WETH`), as is any amount of a token that does not say its
+  decimals; the line then holds the same base-unit number, so the two always
+  agree on the unit. The largest allowance there is reads "an unlimited
+  allowance".
+
+`description` is the same sentence as plain text, for a host that prints:
+addresses are shortened, and a name or a symbol is always followed by its
+address (`USDC (0xA0b8...eB48)`).
+
+### The line
+
+`line` is the `assert` to add, and `vars` the variables it uses:
+
+```ts
+{
+  line: "assert @balance!($usdc $executor) >= @token:amount($usdc 51950.2982)",
+  vars: [
+    { name: "usdc", value: "0xA0b8…eB48" },
+    { name: "executor", value: "0x28C6…1d60" },
+  ],
 }
 ```
 
-Each suggestion is a complete `assert` line. It comes from an event the run
-emitted and is only returned when the contract's own views confirm it: a role
-that was granted and is held, an owner that changed, a balance after a
-transfer. An event with no view to confirm it produces nothing.
+- Every address is a variable, tokens included. A line never writes a token
+  by its symbol: a symbol is resolved again each time the script runs,
+  against whatever the token list says then, so a check confirmed on one
+  token could move to another. The variable holds the address the suggestion
+  was confirmed on. Only the chain's own currency, which names no contract,
+  is written by its symbol (`@balance!(ETH $executor)`).
+- The account whose balances are guarded is `$executor`. A token the chain's
+  token list resolves a symbol to is named by that symbol (`$usdc`); the list
+  only names the variable, the address is what the line reads. Everything
+  else is named after what it is in that check (`$token`, `$spender`,
+  `$owner`, `$proxy`, `$contract`). The name a contract gives itself is
+  never a variable name: a token that merely calls itself USDC is `$token`.
+  An address has one name across the suggestions of a run. One that plays
+  two parts in it (a recipient that is also a spender) is named for neither,
+  but by the one neutral thing that can be read of it on the fork: `$account`
+  when it has no code, `$contract` when it has, and `$address` when that
+  could not be read.
+- An amount is `@token:amount(<token> <amount>)`, in the token's own units:
+  the number the sentence shows for a floor
+  (`>= @token:amount($usdc 51950.2982)`), every digit for an equality; for
+  the chain's own currency the token is its
+  symbol (`@token:amount(ETH 1.5)`). Where the sentence says base units, the
+  line holds the plain integer instead: dust, a token that does not
+  say its decimals, and a native currency whose decimals are not known to be
+  18. A bare integer does not say what it counts, so such a line ends with a
+  comment that does, naming the token as the line does:
+  `assert @token:allowance!($weth $executor $spender) == 5  # base units of $weth`.
+  A comment runs to the end of the line and changes nothing of what is
+  asserted; a host that compares lines by what they mean ignores it. Zero is
+  `0`, with no comment.
 
-Read a suggestion before adding it:
+To add suggestions to a script, add in this order: a `load` for each module a
+line uses that the script does not load yet (`load token` for
+`@token:amount`, which a native-balance check uses too; loading a module
+twice is an error), a `set $name <address>`
+for each variable, then the lines. `suggestionScript` returns exactly that for
+a list of suggestions from one run. If the script already has a variable of
+the same name, rename the suggestion's first:
+`renameSuggestionVariable(suggestion, "owner", "newOwner")`. A line only
+refers to a variable as `$name`, its comment included, so that is a token
+replacement.
+
+### Where it comes from
+
+`emitter` is the contract that emitted the event, `eventName` the event as
+that contract names it (`Transfer`), and `emitterName` the short name the
+contract gives itself, when it has one. A host can show "Suggested by USDC's
+Transfer event" from them; `suggestionSource` gives that line as text, with
+the address always included.
+
+### Before adding one
 
 - It states what a contract says about itself. A contract can emit an event
   and answer its views to match, so a suggestion about an unknown contract is
-  only as good as that contract. Token symbols are shown next to the token's
-  address for the same reason.
-- Amounts are the numbers this simulation produced. They are exact when the
-  transaction runs right away; a proposal that executes days later may find a
+  only as good as that contract. That is why a name never appears without its
+  address, and why a line holds addresses and no names.
+- Amounts are the numbers this simulation produced (a floor rounded down to
+  the precision shown). They hold when the transaction runs right away; a proposal that executes days later may find a
   different balance.
+- The account that pays for gas has the fee taken from its own balance, and
+  the fee is not known when the line is written. Its native-balance check
+  leaves room for an assumed fee (three times what the simulated run would
+  cost at the current gas price) and says how much. A dearer transaction than
+  that fails the check.
 - A check on someone else's balance (a recipient holds at least what it
   received) can be made to fail by that account moving its funds first.
 

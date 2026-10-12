@@ -1,5 +1,11 @@
-import { defineEvent, stateCandidate, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import {
+  account,
+  contract,
+  defineEvent,
+  line,
+  say,
+  stateCandidate,
+} from "@evmcrispr/sdk";
 
 export default defineEvent({
   name: "erc721Approval",
@@ -7,11 +13,12 @@ export default defineEvent({
   event:
     "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",
   suggest: async (env, { emitter, logs }) => {
+    const collection = await contract(env, emitter, "token");
     const last = new Map<bigint, string>();
-    for (const { approved, tokenId } of logs)
-      last.set(tokenId, getAddress(approved));
+    for (const { approved, tokenId } of logs) last.set(tokenId, approved);
     const out = [];
-    for (const [tokenId, approved] of last) {
+    for (const [tokenId, address] of last) {
+      const approved = account(address, "approved");
       out.push(
         ...(await stateCandidate(
           env,
@@ -19,10 +26,10 @@ export default defineEvent({
             address: emitter,
             signature: "function getApproved(uint256) view returns (address)",
             args: [tokenId],
-            expect: approved,
+            expect: approved.address,
           },
-          `assert ${emitter}::!{getApproved(uint256)(address) ${tokenId}} == ${approved}`,
-          `${await env.tokenName(emitter)} #${tokenId} may be moved by ${truncateAddress(approved)}`,
+          line`assert ${collection}::!{getApproved(uint256)(address) ${tokenId}} == ${approved}`,
+          say`Token #${tokenId} in ${collection} may be moved by ${approved}`,
         )),
       );
     }

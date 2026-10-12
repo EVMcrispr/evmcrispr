@@ -1,5 +1,11 @@
-import { defineEvent, stateCandidate, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import {
+  account,
+  contract,
+  defineEvent,
+  line,
+  say,
+  stateCandidate,
+} from "@evmcrispr/sdk";
 
 export default defineEvent({
   name: "approvalForAll",
@@ -7,19 +13,13 @@ export default defineEvent({
   event:
     "event ApprovalForAll(address indexed owner, address indexed operator, bool approved)",
   suggest: async (env, { emitter, logs }) => {
-    const last = new Map<
-      string,
-      { owner: string; operator: string; approved: boolean }
-    >();
-    for (const l of logs) {
-      last.set(`${l.owner}:${l.operator}`, {
-        owner: getAddress(l.owner),
-        operator: getAddress(l.operator),
-        approved: l.approved,
-      });
-    }
+    const collection = await contract(env, emitter, "token");
+    const last = new Map(logs.map((l) => [`${l.owner}:${l.operator}`, l]));
     const out = [];
-    for (const { owner, operator, approved } of last.values()) {
+    for (const l of last.values()) {
+      const owner = account(l.owner, "owner");
+      const operator = account(l.operator, "operator");
+      const approved = l.approved as boolean;
       out.push(
         ...(await stateCandidate(
           env,
@@ -27,11 +27,11 @@ export default defineEvent({
             address: emitter,
             signature:
               "function isApprovedForAll(address,address) view returns (bool)",
-            args: [owner, operator],
+            args: [owner.address, operator.address],
             expect: approved,
           },
-          `assert ${emitter}::!{isApprovedForAll(address,address)(bool) ${owner} ${operator}} == ${approved}`,
-          `${truncateAddress(operator)} ${approved ? "may" : "may no longer"} move every ${await env.tokenName(emitter)} of ${truncateAddress(owner)}`,
+          line`assert ${collection}::!{isApprovedForAll(address,address)(bool) ${owner} ${operator}} == ${approved}`,
+          say`${operator} ${approved ? "may" : "may no longer"} move every token of ${owner} in ${collection}`,
         )),
       );
     }

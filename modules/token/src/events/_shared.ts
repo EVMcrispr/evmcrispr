@@ -1,8 +1,12 @@
 import {
+  type AddressRef,
+  account,
   type Candidate,
   floorAfter,
+  type LineTemplate,
+  type SentencePart,
   type SuggestEnv,
-  truncateAddress,
+  say,
 } from "@evmcrispr/sdk";
 import { type Address, getAddress, zeroAddress } from "viem";
 
@@ -20,15 +24,19 @@ export function netByAccount(
   return net;
 }
 
-/** One floor per account that gained or lost, the executor first, plus "no
- *  decrease" for the executor when the token moved without it. `read`
- *  answers an account's balance after the run; `expr` spells its read. */
+/** One floor per account that gained or lost, the executor first, plus a
+ *  floor at what the executor holds when the token moved without it.
+ *  `read` answers an account's balance after the run; `check` writes the
+ *  line that asserts a floor of it, and says the floor (`least`), or
+ *  answers nothing when what it would write asserts nothing. */
 export async function balanceFloors(
   env: SuggestEnv,
   net: Map<Address, bigint>,
   read: (account: Address) => Promise<unknown | undefined>,
-  expr: (account: Address) => string,
-  what: string,
+  check: (
+    who: AddressRef,
+    floor: bigint,
+  ) => { line: LineTemplate; least: SentencePart[] } | null,
 ): Promise<Candidate[]> {
   const executor = getAddress(env.executor);
   const accounts = [
@@ -36,27 +44,29 @@ export async function balanceFloors(
     ...[...net.keys()].filter((a) => a !== executor && (net.get(a) ?? 0n) > 0n),
   ];
   const out: Candidate[] = [];
-  for (const account of accounts) {
-    const after = await read(account);
+  for (const address of accounts) {
+    const after = await read(address);
     if (typeof after !== "bigint") continue;
-    const change = net.get(account) ?? 0n;
+    const change = net.get(address) ?? 0n;
     // A balance below what the transfers say was gained contradicts them:
     // the event is not confirmed.
     if (change > 0n && after < change) continue;
     const floor = floorAfter(after - change, after, env.tolerance);
     // `>= 0` holds whatever happens: it asserts nothing.
     if (floor === 0n) continue;
-    const own = account === executor;
+    const own = address === executor;
+    const who = account(address, own ? "executor" : "recipient");
+    const written = check(who, floor);
+    if (!written) continue;
+    const { line, least } = written;
     out.push({
-      line: `assert ${expr(account)} >= ${floor}`,
-      description:
-        change === 0n
-          ? `${what} balance of ${truncateAddress(account)} does not decrease`
-          : change > 0n && own
-            ? `${truncateAddress(account)} receives at least the simulated ${what}`
-            : change > 0n
-              ? `${truncateAddress(account)} holds at least the ${what} it received; that account can make this check fail by moving it first`
-              : `${truncateAddress(account)} spends no more ${what} than simulated`,
+      line,
+      sentence:
+        change <= 0n
+          ? say`${who} keeps at least ${least}`
+          : own
+            ? say`${who} holds at least ${least}`
+            : say`${who} holds at least ${least}; that account can make this check fail by moving its funds first`,
       kind: "amount",
     });
   }

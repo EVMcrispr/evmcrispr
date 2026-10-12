@@ -1,9 +1,10 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
-import { collectSuggestions } from "@evmcrispr/sdk";
 import {
   eventLog,
+  literalLine,
   suggestEnv,
+  suggested,
   viewKey,
 } from "@evmcrispr/test-utils/suggestions";
 import { encodePacked, getAddress, keccak256, toHex } from "viem";
@@ -19,12 +20,12 @@ const lines = async (
   answers: Record<string, unknown>,
 ) =>
   (
-    await collectSuggestions({
+    await suggested({
       modules: [{ name: "ens", events }],
       logs,
       env: suggestEnv(answers),
     })
-  ).map((s) => s.line);
+  ).map(literalLine);
 
 describe("ens events", () => {
   it("a new subnode owner", async () => {

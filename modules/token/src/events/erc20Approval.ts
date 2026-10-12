@@ -1,5 +1,13 @@
-import { type Candidate, defineEvent, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import {
+  account,
+  type Candidate,
+  defineEvent,
+  exactly,
+  line,
+  say,
+  token,
+} from "@evmcrispr/sdk";
+import { maxUint256 } from "viem";
 
 export default defineEvent({
   name: "erc20Approval",
@@ -7,10 +15,11 @@ export default defineEvent({
   event:
     "event Approval(address indexed owner, address indexed spender, uint256 value)",
   suggest: async (env, { emitter, logs }) => {
+    const erc20 = await token(env, emitter);
     const pairs = new Map(
       logs.map((l) => [
         `${l.owner}:${l.spender}`,
-        [getAddress(l.owner), getAddress(l.spender)] as const,
+        [account(l.owner, "owner"), account(l.spender, "spender")] as const,
       ]),
     );
     const out: Candidate[] = [];
@@ -18,15 +27,18 @@ export default defineEvent({
       const allowance = await env.read(
         emitter,
         "function allowance(address,address) view returns (uint256)",
-        [owner, spender],
+        [owner.address, spender.address],
       );
       if (typeof allowance !== "bigint") continue;
+      const left = exactly(erc20, allowance);
       out.push({
-        line: `assert @token:allowance!(${emitter} ${owner} ${spender}) == ${allowance}`,
-        description:
+        line: line`assert @token:allowance!(${erc20} ${owner} ${spender}) == ${left}`,
+        sentence:
           allowance === 0n
-            ? `${truncateAddress(spender)} is left with no ${await env.tokenName(emitter)} allowance`
-            : `${truncateAddress(spender)} is left with an allowance of ${await env.formatAmount(emitter, allowance)}`,
+            ? say`${spender} is left with no ${erc20} allowance from ${owner}`
+            : allowance === maxUint256
+              ? say`${spender} is left with an unlimited allowance of ${erc20} from ${owner}`
+              : say`${spender} is left with an allowance of ${left} from ${owner}`,
         kind: "amount",
       });
     }

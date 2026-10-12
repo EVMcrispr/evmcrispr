@@ -177,6 +177,9 @@ export default defineCommand<Sim>({
     // suggestion is an extra.
     const suggest = module.context.suggest;
     const runLogs: ReceiptLog[] = [];
+    // Gas the run used, and what the fork charged for it (in-process
+    // backends charge nothing).
+    const runGas = { used: 0n, paid: 0n };
     const payer = suggest
       ? await module.getConnectedAccount().catch(() => undefined)
       : undefined;
@@ -628,6 +631,14 @@ export default defineCommand<Sim>({
       if (suggest && module.activeChainId === chainId) {
         const logs = (receipt as { logs?: ReceiptLog[] } | undefined)?.logs;
         if (logs?.length) runLogs.push(...logs);
+        const { gasUsed, effectiveGasPrice } = (receipt ?? {}) as {
+          gasUsed?: bigint | number;
+          effectiveGasPrice?: bigint;
+        };
+        if (gasUsed !== undefined) {
+          runGas.used += BigInt(gasUsed);
+          runGas.paid += BigInt(gasUsed) * (effectiveGasPrice ?? 0n);
+        }
       }
       return receipt;
     };
@@ -648,6 +659,7 @@ export default defineCommand<Sim>({
                 executor,
                 payer,
                 nativeBefore,
+                gas: runGas,
                 tolerance: suggest.tolerance,
               })
             : { suggestions: [], truncated: false };

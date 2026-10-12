@@ -1,9 +1,10 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
-import { collectSuggestions } from "@evmcrispr/sdk";
 import {
   eventLog,
+  literalLine,
   suggestEnv,
+  suggested,
   viewKey,
 } from "@evmcrispr/test-utils/suggestions";
 import { getAddress } from "viem";
@@ -13,12 +14,12 @@ const TARGET = getAddress("0x0000000000000000000000000000000000005d01");
 const WHO = getAddress("0x0000000000000000000000000000000000005d02");
 const lines = async (sig: string, answers: Record<string, unknown>) =>
   (
-    await collectSuggestions({
+    await suggested({
       modules: [{ name: "std", events }],
       logs: [eventLog(sig, TARGET, { account: WHO })],
       env: suggestEnv(answers),
     })
-  ).map((s) => s.line);
+  ).map(literalLine);
 
 describe("std events", () => {
   it("paused and unpaused are confirmed by paused()", async () => {

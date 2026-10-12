@@ -61,6 +61,7 @@ export type {
   RelativeBinding,
   RelativeNullableBinding,
   RpcAction,
+  SentencePart,
   ShareableScript,
   SharePayload,
   SmartBatchAction,

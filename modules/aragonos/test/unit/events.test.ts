@@ -1,9 +1,10 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
-import { collectSuggestions } from "@evmcrispr/sdk";
 import {
   eventLog,
+  literalLine,
   suggestEnv,
+  suggested,
   viewKey,
 } from "@evmcrispr/test-utils/suggestions";
 import { getAddress, keccak256, toHex } from "viem";
@@ -17,14 +18,14 @@ const SIG =
   "event SetPermission(address indexed entity, address indexed app, bytes32 indexed role, bool allowed)";
 const lines = async (allowed: boolean, answers: Record<string, unknown>) =>
   (
-    await collectSuggestions({
+    await suggested({
       modules: [{ name: "aragonos", events }],
       logs: [
         eventLog(SIG, ACL, { entity: ENTITY, app: APP, role: ROLE, allowed }),
       ],
       env: suggestEnv(answers),
     })
-  ).map((s) => s.line);
+  ).map(literalLine);
 
 describe("aragonos events", () => {
   it("a set permission is confirmed by the ACL", async () => {

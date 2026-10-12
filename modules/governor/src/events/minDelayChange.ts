@@ -1,4 +1,10 @@
-import { defineEvent, stateCandidate, truncateAddress } from "@evmcrispr/sdk";
+import {
+  contract,
+  defineEvent,
+  line,
+  say,
+  stateCandidate,
+} from "@evmcrispr/sdk";
 
 export default defineEvent({
   name: "minDelayChange",
@@ -6,6 +12,7 @@ export default defineEvent({
   event: "event MinDelayChange(uint256 oldDuration, uint256 newDuration)",
   suggest: async (env, { emitter, logs }) => {
     const delay = logs.at(-1)!.newDuration as bigint;
+    const target = await contract(env, emitter, "contract");
     return stateCandidate(
       env,
       {
@@ -13,8 +20,8 @@ export default defineEvent({
         signature: "function getMinDelay() view returns (uint256)",
         expect: delay,
       },
-      `assert @governor:timelockMinDelay!(${emitter}) == ${delay}`,
-      `${truncateAddress(emitter)} waits at least ${delay} seconds`,
+      line`assert @governor:timelockMinDelay!(${target}) == ${delay}`,
+      say`${target} waits at least ${delay} seconds`,
     );
   },
 });

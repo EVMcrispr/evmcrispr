@@ -1,5 +1,4 @@
-import { defineEvent, truncateAddress } from "@evmcrispr/sdk";
-import { getAddress } from "viem";
+import { account, contract, defineEvent, line, say } from "@evmcrispr/sdk";
 import { firstWordCandidate, lastBy } from "./_shared";
 
 export default defineEvent({
@@ -9,12 +8,13 @@ export default defineEvent({
   event:
     "event RoleGranted(uint64 indexed roleId, address indexed account, uint32 delay, uint48 since, bool newMember)",
   suggest: async (env, { emitter, logs }) => {
+    const target = await contract(env, emitter, "contract");
     const out = [];
-    for (const { roleId, account } of lastBy(
+    for (const { roleId, account: address } of lastBy(
       logs,
       (l) => `${l.roleId}:${l.account}`,
     )) {
-      const who = getAddress(account);
+      const who = account(address, "account");
       out.push(
         ...(await firstWordCandidate(
           env,
@@ -22,11 +22,11 @@ export default defineEvent({
             address: emitter,
             signature:
               "function hasRole(uint64,address) view returns (bool, uint32)",
-            args: [roleId, who],
+            args: [roleId, who.address],
             expect: true,
           },
-          `assert @acl:hasRole!(${emitter} ${roleId} ${who}) == true`,
-          `${truncateAddress(who)} is a member of role ${roleId} on ${truncateAddress(emitter)}`,
+          line`assert @acl:hasRole!(${target} ${roleId} ${who}) == true`,
+          say`${who} is a member of role ${roleId} on ${target}`,
         )),
       );
     }
