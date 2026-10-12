@@ -89,7 +89,9 @@ describe("CLI", () => {
         expect(result.stdout).toBe(`${payload}\n`);
         expect(result.stderr).toBe("");
       }
-    });
+      // Three runs of the CLI, the first of them cold: seconds each on a
+      // CI runner, more than the default allows for the three.
+    }, 30_000);
     it("reserves stdin for source with run - and keeps errors off stdout", async () => {
       const result = await run(["run", "-"], {
         input: "load http [@fetch]\nprint @fetch(stdin:)",

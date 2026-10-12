@@ -8,7 +8,13 @@ import {
   revisions,
   shareOf,
 } from "@evmcrispr/space";
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { useLocation } from "react-router";
 import { setUi } from "../../src/app/ui-store";
 import { ScriptLoadState } from "../../src/components/terminal/ScriptLoadState";
@@ -109,6 +115,9 @@ test("sharing the script: its row reads shared, the row hands the same link back
   const revision = head(space.timeline.getState())!;
   // A script is shared from the header; a row only gives its link back.
   await click(screen.getByRole("button", { name: "Share script" }));
+  // Pinning hashes what it sends and what it is answered: not done in a
+  // tick. The link being copied is the end of it.
+  await waitFor(() => expect(copied).toHaveLength(1));
   expect(pinned).toHaveLength(1);
   expect(shareOf(space.timeline.getState(), revision.id)?.cid).toBe(cids[0]);
   expect(copied[0]).toMatch(new RegExp(`#/${cids[0]}#[\\w-]{43}$`));
@@ -219,12 +228,13 @@ test("Export: the dialog says the link gives permanent access to everything, pin
   expect(dialog.textContent).toContain("chats with the assistant are not");
   expect(pinned).toHaveLength(0);
   await click(within(dialog).getByRole("button", { name: "Create link" }));
-  expect(pinned).toHaveLength(1);
+  // As above: the link is there when the pinning is done.
   const url = (
-    within(dialog).getByLabelText(
+    (await within(dialog).findByLabelText(
       "Link to the exported space",
-    ) as HTMLInputElement
+    )) as HTMLInputElement
   ).value;
+  expect(pinned).toHaveLength(1);
   const [, cid, key] = url.match(/#\/(\w+)#([\w-]+)$/) ?? [];
   expect(cid).toBe(cids[0]);
   expect(await decryptPayload(pinned[0], key)).toMatchObject({

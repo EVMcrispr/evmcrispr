@@ -18,18 +18,20 @@ test("a command's or a helper's page is named as the website names it", () => {
   );
 });
 
-test("every entry of the panel has its page among the website's docs", async () => {
-  const docs = path.resolve(
-    import.meta.dir,
-    "../../../evmcrispr-website/src/content/docs/reference",
-  );
+test("every entry of the panel has its page among the docs the website is built from", async () => {
+  // The website's reference pages are links to each module's own pages,
+  // made when the docs are generated and only for what that build shows
+  // (an experimental entry has one only with the flag on). The modules'
+  // pages are what is committed, and they are always all there.
+  const modules = path.resolve(import.meta.dir, "../../../../modules");
   const missing = (await loadReferenceEntries())
     .filter(
       (entry) =>
         !existsSync(
           path.join(
-            docs,
+            modules,
             entry.module,
+            "src",
             `${entry.kind}s`,
             // An on-chain face is documented on the page of its helper.
             `${entry.name.replace(/!$/, "")}.md`,

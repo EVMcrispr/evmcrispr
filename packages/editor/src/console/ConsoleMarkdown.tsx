@@ -32,7 +32,9 @@ export function ConsoleMarkdown({
   markdown?: boolean;
 }) {
   if (!markdown)
-    return <span className="whitespace-pre-wrap break-words">{children}</span>;
+    return (
+      <span className="whitespace-pre-wrap wrap-break-word">{children}</span>
+    );
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
