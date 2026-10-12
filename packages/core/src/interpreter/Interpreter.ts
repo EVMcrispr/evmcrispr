@@ -11,6 +11,7 @@ import type {
   NodesInterpreter,
   OffchainOverlay,
   RelativeBinding,
+  Suggestion,
 } from "@evmcrispr/sdk";
 import {
   BindingsManager,
@@ -81,6 +82,7 @@ export class Interpreter {
   #modules: Module[];
   #nonces: Record<string, number>;
   #offchain: OffchainOverlay;
+  #suggest?: ModuleContext["suggest"];
   #account: Address | undefined;
   #source: string | undefined;
   #sender: Address | undefined;
@@ -505,6 +507,9 @@ export class Interpreter {
       parseEvml: (script) => parseScript(script),
       getSource: () => this.#source,
       endSimulatedBoxes: (detail) => this.#boxes.endSimulated(detail),
+      get suggest() {
+        return self.#suggest;
+      },
     };
   }
 
@@ -719,6 +724,15 @@ export class Interpreter {
 
   registerLineListener(listener: (line: number | null) => void): Interpreter {
     this.#lineListeners.push(listener);
+    return this;
+  }
+
+  /** Ask simulations run by this interpreter for suggested assertions. */
+  registerSuggestionSink(
+    options: { tolerance: number; executor?: Address },
+    sink: (suggestions: Suggestion[], info?: { truncated?: boolean }) => void,
+  ): Interpreter {
+    this.#suggest = { ...options, report: sink };
     return this;
   }
 

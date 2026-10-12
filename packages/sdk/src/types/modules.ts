@@ -4,6 +4,7 @@ import type { IPFSResolver } from "../IPFSResolver";
 import type { Module } from "../Module";
 import type { Param } from "../utils/encoders";
 import type { ArgDef, ArgType, OptDef } from "../utils/schema";
+import type { EventImportMap, Suggestion } from "../utils/suggestions";
 import type { Action } from "./actions";
 import type {
   AST,
@@ -109,6 +110,16 @@ export interface ModuleContext {
    *  `detail`). `sim:fork` calls it when its block returns, after the
    *  boxes' watches have seen the outcomes that just settled. */
   endSimulatedBoxes?(detail: string): Promise<void>;
+
+  /** Set when the host asked a simulation for suggested assertions.
+   *  `sim:fork` reads the options and reports what it found. */
+  readonly suggest?: {
+    tolerance: number;
+    executor?: Address;
+    /** `truncated`: the run emitted more than was looked at, so the list
+     *  may be missing suggestions. */
+    report(suggestions: Suggestion[], info?: { truncated?: boolean }): void;
+  };
 }
 
 /** Who is executing the current nodes: the user's script (default) or a
@@ -368,4 +379,7 @@ export interface IModuleConstructor {
   readonly moduleName: string;
   /** Human-readable module description, surfaced in completions. */
   readonly moduleDescription?: string;
+  /** Events this module turns into suggested assertions after a
+   *  simulation (codegen'd from `src/events`). */
+  readonly events?: EventImportMap;
 }

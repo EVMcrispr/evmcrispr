@@ -14,6 +14,7 @@ import { join } from "node:path";
 const srcDir = process.argv[2] || "./src";
 const commandsDir = join(srcDir, "commands");
 const helpersDir = join(srcDir, "helpers");
+const eventsDir = join(srcDir, "events");
 
 function getNames(dir: string): string[] {
   if (!existsSync(dir)) return [];
@@ -240,6 +241,7 @@ function extractCommandMeta(
 
 const commandNames = getNames(commandsDir);
 const helperNames = getNames(helpersDir);
+const eventNames = getNames(eventsDir);
 const hasConfigs = existsSync(join(srcDir, "configs.ts"));
 const hasChains = existsSync(join(srcDir, "chains.ts"));
 
@@ -250,6 +252,7 @@ const lines: string[] = [
 const imports: string[] = [];
 if (commandNames.length > 0) imports.push("CommandImportMap");
 if (helperNames.length > 0) imports.push("HelperImportMap");
+if (eventNames.length > 0) imports.push("EventImportMap");
 
 if (imports.length > 0) {
   lines.push(`import type { ${imports.join(", ")} } from "@evmcrispr/sdk";`);
@@ -358,6 +361,34 @@ if (hasChains) {
   lines.push('export { chains } from "./chains";');
 } else {
   lines.push("export const chains = [];");
+}
+
+lines.push("");
+
+if (eventNames.length > 0) {
+  lines.push("export const events: EventImportMap = {");
+  for (const name of eventNames) {
+    const content = stripComments(
+      readFileSync(join(eventsDir, `${name}.ts`), "utf-8"),
+    );
+    const event = extractStringProp(content, "event");
+    if (!event) {
+      console.error(
+        `codegen: event ${name}.ts needs \`event: "event Name(...)"\` as one string literal`,
+      );
+      process.exit(1);
+    }
+    const parts = [
+      `load: () => import("./events/${name}")`,
+      `event: ${JSON.stringify(event)}`,
+    ];
+    const description = extractStringProp(content, "description");
+    if (description) parts.push(`description: ${JSON.stringify(description)}`);
+    lines.push(`  ${JSON.stringify(name)}: { ${parts.join(", ")} },`);
+  }
+  lines.push("};");
+} else {
+  lines.push("export const events = {};");
 }
 
 lines.push("");

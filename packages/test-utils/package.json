@@ -21,6 +21,11 @@
       "types": "./src/onchain/index.ts",
       "import": "./src/onchain/index.ts"
     },
+    "./suggestions": {
+      "bun": "./src/suggestions.ts",
+      "types": "./src/suggestions.ts",
+      "import": "./src/suggestions.ts"
+    },
     "./msw/server": {
       "bun": "./src/msw/server.ts",
       "types": "./src/msw/server.ts",

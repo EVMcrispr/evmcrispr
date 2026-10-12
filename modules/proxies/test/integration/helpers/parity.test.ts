@@ -7,7 +7,7 @@ import { encodeAbiParameters } from "viem";
 import { helpers } from "../../../src/_generated";
 
 /**
- * @proxies' one both-faced helper, and the case where the two faces genuinely
+ * @proxies' both-faced helpers, and the cases where the two faces genuinely
  * cannot agree.
  *
  * They resolve by different mechanisms rather than by different encodings of
@@ -72,6 +72,16 @@ describeParity("@proxies", {
       run: `@proxies:implementation(${TOKEN_DISTRO})`,
       compile: `@proxies:implementation!(${TOKEN_DISTRO})`,
       helper: "implementation",
+      reverts: /revert/i,
+    },
+    {
+      // The admin lives in a slot the transparent proxy shows to no one but
+      // that admin: the plain face reads the slot, the on-chain face has
+      // only `admin()` to call, and it reverts.
+      name: "reverts: a transparent proxy hides its admin from everyone else",
+      run: `@proxies:admin(${TOKEN_DISTRO})`,
+      compile: `@proxies:admin!(${TOKEN_DISTRO})`,
+      helper: "admin",
       reverts: /revert/i,
     },
   ],

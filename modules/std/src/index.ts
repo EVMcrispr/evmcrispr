@@ -1,7 +1,7 @@
 import type { Module } from "@evmcrispr/sdk";
 import { defineModule } from "@evmcrispr/sdk";
 import { zeroAddress } from "viem";
-import { commands, configs, helpers } from "./_generated";
+import { commands, configs, events, helpers } from "./_generated";
 import { types } from "./argTypes";
 
 export { tokenSymbolArgType } from "./argTypes";
@@ -17,6 +17,8 @@ export default class Std extends defineModule(
   constants,
   configs,
 ) {
+  static readonly events = events;
+
   get modules(): Module[] {
     return this.context.modules;
   }

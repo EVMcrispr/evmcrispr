@@ -1,7 +1,7 @@
 import type { Address, ModuleContext } from "@evmcrispr/sdk";
 import { defineModule } from "@evmcrispr/sdk";
 import { isAddressEqual } from "viem";
-import { commands, configs, helpers } from "./_generated";
+import { commands, configs, events, helpers } from "./_generated";
 
 export default class Safe extends defineModule(
   "safe",
@@ -11,6 +11,8 @@ export default class Safe extends defineModule(
   undefined,
   configs,
 ) {
+  static readonly events = events;
+
   /** Active nesting stack (push/pop). Tracks the Safe targeted by the
    *  enclosing `safe:propose` / `safe:execute` block, if any, and whether
    *  a `safe:upgrade` earlier in that block will move it to v1.5.0. */

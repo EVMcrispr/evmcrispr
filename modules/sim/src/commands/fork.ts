@@ -146,6 +146,23 @@ export default defineCommand<Sim>({
     }
     module.context.setClient(forkManager.active.publicClient);
 
+    // Suggested assertions: what the host asked for, the logs the run
+    // leaves on this chain, and the executor's balance before it. Nothing
+    // here may fail the fork: a simulation needs no account, and a
+    // suggestion is an extra.
+    const suggest = module.context.suggest;
+    const runLogs: ReceiptLog[] = [];
+    const payer = suggest
+      ? await module.getConnectedAccount().catch(() => undefined)
+      : undefined;
+    const executor = suggest?.executor ?? payer;
+    const nativeBefore =
+      suggest && executor
+        ? await forkManager.active.publicClient
+            .getBalance({ address: executor })
+            .catch(() => undefined)
+        : undefined;
+
     const prefix = rpcPrefix(mode);
     let relaySeq = 0;
 
@@ -579,14 +596,43 @@ export default defineCommand<Sim>({
       return undefined;
     };
 
-    const simulateAction = (action: Action) =>
-      execAction(action, { relayScan: true });
+    const simulateAction = async (action: Action) => {
+      const receipt = await execAction(action, { relayScan: true });
+      // Only the chain the fork started on: a destination's logs belong to
+      // another run.
+      if (suggest && module.activeChainId === chainId) {
+        const logs = (receipt as { logs?: ReceiptLog[] } | undefined)?.logs;
+        if (logs?.length) runLogs.push(...logs);
+      }
+      return receipt;
+    };
 
     try {
       await interpretNode(blockExpressionNode, {
         actionCallback: simulateAction,
         simulation: true,
       });
+      if (suggest && module.activeChainId === chainId) {
+        try {
+          const { suggestFromRun } = await import("../lib/suggest");
+          const found = executor
+            ? await suggestFromRun(module, {
+                client: forkManager.active.publicClient,
+                chainId,
+                logs: runLogs,
+                executor,
+                payer,
+                nativeBefore,
+                tolerance: suggest.tolerance,
+              })
+            : { suggestions: [], truncated: false };
+          suggest.report(found.suggestions, { truncated: found.truncated });
+        } catch {
+          // The run succeeded; that it could not be read back for
+          // suggestions does not change that.
+          suggest.report([]);
+        }
+      }
     } finally {
       if (module.pendingDeliveries.length > 0) {
         const destinations = [

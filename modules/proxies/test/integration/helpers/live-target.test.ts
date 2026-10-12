@@ -62,3 +62,16 @@ test("the implementation is read from the proxy a call returns", async () => {
     ),
   ).to.equal(getAddress(logic));
 });
+
+test("admin and beacon are read from the proxy a call returns", async () => {
+  const answer = "0x00000000000000000000000000000000000d0a03";
+  for (const expression of [
+    `@proxies:admin!(${LIVE})`,
+    `@proxies:beacon!(${LIVE})`,
+  ]) {
+    expect(
+      await resolved(expression, "address", PROXY, address(answer)),
+      expression,
+    ).to.equal(getAddress(answer));
+  }
+});

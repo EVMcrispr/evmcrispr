@@ -43,6 +43,7 @@ export * from "./serialize";
 export * from "./shareEnvelope";
 export * from "./signatures";
 export * from "./sliceNodeText";
+export * from "./suggestions";
 export * from "./time";
 export * from "./token-holdings";
 export * from "./web3";

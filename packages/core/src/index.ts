@@ -65,6 +65,7 @@ export type {
   SharePayload,
   SmartBatchAction,
   StringLiteralNode,
+  Suggestion,
   TerminalAction,
   TransactionAction,
   UserBinding,

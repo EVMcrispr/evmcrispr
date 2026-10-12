@@ -1,6 +1,6 @@
 import type { Address } from "@evmcrispr/sdk";
 import { defineModule } from "@evmcrispr/sdk";
-import { commands, configs, helpers } from "./_generated";
+import { commands, configs, events, helpers } from "./_generated";
 import { types } from "./argTypes";
 import type { DaoContext } from "./dao";
 import { ANY_ENTITY, BURN_ENTITY, NO_ENTITY } from "./utils/acl";
@@ -24,6 +24,8 @@ export default class AragonOS extends defineModule(
   constants,
   configs,
 ) {
+  static readonly events = events;
+
   /** The DAO of the enclosing `connect` block, if any. */
   #currentDAO?: DaoContext;
 

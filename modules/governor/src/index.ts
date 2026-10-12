@@ -1,5 +1,5 @@
 import { defineModule } from "@evmcrispr/sdk";
-import { commands, helpers } from "./_generated";
+import { commands, events, helpers } from "./_generated";
 import { types } from "./argTypes";
 
 export default class Governor extends defineModule(
@@ -7,4 +7,6 @@ export default class Governor extends defineModule(
   commands,
   helpers,
   types,
-) {}
+) {
+  static readonly events = events;
+}

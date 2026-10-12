@@ -1,4 +1,4 @@
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, Suggestion } from "@evmcrispr/sdk";
 import { ErrorException } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 
@@ -21,6 +21,10 @@ export interface SimulateOptions {
   authToken?: string;
   /** Cancels the simulation between actions and aborts fork RPC fetches. */
   signal?: AbortSignal;
+  /** Ask for assertions suggested from what the run did. `tolerance` is the
+   *  percent of a balance change an amount check allows (default 1);
+   *  `executor` is the account whose balances are guarded (default `from`). */
+  suggest?: boolean | { tolerance?: number; executor?: Address };
 }
 
 export interface SimulationResult {
@@ -33,6 +37,12 @@ export interface SimulationResult {
    *  fork, each stamped with the chain id it targeted. */
   actions: Action[];
   error?: string;
+  /** Suggested `assert` lines, when `suggest` was asked and the run
+   *  succeeded. */
+  suggestions?: Suggestion[];
+  /** The run emitted more than the suggestions looked at: the list may be
+   *  missing some. */
+  suggestionsTruncated?: true;
 }
 
 function needsSimWrap(script: string): boolean {
@@ -96,6 +106,25 @@ export async function simulateScript(
     dispatched.push(action);
   });
 
+  let suggestions: Suggestion[] | undefined;
+  let truncated = false;
+  if (options.suggest) {
+    const asked = options.suggest === true ? {} : options.suggest;
+    // A percentage: anything else would put a floor above the simulated
+    // balance, or nowhere.
+    const given = asked.tolerance ?? 1;
+    const tolerance = Number.isFinite(given)
+      ? Math.min(100, Math.max(0, given))
+      : 1;
+    interpreter.registerSuggestionSink(
+      { tolerance, executor: asked.executor },
+      (found, info) => {
+        suggestions = [...(suggestions ?? []), ...found];
+        if (info?.truncated) truncated = true;
+      },
+    );
+  }
+
   const script = needsSimWrap(source) ? wrapScript(source, options) : source;
 
   try {
@@ -105,7 +134,13 @@ export async function simulateScript(
     const returned = await interpreter.interpret(script, undefined, {
       signal: options.signal,
     });
-    return { success: true, logs, actions: [...dispatched, ...returned] };
+    return {
+      success: true,
+      logs,
+      actions: [...dispatched, ...returned],
+      ...(options.suggest ? { suggestions: suggestions ?? [] } : {}),
+      ...(truncated ? { suggestionsTruncated: true as const } : {}),
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { success: false, logs, actions: dispatched, error: message };
