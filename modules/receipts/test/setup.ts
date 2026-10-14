@@ -38,7 +38,7 @@ const WXDAI_ABI = [
 // Etherscan mock reports unverified), the ABI service and openchain. All
 // three must be deterministic — live latency here blew CI test timeouts.
 const enrichmentHandlers = [
-  http.get("https://gnosis.blockscout.com/api", ({ request }) => {
+  http.get("https://gnosisscan.io/api", ({ request }) => {
     const url = new URL(request.url);
     if (url.searchParams.get("action") === "txlist") {
       const limit = Number(url.searchParams.get("offset") ?? "10");

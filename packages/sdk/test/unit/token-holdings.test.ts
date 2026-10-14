@@ -96,7 +96,7 @@ describe("fetchTokenHoldings", () => {
       },
     ]);
     expect(requests).toEqual([
-      `https://gnosis.blockscout.com/api/v2/addresses/${HOLDER}/token-balances`,
+      `https://gnosisscan.io/api/v2/addresses/${HOLDER}/token-balances`,
     ]);
   });
 
@@ -124,7 +124,7 @@ describe("fetchTokenHoldings", () => {
   it("throws on a non-OK response instead of reporting no explorer", async () => {
     serve(() => json({ message: "Not found" }, { status: 404 }));
     await expect(fetchTokenHoldings(GNOSIS, HOLDER)).rejects.toThrow(
-      /gnosis\.blockscout\.com.*404/,
+      /gnosisscan\.io.*404/,
     );
 
     clearTokenHoldingsCache();
@@ -137,14 +137,14 @@ describe("fetchTokenHoldings", () => {
       throw new TypeError("Unable to connect");
     });
     await expect(fetchTokenHoldings(GNOSIS, HOLDER)).rejects.toThrow(
-      /gnosis\.blockscout\.com.*Unable to connect/,
+      /gnosisscan\.io.*Unable to connect/,
     );
   });
 
   it("throws on a malformed payload instead of reporting no explorer", async () => {
     serve(() => json({ items: [] }));
     await expect(fetchTokenHoldings(GNOSIS, HOLDER)).rejects.toThrow(
-      /gnosis\.blockscout\.com/,
+      /gnosisscan\.io/,
     );
 
     clearTokenHoldingsCache();
@@ -155,7 +155,7 @@ describe("fetchTokenHoldings", () => {
         }),
     );
     await expect(fetchTokenHoldings(GNOSIS, HOLDER)).rejects.toThrow(
-      /gnosis\.blockscout\.com/,
+      /gnosisscan\.io/,
     );
   });
 

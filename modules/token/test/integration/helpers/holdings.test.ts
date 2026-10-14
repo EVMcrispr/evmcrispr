@@ -43,7 +43,7 @@ const holding = (
 // entries the helper must drop — an NFT, a zero balance and a malformed entry.
 server.use(
   http.get(
-    "https://gnosis.blockscout.com/api/v2/addresses/:address/token-balances",
+    "https://gnosisscan.io/api/v2/addresses/:address/token-balances",
     ({ params }) => {
       const address = String(params.address).toLowerCase();
       if (address === HOLDER)
@@ -102,7 +102,7 @@ describeHelper(
       {
         name: "should fail, undeclared, when the explorer answers with an error",
         input: `@token:holdings(${SOME_ADDRESS})`,
-        error: /gnosis\.blockscout\.com answered 404/,
+        error: /gnosisscan\.io answered 404/,
       },
       {
         name: "should fail, undeclared, when the explorer payload is not a list",

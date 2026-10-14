@@ -1,6 +1,5 @@
 import {
   fetchContractSource,
-  readEtherscanApiKey,
   renderContractSource,
   resolveChainId,
 } from "@evmcrispr/sdk";
@@ -12,9 +11,10 @@ import { untrusted } from "./untrusted";
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 /**
- * Contract-reading tools: verified source and ABI from Etherscan, so the
- * model can learn a contract's actual interface and behavior instead of
- * guessing function signatures.
+ * Contract-reading tools: verified source and ABI from a block explorer
+ * (Etherscan with a key or a proxy, else the EVMcrispr API's cache of it,
+ * else Blockscout), so the model can learn a contract's actual interface
+ * and behavior instead of guessing function signatures.
  */
 export function createContractTools(
   /** Chain id the host is currently working against, used when a call
@@ -23,7 +23,7 @@ export function createContractTools(
 ): ToolSet {
   const getContract = tool({
     description:
-      "Read the verified source code of a deployed contract from Etherscan. Without `file` it returns an overview: contract name, compiler settings, proxy information, the full ABI as human-readable signatures, and the list of source files. Pass `file` to read one source file. Use it to learn a contract's functions before writing exec calls against it, or to explain what a contract does.",
+      "Read the verified source code of a deployed contract from a block explorer (Etherscan or Blockscout). Without `file` it returns an overview: contract name, compiler settings, proxy information, the full ABI as human-readable signatures, and the list of source files. Pass `file` to read one source file. Use it to learn a contract's functions before writing exec calls against it, or to explain what a contract does.",
     inputSchema: z.object({
       address: z.string().describe("Contract address (0x...)"),
       chain: z
@@ -40,9 +40,6 @@ export function createContractTools(
     execute: async ({ address, chain, file }) => {
       if (!ADDRESS_RE.test(address))
         return `ERROR: "${address}" is not a valid address. Pass a 0x-prefixed 40-hex-char address; resolve ENS names first (e.g. simulate a \`print @ens(...)\` one-liner).`;
-      if (!readEtherscanApiKey())
-        return "ERROR: no Etherscan API key is configured in this build, so contract source cannot be fetched. Fall back to search_web/fetch_page for documentation.";
-
       let chainId: number | undefined;
       try {
         chainId = chain != null ? resolveChainId(chain) : getDefaultChainId();
@@ -54,7 +51,7 @@ export function createContractTools(
 
       const source = await fetchContractSource(chainId, address as Address);
       if (!source)
-        return `ERROR: no verified source for ${address} on chain ${chainId}. The contract may be unverified, the address may be an EOA, the chain may be unsupported by Etherscan, or the address may only be deployed on another chain — retry with the right \`chain\` if so.`;
+        return `ERROR: no verified source for ${address} on chain ${chainId}. The contract may be unverified, the address may be an EOA, no explorer this host can reach may cover the chain or answer right now, or the address may only be deployed on another chain — retry with the right \`chain\` if so, or fall back to search_web/fetch_page for documentation.`;
 
       return untrusted(
         "a contract's verified source",

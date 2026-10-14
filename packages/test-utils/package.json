@@ -36,10 +36,20 @@
       "types": "./src/msw/blockscout/index.ts",
       "import": "./src/msw/blockscout/index.ts"
     },
+    "./msw/contract-api": {
+      "bun": "./src/msw/contract-api/index.ts",
+      "types": "./src/msw/contract-api/index.ts",
+      "import": "./src/msw/contract-api/index.ts"
+    },
     "./msw/etherscan": {
       "bun": "./src/msw/etherscan/index.ts",
       "types": "./src/msw/etherscan/index.ts",
       "import": "./src/msw/etherscan/index.ts"
+    },
+    "./msw/sourcify": {
+      "bun": "./src/msw/sourcify/index.ts",
+      "types": "./src/msw/sourcify/index.ts",
+      "import": "./src/msw/sourcify/index.ts"
     },
     "./msw/tokenlist": {
       "bun": "./src/msw/tokenlist/index.ts",

@@ -3,7 +3,10 @@ import { getAddress } from "viem";
 
 import type { Address } from "../types";
 import {
+  type ContractApiSource,
   type EtherscanSourceResult,
+  fetchContractApi,
+  fetchSourcifyContract,
   fetchVerifiedContractFull,
 } from "./contract-verification";
 
@@ -122,12 +125,99 @@ function parseAbiSignatures(abiJson: string | undefined): readonly string[] {
 // Fetch
 // ---------------------------------------------------------------------------
 
+/** The contract from Sourcify, when there is no key or proxy to ask
+ * Etherscan with; `null` sends the caller on to the EVMcrispr API. */
+async function fetchContractSourceFromSourcify(
+  chainId: number,
+  address: Address,
+): Promise<ContractSource | null> {
+  const contract = await fetchSourcifyContract(
+    chainId,
+    address,
+    "abi,compilation,sources,proxyResolution",
+  );
+  if (!contract?.compilation?.name) return null;
+  const compilation = contract.compilation;
+  const optimizer = compilation.compilerSettings?.optimizer;
+  const optimizationUsed = optimizer?.enabled === true;
+  const evmVersion = compilation.compilerSettings?.evmVersion;
+  let abi: readonly string[] = [];
+  try {
+    abi = formatAbi((contract.abi ?? []) as Parameters<typeof formatAbi>[0]);
+  } catch {
+    /* an ABI abitype cannot read is shown as none */
+  }
+  const files: Record<string, string> = {};
+  for (const [path, file] of Object.entries(contract.sources ?? {})) {
+    if (typeof file?.content === "string") files[path] = file.content;
+  }
+  return {
+    name: compilation.name?.trim() || "Contract",
+    compilerVersion: (compilation.compilerVersion ?? "").replace(/^v/, ""),
+    optimizationUsed,
+    runs: optimizationUsed ? Number(optimizer?.runs ?? 0) || 0 : 0,
+    evmVersion:
+      evmVersion && evmVersion.toLowerCase() !== "default"
+        ? evmVersion
+        : undefined,
+    license: undefined,
+    isProxy: contract.proxyResolution?.isProxy === true,
+    // Sourcify names implementations, but they change on upgrade.
+    implementation: undefined,
+    abi,
+    files,
+  };
+}
+
+/** The contract from the EVMcrispr API's `/source` route, when there is
+ * no key or proxy to ask Etherscan with; `null` sends the caller on to
+ * Blockscout. `/source` carries the metadata `/contract` does beside the
+ * files, so this is one request, and one lookup upstream. The API leaves
+ * a proxy's implementation out. */
+async function fetchContractSourceFromApi(
+  chainId: number,
+  address: Address,
+): Promise<ContractSource | null> {
+  const meta = await fetchContractApi<ContractApiSource>(
+    "source",
+    chainId,
+    address,
+  );
+  if (!meta?.name || !meta.files || typeof meta.files !== "object") return null;
+
+  const optimizationUsed = meta.optimizationUsed === true;
+  const license = meta.license?.trim();
+  let abi: readonly string[] = [];
+  try {
+    abi = formatAbi(meta.abi as Parameters<typeof formatAbi>[0]);
+  } catch {
+    /* an ABI abitype cannot read is shown as none */
+  }
+  return {
+    name: meta.name.trim() || "Contract",
+    compilerVersion: (meta.compilerVersion ?? "").replace(/^v/, ""),
+    optimizationUsed,
+    runs: optimizationUsed ? Number(meta.runs ?? 0) || 0 : 0,
+    evmVersion:
+      meta.evmVersion && meta.evmVersion !== "Default"
+        ? meta.evmVersion
+        : undefined,
+    license: license && license !== "None" ? license : undefined,
+    isProxy: meta.isProxy === true,
+    implementation: undefined,
+    abi,
+    files: meta.files,
+  };
+}
+
 /**
- * Fetch and parse the verified source of a contract from Etherscan V2.
+ * Fetch and parse the verified source of a contract: from Etherscan V2
+ * with a key or a proxy, otherwise from Sourcify and then the EVMcrispr
+ * API's `/source` route, and from the chain's Blockscout when those have
+ * nothing.
  *
- * Returns `null` under the same conditions as `fetchVerifiedContractFull`
- * (no `VITE_ETHERSCAN_API_KEY`, contract not verified, unsupported chain,
- * network error). Results are cached in-memory for a few minutes and
+ * Returns `null` when no source has it (contract not verified,
+ * unsupported chain, network error). Results are cached in-memory for a few minutes and
  * concurrent calls for the same `(chainId, address)` are deduped.
  */
 export async function fetchContractSource(
@@ -149,6 +239,14 @@ export async function fetchContractSource(
   if (existing) return existing;
 
   const promise = (async (): Promise<ContractSource | null> => {
+    const fromSourcify = await fetchContractSourceFromSourcify(
+      chainId,
+      normalized,
+    );
+    if (fromSourcify) return fromSourcify;
+    const fromApi = await fetchContractSourceFromApi(chainId, normalized);
+    if (fromApi) return fromApi;
+
     const entry = await fetchVerifiedContractFull(chainId, normalized);
     if (!entry) return null;
 

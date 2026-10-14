@@ -176,8 +176,7 @@ describe("Etherscan lookups through the proxy", () => {
     globalThis.fetch = (async (input: string | URL | Request) => {
       const url = new URL(String(input instanceof Request ? input.url : input));
       requested.push(url);
-      if (url.hostname === "gnosis.blockscout.com")
-        return Response.json(TXLIST);
+      if (url.hostname === "gnosisscan.io") return Response.json(TXLIST);
       return new Response("rate limited", { status: 429 });
     }) as typeof fetch;
 
@@ -185,7 +184,7 @@ describe("Etherscan lookups through the proxy", () => {
     expect(txs?.length).to.equal(1);
     expect(requested.map((u) => u.hostname)).to.deep.equal([
       "api.example",
-      "gnosis.blockscout.com",
+      "gnosisscan.io",
     ]);
   });
 });

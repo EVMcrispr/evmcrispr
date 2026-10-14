@@ -158,6 +158,171 @@ export function etherscanUrl(
   return url;
 }
 
+// ---------------------------------------------------------------------------
+// Network — the keyless path: Sourcify, then the EVMcrispr API
+// ---------------------------------------------------------------------------
+//
+// With neither an Etherscan key nor a proxy, a contract is looked up on
+// Sourcify first (keyless, CORS-open and fast), then on the EVMcrispr
+// API's `/contract` and `/source` routes (Sourcify, Etherscan with a key
+// kept on the server, Blockscout), then on Blockscout directly. With a key
+// or a proxy, neither is asked: Etherscan comes first, as it always has.
+
+/** Sourcify's server, whose v2 API answers verified contracts. */
+export const SOURCIFY_URL = "https://sourcify.dev/server";
+
+let sourcifyApi: string | undefined = SOURCIFY_URL;
+
+/**
+ * Ask `url` (a Sourcify server base, without a trailing slash) first for
+ * verified contracts when there is no Etherscan key and no proxy, or
+ * `undefined` not to ask Sourcify. Set to {@link SOURCIFY_URL} by default.
+ */
+export function setSourcifyApi(url: string | undefined): void {
+  sourcifyApi = url?.replace(/\/+$/, "");
+}
+
+/** The parts of Sourcify's `GET /v2/contract/<chainId>/<address>` answer
+ * read here. `match` is `"match"` or `"exact_match"` for a verified
+ * contract (both count: the name and the source are right either way). */
+export interface SourcifyContract {
+  match?: string | null;
+  abi?: unknown[];
+  compilation?: {
+    name?: string;
+    compilerVersion?: string;
+    compilerSettings?: {
+      optimizer?: { enabled?: boolean; runs?: number };
+      evmVersion?: string;
+    };
+  };
+  sources?: Record<string, { content?: string }>;
+  proxyResolution?: { isProxy?: boolean } | null;
+}
+
+/**
+ * A verified contract from Sourcify with the given `fields`, or `null`
+ * when it is not to be asked (a key or a proxy reaches Etherscan, or
+ * Sourcify is switched off) or has no answer (`404` for unverified, an
+ * unsupported chain, a rate limit, a network error).
+ */
+export async function fetchSourcifyContract(
+  chainId: number,
+  address: Address,
+  fields: string,
+): Promise<SourcifyContract | null> {
+  if (!sourcifyApi || hasEtherscanAccess()) return null;
+  try {
+    const res = await fetch(
+      `${sourcifyApi}/v2/contract/${chainId}/${getAddress(address)}?fields=${fields}`,
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as SourcifyContract;
+    if (!json.match || !json.compilation?.name?.trim()) return null;
+    return json;
+  } catch {
+    return null;
+  }
+}
+
+function sourcifyToInfo(contract: SourcifyContract): VerifiedContractInfo {
+  const compilation = contract.compilation ?? {};
+  const optimizer = compilation.compilerSettings?.optimizer;
+  const optimizationUsed = optimizer?.enabled === true;
+  return {
+    name: compilation.name?.trim() ?? "",
+    compilerVersion: normalizeCompilerVersion(compilation.compilerVersion),
+    optimizationUsed,
+    runs: optimizationUsed ? Number(optimizer?.runs ?? 0) || 0 : 0,
+    license: undefined,
+    matchType: contract.match === "exact_match" ? "perfect" : "partial",
+    isProxy: contract.proxyResolution?.isProxy === true,
+    // Sourcify names implementations, but they change on upgrade; the
+    // proxy detection reads them on-chain, as for the API.
+    implementation: undefined,
+  };
+}
+
+/**
+ * The EVMcrispr API, whose `/contract/<chainId>/<address>` and
+ * `/source/<chainId>/<address>` routes answer a contract's verified
+ * metadata and source, looked up on Sourcify, then on Etherscan with a
+ * key kept on the server, then on Blockscout. Asked when this process has
+ * neither a key nor a proxy, after Sourcify and before Blockscout.
+ */
+export const CONTRACT_API_URL = "https://api.evmcrispr.com";
+
+let contractApi: string | undefined = CONTRACT_API_URL;
+
+/**
+ * Ask `url` (an EVMcrispr API base, without a trailing slash) for
+ * verified contracts when there is no Etherscan key and no proxy, or
+ * `undefined` to go straight to Blockscout. Set to
+ * {@link CONTRACT_API_URL} by default.
+ */
+export function setContractApi(url: string | undefined): void {
+  contractApi = url?.replace(/\/+$/, "");
+}
+
+/** What `/contract/<chainId>/<address>` answers for a verified contract.
+ * A proxy's implementation is not in it (it changes on upgrade): read it
+ * on-chain. */
+export interface ContractApiMetadata {
+  name: string;
+  abi: unknown[];
+  compilerVersion: string;
+  optimizationUsed: boolean;
+  runs: number;
+  evmVersion?: string;
+  license?: string;
+  isProxy: boolean;
+  files: string[];
+}
+
+/** What `/source/<chainId>/<address>` answers: the same metadata, with
+ * the files' contents (path → content) in place of their paths. */
+export interface ContractApiSource extends Omit<ContractApiMetadata, "files"> {
+  files: Record<string, string>;
+}
+
+/**
+ * GET one of the API's contract routes, or `null` when it is not to be
+ * asked (a key or a proxy reaches Etherscan directly, or the API is
+ * switched off) or has no answer (`404` for unverified, a rate limit, a
+ * network error). Callers fall back to Blockscout.
+ */
+export async function fetchContractApi<T>(
+  route: "contract" | "source",
+  chainId: number,
+  address: Address,
+): Promise<T | null> {
+  if (!contractApi || hasEtherscanAccess()) return null;
+  try {
+    const res = await fetch(
+      `${contractApi}/${route}/${chainId}/${getAddress(address)}`,
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+function apiMetadataToInfo(meta: ContractApiMetadata): VerifiedContractInfo {
+  const optimizationUsed = meta.optimizationUsed === true;
+  return {
+    name: meta.name?.trim() ?? "",
+    compilerVersion: normalizeCompilerVersion(meta.compilerVersion),
+    optimizationUsed,
+    runs: optimizationUsed ? Number(meta.runs ?? 0) || 0 : 0,
+    license: normalizeLicense(meta.license),
+    matchType: "perfect",
+    isProxy: meta.isProxy === true,
+    // The API leaves it out on purpose; see `ContractApiMetadata`.
+    implementation: undefined,
+  };
+}
+
 /** Shape of a single result entry in `getsourcecode`. Etherscan returns
  *  every numeric field as a string, so we deliberately keep them as such
  *  here and parse on demand.
@@ -281,8 +446,11 @@ async function fetchVerifiedEntry(
 /**
  * Fetch verified-contract metadata for the given chain.
  *
- * Tries Etherscan's V2 unified endpoint (with `VITE_ETHERSCAN_API_KEY`),
- * falling back to the chain's Blockscout instance, which needs no key.
+ * Tries Etherscan's V2 unified endpoint (with `VITE_ETHERSCAN_API_KEY`, or
+ * through the proxy of {@link setEtherscanProxy}); with neither, Sourcify
+ * (see {@link setSourcifyApi}) and then the EVMcrispr API's `/contract`
+ * route (see {@link setContractApi}). Either way it falls back to the
+ * chain's Blockscout instance, which needs no key.
  * Successful and `null` responses are cached in-memory for a few minutes,
  * and concurrent calls for the same `(chainId, address)` are deduped.
  *
@@ -302,6 +470,18 @@ export async function fetchVerifiedContract(
   if (existing) return existing;
 
   const promise = (async (): Promise<VerifiedContractInfo | null> => {
+    const sourcify = await fetchSourcifyContract(
+      chainId,
+      address,
+      "compilation,proxyResolution",
+    );
+    if (sourcify) return sourcifyToInfo(sourcify);
+    const meta = await fetchContractApi<ContractApiMetadata>(
+      "contract",
+      chainId,
+      address,
+    );
+    if (meta?.name) return apiMetadataToInfo(meta);
     const entry = await fetchVerifiedEntry(chainId, address);
     return entry ? entryToInfo(entry) : null;
   })();

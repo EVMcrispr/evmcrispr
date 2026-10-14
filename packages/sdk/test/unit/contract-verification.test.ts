@@ -112,7 +112,7 @@ afterEach(() => {
 describe("fetchVerifiedContract (Blockscout fallback)", () => {
   it("resolves via Blockscout when no Etherscan key is set", async () => {
     delete process.env.VITE_ETHERSCAN_API_KEY;
-    stubFetch({ "gnosis.blockscout.com": BLOCKSCOUT_SINGLE });
+    stubFetch({ "gnosisscan.io": BLOCKSCOUT_SINGLE });
 
     const info = await fetchVerifiedContract(100, WXDAI);
     expect(info?.name).to.equal("WXDAI");
@@ -125,14 +125,13 @@ describe("fetchVerifiedContract (Blockscout fallback)", () => {
     process.env.VITE_ETHERSCAN_API_KEY = "test-key";
     stubFetch({
       "api.etherscan.io": ETHERSCAN_UNVERIFIED,
-      "gnosis.blockscout.com": BLOCKSCOUT_SINGLE,
+      "gnosisscan.io": BLOCKSCOUT_SINGLE,
     });
 
     const info = await fetchVerifiedContract(100, WXDAI);
     expect(info?.name).to.equal("WXDAI");
     expect(requested.some((u) => u.includes("api.etherscan.io"))).to.be.true;
-    expect(requested.some((u) => u.includes("gnosis.blockscout.com"))).to.be
-      .true;
+    expect(requested.some((u) => u.includes("gnosisscan.io"))).to.be.true;
   });
 
   it("returns null for chains without a Blockscout host", async () => {
@@ -141,14 +140,19 @@ describe("fetchVerifiedContract (Blockscout fallback)", () => {
 
     const info = await fetchVerifiedContract(999_999, WXDAI);
     expect(info).to.be.null;
-    expect(requested).to.deep.equal([]);
+    // Only Sourcify and the EVMcrispr API were asked: they may cover a
+    // chain no Blockscout instance does.
+    expect(requested).to.deep.equal([
+      `https://sourcify.dev/server/v2/contract/999999/${WXDAI}?fields=compilation,proxyResolution`,
+      `https://api.evmcrispr.com/contract/999999/${WXDAI}`,
+    ]);
   });
 });
 
 describe("fetchVerifiedContractFull (Blockscout normalization)", () => {
   it("normalizes AdditionalSources into a parseable standard JSON", async () => {
     delete process.env.VITE_ETHERSCAN_API_KEY;
-    stubFetch({ "gnosis.blockscout.com": BLOCKSCOUT_MULTI });
+    stubFetch({ "gnosisscan.io": BLOCKSCOUT_MULTI });
 
     const entry = await fetchVerifiedContractFull(100, WXDAI);
     expect(entry?.ContractName).to.equal("Main");
@@ -172,7 +176,7 @@ describe("fetchVerifiedContractFull (Blockscout normalization)", () => {
 describe("fetchAddressTransactions", () => {
   it("lists history via Blockscout when no key is set", async () => {
     delete process.env.VITE_ETHERSCAN_API_KEY;
-    stubFetch({ "gnosis.blockscout.com": BLOCKSCOUT_TXLIST });
+    stubFetch({ "gnosisscan.io": BLOCKSCOUT_TXLIST });
 
     const txs = await fetchAddressTransactions(100, WXDAI, 5);
     expect(txs?.length).to.equal(1);

@@ -13,7 +13,8 @@ import type { EtherscanSourceResult } from "./contract-verification";
 export const BLOCKSCOUT_HOSTS: Record<number, string> = {
   1: "eth.blockscout.com",
   10: "explorer.optimism.io",
-  100: "gnosis.blockscout.com",
+  // Blockscout-hosted since gnosis.blockscout.com began redirecting here.
+  100: "gnosisscan.io",
   137: "polygon.blockscout.com",
   8453: "base.blockscout.com",
   42161: "arbitrum.blockscout.com",
