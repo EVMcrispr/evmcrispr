@@ -330,10 +330,34 @@ the address always included.
   that fails the check.
 - A check on someone else's balance (a recipient holds at least what it
   received) can be made to fail by that account moving its funds first.
+- Transfers are added up per account over the whole run: an account paid
+  three times gets one check of the sum, and one that both sent and received
+  is checked on what it ended with. An account the run emptied of a token
+  gets `== 0`, which anyone can make fail by sending it some first.
+- The chain's own currency moves without events, so its checks come from
+  each transaction's state changes instead: every account whose balance it
+  changed, through a call at any depth, a selfdestruct or a refund, with
+  its balance before and after. The in-process backends (`ethereumjs`,
+  `revm`) record them; on `anvil`, `hardhat` and `tenderly` the node is
+  asked for its state diff (`debug_traceTransaction` with the prestate
+  tracer). They are added up over the run, and an account that gained gets
+  a floor and an emptied one gets `== 0`, as for a token. These suggestions
+  are `module: "std"`, `event: "nativeBalance"`, with no `eventName`; the
+  executor, the account that pays gas and the block's fee recipient are
+  left out, and at most 64 accounts are checked.
+- Suggestions are given with these guarantees or not at all. If a
+  transaction's state changes cannot be read (a node that does not answer
+  `debug_traceTransaction` with the prestate tracer), the run still
+  succeeds, `suggestions` is empty, and `suggestionsError` says why.
 
 `suggest: { tolerance: 5 }` widens amount checks to 5% of what changed (the
 default is 1), and `suggest: { executor: safe }` guards a Safe, a timelock or
-a DAO instead of the simulating account.
+a DAO instead of the simulating account. `suggest: { exact: true }` is for a
+batch that executes as soon as it is signed, from the state it was simulated
+on (a wallet sending it itself): every account that moved, and the
+executor, is asserted at exactly what the run left (`==`) instead of a
+floor. The account that pays gas keeps its floor, since its fee is not
+known.
 
 ## Combining with DAO Operations
 

@@ -762,8 +762,11 @@ export class Interpreter {
 
   /** Ask simulations run by this interpreter for suggested assertions. */
   registerSuggestionSink(
-    options: { tolerance: number; executor?: Address },
-    sink: (suggestions: Suggestion[], info?: { truncated?: boolean }) => void,
+    options: { tolerance: number; executor?: Address; exact?: boolean },
+    sink: (
+      suggestions: Suggestion[],
+      info?: { truncated?: boolean; error?: string },
+    ) => void,
   ): Interpreter {
     this.#suggest = { ...options, report: sink };
     return this;

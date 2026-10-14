@@ -36,6 +36,12 @@ type Envelope =
         topics: `0x${string}`[];
         data: `0x${string}`;
       }[];
+      /** Balances the transaction changed, before and after, as hex. */
+      balanceChanges?: {
+        address: `0x${string}`;
+        before: `0x${string}`;
+        after: `0x${string}`;
+      }[];
     }
   | { kind: "revert"; revertData: `0x${string}` }
   | { kind: "halt"; reason: string }
@@ -240,6 +246,11 @@ export async function createRevmBackend(
       transactionHash: syntheticTxHash(action, txCounter++),
       gasUsed: BigInt(env.gasUsed),
       logs: env.logs.map((log, logIndex) => ({ ...log, logIndex })),
+      balanceChanges: (env.balanceChanges ?? []).map((c) => ({
+        address: c.address,
+        before: BigInt(c.before),
+        after: BigInt(c.after),
+      })),
     };
   }
 

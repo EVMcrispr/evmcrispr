@@ -230,16 +230,47 @@ impl Fork {
 
         match res {
             Ok(out) => {
+                let mut changes = Vec::new();
                 if commit {
                     if let ExecutionResult::Success { .. } = out.result {
+                        changes = self.balance_changes(&out.state);
                         self.db.commit(out.state);
                     }
                 }
-                result_env(out.result)
+                result_env(out.result, changes)
             }
             Err(EVMError::Database(m)) => miss_env(&m),
             Err(e) => error_env(&format!("{e:?}")),
         }
+    }
+
+    /// The native balance of every account the transaction changed: its
+    /// value in the cache before the commit, against the state the run
+    /// left. Value sent by a call at any depth and a selfdestruct are all
+    /// in that state; an account it only read is not touched.
+    fn balance_changes(&self, state: &revm::state::EvmState) -> Vec<Value> {
+        let mut out = Vec::new();
+        for (address, account) in state.iter() {
+            if !account.is_touched() {
+                continue;
+            }
+            let before = self
+                .db
+                .cache
+                .accounts
+                .get(address)
+                .map(|a| a.info.balance)
+                .unwrap_or_default();
+            let after = account.info.balance;
+            if before != after {
+                out.push(json!({
+                    "address": addr_hex(address),
+                    "before": format!("{before:#x}"),
+                    "after": format!("{after:#x}"),
+                }));
+            }
+        }
+        out
     }
 
     fn build_tx_env(&self, tx: &TxJson) -> Result<TxEnv, String> {
@@ -407,7 +438,7 @@ fn miss_env(m: &Miss) -> String {
     json!({ "kind": "misses", "misses": [miss] }).to_string()
 }
 
-fn result_env(result: ExecutionResult) -> String {
+fn result_env(result: ExecutionResult, balance_changes: Vec<Value>) -> String {
     match result {
         ExecutionResult::Success { gas, logs, output, .. } => {
             let logs: Vec<Value> = logs
@@ -425,6 +456,7 @@ fn result_env(result: ExecutionResult) -> String {
                 "returnData": bytes_hex(output.data()),
                 "gasUsed": gas.tx_gas_used(),
                 "logs": logs,
+                "balanceChanges": balance_changes,
             })
             .to_string()
         }

@@ -25,6 +25,7 @@ import {
   floorAfter,
   line,
   MAX_SUGGESTION_LOGS,
+  nativeBalances,
   nativeCurrency,
   nativeFloor,
   type RawLog,
@@ -1374,5 +1375,81 @@ describe("suggestionScript", () => {
         { name: "newOwner", value: OTHER },
       ],
     });
+  });
+});
+
+describe("balances the run emptied, and exact amounts", () => {
+  const A = getAddress("0x00000000000000000000000000000000000b0001");
+  const B = getAddress("0x00000000000000000000000000000000000b0002");
+  const C = getAddress("0x00000000000000000000000000000000000b0003");
+  const D = getAddress("0x00000000000000000000000000000000000b0004");
+  const base = env(async () => undefined);
+  const lines = async (e: SuggestEnv) => {
+    const names = variableNames(EXEC);
+    return (
+      await nativeBalances(e, [
+        // Received 2 on top of the 1 it had.
+        { address: A, before: parseUnits("1", 18), after: parseUnits("3", 18) },
+        // Sent all it had.
+        { address: B, before: parseUnits("4", 18), after: 0n },
+        // Sent some of it.
+        { address: C, before: parseUnits("5", 18), after: parseUnits("4", 18) },
+        // Untouched.
+        { address: D, before: 7n, after: 7n },
+        // The executor's own floor is nativeFloor's.
+        { address: EXEC, before: 1n, after: 0n },
+      ])
+    ).map((c) => {
+      const s = toSuggestion(c, names, { module: "t", event: "e", emitter: A });
+      return `${s.line} | ${s.description}`;
+    });
+  };
+
+  it("an executor left with none is asserted at zero, and says who can break that", () => {
+    const shown = rendered(
+      nativeFloor({ ...base, payer: OTHER }, parseUnits("5", 18), 0n)!,
+    );
+    expect(shown.line).toBe("assert @balance!(ETH $executor) == 0");
+    expect(shown.description).toBe("0x0000...0002 is left with 0 ETH");
+    expect(shown.kind).toBe("amount");
+  });
+
+  it("in exact mode the executor keeps exactly what the run left", () => {
+    const shown = rendered(
+      nativeFloor(
+        { ...base, payer: OTHER, exact: true },
+        parseUnits("10", 18),
+        parseUnits("8.5", 18),
+      )!,
+    );
+    expect(shown.line).toBe(
+      "assert @balance!(ETH $executor) == @token:amount(ETH 8.5)",
+    );
+    expect(shown.description).toBe("0x0000...0002 keeps exactly 8.5 ETH");
+  });
+
+  it("the account that pays gas keeps a floor even in exact mode: its fee is not known", () => {
+    const shown = rendered(
+      nativeFloor({ ...base, payer: EXEC, exact: true }, 1000n, 895n, {
+        paid: 5n,
+        allowance: 50n,
+      })!,
+    );
+    expect(shown.line).toContain(">=");
+  });
+
+  it("other accounts: a floor for who received, zero for who was emptied, nothing for who only sent", async () => {
+    expect(await lines(base)).toEqual([
+      "assert @balance!(ETH $recipient) >= @token:amount(ETH 2.98) | 0x0000...0001 holds at least 2.98 ETH",
+      "assert @balance!(ETH $sender) == 0 | 0x0000...0002 is left with 0 ETH",
+    ]);
+  });
+
+  it("in exact mode every account that moved is asserted at what it holds", async () => {
+    expect(await lines({ ...base, exact: true })).toEqual([
+      "assert @balance!(ETH $recipient) == @token:amount(ETH 3) | 0x0000...0001 holds exactly 3 ETH",
+      "assert @balance!(ETH $sender) == 0 | 0x0000...0002 is left with 0 ETH",
+      "assert @balance!(ETH $sender2) == @token:amount(ETH 4) | 0x0000...0003 keeps exactly 4 ETH",
+    ]);
   });
 });

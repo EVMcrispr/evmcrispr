@@ -23,6 +23,11 @@ import {
 import type Sim from "..";
 import type { SimMode } from "..";
 import { SIMULATION_MODES } from "../argTypes";
+import type { BalanceChange } from "../lib/backend";
+import {
+  foldBalanceChanges,
+  tracedBalanceChanges,
+} from "../lib/balance-changes";
 import {
   DELEGATOR_ADDRESS,
   DELEGATOR_BYTECODE,
@@ -51,6 +56,9 @@ const BALANCE_OF_ABI = [
 
 // How many storage slots to probe when locating a token's balance mapping.
 const DEAL_MAX_SLOT = 25;
+
+/** Why a run gives no suggestions rather than ones it cannot vouch for. */
+class SuggestionsError extends Error {}
 
 export default defineCommand<Sim>({
   smartSupport: {
@@ -190,6 +198,20 @@ export default defineCommand<Sim>({
             .getBalance({ address: executor })
             .catch(() => undefined)
         : undefined;
+
+    // Where the chain's own currency went. Plain transfers of it leave no
+    // event, so each transaction's state changes are read instead: the
+    // in-process backends report them, and a node is asked for its state
+    // diff. Folded per account over the run (first before, last after).
+    const nativeChanges = new Map<
+      Address,
+      { before: bigint; after?: bigint }
+    >();
+    let miner: Promise<Address | undefined> | undefined;
+    // Set when a transaction's state changes could not be read: the
+    // suggestions would then miss where its currency went, so none are
+    // given and the run says why.
+    let untraced: string | undefined;
 
     const prefix = rpcPrefix(mode);
     let relaySeq = 0;
@@ -626,6 +648,34 @@ export default defineCommand<Sim>({
 
     const simulateAction = async (action: Action) => {
       const receipt = await execAction(action, { relayScan: true });
+      if (
+        suggest &&
+        executor &&
+        module.activeChainId === chainId &&
+        receipt &&
+        !untraced
+      ) {
+        const r = receipt as {
+          balanceChanges?: BalanceChange[];
+          transactionHash?: `0x${string}`;
+        };
+        let changes = r.balanceChanges;
+        if (!changes && r.transactionHash) {
+          const client = forkManager.active.publicClient;
+          miner ??= client
+            .getBlock()
+            .then((b) => b.miner)
+            .catch(() => undefined);
+          changes = await tracedBalanceChanges(
+            client,
+            r.transactionHash,
+            await miner,
+          );
+        }
+        if (changes) foldBalanceChanges(nativeChanges, changes);
+        else
+          untraced = `Suggested assertions need every transaction's balance changes, and the ${mode} node did not answer debug_traceTransaction with the prestate tracer. Simulate with ethereumjs, revm, anvil or hardhat to get them.`;
+      }
       // Only the chain the fork started on: a destination's logs belong to
       // another run.
       if (suggest && module.activeChainId === chainId) {
@@ -650,6 +700,7 @@ export default defineCommand<Sim>({
       });
       if (suggest && module.activeChainId === chainId) {
         try {
+          if (untraced) throw new SuggestionsError(untraced);
           const { suggestFromRun } = await import("../lib/suggest");
           const found = executor
             ? await suggestFromRun(module, {
@@ -659,15 +710,23 @@ export default defineCommand<Sim>({
                 executor,
                 payer,
                 nativeBefore,
+                nativeChanges,
                 gas: runGas,
                 tolerance: suggest.tolerance,
+                exact: suggest.exact,
               })
             : { suggestions: [], truncated: false };
           suggest.report(found.suggestions, { truncated: found.truncated });
-        } catch {
+        } catch (err) {
           // The run succeeded; that it could not be read back for
-          // suggestions does not change that.
-          suggest.report([]);
+          // suggestions does not change that, but suggestions without
+          // their guarantees are not given: the run says why instead.
+          suggest.report([], {
+            error:
+              err instanceof SuggestionsError
+                ? err.message
+                : `Suggested assertions could not be read back from the run: ${err instanceof Error ? err.message : String(err)}`,
+          });
         }
       }
     } finally {

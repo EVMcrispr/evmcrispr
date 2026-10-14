@@ -21,6 +21,7 @@ import {
 } from "@evmcrispr/sdk";
 import { custom, keccak256 } from "viem";
 import {
+  type BalanceChange,
   fetchBlockTimestamp,
   padToBytes32,
   resolveLatestBlockNumber,
@@ -40,6 +41,31 @@ import {
  */
 class ProofFreeStateManager extends RPCStateManager {
   signal?: AbortSignal;
+  /** While a transaction runs: each account's balance before the first
+   *  write to it. Every change of an account, whether a call's value, a
+   *  selfdestruct or a fee, is written through `putAccount` or
+   *  `deleteAccount`, so these are all the accounts it can have changed. */
+  recording?: Map<string, { address: EthjsAddress; before: bigint }>;
+
+  async #record(address: EthjsAddress) {
+    const key = address.toString();
+    if (!this.recording || this.recording.has(key)) return;
+    const before = (await this.getAccount(address))?.balance ?? 0n;
+    this.recording.set(key, { address, before });
+  }
+
+  override async putAccount(
+    address: EthjsAddress,
+    account?: Account,
+  ): Promise<void> {
+    await this.#record(address);
+    return super.putAccount(address, account);
+  }
+
+  override async deleteAccount(address: EthjsAddress): Promise<void> {
+    await this.#record(address);
+    return super.deleteAccount(address);
+  }
 
   override async getAccountFromProvider(
     address: EthjsAddress,
@@ -188,6 +214,7 @@ export async function createEthereumJSBackend(
     }
 
     await vm.evm.journal.checkpoint();
+    stateManager.recording = new Map();
 
     const result = await vm.evm.runCall({
       caller: senderAddr,
@@ -200,6 +227,7 @@ export async function createEthereumJSBackend(
     });
 
     if (result.execResult.exceptionError) {
+      stateManager.recording = undefined;
       await vm.evm.journal.revert();
       const returnValue = result.execResult.returnValue;
       const revertData =
@@ -220,6 +248,18 @@ export async function createEthereumJSBackend(
     // runCall already bumped the sender nonce (depth-0 behavior mirroring a
     // real tx), so the journal commit persists it — no manual increment.
     await vm.evm.journal.commit();
+    const recorded = stateManager.recording;
+    stateManager.recording = undefined;
+    const balanceChanges: BalanceChange[] = [];
+    for (const { address, before } of recorded?.values() ?? []) {
+      const after = (await stateManager.getAccount(address))?.balance ?? 0n;
+      if (after !== before)
+        balanceChanges.push({
+          address: address.toString() as `0x${string}`,
+          before,
+          after,
+        });
+    }
 
     return {
       status: "success",
@@ -231,6 +271,7 @@ export async function createEthereumJSBackend(
         result.execResult.executionGasUsed +
         21_000n +
         16n * BigInt(action.data ? (action.data.length - 2) / 2 : 0),
+      balanceChanges,
       logs: (result.execResult.logs ?? []).map(
         ([address, topics, data], logIndex) => ({
           address: bytesToHex(address) as `0x${string}`,

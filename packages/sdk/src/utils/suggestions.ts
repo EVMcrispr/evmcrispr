@@ -158,6 +158,11 @@ export interface SuggestEnv {
   payer?: Address;
   /** Percent of a change an amount may fall short by. */
   tolerance: number;
+  /** The batch executes as soon as it is signed, from the state it was
+   *  simulated on (a wallet sending it itself): an amount is asserted at
+   *  exactly what the run left, instead of a floor that leaves room for
+   *  what can happen before a delayed execution. */
+  exact?: boolean;
   /** The chain's own currency, as `@balance!` spells it. */
   nativeSymbol: string;
   /** Its decimals, from the chain's definition. Unknown, or anything but
@@ -811,6 +816,15 @@ export function nativeFloor(
   const coin = nativeCurrency(env);
   const pays = !!env.payer && sameValue(env.payer, env.executor);
   if (!pays) {
+    if (after === 0n && before > 0n) return emptied(executor, coin);
+    if (env.exact && after !== before) {
+      const amount = exactly(coin, after);
+      return {
+        line: line`assert @balance!(${coin} ${executor}) == ${amount}`,
+        sentence: say`${executor} keeps exactly ${amount}`,
+        kind: "amount",
+      };
+    }
     const floor = atLeast(coin, floorAfter(before, after, env.tolerance));
     // `>= 0` holds whatever happens: it asserts nothing.
     if (floor.value === 0n) return null;
@@ -831,6 +845,149 @@ export function nativeFloor(
     sentence: say`${executor} keeps at least ${floor}, after up to ${atMost(coin, gas.allowance)} for gas`,
     kind: "amount",
   };
+}
+
+/** An account the run emptied of a token: it holds none of it after. Any
+ *  account that sends it some before a delayed execution makes this fail;
+ *  the sentence says only what is checked, and a host says the rest. */
+function emptied(who: AddressRef, coin: TokenRef | NativeRef): Candidate {
+  return {
+    line: line`assert @balance!(${coin} ${who}) == 0`,
+    sentence: say`${who} is left with ${exactly(coin, 0n)}`,
+    kind: "amount",
+  };
+}
+
+/** How a balance check is written for one token: its line for an
+ *  account, an operator and a number (`>=` a floor, `==` an exact amount),
+ *  and the amount as said, or nothing when what it would write asserts
+ *  nothing. */
+export type BalanceCheck = (
+  who: AddressRef,
+  op: ">=" | "==",
+  value: bigint,
+) => { line: LineTemplate; amount: SentencePart[] } | null;
+
+/** The balance checks one token gets after a run. `net` is each account's
+ *  net change over the whole run, every transfer to it added and every
+ *  transfer from it taken away, so an account that received three times
+ *  gets one check of the sum; `read` answers its balance after the run.
+ *
+ *  - An account that sent and is left with none: `== 0`.
+ *  - In `exact` mode, every account that moved, and the executor: `==` the
+ *    balance after.
+ *  - Otherwise a floor: for the executor (first), and for each account
+ *    that gained. An account that only sent keeps no floor: what it holds
+ *    is not this batch's to guard. */
+export async function balanceChecks(
+  env: SuggestEnv,
+  net: Map<Address, bigint>,
+  read: (account: Address) => Promise<unknown | undefined>,
+  check: BalanceCheck,
+  options: { executor?: boolean } = {},
+): Promise<Candidate[]> {
+  const executor = getAddress(env.executor);
+  const withExecutor = options.executor ?? true;
+  const accounts = [
+    ...(withExecutor ? [executor] : []),
+    ...[...net.keys()].filter(
+      (a) => a !== executor && (net.get(a) ?? 0n) !== 0n,
+    ),
+  ];
+  const out: Candidate[] = [];
+  for (const address of accounts) {
+    const change = net.get(address) ?? 0n;
+    const own = address === executor;
+    const after = await read(address);
+    if (typeof after !== "bigint") continue;
+    // A balance below what the transfers say was gained contradicts them:
+    // the event is not confirmed.
+    if (change > 0n && after < change) continue;
+    const who = account(
+      address,
+      own ? "executor" : change > 0n ? "recipient" : "sender",
+    );
+    if (change < 0n && after === 0n) {
+      const written = check(who, "==", 0n);
+      if (!written) continue;
+      out.push({
+        line: written.line,
+        sentence: say`${who} is left with ${written.amount}`,
+        kind: "amount",
+      });
+      continue;
+    }
+    if (env.exact) {
+      const written = check(who, "==", after);
+      if (!written) continue;
+      out.push({
+        line: written.line,
+        sentence:
+          change <= 0n
+            ? say`${who} keeps exactly ${written.amount}`
+            : say`${who} holds exactly ${written.amount}`,
+        kind: "amount",
+      });
+      continue;
+    }
+    if (!own && change < 0n) continue;
+    const floor = floorAfter(after - change, after, env.tolerance);
+    // `>= 0` holds whatever happens: it asserts nothing.
+    if (floor === 0n) continue;
+    const written = check(who, ">=", floor);
+    if (!written) continue;
+    out.push({
+      line: written.line,
+      sentence:
+        change <= 0n
+          ? say`${who} keeps at least ${written.amount}`
+          : say`${who} holds at least ${written.amount}`,
+      kind: "amount",
+    });
+  }
+  return out;
+}
+
+/** The checks of the chain's own currency for the accounts other than the
+ *  executor whose balance the run changed, from their balance before and
+ *  after (`balances`). Plain transfers of it leave no event, so a host
+ *  reads the balances of the accounts a run names. The executor and the
+ *  account that pays gas are left to `nativeFloor`. */
+export async function nativeBalances(
+  env: SuggestEnv,
+  balances: { address: Address; before: bigint; after: bigint }[],
+): Promise<Candidate[]> {
+  const coin = nativeCurrency(env);
+  const skip = new Set(
+    [env.executor, env.payer].filter(Boolean).map((a) => getAddress(a!)),
+  );
+  const net = new Map<Address, bigint>();
+  const after = new Map<Address, bigint>();
+  for (const b of balances) {
+    const address = getAddress(b.address);
+    if (skip.has(address) || b.after === b.before) continue;
+    net.set(address, b.after - b.before);
+    after.set(address, b.after);
+  }
+  return balanceChecks(
+    env,
+    net,
+    async (address) => after.get(address),
+    (who, op, value) => {
+      if (op === "==" && value === 0n)
+        return {
+          line: line`assert @balance!(${coin} ${who}) == 0`,
+          amount: say`${exactly(coin, 0n)}`,
+        };
+      const amount = op === "==" ? exactly(coin, value) : atLeast(coin, value);
+      if (amount.value === 0n) return null;
+      return {
+        line: line`assert @balance!(${coin} ${who}) ${op} ${amount}`,
+        amount: say`${amount}`,
+      };
+    },
+    { executor: false },
+  );
 }
 
 /** How many of a run's logs are looked at. A run can emit any number of

@@ -1,4 +1,5 @@
 import {
+  balanceChecks,
   type Candidate,
   contract,
   defineEvent,
@@ -6,11 +7,11 @@ import {
   say,
 } from "@evmcrispr/sdk";
 import type { Address } from "viem";
-import { balanceFloors, netByAccount } from "./_shared";
+import { netByAccount } from "./_shared";
 
 export default defineEvent({
   name: "erc1155TransferBatch",
-  description: "ERC-1155 batch transfers: a balance floor per token id.",
+  description: "ERC-1155 batch transfers: a balance check per token id.",
   event:
     "event TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)",
   suggest: async (env, { emitter, logs }) => {
@@ -26,7 +27,7 @@ export default defineEvent({
     const out: Candidate[] = [];
     for (const id of new Set(moves.map((m) => m.id))) {
       out.push(
-        ...(await balanceFloors(
+        ...(await balanceChecks(
           env,
           netByAccount(moves.filter((m) => m.id === id)),
           (account) =>
@@ -35,9 +36,9 @@ export default defineEvent({
               "function balanceOf(address,uint256) view returns (uint256)",
               [account, id],
             ),
-          (who, floor) => ({
-            line: line`assert ${collection}::!{balanceOf(address,uint256)(uint256) ${who} ${id}} >= ${floor}`,
-            least: say`${floor} of token #${id} in ${collection}`,
+          (who, op, value) => ({
+            line: line`assert ${collection}::!{balanceOf(address,uint256)(uint256) ${who} ${id}} ${op} ${value}`,
+            amount: say`${value} of token #${id} in ${collection}`,
           }),
         )),
       );

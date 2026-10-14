@@ -1,6 +1,10 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
-import { suggestionScript, type TokenInfo } from "@evmcrispr/sdk";
+import {
+  suggestionScript,
+  type TokenInfo,
+  truncateAddress,
+} from "@evmcrispr/sdk";
 import { evml } from "@evmcrispr/test-utils/evml";
 import {
   EXECUTOR,
@@ -59,9 +63,93 @@ describe("token events", () => {
       `assert @balance!(${TOKEN} ${BOB}) >= 99  # base units of ${TOKEN}`,
     ]);
     expect(out.every((s) => s.kind === "amount")).toBe(true);
-    // Someone else's balance: they can move it first and make this fail.
-    expect(out[0].description).not.toContain("can make this check fail");
-    expect(out[1].description).toContain("can make this check fail");
+    // The sentence says what is checked and nothing more: what can make
+    // it fail is the host's to say.
+    expect(out[1].description).toBe(
+      `${truncateAddress(BOB)} holds at least 99 base units of ${truncateAddress(TOKEN)}`,
+    );
+  });
+
+  it("adds up what an account received from several senders, and asserts zero for each sender it emptied", async () => {
+    // TheDAO's sweep: two senders, one recipient, both senders left empty.
+    const DAO = getAddress("0x0000000000000000000000000000000000000da0");
+    const MULTISIG = getAddress("0x00000000000000000000000000000000000000ab");
+    const out = await run(
+      [
+        eventLog(ERC20_TRANSFER, TOKEN, { from: DAO, to: BOB, value: 296n }),
+        eventLog(ERC20_TRANSFER, TOKEN, {
+          from: MULTISIG,
+          to: BOB,
+          value: 38768n,
+        }),
+      ],
+      {
+        [viewKey(TOKEN, "balanceOf", EXECUTOR)]: 0n,
+        [viewKey(TOKEN, "balanceOf", DAO)]: 0n,
+        [viewKey(TOKEN, "balanceOf", MULTISIG)]: 0n,
+        [viewKey(TOKEN, "balanceOf", BOB)]: 39064n,
+      },
+    );
+    // In the order the accounts first appear in the transfers.
+    expect(out.map(literalLine)).toEqual([
+      `assert @balance!(${TOKEN} ${DAO}) == 0`,
+      // One floor for the sum, 296 + 38768, less 1% of it.
+      `assert @balance!(${TOKEN} ${BOB}) >= 38673  # base units of ${TOKEN}`,
+      `assert @balance!(${TOKEN} ${MULTISIG}) == 0`,
+    ]);
+    expect(out[0].description).toBe(
+      `${truncateAddress(DAO)} is left with 0 base units of ${truncateAddress(TOKEN)}`,
+    );
+  });
+
+  it("a sender that keeps some gets no check of its own", async () => {
+    const out = await run(
+      [eventLog(ERC20_TRANSFER, TOKEN, { from: SPENDER, to: BOB, value: 5n })],
+      {
+        [viewKey(TOKEN, "balanceOf", EXECUTOR)]: 0n,
+        [viewKey(TOKEN, "balanceOf", SPENDER)]: 10n,
+        [viewKey(TOKEN, "balanceOf", BOB)]: 5n,
+      },
+    );
+    expect(out.map(literalLine)).toEqual([
+      `assert @balance!(${TOKEN} ${BOB}) >= 4  # base units of ${TOKEN}`,
+    ]);
+  });
+
+  it("in exact mode, every account the transfers moved is asserted at what it holds", async () => {
+    const out = await suggested({
+      modules: [{ name: "token", events }],
+      logs: [
+        eventLog(ERC20_TRANSFER, TOKEN, {
+          from: EXECUTOR,
+          to: BOB,
+          value: 70n,
+        }),
+        eventLog(ERC20_TRANSFER, TOKEN, {
+          from: EXECUTOR,
+          to: BOB,
+          value: 30n,
+        }),
+        eventLog(ERC20_TRANSFER, TOKEN, {
+          from: SPENDER,
+          to: BOB,
+          value: 5n,
+        }),
+      ],
+      env: suggestEnv(
+        {
+          [viewKey(TOKEN, "balanceOf", EXECUTOR)]: 900n,
+          [viewKey(TOKEN, "balanceOf", SPENDER)]: 0n,
+          [viewKey(TOKEN, "balanceOf", BOB)]: 105n,
+        },
+        { exact: true },
+      ),
+    });
+    expect(out.map(literalLine)).toEqual([
+      `assert @balance!(${TOKEN} ${EXECUTOR}) == 900  # base units of ${TOKEN}`,
+      `assert @balance!(${TOKEN} ${BOB}) == 105  # base units of ${TOKEN}`,
+      `assert @balance!(${TOKEN} ${SPENDER}) == 0`,
+    ]);
   });
 
   it("asks for no decrease of a token that moved between others", async () => {
@@ -264,7 +352,6 @@ describe("token events", () => {
     expect(out.map(literalLine)).toEqual([
       `assert @balance!(${TOKEN} ${EXECUTOR}) >= 99  # base units of ${TOKEN}`,
     ]);
-    expect(out[0].description).not.toContain("can make this check fail");
   });
 });
 
@@ -334,7 +421,7 @@ describe("token suggestions, as a host reads them", () => {
     ]);
     expect(out.map((s) => s.description)).toEqual([
       "0x0000...0ec0 keeps at least 51,950.2982 USDC (0x0000...00e1)",
-      "0x0000...0B0b holds at least 990 USDC (0x0000...00e1); that account can make this check fail by moving its funds first",
+      "0x0000...0B0b holds at least 990 USDC (0x0000...00e1)",
     ]);
   });
 

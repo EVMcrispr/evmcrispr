@@ -13,9 +13,11 @@ const SUGGESTION: Suggestion = {
 
 let seen: unknown;
 let truncated = false;
+let error: string | undefined;
 beforeEach(() => {
   seen = undefined;
   truncated = false;
+  error = undefined;
 });
 const fork = defineCommand({
   name: "fork",
@@ -26,8 +28,10 @@ const fork = defineCommand({
     seen = module.context.suggest && {
       tolerance: module.context.suggest.tolerance,
       executor: module.context.suggest.executor,
+      ...(module.context.suggest.exact ? { exact: true } : {}),
     };
-    module.context.suggest?.report([SUGGESTION], { truncated });
+    if (error) module.context.suggest?.report([], { error });
+    else module.context.suggest?.report([SUGGESTION], { truncated });
     return [];
   },
 });
@@ -85,4 +89,19 @@ it("says when the suggestions were cut short", async () => {
   truncated = false;
   const whole = await evml.script("print hi").simulate({ suggest: true });
   expect(whole.suggestionsTruncated).toBeUndefined();
+});
+
+it("passes exact on to the fork", async () => {
+  await evml.script("print hi").simulate({ suggest: { exact: true } });
+  expect(seen).toEqual({ tolerance: 1, executor: undefined, exact: true });
+});
+
+it("says why there are no suggestions when they could not be given with their guarantees", async () => {
+  error = "the node did not trace";
+  const result = await evml.script("print hi").simulate({ suggest: true });
+  // The run itself succeeded.
+  expect(result.success).toBe(true);
+  expect(result.error).toBeUndefined();
+  expect(result.suggestions).toEqual([]);
+  expect(result.suggestionsError).toBe("the node did not trace");
 });

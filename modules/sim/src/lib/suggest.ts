@@ -1,4 +1,5 @@
 import {
+  type AddressRef,
   budgetedRead,
   collectSuggestions,
   type EventImportMap,
@@ -6,6 +7,7 @@ import {
   type IModuleConstructor,
   MAX_SUGGESTION_LOGS,
   MAX_SUGGESTION_READS,
+  nativeBalances,
   nativeFloor,
   type RawLog,
   readConfigValue,
@@ -26,6 +28,7 @@ import {
   parseAbiItem,
 } from "viem";
 import type Sim from "..";
+import { MAX_NATIVE_ACCOUNTS } from "./balance-changes";
 
 /** How long a run waits for the token list before going without it. */
 const TOKEN_LIST_TIMEOUT = 5000;
@@ -68,9 +71,14 @@ export async function suggestFromRun(
     executor: Address;
     payer: Address | undefined;
     nativeBefore: bigint | undefined;
+    /** Accounts whose native balance the run may have changed: before the
+     *  first transaction that touched them, and after the last when that
+     *  is known (read from the fork otherwise). */
+    nativeChanges?: ReadonlyMap<Address, { before: bigint; after?: bigint }>;
     /** Gas the run used and what the fork charged for it. */
     gas: { used: bigint; paid: bigint };
     tolerance: number;
+    exact?: boolean;
   },
 ): Promise<{ suggestions: Suggestion[]; truncated: boolean }> {
   const { client } = input;
@@ -172,6 +180,7 @@ export async function suggestFromRun(
     executor: getAddress(input.executor),
     payer: input.payer && getAddress(input.payer),
     tolerance: input.tolerance,
+    ...(input.exact ? { exact: true } : {}),
     nativeSymbol,
     // Only what the chain's definition says: an unknown chain keeps its
     // native amounts in base units.
@@ -217,8 +226,43 @@ export async function suggestFromRun(
       );
     }
   }
+  // The other accounts' balances of the chain's own currency. A token's
+  // checks come from its Transfer events; these come from the run's state
+  // changes, since a plain transfer emits nothing.
+  if (input.nativeChanges && input.nativeChanges.size > 0) {
+    const balances: { address: Address; before: bigint; after: bigint }[] = [];
+    for (const [address, known] of [...input.nativeChanges].slice(
+      0,
+      MAX_NATIVE_ACCOUNTS,
+    )) {
+      const after =
+        known.after ??
+        (await client.getBalance({ address }).catch(() => undefined));
+      if (after !== undefined)
+        balances.push({ address, before: known.before, after });
+    }
+    for (const candidate of await nativeBalances(env, balances)) {
+      try {
+        const ref = candidate.line.find(
+          (p): p is AddressRef => typeof p === "object" && p.ref === "address",
+        );
+        suggestions.push(
+          toSuggestion(candidate, names, {
+            module: "std",
+            event: "nativeBalance",
+            emitter: ref?.address ?? env.executor,
+          }),
+        );
+      } catch {
+        // A candidate that cannot be written loses only itself.
+      }
+    }
+  }
   return {
     suggestions,
-    truncated: input.logs.length > MAX_SUGGESTION_LOGS || budget.exhausted(),
+    truncated:
+      input.logs.length > MAX_SUGGESTION_LOGS ||
+      budget.exhausted() ||
+      (input.nativeChanges?.size ?? 0) > MAX_NATIVE_ACCOUNTS,
   };
 }

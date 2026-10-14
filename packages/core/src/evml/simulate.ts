@@ -27,8 +27,12 @@ export interface SimulateOptions {
   signal?: AbortSignal;
   /** Ask for assertions suggested from what the run did. `tolerance` is the
    *  percent of a balance change an amount check allows (default 1);
-   *  `executor` is the account whose balances are guarded (default `from`). */
-  suggest?: boolean | { tolerance?: number; executor?: Address };
+   *  `executor` is the account whose balances are guarded (default `from`);
+   *  `exact` asks for amounts at exactly what the run left, for a batch
+   *  that executes as soon as it is signed (`SuggestEnv.exact`). */
+  suggest?:
+    | boolean
+    | { tolerance?: number; executor?: Address; exact?: boolean };
 }
 
 export interface SimulationResult {
@@ -47,6 +51,11 @@ export interface SimulationResult {
   /** The run emitted more than the suggestions looked at: the list may be
    *  missing some. */
   suggestionsTruncated?: true;
+  /** `suggest` was asked and the run succeeded, but no suggestions could
+   *  be given with their guarantees, and this says why (a node that does
+   *  not report where a transaction's currency went). `suggestions` is
+   *  empty then. */
+  suggestionsError?: string;
 }
 
 function needsSimWrap(script: string): boolean {
@@ -151,6 +160,7 @@ export async function simulateScript(
 
   let suggestions: Suggestion[] | undefined;
   let truncated = false;
+  let suggestionsError: string | undefined;
   if (options.suggest) {
     const asked = options.suggest === true ? {} : options.suggest;
     // A percentage: anything else would put a floor above the simulated
@@ -160,10 +170,15 @@ export async function simulateScript(
       ? Math.min(100, Math.max(0, given))
       : 1;
     interpreter.registerSuggestionSink(
-      { tolerance, executor: asked.executor },
+      {
+        tolerance,
+        executor: asked.executor,
+        ...(asked.exact ? { exact: true } : {}),
+      },
       (found, info) => {
         suggestions = [...(suggestions ?? []), ...found];
         if (info?.truncated) truncated = true;
+        if (info?.error) suggestionsError ??= info.error;
       },
     );
   }
@@ -181,8 +196,13 @@ export async function simulateScript(
       success: true,
       logs,
       actions: [...dispatched, ...returned],
-      ...(options.suggest ? { suggestions: suggestions ?? [] } : {}),
-      ...(truncated ? { suggestionsTruncated: true as const } : {}),
+      ...(options.suggest
+        ? { suggestions: suggestionsError ? [] : (suggestions ?? []) }
+        : {}),
+      ...(truncated && !suggestionsError
+        ? { suggestionsTruncated: true as const }
+        : {}),
+      ...(suggestionsError ? { suggestionsError } : {}),
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -30,6 +30,17 @@ export interface SyntheticReceipt {
     data: `0x${string}`;
     logIndex: number;
   }[];
+  /** Every account whose balance of the chain's own currency the
+   *  transaction changed, read from the backend's state changes: value
+   *  sent by any call at any depth, a selfdestruct, a fee. */
+  balanceChanges?: BalanceChange[];
+}
+
+/** One account's native balance before and after a transaction. */
+export interface BalanceChange {
+  address: `0x${string}`;
+  before: bigint;
+  after: bigint;
 }
 
 /**

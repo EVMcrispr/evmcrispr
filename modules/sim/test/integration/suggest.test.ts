@@ -11,6 +11,11 @@ import {
   TEST_ACCOUNT_ADDRESS,
 } from "@evmcrispr/test-utils";
 import { evml } from "@evmcrispr/test-utils/evml";
+import {
+  HttpResponse,
+  http,
+  passthrough,
+} from "@evmcrispr/test-utils/msw/server";
 import { tokenlistOf } from "@evmcrispr/test-utils/msw/tokenlist";
 import { installAssertionsCore } from "@evmcrispr/test-utils/onchain";
 import { wellFormed } from "@evmcrispr/test-utils/suggestions";
@@ -156,6 +161,109 @@ describe("Sim > suggested assertions", () => {
     }
   }, 120000);
 
+  it("the chain's own currency sent to other accounts gets their checks, which hold when added", async () => {
+    const BOB = getAddress("0x00000000000000000000000000000000000b0b01");
+    const CAROL = getAddress("0x00000000000000000000000000000000000ca201");
+    const DAVE = getAddress("0x00000000000000000000000000000000000da301");
+    // BOB is paid twice and gets one check of the sum; DAVE is only named in
+    // calldata and nothing reaches him, so he gets none.
+    const sends = [
+      `exec ${BOB} "ping()" --value 1e18`,
+      `exec ${CAROL} "forward(address)" ${DAVE} --value 1e18`,
+      `exec ${BOB} "ping()" --value 2e18`,
+    ].join("\n");
+    const run = (exact: boolean) =>
+      tag.script(sends).simulate({
+        using: "ethereumjs",
+        from: TEST_ACCOUNT_ADDRESS,
+        suggest: { executor: SAFE, exact },
+      });
+    const floors = (await run(false)).suggestions!.filter(
+      (s) => s.event === "nativeBalance",
+    );
+    expect(floors.map((s) => s.module)).toEqual(["std", "std"]);
+    for (const s of floors) wellFormed(s);
+    expect(floors.map((s) => s.vars.at(-1)!.value)).toEqual([BOB, CAROL]);
+    // BOB: 3 received, 1% of it may be missing.
+    expect(floors[0].line).toMatch(
+      /^assert @balance!\(XDAI \$recipient\) >= @token:amount\(XDAI \d*2\.97\)$/,
+    );
+    const exact = (await run(true)).suggestions!.filter(
+      (s) => s.event === "nativeBalance",
+    );
+    expect(exact.map((s) => s.line.includes(" == "))).toEqual([true, true]);
+    // Both kinds hold on the run they came from.
+    for (const found of [floors, exact]) {
+      const checked = await tag
+        .script(`${sends}\n${suggestionScript(found)}`)
+        .simulate({ using: "ethereumjs", from: TEST_ACCOUNT_ADDRESS });
+      expect(checked.error).toBeUndefined();
+    }
+  }, 120000);
+
+  for (const using of ["ethereumjs", "revm", "anvil"] as const) {
+    it(`finds where the chain's own currency went from the state changes, with ${using}`, async () => {
+      const FORWARDER = getAddress(
+        "0x00000000000000000000000000000000000f0a11",
+      );
+      const PAYEE = getAddress("0x00000000000000000000000000000000000f0a12");
+      // The forwarder passes what it receives to PAYEE, who appears only in
+      // its code: no action names him and no event is emitted.
+      const forwards = [
+        // A node charges for gas and value: the sender needs funds.
+        `sim:set-balance ${TEST_ACCOUNT_ADDRESS} 10e18`,
+        `sim:set-code ${FORWARDER} 0x60006000600060003473${PAYEE.slice(2)}5af100`,
+        `exec ${FORWARDER} "ping()" --value 1e18`,
+      ].join("\n");
+      const result = await tag.script(forwards).simulate({
+        using,
+        from: TEST_ACCOUNT_ADDRESS,
+        suggest: { executor: SAFE },
+      });
+      expect(result.error).toBeUndefined();
+      const native = result.suggestions!.filter(
+        (s) => s.event === "nativeBalance",
+      );
+      expect(native.map((s) => s.vars.at(-1)!.value)).toEqual([PAYEE]);
+      expect(native[0].line).toMatch(
+        /^assert @balance!\(XDAI \$recipient\) >= @token:amount\(XDAI \d*0\.99\)$/,
+      );
+    }, 180000);
+  }
+
+  it("gives no suggestions, and says why, when the node does not report where a transaction's currency went", async () => {
+    // The node refuses the state diff; every other request goes through.
+    server.use(
+      http.post(
+        /^http:\/\/(localhost|127\.0\.0\.1):8545/,
+        async ({ request }) => {
+          const body = (await request.clone().json()) as { method?: string };
+          if (body?.method !== "debug_traceTransaction") return passthrough();
+          return HttpResponse.json({
+            jsonrpc: "2.0",
+            id: 1,
+            error: { code: -32601, message: "Method not found" },
+          });
+        },
+      ),
+    );
+    try {
+      const result = await tag
+        .script(`sim:set-balance ${TEST_ACCOUNT_ADDRESS} 10e18\n${script}`)
+        .simulate({
+          using: "anvil",
+          from: TEST_ACCOUNT_ADDRESS,
+          suggest: { executor: SAFE },
+        });
+      // The run succeeded; only its suggestions are withheld.
+      expect(result.error).toBeUndefined();
+      expect(result.suggestions).toEqual([]);
+      expect(result.suggestionsError).toContain("debug_traceTransaction");
+    } finally {
+      server.resetHandlers();
+    }
+  }, 180000);
+
   it("still suggests for the starting chain when the script ends on another one", async () => {
     // The fork returns to its starting chain when its block ends, so the
     // run can be read back there.
@@ -251,7 +359,7 @@ describe("Sim > suggested assertions", () => {
     );
     expect(token[0].description.startsWith(`${me} keeps`)).toBe(true);
     expect(token[1].description).toMatch(
-      /^\S+ holds at least [\d,.]+ WXDAI \(0xe91D\.\.\.a97d\); that account can make this check fail by moving its funds first$/,
+      /^\S+ holds at least [\d,.]+ WXDAI \(0xe91D\.\.\.a97d\)$/,
     );
     expect(
       token[1].description.startsWith(`${truncateAddress(BOB)} holds`),

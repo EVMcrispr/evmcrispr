@@ -3,6 +3,7 @@ import type { Action } from "@evmcrispr/sdk";
 import {
   createPublicClient,
   encodeErrorResult,
+  getAddress,
   getContractAddress,
   type PublicClient,
   parseAbi,
@@ -187,6 +188,39 @@ export function describeBackendSuite(
     // -------------------------------------------------------------------------
     // handleAction: TransactionAction (state-changing call)
     // -------------------------------------------------------------------------
+
+    it("reports where a transaction's value went, through internal calls", async () => {
+      const { backend } = await makeBackend();
+      const forwarder = getAddress(
+        "0x00000000000000000000000000000000000f0a01",
+      );
+      const payee = getAddress("0x00000000000000000000000000000000000f0a02");
+      // CALL(gas, payee, callvalue, 0, 0, 0, 0); STOP: the payee is in the
+      // code, not in the transaction.
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setCode`,
+        params: [forwarder, `0x60006000600060003473${payee.slice(2)}5af100`],
+      });
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setBalance`,
+        params: [ADDR, "0xde0b6b3a7640000"],
+      });
+      const receipt = await backend.handleAction({
+        to: forwarder,
+        from: ADDR,
+        value: 4n,
+      });
+      const changes = Object.fromEntries(
+        (receipt?.balanceChanges ?? []).map((c) => [
+          getAddress(c.address),
+          c.after - c.before,
+        ]),
+      );
+      // The forwarder passed it on: its balance did not change.
+      expect(changes).toEqual({ [getAddress(ADDR)]: -4n, [payee]: 4n });
+    });
 
     it("executes a transaction action (approve on WXDAI)", async () => {
       const { backend } = await makeBackend();

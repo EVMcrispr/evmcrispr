@@ -262,3 +262,41 @@ fn malformed_inputs_return_error_envelopes() {
     assert_eq!(parse(f.insert_account("0x123", "0x0", 0, "0x"))["kind"], "error");
     assert_eq!(parse(f.get_balance("bogus"))["kind"], "error");
 }
+
+#[test]
+fn balance_changes_follow_value_into_internal_calls() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    seed_eoa(&mut f, BOB, "0x0");
+    // Forwards its call value to BOB, whom the transaction never names:
+    // CALL(gas, BOB, callvalue, 0, 0, 0, 0); STOP.
+    let code = format!("0x60006000600060003473{}5af100", &BOB[2..]);
+    seed_contract(&mut f, CONTRACT, &code);
+
+    let tx_json = format!(
+        r#"{{"from":"{ALICE}","to":"{CONTRACT}","value":"0x6f05b59d3b20000"}}"# // 0.5 ETH
+    );
+    let env = parse(f.transact(&tx_json));
+    assert_eq!(env["kind"], "success", "{env}");
+    let mut changes: Vec<(String, String, String)> = env["balanceChanges"]
+        .as_array()
+        .expect("balanceChanges")
+        .iter()
+        .map(|c| {
+            (
+                c["address"].as_str().unwrap().to_lowercase(),
+                c["before"].as_str().unwrap().to_string(),
+                c["after"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    changes.sort();
+    // The contract passed the value on: its balance did not change.
+    assert_eq!(
+        changes,
+        vec![
+            (ALICE.to_string(), ONE_ETH.to_string(), "0x6f05b59d3b20000".to_string()),
+            (BOB.to_string(), "0x0".to_string(), "0x6f05b59d3b20000".to_string()),
+        ]
+    );
+}

@@ -116,9 +116,17 @@ export interface ModuleContext {
   readonly suggest?: {
     tolerance: number;
     executor?: Address;
+    /** Amounts are asserted exactly (`SuggestEnv.exact`). */
+    exact?: boolean;
     /** `truncated`: the run emitted more than was looked at, so the list
      *  may be missing suggestions. */
-    report(suggestions: Suggestion[], info?: { truncated?: boolean }): void;
+    /** `error`: the run succeeded but its suggestions could not be given
+     *  with their guarantees (a node that does not report where a
+     *  transaction's currency went); `suggestions` is then empty. */
+    report(
+      suggestions: Suggestion[],
+      info?: { truncated?: boolean; error?: string },
+    ): void;
   };
 }
 
