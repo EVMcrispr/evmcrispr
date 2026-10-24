@@ -45,13 +45,14 @@
         "typescript": "^7.0.2",
       },
     },
-    "apps/evmcrispr-mcp": {
-      "name": "evmcrispr-mcp",
+    "apps/evmcrispr-api": {
+      "name": "evmcrispr-api",
       "version": "0.2.0",
       "dependencies": {
         "@evmcrispr/sdk": "*",
         "@modelcontextprotocol/sdk": "^1.30.1",
         "evmcrispr": "*",
+        "viem": "^2.56.8",
         "zod": "^4.6.5",
       },
       "devDependencies": {
@@ -2029,7 +2030,7 @@
 
     "evmcrispr": ["evmcrispr@workspace:packages/cli"],
 
-    "evmcrispr-mcp": ["evmcrispr-mcp@workspace:apps/evmcrispr-mcp"],
+    "evmcrispr-api": ["evmcrispr-api@workspace:apps/evmcrispr-api"],
 
     "evmcrispr-terminal": ["evmcrispr-terminal@workspace:apps/evmcrispr-terminal"],
 

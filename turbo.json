@@ -71,11 +71,11 @@
     "evmcrispr-terminal#type-check": {
       "dependsOn": ["^types"]
     },
-    "evmcrispr-mcp#build": {
+    "evmcrispr-api#build": {
       "env": ["VITE_PUBLIC_EXPERIMENTAL"],
       "dependsOn": ["codegen", "types", "evmcrispr#build", "^build"]
     },
-    "evmcrispr-mcp#type-check": {
+    "evmcrispr-api#type-check": {
       "dependsOn": ["codegen", "^types"]
     },
     "lint": {},

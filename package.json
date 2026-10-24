@@ -24,7 +24,8 @@
     "sync-modules": "bun scripts/sync-modules.ts",
     "validate-docs": "bun scripts/validate-docs.ts",
     "dev:website": "bun --filter evmcrispr-website dev",
-    "dev:mcp": "bun --filter evmcrispr-mcp dev",
+    "dev:api": "bun --filter evmcrispr-api dev",
+    "dev:mcp": "bun --filter evmcrispr-api dev",
     "dev": "turbo run dev"
   },
   "devDependencies": {

@@ -1,0 +1,3 @@
+[test]
+# These tests use local transports and mocked providers; no Anvil is required.
+preload = []

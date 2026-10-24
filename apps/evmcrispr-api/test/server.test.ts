@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { registerAllModules } from "evmcrispr/lib/modules";
-import { createMcpServer } from "../src/server.js";
+import { createMcpServer } from "../src/mcp/server.js";
 
 describe("MCP server", () => {
   let client: Client;
@@ -31,14 +31,16 @@ describe("MCP server", () => {
   });
 
   describe("tools/list", () => {
-    it("lists all six tools", async () => {
+    it("lists all eight tools", async () => {
       const { tools } = await client.listTools();
       const names = tools.map((t) => t.name).sort();
       expect(names).toEqual([
         "evmcrispr_create_link",
         "evmcrispr_describe_module",
+        "evmcrispr_get_contract",
         "evmcrispr_get_docs",
         "evmcrispr_list_modules",
+        "evmcrispr_publish_module",
         "evmcrispr_simulate_evml",
         "evmcrispr_validate_evml",
       ]);
@@ -63,7 +65,7 @@ describe("MCP server", () => {
         "std",
         "lang",
         "sim",
-        "assertions",
+        "token",
         "aragonos",
         "ens",
         "giveth",
