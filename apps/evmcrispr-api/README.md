@@ -52,7 +52,7 @@ From the repository root, with Bun 1.4.4 or newer:
 
 ```sh
 bun install --frozen-lockfile
-bunx turbo run build --filter=evmcrispr-api
+bun run build --filter=evmcrispr-api
 bun run --cwd apps/evmcrispr-api start
 curl -H 'Host: api.evmcrispr.com' http://localhost:3002/health
 ```
@@ -72,8 +72,8 @@ Use the existing service rather than creating another service or Blueprint.
 | Runtime | Node / Bun |
 | Branch | `next` |
 | Root directory | Repository root (empty) |
-| Build command | `bash apps/evmcrispr-api/render/build.sh` |
-| Start command | `bash apps/evmcrispr-api/render/start.sh` |
+| Build command | `bun install --frozen-lockfile && bun run build --filter=evmcrispr-api` |
+| Start command | `bun run --cwd apps/evmcrispr-api start` |
 | Instances | 1 |
 | Persistent disk | None |
 | Health check path | Empty, using Render's default TCP check |
