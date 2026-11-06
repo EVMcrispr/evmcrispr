@@ -70,6 +70,7 @@
         "@evmcrispr/modules": "*",
         "@evmcrispr/sdk": "*",
         "@evmcrispr/space": "*",
+        "@evmcrispr/viem-frames": "*",
         "@fontsource-variable/instrument-sans": "^5.3.0",
         "@fontsource/jetbrains-mono": "^5.3.0",
         "@monaco-editor/react": "^4.7.0",
@@ -101,6 +102,7 @@
       },
       "devDependencies": {
         "@axe-core/playwright": "^4.13.0",
+        "@forshtat/hegota-support": "0.0.1",
         "@happy-dom/global-registrator": "^20.14.5",
         "@playwright/test": "^1.63.0",
         "@tailwindcss/typography": "^0.5.20",

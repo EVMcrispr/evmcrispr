@@ -35,7 +35,7 @@ import {
   type RunStatus,
   UNFINISHED,
 } from "@evmcrispr/space";
-import type { WalletClient } from "viem";
+import type { Transport, WalletClient } from "viem";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { browserSafeUrl } from "../config/browserSafeUrl";
 import type { LiveSpace } from "../space/live-space";
@@ -45,6 +45,7 @@ import { type Locks, lockNames, type Release } from "../storage/locks";
 import type { Records } from "../storage/records";
 import { normaliseAction } from "./action-summary";
 import { appendOutput, boundErrors } from "./bounds";
+import { makeFrameHandler } from "./frame-handler";
 import { createGate, type Gate, type Held } from "./gate";
 import { makeSafeBatchedHandler, reachesWallet } from "./handlers";
 import { guardWallet, type WalletGuard } from "./wallet-guard";
@@ -130,6 +131,9 @@ export interface RunDeps {
   /** How long a cancelled run may take to stop before it is ended anyway
    *  (default 3 s: past the worker's own kill grace). */
   cancelGraceMs?: number;
+  /** The alt-mempool gateway frame accounts send through: the devnet's
+   *  own unless a test stands in for it. */
+  frameGateway?: Transport;
 }
 
 const FLUSH_EVERY = 2_000;
@@ -505,9 +509,10 @@ export function createRunManager(deps: RunDeps): RunManager {
               }
             : pass,
         ),
-        // Refused by the core's default handler; held like any action that
-        // reaches the wallet, so the review shows it as unsupported.
-        frame: gated(pass),
+        // A frame account's transaction is signed by the wallet as typed
+        // data; any other is refused by the core's default handler. Both
+        // are held like any action that reaches the wallet.
+        frame: gated(makeFrameHandler({ transport: deps.frameGateway })),
         rpc: pass,
         terminal: pass,
       };

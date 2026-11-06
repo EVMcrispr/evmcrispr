@@ -10,9 +10,15 @@
 //    its method defines, it is shown raw, as it will be sent.
 import type {
   Action,
+  FrameAction,
   SmartBatchAction,
   TransactionAction,
 } from "@evmcrispr/sdk";
+import {
+  altMempoolDevnet,
+  FRAME_ACCOUNT_DOMAIN_NAME,
+  printable,
+} from "@evmcrispr/viem-frames";
 import {
   type Chain,
   formatEther,
@@ -108,7 +114,8 @@ export interface ActionDescription {
   /** Every transaction the action sends: one, or all of a batch. */
   calls: CallDescription[];
   signing?: Signing;
-  /** The steps of a smart batch, in order. */
+  /** The steps of a smart batch, or the frames of a frame transaction,
+   *  in order. */
   steps?: { label: string; call?: CallDescription; note?: string }[];
   /** What this description cannot say, said plainly. */
   notes: string[];
@@ -482,6 +489,90 @@ function describeSmartBatch(
   };
 }
 
+/** A value of an action, as text that cannot hide or redraw what is
+ *  around it: controls and direction marks escaped (`printable`), and
+ *  every other character that does not show written out. */
+const escaped = (value: unknown) =>
+  [...printable(value)]
+    .map((character) =>
+      INVISIBLE.test(character)
+        ? `\\u{${(character.codePointAt(0) as number).toString(16).toUpperCase()}}`
+        : character,
+    )
+    .join("");
+
+/** Who pays a frame transaction, as its frames say: the first verify
+ *  frame that approves payment. */
+function framePayer(action: FrameAction): string {
+  const paying = action.frames.find(
+    (frame) =>
+      frame.mode === "verify" &&
+      (frame.approve === "payment" || frame.approve === "both"),
+  );
+  if (!paying) return "no frame (none approves payment)";
+  return paying.target === null ||
+    paying.target.toLowerCase() === action.from.toLowerCase()
+    ? `the account ${escaped(action.from)}`
+    : `the sponsor ${escaped(paying.target)}`;
+}
+
+/** A frame transaction from a FrameAccount, as the run sends it: every
+ *  frame as written, then the typed data its owner is asked to sign. The
+ *  nonce and fees are read from the gateway when it is sent, so the hash
+ *  signed is not known here. Every value of the action is escaped. */
+function describeAccountFrames(
+  action: FrameAction & { account: NonNullable<FrameAction["account"]> },
+  chains: ChainLookup,
+): ActionDescription {
+  const account = escaped(action.from);
+  const owner = escaped(action.account.owner);
+  const devnet = altMempoolDevnet;
+  let prefix = 0;
+  action.frames.forEach((frame, index) => {
+    if (frame.mode === "verify") prefix = index + 1;
+  });
+  const limit = (value: bigint | undefined) =>
+    value === undefined ? "none" : escaped(value);
+  const steps = action.frames.map((frame, index) => {
+    const scope =
+      frame.mode === "verify"
+        ? ` approving ${escaped(frame.approve ?? "execution")}`
+        : "";
+    const self = frame.target === null ? ", to the account itself" : "";
+    const atomic = frame.atomic ? ", atomic with the next frame" : "";
+    const state = index < prefix ? "0" : limit(frame.stateGas);
+    return {
+      label: `${escaped(frame.mode)}${scope}${self}${atomic} · gas ${limit(frame.gas)}, state gas ${state}`,
+      call: describeCall(
+        {
+          to: escaped(frame.target ?? action.from) as `0x${string}`,
+          data: escaped(frame.data) as `0x${string}`,
+          value: frame.value,
+          chainId: action.chainId,
+        },
+        chains,
+      ),
+    };
+  });
+  return {
+    title: `Frame transaction from account ${account}`,
+    detail: `${action.frames.length} frames, paid by ${framePayer(action)}`,
+    meta: `${action.frames.length} frames · typed data signed by ${owner}`,
+    chainId: action.chainId,
+    calls: [],
+    steps,
+    warning:
+      action.chainId === devnet.id
+        ? undefined
+        : `This names chain ${escaped(action.chainId)}, but a frame account's transaction is only sent on the ${devnet.name} (${devnet.id}): it will be refused.`,
+    notes: [
+      `When it is sent, the wallet of the owner ${owner} is asked to sign typed data FrameTransaction(bytes32 sigHash).`,
+      `Its domain: name "${FRAME_ACCOUNT_DOMAIN_NAME}", version "1", chain ${devnet.id} (${devnet.name}), verifying contract ${account} (the account).`,
+      "sigHash is the transaction's signature hash. The nonce and fees it covers are read from the gateway when it is sent, so they and the hash are not shown here: the wallet's prompt shows the hash.",
+    ],
+  };
+}
+
 /** Every warning of the action and of what it contains, once each. */
 const allWarnings = (description: ActionDescription) => [
   ...new Set([
@@ -545,6 +636,11 @@ function describe(action: Action, chains: ChainLookup): ActionDescription {
       calls: [],
       notes: [],
     };
+  if (action.type === "frame" && action.account)
+    return describeAccountFrames(
+      { ...action, account: action.account },
+      chains,
+    );
   if (action.type === "frame")
     return {
       title: "Frame transaction",
