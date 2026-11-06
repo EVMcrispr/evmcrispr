@@ -1,0 +1,200 @@
+---
+title: Frame Transactions
+experimental: true
+---
+
+An EIP-8141 *frame transaction* is a transaction made of several calls, called
+frames, each with its own caller, gas limits and result. It is the protocol's
+native form of what EVMcrispr does with `batch`: one signed unit carrying many
+steps, with validation and payment as part of the transaction itself. The
+`frame` module writes one from a block and sends it to the ERC-8421
+*alternative mempool*, today a public devnet (chain 1337).
+
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+
+:::caution
+Only the **CLI** can send a frame transaction, signed by a local key. The
+terminal cannot yet: browser wallets do not sign type `0x06`, and the terminal
+holds no keys. Run in the terminal, a script with `frame:tx` stops with an
+error. Chain 1337 is the only chain that sends frame transactions, and it is a
+devnet that can be reset at any time.
+:::
+
+## One transaction, several frames
+
+`frame:tx` takes a block and returns a single transaction. Each call in the
+block is one frame, in the order written. Nothing inside it is sent on its own.
+
+```evml
+load frame [tx]
+
+tx (
+  send 0x8943545177806ED17B9F23F0a21ee5948eCaa776 --value 1e9
+  exec 0x0000000000000000000000000000000000000001 "approve(address,uint256)" 0x0000000000000000000000000000000000000002 100
+)
+```
+
+| Written | Frame(s) |
+|---|---|
+| `exec …`, `send …` | one SENDER frame, called by the transaction's sender. If it fails, the later frames still run. |
+| `batch ( … )` | its frames are atomic: all of them succeed or none does |
+| `default ( exec … )` | each call is a DEFAULT frame, called by the entry point rather than by you |
+| `verify <target> … --approve execution\|payment\|both` | one VERIFY frame |
+| no `verify`, no `--paymaster` | a self-verify on the sender, added first |
+| `--paymaster <addr>` | an execution-only verify on the sender, then a pay frame on `<addr>` |
+
+The first thing a frame transaction does is validate itself. By default the
+sender approves its own transaction with one signature, so you write nothing.
+`default` and `verify` are commands of the module: write them `frame:default`
+and `frame:verify`, or import them with `load frame [tx verify default]`. They
+work only inside `frame:tx`.
+
+## Atomic groups
+
+Frames are independent by default. `batch` makes a group all-or-nothing:
+
+```evml
+load frame [tx]
+
+tx (
+  exec 0x0000000000000000000000000000000000000001 "f()"
+  batch (
+    exec 0x0000000000000000000000000000000000000001 "g()"
+    exec 0x0000000000000000000000000000000000000002 "h()"
+  )
+)
+```
+
+A `verify` cannot be inside a `batch`.
+
+## Verification and payment
+
+`verify` writes a VERIFY frame: a static call that must itself approve the
+transaction. `--approve` says which scope the frame permits (what its flags say,
+not something EVMcrispr does). An account can approve the execution, the
+payment, or both. A `default` frame right before a `verify` with the same target
+is that verify's *pre-verify*.
+
+```evml
+load frame [tx verify default]
+
+tx (
+  verify @me --approve execution
+  default (
+    exec 0x0000000000000000000000000000000000000002 "pullFee(address,uint256)" @me 1000000
+  )
+  verify 0x0000000000000000000000000000000000000002 "verify()" --approve payment
+  exec 0x0000000000000000000000000000000000000001 "f()"
+)
+```
+
+When someone else pays, use the shortcut instead of writing both verifies:
+
+```evml
+load frame [tx]
+
+tx --paymaster 0x0000000000000000000000000000000000000002 --paymaster-data 0x1234 (
+  exec 0x0000000000000000000000000000000000000001 "f()"
+)
+```
+
+The block is checked before anything is signed. The validation prefix must be
+one the mempool recognizes (`[self-verify]` or `[verify execution, pay]`, each
+verify with at most one pre-verify); verifies come before any call;
+`--paymaster` excludes an explicit `verify --approve payment`; a block holds at
+most 64 frames; and only plain transaction commands on the current chain and
+sender are allowed inside it (no `switch` to another chain, no wallet requests).
+
+## Gas
+
+Every frame has its own limits.
+
+- **Execution gas** of a call frame is the `--gas` of its `exec` or `send`.
+- **State gas** of every call frame is `frame:tx --state-gas <n>`. Unused state
+  gas is refunded, so a generous value costs only the reservation.
+
+```evml
+load frame [tx]
+
+tx --state-gas 200000 (
+  exec 0x0000000000000000000000000000000000000001 "f()" --gas 100000
+)
+```
+
+The local key is an account without code, and the node cannot estimate the
+frames of such a sender without a real signature. A call frame without `--gas`,
+or a `frame:tx` without `--state-gas`, therefore needs the CLI flag
+`--size-by-simulation`. Without it the run stops before signing anything and
+says which frames lack limits.
+
+### What `--size-by-simulation` signs
+
+It signs a **provisional** frame transaction: the same frames and nonce as yours,
+with generous limits. That transaction is valid as signed, so whoever receives
+it could broadcast it. It is sent only to the devnet's ethrex node
+(`https://altmempool.forshtat.com`), which simulates it; the CLI sets each limit
+from what the simulation used (x1.25 + 5,000 for execution, and 200,000 reserved
+for state), then signs the real transaction and sends it to the alt mempool. Like
+every signature of the local key, the provisional one is shown and confirmed
+first. Use it with a throwaway key.
+
+## Running it from the CLI
+
+The CLI signs with a key from the environment, never from an argument:
+
+```bash
+export EVMCRISPR_PRIVATE_KEY=0x...   # a throwaway key, funded on the devnet
+export EVMCRISPR_DEFAULT_CHAIN_ID=1337
+export EVMCRISPR_RPC_URL_1337=https://altmempoolgateway.forshtat.com/rpc
+evmcrispr run frame.evml --experimental --size-by-simulation
+```
+
+The script selects the devnet with `switch 1337`. The module declares no chain
+of its own, because 1337 is also the id of local development nodes; the CLI's
+local key signs on a single chain per run, hence the two variables.
+
+```evml
+load frame [tx]
+
+switch 1337
+tx (
+  send 0x8943545177806ED17B9F23F0a21ee5948eCaa776 --value 1e9
+)
+```
+
+Before each signature the CLI shows the transaction: the chain, the sender and
+payer, the nonce and, for every frame, its mode, approval scope, target, value,
+call and limits. In a terminal it then asks y/N. Without a terminal (a pipe, CI)
+it signs only with `--yes`, and otherwise stops. The key is never printed, and it
+cannot be combined with `--wallet-rpc` or `--account`.
+
+The devnet has a faucet (`requestFaucet` of `@evmcrispr/viem-frames`), which is
+how a throwaway key gets gas.
+
+### After admission
+
+When the alt mempool admits the transaction the CLI prints its hash. It then
+waits up to two minutes for the receipt and prints each frame's status and the
+payer. If the transaction is not mined by then, the run stops with the mempool's
+status and a link to the explorer (`https://explorer.altmempool.wtf`): a pending
+frame transaction holds the sender's nonce, so a later transaction from the same
+key would collide with it. On 2026-11-06 the devnet admitted frame transactions
+but bundled none, ours or anyone else's, so a run ended this way.
+
+## Limits
+
+- The CLI with a local key is the only sender. The terminal refuses, and
+  `sim:fork` cannot simulate type `0x06`.
+- One secp256k1 signature of the sender. Not covered: P256 or arbitrary
+  signatures, paymaster signatures, keyed nonces other than key 0, recent roots,
+  `deploy` frames and `--expires`.
+- Chain 1337, the alt-mempool devnet, only. Any other chain is refused by name.
+
+## Combining with
+
+- [Simulation](/guides/simulation): `sim:fork` cannot run a frame transaction;
+  simulate the ordinary calls it wraps first, then send the frames.
+- [Smart Batches](/guides/smart-batches): a smart batch is EVMcrispr's
+  equivalent on contract-based accounts, and `frame:tx` cannot be nested in one.
+- [Operating a Safe](/guides/safe): a Safe collects many owners' approvals for
+  one execution, where a frame transaction collects verify frames for one.

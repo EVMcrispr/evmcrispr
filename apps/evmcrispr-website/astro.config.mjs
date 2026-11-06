@@ -423,6 +423,7 @@ export default defineConfig({
             docItem("Managing OpenZeppelin Contracts", "guides/openzeppelin"),
             docItem("Zero-Knowledge Proofs", "guides/circom"),
             docItem("Cross-Chain with EEZ", "guides/eez"),
+            docItem("Frame Transactions", "guides/frame-transactions"),
             docItem("Sharing Scripts", "guides/sharing-scripts"),
             docItem("Publishing Modules", "guides/publishing-modules"),
             docItem("MCP Server", "guides/mcp"),
