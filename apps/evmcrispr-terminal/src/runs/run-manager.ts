@@ -505,6 +505,9 @@ export function createRunManager(deps: RunDeps): RunManager {
               }
             : pass,
         ),
+        // Refused by the core's default handler; held like any action that
+        // reaches the wallet, so the review shows it as unsupported.
+        frame: gated(pass),
         rpc: pass,
         terminal: pass,
       };

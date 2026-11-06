@@ -4,6 +4,7 @@ import type {
   ActionReport,
   BatchedAction,
   BoxSnapshot,
+  FrameAction,
   RpcAction,
   SmartBatchAction,
   TerminalAction,
@@ -11,6 +12,7 @@ import type {
   WalletAction,
 } from "@evmcrispr/sdk";
 import {
+  chainLabel,
   defaultTransport,
   ExitSignal,
   isTransactionAction,
@@ -127,6 +129,7 @@ export type ActionHandlers = {
     ctx: ActionHandlerCtx,
   ): Promise<unknown>;
   batched(action: BatchedAction, ctx: ActionHandlerCtx): Promise<unknown>;
+  frame(action: FrameAction, ctx: ActionHandlerCtx): Promise<unknown>;
   wallet(action: WalletAction, ctx: ActionHandlerCtx): Promise<unknown>;
   rpc(action: RpcAction, ctx: ActionHandlerCtx): Promise<unknown>;
   terminal(action: TerminalAction, ctx: ActionHandlerCtx): Promise<unknown>;
@@ -609,6 +612,11 @@ async function sendThrough(
 
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
+    async frame(action) {
+      throw new Error(
+        `This host cannot send frame transactions (${chainLabel(action.chainId)}): use the EVMcrispr CLI with EVMCRISPR_PRIVATE_KEY`,
+      );
+    },
     async smartBatch(action, ctx) {
       if (
         action.chainId !== action.plan.chainId ||
@@ -937,6 +945,8 @@ export async function executeScript(
         return defaults.smartBatch(action, ctx);
       case "batched":
         return defaults.batched(action, ctx);
+      case "frame":
+        return defaults.frame(action, ctx);
       case "wallet":
         return defaults.wallet(action, ctx);
       case "rpc":

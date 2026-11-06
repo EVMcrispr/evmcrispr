@@ -545,6 +545,15 @@ function describe(action: Action, chains: ChainLookup): ActionDescription {
       calls: [],
       notes: [],
     };
+  if (action.type === "frame")
+    return {
+      title: "Frame transaction",
+      detail: `${action.frames.length} frames`,
+      meta: "Not supported in the terminal",
+      chainId: action.chainId,
+      calls: [],
+      notes: [],
+    };
   if (action.type === "smartBatch")
     return {
       title: "Atomic smart batch",

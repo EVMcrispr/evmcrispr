@@ -85,6 +85,8 @@ export type {
   ExecutionOrigin,
   FailFn,
   FieldlessErrorName,
+  FrameAction,
+  FrameSpec,
   HelperArgDefEntry,
   HelperFunction,
   HelperFunctionNode,
