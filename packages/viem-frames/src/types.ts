@@ -1,6 +1,6 @@
 import type { Profile } from "@forshtat/hegota-support/profiles";
 import type { Frame, FrameTx } from "@forshtat/hegota-support/tx";
-import type { Address, Hex, Log } from "viem";
+import type { Address, Hex, Log, TransactionReceipt } from "viem";
 
 export type { Frame, FrameTx, Profile };
 
@@ -67,3 +67,7 @@ export interface FrameTransactionReceiptFields {
   /** One entry per frame, in order. */
   frameReceipts?: FrameReceipt[] | undefined;
 }
+
+/** viem's receipt, read through `withFrames`' formatter. */
+export type FrameTransactionReceipt = TransactionReceipt &
+  FrameTransactionReceiptFields;

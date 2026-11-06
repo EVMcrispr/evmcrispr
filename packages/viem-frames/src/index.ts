@@ -1,5 +1,10 @@
 export { profile as eip8141TracerProfile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
 export {
+  FRAME_ACCOUNT_DOMAIN_NAME,
+  frameAccountTypedData,
+  sendAccountFrameTransaction,
+} from "./account";
+export {
   altMempoolActions,
   type FrameSimulation,
   type FrameTransactionParameters,
@@ -13,9 +18,15 @@ export {
   type FrameGasEstimate,
   frameProfileOf,
   frameSimulationUrlOf,
+  sidecarGasPrice,
   simulate,
   withFrames,
 } from "./chain";
+export {
+  type FrameSpecLike,
+  prefixLength,
+  toFrameRequests,
+} from "./frame-specs";
 export {
   ATOMIC_BATCH_FLAG,
   atomic,
@@ -25,6 +36,7 @@ export {
   selfVerify,
 } from "./frames";
 export {
+  arbitrarySignatureEntry,
   frameSerializer,
   isFrameTransaction,
   parseFrameTransaction,

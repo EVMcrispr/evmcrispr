@@ -70,10 +70,14 @@ sized when the transaction is prepared:
 
 ## Limits
 
-- **Signing:** only a local account, with one secp256k1 signature and an
-  empty `msg`. Browser wallets do not sign type `0x06`.
-- **Not covered:** P256 or ARBITRARY signatures, paymaster signatures, keyed
-  nonces other than key 0, recent roots, `deploy` frames.
+- **Signing:** a local account, with one secp256k1 signature and an
+  empty `msg`. Browser wallets do not sign type `0x06`; a smart account
+  they own does, through `sendAccountFrameTransaction`: one `ARBITRARY`
+  entry holding the owner's EIP-712 signature over
+  `frameAccountTypedData(account, sigHash)`, checked by the account's own
+  VERIFY code. Its frames carry their limits (nothing sizes them).
+- **Not covered:** P256 signatures, paymaster signatures, keyed nonces
+  other than key 0, recent roots, `deploy` frames.
 - **Mining:** on 2026-11-06 the devnet admitted frame transactions but bundled
   none of them, ours or anyone else's (24 pending in
   `debug_bundler_dumpMempool`).

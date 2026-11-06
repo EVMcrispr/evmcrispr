@@ -279,7 +279,8 @@ export async function simulate(
   return json.result;
 }
 
-async function sidecarGasPrice(client: Client) {
+/** The sidecar's fees (`skandha_getGasPrice`): the gateway serves no `eth_feeHistory`. */
+export async function sidecarGasPrice(client: Client) {
   const result = (await client.request({
     method: "skandha_getGasPrice",
   } as never)) as { maxFeePerGas: Hex; maxPriorityFeePerGas: Hex };

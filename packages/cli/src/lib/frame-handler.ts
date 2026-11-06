@@ -1,12 +1,12 @@
 import type { ActionHandlers } from "@evmcrispr/core";
 import { chainLabel, type FrameSpec } from "@evmcrispr/sdk";
 import {
-  ATOMIC_BATCH_FLAG,
   altMempoolActions,
   altMempoolDevnet,
-  eip8141TracerProfile,
   type FrameRequest,
   frameSimulationUrlOf,
+  prefixLength,
+  toFrameRequests,
 } from "@evmcrispr/viem-frames";
 import {
   createWalletClient,
@@ -21,62 +21,6 @@ import { type ConfirmingAccount, printable } from "./local-signer";
 
 const EXPLORER = "https://explorer.altmempool.wtf";
 const NETWORK = altMempoolDevnet.name;
-
-const MODES = {
-  verify: "VERIFY",
-  sender: "SENDER",
-  default: "DEFAULT",
-} as const;
-const SCOPES = {
-  execution: "EXECUTION",
-  payment: "PAYMENT",
-  both: "EXECUTION_AND_PAYMENT",
-} as const;
-
-/** How many frames the validation prefix holds: up to the last verify
- *  frame (a pre_verify `default` frame sits inside it). */
-export function prefixLength(frames: FrameSpec[]): number {
-  let last = -1;
-  frames.forEach((f, i) => {
-    if (f.mode === "verify") last = i;
-  });
-  return last + 1;
-}
-
-/**
- * The frames of a `FrameAction` as viem-frames lays them out. A
- * validation-prefix frame carries its own limits (`gas`, state 0): nothing
- * sizes it. A body frame carries limits only when it has both `gas` and
- * `stateGas`; otherwise they are left for preparing to size.
- */
-export function toFrameRequests(frames: FrameSpec[]): FrameRequest[] {
-  const profile = eip8141TracerProfile;
-  const prefix = prefixLength(frames);
-  return frames.map((frame, i) => {
-    const mode = profile.frameModes[MODES[frame.mode]];
-    if (mode === undefined)
-      throw new Error(`The frame profile has no ${frame.mode} mode`);
-    const scope = frame.approve
-      ? profile.approveScopes[SCOPES[frame.approve]]
-      : 0;
-    if (scope === undefined)
-      throw new Error(`The frame profile has no ${frame.approve} scope`);
-    let limits: FrameRequest["limits"];
-    if (i < prefix) {
-      if (frame.gas !== undefined) limits = { execution: frame.gas, state: 0n };
-    } else if (frame.gas !== undefined && frame.stateGas !== undefined) {
-      limits = { execution: frame.gas, state: frame.stateGas };
-    }
-    return {
-      mode,
-      flags: scope | (frame.atomic ? ATOMIC_BATCH_FLAG : 0),
-      target: frame.target,
-      limits,
-      value: frame.value,
-      data: frame.data,
-    };
-  });
-}
 
 /** Why a frame cannot be sent as written, numbered as frame:tx numbers
  *  frames (from 1); undefined when it can (sizing as allowed). */

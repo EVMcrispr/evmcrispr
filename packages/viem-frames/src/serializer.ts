@@ -3,7 +3,9 @@ import {
   decodeTx,
   encodeTx,
   newTx,
+  type SignatureEntry,
   secp256k1Placeholder,
+  sigScheme,
 } from "@forshtat/hegota-support/tx";
 import {
   concat,
@@ -44,6 +46,24 @@ export function toFrameTx(
       maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
     },
   });
+}
+
+/**
+ * An `ARBITRARY` signature entry (scheme 0): no signer and an empty `msg`,
+ * so it covers the canonical signature hash and its bytes are elided from
+ * it. The sender's own VERIFY code reads and checks `signature`, which is
+ * kept exactly as given (`"0x"` until it is signed).
+ */
+export function arbitrarySignatureEntry(
+  signature: Hex = "0x",
+  profile: Profile = tracer,
+): SignatureEntry {
+  return {
+    scheme: sigScheme(profile, "ARBITRARY"),
+    signer: "0x",
+    msg: "0x",
+    signature,
+  };
 }
 
 /** `v || r || s` with `v` a bare recovery id (0 or 1), the form these devnets accept. */

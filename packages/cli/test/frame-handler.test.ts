@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { ActionHandlerCtx } from "@evmcrispr/core";
 import type { FrameAction, FrameSpec } from "@evmcrispr/sdk";
-import { ATOMIC_BATCH_FLAG } from "@evmcrispr/viem-frames";
+import { ATOMIC_BATCH_FLAG, toFrameRequests } from "@evmcrispr/viem-frames";
 import { custom, type Hash, type Hex, keccak256 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { makeFrameHandler, toFrameRequests } from "../src/lib/frame-handler";
+import { makeFrameHandler } from "../src/lib/frame-handler";
 import { confirmingAccount } from "../src/lib/local-signer";
 
 // Anvil's account #1.
