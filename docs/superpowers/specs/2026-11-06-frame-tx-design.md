@@ -22,8 +22,8 @@ design is the EVML layer on top of it.
   frames of one transaction, written with EVML's existing vocabulary.
 - Sending it through the CLI to the public alt-mempool devnet (chain 1337),
   signed by a local key, and showing the admitted hash.
-- Static analysis that catches, before signing, a block the mempool would
-  reject for its shape.
+- Checks, before signing, that catch a block the mempool would reject for
+  its shape.
 - Docs and tests in the repo's usual places.
 
 ## Non-goals (this version)
@@ -59,9 +59,9 @@ design is the EVML layer on top of it.
 A frame is one call. The block lists the transaction's frames in order.
 
 ```evml
-load frame
+load frame [tx verify default]
 
-frame:tx (
+tx (
   verify @me --approve execution                       # only_verify
   default (
     exec $sponsor "pullFee(address,uint256)" @me 1e6   # pre_verify of the next frame
@@ -92,9 +92,11 @@ frame:tx (
   `pre_verify`). A `default` frame after the validation prefix is an
   ordinary body frame. A `default` frame anywhere else in the prefix is an
   error (the mempool rejects it).
-- `default` and `verify` are frame-module commands, resolved unprefixed
-  inside the block (the `blockModule` mechanism `safe:propose` and
-  `aragonos:connect` use); outside a `frame:tx` block they are an error.
+- `default` and `verify` are frame-module commands. EVML has no
+  block-scoped names (the module-system rework removed them), so they are
+  written `frame:default` / `frame:verify`, or unprefixed after
+  `load frame [tx verify default]`, the usual import list. Outside a
+  `frame:tx` block they are an error.
 - `default` and `batch` compose both ways: `default ( batch ( … ) )` is an
   atomic group of DEFAULT frames; a `batch` may hold `default ( … )`. A
   batch may not hold a `verify` (the spec forbids VERIFY in a batch).
@@ -104,7 +106,12 @@ frame:tx (
   frame permits (its flags), not something EVMcrispr does.
 - Per-frame gas: see Gas below.
 
-### Rules the analysis enforces (static, before signing)
+### Rules checked before signing
+
+EVML's static analysis has no module hooks, so `frame:tx` checks these when
+it builds the transaction, before the action exists, and the run stops
+there: nothing of that transaction is signed. (Revised while planning:
+the design first said "static analysis".)
 
 - The validation prefix is one of the shapes the mempool recognizes:
   `[self_verify]` or `[only_verify, pay]`, with at most one `pre_verify`
@@ -229,7 +236,7 @@ frame:tx (
 ## Tests
 
 - Unit (module): each row of the table above becomes the expected frames;
-  each analysis rule has a passing and a failing script; the prefix shapes
+  each shape rule has a passing and a failing script; the prefix shapes
   come out right with and without `--paymaster`.
 - Unit (CLI): the key comes only from the environment; it is refused with
   `--wallet-rpc`; it never appears in output; a transaction is signed only
@@ -255,6 +262,5 @@ frame:tx (
 
 - Where in `frame:tx` the commands of the block are flattened into frames,
   and the exact `FrameSpec` fields.
-- The analysis pass that hosts the shape rules.
 - Error wording, within the repo's message conventions (chain names, no raw
   wei; see the message-format helpers in the SDK).
