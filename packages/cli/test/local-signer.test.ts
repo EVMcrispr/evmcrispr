@@ -589,6 +589,22 @@ describe("confirmingAccount", () => {
     expect(text).toContain("0xdeadbeef");
   });
 
+  it("a multi-line label keeps its lines and indentation, each escaped", () => {
+    const word = "11".repeat(32);
+    const text = describeSignature({
+      type: "message",
+      message: "x",
+      label: `Frame 1: verify\n    data 0xb2225351 (36 bytes)\n      ${word}\nFrame 2: sender\u001b[2J`,
+    });
+    const lines = text.split("\n");
+    expect(lines).toContain("Frame 1: verify");
+    expect(lines).toContain("    data 0xb2225351 (36 bytes)");
+    expect(lines).toContain(`      ${word}`);
+    expect(lines.some((l) => l.startsWith("Frame 2: sender"))).toBe(true);
+    expect(text).not.toContain("\\n");
+    expect(text).not.toContain("\u001b");
+  });
+
   it("escapes control characters in every field", () => {
     const attack = "\x1b[2K\rSafe\nline\u009b\u202e";
     for (const text of [

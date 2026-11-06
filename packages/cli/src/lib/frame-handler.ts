@@ -55,8 +55,8 @@ const networkName = (chainId: number) =>
  * frame account's is signed as typed data whose confirmation is labelled with
  * the frames, payer, nonce and fees behind its hash. With an external wallet
  * (`wallet`, --wallet-rpc) only frame account transactions are sent: the
- * wallet is asked for the typed data and shows it; a plain frame action is
- * refused. Without `sizeBySimulation`, every frame must
+ * same description is printed, then the wallet is asked for the typed data;
+ * a plain frame action is refused. Without `sizeBySimulation`, every frame must
  * carry its limits, so nothing but the transaction as sent is ever signed;
  * with it, the provisional transaction that sizes them is signed (and
  * confirmed) first, labelled as such.
@@ -103,9 +103,14 @@ export function makeFrameHandler({
         transport,
         onLog: ctx.onLog,
         receiptTimeoutMs,
-        // The local key's one confirmation carries the frames behind the hash.
+        // The local key's one confirmation carries the frames behind the
+        // hash; an external wallet shows only the typed data, so they are
+        // printed before it is asked.
         signWith: wallet
-          ? undefined
+          ? (description, sign) => {
+              ctx.onLog?.(description);
+              return sign();
+            }
           : (description, sign) => account!.labelled(description, sign),
       });
       ctx.onSent?.(hash);

@@ -439,7 +439,10 @@ function listLines(tx: TransactionLike): string[] {
 /** What a signature commits to, for the user to confirm. */
 export function describeSignature(request: SignatureRequest): string {
   const lines: string[] = [];
-  if (request.label) lines.push(printable(request.label));
+  // A label may run over several lines (a frame account's frames, one
+  // calldata word per line): each is escaped, its indentation kept.
+  if (request.label)
+    lines.push(...request.label.split("\n").map((line) => printable(line)));
   switch (request.type) {
     case "transaction":
       lines.push(...describeTransaction(request.transaction, request.account));

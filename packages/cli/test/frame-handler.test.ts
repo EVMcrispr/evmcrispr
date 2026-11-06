@@ -666,6 +666,40 @@ describe("account frame actions", () => {
     expect(c.sent).toHaveLength(1);
   });
 
+  it("the frames behind the hash are logged before the external wallet is asked", async () => {
+    const owner = privateKeyToAccount(OWNER_KEY);
+    const c = ctx();
+    let logsWhenAsked: string[] | undefined;
+    const wallet = createWalletClient({
+      account: owner.address,
+      transport: custom({
+        async request({ method, params }: { method: string; params: any }) {
+          if (method === "eth_accounts") return [owner.address];
+          if (method === "eth_signTypedData_v4") {
+            logsWhenAsked = [...c.logs];
+            return owner.signTypedData(JSON.parse(params[1]));
+          }
+          throw new Error(`unexpected ${method}`);
+        },
+      }),
+    });
+    const sc = accountSidecar();
+    await makeFrameHandler({
+      wallet,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    })(accountAction(owner.address), c.ctx);
+    const shown = logsWhenAsked?.join("\n") ?? "";
+    expect(shown).toContain(`Frame transaction from the account ${ACCOUNT}`);
+    expect(shown).toContain("Frame 1: verify");
+    expect(shown).toContain(`Frame 2: sender to ${RECIPIENT}`);
+    expect(shown).toContain("data 0xd09de08a (4 bytes)");
+    expect(shown).toContain(`Paid by the account ${ACCOUNT}`);
+    expect(shown).toContain("Nonce 3");
+    expect(shown).toContain("max fee");
+    expect(shown).toMatch(/Signature hash 0x[0-9a-f]{64}/);
+  });
+
   it("a plain frame action with --wallet-rpc is refused with the reason", async () => {
     const owner = privateKeyToAccount(OWNER_KEY);
     const wallet = createWalletClient({
