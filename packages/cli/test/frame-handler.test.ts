@@ -106,6 +106,14 @@ const VERIFY: FrameSpec = {
   value: 0n,
   gas: 30_000n,
 };
+/** A pre_verify: a default frame right before the verify, same target. */
+const PRE_VERIFY: FrameSpec = {
+  mode: "default",
+  target: null,
+  data: "0x1234",
+  value: 0n,
+  gas: 40_000n,
+};
 const CALL: FrameSpec = {
   mode: "sender",
   target: RECIPIENT,
@@ -159,9 +167,39 @@ describe("toFrameRequests", () => {
       value: 1_000n,
       limits: { execution: 50_000n, state: 200_000n },
     });
-    expect(requests[4]!.limits).toEqual({ execution: 1n, state: 0n });
+    // A body frame without stateGas is left for sizing.
+    expect(requests[4]!.limits).toBeUndefined();
+  });
+
+  it("gives a pre_verify frame its own limits: it is in the validation prefix", () => {
+    const requests = toFrameRequests([PRE_VERIFY, VERIFY, CALL]);
+    expect(requests[0]).toMatchObject({
+      mode: 0,
+      limits: { execution: 40_000n, state: 0n },
+    });
   });
 });
+
+/** Stands in for the devnet's ethrex node: each frame used `gasUsed[i]`. */
+async function withSimulation(gasUsed: string[], fn: () => Promise<void>) {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          executionStatus: "success",
+          frames: gasUsed.map((g) => ({ gasUsed: g, succeeded: true })),
+        },
+      }),
+    )) as unknown as typeof fetch;
+  try {
+    await fn();
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+}
 
 describe("the frame handler", () => {
   it("sends an admitted frame transaction to eth_sendFrameTransaction", async () => {
@@ -204,7 +242,7 @@ describe("the frame handler", () => {
     expect(c.logs.some((l) => l.startsWith(":success:"))).toBe(true);
     expect(c.logs.join("\n")).toContain("OnChain");
     expect(c.logs.join("\n")).toContain("Alt-mempool devnet");
-    expect(c.logs.join("\n")).toContain("Frame 1: success");
+    expect(c.logs.join("\n")).toContain("Frame 2: success");
   });
 
   it("refuses a chain other than the alt-mempool devnet", async () => {
@@ -223,10 +261,16 @@ describe("the frame handler", () => {
   });
 
   it("refuses missing limits without --size-by-simulation, before signing", async () => {
-    for (const body of [
-      { ...CALL, gas: undefined },
-      { ...CALL, stateGas: undefined },
-    ]) {
+    for (const [body, message] of [
+      [
+        { ...CALL, gas: undefined },
+        "Frame 2 has no gas limit: add --gas to it, or run with --size-by-simulation",
+      ],
+      [
+        { ...CALL, stateGas: undefined },
+        "Frame 2 has no state gas limit: add --state-gas to frame:tx, or run with --size-by-simulation",
+      ],
+    ] as const) {
       const s = signer();
       const sc = sidecar(s.lastSigned);
       const handler = makeFrameHandler({
@@ -235,30 +279,51 @@ describe("the frame handler", () => {
         transport: sc.transport,
       });
       await expect(handler(action([VERIFY, body]), ctx().ctx)).rejects.toThrow(
-        "Frame 1 has no gas limit: add --gas to it and --state-gas to frame:tx, or run with --size-by-simulation",
+        message,
       );
       expect(s.confirmed).toHaveLength(0);
       expect(sc.methods()).not.toContain("eth_sendFrameTransaction");
     }
   });
 
+  it("sends a pre_verify frame without state gas, needing no sizing", async () => {
+    const s = signer();
+    const sc = sidecar(s.lastSigned);
+    const handler = makeFrameHandler({
+      account: s.account,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    await handler(action([PRE_VERIFY, VERIFY, CALL]), ctx().ctx);
+    const [wire] = sc.calls.find(
+      (x) => x.method === "eth_sendFrameTransaction",
+    )!.params;
+    expect(wire.frames[0].limits).toEqual({
+      execution: "0x9c40",
+      state: "0x0",
+    });
+    expect(s.confirmed).toHaveLength(1);
+  });
+
+  it("refuses a validation frame without gas, even with --size-by-simulation", async () => {
+    const s = signer();
+    const sc = sidecar(s.lastSigned);
+    const handler = makeFrameHandler({
+      account: s.account,
+      sizeBySimulation: true,
+      transport: sc.transport,
+    });
+    await expect(
+      handler(action([{ ...VERIFY, gas: undefined }, CALL]), ctx().ctx),
+    ).rejects.toThrow(
+      "Frame 1 is in the validation prefix and has no gas limit: add --gas to it",
+    );
+    expect(s.confirmed).toHaveLength(0);
+    expect(sc.calls).toHaveLength(0);
+  });
+
   it("signs the provisional transaction labelled, and the final one as sent", async () => {
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = (async () =>
-      new Response(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          result: {
-            executionStatus: "success",
-            frames: [
-              { gasUsed: "0x64", succeeded: true },
-              { gasUsed: "0xbb8", succeeded: true },
-            ],
-          },
-        }),
-      )) as unknown as typeof fetch;
-    try {
+    await withSimulation(["0x64", "0xbb8"], async () => {
       const s = signer();
       const sc = sidecar(s.lastSigned);
       const c = ctx();
@@ -286,9 +351,46 @@ describe("the frame handler", () => {
         state: "0x30d40",
       });
       expect(c.sent).toEqual([keccak256(s.lastSigned()!)]);
-    } finally {
-      globalThis.fetch = realFetch;
-    }
+      // No --gas was given, so none was replaced.
+      expect(c.logs.join("\n")).not.toContain("was replaced");
+    });
+  });
+
+  it("with --size-by-simulation, sizes a body frame that has gas but no state gas, and never a prefix frame", async () => {
+    await withSimulation(["0x64", "0x64", "0xbb8"], async () => {
+      const s = signer();
+      const sc = sidecar(s.lastSigned);
+      const c = ctx();
+      const handler = makeFrameHandler({
+        account: s.account,
+        sizeBySimulation: true,
+        transport: sc.transport,
+      });
+      await handler(
+        action([PRE_VERIFY, VERIFY, { ...CALL, stateGas: undefined }]),
+        c.ctx,
+      );
+      const [wire] = sc.calls.find(
+        (x) => x.method === "eth_sendFrameTransaction",
+      )!.params;
+      // The prefix keeps its own limits.
+      expect(wire.frames[0].limits).toEqual({
+        execution: "0x9c40",
+        state: "0x0",
+      });
+      expect(wire.frames[1].limits).toEqual({
+        execution: "0x7530",
+        state: "0x0",
+      });
+      // The body frame is sized: its --gas 50000 is replaced.
+      expect(wire.frames[2].limits).toEqual({
+        execution: "0x222e",
+        state: "0x30d40",
+      });
+      expect(c.logs).toContain(
+        ":warning:Frame 3's --gas 50000 was replaced by the sized limit 8750 (it had no state gas limit)",
+      );
+    });
   });
 
   it("stops the run when the transaction is not mined", async () => {

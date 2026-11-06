@@ -33,11 +33,26 @@ const SCOPES = {
   both: "EXECUTION_AND_PAYMENT",
 } as const;
 
-/** The frames of a `FrameAction` as viem-frames lays them out. Limits are
- *  set only for a frame that has `gas`; the rest are sized when prepared. */
+/** How many frames the validation prefix holds: up to the last verify
+ *  frame (a pre_verify `default` frame sits inside it). */
+export function prefixLength(frames: FrameSpec[]): number {
+  let last = -1;
+  frames.forEach((f, i) => {
+    if (f.mode === "verify") last = i;
+  });
+  return last + 1;
+}
+
+/**
+ * The frames of a `FrameAction` as viem-frames lays them out. A
+ * validation-prefix frame carries its own limits (`gas`, state 0): nothing
+ * sizes it. A body frame carries limits only when it has both `gas` and
+ * `stateGas`; otherwise they are left for preparing to size.
+ */
 export function toFrameRequests(frames: FrameSpec[]): FrameRequest[] {
   const profile = eip8141TracerProfile;
-  return frames.map((frame) => {
+  const prefix = prefixLength(frames);
+  return frames.map((frame, i) => {
     const mode = profile.frameModes[MODES[frame.mode]];
     if (mode === undefined)
       throw new Error(`The frame profile has no ${frame.mode} mode`);
@@ -46,18 +61,42 @@ export function toFrameRequests(frames: FrameSpec[]): FrameRequest[] {
       : 0;
     if (scope === undefined)
       throw new Error(`The frame profile has no ${frame.approve} scope`);
+    let limits: FrameRequest["limits"];
+    if (i < prefix) {
+      if (frame.gas !== undefined) limits = { execution: frame.gas, state: 0n };
+    } else if (frame.gas !== undefined && frame.stateGas !== undefined) {
+      limits = { execution: frame.gas, state: frame.stateGas };
+    }
     return {
       mode,
       flags: scope | (frame.atomic ? ATOMIC_BATCH_FLAG : 0),
       target: frame.target,
-      limits:
-        frame.gas === undefined
-          ? undefined
-          : { execution: frame.gas, state: frame.stateGas ?? 0n },
+      limits,
       value: frame.value,
       data: frame.data,
     };
   });
+}
+
+/** Why a frame cannot be sent as written, numbered as frame:tx numbers
+ *  frames (from 1); undefined when it can (sizing as allowed). */
+function missingLimit(
+  frame: FrameSpec,
+  i: number,
+  inPrefix: boolean,
+  sizeBySimulation: boolean,
+): string | undefined {
+  const n = i + 1;
+  if (inPrefix)
+    return frame.gas === undefined
+      ? `Frame ${n} is in the validation prefix and has no gas limit: add --gas to it (validation frames are never sized)`
+      : undefined;
+  if (sizeBySimulation) return undefined;
+  if (frame.gas === undefined)
+    return `Frame ${n} has no gas limit: add --gas to it, or run with --size-by-simulation`;
+  if (frame.stateGas === undefined)
+    return `Frame ${n} has no state gas limit: add --state-gas to frame:tx, or run with --size-by-simulation`;
+  return undefined;
 }
 
 const networkName = (chainId: number) =>
@@ -92,16 +131,11 @@ export function makeFrameHandler({
       throw new Error(
         `This frame transaction is from ${action.from}, but the local key is ${account.address}: only the local key's own frame transactions can be signed`,
       );
-    if (!sizeBySimulation)
-      action.frames.forEach((frame, i) => {
-        if (
-          frame.gas === undefined ||
-          (frame.mode !== "verify" && frame.stateGas === undefined)
-        )
-          throw new Error(
-            `Frame ${i} has no gas limit: add --gas to it and --state-gas to frame:tx, or run with --size-by-simulation`,
-          );
-      });
+    const prefix = prefixLength(action.frames);
+    action.frames.forEach((frame, i) => {
+      const missing = missingLimit(frame, i, i < prefix, sizeBySimulation);
+      if (missing) throw new Error(missing);
+    });
 
     const client = createWalletClient({
       account,
@@ -125,6 +159,17 @@ export function makeFrameHandler({
       maxFeePerGas: bigint;
       maxPriorityFeePerGas: bigint;
     };
+
+    action.frames.forEach((frame, i) => {
+      if (
+        i >= prefix &&
+        frame.gas !== undefined &&
+        frame.stateGas === undefined
+      )
+        ctx.onLog(
+          `:warning:Frame ${i + 1}'s --gas ${frame.gas} was replaced by the sized limit ${prepared.frames[i]?.limits?.execution} (it had no state gas limit)`,
+        );
+    });
 
     // Every frame has its limits now: sending sizes nothing, so the one
     // signature it asks for is over the transaction exactly as sent.
@@ -165,7 +210,7 @@ export function makeFrameHandler({
     );
     frameReceipts?.forEach((frame, i) => {
       ctx.onLog(
-        `${frame.status === "success" ? ":success:" : ":warning:"}Frame ${i}: ${frame.status}`,
+        `${frame.status === "success" ? ":success:" : ":warning:"}Frame ${i + 1}: ${frame.status}`,
       );
     });
     return receipt;
