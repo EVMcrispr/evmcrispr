@@ -1,5 +1,5 @@
 import "../setup";
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import {
   type Action,
   BindingsSpace,
@@ -12,6 +12,7 @@ import {
   frameAccountBytecode,
   frameSponsorBytecode,
 } from "../../src/contracts/artifacts";
+import Frame from "../../src/index";
 
 const DEPLOYED = "0x00000000000000000000000000000000000d3b10";
 const OTHER = "0x0000000000000000000000000000000000000002";
@@ -95,5 +96,61 @@ describe("frame > new-account / new-sponsor", () => {
     await expect(
       run("load frame [new-account]\nnew-account $a", undefined, 100),
     ).rejects.toThrow(/1337/);
+  });
+
+  describe("receipt shapes", () => {
+    const HASH = `0x${"ab".repeat(32)}`;
+    const proto = Frame.prototype as unknown as { getClient: unknown };
+    const original = proto.getClient;
+    afterEach(() => {
+      proto.getClient = original;
+    });
+    const stubClient = (receipt: unknown) => {
+      const asked: unknown[] = [];
+      proto.getClient = async () => ({
+        waitForTransactionReceipt: async (a: unknown) => {
+          asked.push(a);
+          return receipt;
+        },
+      });
+      return asked;
+    };
+    const ok = { status: "success", contractAddress: DEPLOYED };
+    const script = "load frame [new-account]\nnew-account $a";
+
+    it("waits for the receipt of a returned hash", async () => {
+      const asked = stubClient(ok);
+      const { evm } = await run(script, HASH);
+      expect(asked).toEqual([{ hash: HASH }]);
+      expect(evm.getBinding("$a", BindingsSpace.USER)).toBe(DEPLOYED);
+    });
+
+    it("waits for the receipt of an object holding only a hash", async () => {
+      const asked = stubClient(ok);
+      const { evm } = await run(script, { transactionHash: HASH });
+      expect(asked).toEqual([{ hash: HASH }]);
+      expect(evm.getBinding("$a", BindingsSpace.USER)).toBe(DEPLOYED);
+    });
+
+    it("refuses a string that is not a hash", async () => {
+      await expect(run(script, "queued")).rejects.toThrow(
+        /not a transaction hash/,
+      );
+    });
+
+    it("names the status and escaped reason of a non-success result", async () => {
+      await expect(
+        run(script, {
+          status: "queued",
+          reason: "wait\u001b[31m\u202e for it",
+        }),
+      ).rejects.toThrow("(status queued): wait[31m for it");
+    });
+  });
+
+  it("new-sponsor without --for is refused", async () => {
+    await expect(
+      run("load frame [new-sponsor]\nnew-sponsor $s"),
+    ).rejects.toThrow(/needs --for/);
   });
 });

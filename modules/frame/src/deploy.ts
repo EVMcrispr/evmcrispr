@@ -7,7 +7,14 @@ import type Frame from ".";
 export const FRAME_CHAIN_ID = 1337;
 export const DEPLOY_GAS = 6_000_000n;
 
+const HASH = /^0x[0-9a-fA-F]{64}$/;
+// Control, bidi and other invisible characters a host could slip into text.
+// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
+const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g;
+const printable = (v: unknown) => String(v).replace(UNSAFE, "").slice(0, 200);
+
 interface Receipt {
+  reason?: unknown;
   status?: unknown;
   contractAddress?: unknown;
 }
@@ -47,7 +54,7 @@ export async function deployInline(
 
   let receipt: Receipt | undefined;
   if (typeof result === "string") {
-    if (!/^0x[0-9a-fA-F]{64}$/.test(result))
+    if (!HASH.test(result))
       throw new ErrorException(
         "the wallet answered with something that is not a transaction hash",
       );
@@ -55,18 +62,19 @@ export async function deployInline(
     receipt = await client.waitForTransactionReceipt({ hash: result as Hex });
   } else if (result && typeof result === "object") {
     const hash = (result as { transactionHash?: unknown }).transactionHash;
-    if (
-      !("status" in result) &&
-      typeof hash === "string" &&
-      /^0x[0-9a-fA-F]{64}$/.test(hash)
-    ) {
+    if (!("status" in result) && typeof hash === "string" && HASH.test(hash)) {
       const client = await module.getClient();
       receipt = await client.waitForTransactionReceipt({ hash: hash as Hex });
     } else receipt = result as Receipt;
   }
 
-  if (receipt?.status !== "success")
-    throw new ErrorException("the deployment transaction did not succeed");
+  if (receipt?.status !== "success") {
+    const status = receipt?.status;
+    const reason = receipt?.reason;
+    throw new ErrorException(
+      `the deployment did not succeed${status !== undefined ? ` (status ${printable(status)})` : ""}${reason !== undefined ? `: ${printable(reason)}` : ""}`,
+    );
+  }
   const address = receipt.contractAddress;
   if (typeof address !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(address))
     throw new ErrorException("the deployment receipt has no contract address");
