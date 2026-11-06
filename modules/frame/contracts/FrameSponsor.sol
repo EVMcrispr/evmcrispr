@@ -10,6 +10,7 @@ contract FrameSponsor is HegotaSupport(Devnet.ERC8421_WORKSHOP) {
     address public immutable sponsored;
 
     constructor(address owner_, address sponsored_) payable {
+        require(owner_ != address(0) && sponsored_ != address(0), "zero address");
         owner = owner_;
         sponsored = sponsored_;
     }
@@ -24,6 +25,7 @@ contract FrameSponsor is HegotaSupport(Devnet.ERC8421_WORKSHOP) {
 
     function withdraw(address payable to, uint256 amount) external {
         require(msg.sender == owner, "not owner");
-        to.transfer(amount);
+        (bool ok,) = to.call{value: amount}("");
+        require(ok, "withdraw failed");
     }
 }

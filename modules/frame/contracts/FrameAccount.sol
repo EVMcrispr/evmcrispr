@@ -11,6 +11,7 @@ contract FrameAccount is HegotaSupport(Devnet.ERC8421_WORKSHOP) {
     bytes32 private constant TYPEHASH = keccak256("FrameTransaction(bytes32 sigHash)");
 
     constructor(address owner_) {
+        require(owner_ != address(0), "zero owner");
         owner = owner_;
         domainSeparator = keccak256(
             abi.encode(
@@ -39,7 +40,8 @@ contract FrameAccount is HegotaSupport(Devnet.ERC8421_WORKSHOP) {
         }
         bytes32 digest =
             keccak256(abi.encodePacked("\x19\x01", domainSeparator, keccak256(abi.encode(TYPEHASH, sigHash))));
-        require(ecrecover(digest, v, r, s) == owner, "bad signature");
+        address signer = ecrecover(digest, v, r, s);
+        require(signer != address(0) && signer == owner, "bad signature");
         approve(Scope(scope));
     }
 }
