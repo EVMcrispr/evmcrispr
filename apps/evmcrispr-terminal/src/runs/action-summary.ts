@@ -536,7 +536,7 @@ function describeAccountFrames(
   const steps = action.frames.map((frame, index) => {
     const scope =
       frame.mode === "verify"
-        ? ` approving ${escaped(frame.approve ?? "execution")}`
+        ? ` approving ${frame.approve === undefined ? "nothing" : escaped(frame.approve)}`
         : "";
     const self = frame.target === null ? ", to the account itself" : "";
     const atomic = frame.atomic ? ", atomic with the next frame" : "";

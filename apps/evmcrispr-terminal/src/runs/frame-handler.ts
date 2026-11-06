@@ -32,6 +32,12 @@ export function makeFrameHandler({
       throw new Error(
         `A frame account's transaction is sent on the ${altMempoolDevnet.name} (${chainId}), not on chain ${printable(action.chainId, 20)}`,
       );
+    // The core's type says there is one; a run started without a wallet
+    // would otherwise fail on the call below with viem's text.
+    if (!ctx.walletClient)
+      throw new Error(
+        `No wallet is connected: connect the account's owner ${printable(action.account.owner, 60)} to sign this frame transaction`,
+      );
     // The wallet refuses typed data for another chain than its own, and
     // changing it is the script's to ask: it is never done here.
     const walletChain = await ctx.walletClient.getChainId();
@@ -47,6 +53,8 @@ export function makeFrameHandler({
       mempool: action.mempool,
       transport,
       onLog: ctx.onLog,
+      // A signature given after Cancel is dropped, never submitted.
+      signal: ctx.signal,
     });
     ctx.onSent?.(hash);
     return receipt;

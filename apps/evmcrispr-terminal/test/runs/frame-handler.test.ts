@@ -104,4 +104,43 @@ describe("the terminal's frame handler", () => {
     ).rejects.toThrow(/1337/);
     expect(mm.asked).toHaveLength(0);
   });
+
+  test("a transaction signed after Cancel is not submitted", async () => {
+    const gateway = frameGateway();
+    const abort = new AbortController();
+    const mm = metaMask({
+      sign: async (typed) => {
+        const signature = await OWNER.signTypedData(typed);
+        // The user cancels the run while the wallet's prompt is open.
+        abort.abort();
+        return signature;
+      },
+    });
+    const c = ctx(mm.wallet);
+    await expect(
+      makeFrameHandler({ transport: gateway.transport })(accountAction(), {
+        ...c.ctx,
+        signal: abort.signal,
+      }),
+    ).rejects.toThrow(/cancelled/);
+    expect(
+      mm.asked.filter((r) => r.method === "eth_signTypedData_v4"),
+    ).toHaveLength(1);
+    expect(
+      gateway.calls.filter((x) => x.method === "eth_sendFrameTransaction"),
+    ).toHaveLength(0);
+    expect(c.sent).toHaveLength(0);
+  });
+
+  test("without a connected wallet it says so, before anything", async () => {
+    const gateway = frameGateway();
+    const c = ctx(undefined as unknown as WalletClient);
+    await expect(
+      makeFrameHandler({ transport: gateway.transport })(
+        accountAction(),
+        c.ctx,
+      ),
+    ).rejects.toThrow(/No wallet is connected/);
+    expect(gateway.calls).toHaveLength(0);
+  });
 });

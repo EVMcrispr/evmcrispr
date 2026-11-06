@@ -242,10 +242,19 @@ MetaMask shows one signature request, "EVMcrispr Frame Account": typed data
 `FrameTransaction` with a single field, `sigHash`, the hash of the frame
 transaction, under the account's address and chain 1337. It cannot show the
 frames themselves, so the terminal's review lists them before you are asked:
-every frame's mode, approval scope, target, value, limits and call, who pays, the
-nonce, the fees and the most the transaction can cost. The transaction signed is
-exactly the one reviewed; only the nonce, the fees and the generated validation
-calls are added. The CLI shows the same review.
+every frame's mode, approval scope, target, value, limits and call, the account,
+who pays, and the shape of the typed data the owner signs (its domain and its
+one field). The review does not show the nonce, the fees, the cost or the hash:
+they are read from the gateway when the transaction is sent. The fees, and the
+most the frames' gas can cost at them, appear as a console line just before
+MetaMask asks. The transaction signed is exactly the one reviewed; only the
+nonce, the fees and the generated validation calls are added.
+
+The CLI shows more before it signs: every frame with its full calldata, one
+32-byte word per line, who pays, the nonce, the fees, the most the frames' gas
+can cost (the transaction's intrinsic cost comes on top), and the signature
+hash. With a local key that is the confirmation you answer; with
+`--wallet-rpc` it is printed before the wallet is asked.
 
 ### The sponsor
 
@@ -267,8 +276,10 @@ the gateway's; a fee above 10 gwei per gas is refused before the wallet is asked
 Chain 1337 is also the id of local development nodes. The terminal adds the
 alt-mempool gateway as chain 1337 to MetaMask when it is missing, and refuses to
 continue if MetaMask already has a chain 1337 that is another network, rather
-than sign for it: remove or rename that network and run the script again. The
-terminal only offers chain 1337 when experimental features are on.
+than sign for it. Set that network's RPC to
+`https://altmempoolgateway.forshtat.com/rpc` (or remove the network, and the
+terminal adds the gateway) and run the script again. The terminal only offers
+chain 1337 when experimental features are on.
 
 From the CLI, the same account is available with `--wallet-rpc`, or with a local
 key, which signs the typed data itself.

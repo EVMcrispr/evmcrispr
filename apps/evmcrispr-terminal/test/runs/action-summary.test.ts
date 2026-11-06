@@ -527,6 +527,24 @@ describe("a frame transaction", () => {
     expect(d.notes.join("\n")).toContain("\\x1b");
   });
 
+  test("a verify frame that approves nothing says so", () => {
+    const d = actionSummary(
+      frame({
+        frames: [
+          {
+            mode: "verify",
+            target: null,
+            data: check,
+            value: 0n,
+            gas: 40_000n,
+          },
+        ],
+      }),
+    );
+    expect(d.steps?.[0].label).toContain("verify approving nothing");
+    expect(d.steps?.[0].label).not.toContain("execution");
+  });
+
   test("a frame transaction without an account is still not supported", () => {
     const d = actionSummary(frame({ account: undefined }));
     expect(d.title).toBe("Frame transaction");
