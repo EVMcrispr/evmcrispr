@@ -1,4 +1,4 @@
-import { evml } from "@evmcrispr/core";
+import { type ActionHandlers, evml } from "@evmcrispr/core";
 import {
   type Address,
   createWalletClient,
@@ -13,6 +13,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { getDefaultChainId, getRpcUrl } from "../lib/config";
 import { makeConfirm } from "../lib/confirm";
 import { followNotice } from "../lib/follow-notice";
+import { makeFrameHandler } from "../lib/frame-handler";
 import { confirmingAccount } from "../lib/local-signer";
 import { localWallet } from "../lib/local-wallet";
 import { registerAllModules } from "../lib/modules";
@@ -34,8 +35,9 @@ Signing:
                         Every signature is shown and asked y/N first.
   --yes                 Sign what the local key is asked to without asking
                         (still shown). Required to sign without a terminal.
-  --size-by-simulation  Size frame gas limits from a provisional transaction
-                        (accepted; frame transactions are not sent yet).`;
+  --size-by-simulation  Size the gas limits of frames written without them by
+                        signing a provisional transaction (also confirmed)
+                        and simulating it on the devnet's node.`;
 const VALUED = ["--wallet-rpc", "--account"];
 const FLAGS = ["--yes", "--size-by-simulation"];
 const KEY_ENV = "EVMCRISPR_PRIVATE_KEY";
@@ -87,10 +89,7 @@ export async function runScript(args: string[]) {
     throw new Error("--wallet-rpc and --account must be supplied together");
   if (opts["--account"] && !isAddress(opts["--account"]))
     throw new Error("invalid --account address");
-  // Read by the frame-transaction handler; accepted here so scripts can
-  // already pass it.
   const sizeBySimulation = flags.has("--size-by-simulation");
-  void sizeBySimulation;
   registerAllModules();
   const source = await readScriptSource(file);
   // The shell supplies data. `run -` reserves stdin for EVML source instead.
@@ -113,6 +112,7 @@ export async function runScript(args: string[]) {
   }
   let account = opts["--account"] as Address | undefined;
   let wallet: WalletClient | undefined;
+  let handlers: Partial<ActionHandlers> | undefined;
   if (privateKey) {
     let local: LocalAccount;
     try {
@@ -135,6 +135,10 @@ export async function runScript(args: string[]) {
     // through the signer too, never to the node, which may hold the same
     // key unlocked.
     wallet = localWallet(signer, chainId, getRpcUrl(chainId));
+    // Frame transactions go to the alt mempool's gateway, not to the node.
+    handlers = {
+      frame: makeFrameHandler({ account: signer, sizeBySimulation }),
+    };
   } else if (account) {
     wallet = createWalletClient({
       account,
@@ -170,6 +174,7 @@ export async function runScript(args: string[]) {
       .execute(wallet, {
         prepareChains: false,
         signal: controller.signal,
+        handlers,
       });
     finished = true;
     if (controller.signal.aborted) console.error("Stopped following.");

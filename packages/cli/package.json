@@ -39,6 +39,7 @@
     "@evmcrispr/core": "workspace:^",
     "@evmcrispr/modules": "workspace:^",
     "@evmcrispr/sdk": "workspace:^",
+    "@evmcrispr/viem-frames": "workspace:*",
     "viem": "^2.56.8"
   },
   "devDependencies": {
