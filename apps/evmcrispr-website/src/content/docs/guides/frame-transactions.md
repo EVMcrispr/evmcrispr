@@ -10,14 +10,17 @@ steps, with validation and payment as part of the transaction itself. The
 `frame` module writes one from a block and sends it to the ERC-8421
 *alternative mempool*, today a public devnet (chain 1337).
 
-⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
+⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com)
+and the dev terminal, not on evmcrispr.com.
 
 :::caution
-Only the **CLI** can send a frame transaction, signed by a local key. The
-terminal cannot yet: browser wallets do not sign type `0x06`, and the terminal
-holds no keys. Run in the terminal, a script with `frame:tx` stops with an
-error. Chain 1337 is the only chain that sends frame transactions, and it is a
-devnet that can be reset at any time.
+A browser wallet cannot sign a type `0x06` transaction, and the terminal holds
+no keys. So a frame transaction is sent either by the **CLI**, signed by a local
+key, or, from the terminal, **from a smart account** that your wallet
+authorizes with typed data (see [From a smart account](#from-a-smart-account)).
+In the terminal, a `frame:tx` from a plain address stops with an error. Chain
+1337 is the only chain that sends frame transactions, and it is a devnet that
+can be reset at any time.
 :::
 
 ## One transaction, several frames
@@ -192,11 +195,92 @@ frame transaction holds the sender's nonce, so a later transaction from the same
 key would collide with it. On 2026-11-06 the devnet admitted frame transactions
 but bundled none, ours or anyone else's, so a run ended this way.
 
+## From a smart account
+
+A wallet cannot sign a frame transaction, but it can sign typed data. The
+module therefore ships a *frame account*: a contract whose validation frame
+accepts an EIP-712 signature of its owner. Your wallet signs, the account is the
+transaction's sender, and a *sponsor* contract can pay for it. This is how the
+terminal sends one, with MetaMask. It is experimental and runs on
+[next.evmcrispr.com](https://next.evmcrispr.com) and the dev terminal.
+
+Two commands deploy the contracts, each with an ordinary transaction of its own
+signed by the wallet, and bind the new address to a variable:
+
+- `frame:new-account <variable> --owner <address>` deploys an account that
+  accepts the signatures of its owner (default `@me`).
+- `frame:new-sponsor <variable> --for <account> --fund <wei>` deploys a sponsor
+  that pays for the transactions of that account only, and sends `--fund` wei
+  with it to pay with. Its owner (default `@me`) may withdraw.
+
+`frame:tx --account <account>` makes the account the sender. The connected
+wallet must be the account's owner; it signs but never sends. With
+`--paymaster <sponsor>` the sponsor's validation call is filled in, so no
+`--paymaster-data` is needed.
+
+```evml
+load frame [tx new-account new-sponsor]
+switch 1337
+
+new-account $account --owner @me
+send $account --value 0.001e18
+new-sponsor $sponsor --for $account --fund 0.05e18
+
+tx --account $account --paymaster $sponsor --state-gas 200000 (
+  send 0x8943545177806ED17B9F23F0a21ee5948eCaa776 --value 1e9 --gas 50000
+)
+```
+
+The three steps run top to bottom: the account and the sponsor are deployed,
+then one frame transaction is sent from the account and paid by the sponsor.
+The account keeps its own balance for what it sends (the `send $account`), and
+pays nothing for gas.
+
+### What the wallet shows
+
+MetaMask shows one signature request, "EVMcrispr Frame Account": typed data
+`FrameTransaction` with a single field, `sigHash`, the hash of the frame
+transaction, under the account's address and chain 1337. It cannot show the
+frames themselves, so the terminal's review lists them before you are asked:
+every frame's mode, approval scope, target, value, limits and call, who pays, the
+nonce, the fees and the most the transaction can cost. The transaction signed is
+exactly the one reviewed; only the nonce, the fees and the generated validation
+calls are added. The CLI shows the same review.
+
+### The sponsor
+
+A sponsor pays only for its account: asked to approve a transaction from any
+other sender, its validation frame reverts and the transaction is invalid. The
+account's owner is not enough; the sponsor holds the funds, and its owner can
+withdraw what is left.
+
+### Gas
+
+The account's check gets 40,000 execution gas and the sponsor's 50,000; they
+used about 15,000 and 10,500. Body frames are never sized for a smart account, so
+every call needs its own `--gas` and the `frame:tx` needs `--state-gas`, as in
+the example (a missing one stops the run before anything is signed). The fees are
+the gateway's; a fee above 10 gwei per gas is refused before the wallet is asked.
+
+### The MetaMask network
+
+Chain 1337 is also the id of local development nodes. The terminal adds the
+alt-mempool gateway as chain 1337 to MetaMask when it is missing, and refuses to
+continue if MetaMask already has a chain 1337 that is another network, rather
+than sign for it: remove or rename that network and run the script again. The
+terminal only offers chain 1337 when experimental features are on.
+
+From the CLI, the same account is available with `--wallet-rpc`, or with a local
+key, which signs the typed data itself.
+
 ## Limits
 
-- The CLI with a local key is the only sender. The terminal refuses, and
+- Senders are the CLI's local key and, from the terminal or with
+  `--wallet-rpc`, a frame account. The terminal refuses a plain address, and
   `sim:fork` cannot simulate type `0x06`.
-- One secp256k1 signature of the sender. Not covered: P256 or arbitrary
+- A frame account has one owner and no recovery or rotation.
+- One secp256k1 signature of the sender (a frame account uses one typed-data
+  signature). Not covered: P256 or arbitrary
   signatures, paymaster signatures, keyed nonces other than key 0, recent roots,
   `deploy` frames and `--expires`.
 - Chain 1337, the alt-mempool devnet, only. Any other chain is refused by name.
