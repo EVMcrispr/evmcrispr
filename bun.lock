@@ -15,6 +15,7 @@
         "@evmcrispr/module-crypto": "workspace:*",
         "@evmcrispr/module-eez": "workspace:*",
         "@evmcrispr/module-ens": "workspace:*",
+        "@evmcrispr/module-frame": "workspace:*",
         "@evmcrispr/module-giveth": "workspace:*",
         "@evmcrispr/module-governor": "workspace:*",
         "@evmcrispr/module-http": "workspace:*",
@@ -267,6 +268,19 @@
       },
       "devDependencies": {
         "@evmcrispr/module-std": "workspace:*",
+        "@evmcrispr/test-utils": "workspace:*",
+      },
+      "peerDependencies": {
+        "viem": "^2.56.8",
+      },
+    },
+    "modules/frame": {
+      "name": "@evmcrispr/module-frame",
+      "version": "0.11.1",
+      "dependencies": {
+        "@evmcrispr/sdk": "workspace:^",
+      },
+      "devDependencies": {
         "@evmcrispr/test-utils": "workspace:*",
       },
       "peerDependencies": {
@@ -619,6 +633,7 @@
         "@evmcrispr/module-crypto": "workspace:^",
         "@evmcrispr/module-eez": "workspace:^",
         "@evmcrispr/module-ens": "workspace:^",
+        "@evmcrispr/module-frame": "workspace:^",
         "@evmcrispr/module-giveth": "workspace:^",
         "@evmcrispr/module-governor": "workspace:^",
         "@evmcrispr/module-http": "workspace:^",
@@ -978,6 +993,8 @@
     "@evmcrispr/module-eez": ["@evmcrispr/module-eez@workspace:modules/eez"],
 
     "@evmcrispr/module-ens": ["@evmcrispr/module-ens@workspace:modules/ens"],
+
+    "@evmcrispr/module-frame": ["@evmcrispr/module-frame@workspace:modules/frame"],
 
     "@evmcrispr/module-giveth": ["@evmcrispr/module-giveth@workspace:modules/giveth"],
 
