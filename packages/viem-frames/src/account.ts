@@ -81,18 +81,6 @@ function refusalText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** Who pays, as the frames say: the first verify frame approving payment. */
-function payerOf(frames: readonly FrameSpecLike[], account: Address): string {
-  const paying = frames.find(
-    (f) =>
-      f.mode === "verify" && (f.approve === "payment" || f.approve === "both"),
-  );
-  if (!paying) return "no payer";
-  return paying.target === null || isAddressEqual(paying.target, account)
-    ? `the account ${account}`
-    : `the sponsor ${paying.target}`;
-}
-
 /** Why a frame cannot be sent as written, numbered from 1; undefined when it can. */
 function missingLimit(
   frame: FrameSpecLike,
@@ -125,8 +113,18 @@ function payerOfTx(tx: FrameTx, profile: Profile): string {
   );
   if (!paying) return "no payer";
   return paying.target === null || isAddressEqual(paying.target, tx.sender)
-    ? `the account ${tx.sender}`
-    : `the sponsor ${paying.target}`;
+    ? `the account ${printable(tx.sender, 60)}`
+    : `the sponsor ${printable(paying.target, 60)}`;
+}
+
+/** The gas the frames' limits allow, and the most it costs at the max fee:
+ *  the transaction's intrinsic cost comes on top. */
+function costLine(tx: FrameTx): string {
+  const gas = tx.frames.reduce(
+    (sum, f) => sum + f.limits.execution + f.limits.state,
+    0n,
+  );
+  return `up to ${formatEther(gas * tx.fees.maxFeePerGas)} ETH for ${gas} frame gas (plus the transaction's intrinsic cost)`;
 }
 
 /** The calldata in full: the selector, then one 32-byte word per line. */
@@ -158,10 +156,7 @@ export function describeAccountFrameTransaction({
   profile: Profile;
   sigHash: Hex;
 }): string {
-  const gas = tx.frames.reduce(
-    (sum, f) => sum + f.limits.execution + f.limits.state,
-    0n,
-  );
+  const sender = printable(tx.sender, 60);
   const lines = tx.frames.flatMap((f, i) => {
     const mode = nameOf(profile.frameModes, f.mode);
     const scope =
@@ -171,17 +166,17 @@ export function describeAccountFrameTransaction({
     const atomic =
       f.flags & ATOMIC_BATCH_FLAG ? ", atomic with the next frame" : "";
     const target =
-      f.target === null ? `the account ${tx.sender}` : printable(f.target, 60);
+      f.target === null ? `the account ${sender}` : printable(f.target, 60);
     return [
       `Frame ${i + 1}: ${printable(mode, 40)}${scope}${atomic} to ${target}, value ${f.value} wei, gas ${f.limits.execution} + state gas ${f.limits.state}`,
       ...dataLines(f.data),
     ];
   });
   return [
-    `Frame transaction from the account ${tx.sender}`,
+    `Frame transaction from the account ${sender}`,
     ...lines,
     `Paid by ${printable(payerOfTx(tx, profile), 200)}`,
-    `Nonce ${tx.nonceSeq}; max fee ${formatGwei(tx.fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(tx.fees.maxPriorityFeePerGas)}); at most ${formatEther(gas * tx.fees.maxFeePerGas)} ETH for ${gas} gas`,
+    `Nonce ${tx.nonceSeq}; max fee ${formatGwei(tx.fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(tx.fees.maxPriorityFeePerGas)}); ${costLine(tx)}`,
     `Signature hash ${printable(hash, 70)}`,
   ].join("\n");
 }
@@ -213,6 +208,7 @@ export async function sendAccountFrameTransaction({
   receiptTimeoutMs = 120_000,
   maxFeePerGasCap = DEFAULT_MAX_FEE_PER_GAS_CAP,
   signWith,
+  signal,
 }: {
   wallet: WalletClient;
   /** The FrameAccount: `tx.sender`. */
@@ -229,9 +225,21 @@ export async function sendAccountFrameTransaction({
   maxFeePerGasCap?: bigint;
   /** Wraps the one signature request with a description of the transaction (a host that confirms signatures shows it). */
   signWith?: <T>(description: string, sign: () => Promise<T>) => Promise<T>;
+  /** Checked once the wallet has signed: aborted, nothing is submitted. */
+  signal?: AbortSignal;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   const chain = altMempoolDevnet;
   const profile = frameProfileOf(chain);
+
+  // Both go into every line below: refused here unless they are addresses.
+  for (const [name, value] of [
+    ["account", account],
+    ["owner", owner],
+  ] as const)
+    if (typeof value !== "string" || !isAddress(value, { strict: false }))
+      throw new Error(
+        `The frame account's ${name} ${printable(value, 60)} is not an address`,
+      );
 
   // Every frame carries its limits: nothing is sized, so the one signature
   // asked for is over the transaction exactly as sent.
@@ -307,14 +315,6 @@ export async function sendAccountFrameTransaction({
       throw new Error(
         `The gateway asks a ${name} of ${formatGwei(fee)} gwei, above the cap of ${formatGwei(maxFeePerGasCap)} gwei: nothing was signed`,
       );
-  const gasLimit = requests.reduce(
-    (sum, f) => sum + f.limits!.execution + f.limits!.state,
-    0n,
-  );
-  onLog?.(
-    `Fees: max ${formatGwei(fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(fees.maxPriorityFeePerGas)}); at most ${formatEther(gasLimit * fees.maxFeePerGas)} ETH for ${gasLimit} gas, paid by ${payerOf(frames, account)}`,
-  );
-
   const unsigned: FrameTx = newTx({
     chainId: chain.id,
     sender: account,
@@ -326,6 +326,10 @@ export async function sendAccountFrameTransaction({
       maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
     },
   });
+  const payer = printable(payerOfTx(unsigned, profile), 200);
+  onLog?.(
+    `Fees: max ${formatGwei(fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(fees.maxPriorityFeePerGas)}); ${costLine(unsigned)}, paid by ${payer}`,
+  );
   const hashToSign = sigHash(profile, unsigned);
   const typedData = frameAccountTypedData(account, hashToSign);
 
@@ -373,6 +377,11 @@ export async function sendAccountFrameTransaction({
       "The signed transaction's signature hash differs from the one signed: nothing was sent",
     );
   const expected = txHash(profile, signed) as Hash;
+  // Cancelled while the wallet was asked: the signature is dropped unsent.
+  if (signal?.aborted)
+    throw new Error(
+      "The run was cancelled after the wallet signed: nothing was sent",
+    );
 
   let answer: unknown;
   try {
@@ -388,7 +397,7 @@ export async function sendAccountFrameTransaction({
           } as never);
   } catch (error) {
     throw new Error(
-      `The ${mempool} mempool refused the frame transaction from ${account}, paid by ${payerOf(frames, account)}: ${printable(refusalText(error), TEXT_MAX)}`,
+      `The ${mempool} mempool refused the frame transaction from ${account}, paid by ${payer}: ${printable(refusalText(error), TEXT_MAX)}`,
     );
   }
   // Only the hash of the bytes signed is shown and waited on.

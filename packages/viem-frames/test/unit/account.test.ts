@@ -284,6 +284,10 @@ describe("signWith", () => {
     expect(d).toContain("max fee 2 gwei");
     expect(d).toContain("priority 1)");
     expect(d).toContain(w.asked[0].message.sigHash);
+    expect(d).toContain(
+      "up to 0.00068 ETH for 340000 frame gas (plus the transaction's intrinsic cost)",
+    );
+    expect(d).not.toContain("at most");
   });
 
   const describeSpecs = (specs: FrameSpecLike[], hash = "0x1234" as Hex) => {
@@ -490,9 +494,44 @@ describe("sendAccountFrameTransaction", () => {
     await send(w.client, g, { onLog: (l) => logs.push(l) });
     // 40k + 50k + 50k execution + 200k state = 340k gas at 2 gwei.
     expect(logs).toContain(
-      `Fees: max 2 gwei per gas (priority 1); at most 0.00068 ETH for 340000 gas, paid by the sponsor ${SPONSOR}`,
+      `Fees: max 2 gwei per gas (priority 1); up to 0.00068 ETH for 340000 frame gas (plus the transaction's intrinsic cost), paid by the sponsor ${SPONSOR}`,
     );
     expect(askedAfterFees).toBe(true);
+  });
+
+  test("refuses an account or an owner that is not an address, escaped, before anything", async () => {
+    const g = gateway();
+    const w = wallet();
+    for (const bad of [
+      { account: "0x12\u001b[2J" as Hex },
+      { owner: "0xzz\u202e" as Hex },
+    ]) {
+      const error = (await send(w.client, g, bad).catch((e) => e)) as Error;
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toMatch(/is not an address/);
+      expect(error.message).not.toContain("\u001b");
+      expect(error.message).not.toContain("\u202e");
+    }
+    expect(w.asked).toHaveLength(0);
+    expect(g.methods()).toEqual([]);
+  });
+
+  test("stops without submitting when aborted while the wallet signs", async () => {
+    const g = gateway();
+    const w = wallet();
+    const controller = new AbortController();
+    const sign = w.client.signTypedData;
+    w.client.signTypedData = (async (args: any) => {
+      const out = await sign(args);
+      controller.abort();
+      return out;
+    }) as typeof sign;
+    await expect(
+      send(w.client, g, { signal: controller.signal }),
+    ).rejects.toThrow(/cancelled|nothing was sent/i);
+    expect(w.asked).toHaveLength(1);
+    expect(g.methods()).not.toContain("eth_sendFrameTransaction");
+    expect(g.methods()).not.toContain("eth_sendRawTransaction");
   });
 
   test("refuses fees above the cap, without asking the wallet", async () => {
