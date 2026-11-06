@@ -43,6 +43,11 @@ import type { Spaces } from "../space/spaces";
 import type { Changes } from "../storage/changes";
 import { type Locks, lockNames, type Release } from "../storage/locks";
 import type { Records } from "../storage/records";
+import {
+  ensureAltMempoolChain,
+  isAltMempoolChain,
+  switchTarget,
+} from "../wallet/alt-mempool-chain";
 import { normaliseAction } from "./action-summary";
 import { appendOutput, boundErrors } from "./bounds";
 import { makeFrameHandler } from "./frame-handler";
@@ -477,6 +482,10 @@ export function createRunManager(deps: RunDeps): RunManager {
             (state) => ctx.onStatus?.(state),
           );
       const pass = (action: Action, ctx: ActionHandlerCtx) => ctx.next(action);
+      const toAltMempool = (client: WalletClient) =>
+        ensureAltMempoolChain(client, undefined, {
+          transport: deps.frameGateway,
+        });
       // Every kind of action the core knows, so a kind added there does
       // not compile until it is placed here. Each goes through the gate
       // unless it never asks the wallet for anything; and should one of
@@ -484,7 +493,17 @@ export function createRunManager(deps: RunDeps): RunManager {
       const handlers: ActionHandlers = {
         // A wallet request is sent in the form it is described in: what
         // the held action shows is the very value the wallet receives.
-        wallet: (action, ctx) => gated(pass)(normaliseAction(action), ctx),
+        //
+        // A change to the alt-mempool devnet (experimental) offers the
+        // wallet its gateway and checks the wallet's chain is the devnet's
+        // before the script goes on.
+        wallet: (action, ctx) => {
+          const normalised = normaliseAction(action);
+          const target = switchTarget(normalised);
+          return target !== undefined && isAltMempoolChain(target)
+            ? gated(() => toAltMempool(ctx.walletClient))(normalised, ctx)
+            : gated(pass)(normalised, ctx);
+        },
         // Endpoints a module asks to submit through are declared as the
         // module sees them; the browser can only use https.
         transaction: (action, ctx) => {
@@ -530,7 +549,9 @@ export function createRunManager(deps: RunDeps): RunManager {
               async (reportSent) => {
                 sent = reportSent;
                 try {
-                  return await align();
+                  return await (guard && isAltMempoolChain(chainId)
+                    ? toAltMempool(guard.client)
+                    : align());
                 } finally {
                   sent = undefined;
                 }

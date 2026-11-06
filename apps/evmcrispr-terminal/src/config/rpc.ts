@@ -6,6 +6,8 @@
 import type { ChainDef } from "@evmcrispr/core";
 import { toViemChain } from "@evmcrispr/core";
 import { moduleChains } from "@evmcrispr/modules/chains";
+import { isExperimentalEnabled } from "@evmcrispr/sdk";
+import { ALT_MEMPOOL_GATEWAY, altMempoolDevnet } from "@evmcrispr/viem-frames";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
 import {
@@ -180,31 +182,58 @@ applyBrowserUrlPolicy();
 
 /** Chains shipped by modules (`src/chains.ts`), minus any the DRPC list
  *  already covers. They bring their own RPC, so no key is needed. */
-const extraChains: ChainDef[] = (moduleChains as ChainDef[])
+const moduleExtraChains: ChainDef[] = (moduleChains as ChainDef[])
   .filter((def) => !chainConfig.some(([chain]) => chain.id === def.id))
   .map((def) => ({ ...def, rpcUrl: browserSafeUrl(def.rpcUrl) }));
 
-export const chains = [
-  ...chainConfig.map(([chain]) => chain),
-  ...extraChains.map(toViemChain),
-] as [Chain, ...Chain[]];
-
-/** chainId → RPC URL. Serializable — this is what crosses into the EVML
- *  worker. Without a DRPC key only module-shipped chains have a URL (viem
- *  default transports apply to the rest). */
-export const rpcUrls: Record<number, string> = {
-  ...Object.fromEntries(extraChains.map((def) => [def.id, def.rpcUrl])),
-  ...(DRPC_API_KEY
-    ? Object.fromEntries(
-        chainConfig.map(([chain, slug]) => [chain.id, drpcUrl(slug)]),
-      )
-    : {}),
+/** The alt-mempool devnet (EIP-8141 frame transactions), through its
+ *  gateway. Chain 1337 is also every local devnet's id, so it is never a
+ *  module chain: only the terminal declares it, and only with the
+ *  experimental flag on. Without it, 1337 stays viem's localhost. */
+const altMempoolChain: ChainDef = {
+  id: altMempoolDevnet.id,
+  key: "altMempoolDevnet",
+  name: altMempoolDevnet.name,
+  rpcUrl: ALT_MEMPOOL_GATEWAY,
+  nativeCurrency: altMempoolDevnet.nativeCurrency,
+  explorerUrl: altMempoolDevnet.blockExplorers.default.url,
+  testnet: true,
 };
 
-export const transports = chains.reduce(
-  (acc, { id }) => {
-    acc[id] = rpcUrls[id] ? http(rpcUrls[id]) : http();
-    return acc;
-  },
-  {} as Record<number, Transport>,
+/** The terminal's networks, with or without the experimental ones. */
+export function networks(experimental: boolean) {
+  const extraChains = experimental
+    ? [...moduleExtraChains, altMempoolChain]
+    : moduleExtraChains;
+
+  const chains = [
+    ...chainConfig.map(([chain]) => chain),
+    ...extraChains.map(toViemChain),
+  ] as [Chain, ...Chain[]];
+
+  /** chainId → RPC URL. Serializable — this is what crosses into the EVML
+   *  worker. Without a DRPC key only module-shipped chains have a URL
+   *  (viem default transports apply to the rest). */
+  const rpcUrls: Record<number, string> = {
+    ...Object.fromEntries(extraChains.map((def) => [def.id, def.rpcUrl])),
+    ...(DRPC_API_KEY
+      ? Object.fromEntries(
+          chainConfig.map(([chain, slug]) => [chain.id, drpcUrl(slug)]),
+        )
+      : {}),
+  };
+
+  const transports = chains.reduce(
+    (acc, { id }) => {
+      acc[id] = rpcUrls[id] ? http(rpcUrls[id]) : http();
+      return acc;
+    },
+    {} as Record<number, Transport>,
+  );
+
+  return { chains, rpcUrls, transports };
+}
+
+export const { chains, rpcUrls, transports } = networks(
+  isExperimentalEnabled(),
 );
