@@ -71,7 +71,7 @@ describe("localWallet", () => {
       method: "eth_signTypedData_v4",
       params: [base.address, JSON.stringify(typed)],
     } as any)) as `0x${string}`;
-    expect(summaries[0]).toContain('{"text":"hello"}');
+    expect(summaries[0]).toContain('text: "hello"');
     expect(
       await recoverTypedDataAddress({ ...(typed as any), signature }),
     ).toBe(base.address);

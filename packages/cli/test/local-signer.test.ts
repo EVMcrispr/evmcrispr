@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { recoverTransactionAddress, type TransactionSerializable } from "viem";
+import {
+  recoverTransactionAddress,
+  recoverTypedDataAddress,
+  type TransactionSerializable,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   confirmingAccount,
@@ -178,6 +182,12 @@ describe("confirmingAccount", () => {
           verifyingContract: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
           salt: `0x${"ab".repeat(32)}`,
         },
+        types: {
+          PermitSingle: [
+            { name: "spender", type: "address" },
+            { name: "amount", type: "uint160" },
+          ],
+        },
         primaryType: "PermitSingle",
         message: {
           spender: "0x1111111111111111111111111111111111111111",
@@ -191,9 +201,11 @@ describe("confirmingAccount", () => {
     expect(text).toContain("Ethereum");
     expect(text).toContain("0x000000000022D473030F116dDEE9F6B43aC78BA3");
     expect(text).toContain("ab".repeat(32));
+    expect(text).toContain("PermitSingle(address spender, uint160 amount)");
     expect(text).toContain(
-      '{"spender":"0x1111111111111111111111111111111111111111","amount":"5"}',
+      'spender: "0x1111111111111111111111111111111111111111"',
     );
+    expect(text).toContain('amount: "5"');
   });
 
   it("describeSignature shows raw byte messages as hex", () => {
@@ -213,6 +225,7 @@ describe("confirmingAccount", () => {
         type: "typedData",
         typedData: {
           domain: { name: attack, version: attack },
+          types: { [attack]: [{ name: "note", type: "string" }] },
           primaryType: attack,
           message: { note: attack },
         },
@@ -231,5 +244,122 @@ describe("confirmingAccount", () => {
       expect(text).toMatch(/\\x1b\[2K\\rSafe|\\u001b\[2K\\rSafe/);
     }
     expect(printable("\x1b[2K\rSafe")).toBe("\\x1b[2K\\rSafe");
+  });
+
+  describe("typed data is shown exactly as it is signed", () => {
+    const permit = {
+      domain: {
+        name: "USD Coin",
+        version: "2",
+        chainId: 1,
+        verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      },
+      types: {
+        Permit: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      },
+      primaryType: "Permit",
+      message: {
+        owner: base.address,
+        spender: "0x1111111111111111111111111111111111111111",
+        value: 1000000n,
+        nonce: 0n,
+        deadline: 1999999999n,
+      },
+    } as const;
+
+    function account() {
+      const summaries: string[] = [];
+      return {
+        summaries,
+        signer: confirmingAccount(base, async (summary) => {
+          summaries.push(summary);
+          return true;
+        }),
+      };
+    }
+
+    it("refuses a domain key outside an explicit EIP712Domain type before confirm", async () => {
+      const { signer, summaries } = account();
+      await expect(
+        signer.signTypedData({
+          ...permit,
+          types: {
+            ...permit.types,
+            EIP712Domain: [{ name: "name", type: "string" }],
+          },
+        } as any),
+      ).rejects.toThrow(
+        "Not signed: domain fields not in its EIP712Domain type: version, chainId, verifyingContract",
+      );
+      expect(summaries).toEqual([]);
+    });
+
+    it("refuses a message field its struct does not define", async () => {
+      const { signer, summaries } = account();
+      await expect(
+        signer.signTypedData({
+          ...permit,
+          message: { ...permit.message, note: "not hashed" },
+        } as any),
+      ).rejects.toThrow("Not signed: message fields not in Permit: note");
+      const nested = {
+        domain: { name: "Mail" },
+        types: {
+          Mail: [{ name: "to", type: "Person[]" }],
+          Person: [{ name: "wallet", type: "address" }],
+        },
+        primaryType: "Mail",
+        message: {
+          to: [{ wallet: base.address, name: "Bob" }],
+        },
+      };
+      await expect(signer.signTypedData(nested as any)).rejects.toThrow(
+        "Not signed: message fields not in Mail: to[0].name",
+      );
+      expect(summaries).toEqual([]);
+    });
+
+    it("shows a well-formed Permit's struct and fields, then signs it", async () => {
+      const { signer, summaries } = account();
+      const signature = await signer.signTypedData(permit);
+      expect(await recoverTypedDataAddress({ ...permit, signature })).toBe(
+        base.address,
+      );
+      const text = summaries[0];
+      expect(text).toContain("Sign typed data Permit");
+      expect(text).toContain(
+        "Permit(address owner, address spender, uint256 value, uint256 nonce, uint256 deadline)",
+      );
+      expect(text).toContain('name (string): "USD Coin"');
+      expect(text).toContain('version (string): "2"');
+      expect(text).toContain("chainId (uint256): Ethereum (1)");
+      expect(text).toContain(
+        'verifyingContract (address): "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"',
+      );
+      expect(text).toContain('value: "1000000"');
+      expect(text).toContain('deadline: "1999999999"');
+    });
+
+    it("shows a non-numeric chainId as it is", () => {
+      const text = describeSignature({
+        type: "typedData",
+        typedData: {
+          ...permit,
+          domain: { chainId: "main\x1bnet" as any },
+          types: {
+            ...permit.types,
+            EIP712Domain: [{ name: "chainId", type: "uint256" }],
+          },
+        },
+      });
+      expect(text).toContain('chainId (uint256): "main\\u001bnet"');
+      expect(text).not.toContain("NaN");
+    });
   });
 });

@@ -4,6 +4,7 @@ import {
   type Address,
   bytesToHex,
   formatUnits,
+  getTypesForEIP712Domain,
   type Hex,
   type LocalAccount,
   type SignableMessage,
@@ -34,6 +35,89 @@ type TransactionLike = {
   frames?: readonly FrameLike[];
 };
 
+type TypedFields = Record<string, readonly { name: string; type: string }[]>;
+type TypedDataLike = {
+  domain?: Record<string, unknown>;
+  types?: TypedFields;
+  primaryType?: string;
+  message?: unknown;
+};
+
+/** The EIP712Domain fields viem hashes for this typed data. */
+function domainFields(typed: TypedDataLike) {
+  return (
+    typed.types?.EIP712Domain ??
+    getTypesForEIP712Domain({ domain: (typed.domain ?? {}) as any })
+  );
+}
+
+const keysOf = (value: unknown) =>
+  value && typeof value === "object"
+    ? Object.keys(value).filter(
+        (k) => (value as Record<string, unknown>)[k] !== undefined,
+      )
+    : [];
+
+/** Message fields (at any depth) no struct type defines: viem leaves them
+ *  out of the hash, so showing them would show what is not signed. */
+function undefinedFields(
+  types: TypedFields,
+  type: string,
+  value: unknown,
+  path: string,
+  out: string[],
+) {
+  const array = type.match(/^(.*)\[\d*\]$/);
+  if (array) {
+    if (Array.isArray(value))
+      value.forEach((v, i) => {
+        undefinedFields(types, array[1], v, `${path}[${i}]`, out);
+      });
+    return;
+  }
+  const fields = types[type];
+  if (!fields) return;
+  for (const key of keysOf(value)) {
+    const field = fields.find((f) => f.name === key);
+    if (!field) out.push(path ? `${path}.${key}` : key);
+    else
+      undefinedFields(
+        types,
+        field.type,
+        (value as Record<string, unknown>)[key],
+        path ? `${path}.${key}` : key,
+        out,
+      );
+  }
+}
+
+/** Why typed data would be signed differently from how it reads, if it
+ *  would: fields outside its types, which viem does not hash. */
+export function typedDataMismatch(typed: TypedDataLike): string | undefined {
+  const problems: string[] = [];
+  const listed = domainFields(typed).map((f) => f.name);
+  const extraDomain = keysOf(typed.domain).filter((k) => !listed.includes(k));
+  if (extraDomain.length)
+    problems.push(
+      `domain fields not in its EIP712Domain type: ${extraDomain.join(", ")}`,
+    );
+  const types = typed.types ?? {};
+  if (typed.primaryType === "EIP712Domain") {
+    if (keysOf(typed.message).length)
+      problems.push("a message with primaryType EIP712Domain is not signed");
+  } else if (!typed.primaryType || !types[typed.primaryType]) {
+    problems.push(`no struct type for primaryType ${typed.primaryType}`);
+  } else {
+    const extra: string[] = [];
+    undefinedFields(types, typed.primaryType, typed.message, "", extra);
+    if (extra.length)
+      problems.push(
+        `message fields not in ${typed.primaryType}: ${extra.join(", ")}`,
+      );
+  }
+  return problems.length ? printable(problems.join("; ")) : undefined;
+}
+
 export type SignatureRequest = { label?: string; account?: Address } & (
   | { type: "transaction"; transaction: TransactionLike }
   | { type: "message"; message: SignableMessage }
@@ -47,6 +131,7 @@ export type SignatureRequest = { label?: string; account?: Address } & (
           verifyingContract?: Address;
           salt?: Hex;
         };
+        types?: TypedFields;
         primaryType?: string;
         message?: unknown;
       };
@@ -184,17 +269,46 @@ export function describeSignature(request: SignatureRequest): string {
       break;
     }
     case "typedData": {
-      const { domain = {}, primaryType, message } = request.typedData;
+      const typed = request.typedData;
+      const domain = (typed.domain ?? {}) as Record<string, unknown>;
+      const types = typed.types ?? {};
+      const primaryType = typed.primaryType ?? "";
+      const struct = types[primaryType] ?? [];
+      const domainValue = (name: string) => {
+        const value = domain[name];
+        if (value === undefined) return "none";
+        if (name === "chainId") {
+          const id =
+            typeof value === "number" || typeof value === "bigint"
+              ? Number(value)
+              : typeof value === "string" && /^(0x[0-9a-f]+|\d+)$/i.test(value)
+                ? Number(value)
+                : Number.NaN;
+          return Number.isSafeInteger(id) && id > 0
+            ? `${chainText(id)} (${id})`
+            : printableJson(value);
+        }
+        return printableJson(value);
+      };
       lines.push(
-        `Sign typed data ${printable(primaryType ?? "")}`.trimEnd(),
+        `Sign typed data ${printable(primaryType)}`.trimEnd(),
         ...(request.account ? [`  from: ${printable(request.account)}`] : []),
-        `  domain name:        ${domain.name !== undefined ? printableJson(domain.name) : "none"}`,
-        `  domain version:     ${domain.version !== undefined ? printableJson(domain.version) : "none"}`,
-        `  domain chain:       ${domain.chainId !== undefined ? chainText(Number(domain.chainId)) : "none"}`,
-        `  verifying contract: ${domain.verifyingContract !== undefined ? printable(domain.verifyingContract) : "none"}`,
-        `  salt:               ${domain.salt !== undefined ? printable(domain.salt) : "none"}`,
-        `  message: ${printableJson(message)}`,
+        "  domain:",
+        ...domainFields(typed).map(
+          (f) =>
+            `    ${printable(f.name)} (${printable(f.type)}): ${domainValue(f.name)}`,
+        ),
       );
+      if (primaryType !== "EIP712Domain") {
+        const message = (typed.message ?? {}) as Record<string, unknown>;
+        lines.push(
+          `  ${printable(primaryType)}(${struct.map((f) => `${printable(f.type)} ${printable(f.name)}`).join(", ")})`,
+          ...struct.map(
+            (f) =>
+              `    ${printable(f.name)}: ${printableJson(message[f.name])}`,
+          ),
+        );
+      }
       break;
     }
     case "hash":
@@ -262,6 +376,8 @@ export function confirmingAccount(
       return account.signTransaction(transaction, options as any);
     },
     async signTypedData(typedData) {
+      const mismatch = typedDataMismatch(typedData as TypedDataLike);
+      if (mismatch) throw new Error(`Not signed: ${mismatch}`);
       await approve({ type: "typedData", typedData: typedData as any });
       return account.signTypedData(typedData);
     },
