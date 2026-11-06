@@ -6,6 +6,7 @@ import {
   formatUnits,
   getTypesForEIP712Domain,
   type Hex,
+  isAddress,
   type LocalAccount,
   type SignableMessage,
   size,
@@ -91,8 +92,93 @@ function undefinedFields(
   }
 }
 
+const HEX_BYTES = /^0x(?:[0-9a-fA-F]{2})*$/;
+const DECIMAL = /^-?(?:0|[1-9]\d*)$/;
+
+/** Why `value` is not the canonical form of `type`, if it is not. viem
+ *  coerces what it is given (`toHex` on a string field's number, keccak of
+ *  a non-hex `bytes` as UTF-8, `BigInt` on a hex or padded integer
+ *  string), so only canonical values hash as they read. */
+function primitiveProblem(type: string, value: unknown): string | undefined {
+  if (value === undefined) return "is missing";
+  if (type === "string")
+    return typeof value === "string" ? undefined : "is not a string";
+  if (type === "bool")
+    return typeof value === "boolean" ? undefined : "is not true or false";
+  if (type === "address")
+    return typeof value === "string" && isAddress(value)
+      ? undefined
+      : "is not an address";
+  if (type === "bytes")
+    return typeof value === "string" && HEX_BYTES.test(value)
+      ? undefined
+      : "is not 0x-prefixed hex of whole bytes";
+  const bytesN = type.match(/^bytes([1-9]|[12]\d|3[0-2])$/);
+  if (bytesN) {
+    const n = Number(bytesN[1]);
+    return typeof value === "string" &&
+      HEX_BYTES.test(value) &&
+      value.length === 2 + 2 * n
+      ? undefined
+      : `is not 0x-prefixed hex of ${n} bytes`;
+  }
+  const int = type.match(/^(u?)int(\d+)$/);
+  const bits = int ? Number(int[2]) : 0;
+  if (int && bits >= 8 && bits <= 256 && bits % 8 === 0) {
+    let n: bigint;
+    if (typeof value === "bigint") n = value;
+    else if (typeof value === "number" && Number.isSafeInteger(value))
+      n = BigInt(value);
+    else if (typeof value === "string" && DECIMAL.test(value))
+      n = BigInt(value);
+    else return "is not a bigint, safe integer or decimal string";
+    const signed = int[1] === "";
+    const max = 2n ** BigInt(signed ? bits - 1 : bits) - 1n;
+    const min = signed ? -max - 1n : 0n;
+    return n < min || n > max ? `is out of range for ${type}` : undefined;
+  }
+  return `has an unknown type ${type}`;
+}
+
+/** Values (at any depth) viem would encode other than as they read. */
+function nonCanonical(
+  types: TypedFields,
+  type: string,
+  value: unknown,
+  path: string,
+  out: string[],
+) {
+  const array = type.match(/^(.*)\[\d*\]$/);
+  if (array) {
+    if (!Array.isArray(value)) out.push(`${path} is not an array`);
+    else
+      value.forEach((v, i) => {
+        nonCanonical(types, array[1], v, `${path}[${i}]`, out);
+      });
+    return;
+  }
+  const fields = types[type];
+  if (fields) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      out.push(`${path} is not a ${type}`);
+    else
+      for (const f of fields)
+        nonCanonical(
+          types,
+          f.type,
+          (value as Record<string, unknown>)[f.name],
+          `${path}.${f.name}`,
+          out,
+        );
+    return;
+  }
+  const problem = primitiveProblem(type, value);
+  if (problem) out.push(`${path} (${type}) ${problem}`);
+}
+
 /** Why typed data would be signed differently from how it reads, if it
- *  would: fields outside its types, which viem does not hash. */
+ *  would: fields outside its types, which viem does not hash, or values
+ *  viem would coerce before hashing. */
 export function typedDataMismatch(typed: TypedDataLike): string | undefined {
   const problems: string[] = [];
   const listed = domainFields(typed).map((f) => f.name);
@@ -102,6 +188,16 @@ export function typedDataMismatch(typed: TypedDataLike): string | undefined {
       `domain fields not in its EIP712Domain type: ${extraDomain.join(", ")}`,
     );
   const types = typed.types ?? {};
+  const domainTypes = { ...types, EIP712Domain: domainFields(typed) };
+  nonCanonical(
+    domainTypes,
+    "EIP712Domain",
+    Object.fromEntries(
+      domainTypes.EIP712Domain.map((f) => [f.name, typed.domain?.[f.name]]),
+    ),
+    "domain",
+    problems,
+  );
   if (typed.primaryType === "EIP712Domain") {
     if (keysOf(typed.message).length)
       problems.push("a message with primaryType EIP712Domain is not signed");
@@ -114,6 +210,7 @@ export function typedDataMismatch(typed: TypedDataLike): string | undefined {
       problems.push(
         `message fields not in ${typed.primaryType}: ${extra.join(", ")}`,
       );
+    nonCanonical(types, typed.primaryType, typed.message, "message", problems);
   }
   return problems.length ? printable(problems.join("; ")) : undefined;
 }

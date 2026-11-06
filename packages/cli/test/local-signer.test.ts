@@ -346,6 +346,142 @@ describe("confirmingAccount", () => {
       expect(text).toContain('deadline: "1999999999"');
     });
 
+    describe("refuses values viem would coerce, before confirm", () => {
+      const coerced: [string, Record<string, unknown>, string][] = [
+        [
+          "a string field given a number",
+          {
+            types: { Note: [{ name: "text", type: "string" }] },
+            message: { text: 42 },
+          },
+          "message.text (string) is not a string",
+        ],
+        [
+          "bytes given non-hex text",
+          {
+            types: { Note: [{ name: "data", type: "bytes" }] },
+            message: { data: "hello" },
+          },
+          "message.data (bytes) is not 0x-prefixed hex of whole bytes",
+        ],
+        [
+          "bytes of odd length",
+          {
+            types: { Note: [{ name: "data", type: "bytes" }] },
+            message: { data: "0xabc" },
+          },
+          "message.data (bytes) is not 0x-prefixed hex of whole bytes",
+        ],
+        [
+          "bytes32 of the wrong length",
+          {
+            types: { Note: [{ name: "id", type: "bytes32" }] },
+            message: { id: "0x1234" },
+          },
+          "message.id (bytes32) is not 0x-prefixed hex of 32 bytes",
+        ],
+        [
+          'bool given "true"',
+          {
+            types: { Note: [{ name: "ok", type: "bool" }] },
+            message: { ok: "true" },
+          },
+          "message.ok (bool) is not true or false",
+        ],
+        [
+          "uint8 out of range",
+          {
+            types: { Note: [{ name: "n", type: "uint8" }] },
+            message: { n: 256n },
+          },
+          "message.n (uint8) is out of range for uint8",
+        ],
+        [
+          "a negative uint",
+          {
+            types: { Note: [{ name: "n", type: "uint256" }] },
+            message: { n: -1 },
+          },
+          "message.n (uint256) is out of range for uint256",
+        ],
+        [
+          "a uint given hex text",
+          {
+            types: { Note: [{ name: "n", type: "uint256" }] },
+            message: { n: "0x10" },
+          },
+          "message.n (uint256) is not a bigint, safe integer or decimal string",
+        ],
+        [
+          "a uint given an unsafe number",
+          {
+            types: { Note: [{ name: "n", type: "uint256" }] },
+            message: { n: 2 ** 60 },
+          },
+          "message.n (uint256) is not a bigint, safe integer or decimal string",
+        ],
+        [
+          "a bad address",
+          {
+            types: { Note: [{ name: "to", type: "address" }] },
+            message: { to: "0x1234" },
+          },
+          "message.to (address) is not an address",
+        ],
+        [
+          "a nested field in an array of structs",
+          {
+            types: {
+              Note: [{ name: "people", type: "Person[]" }],
+              Person: [{ name: "name", type: "string" }],
+            },
+            message: { people: [{ name: "Ann" }, { name: 7 }] },
+          },
+          "message.people[1].name (string) is not a string",
+        ],
+        [
+          "a domain field against its declared type",
+          {
+            domain: { name: "Notes", chainId: "0x1" },
+            types: {
+              EIP712Domain: [
+                { name: "name", type: "string" },
+                { name: "chainId", type: "uint256" },
+              ],
+              Note: [{ name: "text", type: "string" }],
+            },
+            message: { text: "hi" },
+          },
+          "domain.chainId (uint256) is not a bigint, safe integer or decimal string",
+        ],
+      ];
+      for (const [what, typed, reason] of coerced)
+        it(what, async () => {
+          const { signer, summaries } = account();
+          await expect(
+            signer.signTypedData({
+              domain: { name: "Notes" },
+              primaryType: "Note",
+              ...typed,
+            } as any),
+          ).rejects.toThrow(`Not signed: ${reason}`);
+          expect(summaries).toEqual([]);
+        });
+
+      it("signs decimal strings and safe integers as they read", async () => {
+        const { signer, summaries } = account();
+        const typed = {
+          ...permit,
+          message: { ...permit.message, value: "1000000", nonce: 0 },
+        };
+        const signature = await signer.signTypedData(typed as any);
+        expect(await recoverTypedDataAddress({ ...permit, signature })).toBe(
+          base.address,
+        );
+        expect(summaries).toHaveLength(1);
+      });
+    });
+
     it("shows a non-numeric chainId as it is", () => {
       const text = describeSignature({
         type: "typedData",
