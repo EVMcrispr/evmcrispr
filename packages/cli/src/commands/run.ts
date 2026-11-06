@@ -2,21 +2,55 @@ import { evml } from "@evmcrispr/core";
 import {
   type Address,
   createWalletClient,
+  type Hex,
   http,
   isAddress,
+  type LocalAccount,
   type Transport,
+  type WalletClient,
 } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { getDefaultChainId, getRpcUrl } from "../lib/config";
+import { makeConfirm } from "../lib/confirm";
 import { followNotice } from "../lib/follow-notice";
+import { confirmingAccount } from "../lib/local-signer";
 import { registerAllModules } from "../lib/modules";
 import { readScriptSource, readStdin } from "../lib/read-source";
 
 const USAGE = `Usage: evmcrispr run <file|-> [--wallet-rpc URL --account ADDRESS]
+                            [--yes] [--size-by-simulation]
 
 Pipe data to @fetch(stdin:) with a script file; run - reads EVML source instead.
 Printed output goes to stdout; status messages go to stderr.
 With a wallet, a run whose status boxes are still live after the last line
-keeps following them (a Safe proposal, a TWAP order); Ctrl-C stops following.`;
+keeps following them (a Safe proposal, a TWAP order); Ctrl-C stops following.
+
+Signing:
+  --wallet-rpc URL --account ADDRESS
+                        Sign through an external wallet's RPC endpoint.
+  EVMCRISPR_PRIVATE_KEY Sign with this key instead (environment only, never
+                        an argument; not with --wallet-rpc or --account).
+                        Every signature is shown and asked y/N first.
+  --yes                 Sign what the local key is asked to without asking
+                        (still shown). Required to sign without a terminal.
+  --size-by-simulation  Size frame gas limits from a provisional transaction
+                        (accepted; frame transactions are not sent yet).`;
+const VALUED = ["--wallet-rpc", "--account"];
+const FLAGS = ["--yes", "--size-by-simulation"];
+const KEY_ENV = "EVMCRISPR_PRIVATE_KEY";
+
+/** The local key, taken out of the environment so nothing the run starts
+ *  can read it. Its value never appears in an error. */
+function takePrivateKey(): Hex | undefined {
+  const raw = process.env[KEY_ENV];
+  delete process.env[KEY_ENV];
+  if (raw === undefined || raw === "") return undefined;
+  const key = raw.trim();
+  if (!/^(0x)?[0-9a-fA-F]{64}$/.test(key))
+    throw new Error(`${KEY_ENV} is not a private key (32 bytes in hex)`);
+  return (key.startsWith("0x") ? key : `0x${key}`) as Hex;
+}
+
 export async function runScript(args: string[]) {
   if (args.includes("--help") || args.includes("-h")) {
     console.log(USAGE);
@@ -25,17 +59,31 @@ export async function runScript(args: string[]) {
   const [file, ...rest] = args;
   if (!file) throw new Error(USAGE);
   const opts: Record<string, string> = {};
-  for (let i = 0; i < rest.length; i += 2) {
-    const key = rest[i],
-      value = rest[i + 1];
-    if (!["--wallet-rpc", "--account"].includes(key) || !value || opts[key])
-      throw new Error(USAGE);
+  const flags = new Set<string>();
+  for (let i = 0; i < rest.length; i++) {
+    const key = rest[i];
+    if (FLAGS.includes(key) && !flags.has(key)) {
+      flags.add(key);
+      continue;
+    }
+    const value = rest[i + 1];
+    if (!VALUED.includes(key) || !value || opts[key]) throw new Error(USAGE);
     opts[key] = value;
+    i++;
   }
+  const privateKey = takePrivateKey();
+  if (privateKey && (opts["--wallet-rpc"] || opts["--account"]))
+    throw new Error(
+      `${KEY_ENV} cannot be used with --wallet-rpc or --account: choose one way to sign`,
+    );
   if (!!opts["--wallet-rpc"] !== !!opts["--account"])
     throw new Error("--wallet-rpc and --account must be supplied together");
   if (opts["--account"] && !isAddress(opts["--account"]))
     throw new Error("invalid --account address");
+  // Read by the frame-transaction handler; accepted here so scripts can
+  // already pass it.
+  const sizeBySimulation = flags.has("--size-by-simulation");
+  void sizeBySimulation;
   registerAllModules();
   const source = await readScriptSource(file);
   // The shell supplies data. `run -` reserves stdin for EVML source instead.
@@ -56,10 +104,36 @@ export async function runScript(args: string[]) {
       /* Core uses the chain's default RPC when available. */
     }
   }
-  const account = opts["--account"] as Address | undefined;
-  const wallet = account
-    ? createWalletClient({ account, transport: http(opts["--wallet-rpc"]) })
-    : undefined;
+  let account = opts["--account"] as Address | undefined;
+  let wallet: WalletClient | undefined;
+  if (privateKey) {
+    let local: LocalAccount;
+    try {
+      local = privateKeyToAccount(privateKey);
+    } catch {
+      throw new Error(`${KEY_ENV} is not a private key (32 bytes in hex)`);
+    }
+    const signer = confirmingAccount(
+      local,
+      makeConfirm({
+        yes: flags.has("--yes"),
+        // `run -` has read its source from stdin: no answer can follow.
+        tty: file !== "-" && !!process.stdin.isTTY && !!process.stderr.isTTY,
+        input: process.stdin,
+        output: process.stderr,
+      }),
+    );
+    account = signer.address;
+    wallet = createWalletClient({
+      account: signer,
+      transport: http(getRpcUrl(chainId)),
+    });
+  } else if (account) {
+    wallet = createWalletClient({
+      account,
+      transport: http(opts["--wallet-rpc"]),
+    });
+  }
   // Ctrl-C cancels: the run stops, live status boxes end cancelled and the
   // run rejects with "Execution cancelled" (exit code 1). After the script
   // ended (while it follows status boxes) it only stops following: the run

@@ -49,6 +49,99 @@ function run(
   });
 }
 
+// Anvil's account #1: its key must never reach any output.
+const KEY =
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+const KEY_ACCOUNT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+const keyOutputs: string[] = [];
+function keyRun(...params: Parameters<typeof run>) {
+  return run(...params).then((result) => {
+    keyOutputs.push(result.stdout, result.stderr);
+    return result;
+  });
+}
+
+/** A JSON-RPC node answering what viem asks before it signs, recording
+ *  every method and the raw transactions it is sent. */
+function stubNode(chainId: number) {
+  const methods: string[] = [];
+  const raw: string[] = [];
+  const answer = (method: string, params: any[]): unknown => {
+    switch (method) {
+      case "eth_chainId":
+        return `0x${chainId.toString(16)}`;
+      case "eth_blockNumber":
+        return "0x10";
+      case "eth_getTransactionCount":
+        return "0x0";
+      case "eth_getBlockByNumber":
+        return {
+          number: "0x10",
+          hash: `0x${"ab".repeat(32)}`,
+          parentHash: `0x${"cd".repeat(32)}`,
+          timestamp: "0x6553f100",
+          baseFeePerGas: "0x1",
+          gasLimit: "0x1c9c380",
+          gasUsed: "0x0",
+          transactions: [],
+        };
+      case "eth_estimateGas":
+        return "0x5208";
+      case "eth_maxPriorityFeePerGas":
+      case "eth_gasPrice":
+        return "0x1";
+      case "eth_getCode":
+      case "eth_call":
+        return "0x";
+      case "eth_getBalance":
+        return "0xde0b6b3a7640000";
+      case "eth_sendRawTransaction":
+        raw.push(params[0]);
+        return `0x${"12".repeat(32)}`;
+      case "eth_getTransactionReceipt":
+        return {
+          transactionHash: params[0],
+          blockHash: `0x${"ab".repeat(32)}`,
+          blockNumber: "0x10",
+          transactionIndex: "0x0",
+          from: KEY_ACCOUNT.toLowerCase(),
+          to: "0x1111111111111111111111111111111111111111",
+          cumulativeGasUsed: "0x5208",
+          gasUsed: "0x5208",
+          effectiveGasPrice: "0x1",
+          contractAddress: null,
+          logs: [],
+          logsBloom: `0x${"00".repeat(256)}`,
+          status: "0x1",
+          type: "0x2",
+        };
+      default:
+        return null;
+    }
+  };
+  const server = Bun.serve({
+    port: 0,
+    fetch: async (req) => {
+      const body = (await req.json()) as any;
+      const one = (r: any) => {
+        methods.push(r.method);
+        return {
+          jsonrpc: "2.0",
+          id: r.id,
+          result: answer(r.method, r.params ?? []),
+        };
+      };
+      return Response.json(Array.isArray(body) ? body.map(one) : one(body));
+    },
+  });
+  return {
+    url: `http://127.0.0.1:${server.port}`,
+    methods,
+    raw,
+    stop: () => server.stop(true),
+  };
+}
+
 describe("CLI", () => {
   let tmpDir: string;
 
@@ -229,6 +322,98 @@ describe("CLI", () => {
       );
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain("must be supplied together");
+    });
+
+    it("refuses the key together with --wallet-rpc", async () => {
+      for (const flags of [
+        ["--wallet-rpc", "http://127.0.0.1:1", "--account", KEY_ACCOUNT],
+        ["--wallet-rpc", "http://127.0.0.1:1"],
+        ["--account", KEY_ACCOUNT],
+      ]) {
+        const result = await keyRun(["run", "-", ...flags], {
+          input: "print hello",
+          env: { EVMCRISPR_PRIVATE_KEY: KEY },
+        });
+        expect(result.exitCode).toBe(1);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain(
+          "EVMCRISPR_PRIVATE_KEY cannot be used with --wallet-rpc or --account",
+        );
+      }
+    });
+    it("refuses a malformed key without echoing it", async () => {
+      const result = await keyRun(["run", "-"], {
+        input: "print hello",
+        env: { EVMCRISPR_PRIVATE_KEY: `${KEY.slice(0, -1)}z` },
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(
+        "EVMCRISPR_PRIVATE_KEY is not a private key",
+      );
+      expect(result.stderr).not.toContain(KEY.slice(2, -1));
+    });
+    it("rejects values after --yes and --size-by-simulation", async () => {
+      const result = await keyRun(["run", "-", "--yes", "1"], {
+        input: "print hello",
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("Usage: evmcrispr run");
+    });
+    it("refuses to sign without a terminal or --yes", async () => {
+      const node = stubNode(1);
+      try {
+        const result = await keyRun(["run", "-"], {
+          input: 'exec @me "f()"',
+          env: {
+            EVMCRISPR_PRIVATE_KEY: KEY,
+            EVMCRISPR_DEFAULT_CHAIN_ID: "1",
+            EVMCRISPR_RPC_URL: node.url,
+          },
+          timeout: 20_000,
+        });
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain(
+          "Refusing to sign without confirmation: run in a terminal or pass --yes",
+        );
+        expect(node.raw).toEqual([]);
+      } finally {
+        node.stop();
+      }
+    }, 30_000);
+    it("signs with --yes after showing the transaction", async () => {
+      const node = stubNode(1);
+      try {
+        const result = await keyRun(
+          ["run", "-", "--yes", "--size-by-simulation"],
+          {
+            input: 'exec @me "f()"',
+            env: {
+              EVMCRISPR_PRIVATE_KEY: KEY,
+              EVMCRISPR_DEFAULT_CHAIN_ID: "1",
+              EVMCRISPR_RPC_URL: node.url,
+            },
+            timeout: 20_000,
+          },
+        );
+        expect(result.stderr).toContain("Sign a transaction on Ethereum");
+        expect(result.stderr).toContain(KEY_ACCOUNT);
+        expect(result.exitCode).toBe(0);
+        expect(node.raw).toHaveLength(1);
+        const { recoverTransactionAddress } = await import("viem");
+        expect(
+          await recoverTransactionAddress({
+            serializedTransaction: node.raw[0] as any,
+          }),
+        ).toBe(KEY_ACCOUNT);
+      } finally {
+        node.stop();
+      }
+    }, 30_000);
+    it("never prints the key", () => {
+      expect(keyOutputs.length).toBeGreaterThanOrEqual(12);
+      for (const output of keyOutputs) {
+        expect(output.toLowerCase()).not.toContain(KEY.slice(2));
+      }
     });
   });
 
