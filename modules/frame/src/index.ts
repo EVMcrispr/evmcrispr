@@ -9,4 +9,7 @@ export default class Frame extends defineModule(
   undefined,
   configs,
   chains,
-) {}
+) {
+  /** How many `frame:tx` blocks are being interpreted right now. */
+  depth = 0;
+}
