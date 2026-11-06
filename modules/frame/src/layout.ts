@@ -1,8 +1,10 @@
 import {
   type Action,
+  asNum,
   type BatchedAction,
   ErrorException,
   type FrameSpec,
+  Num,
   type TransactionAction,
 } from "@evmcrispr/sdk";
 import type { Address, Hex } from "viem";
@@ -11,6 +13,16 @@ import { frameMarkOf } from "./marks";
 export const SELF_VERIFY_GAS = 30_000n;
 export const PAYMASTER_VERIFY_GAS = 50_000n;
 export const MAX_FRAMES = 64;
+
+/** An option's value as a gas limit: a whole number, zero or more. */
+export function gasOption(value: unknown, option: string): bigint {
+  const n = asNum(value);
+  if (!n?.isInteger() || n.lt(Num(0)))
+    throw new ErrorException(
+      `${option} must be a non-negative integer, not ${String(value)}: it is a gas limit.`,
+    );
+  return n.toBigInt();
+}
 
 export interface LayoutInput {
   actions: Action[];

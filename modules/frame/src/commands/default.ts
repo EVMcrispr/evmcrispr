@@ -1,7 +1,7 @@
-import type { BlockExpressionNode } from "@evmcrispr/sdk";
+import type { BlockExpressionNode, TransactionAction } from "@evmcrispr/sdk";
 import { type Action, defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Frame from "..";
-import { markFrame } from "../marks";
+import { frameMarkOf, markFrame } from "../marks";
 
 export default defineCommand<Frame>({
   smartSupport: {
@@ -26,14 +26,20 @@ export default defineCommand<Frame>({
       ((await interpreters.interpretNode(block as BlockExpressionNode, {
         batchContext: interpreters.batchContext,
       })) as Action[] | undefined) ?? [];
-    for (const action of actions) {
-      if ("type" in action && action.type === "batched") {
-        for (const inner of action.actions)
-          markFrame(inner, { mode: "default" });
-      } else if (!("type" in action) || action.type === undefined) {
-        markFrame(action as never, { mode: "default" });
-      }
-    }
+    const calls = actions.flatMap((action) =>
+      "type" in action && action.type === "batched"
+        ? action.actions
+        : !("type" in action) || action.type === undefined
+          ? [action as TransactionAction]
+          : [],
+    );
+    // A verify is its own mode: marking it default would silently send it
+    // as a call by the entry point.
+    if (calls.some((call) => frameMarkOf(call)?.mode === "verify"))
+      throw new ErrorException(
+        "verify cannot go inside default: a VERIFY frame is its own mode, so write it outside the default block.",
+      );
+    for (const call of calls) markFrame(call, { mode: "default" });
     return actions;
   },
 });

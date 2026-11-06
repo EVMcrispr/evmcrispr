@@ -164,4 +164,41 @@ tx (
   it("an empty block yields no action", async () => {
     expect(await run(`load frame [tx]\ntx (\n)`)).toHaveLength(0);
   });
+  it("a verify inside default is refused", async () => {
+    await expect(
+      run(`load frame [tx verify default]
+tx (
+  default (
+    verify @me --approve both
+  )
+)`),
+    ).rejects.toThrow(/verify cannot go inside default/);
+    await expect(
+      run(`load frame [tx verify default]
+tx (
+  default (
+    batch (
+      exec ${A1} "f()"
+      verify @me --approve both
+    )
+  )
+)`),
+    ).rejects.toThrow(/verify cannot go inside default/);
+  });
+
+  it("verify --gas must be a non-negative integer", async () => {
+    for (const gas of ["-1", "1.5"])
+      await expect(
+        run(
+          `load frame [tx verify]\ntx (\n  verify @me --approve both --gas ${gas}\n)`,
+        ),
+      ).rejects.toThrow(/--gas must be a non-negative integer/);
+  });
+
+  it("tx --state-gas must be a non-negative integer", async () => {
+    for (const gas of ["-1", "1.5"])
+      await expect(
+        run(`load frame [tx]\ntx --state-gas ${gas} (\n  exec ${A1} "f()"\n)`),
+      ).rejects.toThrow(/--state-gas must be a non-negative integer/);
+  });
 });

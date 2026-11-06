@@ -100,7 +100,8 @@ tx --paymaster 0x0000000000000000000000000000000000000002 --paymaster-data 0x123
 
 `--mempool alt|canonical` picks where the transaction goes: `alt` (the
 default) is the alternative mempool, the one the devnet exercises; `canonical`
-sends it as an ordinary raw transaction.
+sends the raw bytes to the node's public mempool, which admits a frame
+transaction only under EIP-8141's strict rules.
 
 The block is checked before anything is signed. The validation prefix must be
 one the mempool recognizes (`[self_verify]` or `[only_verify, pay]`, each

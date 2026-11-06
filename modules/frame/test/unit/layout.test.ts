@@ -170,4 +170,53 @@ describe("layoutFrames", () => {
     expect(f.map((x) => x.stateGas)).toEqual([undefined, undefined, 5n, 5n]);
     expect(lay([call(TO)])[1].stateGas).toBeUndefined();
   });
+  it("a default frame in the body is accepted", () => {
+    const f = lay([call(TO), call(Q, { mode: "default" })]);
+    expect(f.map((x) => x.mode)).toEqual(["verify", "sender", "default"]);
+    expect(f[2].target).toBe(Q);
+    expect(f[2].gas).toBeUndefined();
+  });
+
+  it("an action's gas passes through to its frame", () => {
+    const f = lay([
+      call(ME, { mode: "verify", approve: "both" }, { gas: 41_000n }),
+      call(TO, undefined, { gas: 77_000n }),
+      call(Q, { mode: "default" }, { gas: 12_000n }),
+    ]);
+    expect(f.map((x) => x.gas)).toEqual([41_000n, 77_000n, 12_000n]);
+  });
+
+  it("a pre_verify may come before a self_verify", () => {
+    const f = lay([
+      call(ME, { mode: "default" }, { gas: 40_000n }),
+      verify(ME, "both"),
+      call(TO),
+    ]);
+    expect(f.map((x) => x.mode)).toEqual(["default", "verify", "sender"]);
+    expect(f[0]).toMatchObject({ target: null, gas: 40_000n });
+    expect(f[1]).toMatchObject({ approve: "both", target: null });
+  });
+
+  it("a pre_verify may come before a written payment verify", () => {
+    const f = lay([
+      verify(ME, "execution"),
+      call(P, { mode: "default" }),
+      verify(P, "payment"),
+      call(TO),
+    ]);
+    expect(f[1]).toMatchObject({ mode: "default", target: P });
+    expect(f[2]).toMatchObject({
+      mode: "verify",
+      approve: "payment",
+      target: P,
+      gas: PAYMASTER_VERIFY_GAS,
+    });
+    expect(f[3].stateGas).toBeUndefined();
+  });
+
+  it("refuses an action with no recipient (a deployment)", () => {
+    expect(() =>
+      lay([{ data: "0x6000", value: 0n } as TransactionAction]),
+    ).toThrow(/no recipient/);
+  });
 });

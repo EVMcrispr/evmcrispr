@@ -2,6 +2,7 @@ import type { Address, TransactionAction } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, encodeAction } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
 import type Frame from "..";
+import { gasOption } from "../layout";
 import { markFrame } from "../marks";
 
 const APPROVE = ["execution", "payment", "both"] as const;
@@ -72,7 +73,7 @@ export default defineCommand<Frame>({
       data: encoded.data ?? "0x",
       value: 0n,
     };
-    if (opts.gas !== undefined) frame.gas = BigInt(opts.gas);
+    if (opts.gas !== undefined) frame.gas = gasOption(opts.gas, "--gas");
     markFrame(frame, { mode: "verify", approve });
     return [frame];
   },

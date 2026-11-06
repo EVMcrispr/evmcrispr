@@ -1,7 +1,7 @@
 import type { Action, BlockExpressionNode, FrameAction } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import type Frame from "..";
-import { layoutFrames } from "../layout";
+import { gasOption, layoutFrames } from "../layout";
 
 export default defineCommand<Frame>({
   smartSupport: {
@@ -51,6 +51,10 @@ export default defineCommand<Frame>({
       );
     if (module.depth > 0)
       throw new ErrorException("frame:tx cannot be nested in another frame:tx");
+    const stateGas =
+      opts["state-gas"] === undefined
+        ? undefined
+        : gasOption(opts["state-gas"], "--state-gas");
 
     module.depth++;
     let actions: Action[];
@@ -74,8 +78,7 @@ export default defineCommand<Frame>({
       chainId,
       paymaster: opts.paymaster,
       paymasterData: opts["paymaster-data"],
-      stateGas:
-        opts["state-gas"] === undefined ? undefined : BigInt(opts["state-gas"]),
+      stateGas,
     });
     const action: FrameAction = {
       type: "frame",
