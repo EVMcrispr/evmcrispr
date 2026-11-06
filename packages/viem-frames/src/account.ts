@@ -26,9 +26,10 @@ import {
   prefixLength,
   toFrameRequests,
 } from "./frame-specs";
+import { ATOMIC_BATCH_FLAG } from "./frames";
 import { printable } from "./printable";
 import { arbitrarySignatureEntry } from "./serializer";
-import type { Frame, FrameTransactionReceipt, FrameTx } from "./types";
+import type { Frame, FrameTransactionReceipt, FrameTx, Profile } from "./types";
 
 /** The EIP-712 domain name a FrameAccount checks its owner's signature under. */
 export const FRAME_ACCOUNT_DOMAIN_NAME = "EVMcrispr Frame Account";
@@ -108,45 +109,79 @@ function missingLimit(
   return undefined;
 }
 
+/** The name a profile gives a value of one of its tables, else the number. */
+function nameOf(table: Record<string, number>, value: number): string {
+  const found = Object.entries(table).find(([, v]) => v === value)?.[0];
+  return found ? found.toLowerCase().replaceAll("_", " ") : `#${value}`;
+}
+
+/** The payer the signed frames name: the first verify frame approving payment. */
+function payerOfTx(tx: FrameTx, profile: Profile): string {
+  const paying = tx.frames.find(
+    (f) =>
+      f.mode === profile.frameModes.VERIFY &&
+      ((f.flags & 0x3) === profile.approveScopes.PAYMENT ||
+        (f.flags & 0x3) === profile.approveScopes.EXECUTION_AND_PAYMENT),
+  );
+  if (!paying) return "no payer";
+  return paying.target === null || isAddressEqual(paying.target, tx.sender)
+    ? `the account ${tx.sender}`
+    : `the sponsor ${paying.target}`;
+}
+
+/** The calldata in full: the selector, then one 32-byte word per line. */
+function dataLines(data: Hex): string[] {
+  if (size(data) === 0) return ["    no data"];
+  const hex = data.slice(2);
+  const lines = [
+    `    data 0x${printable(hex.slice(0, 8))} (${size(data)} bytes)`,
+  ];
+  for (let i = 8; i < hex.length; i += 64)
+    lines.push(`      ${printable(hex.slice(i, i + 64))}`);
+  return lines;
+}
+
 /**
- * What the owner is about to authorize, in plain text: the account, every
- * frame, who pays, the nonce, the fees, the most it can cost, and the hash
- * the typed data carries. Everything is escaped.
+ * What the owner is about to authorize, in plain text, read from the
+ * unsigned frame transaction whose signature hash is signed (not from the
+ * specs it was built from): every frame's mode, approval scope, atomic flag,
+ * target, value, limits and whole calldata, who pays, the nonce, the fees,
+ * the most it can cost, and the hash the typed data carries. Everything is
+ * escaped.
  */
 export function describeAccountFrameTransaction({
-  account,
-  frames,
-  requests,
-  nonce,
-  fees,
+  tx,
+  profile,
   sigHash: hash,
 }: {
-  account: Address;
-  frames: readonly FrameSpecLike[];
-  requests: readonly { limits?: { execution: bigint; state: bigint } }[];
-  nonce: number | bigint;
-  fees: { maxFeePerGas: bigint; maxPriorityFeePerGas: bigint };
+  tx: FrameTx;
+  profile: Profile;
   sigHash: Hex;
 }): string {
-  const gas = requests.reduce(
-    (sum, f) => sum + (f.limits?.execution ?? 0n) + (f.limits?.state ?? 0n),
+  const gas = tx.frames.reduce(
+    (sum, f) => sum + f.limits.execution + f.limits.state,
     0n,
   );
-  const lines = frames.map((f, i) => {
-    const limits = requests[i]?.limits;
+  const lines = tx.frames.flatMap((f, i) => {
+    const mode = nameOf(profile.frameModes, f.mode);
     const scope =
-      f.mode === "verify" ? ` approving ${f.approve ?? "execution"}` : "";
-    const data =
-      f.data === "0x"
-        ? "no data"
-        : `selector ${printable(f.data.slice(0, 10))}, ${size(f.data)} bytes of data`;
-    return `Frame ${i + 1}: ${f.mode}${scope} to ${f.target === null ? `the account ${account}` : printable(f.target, 60)}, value ${f.value} wei, ${data}, gas ${limits?.execution ?? "?"} + state gas ${limits?.state ?? "?"}`;
+      f.mode === profile.frameModes.VERIFY
+        ? ` approving ${(f.flags & 0x3) === 0 ? "nothing" : nameOf(profile.approveScopes, f.flags & 0x3)}`
+        : "";
+    const atomic =
+      f.flags & ATOMIC_BATCH_FLAG ? ", atomic with the next frame" : "";
+    const target =
+      f.target === null ? `the account ${tx.sender}` : printable(f.target, 60);
+    return [
+      `Frame ${i + 1}: ${printable(mode, 40)}${scope}${atomic} to ${target}, value ${f.value} wei, gas ${f.limits.execution} + state gas ${f.limits.state}`,
+      ...dataLines(f.data),
+    ];
   });
   return [
-    `Frame transaction from the account ${account}`,
+    `Frame transaction from the account ${tx.sender}`,
     ...lines,
-    `Paid by ${printable(payerOf(frames, account), 200)}`,
-    `Nonce ${nonce}; max fee ${formatGwei(fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(fees.maxPriorityFeePerGas)}); at most ${formatEther(gas * fees.maxFeePerGas)} ETH for ${gas} gas`,
+    `Paid by ${printable(payerOfTx(tx, profile), 200)}`,
+    `Nonce ${tx.nonceSeq}; max fee ${formatGwei(tx.fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(tx.fees.maxPriorityFeePerGas)}); at most ${formatEther(gas * tx.fees.maxFeePerGas)} ETH for ${gas} gas`,
     `Signature hash ${printable(hash, 70)}`,
   ].join("\n");
 }
@@ -295,11 +330,8 @@ export async function sendAccountFrameTransaction({
   const typedData = frameAccountTypedData(account, hashToSign);
 
   const description = describeAccountFrameTransaction({
-    account,
-    frames,
-    requests,
-    nonce,
-    fees,
+    tx: unsigned,
+    profile,
     sigHash: hashToSign,
   });
   const ask = () =>

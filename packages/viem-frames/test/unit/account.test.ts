@@ -275,10 +275,10 @@ describe("signWith", () => {
     const d = seen[0]!;
     expect(d).toContain(ACCOUNT);
     expect(d).toContain("Frame 1: verify approving execution");
-    expect(d).toContain("selector 0xb2225351");
+    expect(d).toContain("data 0xb2225351 (36 bytes)");
     expect(d).toContain(`Frame 2: verify approving payment to ${SPONSOR}`);
     expect(d).toContain(`Frame 3: sender to ${RECIPIENT}`);
-    expect(d).toContain("selector 0xd09de08a");
+    expect(d).toContain("data 0xd09de08a (4 bytes)");
     expect(d).toContain(`Paid by the sponsor ${SPONSOR}`);
     expect(d).toContain("Nonce 7");
     expect(d).toContain("max fee 2 gwei");
@@ -286,17 +286,62 @@ describe("signWith", () => {
     expect(d).toContain(w.asked[0].message.sigHash);
   });
 
-  test("describes a paying account and escapes values", () => {
-    const d = describeAccountFrameTransaction({
-      account: ACCOUNT,
-      frames: [{ ...FRAMES[0]!, approve: "both" }],
-      requests: toFrameRequests([{ ...FRAMES[0]!, approve: "both" }]),
-      nonce: 1,
+  const describeSpecs = (specs: FrameSpecLike[], hash = "0x1234" as Hex) => {
+    const requests = toFrameRequests(specs);
+    const tx = newTx({
+      chainId: 1337,
+      sender: ACCOUNT,
+      nonceSeq: 1n,
+      frames: requests as Parameters<typeof newTx>[0]["frames"],
+      signatures: [],
       fees: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n },
-      sigHash: "0x1b[2K" as Hex,
     });
+    return describeAccountFrameTransaction({
+      tx,
+      profile,
+      sigHash: hash,
+    });
+  };
+  const spec = (over: Partial<FrameSpecLike>): FrameSpecLike => ({
+    mode: "sender",
+    target: RECIPIENT,
+    data: "0x",
+    value: 0n,
+    gas: 1n,
+    stateGas: 1n,
+    ...over,
+  });
+
+  test("describes a paying account and escapes values", () => {
+    const d = describeSpecs(
+      [spec({ mode: "verify", approve: "both", target: null })],
+      "0x1b[2K" as Hex,
+    );
     expect(d).toContain(`Paid by the account ${ACCOUNT}`);
+    expect(d).toContain("approving execution and payment");
     expect(d).not.toContain("\x1b");
+  });
+
+  test("shows 68 bytes of calldata in full, word by word", () => {
+    const w1 = "11".repeat(32);
+    const w2 = "22".repeat(32);
+    const d = describeSpecs([spec({ data: `0xa9059cbb${w1}${w2}` as Hex })]);
+    expect(d).toContain("data 0xa9059cbb (68 bytes)");
+    expect(d).toContain(`\n      ${w1}\n      ${w2}`);
+  });
+
+  test("marks an atomic frame", () => {
+    const d = describeSpecs([spec({ atomic: true }), spec({})]);
+    expect(d).toContain("Frame 1: sender, atomic with the next frame to");
+    expect(d.split("\n").find((l) => l.startsWith("Frame 2"))).not.toContain(
+      "atomic",
+    );
+  });
+
+  test("a verify with scope 0 approves nothing", () => {
+    const d = describeSpecs([spec({ mode: "verify", target: null })]);
+    expect(d).toContain("Frame 1: verify approving nothing");
+    expect(d).toContain("Paid by no payer");
   });
 });
 
