@@ -571,6 +571,7 @@
         "viem": "^2.56.8",
       },
       "devDependencies": {
+        "@forshtat/hegota-support": "0.0.1",
         "@types/bun": "^1.4.2",
       },
     },

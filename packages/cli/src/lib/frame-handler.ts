@@ -6,6 +6,7 @@ import {
   type FrameRequest,
   frameSimulationUrlOf,
   prefixLength,
+  sendAccountFrameTransaction,
   toFrameRequests,
 } from "@evmcrispr/viem-frames";
 import {
@@ -16,6 +17,7 @@ import {
   publicActions,
   type Transport,
   WaitForTransactionReceiptTimeoutError,
+  type WalletClient,
 } from "viem";
 import { type ConfirmingAccount, printable } from "./local-signer";
 
@@ -56,11 +58,15 @@ const networkName = (chainId: number) =>
  */
 export function makeFrameHandler({
   account,
+  wallet,
   sizeBySimulation,
   receiptTimeoutMs = 120_000,
   transport,
 }: {
-  account: ConfirmingAccount;
+  /** The local key: signs plain frame transactions and account ones. */
+  account?: ConfirmingAccount;
+  /** An external wallet (--wallet-rpc): signs account actions only. */
+  wallet?: WalletClient;
   sizeBySimulation: boolean;
   receiptTimeoutMs?: number;
   /** Stands in for the gateway in tests. */
@@ -70,6 +76,35 @@ export function makeFrameHandler({
     if (action.chainId !== altMempoolDevnet.id)
       throw new Error(
         `Frame transactions are sent only on the ${NETWORK} (chain ${altMempoolDevnet.id}), not on ${chainLabel(action.chainId)}`,
+      );
+    if (action.account) {
+      const signing =
+        wallet ??
+        (account &&
+          createWalletClient({
+            account,
+            chain: altMempoolDevnet,
+            transport: transport ?? http(),
+          }));
+      if (!signing) throw new Error("No wallet is connected to sign with");
+      // The wallet's own signTypedData: confirmed for the local key, asked
+      // of the external wallet otherwise.
+      const { hash, receipt } = await sendAccountFrameTransaction({
+        wallet: signing,
+        account: action.from,
+        owner: action.account.owner,
+        frames: action.frames,
+        mempool: action.mempool,
+        transport,
+        onLog: ctx.onLog,
+        receiptTimeoutMs,
+      });
+      ctx.onSent?.(hash);
+      return receipt;
+    }
+    if (!account)
+      throw new Error(
+        "a plain account cannot sign a type-0x06 transaction through an external wallet; use frame:tx --account <frame account> or EVMCRISPR_PRIVATE_KEY",
       );
     if (!isAddressEqual(action.from, account.address))
       throw new Error(

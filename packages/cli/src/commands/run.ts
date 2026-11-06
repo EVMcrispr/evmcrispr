@@ -144,6 +144,10 @@ export async function runScript(args: string[]) {
       account,
       transport: http(opts["--wallet-rpc"]),
     });
+    // Account frame transactions are signed by the wallet; plain ones are refused.
+    handlers = {
+      frame: makeFrameHandler({ wallet, sizeBySimulation }),
+    };
   }
   // Ctrl-C cancels: the run stops, live status boxes end cancelled and the
   // run rejects with "Execution cancelled" (exit code 1). After the script

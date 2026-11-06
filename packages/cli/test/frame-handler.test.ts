@@ -2,7 +2,15 @@ import { describe, expect, it } from "bun:test";
 import type { ActionHandlerCtx } from "@evmcrispr/core";
 import type { FrameAction, FrameSpec } from "@evmcrispr/sdk";
 import { ATOMIC_BATCH_FLAG, toFrameRequests } from "@evmcrispr/viem-frames";
-import { custom, type Hash, type Hex, keccak256 } from "viem";
+import { profile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
+import { newTx, txHash } from "@forshtat/hegota-support/tx";
+import {
+  createWalletClient,
+  custom,
+  type Hash,
+  type Hex,
+  keccak256,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { makeFrameHandler } from "../src/lib/frame-handler";
 import { confirmingAccount } from "../src/lib/local-signer";
@@ -472,5 +480,185 @@ describe("the frame handler", () => {
       /\(status Pending\): stopping, since a later transaction from you would reuse its nonce\. https:\/\/explorer\.altmempool\.wtf/,
     );
     expect(c.sent).toHaveLength(1);
+  });
+});
+
+describe("account frame actions", () => {
+  const OWNER_KEY =
+    "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a";
+  const ACCOUNT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+
+  /** The sidecar for an account: it has code, and the sent bytes are hashed. */
+  function accountSidecar() {
+    const calls: { method: string; params: any }[] = [];
+    let sent: Hash | undefined;
+    const transport = custom({
+      async request({ method, params }: { method: string; params: any }) {
+        calls.push({ method, params });
+        switch (method) {
+          case "eth_chainId":
+            return "0x539";
+          case "eth_getCode":
+            return "0x6001";
+          case "eth_getTransactionCount":
+            return "0x3";
+          case "skandha_getGasPrice":
+            return {
+              maxFeePerGas: "0x77359400",
+              maxPriorityFeePerGas: "0x3b9aca00",
+            };
+          case "eth_sendFrameTransaction": {
+            sent = hashOfWire(params[0]);
+            return sent;
+          }
+          case "skandha_frameTransactionStatus":
+            return { tx: sent, status: "OnChain" };
+          case "eth_getTransactionReceipt":
+            return {
+              type: "0x6",
+              status: "0x1",
+              blockHash: `0x${"11".repeat(32)}`,
+              blockNumber: "0x10",
+              transactionHash: params[0],
+              transactionIndex: "0x0",
+              from: ACCOUNT,
+              to: null,
+              cumulativeGasUsed: "0x1",
+              gasUsed: "0x1",
+              effectiveGasPrice: "0x7",
+              contractAddress: null,
+              logs: [],
+              logsBloom: `0x${"00".repeat(256)}`,
+              payer: ACCOUNT,
+              frameReceipts: [],
+            };
+          case "eth_getTransactionByHash":
+            return null;
+          default:
+            throw new Error(`unexpected ${method}`);
+        }
+      },
+    });
+    return { transport, calls };
+  }
+
+  /** The hash the sidecar answers with: the one the sender expects. */
+  function hashOfWire(wire: any): Hash {
+    return txHash(
+      profile,
+      newTx({
+        chainId: BigInt(wire.chainId),
+        sender: wire.sender,
+        nonceSeq: BigInt(wire.nonceSeq ?? wire.nonce),
+        nonceKeys: wire.nonceKeys?.map(BigInt),
+        frames: wire.frames.map((f: any) => ({
+          mode: Number(f.mode),
+          flags: Number(f.flags),
+          target: f.target,
+          limits: {
+            execution: BigInt(f.limits.execution),
+            state: BigInt(f.limits.state),
+          },
+          value: BigInt(f.value),
+          data: f.data,
+        })),
+        signatures: wire.signatures.map((s: any) => ({
+          scheme: Number(s.scheme),
+          signer: s.signer,
+          msg: s.msg,
+          signature: s.signature,
+        })),
+        fees: {
+          maxFeePerGas: BigInt(wire.maxFeePerGas ?? wire.fees.maxFeePerGas),
+          maxPriorityFeePerGas: BigInt(
+            wire.maxPriorityFeePerGas ?? wire.fees.maxPriorityFeePerGas,
+          ),
+        },
+      }),
+    ) as Hash;
+  }
+
+  const accountAction = (owner: `0x${string}`): FrameAction => ({
+    type: "frame",
+    chainId: 1337,
+    from: ACCOUNT,
+    frames: [{ ...VERIFY, gas: 40_000n }, CALL],
+    mempool: "alt",
+    account: { kind: "frame-account", owner },
+  });
+
+  it("an account action is signed as typed data and confirmed", async () => {
+    const owner = privateKeyToAccount(OWNER_KEY);
+    const confirmed: string[] = [];
+    const local = confirmingAccount(owner, async (summary) => {
+      confirmed.push(summary);
+      return true;
+    });
+    const sc = accountSidecar();
+    const c = ctx();
+    const handler = makeFrameHandler({
+      account: local,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    await handler(accountAction(owner.address), c.ctx);
+    expect(confirmed).toHaveLength(1);
+    expect(confirmed[0]).toContain("EVMcrispr Frame Account");
+    expect(sc.calls.some((x) => x.method === "eth_sendFrameTransaction")).toBe(
+      true,
+    );
+    expect(c.sent).toHaveLength(1);
+  });
+
+  it("an account action through --wallet-rpc asks the external wallet", async () => {
+    const owner = privateKeyToAccount(OWNER_KEY);
+    const asked: string[] = [];
+    const wallet = createWalletClient({
+      account: owner.address,
+      transport: custom({
+        async request({ method, params }: { method: string; params: any }) {
+          asked.push(method);
+          if (method === "eth_accounts") return [owner.address];
+          if (method === "eth_chainId") return "0x1";
+          if (method === "eth_signTypedData_v4")
+            return owner.signTypedData(JSON.parse(params[1]));
+          throw new Error(`unexpected ${method}`);
+        },
+      }),
+    });
+    const sc = accountSidecar();
+    const c = ctx();
+    const handler = makeFrameHandler({
+      wallet,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    await handler(accountAction(owner.address), c.ctx);
+    expect(asked).toContain("eth_signTypedData_v4");
+    expect(c.sent).toHaveLength(1);
+  });
+
+  it("a plain frame action with --wallet-rpc is refused with the reason", async () => {
+    const owner = privateKeyToAccount(OWNER_KEY);
+    const wallet = createWalletClient({
+      account: owner.address,
+      transport: custom({
+        async request() {
+          throw new Error("must not be asked");
+        },
+      }),
+    });
+    const sc = accountSidecar();
+    const handler = makeFrameHandler({
+      wallet,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    await expect(
+      handler({ ...action([VERIFY, CALL]), from: owner.address }, ctx().ctx),
+    ).rejects.toThrow(
+      "a plain account cannot sign a type-0x06 transaction through an external wallet; use frame:tx --account <frame account> or EVMCRISPR_PRIVATE_KEY",
+    );
+    expect(sc.calls).toHaveLength(0);
   });
 });
