@@ -2,23 +2,19 @@ import "../setup";
 import { describe, expect, it } from "bun:test";
 import { chainLabel } from "@evmcrispr/sdk";
 import { createInterpreter } from "@evmcrispr/test-utils/evml";
+import { chains } from "../../src/chains";
 
-const DEVNET_ID = 1337;
-
-describe("frame > alt-mempool devnet chain", () => {
-  for (const target of ["altMempool", "1337"]) {
-    it(`switch ${target} reaches the devnet`, async () => {
-      const interpreter = createInterpreter(
-        `switch ${target}`,
-        undefined as never,
-        { chainId: 1 },
-      );
-      await interpreter.interpret();
-      expect(await interpreter.evm.getChainId()).toBe(DEVNET_ID);
+describe("frame > chain 1337", () => {
+  it("switch 1337 stays on chain 1337", async () => {
+    const interpreter = createInterpreter("switch 1337", undefined as never, {
+      chainId: 1,
     });
-  }
+    await interpreter.interpret();
+    expect(await interpreter.evm.getChainId()).toBe(1337);
+  });
 
-  it("names the chain", () => {
-    expect(chainLabel(DEVNET_ID)).toBe("Alt-mempool devnet");
+  it("the module declares no chain", () => {
+    expect(chains).toEqual([]);
+    expect(chainLabel(1337)).not.toBe("Alt-mempool devnet");
   });
 });
