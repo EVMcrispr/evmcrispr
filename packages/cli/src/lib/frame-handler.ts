@@ -49,9 +49,14 @@ const networkName = (chainId: number) =>
   chainId === altMempoolDevnet.id ? NETWORK : chainLabel(chainId);
 
 /**
- * The CLI's handler of frame transactions: signs them with the local key
- * (every signature confirmed) and sends them to the alt mempool of the
- * devnet, through its gateway. Without `sizeBySimulation`, every frame must
+ * The CLI's handler of frame transactions, which it sends to the alt mempool
+ * of the devnet through its gateway. With the local key (`account`) every
+ * signature is confirmed: a plain frame transaction is signed as such, and a
+ * frame account's is signed as typed data whose confirmation is labelled with
+ * the frames, payer, nonce and fees behind its hash. With an external wallet
+ * (`wallet`, --wallet-rpc) only frame account transactions are sent: the
+ * wallet is asked for the typed data and shows it; a plain frame action is
+ * refused. Without `sizeBySimulation`, every frame must
  * carry its limits, so nothing but the transaction as sent is ever signed;
  * with it, the provisional transaction that sizes them is signed (and
  * confirmed) first, labelled as such.
@@ -98,6 +103,10 @@ export function makeFrameHandler({
         transport,
         onLog: ctx.onLog,
         receiptTimeoutMs,
+        // The local key's one confirmation carries the frames behind the hash.
+        signWith: wallet
+          ? undefined
+          : (description, sign) => account!.labelled(description, sign),
       });
       ctx.onSent?.(hash);
       return receipt;

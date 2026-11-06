@@ -13,6 +13,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
+  describeAccountFrameTransaction,
   FRAME_ACCOUNT_DOMAIN_NAME,
   type FrameSpecLike,
   frameAccountTypedData,
@@ -250,6 +251,52 @@ describe("frameAccountTypedData", () => {
       message: { sigHash: hash },
     });
     expect(FRAME_ACCOUNT_DOMAIN_NAME).toBe("EVMcrispr Frame Account");
+  });
+});
+
+describe("signWith", () => {
+  test("wraps exactly the one signature with the full description", async () => {
+    const g = gateway();
+    const w = wallet();
+    const seen: string[] = [];
+    let during = 0;
+    let inside = 0;
+    await send(w.client, g, {
+      signWith: async (description, sign) => {
+        seen.push(description);
+        inside = w.asked.length;
+        const out = await sign();
+        during = w.asked.length;
+        return out;
+      },
+    });
+    expect(seen).toHaveLength(1);
+    expect([inside, during]).toEqual([0, 1]);
+    const d = seen[0]!;
+    expect(d).toContain(ACCOUNT);
+    expect(d).toContain("Frame 1: verify approving execution");
+    expect(d).toContain("selector 0xb2225351");
+    expect(d).toContain(`Frame 2: verify approving payment to ${SPONSOR}`);
+    expect(d).toContain(`Frame 3: sender to ${RECIPIENT}`);
+    expect(d).toContain("selector 0xd09de08a");
+    expect(d).toContain(`Paid by the sponsor ${SPONSOR}`);
+    expect(d).toContain("Nonce 7");
+    expect(d).toContain("max fee 2 gwei");
+    expect(d).toContain("priority 1)");
+    expect(d).toContain(w.asked[0].message.sigHash);
+  });
+
+  test("describes a paying account and escapes values", () => {
+    const d = describeAccountFrameTransaction({
+      account: ACCOUNT,
+      frames: [{ ...FRAMES[0]!, approve: "both" }],
+      requests: toFrameRequests([{ ...FRAMES[0]!, approve: "both" }]),
+      nonce: 1,
+      fees: { maxFeePerGas: 1n, maxPriorityFeePerGas: 1n },
+      sigHash: "0x1b[2K" as Hex,
+    });
+    expect(d).toContain(`Paid by the account ${ACCOUNT}`);
+    expect(d).not.toContain("\x1b");
   });
 });
 

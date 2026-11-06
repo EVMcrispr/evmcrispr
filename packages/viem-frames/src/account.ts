@@ -109,6 +109,49 @@ function missingLimit(
 }
 
 /**
+ * What the owner is about to authorize, in plain text: the account, every
+ * frame, who pays, the nonce, the fees, the most it can cost, and the hash
+ * the typed data carries. Everything is escaped.
+ */
+export function describeAccountFrameTransaction({
+  account,
+  frames,
+  requests,
+  nonce,
+  fees,
+  sigHash: hash,
+}: {
+  account: Address;
+  frames: readonly FrameSpecLike[];
+  requests: readonly { limits?: { execution: bigint; state: bigint } }[];
+  nonce: number | bigint;
+  fees: { maxFeePerGas: bigint; maxPriorityFeePerGas: bigint };
+  sigHash: Hex;
+}): string {
+  const gas = requests.reduce(
+    (sum, f) => sum + (f.limits?.execution ?? 0n) + (f.limits?.state ?? 0n),
+    0n,
+  );
+  const lines = frames.map((f, i) => {
+    const limits = requests[i]?.limits;
+    const scope =
+      f.mode === "verify" ? ` approving ${f.approve ?? "execution"}` : "";
+    const data =
+      f.data === "0x"
+        ? "no data"
+        : `selector ${printable(f.data.slice(0, 10))}, ${size(f.data)} bytes of data`;
+    return `Frame ${i + 1}: ${f.mode}${scope} to ${f.target === null ? `the account ${account}` : printable(f.target, 60)}, value ${f.value} wei, ${data}, gas ${limits?.execution ?? "?"} + state gas ${limits?.state ?? "?"}`;
+  });
+  return [
+    `Frame transaction from the account ${account}`,
+    ...lines,
+    `Paid by ${printable(payerOf(frames, account), 200)}`,
+    `Nonce ${nonce}; max fee ${formatGwei(fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(fees.maxPriorityFeePerGas)}); at most ${formatEther(gas * fees.maxFeePerGas)} ETH for ${gas} gas`,
+    `Signature hash ${printable(hash, 70)}`,
+  ].join("\n");
+}
+
+/**
  * Sends a frame transaction from a smart account (a FrameAccount) whose
  * owner authorizes it with an EIP-712 signature, from any wallet: a JSON-RPC
  * account (MetaMask, a wallet RPC) or a local one.
@@ -134,6 +177,7 @@ export async function sendAccountFrameTransaction({
   onLog,
   receiptTimeoutMs = 120_000,
   maxFeePerGasCap = DEFAULT_MAX_FEE_PER_GAS_CAP,
+  signWith,
 }: {
   wallet: WalletClient;
   /** The FrameAccount: `tx.sender`. */
@@ -148,6 +192,8 @@ export async function sendAccountFrameTransaction({
   receiptTimeoutMs?: number;
   /** Refuses, before signing, fees above this (wei per gas; 10 gwei by default): the wallet never sees them. */
   maxFeePerGasCap?: bigint;
+  /** Wraps the one signature request with a description of the transaction (a host that confirms signatures shows it). */
+  signWith?: <T>(description: string, sign: () => Promise<T>) => Promise<T>;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   const chain = altMempoolDevnet;
   const profile = frameProfileOf(chain);
@@ -248,14 +294,28 @@ export async function sendAccountFrameTransaction({
   const hashToSign = sigHash(profile, unsigned);
   const typedData = frameAccountTypedData(account, hashToSign);
 
-  const signature: unknown = await wallet
-    .signTypedData({ account: wallet.account ?? walletAddress, ...typedData })
-    .catch((error: unknown) => {
-      throw new Error(
-        `The wallet did not sign: ${printable(refusalText(error), TEXT_MAX)}`,
-        { cause: error },
-      );
+  const description = describeAccountFrameTransaction({
+    account,
+    frames,
+    requests,
+    nonce,
+    fees,
+    sigHash: hashToSign,
+  });
+  const ask = () =>
+    wallet.signTypedData({
+      account: wallet.account ?? walletAddress,
+      ...typedData,
     });
+  const signature: unknown = await (signWith
+    ? signWith(description, ask)
+    : ask()
+  ).catch((error: unknown) => {
+    throw new Error(
+      `The wallet did not sign: ${printable(refusalText(error), TEXT_MAX)}`,
+      { cause: error },
+    );
+  });
   if (
     typeof signature !== "string" ||
     !isHex(signature) ||

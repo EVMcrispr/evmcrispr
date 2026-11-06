@@ -1,5 +1,6 @@
 export { profile as eip8141TracerProfile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
 export {
+  describeAccountFrameTransaction,
   FRAME_ACCOUNT_DOMAIN_NAME,
   frameAccountTypedData,
   sendAccountFrameTransaction,

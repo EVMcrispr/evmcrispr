@@ -604,10 +604,38 @@ describe("account frame actions", () => {
     await handler(accountAction(owner.address), c.ctx);
     expect(confirmed).toHaveLength(1);
     expect(confirmed[0]).toContain("EVMcrispr Frame Account");
+    // The frames behind the hash are shown, not only the hash.
+    expect(confirmed[0]).toContain(RECIPIENT);
+    expect(confirmed[0]).toContain("Frame 1: verify");
+    expect(confirmed[0]).toContain("Frame 2: sender");
+    expect(confirmed[0]).toContain(`Paid by the account ${ACCOUNT}`);
+    expect(confirmed[0]).toContain("Nonce 3");
     expect(sc.calls.some((x) => x.method === "eth_sendFrameTransaction")).toBe(
       true,
     );
     expect(c.sent).toHaveLength(1);
+  });
+
+  it("an account action whose owner is not the local key is refused", async () => {
+    const owner = privateKeyToAccount(OWNER_KEY);
+    const confirmed: string[] = [];
+    const local = confirmingAccount(owner, async (s) => {
+      confirmed.push(s);
+      return true;
+    });
+    const sc = accountSidecar();
+    const handler = makeFrameHandler({
+      account: local,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    await expect(handler(accountAction(RECIPIENT), ctx().ctx)).rejects.toThrow(
+      /owned by|connected wallet/,
+    );
+    expect(confirmed).toHaveLength(0);
+    expect(sc.calls.some((x) => x.method === "eth_sendFrameTransaction")).toBe(
+      false,
+    );
   });
 
   it("an account action through --wallet-rpc asks the external wallet", async () => {
