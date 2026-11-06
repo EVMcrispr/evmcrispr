@@ -24,6 +24,7 @@ frame:tx <block>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
+| `--account` | `address` | Build time | Frame account the wallet signs for: it becomes the sender, and its checks are called |
 | `--paymaster` | `address` | Build time | Account that pays for the transaction |
 | `--paymaster-data` | `bytes` | Build time | Data of the paymaster's pay frame |
 | `--state-gas` | `number` | Build time | State gas limit of every body frame |
@@ -45,6 +46,8 @@ A frame is one call. The block lists the transaction's frames in order, and `fra
 | `--paymaster <addr> [--paymaster-data <bytes>]` | an execution-only verify on the sender, then a pay frame on `<addr>` |
 
 Frames come out in the order written; the only ones `frame:tx` adds are the shortcuts' at the start. The validation prefix must be one of the shapes the mempool recognizes (`[self_verify]` or `[only_verify, pay]`, each with an optional pre-verify), and the block is checked before anything is signed. `--state-gas` sets the state gas limit of every body frame.
+
+`--account <account>` sends the transaction from a frame account (see `new-account`) that the connected wallet signs for. Inside the block `@sender` is the account and `@me` stays the wallet. The generated verify frame calls the account's `verify(scope)` (scope 3 when the account pays, 2 with a paymaster; 40,000 gas), and the generated pay frame calls the sponsor's `verify()` (50,000 gas) unless `--paymaster-data` is given. A `verify` written in the block is kept as written.
 
 ```evml
 load frame [tx]

@@ -1,5 +1,6 @@
 import type { Action, BlockExpressionNode, FrameAction } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { defineCommand, ErrorException, withSender } from "@evmcrispr/sdk";
+import type { Address } from "viem";
 import type Frame from "..";
 import { gasOption, layoutFrames } from "../layout";
 
@@ -21,6 +22,12 @@ export default defineCommand<Frame>({
     },
   ],
   opts: [
+    {
+      name: "account",
+      type: "address",
+      description:
+        "Frame account the wallet signs for: it becomes the sender, and its checks are called",
+    },
     {
       name: "paymaster",
       type: "address",
@@ -56,21 +63,24 @@ export default defineCommand<Frame>({
         ? undefined
         : gasOption(opts["state-gas"], "--state-gas");
 
+    const account = opts.account as Address | undefined;
+    const run = async () =>
+      ((await interpreters.interpretNode(block as BlockExpressionNode, {
+        batchContext: interpreters.batchContext,
+      })) as Action[] | undefined) ?? [];
+
     module.depth++;
     let actions: Action[];
     try {
       // The enclosing batch context, if any, is passed on as `eez:on` does:
       // the block's actions come back and nothing in it is sent on its own.
-      actions =
-        ((await interpreters.interpretNode(block as BlockExpressionNode, {
-          batchContext: interpreters.batchContext,
-        })) as Action[] | undefined) ?? [];
+      actions = account ? await withSender(module, account, run) : await run();
     } finally {
       module.depth--;
     }
     if (actions.length === 0) return [];
 
-    const sender = await module.getSender();
+    const sender = account ?? (await module.getSender());
     const chainId = await module.getChainId();
     const frames = layoutFrames({
       actions,
@@ -79,6 +89,7 @@ export default defineCommand<Frame>({
       paymaster: opts.paymaster,
       paymasterData: opts["paymaster-data"],
       stateGas,
+      accountChecks: account !== undefined,
     });
     const action: FrameAction = {
       type: "frame",
@@ -87,6 +98,11 @@ export default defineCommand<Frame>({
       frames,
       mempool,
     };
+    if (account)
+      action.account = {
+        kind: "frame-account",
+        owner: await module.getConnectedAccount(),
+      };
     return [action];
   },
 });

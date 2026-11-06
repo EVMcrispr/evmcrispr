@@ -131,6 +131,8 @@ export interface FrameAction {
   from: Address;
   frames: FrameSpec[];
   mempool: "alt" | "canonical";
+  /** Set when `from` is a smart account the `owner` wallet signs for. */
+  account?: { kind: "frame-account"; owner: Address };
 }
 
 /**

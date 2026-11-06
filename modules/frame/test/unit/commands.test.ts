@@ -201,4 +201,25 @@ tx (
         run(`load frame [tx]\ntx --state-gas ${gas} (\n  exec ${A1} "f()"\n)`),
       ).rejects.toThrow(/--state-gas must be a non-negative integer/);
   });
+
+  it("tx --account makes the account the sender and marks the action", async () => {
+    const [action] = await run(
+      `load frame [tx]\ntx --account ${A2} (\n  exec ${A1} "f()"\n  set $s @sender\n)`,
+    );
+    expect(action.from).toBe(A2);
+    expect(action.account).toEqual({
+      kind: "frame-account",
+      owner: TEST_ACCOUNT_ADDRESS,
+    });
+    expect(action.frames[0].data.startsWith("0xb2225351")).toBe(true);
+    expect(action.frames[0].gas).toBe(40_000n);
+  });
+
+  it("@sender is the account inside the block and @me the wallet", async () => {
+    const [action] = await run(
+      `load frame [tx]\ntx --account ${A2} (\n  exec @sender "f()"\n  exec @me "g()"\n)`,
+    );
+    expect(action.frames[1].target).toBeNull();
+    expect(action.frames[2].target).toBe(TEST_ACCOUNT_ADDRESS);
+  });
 });

@@ -7,12 +7,23 @@ import {
   Num,
   type TransactionAction,
 } from "@evmcrispr/sdk";
-import type { Address, Hex } from "viem";
+import { type Address, encodeFunctionData, type Hex } from "viem";
+import { frameAccountAbi } from "./contracts/artifacts";
 import { frameMarkOf } from "./marks";
 
 export const SELF_VERIFY_GAS = 30_000n;
 export const PAYMASTER_VERIFY_GAS = 50_000n;
 export const MAX_FRAMES = 64;
+export const ACCOUNT_CHECK_GAS = 40_000n;
+/** `verify()` of a sponsor. */
+export const SPONSOR_CHECK_DATA = "0xfc735e99" as Hex;
+
+const accountCheck = (scope: 2 | 3): Hex =>
+  encodeFunctionData({
+    abi: frameAccountAbi,
+    functionName: "verify",
+    args: [scope],
+  });
 
 /** An option's value as a gas limit: a whole number, zero or more. */
 export function gasOption(value: unknown, option: string): bigint {
@@ -31,6 +42,8 @@ export interface LayoutInput {
   paymaster?: Address;
   paymasterData?: Hex;
   stateGas?: bigint;
+  /** The sender is a frame account and the paymaster a sponsor: call their checks. */
+  accountChecks?: boolean;
 }
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
@@ -115,15 +128,17 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
         mode: "verify",
         approve: "execution",
         target: null,
-        data: "0x",
+        data: input.accountChecks ? accountCheck(2) : "0x",
         value: 0n,
-        gas: SELF_VERIFY_GAS,
+        gas: input.accountChecks ? ACCOUNT_CHECK_GAS : SELF_VERIFY_GAS,
       },
       {
         mode: "verify",
         approve: "payment",
         target: input.paymaster,
-        data: input.paymasterData ?? "0x",
+        data:
+          input.paymasterData ??
+          (input.accountChecks ? SPONSOR_CHECK_DATA : "0x"),
         value: 0n,
         gas: PAYMASTER_VERIFY_GAS,
       },
@@ -134,9 +149,9 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
         mode: "verify",
         approve: "both",
         target: null,
-        data: "0x",
+        data: input.accountChecks ? accountCheck(3) : "0x",
         value: 0n,
-        gas: SELF_VERIFY_GAS,
+        gas: input.accountChecks ? ACCOUNT_CHECK_GAS : SELF_VERIFY_GAS,
       },
     ];
   }

@@ -219,4 +219,24 @@ describe("layoutFrames", () => {
       lay([{ data: "0x6000", value: 0n } as TransactionAction]),
     ).toThrow(/no recipient/);
   });
+
+  it("account checks call verify(scope)", () => {
+    const own = lay([call(TO)], { accountChecks: true });
+    expect(own[0].data).toBe(`0xb2225351${"3".padStart(64, "0")}`);
+    expect(own[0].gas).toBe(40_000n);
+    const paid = lay([call(TO)], { accountChecks: true, paymaster: P });
+    expect(paid[0].data).toBe(`0xb2225351${"2".padStart(64, "0")}`);
+    expect(paid[0].gas).toBe(40_000n);
+    expect(paid[1].data).toBe("0xfc735e99");
+    expect(paid[1].gas).toBe(50_000n);
+  });
+
+  it("explicit paymaster data still wins", () => {
+    const f = lay([call(TO)], {
+      accountChecks: true,
+      paymaster: P,
+      paymasterData: "0x1234",
+    });
+    expect(f[1].data).toBe("0x1234");
+  });
 });
