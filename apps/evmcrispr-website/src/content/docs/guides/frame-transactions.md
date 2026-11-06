@@ -98,9 +98,13 @@ tx --paymaster 0x0000000000000000000000000000000000000002 --paymaster-data 0x123
 )
 ```
 
+`--mempool alt|canonical` picks where the transaction goes: `alt` (the
+default) is the alternative mempool, the one the devnet exercises; `canonical`
+sends it as an ordinary raw transaction.
+
 The block is checked before anything is signed. The validation prefix must be
-one the mempool recognizes (`[self-verify]` or `[verify execution, pay]`, each
-verify with at most one pre-verify); verifies come before any call;
+one the mempool recognizes (`[self_verify]` or `[only_verify, pay]`, each
+verify with at most one pre_verify); verifies come before any call;
 `--paymaster` excludes an explicit `verify --approve payment`; a block holds at
 most 64 frames; and only plain transaction commands on the current chain and
 sender are allowed inside it (no `switch` to another chain, no wallet requests).
@@ -109,7 +113,13 @@ sender are allowed inside it (no `switch` to another chain, no wallet requests).
 
 Every frame has its own limits.
 
+- **Validation frames** (the prefix) are never sized. A `verify` gets the
+  builders' defaults unless it has `--gas`: 30,000 when its target is the
+  sender, 50,000 otherwise. A `default` frame that is a pre_verify needs its own
+  `--gas`.
 - **Execution gas** of a call frame is the `--gas` of its `exec` or `send`.
+  Under `--size-by-simulation`, a call frame is re-sized, and its `--gas`
+  replaced (the CLI says so), unless `frame:tx` also has `--state-gas`.
 - **State gas** of every call frame is `frame:tx --state-gas <n>`. Unused state
   gas is refunded, so a generous value costs only the reservation.
 
@@ -125,7 +135,7 @@ The local key is an account without code, and the node cannot estimate the
 frames of such a sender without a real signature. A call frame without `--gas`,
 or a `frame:tx` without `--state-gas`, therefore needs the CLI flag
 `--size-by-simulation`. Without it the run stops before signing anything and
-says which frames lack limits.
+names the first frame that lacks limits.
 
 ### What `--size-by-simulation` signs
 

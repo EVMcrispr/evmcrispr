@@ -44,7 +44,12 @@ export default defineCommand<Frame>({
       description:
         "What the frame approves: `execution`, `payment` or `both` (required)",
     },
-    { name: "gas", type: "number", description: "Gas limit of the frame" },
+    {
+      name: "gas",
+      type: "number",
+      description:
+        "Gas limit of the frame (default 30,000 when the target is the sender, 50,000 otherwise)",
+    },
   ],
   async run(module, { target, signature, params }, { opts }) {
     if (module.depth === 0)

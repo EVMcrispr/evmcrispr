@@ -57,6 +57,8 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
     };
     if (mark?.mode === "verify") spec.approve = mark.approve;
     if (action.gas !== undefined) spec.gas = action.gas;
+    else if (spec.mode === "verify")
+      spec.gas = spec.target === null ? SELF_VERIFY_GAS : PAYMASTER_VERIFY_GAS;
     return spec;
   };
 

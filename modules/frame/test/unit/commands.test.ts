@@ -49,6 +49,25 @@ describe("frame > commands", () => {
     expect(action.frames[1].gas).toBe(77000n);
   });
 
+  it("a written verify gets the builders' default gas", async () => {
+    const [own] = await run(`load frame [tx verify]
+tx (
+  verify @me --approve both
+)`);
+    expect(own.frames[0].gas).toBe(30_000n);
+    const [paid] = await run(`load frame [tx verify]
+tx (
+  verify @me --approve execution
+  verify ${A2} "verify()" --approve payment
+)`);
+    expect(paid.frames.map((f) => f.gas)).toEqual([30_000n, 50_000n]);
+    const [set] = await run(`load frame [tx verify]
+tx (
+  verify @me --approve both --gas 77000
+)`);
+    expect(set.frames[0].gas).toBe(77_000n);
+  });
+
   it("tx --state-gas sets the body's state gas", async () => {
     const [action] = await run(
       `load frame [tx]\ntx --state-gas 9000 (\n  exec ${A1} "f()"\n)`,

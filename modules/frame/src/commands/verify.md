@@ -27,7 +27,7 @@ frame:verify <target> [signature] [...params]
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
 | `--approve` | `string` | Build time | What the frame approves: `execution`, `payment` or `both` (required) |
-| `--gas` | `number` | Build time | Gas limit of the frame |
+| `--gas` | `number` | Build time | Gas limit of the frame (default 30,000 when the target is the sender, 50,000 otherwise) |
 
 <!-- HAND-WRITTEN -->
 
