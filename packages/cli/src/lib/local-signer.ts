@@ -38,7 +38,36 @@ type TransactionLike = {
   /** A frame transaction's sender, as its serializer encodes it. */
   from?: Address;
   frames?: readonly FrameLike[];
+  /** A frame transaction's EIP-8250 nonce keys (default `[0n]`). */
+  nonceKeys?: readonly bigint[];
+  /** The signer of a frame transaction's signature entry (`"0x"`: the
+   *  sender, an account without code). */
+  signer?: Hex;
+  accessList?: readonly { address: Address; storageKeys: readonly Hex[] }[];
+  authorizationList?: readonly {
+    chainId: number;
+    address?: Address;
+    contractAddress?: Address;
+    nonce: number;
+  }[];
 };
+
+/** Why a transaction's calldata would be encoded other than as it is
+ *  shown, if it would: the summary reads it as hex, the serializer
+ *  encodes it as bytes, so only whole-byte 0x hex reads as it is signed. */
+export function calldataMismatch(tx: TransactionLike): string | undefined {
+  const notHex = (value: unknown) =>
+    value !== undefined &&
+    !(typeof value === "string" && HEX_BYTES.test(value));
+  if (notHex(tx.data)) return "data is not 0x-prefixed hex of whole bytes";
+  if (notHex(tx.input)) return "input is not 0x-prefixed hex of whole bytes";
+  const frame = tx.frames?.findIndex((f) => notHex(f.data)) ?? -1;
+  if (frame >= 0)
+    return `frame ${frame + 1}'s data is not 0x-prefixed hex of whole bytes`;
+  return undefined;
+}
+
+const HASH = /^0x[0-9a-fA-F]{64}$/;
 
 type TypedFields = Record<string, readonly { name: string; type: string }[]>;
 type TypedDataLike = {
@@ -371,6 +400,8 @@ function describeTransaction(tx: TransactionLike, account?: Address): string[] {
       ...(from ? [`  sender: ${printable(from)}`] : []),
       `  payer:  ${payer ? printable(payer.target ?? from ?? "sender") : "none approved"}`,
       ...(tx.nonce !== undefined ? [`  nonce:  ${printable(tx.nonce)}`] : []),
+      `  nonce keys: ${(tx.nonceKeys ?? [0n]).map((k) => printable(k)).join(", ")}`,
+      `  signer: ${!tx.signer || tx.signer === "0x" ? "the sender (an account without code)" : printable(tx.signer)}`,
       ...feeLines(tx),
       ...(tx.maxFeePerGas !== undefined
         ? [
@@ -391,7 +422,35 @@ function describeTransaction(tx: TransactionLike, account?: Address): string[] {
     ...(tx.nonce !== undefined ? [`  nonce: ${printable(tx.nonce)}`] : []),
     ...(tx.gas !== undefined ? [`  gas:   ${printable(tx.gas)}`] : []),
     ...feeLines(tx),
+    ...listLines(tx),
   ];
+}
+
+/** An ordinary transaction's access list and EIP-7702 authorizations,
+ *  which it signs too. */
+function listLines(tx: TransactionLike): string[] {
+  const lines: string[] = [];
+  const access = tx.accessList ?? [];
+  if (access.length) {
+    lines.push(
+      `  access list: ${access.length} ${access.length === 1 ? "entry" : "entries"}`,
+      ...access.map(
+        (e) =>
+          `    ${printable(e.address)} (${e.storageKeys.length} storage ${e.storageKeys.length === 1 ? "key" : "keys"})`,
+      ),
+    );
+  }
+  const auths = tx.authorizationList ?? [];
+  if (auths.length) {
+    lines.push(
+      `  authorizations: ${auths.length}`,
+      ...auths.map(
+        (a) =>
+          `    delegate to ${printable(a.address ?? a.contractAddress)} on ${a.chainId === 0 ? "every chain" : chainText(a.chainId)}, nonce ${printable(a.nonce)}`,
+      ),
+    );
+  }
+  return lines;
 }
 
 /** What a signature commits to, for the user to confirm. */
@@ -547,6 +606,8 @@ export function confirmingAccount(
     },
     async signTransaction(transaction, options) {
       const shown = snapshot(transaction);
+      const mismatch = calldataMismatch(shown as TransactionLike);
+      if (mismatch) throw new Error(`Not signed: ${mismatch}`);
       await approve({
         type: "transaction",
         transaction: shown as TransactionLike,
@@ -565,8 +626,13 @@ export function confirmingAccount(
   if (account.sign) {
     const sign = account.sign;
     wrapped.sign = async (args) => {
-      await approve({ type: "hash", hash: args.hash });
-      return sign(args);
+      const hash = args.hash;
+      if (typeof hash !== "string" || !HASH.test(hash))
+        throw new Error(
+          "Not signed: the hash is not 32 bytes of 0x-prefixed hex",
+        );
+      await approve({ type: "hash", hash });
+      return sign({ ...args, hash });
     };
   }
   if (account.signAuthorization) {

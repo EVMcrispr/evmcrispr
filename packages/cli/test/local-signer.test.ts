@@ -2,12 +2,14 @@ import { describe, expect, it } from "bun:test";
 import {
   type Hex,
   parseTransaction,
+  recoverAddress,
   recoverMessageAddress,
   recoverTransactionAddress,
   recoverTypedDataAddress,
   type TransactionSerializable,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { recoverAuthorizationAddress } from "viem/utils";
 import {
   confirmingAccount,
   describeSignature,
@@ -241,6 +243,138 @@ describe("confirmingAccount", () => {
     );
     await account.signMessage({ message: "b" });
     expect(calls).toBe(2);
+  });
+
+  it("signs the raw hash and the authorization as shown, not as changed during the prompt", async () => {
+    const asked = `0x${"11".repeat(32)}` as Hex;
+    const args = { hash: asked };
+    const authorization = {
+      chainId: 1,
+      address: "0x1111111111111111111111111111111111111111" as Hex,
+      nonce: 3,
+    };
+    let change = () => {
+      args.hash = `0x${"22".repeat(32)}`;
+    };
+    const summaries: string[] = [];
+    const account = confirmingAccount(base, async (summary) => {
+      summaries.push(summary);
+      change();
+      return true;
+    });
+    const signature = await account.sign!(args);
+    expect(await recoverAddress({ hash: asked, signature })).toBe(base.address);
+    expect(summaries[0]).toContain(asked);
+
+    change = () => {
+      authorization.address = "0x3333333333333333333333333333333333333333";
+      authorization.nonce = 9;
+    };
+    const signed = await account.signAuthorization!(authorization);
+    expect(signed.address).toBe("0x1111111111111111111111111111111111111111");
+    expect(signed.nonce).toBe(3);
+    expect(await recoverAuthorizationAddress({ authorization: signed })).toBe(
+      base.address,
+    );
+  });
+
+  it("refuses a raw hash that is not 32 bytes of hex, before confirm", async () => {
+    let asked = 0;
+    const account = confirmingAccount(base, async () => {
+      asked++;
+      return true;
+    });
+    for (const hash of ["0x1234", `0x${"zz".repeat(32)}`, "11".repeat(32)])
+      await expect(account.sign!({ hash: hash as Hex })).rejects.toThrow(
+        "Not signed: the hash is not 32 bytes of 0x-prefixed hex",
+      );
+    expect(asked).toBe(0);
+  });
+
+  it("refuses calldata that is not hex of whole bytes, before confirm", async () => {
+    let asked = 0;
+    const account = confirmingAccount(base, async () => {
+      asked++;
+      return true;
+    });
+    for (const data of ["0xabc", "0xzz", "a9059cbb"]) {
+      await expect(
+        account.signTransaction({ ...tx, data: data as Hex }),
+      ).rejects.toThrow(
+        "Not signed: data is not 0x-prefixed hex of whole bytes",
+      );
+      await expect(
+        account.signTransaction({ ...tx, data: undefined, input: data } as any),
+      ).rejects.toThrow(
+        "Not signed: input is not 0x-prefixed hex of whole bytes",
+      );
+      const frames = frameTx.frames.map((f, i) =>
+        i === 1 ? { ...f, data } : f,
+      );
+      await expect(
+        account.signTransaction({ ...frameTx, frames } as any),
+      ).rejects.toThrow(
+        "Not signed: frame 2's data is not 0x-prefixed hex of whole bytes",
+      );
+    }
+    expect(asked).toBe(0);
+  });
+
+  it("describeSignature shows a frame transaction's nonce keys and signer", () => {
+    const plain = describeSignature({
+      type: "transaction",
+      transaction: frameTx as any,
+    });
+    expect(plain).toContain("nonce keys: 0");
+    expect(plain).toContain("signer: the sender (an account without code)");
+    const keyed = describeSignature({
+      type: "transaction",
+      transaction: {
+        ...frameTx,
+        nonceKeys: [0n, 7n],
+        signer: "0x4444444444444444444444444444444444444444",
+      } as any,
+    });
+    expect(keyed).toContain("nonce keys: 0, 7");
+    expect(keyed).toContain(
+      "signer: 0x4444444444444444444444444444444444444444",
+    );
+  });
+
+  it("describeSignature shows an ordinary transaction's access and authorization lists", () => {
+    const text = describeSignature({
+      type: "transaction",
+      transaction: {
+        ...tx,
+        accessList: [
+          {
+            address: "0x5555555555555555555555555555555555555555",
+            storageKeys: [`0x${"00".repeat(32)}`, `0x${"01".repeat(32)}`],
+          },
+        ],
+        authorizationList: [
+          {
+            chainId: 1,
+            address: "0x6666666666666666666666666666666666666666",
+            nonce: 4,
+            r: "0x01",
+            s: "0x02",
+            yParity: 0,
+          },
+        ],
+      } as any,
+    });
+    expect(text).toContain("access list: 1 entry");
+    expect(text).toContain(
+      "0x5555555555555555555555555555555555555555 (2 storage keys)",
+    );
+    expect(text).toContain("authorizations: 1");
+    expect(text).toContain(
+      "delegate to 0x6666666666666666666666666666666666666666 on Ethereum, nonce 4",
+    );
+    expect(
+      describeSignature({ type: "transaction", transaction: tx }),
+    ).not.toMatch(/access list|authorizations/);
   });
 
   it("signs the request as it was shown, not as it is changed during the prompt", async () => {
