@@ -3,6 +3,7 @@ import { chainLabel, viemChainById } from "@evmcrispr/sdk";
 import {
   type Address,
   bytesToHex,
+  formatGwei,
   formatUnits,
   getTypesForEIP712Domain,
   type Hex,
@@ -10,7 +11,6 @@ import {
   type LocalAccount,
   type SignableMessage,
   size,
-  slice,
 } from "viem";
 import type { Confirm } from "./confirm";
 
@@ -32,7 +32,11 @@ type TransactionLike = {
   input?: Hex;
   nonce?: number;
   gas?: bigint;
-  sender?: Address;
+  gasPrice?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+  /** A frame transaction's sender, as its serializer encodes it. */
+  from?: Address;
   frames?: readonly FrameLike[];
 };
 
@@ -101,8 +105,11 @@ const DECIMAL = /^-?(?:0|[1-9]\d*)$/;
  *  string), so only canonical values hash as they read. */
 function primitiveProblem(type: string, value: unknown): string | undefined {
   if (value === undefined) return "is missing";
-  if (type === "string")
-    return typeof value === "string" ? undefined : "is not a string";
+  if (type === "string") {
+    if (typeof value !== "string") return "is not a string";
+    // A lone surrogate is hashed as U+FFFD: not what the summary shows.
+    return value.isWellFormed() ? undefined : "is not well-formed Unicode";
+  }
   if (type === "bool")
     return typeof value === "boolean" ? undefined : "is not true or false";
   if (type === "address")
@@ -293,53 +300,97 @@ function nativeAmount(value: bigint, chainId: number | undefined): string {
   );
 }
 
-function callText(data: Hex | undefined): string {
-  if (!data || size(data) === 0) return "none";
+/** Hex bytes per line of shown calldata. */
+const CALL_LINE_BYTES = 32;
+
+/** The whole calldata: the selector and size on the first line, then the
+ *  rest one 32-byte word per line, `indent`ed, so every byte that is
+ *  signed is shown. */
+function callLines(data: Hex | undefined, indent: string): string[] {
+  if (!data || size(data) === 0) return ["none"];
   const bytes = size(data);
-  return bytes >= 4
-    ? `${printable(slice(data, 0, 4))} (${bytes} bytes)`
-    : `${printable(data)} (${bytes} bytes)`;
+  const hex = data.slice(2);
+  const lines = [`0x${printable(hex.slice(0, 8))} (${bytes} bytes)`];
+  for (let i = 8; i < hex.length; i += 2 * CALL_LINE_BYTES)
+    lines.push(`${indent}${printable(hex.slice(i, i + 2 * CALL_LINE_BYTES))}`);
+  return lines;
+}
+
+const gwei = (value: bigint) => `${printable(formatGwei(value))} gwei`;
+
+/** The fee fields a transaction carries, each in gwei. */
+function feeLines(tx: TransactionLike): string[] {
+  return [
+    ...(tx.gasPrice !== undefined
+      ? [`  gas price:    ${gwei(tx.gasPrice)}`]
+      : []),
+    ...(tx.maxFeePerGas !== undefined
+      ? [`  max fee:      ${gwei(tx.maxFeePerGas)}`]
+      : []),
+    ...(tx.maxPriorityFeePerGas !== undefined
+      ? [`  priority fee: ${gwei(tx.maxPriorityFeePerGas)}`]
+      : []),
+  ];
 }
 
 function chainText(chainId: number | undefined): string {
   return chainId ? printable(chainLabel(chainId)) : "an unspecified chain";
 }
 
-function describeFrame(frame: FrameLike, i: number, chainId?: number): string {
+/** A frame's summary, numbered as frame:tx numbers frames (from 1). */
+function describeFrame(
+  frame: FrameLike,
+  i: number,
+  chainId?: number,
+): string[] {
   const mode = MODES[frame.mode] ?? `mode ${printable(frame.mode)}`;
   const parts = [mode, SCOPES[frame.flags & 0x3]];
   if (frame.flags & ATOMIC) parts.push("atomic");
   parts.push(
     `target ${printable(frame.target ?? "sender")}`,
     `value ${nativeAmount(frame.value, chainId)}`,
-    `call ${callText(frame.data)}`,
     `limits execution ${printable(frame.limits.execution)}, state ${printable(frame.limits.state)}`,
   );
-  return `  Frame ${i}: ${parts.join("; ")}`;
+  const [call, ...rest] = callLines(frame.data, "    ");
+  parts.push(`call ${call}`);
+  return [`  Frame ${i + 1}: ${parts.join("; ")}`, ...rest];
 }
 
 function describeTransaction(tx: TransactionLike, account?: Address): string[] {
   if (tx.frames) {
-    const from = tx.sender ?? account;
+    const from = tx.from ?? account;
     const payer = tx.frames.find(
       (f) => f.mode === 1 && f.flags & APPROVE_PAYMENT,
+    );
+    const gas = tx.frames.reduce(
+      (sum, f) => sum + f.limits.execution + f.limits.state,
+      0n,
     );
     return [
       `Sign a frame transaction on ${chainText(tx.chainId)}`,
       ...(from ? [`  sender: ${printable(from)}`] : []),
       `  payer:  ${payer ? printable(payer.target ?? from ?? "sender") : "none approved"}`,
       ...(tx.nonce !== undefined ? [`  nonce:  ${printable(tx.nonce)}`] : []),
-      ...tx.frames.map((f, i) => describeFrame(f, i, tx.chainId)),
+      ...feeLines(tx),
+      ...(tx.maxFeePerGas !== undefined
+        ? [
+            `  max cost:     ${nativeAmount(gas * tx.maxFeePerGas, tx.chainId)} (every frame's limits at the max fee)`,
+          ]
+        : []),
+      ...tx.frames.flatMap((f, i) => describeFrame(f, i, tx.chainId)),
     ];
   }
+  const [call, ...rest] = callLines(tx.data ?? tx.input, "    ");
   return [
     `Sign a transaction on ${chainText(tx.chainId)}`,
     ...(account ? [`  from:  ${printable(account)}`] : []),
     `  to:    ${tx.to ? printable(tx.to) : "a new contract"}`,
     `  value: ${nativeAmount(tx.value ?? 0n, tx.chainId)}`,
-    `  call:  ${callText(tx.data ?? tx.input)}`,
+    `  call:  ${call}`,
+    ...rest,
     ...(tx.nonce !== undefined ? [`  nonce: ${printable(tx.nonce)}`] : []),
     ...(tx.gas !== undefined ? [`  gas:   ${printable(tx.gas)}`] : []),
+    ...feeLines(tx),
   ];
 }
 
@@ -437,23 +488,51 @@ export type ConfirmingAccount = LocalAccount & {
 };
 
 /**
+ * A copy of what is about to be signed, so the bytes signed are the ones
+ * shown even if the caller changes its object while the prompt is open.
+ * Data is copied deeply; functions (viem puts the account and the chain,
+ * with their methods, on a prepared request) are kept as they are: they
+ * are code, not signed data, and `structuredClone` refuses them.
+ */
+export function snapshot<T>(value: T): T {
+  if (typeof value !== "object" || value === null) return value;
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer)
+    return structuredClone(value);
+  if (Array.isArray(value)) return value.map(snapshot) as T;
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null)
+    return structuredClone(value);
+  return Object.fromEntries(
+    Object.entries(value).map(([k, v]) => [k, snapshot(v)]),
+  ) as T;
+}
+
+/** Prompts run one at a time, across every confirming account: a second
+ *  signature asked for meanwhile waits for the first answer. */
+let prompts: Promise<unknown> = Promise.resolve();
+
+/**
  * `account`, signing nothing until `confirm` has seen what is signed and
- * agreed. A refusal throws "Not signed".
+ * agreed. A refusal throws "Not signed". What is shown and signed is a
+ * snapshot of the request taken when it is asked for.
  */
 export function confirmingAccount(
   account: LocalAccount,
   confirm: Confirm,
 ): ConfirmingAccount {
   const labels = new AsyncLocalStorage<string>();
-  const approve = async (request: SignatureRequest) => {
-    const ok = await confirm(
-      describeSignature({
-        ...request,
-        account: account.address,
-        label: labels.getStore(),
-      }),
-    );
-    if (ok !== true) throw new Error("Not signed");
+  const approve = (request: SignatureRequest): Promise<void> => {
+    const summary = describeSignature({
+      ...request,
+      account: account.address,
+      label: labels.getStore(),
+    });
+    const turn = prompts.then(async () => {
+      const ok = await confirm(summary);
+      if (ok !== true) throw new Error("Not signed");
+    });
+    prompts = turn.catch(() => undefined);
+    return turn;
   };
   const wrapped: ConfirmingAccount = {
     address: account.address,
@@ -462,21 +541,24 @@ export function confirmingAccount(
     type: "local",
     nonceManager: account.nonceManager,
     async signMessage(args) {
-      await approve({ type: "message", message: args.message });
-      return account.signMessage(args);
+      const message = snapshot(args.message);
+      await approve({ type: "message", message });
+      return account.signMessage({ ...args, message });
     },
     async signTransaction(transaction, options) {
+      const shown = snapshot(transaction);
       await approve({
         type: "transaction",
-        transaction: transaction as TransactionLike,
+        transaction: shown as TransactionLike,
       });
-      return account.signTransaction(transaction, options as any);
+      return account.signTransaction(shown, options as any);
     },
     async signTypedData(typedData) {
-      const mismatch = typedDataMismatch(typedData as TypedDataLike);
+      const shown = snapshot(typedData);
+      const mismatch = typedDataMismatch(shown as TypedDataLike);
       if (mismatch) throw new Error(`Not signed: ${mismatch}`);
-      await approve({ type: "typedData", typedData: typedData as any });
-      return account.signTypedData(typedData);
+      await approve({ type: "typedData", typedData: shown as any });
+      return account.signTypedData(shown);
     },
     labelled: (label, fn) => labels.run(label, fn),
   };
@@ -490,11 +572,12 @@ export function confirmingAccount(
   if (account.signAuthorization) {
     const signAuthorization = account.signAuthorization;
     wrapped.signAuthorization = async (authorization) => {
+      const shown = snapshot(authorization);
       await approve({
         type: "authorization",
-        authorization: authorization as any,
+        authorization: shown as any,
       });
-      return signAuthorization(authorization);
+      return signAuthorization(shown);
     };
   }
   return wrapped;

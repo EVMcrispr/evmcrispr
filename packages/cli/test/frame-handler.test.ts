@@ -260,6 +260,24 @@ describe("the frame handler", () => {
     expect(sc.calls).toHaveLength(0);
   });
 
+  it("refuses an action from another account than the local key, before signing", async () => {
+    const s = signer();
+    const sc = sidecar(s.lastSigned);
+    const handler = makeFrameHandler({
+      account: s.account,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    const other = "0x9999999999999999999999999999999999999999";
+    await expect(
+      handler({ ...action([VERIFY, CALL]), from: other }, ctx().ctx),
+    ).rejects.toThrow(
+      `This frame transaction is from ${other}, but the local key is ${privateKeyToAccount(KEY).address}`,
+    );
+    expect(s.confirmed).toHaveLength(0);
+    expect(sc.calls).toHaveLength(0);
+  });
+
   it("refuses missing limits without --size-by-simulation, before signing", async () => {
     for (const [body, message] of [
       [

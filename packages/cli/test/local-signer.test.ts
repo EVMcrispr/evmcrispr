@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
+  type Hex,
+  parseTransaction,
+  recoverMessageAddress,
   recoverTransactionAddress,
   recoverTypedDataAddress,
   type TransactionSerializable,
@@ -31,8 +34,10 @@ const tx: TransactionSerializable = {
 const frameTx = {
   chainId: 1337,
   type: "frame",
-  sender: base.address,
+  from: base.address,
   nonce: 0,
+  maxFeePerGas: 2_000_000_000n,
+  maxPriorityFeePerGas: 1_000_000_000n,
   frames: [
     {
       mode: 1,
@@ -143,6 +148,147 @@ describe("confirmingAccount", () => {
     expect(text).not.toContain("1500000000000000000");
   });
 
+  it("describeSignature shows the whole calldata, wrapped", () => {
+    const text = describeSignature({ type: "transaction", transaction: tx });
+    const lines = text.split("\n");
+    expect(Math.max(...lines.map((l) => l.length))).toBeLessThanOrEqual(80);
+    const data = tx.data as string;
+    expect(text).toContain(`call:  ${data.slice(0, 10)} (68 bytes)`);
+    // The arguments follow, one 32-byte word per line.
+    const words = lines.slice(lines.findIndex((l) => l.includes("call:")) + 1);
+    expect(words.slice(0, 2).map((l) => l.trim())).toEqual([
+      data.slice(10, 74),
+      data.slice(74),
+    ]);
+  });
+
+  it("describeSignature shows an ordinary transaction's fees in gwei", () => {
+    const text = describeSignature({
+      type: "transaction",
+      transaction: {
+        ...tx,
+        maxFeePerGas: 30_000_000_000n,
+        maxPriorityFeePerGas: 1_500_000_000n,
+      },
+    });
+    expect(text).toContain("max fee:      30 gwei");
+    expect(text).toContain("priority fee: 1.5 gwei");
+  });
+
+  it("describeSignature shows a frame transaction's fees and maximum cost", () => {
+    const text = describeSignature({
+      type: "transaction",
+      transaction: frameTx as any,
+    });
+    expect(text).toContain("max fee:      2 gwei");
+    expect(text).toContain("priority fee: 1 gwei");
+    // (50,000 + 0 + 100,000 + 20,000 + 30,000 + 0) gas × 2 gwei.
+    expect(text).toContain("max cost:     0.0004 ETH");
+  });
+
+  it("describeSignature shows the frame transaction's from, not another field", () => {
+    const other = "0x9999999999999999999999999999999999999999";
+    const text = describeSignature({
+      type: "transaction",
+      transaction: { ...frameTx, from: other } as any,
+      account: base.address,
+    });
+    expect(text).toContain(`sender: ${other}`);
+    const fallback = describeSignature({
+      type: "transaction",
+      transaction: { ...frameTx, from: undefined, sender: other } as any,
+      account: base.address,
+    });
+    expect(fallback).toContain(`sender: ${base.address}`);
+    expect(fallback).not.toContain(other);
+  });
+
+  it("asks one confirmation at a time", async () => {
+    const events: string[] = [];
+    const answers: ((ok: boolean) => void)[] = [];
+    const account = confirmingAccount(
+      base,
+      (summary) =>
+        new Promise<boolean>((resolve) => {
+          events.push(`start ${summary.includes("first") ? 1 : 2}`);
+          answers.push((ok) => {
+            events.push(`end ${answers.length}`);
+            resolve(ok);
+          });
+        }),
+    );
+    const first = account.signMessage({ message: "first" });
+    const second = account.signMessage({ message: "second" });
+    await new Promise((r) => setTimeout(r, 10));
+    expect(events).toEqual(["start 1"]);
+    answers[0]!(true);
+    await first;
+    await new Promise((r) => setTimeout(r, 10));
+    expect(events).toEqual(["start 1", "end 1", "start 2"]);
+    answers[1]!(true);
+    await second;
+  });
+
+  it("a refused or failed confirmation does not block the next one", async () => {
+    let calls = 0;
+    const account = confirmingAccount(base, async () => {
+      calls++;
+      if (calls === 1) throw new Error("no terminal");
+      return true;
+    });
+    await expect(account.signMessage({ message: "a" })).rejects.toThrow(
+      "no terminal",
+    );
+    await account.signMessage({ message: "b" });
+    expect(calls).toBe(2);
+  });
+
+  it("signs the request as it was shown, not as it is changed during the prompt", async () => {
+    const shown = { ...tx } as TransactionSerializable & { to: Hex };
+    const raw = new Uint8Array([1, 2, 3]);
+    const typed = {
+      domain: { name: "Notes" },
+      types: { Note: [{ name: "text", type: "string" }] },
+      primaryType: "Note" as const,
+      message: { text: "as shown" },
+    };
+    let change = () => {
+      shown.to = "0x3333333333333333333333333333333333333333";
+      shown.value = 9n;
+    };
+    const account = confirmingAccount(base, async () => {
+      change();
+      return true;
+    });
+    const signed = await account.signTransaction(shown);
+    const parsed = parseTransaction(signed as any);
+    expect(parsed.to).toBe("0x1111111111111111111111111111111111111111");
+    expect(parsed.value).toBe(1_500_000_000_000_000_000n);
+
+    change = () => {
+      raw[0] = 9;
+    };
+    const signature = await account.signMessage({ message: { raw } });
+    expect(
+      await recoverMessageAddress({
+        message: { raw: new Uint8Array([1, 2, 3]) },
+        signature,
+      }),
+    ).toBe(base.address);
+
+    change = () => {
+      typed.message.text = "changed";
+    };
+    const typedSignature = await account.signTypedData(typed);
+    expect(
+      await recoverTypedDataAddress({
+        ...typed,
+        message: { text: "as shown" },
+        signature: typedSignature,
+      }),
+    ).toBe(base.address);
+  });
+
   it("describeSignature renders every frame", () => {
     const text = describeSignature({
       type: "transaction",
@@ -154,20 +300,20 @@ describe("confirmingAccount", () => {
     const lines = text.split("\n");
     const frame = (i: number) =>
       lines.find((l) => l.includes(`Frame ${i}:`)) ?? "";
-    expect(frame(0)).toContain("VERIFY");
-    expect(frame(0)).toContain("approves payment and execution");
-    expect(frame(0)).toContain("sender");
-    expect(frame(0)).toContain("0x12345678");
-    expect(frame(0)).toContain("50000");
-    expect(frame(1)).toContain("SENDER");
-    expect(frame(1)).toContain("atomic");
-    expect(frame(1)).toContain("0x1111111111111111111111111111111111111111");
-    expect(frame(1)).toContain("2 ETH");
-    expect(frame(1)).toContain("0xa9059cbb");
-    expect(frame(1)).toContain("100000");
-    expect(frame(1)).toContain("20000");
-    expect(frame(2)).toContain("DEFAULT");
-    expect(frame(2)).toContain("0x3333333333333333333333333333333333333333");
+    expect(frame(1)).toContain("VERIFY");
+    expect(frame(1)).toContain("approves payment and execution");
+    expect(frame(1)).toContain("sender");
+    expect(frame(1)).toContain("0x12345678");
+    expect(frame(1)).toContain("50000");
+    expect(frame(2)).toContain("SENDER");
+    expect(frame(2)).toContain("atomic");
+    expect(frame(2)).toContain("0x1111111111111111111111111111111111111111");
+    expect(frame(2)).toContain("2 ETH");
+    expect(frame(2)).toContain("0xa9059cbb");
+    expect(frame(2)).toContain("100000");
+    expect(frame(2)).toContain("20000");
+    expect(frame(3)).toContain("DEFAULT");
+    expect(frame(3)).toContain("0x3333333333333333333333333333333333333333");
     expect(text).not.toContain(KEY.slice(2));
   });
 
@@ -438,6 +584,14 @@ describe("confirmingAccount", () => {
             message: { people: [{ name: "Ann" }, { name: 7 }] },
           },
           "message.people[1].name (string) is not a string",
+        ],
+        [
+          "a string with a lone surrogate",
+          {
+            types: { Note: [{ name: "text", type: "string" }] },
+            message: { text: "a\uD800b" },
+          },
+          "message.text (string) is not well-formed Unicode",
         ],
         [
           "a domain field against its declared type",
