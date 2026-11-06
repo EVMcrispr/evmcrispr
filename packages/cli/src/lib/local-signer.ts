@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { chainLabel, viemChainById } from "@evmcrispr/sdk";
+import { printable } from "@evmcrispr/viem-frames";
 import {
   type Address,
   bytesToHex,
@@ -290,26 +291,8 @@ const SCOPES = [
 ];
 const APPROVE_PAYMENT = 1;
 
-/**
- * Text from a request, safe to write to a terminal: C0 and C1 controls
- * (ESC, CR, LF among them), DEL and bidirectional overrides become
- * visible escapes, so a field cannot redraw or hide the summary.
- */
-export function printable(value: unknown): string {
-  return String(value).replace(
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are the point
-    /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g,
-    (c) => {
-      if (c === "\n") return "\\n";
-      if (c === "\r") return "\\r";
-      if (c === "\t") return "\\t";
-      const code = c.charCodeAt(0);
-      return code <= 0xff
-        ? `\\x${code.toString(16).padStart(2, "0")}`
-        : `\\u${code.toString(16).padStart(4, "0")}`;
-    },
-  );
-}
+// One escaping for every host: viem-frames' (C0, C1, DEL, bidi controls).
+export { printable };
 
 /** JSON with bigints as decimal strings, escaped for the terminal. */
 function printableJson(value: unknown): string {

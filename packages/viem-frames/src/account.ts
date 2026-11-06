@@ -4,6 +4,8 @@ import {
   type Address,
   BaseError,
   createPublicClient,
+  formatEther,
+  formatGwei,
   type Hash,
   type Hex,
   http,
@@ -24,6 +26,7 @@ import {
   prefixLength,
   toFrameRequests,
 } from "./frame-specs";
+import { printable } from "./printable";
 import { arbitrarySignatureEntry } from "./serializer";
 import type { Frame, FrameTransactionReceipt, FrameTx } from "./types";
 
@@ -57,28 +60,11 @@ export function frameAccountTypedData(
   };
 }
 
-/**
- * Text from a wallet, a gateway or a node, safe to write to a terminal or a
- * log: C0 and C1 controls (ESC, CR, LF among them), DEL and bidirectional
- * controls become visible escapes. Cut to `max` characters.
- */
-function printable(value: unknown, max = 300): string {
-  const text = String(value);
-  const shown = text.slice(0, max).replace(
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are the point
-    /[\u0000-\u001f\u007f-\u009f؜‎‏‪-‮⁦-⁩]/g,
-    (c) => {
-      if (c === "\n") return "\\n";
-      if (c === "\r") return "\\r";
-      if (c === "\t") return "\\t";
-      const code = c.charCodeAt(0);
-      return code <= 0xff
-        ? `\\x${code.toString(16).padStart(2, "0")}`
-        : `\\u${code.toString(16).padStart(4, "0")}`;
-    },
-  );
-  return text.length > max ? `${shown}…` : shown;
-}
+/** Node text in an error: escaped and cut. */
+const TEXT_MAX = 300;
+
+/** The default ceiling on either fee: 10 gwei. */
+const DEFAULT_MAX_FEE_PER_GAS_CAP = 10_000_000_000n;
 
 /** What a node said when it refused a request, without viem's decoration. */
 function refusalText(error: unknown): string {
@@ -147,6 +133,7 @@ export async function sendAccountFrameTransaction({
   transport,
   onLog,
   receiptTimeoutMs = 120_000,
+  maxFeePerGasCap = DEFAULT_MAX_FEE_PER_GAS_CAP,
 }: {
   wallet: WalletClient;
   /** The FrameAccount: `tx.sender`. */
@@ -159,6 +146,8 @@ export async function sendAccountFrameTransaction({
   transport?: Transport;
   onLog?: (line: string) => void;
   receiptTimeoutMs?: number;
+  /** Refuses, before signing, fees above this (wei per gas; 10 gwei by default): the wallet never sees them. */
+  maxFeePerGasCap?: bigint;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   const chain = altMempoolDevnet;
   const profile = frameProfileOf(chain);
@@ -175,7 +164,15 @@ export async function sendAccountFrameTransaction({
     throw new Error("Every frame needs its limits: give --gas and --state-gas");
 
   const walletAddress =
-    wallet.account?.address ?? (await wallet.getAddresses())[0];
+    wallet.account?.address ??
+    (
+      await wallet.getAddresses().catch((error: unknown) => {
+        throw new Error(
+          `The wallet gave no account: ${printable(refusalText(error), TEXT_MAX)}`,
+          { cause: error },
+        );
+      })
+    )[0];
   if (
     typeof walletAddress !== "string" ||
     !isAddress(walletAddress, { strict: false })
@@ -187,11 +184,18 @@ export async function sendAccountFrameTransaction({
     );
   if (!isAddressEqual(walletAddress, owner))
     throw new Error(
-      `The connected wallet is ${printable(walletAddress)}, but the account ${account} is owned by ${owner}: connect ${owner} to sign`,
+      `The connected wallet is ${printable(walletAddress, 60)}, but the account ${account} is owned by ${owner}: connect ${owner} to sign`,
     );
 
   const gateway = createPublicClient({ chain, transport: transport ?? http() });
-  const code = await getCode(gateway, { address: account });
+  // Every gateway answer below is the node's text in viem's errors: escaped.
+  const code = await getCode(gateway, { address: account }).catch(
+    (error: unknown) => {
+      throw new Error(
+        `The gateway could not read ${account}'s code: ${printable(refusalText(error), TEXT_MAX)}`,
+      );
+    },
+  );
   if (!code || code === "0x")
     throw new Error(
       `${account} has no code on the ${chain.name}: it is not a frame account (deploy one with frame:new-account)`,
@@ -200,13 +204,35 @@ export async function sendAccountFrameTransaction({
   const nonce = await getTransactionCount(gateway, {
     address: account,
     blockTag: "pending",
+  }).catch((error: unknown) => {
+    throw new Error(
+      `The gateway could not read ${account}'s nonce: ${printable(refusalText(error), TEXT_MAX)}`,
+    );
   });
   // A malformed answer would otherwise reach the error through BigInt's message.
   const fees = await sidecarGasPrice(gateway).catch((error: unknown) => {
     throw new Error(
-      `The gateway gave no usable fees (skandha_getGasPrice): ${printable(refusalText(error))}`,
+      `The gateway gave no usable fees (skandha_getGasPrice): ${printable(refusalText(error), TEXT_MAX)}`,
     );
   });
+
+  // The wallet signs a hash: it never sees the fees, so they are capped and
+  // shown here, with the most the transaction can cost its payer.
+  for (const [name, fee] of [
+    ["maxFeePerGas", fees.maxFeePerGas],
+    ["maxPriorityFeePerGas", fees.maxPriorityFeePerGas],
+  ] as const)
+    if (fee > maxFeePerGasCap)
+      throw new Error(
+        `The gateway asks a ${name} of ${formatGwei(fee)} gwei, above the cap of ${formatGwei(maxFeePerGasCap)} gwei: nothing was signed`,
+      );
+  const gasLimit = requests.reduce(
+    (sum, f) => sum + f.limits!.execution + f.limits!.state,
+    0n,
+  );
+  onLog?.(
+    `Fees: max ${formatGwei(fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(fees.maxPriorityFeePerGas)}); at most ${formatEther(gasLimit * fees.maxFeePerGas)} ETH for ${gasLimit} gas, paid by ${payerOf(frames, account)}`,
+  );
 
   const unsigned: FrameTx = newTx({
     chainId: chain.id,
@@ -222,10 +248,14 @@ export async function sendAccountFrameTransaction({
   const hashToSign = sigHash(profile, unsigned);
   const typedData = frameAccountTypedData(account, hashToSign);
 
-  const signature: unknown = await wallet.signTypedData({
-    account: wallet.account ?? walletAddress,
-    ...typedData,
-  });
+  const signature: unknown = await wallet
+    .signTypedData({ account: wallet.account ?? walletAddress, ...typedData })
+    .catch((error: unknown) => {
+      throw new Error(
+        `The wallet did not sign: ${printable(refusalText(error), TEXT_MAX)}`,
+        { cause: error },
+      );
+    });
   if (
     typeof signature !== "string" ||
     !isHex(signature) ||
@@ -266,7 +296,7 @@ export async function sendAccountFrameTransaction({
           } as never);
   } catch (error) {
     throw new Error(
-      `The ${mempool} mempool refused the frame transaction from ${account}, paid by ${payerOf(frames, account)}: ${printable(refusalText(error))}`,
+      `The ${mempool} mempool refused the frame transaction from ${account}, paid by ${payerOf(frames, account)}: ${printable(refusalText(error), TEXT_MAX)}`,
     );
   }
   // Only the hash of the bytes signed is shown and waited on.
@@ -305,7 +335,9 @@ export async function sendAccountFrameTransaction({
       throw new Error(
         `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the account would reuse its nonce. ${EXPLORER}`,
       );
-    throw error;
+    throw new Error(
+      `Waiting for ${expected}'s receipt failed: ${printable(refusalText(error), TEXT_MAX)}`,
+    );
   }
   onLog?.(
     `:success:Frame transaction ${expected} mined in block ${printable(receipt.blockNumber)}, paid by ${receipt.payer === undefined ? "an unknown payer" : printable(receipt.payer)}`,

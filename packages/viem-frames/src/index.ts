@@ -35,6 +35,7 @@ export {
   pay,
   selfVerify,
 } from "./frames";
+export { printable } from "./printable";
 export {
   arbitrarySignatureEntry,
   frameSerializer,

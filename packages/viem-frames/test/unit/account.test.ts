@@ -90,10 +90,12 @@ function gateway({
   code = "0x6000",
   send,
   mined = true,
+  fees = { maxFeePerGas: "0x77359400", maxPriorityFeePerGas: "0x3b9aca00" },
 }: {
-  code?: Hex;
+  code?: Hex | (() => never);
   send?: (wire: any) => unknown;
   mined?: boolean;
+  fees?: { maxFeePerGas: Hex; maxPriorityFeePerGas: Hex };
 } = {}) {
   const calls: { method: string; params: any }[] = [];
   let sentHash: Hex | undefined;
@@ -108,12 +110,9 @@ function gateway({
         case "eth_getTransactionCount":
           return "0x7";
         case "eth_getCode":
-          return code;
+          return typeof code === "function" ? code() : code;
         case "skandha_getGasPrice":
-          return {
-            maxFeePerGas: "0x77359400",
-            maxPriorityFeePerGas: "0x3b9aca00",
-          };
+          return fees;
         case "eth_sendFrameTransaction": {
           if (send) return send(params[0]);
           sentHash = txHash(profile, fromWire(params[0]));
@@ -336,7 +335,7 @@ describe("sendAccountFrameTransaction", () => {
     await expect(send(w.client, g)).rejects.toThrow(owner.address);
     await expect(send(w.client, g)).rejects.toThrow(stranger.address);
     expect(w.asked).toHaveLength(0);
-    expect(g.methods()).not.toContain("eth_sendFrameTransaction");
+    expect(g.methods()).toEqual([]);
   });
 
   test("refuses a signature that does not recover to the owner", async () => {
@@ -369,6 +368,59 @@ describe("sendAccountFrameTransaction", () => {
     expect(w.asked).toHaveLength(0);
   });
 
+  test("escapes the gateway's error when it cannot read the account's code", async () => {
+    const g = gateway({
+      code: () => {
+        throw Object.assign(new Error("boom\u001b[2J\u202e"), {
+          code: -32000,
+        });
+      },
+    });
+    const w = wallet();
+    const error = (await send(w.client, g).catch((e) => e)) as Error;
+    expect(error.message).toContain("boom");
+    expect(error.message).toContain("\\x1b[2J\\u202e");
+    expect(error.message).not.toContain("\u001b");
+    expect(error.message).not.toContain("\u202e");
+    expect(w.asked).toHaveLength(0);
+  });
+
+  test("shows the fees and the most the transaction can cost before signing", async () => {
+    const g = gateway();
+    const w = wallet();
+    const logs: string[] = [];
+    let askedAfterFees = false;
+    const sign = w.client.signTypedData;
+    w.client.signTypedData = (async (args: any) => {
+      askedAfterFees = logs.some((l) => l.startsWith("Fees:"));
+      return sign(args);
+    }) as typeof sign;
+    await send(w.client, g, { onLog: (l) => logs.push(l) });
+    // 40k + 50k + 50k execution + 200k state = 340k gas at 2 gwei.
+    expect(logs).toContain(
+      `Fees: max 2 gwei per gas (priority 1); at most 0.00068 ETH for 340000 gas, paid by the sponsor ${SPONSOR}`,
+    );
+    expect(askedAfterFees).toBe(true);
+  });
+
+  test("refuses fees above the cap, without asking the wallet", async () => {
+    const w = wallet();
+    const high = gateway({
+      fees: { maxFeePerGas: "0x2540be401", maxPriorityFeePerGas: "0x1" },
+    });
+    await expect(send(w.client, high)).rejects.toThrow(
+      /maxFeePerGas of 10.000000001 gwei, above the cap of 10 gwei/,
+    );
+    const highTip = gateway({
+      fees: { maxFeePerGas: "0x1", maxPriorityFeePerGas: "0x3b9aca01" },
+    });
+    await expect(
+      send(w.client, highTip, { maxFeePerGasCap: 1_000_000_000n }),
+    ).rejects.toThrow(/maxPriorityFeePerGas .* above the cap of 1 gwei/);
+    expect(w.asked).toHaveLength(0);
+    expect(high.methods()).not.toContain("eth_sendFrameTransaction");
+  });
+
   test("refuses frames without limits", async () => {
     const g = gateway();
     const w = wallet();
@@ -398,7 +450,7 @@ describe("sendAccountFrameTransaction", () => {
     const g = gateway({
       send: () => {
         throw Object.assign(
-          new Error("payer has insufficient balance\u001b[2J‮"),
+          new Error("payer has insufficient balance\u001b[2J\u202e"),
           { code: -32000 },
         );
       },
@@ -410,7 +462,7 @@ describe("sendAccountFrameTransaction", () => {
     expect(error.message).toContain(SPONSOR);
     expect(error.message).toContain("\\x1b[2J");
     expect(error.message).not.toContain("\u001b");
-    expect(error.message).not.toContain("‮");
+    expect(error.message).not.toContain("\u202e");
   });
 
   test("refuses a returned hash other than its own, and escapes it", async () => {
