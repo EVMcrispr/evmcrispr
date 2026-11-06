@@ -278,6 +278,51 @@ describe("confirmingAccount", () => {
     );
   });
 
+  it("refuses an authorization it cannot show as viem signs it, before confirm", async () => {
+    let asked = 0;
+    const account = confirmingAccount(base, async () => {
+      asked++;
+      return true;
+    });
+    const ok = {
+      address: "0x1111111111111111111111111111111111111111",
+      chainId: 1,
+      nonce: 3,
+    } as const;
+    for (const [authorization, reason] of [
+      [
+        {
+          ...ok,
+          contractAddress: "0x2222222222222222222222222222222222222222",
+        },
+        "address and contractAddress differ",
+      ],
+      [{ ...ok, chainId: -1 }, "chainId is not a non-negative integer"],
+      [{ ...ok, nonce: 1.5 }, "nonce is not a non-negative integer"],
+      [{ ...ok, address: "0x1234" }, "no valid delegate address"],
+    ] as const)
+      await expect(
+        account.signAuthorization!(authorization as never),
+      ).rejects.toThrow(reason);
+    expect(asked).toBe(0);
+  });
+
+  it("shows the delegate viem signs: contractAddress before address", async () => {
+    const summaries: string[] = [];
+    const account = confirmingAccount(base, async (summary) => {
+      summaries.push(summary);
+      return true;
+    });
+    await account.signAuthorization!({
+      contractAddress: "0x1111111111111111111111111111111111111111",
+      chainId: 1,
+      nonce: 3,
+    } as never);
+    expect(summaries[0]).toContain(
+      "0x1111111111111111111111111111111111111111",
+    );
+  });
+
   it("refuses a raw hash that is not 32 bytes of hex, before confirm", async () => {
     let asked = 0;
     const account = confirmingAccount(base, async () => {

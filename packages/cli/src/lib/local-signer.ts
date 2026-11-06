@@ -446,7 +446,7 @@ function listLines(tx: TransactionLike): string[] {
       `  authorizations: ${auths.length}`,
       ...auths.map(
         (a) =>
-          `    delegate to ${printable(a.address ?? a.contractAddress)} on ${a.chainId === 0 ? "every chain" : chainText(a.chainId)}, nonce ${printable(a.nonce)}`,
+          `    delegate to ${printable(a.contractAddress ?? a.address)} on ${a.chainId === 0 ? "every chain" : chainText(a.chainId)}, nonce ${printable(a.nonce)}`,
       ),
     );
   }
@@ -532,7 +532,7 @@ export function describeSignature(request: SignatureRequest): string {
         ...(request.account
           ? [`  account:     ${printable(request.account)}`]
           : []),
-        `  delegate to: ${printable(a.address ?? a.contractAddress)}`,
+        `  delegate to: ${printable(a.contractAddress ?? a.address)}`,
         `  nonce:       ${printable(a.nonce)}`,
       );
       break;
@@ -553,6 +553,36 @@ export type ConfirmingAccount = LocalAccount & {
  * with their methods, on a prepared request) are kept as they are: they
  * are code, not signed data, and `structuredClone` refuses them.
  */
+/**
+ * Why an EIP-7702 authorization cannot be shown as viem signs it, or
+ * undefined. viem signs `contractAddress ?? address`, so the two must not
+ * disagree; chain id and nonce must be plain non-negative integers.
+ */
+export function authorizationMismatch(a: {
+  address?: unknown;
+  contractAddress?: unknown;
+  chainId?: unknown;
+  nonce?: unknown;
+}): string | undefined {
+  const target = a.contractAddress ?? a.address;
+  if (typeof target !== "string" || !isAddress(target, { strict: false }))
+    return "the authorization has no valid delegate address";
+  if (
+    a.contractAddress !== undefined &&
+    a.address !== undefined &&
+    String(a.contractAddress).toLowerCase() !== String(a.address).toLowerCase()
+  )
+    return "the authorization's address and contractAddress differ";
+  for (const [name, value] of [
+    ["chainId", a.chainId],
+    ["nonce", a.nonce],
+  ] as const) {
+    if (!(Number.isSafeInteger(value) && (value as number) >= 0))
+      return `the authorization's ${name} is not a non-negative integer`;
+  }
+  return undefined;
+}
+
 export function snapshot<T>(value: T): T {
   if (typeof value !== "object" || value === null) return value;
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer)
@@ -639,6 +669,8 @@ export function confirmingAccount(
     const signAuthorization = account.signAuthorization;
     wrapped.signAuthorization = async (authorization) => {
       const shown = snapshot(authorization);
+      const problem = authorizationMismatch(shown);
+      if (problem) throw new Error(`Not signed: ${printable(problem)}`);
       await approve({
         type: "authorization",
         authorization: shown as any,

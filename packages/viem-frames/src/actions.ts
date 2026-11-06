@@ -136,19 +136,27 @@ export function altMempoolActions() {
         mempool?: "alt" | "canonical";
       }): Promise<Hash> {
         const serializedTransaction = await signFrameTransaction(parameters);
-        if (mempool === "canonical")
-          return sendRawTransaction(client, { serializedTransaction });
         const tx = parseFrameTransaction(serializedTransaction, profile());
-        const hash = (await client.request({
-          method: "eth_sendFrameTransaction",
-          params: [toWire(tx)],
-        } as never)) as Hash;
+        const hash: unknown =
+          mempool === "canonical"
+            ? await sendRawTransaction(client, { serializedTransaction })
+            : await client.request({
+                method: "eth_sendFrameTransaction",
+                params: [toWire(tx)],
+              } as never);
+        // Whatever the node answers is shown to the user and waited on:
+        // accept only the hash of the bytes that were signed. The answer is
+        // quoted with JSON.stringify so no control character reaches a
+        // terminal.
         const expected = txHash(profile(), tx);
-        if (hash.toLowerCase() !== expected.toLowerCase())
+        if (
+          typeof hash !== "string" ||
+          hash.toLowerCase() !== expected.toLowerCase()
+        )
           throw new Error(
-            `The sidecar returned ${hash} for a transaction whose hash is ${expected}`,
+            `The ${mempool === "canonical" ? "node" : "sidecar"} returned ${JSON.stringify(hash)} for a transaction whose hash is ${expected}`,
           );
-        return hash;
+        return expected;
       },
 
       estimateFrameTransactionGas: async (

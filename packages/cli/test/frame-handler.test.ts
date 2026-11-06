@@ -35,7 +35,11 @@ function signer() {
 /** A sidecar stand-in, as in viem-frames' client tests. */
 function sidecar(
   lastSigned: () => Hex | undefined,
-  { mined = true }: { mined?: boolean } = {},
+  {
+    mined = true,
+    status,
+    hash,
+  }: { mined?: boolean; status?: string; hash?: () => unknown } = {},
 ) {
   const calls: { method: string; params: any }[] = [];
   let sent: Hash | undefined;
@@ -58,9 +62,12 @@ function sidecar(
           };
         case "eth_sendFrameTransaction":
           sent = keccak256(lastSigned()!);
-          return sent;
+          return hash ? hash() : sent;
         case "skandha_frameTransactionStatus":
-          return { tx: sent, status: mined ? "OnChain" : "Pending" };
+          return {
+            tx: sent,
+            status: status ?? (mined ? "OnChain" : "Pending"),
+          };
         case "eth_getTransactionReceipt":
           return mined ? receipt(sent!, params[0]) : null;
         case "eth_getTransactionByHash":
@@ -243,6 +250,42 @@ describe("the frame handler", () => {
     expect(c.logs.join("\n")).toContain("OnChain");
     expect(c.logs.join("\n")).toContain("Alt-mempool devnet");
     expect(c.logs.join("\n")).toContain("Frame 2: success");
+  });
+
+  it("escapes what the gateway answers before logging it", async () => {
+    const s = signer();
+    const sc = sidecar(s.lastSigned, { status: "\x1b[2K\rOnChain" });
+    const c = ctx();
+    const handler = makeFrameHandler({
+      account: s.account,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    await handler(action([VERIFY, CALL]), c.ctx);
+    const logged = c.logs.join("\n");
+    expect(logged).not.toContain("\x1b");
+    expect(logged).not.toContain("\r");
+    expect(logged).toContain("OnChain");
+  });
+
+  it("refuses a hash from the gateway that is not the signed transaction's", async () => {
+    const s = signer();
+    const sc = sidecar(s.lastSigned, {
+      hash: () => `0x${"ab".repeat(32)}\x1b[2K`,
+    });
+    const c = ctx();
+    const handler = makeFrameHandler({
+      account: s.account,
+      sizeBySimulation: false,
+      transport: sc.transport,
+    });
+    const failure = await handler(action([VERIFY, CALL]), c.ctx).then(
+      () => undefined,
+      (error: Error) => error,
+    );
+    expect(failure?.message).toContain("whose hash is");
+    expect(failure?.message).not.toContain("\x1b");
+    expect(c.sent).toEqual([]);
   });
 
   it("refuses a chain other than the alt-mempool devnet", async () => {

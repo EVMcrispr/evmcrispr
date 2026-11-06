@@ -17,7 +17,7 @@ import {
   type Transport,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
-import type { ConfirmingAccount } from "./local-signer";
+import { type ConfirmingAccount, printable } from "./local-signer";
 
 const EXPLORER = "https://explorer.altmempool.wtf";
 const NETWORK = altMempoolDevnet.name;
@@ -181,9 +181,13 @@ export function makeFrameHandler({
       mempool: action.mempool,
     });
     ctx.onSent?.(hash);
+    // Everything below comes from the gateway or the node: escape it before
+    // it reaches the terminal, where it would sit above the next prompt.
     const status = async () =>
-      (await client.getFrameTransactionStatus(hash).catch(() => undefined))
-        ?.status ?? "unknown";
+      printable(
+        (await client.getFrameTransactionStatus(hash).catch(() => undefined))
+          ?.status ?? "unknown",
+      );
     ctx.onLog(
       `:success:Frame transaction ${hash} admitted to the ${action.mempool} mempool of the ${networkName(action.chainId)} (status ${await status()})`,
     );
@@ -206,11 +210,11 @@ export function makeFrameHandler({
       frameReceipts?: { status: string }[];
     };
     ctx.onLog(
-      `:success:Frame transaction ${hash} mined in block ${receipt.blockNumber}, paid by ${payer ?? "an unknown payer"}`,
+      `:success:Frame transaction ${hash} mined in block ${printable(receipt.blockNumber)}, paid by ${payer === undefined ? "an unknown payer" : printable(payer)}`,
     );
     frameReceipts?.forEach((frame, i) => {
       ctx.onLog(
-        `${frame.status === "success" ? ":success:" : ":warning:"}Frame ${i + 1}: ${frame.status}`,
+        `${frame.status === "success" ? ":success:" : ":warning:"}Frame ${i + 1}: ${printable(frame.status)}`,
       );
     });
     return receipt;
