@@ -146,6 +146,15 @@ describe("frame > new-account / new-sponsor", () => {
         }),
       ).rejects.toThrow("(status queued): wait[31m for it");
     });
+
+    it("strips the bidi marks U+061C, U+200E and U+200F too", async () => {
+      await expect(
+        run(script, {
+          status: "queued\u200e",
+          reason: "wa\u061cit\u200f for it",
+        }),
+      ).rejects.toThrow("(status queued): wait for it");
+    });
   });
 
   it("new-sponsor without --for is refused", async () => {

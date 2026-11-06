@@ -27,6 +27,19 @@ describe("frame > contracts", () => {
     expect(sponsor.abi).toEqual(frameSponsorAbi as never);
   });
 
+  it("FrameAccount refuses high-s signatures and a v other than 27 or 28", () => {
+    // secp256k1's n / 2: the largest s of a canonical signature, pushed
+    // whole by the compiled check.
+    const halfN =
+      "7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a0";
+    expect(frameAccountBytecode.toLowerCase()).toContain(halfN);
+    const code = source("FrameAccount");
+    expect(code).toMatch(
+      /uint256\(s\) <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0/,
+    );
+    expect(code).toMatch(/v == 27 \|\| v == 28/);
+  });
+
   it("the ABIs expose the spec's functions", () => {
     const selectors = (abi: readonly { type: string }[]) =>
       abi

@@ -8,9 +8,11 @@ export const FRAME_CHAIN_ID = 1337;
 export const DEPLOY_GAS = 6_000_000n;
 
 const HASH = /^0x[0-9a-fA-F]{64}$/;
-// Control, bidi and other invisible characters a host could slip into text.
-// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
-const UNSAFE = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g;
+// Control and bidi characters a host could slip into text (the set
+// viem-frames' printable escapes; the module does not depend on it).
+const UNSAFE =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
+  /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 const printable = (v: unknown) => String(v).replace(UNSAFE, "").slice(0, 200);
 
 interface Receipt {

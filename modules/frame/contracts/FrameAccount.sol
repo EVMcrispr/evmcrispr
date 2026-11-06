@@ -38,6 +38,9 @@ contract FrameAccount is HegotaSupport(Devnet.ERC8421_WORKSHOP) {
             s := mload(add(sig, 64))
             v := byte(0, mload(add(sig, 96)))
         }
+        // Only the canonical form of a signature: low s, and v 27 or 28.
+        require(uint256(s) <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0, "bad signature");
+        require(v == 27 || v == 28, "bad signature");
         bytes32 digest =
             keccak256(abi.encodePacked("\x19\x01", domainSeparator, keccak256(abi.encode(TYPEHASH, sigHash))));
         address signer = ecrecover(digest, v, r, s);
