@@ -53,12 +53,17 @@ function run(
 const KEY =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 const KEY_ACCOUNT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
-const keyOutputs: string[] = [];
+/** Runs the CLI and checks, for this run alone, that neither stream
+ *  carries the key. */
 function keyRun(...params: Parameters<typeof run>) {
   return run(...params).then((result) => {
-    keyOutputs.push(result.stdout, result.stderr);
+    expectNoKey(result);
     return result;
   });
+}
+function expectNoKey(result: { stdout: string; stderr: string }) {
+  for (const output of [result.stdout, result.stderr])
+    expect(output.toLowerCase()).not.toContain(KEY.slice(2));
 }
 
 /** A JSON-RPC node answering what viem asks before it signs, recording
@@ -409,12 +414,98 @@ describe("CLI", () => {
         node.stop();
       }
     }, 30_000);
-    it("never prints the key", () => {
-      expect(keyOutputs.length).toBeGreaterThanOrEqual(12);
-      for (const output of keyOutputs) {
-        expect(output.toLowerCase()).not.toContain(KEY.slice(2));
+    it("never prints the key", async () => {
+      // Each run above checks its own output; this one makes the key sign,
+      // refuse and fail in one script and checks every stream.
+      const node = stubNode(1);
+      try {
+        for (const [flags, script] of [
+          [["--yes"], 'sign $s "hi"\nprint $s\nexec @me "f()"'],
+          [[], 'sign $s "hi"'],
+          [["--yes"], "sign $s 1 2"],
+        ] as const) {
+          const result = await run(["run", "-", ...flags], {
+            input: script,
+            env: {
+              EVMCRISPR_PRIVATE_KEY: KEY,
+              EVMCRISPR_DEFAULT_CHAIN_ID: "1",
+              EVMCRISPR_RPC_URL: node.url,
+            },
+            timeout: 20_000,
+          });
+          expect(result.stdout + result.stderr).not.toBe("");
+          expectNoKey(result);
+        }
+      } finally {
+        node.stop();
       }
-    });
+    }, 60_000);
+    it("refuses to switch the local key to another chain", async () => {
+      const node = stubNode(1);
+      try {
+        const result = await keyRun(["run", "-", "--yes"], {
+          input: 'switch gnosis\nsign $s "hi"\nprint $s',
+          env: {
+            EVMCRISPR_PRIVATE_KEY: KEY,
+            EVMCRISPR_DEFAULT_CHAIN_ID: "1",
+            EVMCRISPR_RPC_URL: node.url,
+          },
+          timeout: 20_000,
+        });
+        expect(result.exitCode).toBe(1);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain(
+          "The local key signs on one chain per run (Ethereum): set EVMCRISPR_DEFAULT_CHAIN_ID",
+        );
+      } finally {
+        node.stop();
+      }
+    }, 30_000);
+    it("signs a message with --yes and refuses it without", async () => {
+      const node = stubNode(1);
+      const env = {
+        EVMCRISPR_PRIVATE_KEY: KEY,
+        EVMCRISPR_DEFAULT_CHAIN_ID: "1",
+        EVMCRISPR_RPC_URL: node.url,
+      };
+      try {
+        const signed = await keyRun(["run", "-", "--yes"], {
+          input: 'sign $s "hi"\nprint $s',
+          env,
+          timeout: 20_000,
+        });
+        expect(signed.exitCode).toBe(0);
+        expect(signed.stderr).toContain("Sign a message");
+        expect(signed.stderr).toContain('"hi"');
+        const { recoverMessageAddress } = await import("viem");
+        expect(
+          await recoverMessageAddress({
+            message: "hi",
+            signature: signed.stdout.trim() as `0x${string}`,
+          }),
+        ).toBe(KEY_ACCOUNT);
+
+        const refused = await keyRun(["run", "-"], {
+          input: 'sign $s "hi"\nprint $s',
+          env,
+          timeout: 20_000,
+        });
+        expect(refused.exitCode).toBe(1);
+        expect(refused.stdout).toBe("");
+        expect(refused.stderr).toContain(
+          "Refusing to sign without confirmation: run in a terminal or pass --yes",
+        );
+        expect(
+          node.methods.filter((m) =>
+            /^(eth_sign|personal_|wallet_|eth_sendTransaction|eth_accounts)/.test(
+              m,
+            ),
+          ),
+        ).toEqual([]);
+      } finally {
+        node.stop();
+      }
+    }, 60_000);
   });
 
   describe("validate", () => {

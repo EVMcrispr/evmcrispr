@@ -14,6 +14,7 @@ import { getDefaultChainId, getRpcUrl } from "../lib/config";
 import { makeConfirm } from "../lib/confirm";
 import { followNotice } from "../lib/follow-notice";
 import { confirmingAccount } from "../lib/local-signer";
+import { localWallet } from "../lib/local-wallet";
 import { registerAllModules } from "../lib/modules";
 import { readScriptSource, readStdin } from "../lib/read-source";
 
@@ -39,8 +40,14 @@ const VALUED = ["--wallet-rpc", "--account"];
 const FLAGS = ["--yes", "--size-by-simulation"];
 const KEY_ENV = "EVMCRISPR_PRIVATE_KEY";
 
-/** The local key, taken out of the environment so nothing the run starts
- *  can read it. Its value never appears in an error. */
+/**
+ * The local key, removed from `process.env` before any module loads, so
+ * no code of the run (modules, EVML) reads it from there, and it is never
+ * passed into the EVML environment. Its value never appears in an error.
+ * Not covered: under Bun, a `Bun.spawn` or `Worker` started without an
+ * explicit `env` still inherits the process's original environment, key
+ * included; and a process of the same user can read /proc/<pid>/environ.
+ */
 function takePrivateKey(): Hex | undefined {
   const raw = process.env[KEY_ENV];
   delete process.env[KEY_ENV];
@@ -124,10 +131,10 @@ export async function runScript(args: string[]) {
       }),
     );
     account = signer.address;
-    wallet = createWalletClient({
-      account: signer,
-      transport: http(getRpcUrl(chainId)),
-    });
+    // Wallet requests from EVML (`sign`, permits, Safe signatures) go
+    // through the signer too, never to the node, which may hold the same
+    // key unlocked.
+    wallet = localWallet(signer, chainId, getRpcUrl(chainId));
   } else if (account) {
     wallet = createWalletClient({
       account,

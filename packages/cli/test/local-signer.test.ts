@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { recoverTransactionAddress, type TransactionSerializable } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { confirmingAccount, describeSignature } from "../src/lib/local-signer";
+import {
+  confirmingAccount,
+  describeSignature,
+  printable,
+} from "../src/lib/local-signer";
 
 // Anvil's account #1.
 const KEY =
@@ -161,5 +165,71 @@ describe("confirmingAccount", () => {
     expect(frame(2)).toContain("DEFAULT");
     expect(frame(2)).toContain("0x3333333333333333333333333333333333333333");
     expect(text).not.toContain(KEY.slice(2));
+  });
+
+  it("describeSignature shows the whole typed-data domain and message", () => {
+    const text = describeSignature({
+      type: "typedData",
+      typedData: {
+        domain: {
+          name: "Permit2",
+          version: "1",
+          chainId: 1,
+          verifyingContract: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+          salt: `0x${"ab".repeat(32)}`,
+        },
+        primaryType: "PermitSingle",
+        message: {
+          spender: "0x1111111111111111111111111111111111111111",
+          amount: 5n,
+        },
+      },
+    });
+    expect(text).toContain("PermitSingle");
+    expect(text).toContain('"Permit2"');
+    expect(text).toContain('"1"');
+    expect(text).toContain("Ethereum");
+    expect(text).toContain("0x000000000022D473030F116dDEE9F6B43aC78BA3");
+    expect(text).toContain("ab".repeat(32));
+    expect(text).toContain(
+      '{"spender":"0x1111111111111111111111111111111111111111","amount":"5"}',
+    );
+  });
+
+  it("describeSignature shows raw byte messages as hex", () => {
+    const text = describeSignature({
+      type: "message",
+      message: { raw: new Uint8Array([0xde, 0xad, 0xbe, 0xef]) },
+    });
+    expect(text).toContain("0xdeadbeef");
+  });
+
+  it("escapes control characters in every field", () => {
+    const attack = "\x1b[2K\rSafe\nline\u009b\u202e";
+    for (const text of [
+      describeSignature({ type: "message", message: attack }),
+      describeSignature({ type: "message", message: "x", label: attack }),
+      describeSignature({
+        type: "typedData",
+        typedData: {
+          domain: { name: attack, version: attack },
+          primaryType: attack,
+          message: { note: attack },
+        },
+      }),
+      describeSignature({
+        type: "transaction",
+        transaction: { chainId: 1, to: attack as any, value: 0n, data: "0x" },
+      }),
+    ]) {
+      expect(text).not.toMatch(
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are the point
+        /[\u0000-\u0009\u000b-\u001f\u007f-\u009f\u202e]/,
+      );
+      // The only raw line breaks are the summary's own.
+      for (const line of text.split("\n")) expect(line).not.toContain("\r");
+      expect(text).toMatch(/\\x1b\[2K\\rSafe|\\u001b\[2K\\rSafe/);
+    }
+    expect(printable("\x1b[2K\rSafe")).toBe("\\x1b[2K\\rSafe");
   });
 });
