@@ -27,7 +27,9 @@
     "@evmcrispr/sdk": "workspace:^"
   },
   "devDependencies": {
-    "@evmcrispr/test-utils": "workspace:*"
+    "@evmcrispr/test-utils": "workspace:*",
+    "@forshtat/hegota-support": "0.0.1",
+    "solc": "0.8.28"
   },
   "peerDependencies": {
     "viem": "^2.56.8"
@@ -44,6 +46,7 @@
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
     "codegen": "evmcrispr-build --codegen",
-    "types": "evmcrispr-build --types"
+    "types": "evmcrispr-build --types",
+    "build:contracts": "bun scripts/build-contracts.ts"
   }
 }
