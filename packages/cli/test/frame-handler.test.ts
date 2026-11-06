@@ -271,7 +271,7 @@ describe("the frame handler", () => {
   it("refuses a hash from the gateway that is not the signed transaction's", async () => {
     const s = signer();
     const sc = sidecar(s.lastSigned, {
-      hash: () => `0x${"ab".repeat(32)}\x1b[2K`,
+      hash: () => `0x${"ab".repeat(32)}\x1b[2K\u009b2K\u202e`,
     });
     const c = ctx();
     const handler = makeFrameHandler({
@@ -285,6 +285,8 @@ describe("the frame handler", () => {
     );
     expect(failure?.message).toContain("whose hash is");
     expect(failure?.message).not.toContain("\x1b");
+    expect(failure?.message).not.toContain("\u009b");
+    expect(failure?.message).not.toContain("\u202e");
     expect(c.sent).toEqual([]);
   });
 

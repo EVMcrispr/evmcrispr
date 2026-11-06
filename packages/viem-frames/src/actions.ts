@@ -61,6 +61,16 @@ export interface FrameSimulation {
   [key: string]: unknown;
 }
 
+/**
+ * A node's answer, for an error message: only hex digits and `x` survive,
+ * so no control, C1 or bidi character from the node reaches a terminal.
+ */
+function shownAnswer(answer: unknown): string {
+  const text = typeof answer === "string" ? answer : String(answer);
+  const kept = text.replace(/[^0-9a-fA-Fx]/g, "?").slice(0, 80);
+  return `"${kept}"${text.length > 80 ? "…" : ""}`;
+}
+
 type FramesClient = Client<Transport, Chain | undefined, Account | undefined>;
 
 function localAccount(client: FramesClient, account: Account | undefined) {
@@ -145,16 +155,14 @@ export function altMempoolActions() {
                 params: [toWire(tx)],
               } as never);
         // Whatever the node answers is shown to the user and waited on:
-        // accept only the hash of the bytes that were signed. The answer is
-        // quoted with JSON.stringify so no control character reaches a
-        // terminal.
+        // accept only the hash of the bytes that were signed.
         const expected = txHash(profile(), tx);
         if (
           typeof hash !== "string" ||
           hash.toLowerCase() !== expected.toLowerCase()
         )
           throw new Error(
-            `The ${mempool === "canonical" ? "node" : "sidecar"} returned ${JSON.stringify(hash)} for a transaction whose hash is ${expected}`,
+            `The ${mempool === "canonical" ? "node" : "sidecar"} returned ${shownAnswer(hash)} for a transaction whose hash is ${expected}`,
           );
         return expected;
       },

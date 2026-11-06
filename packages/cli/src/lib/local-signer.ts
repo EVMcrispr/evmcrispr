@@ -446,7 +446,7 @@ function listLines(tx: TransactionLike): string[] {
       `  authorizations: ${auths.length}`,
       ...auths.map(
         (a) =>
-          `    delegate to ${printable(a.contractAddress ?? a.address)} on ${a.chainId === 0 ? "every chain" : chainText(a.chainId)}, nonce ${printable(a.nonce)}`,
+          `    delegate to ${printable(a.address)} on ${a.chainId === 0 ? "every chain" : chainText(a.chainId)}, nonce ${printable(a.nonce)}`,
       ),
     );
   }
@@ -583,6 +583,23 @@ export function authorizationMismatch(a: {
   return undefined;
 }
 
+/**
+ * Why a transaction's authorization list cannot be shown as viem
+ * serializes it, or undefined. viem encodes each entry's `address` (and
+ * hashes a standalone authorization with `contractAddress ?? address`), so
+ * an entry must carry `address`, and a `contractAddress` must agree with it.
+ */
+export function authorizationListMismatch(
+  tx: TransactionLike,
+): string | undefined {
+  for (const [i, a] of (tx.authorizationList ?? []).entries()) {
+    if (a.address === undefined) return `authorization ${i + 1} has no address`;
+    const problem = authorizationMismatch(a);
+    if (problem) return `authorization ${i + 1}: ${problem}`;
+  }
+  return undefined;
+}
+
 export function snapshot<T>(value: T): T {
   if (typeof value !== "object" || value === null) return value;
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer)
@@ -636,8 +653,10 @@ export function confirmingAccount(
     },
     async signTransaction(transaction, options) {
       const shown = snapshot(transaction);
-      const mismatch = calldataMismatch(shown as TransactionLike);
-      if (mismatch) throw new Error(`Not signed: ${mismatch}`);
+      const mismatch =
+        calldataMismatch(shown as TransactionLike) ??
+        authorizationListMismatch(shown as TransactionLike);
+      if (mismatch) throw new Error(`Not signed: ${printable(mismatch)}`);
       await approve({
         type: "transaction",
         transaction: shown as TransactionLike,

@@ -307,6 +307,54 @@ describe("confirmingAccount", () => {
     expect(asked).toBe(0);
   });
 
+  it("refuses a transaction whose authorization list it cannot show as encoded, before confirm", async () => {
+    let asked = 0;
+    const account = confirmingAccount(base, async () => {
+      asked++;
+      return true;
+    });
+    const tx = {
+      type: "eip7702",
+      chainId: 1,
+      nonce: 0,
+      to: "0x1111111111111111111111111111111111111111",
+      gas: 50_000n,
+      maxFeePerGas: 2n,
+      maxPriorityFeePerGas: 1n,
+    } as const;
+    const entry = {
+      address: "0x2222222222222222222222222222222222222222",
+      chainId: 1,
+      nonce: 0,
+      r: `0x${"11".repeat(32)}`,
+      s: `0x${"22".repeat(32)}`,
+      yParity: 0,
+    } as const;
+    for (const [list, reason] of [
+      [
+        [
+          {
+            ...entry,
+            contractAddress: "0x3333333333333333333333333333333333333333",
+          },
+        ],
+        "authorization 1: the authorization's address and contractAddress differ",
+      ],
+      [
+        [{ ...entry, address: undefined, contractAddress: entry.address }],
+        "authorization 1 has no address",
+      ],
+      [
+        [entry, { ...entry, nonce: -1 }],
+        "authorization 2: the authorization's nonce",
+      ],
+    ] as const)
+      await expect(
+        account.signTransaction({ ...tx, authorizationList: list } as never),
+      ).rejects.toThrow(reason);
+    expect(asked).toBe(0);
+  });
+
   it("shows the delegate viem signs: contractAddress before address", async () => {
     const summaries: string[] = [];
     const account = confirmingAccount(base, async (summary) => {
