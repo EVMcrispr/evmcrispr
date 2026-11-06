@@ -189,6 +189,12 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
   }
   const prefixLength = i;
 
+  for (let j = 0; j < prefixLength; j++) {
+    if (isGrouped(j))
+      throw new ErrorException(
+        `Frame ${j + 1} is in the validation prefix and in an atomic group: approvals cannot be batched, so write the verify frames outside any batch.`,
+      );
+  }
   stray(prefixLength);
 
   return frames.map((f, j) => {

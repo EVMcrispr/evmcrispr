@@ -116,6 +116,28 @@ describe("layoutFrames", () => {
     expect(() => lay([batch])).toThrow(/atomic group/);
   });
 
+  it("refuses an atomic group that holds the validation prefix", () => {
+    const batch: BatchedAction = {
+      type: "batched",
+      chainId: 1337,
+      from: ME,
+      actions: [verify(ME, "both"), call(TO), call(TO)],
+    };
+    expect(() => lay([batch])).toThrow(/validation prefix/);
+  });
+
+  it("refuses an atomic group that straddles the prefix", () => {
+    const batch: BatchedAction = {
+      type: "batched",
+      chainId: 1337,
+      from: ME,
+      actions: [call(P, { mode: "default" }), verify(P, "payment"), call(TO)],
+    };
+    expect(() => lay([verify(ME, "execution"), batch])).toThrow(
+      /validation prefix/,
+    );
+  });
+
   it("refuses a verify after a sender frame", () => {
     expect(() => lay([call(TO), verify(ME, "both")])).toThrow(/after/);
   });
