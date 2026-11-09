@@ -27,7 +27,7 @@
     "@ai-sdk/openai-compatible": "^3.0.54",
     "@evmcrispr/sdk": "workspace:^",
     "ai": "^7.0.112",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   },
   "peerDependencies": {
     "@evmcrispr/core": "workspace:^",
