@@ -9,6 +9,7 @@ import { newTx, sigHash, txHash } from "@forshtat/hegota-support/tx";
 import {
   createWalletClient,
   custom,
+  defineChain,
   type Hex,
   isAddressEqual,
   keccak256,
@@ -94,7 +95,9 @@ function gateway({
   send,
   mined = true,
   fees = { maxFeePerGas: "0x77359400", maxPriorityFeePerGas: "0x3b9aca00" },
+  chainId = "0x539",
 }: {
+  chainId?: Hex;
   code?: Hex | (() => never);
   send?: (wire: any) => unknown;
   mined?: boolean;
@@ -107,7 +110,7 @@ function gateway({
       calls.push({ method, params });
       switch (method) {
         case "eth_chainId":
-          return "0x539";
+          return chainId;
         case "eth_blockNumber":
           return "0x10";
         case "eth_getTransactionCount":
@@ -241,7 +244,7 @@ const send = (
 describe("frameAccountTypedData", () => {
   test("names the account, the devnet and the signature hash", () => {
     const hash = `0x${"ab".repeat(32)}` as Hex;
-    expect(frameAccountTypedData(ACCOUNT, hash)).toEqual({
+    expect(frameAccountTypedData(ACCOUNT, hash, 1337)).toEqual({
       domain: {
         name: "EVMcrispr Frame Account",
         version: "1",
@@ -253,6 +256,13 @@ describe("frameAccountTypedData", () => {
       message: { sigHash: hash },
     });
     expect(FRAME_ACCOUNT_DOMAIN_NAME).toBe("EVMcrispr Frame Account");
+  });
+
+  test("names the chain it is given", () => {
+    const hash = `0x${"ab".repeat(32)}` as Hex;
+    expect(frameAccountTypedData(ACCOUNT, hash, 81410).domain?.chainId).toBe(
+      81410,
+    );
   });
 });
 
@@ -352,6 +362,21 @@ describe("signWith", () => {
 });
 
 describe("sendAccountFrameTransaction", () => {
+  test("asks the typed data for the chain it sends on", async () => {
+    const g = gateway({ chainId: "0x13e02" });
+    const w = wallet();
+    await send(w.client, g, {
+      chain: defineChain({
+        id: 81410,
+        name: "Local frame devnet",
+        nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+        rpcUrls: { default: { http: ["http://127.0.0.1:8556"] } },
+        custom: { frameSidecar: true },
+      }),
+    });
+    expect(w.asked[0].domain.chainId).toBe(81410);
+  });
+
   test("asks the wallet for the frame account typed data and sends it in an ARBITRARY entry", async () => {
     const g = gateway();
     const w = wallet();
@@ -396,10 +421,12 @@ describe("sendAccountFrameTransaction", () => {
     expect(
       isAddressEqual(askedAccount.address ?? askedAccount, owner.address),
     ).toBe(true);
-    expect(typedData).toEqual(frameAccountTypedData(ACCOUNT, expectedSigHash));
+    expect(typedData).toEqual(
+      frameAccountTypedData(ACCOUNT, expectedSigHash, 1337),
+    );
     expect(
       await recoverTypedDataAddress({
-        ...frameAccountTypedData(ACCOUNT, expectedSigHash),
+        ...frameAccountTypedData(ACCOUNT, expectedSigHash, 1337),
         signature: entry!.signature,
       }),
     ).toBe(owner.address);

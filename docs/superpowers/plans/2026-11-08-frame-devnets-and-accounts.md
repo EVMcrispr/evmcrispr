@@ -1,5 +1,7 @@
 # Frame devnets and frame accounts Implementation Plan
 
+> **Changed during execution (owner, 2026-11-08):** the devnets are the frames module's chains `framesQuick` (81411, `http://127.0.0.1:8570`) and `framesMining` (81412, `http://127.0.0.1:32003`), declared in `modules/frames/src/chains.ts`; no `EVMCRISPR_FRAME_DEVNET_PORT`, no state file, no `rpc-url`. Read chain ids 9 / 3151908 below as 81411 / 81412, and `FRAME_CHAIN_IDS` as `[1337, 81411, 81412]`. See the ledger's rulings.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** One script that starts a local frame devnet (quick or mining) with anvil's accounts funded, and a second-generation frame account (one implementation, a CREATE2 factory, clones, an ERC-7579 surface, ERC-7739 signatures) proven end to end on the mining devnet.

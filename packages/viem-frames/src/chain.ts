@@ -372,10 +372,13 @@ export function withFrames<const chain extends Chain>(
   {
     profile = tracer,
     simulationUrl,
+    sidecar = false,
   }: {
     profile?: Profile;
     /** An ethrex node serving `ethrex_simulateFrameTransaction`, to size the frames of senders without code. */
     simulationUrl?: string;
+    /** The chain's RPC is an ERC-8421 sidecar (`skandha_*` methods: fees, status), not a plain node. */
+    sidecar?: boolean;
   } = {},
 ): chain {
   // The prepare hook is typed `never` to get past viem's request type, which
@@ -386,6 +389,7 @@ export function withFrames<const chain extends Chain>(
       ...chain.custom,
       frameProfile: profile,
       frameSimulationUrl: simulationUrl,
+      frameSidecar: sidecar,
     },
     formatters: { ...chain.formatters, transactionReceipt },
     serializers: {
@@ -410,6 +414,11 @@ export function frameSimulationUrlOf(
   return chain?.custom?.frameSimulationUrl as string | undefined;
 }
 
+/** Whether a chain's RPC is an ERC-8421 sidecar, as `withFrames` was told. */
+export function frameSidecarOf(chain: Chain | undefined): boolean {
+  return chain?.custom?.frameSidecar === true;
+}
+
 /** The profile a chain was given by `withFrames`. */
 export function frameProfileOf(chain: Chain | undefined): Profile {
   return (chain?.custom?.frameProfile as Profile | undefined) ?? tracer;
@@ -430,5 +439,5 @@ export const altMempoolDevnet = withFrames(
     },
     testnet: true,
   }),
-  { profile: tracer, simulationUrl: ALT_MEMPOOL_NODE },
+  { profile: tracer, simulationUrl: ALT_MEMPOOL_NODE, sidecar: true },
 );

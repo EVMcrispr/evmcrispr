@@ -30,6 +30,7 @@
   "devDependencies": {
     "@evmcrispr/test-utils": "workspace:*",
     "@forshtat/hegota-support": "0.0.1",
+    "@openzeppelin/contracts": "5.6.1",
     "solc": "0.8.28"
   },
   "peerDependencies": {
@@ -48,6 +49,7 @@
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
     "codegen": "evmcrispr-build --codegen",
     "types": "evmcrispr-build --types",
-    "build:contracts": "bun scripts/build-contracts.ts"
+    "build:contracts": "bun scripts/build-contracts.ts",
+    "test:devnet": "EVMCRISPR_FRAME_DEVNET=1 bun test ./test/devnet"
   }
 }

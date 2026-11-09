@@ -12,6 +12,7 @@ export {
   estimateFrameGas,
   type FrameGasEstimate,
   frameProfileOf,
+  frameSidecarOf,
   frameSimulationUrlOf,
   sidecarGasPrice,
   simulate,

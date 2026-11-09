@@ -154,11 +154,17 @@ transaction's sender, and a *sponsor* contract can pay for it. This is how the
 terminal sends one, with MetaMask. It is experimental and runs on
 [next.evmcrispr.com](https://next.evmcrispr.com) and the dev terminal.
 
-Two commands deploy the contracts, each with an ordinary transaction of its own
-signed by the wallet, and bind the new address to a variable:
+Two commands make the contracts, each with ordinary transactions of its own
+signed by the wallet, and bind the address to a variable:
 
-- `frames:new-account <variable> --owner <address>` deploys an account that
-  accepts the signatures of its owner (default `@me`).
+- `frames:new-account <variable> --owner <address> --salt <n>` creates the
+  owner's account (default `@me`, salt 0) through the frame account factory.
+  Its address follows from the owner and the salt alone, the same on every
+  frame chain, and [`@frames:account(owner salt)`](/reference/frames/helpers/account/)
+  gives it before the account exists, so it can be funded first. On a chain
+  where the account exists, nothing is sent; on one without the factory, the
+  factory is deployed first. Accounts made before the factory are devnet
+  leftovers: create a new one.
 - `frames:new-sponsor <variable> --for <account> --fund <wei>` deploys a sponsor
   that pays for the transactions of that account only, and sends `--fund` wei
   with it to pay with. Its owner (default `@me`) may withdraw.
@@ -234,7 +240,11 @@ chain 1337 when experimental features are on.
 - One typed-data signature by the account's owner. Not covered: P256 or arbitrary
   signatures, paymaster signatures, keyed nonces other than key 0, recent roots,
   `deploy` frames and `--expires`.
-- Chain 1337, the alt-mempool devnet, only. Any other chain is refused by name.
+- Frame transactions are sent on chain 1337, the alt-mempool devnet, only; any
+  other chain is refused by name. Accounts and sponsors can also be made on the
+  local mining devnet, `framesMining` (`bun scripts/frame-devnet.ts up mining`
+  in the repository). The quick devnet, `framesQuick`, never mines: it is for
+  reads and simulation, and the commands that send refuse it.
 
 ## Combining with
 

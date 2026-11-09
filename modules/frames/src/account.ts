@@ -13,6 +13,7 @@ import {
 } from "@evmcrispr/viem-frames";
 import {
   type Address,
+  type Chain,
   type Hash,
   type Hex,
   isAddress,
@@ -42,12 +43,13 @@ const TEXT_MAX = 300;
 export function frameAccountTypedData(
   account: Address,
   sigHash: Hex,
+  chainId: number,
 ): TypedDataDefinition<typeof FRAME_ACCOUNT_TYPES, "FrameTransaction"> {
   return {
     domain: {
       name: FRAME_ACCOUNT_DOMAIN_NAME,
       version: "1",
-      chainId: altMempoolDevnet.id,
+      chainId,
       verifyingContract: account,
     },
     types: FRAME_ACCOUNT_TYPES,
@@ -76,6 +78,7 @@ export async function sendAccountFrameTransaction({
   maxFeePerGasCap,
   signWith,
   signal,
+  chain = altMempoolDevnet,
 }: {
   wallet: WalletClient;
   /** The FrameAccount: `tx.sender`. */
@@ -94,6 +97,8 @@ export async function sendAccountFrameTransaction({
   signWith?: <T>(description: string, sign: () => Promise<T>) => Promise<T>;
   /** Checked once the wallet has signed: aborted, nothing is submitted. */
   signal?: AbortSignal;
+  /** The frame chain the account lives on; altMempoolDevnet by default. */
+  chain?: Chain;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   // Both go into every line below: refused here unless they are addresses.
   for (const [name, value] of [
@@ -139,8 +144,9 @@ export async function sendAccountFrameTransaction({
     maxFeePerGasCap,
     signWith,
     signal,
+    chain,
     async sign(sigHash) {
-      const typedData = frameAccountTypedData(account, sigHash);
+      const typedData = frameAccountTypedData(account, sigHash, chain.id);
       const signature: unknown = await wallet
         .signTypedData({
           account: wallet.account ?? walletAddress,

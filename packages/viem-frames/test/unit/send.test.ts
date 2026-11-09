@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { profile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
-import { newTx, sigHash, txHash } from "@forshtat/hegota-support/tx";
-import { custom, type Hex, keccak256 } from "viem";
+import { decodeTx, newTx, sigHash, txHash } from "@forshtat/hegota-support/tx";
+import { custom, defineChain, type Hex, keccak256 } from "viem";
 import {
   type FrameSpecLike,
   sendFrameTransactionWithArbitrarySignature,
@@ -147,6 +147,53 @@ function fromWire(wire: any) {
   });
 }
 
+/** A frame chain other than the alt-mempool devnet: a node, no sidecar. */
+const LOCAL = defineChain({
+  id: 3151908,
+  name: "Local frame devnet",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["http://127.0.0.1:32003"] } },
+});
+
+/** A plain node: fees come from its blocks; it has no skandha_* methods. */
+function node() {
+  const calls: { method: string; params: any }[] = [];
+  let sentHash: Hex | undefined;
+  const transport = custom({
+    async request({ method, params }: { method: string; params: any }) {
+      calls.push({ method, params });
+      switch (method) {
+        case "eth_chainId":
+          return "0x301824";
+        case "eth_blockNumber":
+          return "0x10";
+        case "eth_getTransactionCount":
+          return "0x7";
+        case "eth_getCode":
+          return "0x6000";
+        case "eth_getBlockByNumber":
+          return {
+            number: "0x10",
+            hash: `0x${"22".repeat(32)}`,
+            baseFeePerGas: "0x3b9aca00",
+            timestamp: "0x1",
+            transactions: [],
+          };
+        case "eth_maxPriorityFeePerGas":
+          return "0x5f5e100";
+        case "eth_sendRawTransaction":
+          sentHash = keccak256(params[0]);
+          return sentHash;
+        case "eth_getTransactionReceipt":
+          return sentHash ? RECEIPT(sentHash) : null;
+        default:
+          throw new Error(`unexpected ${method}`);
+      }
+    },
+  });
+  return { transport, calls, methods: () => calls.map((c) => c.method) };
+}
+
 const send = (
   g: ReturnType<typeof gateway>,
   extra: Partial<
@@ -264,5 +311,48 @@ describe("sendFrameTransactionWithArbitrarySignature", () => {
     await send(g, { mempool: "canonical" });
     expect(g.methods()).toContain("eth_sendRawTransaction");
     expect(g.methods()).not.toContain("eth_sendFrameTransaction");
+  });
+
+  test("sends on another frame chain through the canonical mempool, fees from the node", async () => {
+    const n = node();
+    const { hash } = await sendFrameTransactionWithArbitrarySignature({
+      sender: ACCOUNT,
+      frames: FRAMES,
+      mempool: "canonical",
+      chain: LOCAL,
+      transport: n.transport,
+      sign: async () => "0xabcdef",
+    });
+    const raw = n.calls.find((c) => c.method === "eth_sendRawTransaction")!
+      .params[0] as Hex;
+    const sent = decodeTx(profile, raw);
+    expect(sent.chainId).toBe(3151908n);
+    expect(hash).toBe(keccak256(raw));
+    // viem's EIP-1559 estimate from the node: 1.2 × the base fee plus the
+    // node's priority fee.
+    expect(sent.fees.maxPriorityFeePerGas).toBe(100_000_000n);
+    expect(sent.fees.maxFeePerGas).toBe(1_200_000_000n + 100_000_000n);
+    expect(n.methods().some((m) => m.startsWith("skandha_"))).toBe(false);
+  });
+
+  test("reads frame receipts on a chain not wrapped by withFrames", async () => {
+    const n = node();
+    const levels: string[] = [];
+    const { receipt } = await sendFrameTransactionWithArbitrarySignature({
+      sender: ACCOUNT,
+      frames: FRAMES,
+      mempool: "canonical",
+      chain: LOCAL,
+      transport: n.transport,
+      sign: async () => "0xabcdef",
+      onLog: (_line, level) => levels.push(level),
+    });
+    expect(receipt?.payer).toBe(SPONSOR);
+    expect(receipt?.frameReceipts?.map((f) => f.status)).toEqual([
+      "success",
+      "success",
+      "success",
+    ]);
+    expect(levels.filter((l) => l === "warning")).toEqual([]);
   });
 });

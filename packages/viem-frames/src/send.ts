@@ -3,6 +3,7 @@ import { encodeTx, newTx, sigHash, txHash } from "@forshtat/hegota-support/tx";
 import {
   type Address,
   BaseError,
+  type Chain,
   createPublicClient,
   formatEther,
   formatGwei,
@@ -16,8 +17,14 @@ import {
   type Transport,
   WaitForTransactionReceiptTimeoutError,
 } from "viem";
-import { getCode, getTransactionCount } from "viem/actions";
-import { altMempoolDevnet, frameProfileOf, sidecarGasPrice } from "./chain";
+import { estimateFeesPerGas, getCode, getTransactionCount } from "viem/actions";
+import {
+  altMempoolDevnet,
+  frameProfileOf,
+  frameSidecarOf,
+  sidecarGasPrice,
+  withFrames,
+} from "./chain";
 import {
   type FrameSpecLike,
   prefixLength,
@@ -30,8 +37,6 @@ import type { Frame, FrameTransactionReceipt, FrameTx, Profile } from "./types";
 
 /** How much a line given to `onLog` matters, for the caller to show. */
 export type FrameLogLevel = "info" | "success" | "warning";
-
-const EXPLORER = altMempoolDevnet.blockExplorers.default.url;
 
 /** Node text in an error: escaped and cut. */
 const TEXT_MAX = 300;
@@ -180,6 +185,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
   maxFeePerGasCap = DEFAULT_MAX_FEE_PER_GAS_CAP,
   signWith,
   signal,
+  chain = altMempoolDevnet,
 }: {
   /** `tx.sender`: a contract. */
   sender: Address;
@@ -197,9 +203,12 @@ export async function sendFrameTransactionWithArbitrarySignature({
   signWith?: <T>(description: string, sign: () => Promise<T>) => Promise<T>;
   /** Checked once `sign` has returned: aborted, nothing is submitted. */
   signal?: AbortSignal;
+  /** The frame chain: its id is signed, its explorer named; altMempoolDevnet by default. */
+  chain?: Chain;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
-  const chain = altMempoolDevnet;
   const profile = frameProfileOf(chain);
+  const explorer = chain.blockExplorers?.default.url;
+  const sidecar = frameSidecarOf(chain);
 
   // It goes into every line below: refused here unless it is an address.
   if (typeof sender !== "string" || !isAddress(sender, { strict: false }))
@@ -216,7 +225,15 @@ export async function sendFrameTransactionWithArbitrarySignature({
       "Every frame needs its limits: `gas`, and `stateGas` after the validation prefix",
     );
 
-  const gateway = createPublicClient({ chain, transport: transport ?? http() });
+  // A chain withFrames has not seen gets its formatters here, so frame
+  // receipts (payer, each frame's status) are read whatever chain is given.
+  const framed = chain.custom?.frameProfile
+    ? chain
+    : withFrames(chain, { profile, sidecar });
+  const gateway = createPublicClient({
+    chain: framed,
+    transport: transport ?? http(),
+  });
   // Every gateway answer below is the node's text in viem's errors: escaped.
   const code = await getCode(gateway, { address: sender }).catch(
     (error: unknown) => {
@@ -238,12 +255,20 @@ export async function sendFrameTransactionWithArbitrarySignature({
       `The gateway could not read ${sender}'s nonce: ${printable(refusalText(error), TEXT_MAX)}`,
     );
   });
-  // A malformed answer would otherwise reach the error through BigInt's message.
-  const fees = await sidecarGasPrice(gateway).catch((error: unknown) => {
-    throw new Error(
-      `The gateway gave no usable fees (skandha_getGasPrice): ${printable(refusalText(error), TEXT_MAX)}`,
-    );
-  });
+  // A sidecar prices transactions itself (and serves no fee history); a
+  // plain node through its blocks. A malformed answer would otherwise reach
+  // the error through BigInt's message.
+  const fees = sidecar
+    ? await sidecarGasPrice(gateway).catch((error: unknown) => {
+        throw new Error(
+          `The gateway gave no usable fees (skandha_getGasPrice): ${printable(refusalText(error), TEXT_MAX)}`,
+        );
+      })
+    : await estimateFeesPerGas(gateway).catch((error: unknown) => {
+        throw new Error(
+          `The node gave no usable fees: ${printable(refusalText(error), TEXT_MAX)}`,
+        );
+      });
 
   // The signer signs a hash: it never sees the fees, so they are capped and
   // shown here, with the most the transaction can cost its payer.
@@ -327,18 +352,21 @@ export async function sendFrameTransactionWithArbitrarySignature({
       `The ${mempool === "canonical" ? "node" : "gateway"} returned ${printable(typeof answer === "string" ? answer : JSON.stringify(answer), 80)} for a transaction whose hash is ${expected}`,
     );
 
+  // Only a sidecar reports a frame transaction's status.
   const status = async () =>
-    printable(
-      (
-        (await gateway
-          .request({
-            method: "skandha_frameTransactionStatus",
-            params: [expected],
-          } as never)
-          .catch(() => undefined)) as { status?: unknown } | undefined
-      )?.status ?? "unknown",
-      40,
-    );
+    !sidecar
+      ? "unknown"
+      : printable(
+          (
+            (await gateway
+              .request({
+                method: "skandha_frameTransactionStatus",
+                params: [expected],
+              } as never)
+              .catch(() => undefined)) as { status?: unknown } | undefined
+          )?.status ?? "unknown",
+          40,
+        );
   onLog?.(
     `Frame transaction ${expected} from ${sender} admitted to the ${mempool} mempool of the ${chain.name} (status ${await status()})`,
     "success",
@@ -353,7 +381,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
   } catch (error) {
     if (error instanceof WaitForTransactionReceiptTimeoutError)
       throw new Error(
-        `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the sender would reuse its nonce. ${EXPLORER}`,
+        `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the sender would reuse its nonce.${explorer ? ` ${explorer}` : ""}`,
       );
     throw new Error(
       `Waiting for ${expected}'s receipt failed: ${printable(refusalText(error), TEXT_MAX)}`,

@@ -2,9 +2,17 @@ import type { Action, Address, TransactionAction } from "@evmcrispr/sdk";
 import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
 import type Frames from ".";
+import { chains } from "./chains";
 
-/** The only chain the frame contracts work on. */
-export const FRAME_CHAIN_ID = 1337;
+/**
+ * The chains the frame contracts work on: the public alt-mempool devnet
+ * (1337) and the two local devnets of scripts/frame-devnet.ts (`framesQuick`,
+ * `framesMining`; see chains.ts).
+ */
+export const FRAME_CHAIN_IDS: readonly number[] = [
+  1337,
+  ...chains.map((c) => c.id),
+];
 export const DEPLOY_GAS = 6_000_000n;
 
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -25,6 +33,31 @@ interface Interpreters {
   actionCallback?: (action: Action) => Promise<unknown>;
 }
 
+/** The current chain, refused unless the frame contracts work on it. */
+export async function frameChainId(module: Frames): Promise<number> {
+  const chainId = await module.getChainId();
+  if (!FRAME_CHAIN_IDS.includes(chainId))
+    throw new ErrorException(
+      `frame accounts only work on the alt-mempool devnet, ${chains.map((c) => `the ${c.name}`).join(" and ")}, not ${chainLabel(chainId)}: switch to one first.`,
+    );
+  return chainId;
+}
+
+/**
+ * The current chain, refused unless transactions sent on it are mined: a
+ * frame chain other than the quick devnet, which admits transactions but
+ * never includes them.
+ */
+export async function sendingChainId(module: Frames): Promise<number> {
+  const chainId = await frameChainId(module);
+  const quick = chains.find((c) => c.key === "framesQuick");
+  if (chainId === quick?.id)
+    throw new ErrorException(
+      `the ${quick.name} never mines: a transaction sent on it is never included. Send on the Frames mining devnet instead ("switch framesMining").`,
+    );
+  return chainId;
+}
+
 /**
  * Deploy creation code inline, now, through the host's wallet, and return the
  * address the receipt names (never a predicted one).
@@ -35,23 +68,30 @@ export async function deployInline(
   initCode: Hex,
   value = 0n,
 ): Promise<Address> {
-  const chainId = await module.getChainId();
-  if (chainId !== FRAME_CHAIN_ID)
-    throw new ErrorException(
-      `frame accounts only work on chain ${FRAME_CHAIN_ID}, not ${chainLabel(chainId)}: switch to it first.`,
-    );
-  const { actionCallback } = interpreters;
-  if (!actionCallback)
-    throw new ErrorException(
-      "this command needs an execution context with a wallet: it deploys a contract now.",
-    );
-
-  const action: TransactionAction = {
+  const chainId = await sendingChainId(module);
+  const receipt = await sendInline(module, interpreters, {
     data: initCode,
     value,
     gas: DEPLOY_GAS,
     chainId,
-  };
+  });
+  const address = receipt.contractAddress;
+  if (typeof address !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(address))
+    throw new ErrorException("the deployment receipt has no contract address");
+  return address as Address;
+}
+
+/** Send one transaction now, through the host's wallet; its receipt, refused unless it succeeded. */
+export async function sendInline(
+  module: Frames,
+  interpreters: Interpreters,
+  action: TransactionAction,
+): Promise<Receipt> {
+  const { actionCallback } = interpreters;
+  if (!actionCallback)
+    throw new ErrorException(
+      "this command needs an execution context with a wallet: it sends a transaction now.",
+    );
   const result = await actionCallback(action);
 
   let receipt: Receipt | undefined;
@@ -74,11 +114,8 @@ export async function deployInline(
     const status = receipt?.status;
     const reason = receipt?.reason;
     throw new ErrorException(
-      `the deployment did not succeed${status !== undefined ? ` (status ${printable(status)})` : ""}${reason !== undefined ? `: ${printable(reason)}` : ""}`,
+      `the ${action.to ? "transaction" : "deployment"} did not succeed${status !== undefined ? ` (status ${printable(status)})` : ""}${reason !== undefined ? `: ${printable(reason)}` : ""}`,
     );
   }
-  const address = receipt.contractAddress;
-  if (typeof address !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(address))
-    throw new ErrorException("the deployment receipt has no contract address");
-  return address as Address;
+  return receipt;
 }

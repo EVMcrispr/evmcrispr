@@ -123,7 +123,7 @@ specifics:
 - **Where it is sent** comes from the chain, not from the module's code:
   a frame network table in `modules/frames/src/networks.ts` (chain id,
   ethrex node URL, optional gateway, explorer, profile). It holds the
-  public alt-mempool devnet (1337) and the local devnets (9, 3151908), each
+  public alt-mempool devnet (1337) and the local devnets (81411, 81412), each
   overridable through the host's transport for that chain (the terminal's
   RPC settings). The
   alt mempool needs a gateway; the canonical mempool goes to the node.
@@ -210,18 +210,34 @@ the extension point.
 
 `scripts/frame-devnet.ts`, in the manner of `scripts/anvil-config.ts`:
 
+- **The devnets are chains** (owner, 2026-11-08: "configure the rpcs as
+  viem chains that you can switch to", not ports in env variables). The
+  frames module declares them in `modules/frames/src/chains.ts`, so
+  `switch framesQuick` / `switch framesMining` reach them, the terminal's
+  network list and the test transports pick them up, and the script reads
+  its ids and ports from the same declarations:
+  - `framesQuick`, chain **81411**, `http://127.0.0.1:8570`;
+  - `framesMining`, chain **81412**, `http://127.0.0.1:32003`.
+
+  The ids are their own (free in viem and in ethereum-lists/chains,
+  2026-11-08): the images' defaults collide, 9 with viem's `quai` and
+  `zksyncLocalHyperchainL1`, and 3151908 with the public Hegota devnet and
+  every Kurtosis devnet. 8570 sits outside anvil's test-port lock range
+  (8545-8560).
 - `up quick`: the one-container ethrex devnet
-  (`ghcr.io/forshtat/eip8141-devnet`, pinned by digest), chain 9, with our
-  copy of `l1-hegota.json` mounted in place of the image's: the same file
-  (MIT, licence kept alongside) plus anvil's ten accounts funded. Never
-  mines (ethrex's `--dev` producer cannot drive Hegota); for simulation,
-  admission and the parity test.
+  (`ghcr.io/forshtat/eip8141-devnet`, pinned by digest): the image's
+  `l1-hegota.json` read out of it at run time, its chain id set to 81411 and
+  anvil's ten accounts funded, mounted in place of the image's (nothing
+  vendored). Never mines (ethrex's `--dev` producer cannot drive Hegota);
+  for simulation, admission and the parity test.
 - `up mining`: the single-node Kurtosis devnet (ethrex + Lighthouse,
   ethereum-package and images pinned as in the sidecar's
-  `eip8141-single-node.yaml`), with anvil's accounts in
-  `prefunded_accounts`. Frames from about 7 minutes after start.
-- `down`, `status`, `rpc-url`. Ports chosen not to collide with anvil's
-  test ports (concurrent sessions share this tree).
+  `eip8141-single-node.yaml`), `network_id` 81412, anvil's accounts in
+  `prefunded_accounts`. Frames from about 7 minutes after start. The script
+  checks Kurtosis published the RPC on the declared port and refuses
+  otherwise.
+- `down` and `status` (each declared chain: running, on the right chain id,
+  its block and anvil #0's balance).
 - Both images are amd64 only; the script says so on other machines.
 
 Verified by hand on 2026-11-08: both devnets run here; a viem-frames
