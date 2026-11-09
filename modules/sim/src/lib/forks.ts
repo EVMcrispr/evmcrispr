@@ -23,7 +23,50 @@ import type { SimMode } from "..";
 import type { SimBackend } from "./backend";
 import { rpcPrefix } from "./modes";
 
-const LOCAL_RPC = "http://localhost:8545";
+/** The anvil (or Hardhat node) a local fork swaps, unless the chain's own
+ *  RPC is a local anvil. */
+export const LOCAL_RPC = "http://localhost:8545";
+
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** The anvil a `--using anvil` fork swaps: the one the script's chain
+ *  already reads from when that is a local anvil (a test runner's, on its
+ *  own port), else the default one on 8545. A local node that is not an
+ *  anvil (a devnet) stays the default's upstream, as before. */
+export async function localNodeUrl(
+  url: string | undefined,
+  isAnvil: (url: string) => Promise<boolean>,
+): Promise<string> {
+  if (!url) return LOCAL_RPC;
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return LOCAL_RPC;
+  }
+  return LOOPBACK.has(host) && (await isAnvil(url)) ? url : LOCAL_RPC;
+}
+
+/** Whether `url` answers as an anvil (`anvil_nodeInfo`). */
+async function answersAsAnvil(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "anvil_nodeInfo",
+        params: [],
+      }),
+      signal: AbortSignal.timeout(5_000),
+    });
+    const body = (await res.json()) as { result?: unknown };
+    return res.ok && typeof body.result === "object" && body.result !== null;
+  } catch {
+    return false;
+  }
+}
 
 /** Transport for a fork node's RPC. A cold fork serves its first calls
  *  only after pulling every touched account and slot from the upstream
@@ -126,6 +169,8 @@ export class ForkManager {
   #handles = new Map<number, ForkHandle>();
   #active!: ForkHandle;
   #local = new Map<number, LocalNodeChainState>();
+  /** The node an anvil/hardhat fork swaps, chosen on its first visit. */
+  #node?: string;
   #tenderlyLinks: string[] = [];
 
   constructor(module: Sim, mode: SimMode, opts: ForkManagerOptions = {}) {
@@ -409,6 +454,14 @@ export class ForkManager {
     const prefix = rpcPrefix(this.mode) as "anvil" | "hardhat";
     const backendName = prefix === "anvil" ? "Anvil" : "Hardhat";
     const chain = chainForId(chainId);
+    this.#node ??=
+      prefix === "anvil"
+        ? await localNodeUrl(
+            this.#upstreamRpcUrl(chainId, chain),
+            answersAsAnvil,
+          )
+        : LOCAL_RPC;
+    const node = this.#node;
 
     let handle = this.#handles.get(chainId);
     if (!handle) {
@@ -417,11 +470,11 @@ export class ForkManager {
         chain,
         publicClient: createPublicClient({
           chain,
-          transport: forkTransport(LOCAL_RPC),
+          transport: forkTransport(node),
         }) as PublicClient,
         walletClient: createWalletClient({
           chain,
-          transport: forkTransport(LOCAL_RPC),
+          transport: forkTransport(node),
         }),
       };
       this.#handles.set(chainId, handle);
@@ -437,7 +490,7 @@ export class ForkManager {
       if (
         prefix === "anvil" &&
         upstreamRpcUrl &&
-        isSameLocalRpc(upstreamRpcUrl, LOCAL_RPC)
+        isSameLocalRpc(upstreamRpcUrl, node)
       ) {
         try {
           const nodeInfo = (await handle.walletClient!.request({
@@ -487,7 +540,7 @@ export class ForkManager {
     }
     if (resetError) {
       throw new ErrorException(
-        `Failed to reset ${backendName} at ${LOCAL_RPC}. Make sure ${backendName} is running: ${resetError.message}`,
+        `Failed to reset ${backendName} at ${node}. Make sure ${backendName} is running: ${resetError.message}`,
       );
     }
 

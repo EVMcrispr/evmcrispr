@@ -21,6 +21,7 @@ import { installAssertionsCore } from "@evmcrispr/test-utils/onchain";
 import { wellFormed } from "@evmcrispr/test-utils/suggestions";
 import { formatUnits, getAddress } from "viem";
 import { gnosis } from "viem/chains";
+import { anvilPort } from "../../../../scripts/anvil-config";
 import { server } from "../setup";
 
 const SAFE = getAddress("0x00000000000000000000000000000000005afe01");
@@ -235,7 +236,7 @@ describe("Sim > suggested assertions", () => {
     // The node refuses the state diff; every other request goes through.
     server.use(
       http.post(
-        /^http:\/\/(localhost|127\.0\.0\.1):8545/,
+        new RegExp(`^http://(localhost|127\\.0\\.0\\.1):${anvilPort()}`),
         async ({ request }) => {
           const body = (await request.clone().json()) as { method?: string };
           if (body?.method !== "debug_traceTransaction") return passthrough();
