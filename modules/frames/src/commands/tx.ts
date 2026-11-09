@@ -5,6 +5,7 @@ import type {
   RpcRequest,
 } from "@evmcrispr/sdk";
 import {
+  chainLabel,
   defineCommand,
   ErrorException,
   identifyChain,
@@ -22,7 +23,7 @@ import { type Address, isAddressEqual } from "viem";
 import type Frames from "..";
 import { frameAction } from "../actions";
 import { gasOption, layoutFrames, requireLimits } from "../layout";
-import { frameNetwork } from "../networks";
+import { frameNetwork, isPostTxNetwork } from "../networks";
 
 /**
  * A smart batch (`batch !(...)`) in the block, as the frames that run it: a
@@ -186,6 +187,17 @@ export default defineCommand<Frames>({
       throw new ErrorException(
         "frames:tx cannot be nested in another frames:tx",
       );
+    // post-verify writes the transaction's last frames: it is the block's
+    // last statement, and there is one.
+    const statements = (block as BlockExpressionNode).body;
+    const checks = statements.filter((s) => s.name === "post-verify");
+    if (
+      checks.length > 1 ||
+      (checks.length === 1 && statements.at(-1) !== checks[0])
+    )
+      throw new ErrorException(
+        "post-verify goes last in frames:tx, once: move every check into one post-verify block at the end",
+      );
     const stateGas =
       opts["state-gas"] === undefined
         ? undefined
@@ -229,6 +241,10 @@ export default defineCommand<Frames>({
       stateGas,
       accountChecks: account !== undefined,
     });
+    if (frames.some((f) => f.mode === "postTx") && !isPostTxNetwork(chainId))
+      throw new ErrorException(
+        `post-verify runs only on the Hegota devnet (the frame network whose client runs POST_TX frames), not on ${chainLabel(chainId)}: write it in a transaction for hegotaDevnet`,
+      );
     // A frame account's transaction is signed once, exactly as sent, so
     // nothing sizes its frames: each one must carry its limits. A plain
     // sender's are checked when it is sent (nothing sizes them yet either).

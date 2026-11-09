@@ -4,6 +4,7 @@ import { decodeTx, newTx, sigHash, txHash } from "@forshtat/hegota-support/tx";
 import { custom, defineChain, type Hex, keccak256 } from "viem";
 import {
   type FrameSpecLike,
+  FrameTransactionDroppedError,
   sendFrameTransactionWithArbitrarySignature,
   toFrameRequests,
 } from "../../src";
@@ -71,15 +72,23 @@ function gateway({
   code = "0x6000",
   send,
   mined = true,
+  dropped = false,
+  held = 0,
   fees = { maxFeePerGas: "0x77359400", maxPriorityFeePerGas: "0x3b9aca00" },
 }: {
   code?: Hex | (() => never);
   send?: (wire: any) => unknown;
   mined?: boolean;
+  /** Admitted, then gone: no receipt and no transaction. */
+  dropped?: boolean;
+  /** Polls before the node knows the transaction and mines it (an alt
+   *  mempool still holding it). */
+  held?: number;
   fees?: { maxFeePerGas: Hex; maxPriorityFeePerGas: Hex };
 } = {}) {
   const calls: { method: string; params: any }[] = [];
   let sentHash: Hex | undefined;
+  let byHash = 0;
   const transport = custom({
     async request({ method, params }: { method: string; params: any }) {
       calls.push({ method, params });
@@ -105,7 +114,16 @@ function gateway({
         case "skandha_frameTransactionStatus":
           return { status: "Pending" };
         case "eth_getTransactionReceipt":
-          return mined && sentHash ? RECEIPT(sentHash) : null;
+          if (held > 0) return null;
+          return mined && !dropped && sentHash ? RECEIPT(sentHash) : null;
+        case "eth_getTransactionByHash":
+          if (held > 0) {
+            held--;
+            return null;
+          }
+          // Dropped: the node had it once, then lost it.
+          if (dropped && byHash++ > 0) return null;
+          return { hash: sentHash };
         default:
           throw new Error(`unexpected ${method}`);
       }
@@ -186,6 +204,8 @@ function node() {
           return sentHash;
         case "eth_getTransactionReceipt":
           return sentHash ? RECEIPT(sentHash) : null;
+        case "eth_getTransactionByHash":
+          return { hash: sentHash };
         default:
           throw new Error(`unexpected ${method}`);
       }
@@ -208,6 +228,30 @@ const send = (
     sign: async () => "0xabcdef",
     ...extra,
   });
+
+describe("a transaction the node dropped", () => {
+  test("is not one the node has not seen yet (an alt mempool holding it)", async () => {
+    const g = gateway({ held: 3 });
+    const result = await send(g, { receiptTimeoutMs: 60_000 });
+    expect(result.receipt?.status).toBe("success");
+  }, 40_000);
+
+  test("is reported as dropped, not waited on until the timeout", async () => {
+    const g = gateway({ dropped: true });
+    const started = Date.now();
+    const error = await send(g, { receiptTimeoutMs: 60_000 }).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(FrameTransactionDroppedError);
+    expect((error as FrameTransactionDroppedError).hash).toMatch(
+      /^0x[0-9a-f]{64}$/,
+    );
+    expect((error as Error).message).toBe(
+      `${(error as FrameTransactionDroppedError).hash} was dropped: the node no longer has it and it was not mined`,
+    );
+    expect(Date.now() - started).toBeLessThan(30_000);
+  }, 40_000);
+});
 
 describe("sendFrameTransactionWithArbitrarySignature", () => {
   test("signs the transaction's signature hash and sends the bytes in an ARBITRARY entry", async () => {

@@ -13,6 +13,7 @@ import {
   size,
   sliceHex,
 } from "viem";
+import { eventDataCopy, type FrameTrace, txtrace } from "./trace";
 
 /** One frame as the simulation runs it. */
 export interface SimFrame {
@@ -47,6 +48,9 @@ export interface FrameContext {
   /** What the frame running now approved, if anything. Set again, to the
    *  same value, when a backend replays the call. */
   approved?: number;
+  /** The transaction as its POST_TX frames read it (TXTRACE), once the
+   *  body has run. */
+  trace?: FrameTrace;
 }
 
 // Parameter ids (hegota-support contracts/Params.sol).
@@ -118,7 +122,50 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
   const maxCost = () =>
     ctx.frames.reduce((sum, f) => sum + f.gas + f.stateGas, 0n) *
     ctx.maxFeePerGas;
+  // EIP-7906, on a network whose profile has POST_TX frames: only valid
+  // inside one, and only once the body has run.
+  const postTx = ctx.profile.frameModes.POST_TX;
+  const inPostTx = (what: string): SimOpcodeResult | undefined => {
+    const frame = ctx.frames[ctx.current];
+    if (!frame || frame.mode !== postTx)
+      return fail(`${what} outside a POST_TX frame`);
+    if (!ctx.trace) return fail(`${what} before the transaction's body ran`);
+    return undefined;
+  };
+  const trace: SimOpcode[] =
+    postTx === undefined
+      ? []
+      : [
+          {
+            opcode: 0xb6,
+            name: "TXTRACE",
+            pops: 2,
+            // On the Hegota devnet the index is the top operand, the
+            // parameter below it (measured 2026-11-09).
+            run({ operands: [in2, param] }) {
+              return inPostTx("TXTRACE") ?? txtrace(ctx.trace!, param!, in2!);
+            },
+          },
+          {
+            opcode: 0xb7,
+            name: "EVENTDATACOPY",
+            pops: 4,
+            run({ operands: [eventIndex, memOffset, dataOffset, length] }) {
+              return (
+                inPostTx("EVENTDATACOPY") ??
+                eventDataCopy(
+                  ctx.trace!,
+                  eventIndex!,
+                  memOffset!,
+                  dataOffset!,
+                  length!,
+                )
+              );
+            },
+          },
+        ];
   return [
+    ...trace,
     {
       opcode: 0xaa,
       name: "APPROVE",

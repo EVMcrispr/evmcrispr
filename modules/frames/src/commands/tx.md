@@ -47,6 +47,7 @@ A frame is one call. The block lists the transaction's frames in order, and `fra
 | `verify <target> [<sig> <args…>] --approve execution\|payment\|both` | one VERIFY frame |
 | no `verify` and no `--paymaster` | a self-verify on the sender, added first |
 | `--paymaster <addr> [--paymaster-data <bytes>]` | an execution-only verify on the sender, then a pay frame on `<addr>` |
+| `post-verify ( assert … / exec … )` | one POST_TX frame per line, last: checks after everything (Hegota devnet only; see `post-verify`) |
 
 Frames come out in the order written; the only ones `frames:tx` adds are the shortcuts' at the start. The validation prefix must be one of the shapes the mempool recognizes (`[self_verify]` or `[only_verify, pay]`, each with an optional pre-verify), and the block is checked before anything is signed. Every call needs its `--gas` (nothing sizes frames yet); `--state-gas` sets the state gas limit of every body frame, 200,000 by default (unused state gas is refunded).
 

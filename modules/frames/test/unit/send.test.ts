@@ -1,6 +1,7 @@
 import "../setup";
 import { describe, expect, test } from "bun:test";
 import type { ModuleActionSendCtx } from "@evmcrispr/sdk";
+import { ethrexHegotaDevnetProfile } from "@evmcrispr/viem-frames";
 import { custom, type Hash, type Transport, type WalletClient } from "viem";
 import { frameAction } from "../../src/actions";
 import type { FrameModuleAction } from "../../src/frame-action";
@@ -232,5 +233,71 @@ describe("the frames module sends its frame action", () => {
       /No wallet is connected/,
     );
     expect(gateway.calls).toHaveLength(0);
+  });
+
+  describe("a post-verify transaction", () => {
+    const HEGOTA = 3151908;
+    const withCheck = () =>
+      plainAction({
+        chainId: HEGOTA,
+        mempool: "canonical",
+        frames: [
+          {
+            mode: "verify",
+            approve: "both",
+            target: null,
+            data: "0x",
+            value: 0n,
+            gas: 30_000n,
+          },
+          {
+            mode: "sender",
+            target: ACCOUNT,
+            data: "0x",
+            value: 1n,
+            gas: 50_000n,
+            stateGas: 200_000n,
+          },
+          {
+            mode: "postTx",
+            target: ACCOUNT,
+            data: "0x",
+            value: 0n,
+            gas: 50_000n,
+            stateGas: 0n,
+          },
+        ],
+      });
+
+    test("whose check failed on the chain is reported as failed, naming the check", async () => {
+      const node = frameNode({
+        chainId: HEGOTA,
+        status: "0x0",
+        frameStatuses: ["0x1", "0x1", "0x0"],
+      });
+      const fw = frameWallet({
+        chainId: HEGOTA,
+        profile: ethrexHegotaDevnetProfile,
+      });
+      const c = ctx(fw.wallet, node.transport, { [HEGOTA]: node.transport });
+      const error = await send(withCheck(), c.ctx).catch((e: Error) => e);
+      expect((error as Error).message).toBe(
+        `A post-verify check failed: post-verify frame 3 reverted, so the transaction's body was reverted (${node.sent()})`,
+      );
+    });
+
+    test("whose checks held is reported as the receipt", async () => {
+      const node = frameNode({
+        chainId: HEGOTA,
+        frameStatuses: ["0x1", "0x1", "0x1"],
+      });
+      const fw = frameWallet({
+        chainId: HEGOTA,
+        profile: ethrexHegotaDevnetProfile,
+      });
+      const c = ctx(fw.wallet, node.transport, { [HEGOTA]: node.transport });
+      const receipt = (await send(withCheck(), c.ctx)) as { status: string };
+      expect(receipt.status).toBe("success");
+    });
   });
 });

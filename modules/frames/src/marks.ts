@@ -2,11 +2,13 @@ import type { TransactionAction } from "@evmcrispr/sdk";
 
 export type FrameMark =
   | { mode: "default" }
-  | { mode: "verify"; approve: "execution" | "payment" | "both" };
+  | { mode: "verify"; approve: "execution" | "payment" | "both" }
+  /** A POST_TX frame, from `post-verify`. */
+  | { mode: "postTx" };
 
 const marks = new WeakMap<TransactionAction, FrameMark>();
 
-/** Tag an action so the layout makes it a `default` or `verify` frame. */
+/** Tag an action so the layout makes it a `default`, `verify` or `postTx` frame. */
 export function markFrame(action: TransactionAction, mark: FrameMark): void {
   marks.set(action, mark);
 }

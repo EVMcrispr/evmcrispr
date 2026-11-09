@@ -161,6 +161,16 @@ impl RevmFork {
         self.inner.checkpoint()
     }
 
+    #[wasm_bindgen(js_name = startTrace)]
+    pub fn start_trace(&mut self) {
+        self.inner.start_trace()
+    }
+
+    #[wasm_bindgen(js_name = stateChanges)]
+    pub fn state_changes(&self) -> String {
+        self.inner.state_changes()
+    }
+
     #[wasm_bindgen(js_name = commitCheckpoint)]
     pub fn commit_checkpoint(&mut self) -> String {
         self.inner.commit_checkpoint()

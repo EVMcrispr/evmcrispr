@@ -333,6 +333,49 @@ those ids is used as itself: set the id's RPC to it
 read from is refused before anything is signed. The terminal only offers these
 networks when experimental features are on.
 
+## Checks after everything: post-verify
+
+On the Hegota devnet a frame transaction can end with checks that run after
+everything else and read what the transaction actually did: EIP-7906 POST_TX
+frames. Write them in a `post-verify` block, the last statement of
+`frames:tx`; each `assert` or `exec` line is one check. If a check fails, the
+transaction's body is reverted (the transaction is still mined, with status
+0, and its fee paid), and EVMcrispr says which check failed.
+
+```evml
+load frames [tx post-verify]
+switch hegotaDevnet
+
+tx --gas 300000 (
+  send 0x000000000000000000000000000000000000dEaD --value 1
+  post-verify (
+    assert @balance!(ETH 0x000000000000000000000000000000000000dEaD) >= 1
+    exec 0x643DfBbbA8a30f9b2e79c5b0B3589106E2fd8DbF "assertExactBeneficiary(address)" 0x000000000000000000000000000000000000dEaD
+  )
+)
+```
+
+An `assert` is checked by EVMcrispr's assertions contract on the state the
+body left. An `exec` calls an assertion contract; the
+[hegota demo](https://github.com/forshtat/hegota-demo) deployed these on the
+Hegota devnet, each reading the transaction's trace:
+
+| Contract | Address | Call | Fails when |
+|---|---|---|---|
+| RequiredEventAssertion | `0x0c1fA596B6ADA68deB19F67B15f5B99eA43B9C13` | `assertRequiredEvent(bytes32,uint256)` | no event has this first topic with this amount as its first data word |
+| MinOutputAssertion | `0xCFdC6239C460bb544EcC1F6A90Cb02Bce4168B01` | `assertMinOutput(address,address,(uint8,bytes))` | no `Transfer` from the token to the recipient meets the constraint |
+| ApprovalCapAssertion | `0x4826b1e49828b50b7c78dC61C928cf52773E62Df` | `assertApprovalCap(address,address,(uint8,bytes))` | the token's `Approval` to the spender does not meet the constraint |
+| ExactBeneficiaryAssertion | `0x643DfBbbA8a30f9b2e79c5b0B3589106E2fd8DbF` | `assertExactBeneficiary(address)` | any other address gained ETH |
+| ProxyIntegrityAssertion | `0x42D1F899aBcdd79ADf8620e7b8008010093D9691` | `assertNoImplementationChange()` | any contract's EIP-1967 implementation slot was written |
+| SafeControlPlaneAssertion | `0x83519C0497d582e3687B21F3b60998eA8060fB7D` | `assertSafeControlPlaneUnchanged(address)` | the Safe's threshold or guard was written |
+
+The transaction is sent as written: a check guards against what happens
+between signing and inclusion (a sandwich, a swapped implementation), so
+nothing is checked before you sign. To see the checks run first, simulate:
+`sim:fork --on hegotaDevnet` runs POST_TX frames on both in-process backends.
+The simulation does not emit the EIP-7708 transfer logs the chain emits for
+ETH transfers, so a check that counts events can differ there.
+
 ## Limits
 
 - The sender is a frame account, or a plain address whose wallet signs type
@@ -351,8 +394,8 @@ networks when experimental features are on.
   one). Only the alt-mempool devnets have an alt mempool (elsewhere, and on
   a local node on the public one's id, `--mempool` defaults to `canonical`).
   Any other chain is refused by name.
-  The Hegota devnet runs POST_TX assertion frames, which `frames:tx` does
-  not write yet. The quick
+  The Hegota devnet runs POST_TX assertion frames (`post-verify`, above). The
+  quick
   devnet never mines, and admits one transaction per sender until it is
   restarted.
 

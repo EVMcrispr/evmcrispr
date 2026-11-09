@@ -29,6 +29,7 @@ import {
   frameOpcodes,
   type SimFrame,
 } from "./opcodes";
+import { buildTrace } from "./trace";
 
 /** Execution gas of a body frame written without `--gas`. */
 export const UNSIZED_GAS = 30_000_000n;
@@ -63,6 +64,7 @@ export async function simulateFrameAction(
   const profile = frameProfileOf(network.chain);
   const VERIFY = profile.frameModes.VERIFY!;
   const SENDER = profile.frameModes.SENDER!;
+  const POST_TX = profile.frameModes.POST_TX;
   const ATOMIC = profile.flagBits.ATOMIC_BATCH ?? 0;
   const ENTRY_POINT = getAddress(profile.entryPoint);
   const MODE_NAME: Record<number, string> = {
@@ -153,7 +155,7 @@ export async function simulateFrameAction(
         data: f.data,
         value: f.value,
         gas: UNSIZED_GAS,
-        isStatic: f.mode === VERIFY,
+        isStatic: f.mode === VERIFY || f.mode === POST_TX,
       });
       return { ...result, gasUsed: 0n };
     }
@@ -174,7 +176,7 @@ export async function simulateFrameAction(
       data: f.data,
       value: f.value,
       gas: f.gas - access,
-      isStatic: f.mode === VERIFY,
+      isStatic: f.mode === VERIFY || f.mode === POST_TX,
     });
     return { ...result, gasUsed: access + result.gasUsed };
   };
@@ -186,6 +188,8 @@ export async function simulateFrameAction(
     });
     let execution = false;
     let payer: Address | undefined;
+    /** The first POST_TX frame that failed, if one did. */
+    let failedCheck: number | undefined;
 
     // Every checkpoint opened, so that an error unwinds all of them.
     let open = 0;
@@ -249,11 +253,18 @@ export async function simulateFrameAction(
       // body creates moves the nonce on from there.
       await sim.setNonce(sender, (await sim.getNonce(sender)) + 1n);
 
+      // POST_TX frames (post-verify) are the transaction's last frames.
+      let bodyEnd = frames.length;
+      while (bodyEnd > prefix && frames[bodyEnd - 1]!.mode === POST_TX)
+        bodyEnd--;
+
       // 2. The body: a failed frame does not stop the next ones, unless it
-      //    is in an atomic group, which rolls back as a whole.
-      for (let i = prefix; i < frames.length; ) {
+      //    is in an atomic group, which rolls back as a whole. A failing
+      //    POST_TX frame reverts all of it: its checkpoint is the body's.
+      await checkpoint();
+      for (let i = prefix; i < bodyEnd; ) {
         let end = i;
-        while (end < frames.length - 1 && frames[end]!.flags & ATOMIC) end++;
+        while (end < bodyEnd - 1 && frames[end]!.flags & ATOMIC) end++;
         await checkpoint();
         const group: number[] = [];
         let failed: number | undefined;
@@ -290,7 +301,42 @@ export async function simulateFrameAction(
         i = end + 1;
       }
 
-      // 3. The fee: what the frames' gas used costs, taken from the payer.
+      // 3. The checks: POST_TX frames read what the body did (TXTRACE),
+      //    as static calls by the entry point. The first that fails reverts
+      //    the body; the checks after it do not run. The transaction stays:
+      //    the validation prefix and the fee are kept (measured on Hegota).
+      if (bodyEnd < frames.length) {
+        ctx.trace = buildTrace(
+          await sim.stateChanges(),
+          out.slice(0, bodyEnd).flatMap((f) => f.logs),
+        );
+        for (let j = bodyEnd; j < frames.length; j++) {
+          if (failedCheck !== undefined) {
+            out[j] = { status: "skipped", gasUsed: 0n, logs: [] };
+            ctx.statuses[j] = "skipped";
+            continue;
+          }
+          const result = await runFrame(j);
+          ctx.gasUsed[j] = result.gasUsed;
+          out[j] = {
+            status: result.success ? "success" : "reverted",
+            gasUsed: result.gasUsed,
+            logs: [],
+            error: result.error,
+          };
+          ctx.statuses[j] = out[j]!.status;
+          if (!result.success) failedCheck = j;
+        }
+      }
+      if (failedCheck === undefined) await commit();
+      else {
+        await revert();
+        // What the body emitted never happened.
+        for (let j = prefix; j < bodyEnd; j++)
+          if (out[j]) out[j] = { ...out[j]!, logs: [] };
+      }
+
+      // 4. The fee: what the frames' gas used costs, taken from the payer.
       //    One that cannot pay it makes the whole transaction invalid.
       if (fees) {
         const fee = out.reduce((sum, f) => sum + f.gasUsed, 0n) * fees.gasPrice;
@@ -318,6 +364,11 @@ export async function simulateFrameAction(
           `Frame ${i + 1} used ${frame.gasUsed} gas: give its call --gas ${(frame.gasUsed * 5n) / 4n + 5_000n} to send it`,
         );
     }
+    // Mined, its body reverted: the run stops here, as a send would.
+    if (failedCheck !== undefined)
+      throw new ErrorException(
+        `A post-verify check failed: post-verify frame ${failedCheck + 1} reverted, so the transaction's body was reverted (${sim.transactionHash})`,
+      );
     let logIndex = 0;
     return {
       status: "success",

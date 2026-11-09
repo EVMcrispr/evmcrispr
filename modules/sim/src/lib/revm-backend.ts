@@ -12,7 +12,14 @@ import {
   type SimOpcodeResult,
   unpaidFeeError,
 } from "@evmcrispr/sdk";
-import { custom, getAddress, keccak256, numberToHex } from "viem";
+import {
+  custom,
+  getAddress,
+  type Hex,
+  keccak256,
+  numberToHex,
+  pad,
+} from "viem";
 import {
   fetchForkBlock,
   resolveLatestBlockNumber,
@@ -414,6 +421,7 @@ export async function createRevmBackend(
       },
     };
     const ok = (json: string) => assertOk(JSON.parse(json));
+    let tracing = false;
     return {
       chainId,
       blockNumber: fork.blockNumber(),
@@ -472,7 +480,43 @@ export async function createRevmBackend(
         );
       },
       async checkpoint() {
+        // The first checkpoint is the transaction's start: what changes
+        // from here is what stateChanges() reports.
+        if (!tracing) {
+          tracing = true;
+          fork.startTrace();
+        }
         fork.checkpoint();
+      },
+      async stateChanges() {
+        const env = JSON.parse(fork.stateChanges()) as Envelope;
+        assertOk(env);
+        const value = (
+          env as unknown as {
+            value: {
+              balances: { address: Hex; before: Hex; after: Hex }[];
+              slots: { address: Hex; slot: Hex; before: Hex; after: Hex }[];
+              codes: { address: Hex; before: Hex; after: Hex }[];
+            };
+          }
+        ).value;
+        return {
+          balances: value.balances.map((b) => ({
+            address: getAddress(b.address),
+            before: BigInt(b.before),
+            after: BigInt(b.after),
+          })),
+          slots: value.slots.map((s) => ({
+            address: getAddress(s.address),
+            slot: s.slot,
+            before: pad(s.before),
+            after: pad(s.after),
+          })),
+          codes: value.codes.map((c) => ({
+            ...c,
+            address: getAddress(c.address),
+          })),
+        };
       },
       async commit() {
         ok(fork.commitCheckpoint());

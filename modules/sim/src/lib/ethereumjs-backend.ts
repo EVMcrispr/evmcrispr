@@ -20,6 +20,7 @@ import {
   isTransactionAction,
   type ModuleActionSimCtx,
   RevertError,
+  type SimStateChanges,
   unpaidFeeError,
 } from "@evmcrispr/sdk";
 import { custom, getAddress, type Hex, keccak256 } from "viem";
@@ -62,17 +63,76 @@ class ProofFreeStateManager extends RPCStateManager {
     this.recording.set(key, { address, before });
   }
 
+  /** Since a module action's first checkpoint: each account's balance and
+   *  code hash, and each slot's value, before their first write
+   *  (`stateChanges`). */
+  trace?: {
+    accounts: Map<
+      string,
+      { address: EthjsAddress; balance: bigint; code: Hex }
+    >;
+    slots: Map<string, { address: EthjsAddress; key: Uint8Array; before: Hex }>;
+  };
+
+  /** Slots whose value is being read for the trace. */
+  #reading = new Set<string>();
+
+  async #traceAccount(address: EthjsAddress) {
+    const key = address.toString();
+    if (!this.trace || this.trace.accounts.has(key)) return;
+    const account = await this.getAccount(address);
+    // The code itself, hashed: putCode caches code without updating the
+    // account's codeHash (a CREATE goes through putCode alone).
+    this.trace.accounts.set(key, {
+      address,
+      balance: account?.balance ?? 0n,
+      code: keccak256(await this.getCode(address)),
+    });
+  }
+
   override async putAccount(
     address: EthjsAddress,
     account?: Account,
   ): Promise<void> {
     await this.#record(address);
+    await this.#traceAccount(address);
     return super.putAccount(address, account);
   }
 
   override async deleteAccount(address: EthjsAddress): Promise<void> {
     await this.#record(address);
+    await this.#traceAccount(address);
     return super.deleteAccount(address);
+  }
+
+  override async putCode(
+    address: EthjsAddress,
+    value: Uint8Array,
+  ): Promise<void> {
+    await this.#traceAccount(address);
+    return super.putCode(address, value);
+  }
+
+  override async putStorage(
+    address: EthjsAddress,
+    key: Uint8Array,
+    value: Uint8Array,
+  ): Promise<void> {
+    const id = `${address.toString()}:${bytesToHex(key)}`;
+    // Reading the slot's value can itself store it (RPCStateManager caches
+    // what it fetches through putStorage): that store is not a write.
+    if (this.trace && !this.trace.slots.has(id) && !this.#reading.has(id)) {
+      this.#reading.add(id);
+      try {
+        const before = bytesToHex(
+          padToBytes32(await this.getStorage(address, key)),
+        ) as Hex;
+        this.trace.slots.set(id, { address, key, before });
+      } finally {
+        this.#reading.delete(id);
+      }
+    }
+    return super.putStorage(address, key, value);
   }
 
   override async getAccountFromProvider(
@@ -391,6 +451,7 @@ export async function createEthereumJSBackend(
     // The action starts with nothing warm, as a transaction does; its calls
     // then share what they warm (runCall keeps the journal's access sets).
     // The EVM's Journal (its interface type leaves the warm sets out).
+    let tracing = false;
     const journal = vm.evm.journal as unknown as {
       journalHeight: number;
       isWarmedAddress(address: Uint8Array): boolean;
@@ -433,7 +494,57 @@ export async function createEthereumJSBackend(
           error: error ? (opcodeSlot.failure ?? error.error) : undefined,
         };
       },
-      checkpoint: () => vm.evm.journal.checkpoint(),
+      checkpoint: () => {
+        // The first checkpoint is the transaction's start: what changes
+        // from here is what stateChanges() reports.
+        if (!tracing) {
+          tracing = true;
+          stateManager.trace = { accounts: new Map(), slots: new Map() };
+        }
+        return vm.evm.journal.checkpoint();
+      },
+      async stateChanges() {
+        const trace = stateManager.trace ?? {
+          accounts: new Map(),
+          slots: new Map(),
+        };
+        const order = (x: bigint, y: bigint) => (x < y ? -1 : x > y ? 1 : 0);
+        const byAddress = (a: { address: Hex }, b: { address: Hex }) =>
+          order(BigInt(a.address), BigInt(b.address));
+        const balances: SimStateChanges["balances"] = [];
+        const codes: SimStateChanges["codes"] = [];
+        for (const before of trace.accounts.values()) {
+          const now = await stateManager.getAccount(before.address);
+          const address = getAddress(before.address.toString());
+          const balance = now?.balance ?? 0n;
+          const code = keccak256(await stateManager.getCode(before.address));
+          if (balance !== before.balance)
+            balances.push({ address, before: before.balance, after: balance });
+          if (code !== before.code)
+            codes.push({ address, before: before.code, after: code });
+        }
+        const slots: SimStateChanges["slots"] = [];
+        for (const before of trace.slots.values()) {
+          const after = bytesToHex(
+            padToBytes32(
+              await stateManager.getStorage(before.address, before.key),
+            ),
+          ) as Hex;
+          if (after !== before.before)
+            slots.push({
+              address: getAddress(before.address.toString()),
+              slot: bytesToHex(padToBytes32(before.key)) as Hex,
+              before: before.before,
+              after,
+            });
+        }
+        balances.sort(byAddress);
+        codes.sort(byAddress);
+        slots.sort(
+          (a, b) => byAddress(a, b) || order(BigInt(a.slot), BigInt(b.slot)),
+        );
+        return { balances, slots, codes };
+      },
       commit: () => vm.evm.journal.commit(),
       revert: () => vm.evm.journal.revert(),
       async getNonce(a) {

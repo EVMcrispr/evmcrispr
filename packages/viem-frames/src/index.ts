@@ -45,6 +45,7 @@ export { ethrexHegotaDevnetProfile } from "./profiles";
 export {
   describeFrameTransaction,
   type FrameLogLevel,
+  FrameTransactionDroppedError,
   refusalText,
   sendFrameTransactionWithArbitrarySignature,
 } from "./send";

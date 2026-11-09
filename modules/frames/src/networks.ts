@@ -5,6 +5,7 @@
 import {
   altMempoolDevnet,
   eip8141TracerProfile,
+  frameProfileOf,
   hegotaDevnet,
   withFrames,
 } from "@evmcrispr/viem-frames";
@@ -81,6 +82,15 @@ export const frameNetworks: readonly FrameNetwork[] = [
     gas: HEGOTA_GAS,
   },
 ];
+
+/** Whether the network's client runs POST_TX frames (`post-verify`). */
+export function isPostTxNetwork(chainId: number): boolean {
+  const network = frameNetwork(chainId);
+  return (
+    network !== undefined &&
+    frameProfileOf(network.chain).frameModes.POST_TX !== undefined
+  );
+}
 
 export function frameNetwork(chainId: number): FrameNetwork | undefined {
   return frameNetworks.find((n) => n.chain.id === chainId);

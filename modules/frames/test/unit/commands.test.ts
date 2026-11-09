@@ -1,5 +1,6 @@
 import "../setup";
 import { describe, expect, it } from "bun:test";
+import { CORE_ADDRESS } from "@evmcrispr/sdk/onchain";
 import { TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import { createInterpreter } from "@evmcrispr/test-utils/evml";
 import { toFunctionSelector } from "viem";
@@ -279,5 +280,102 @@ tx (
     );
     expect(action.data.frames[1].target).toBeNull();
     expect(action.data.frames[2].target).toBe(TEST_ACCOUNT_ADDRESS);
+  });
+});
+
+describe("frame > post-verify", () => {
+  const HEGOTA = 3151908;
+  const LOAD = "load frames [tx post-verify verify default]";
+  const tx = (body: string) => `${LOAD}\ntx --gas 100000 (\n${body}\n)`;
+  const CHECKS = `  post-verify (\n    assert ${A2}::!{f()(uint256)} >= 1\n    exec ${A2} "g()" --gas 60000\n  )`;
+
+  it("its lines are the last frames, POST_TX frames with no state gas", async () => {
+    const [action] = await run(
+      tx(`  exec ${A1} "f()" --gas 50000\n${CHECKS}`),
+      HEGOTA,
+    );
+    const frames = action!.data.frames;
+    expect(frames.map((f) => f.mode)).toEqual([
+      "verify",
+      "sender",
+      "postTx",
+      "postTx",
+    ]);
+    expect(frames[2]!.target?.toLowerCase()).toBe(CORE_ADDRESS.toLowerCase());
+    expect(frames[2]!.gas).toBe(100_000n);
+    expect(frames[3]!.gas).toBe(60_000n);
+    for (const f of frames.slice(2)) {
+      expect(f.stateGas).toBe(0n);
+      expect(f.atomic).toBeUndefined();
+    }
+    expect(
+      action!.description.steps.slice(2).map((s) => s.label.split(" ·")[0]),
+    ).toEqual(["post-verify", "post-verify"]);
+  });
+
+  it("is refused where the network runs no POST_TX frames", async () => {
+    for (const chainId of [81412, 1337])
+      await expect(
+        run(tx(`  exec ${A1} "f()" --gas 50000\n${CHECKS}`), chainId),
+      ).rejects.toThrow("post-verify runs only on the Hegota devnet");
+  });
+
+  it("goes last, once, and holds at least one check", async () => {
+    for (const body of [
+      `${CHECKS}\n  exec ${A1} "f()" --gas 50000`,
+      `${CHECKS}\n${CHECKS}`,
+    ])
+      await expect(run(tx(body), HEGOTA)).rejects.toThrow(
+        "post-verify goes last in frames:tx, once",
+      );
+    await expect(
+      run(tx(`  exec ${A1} "f()"\n  post-verify (\n  )`), HEGOTA),
+    ).rejects.toThrow("post-verify needs at least one assert or exec");
+  });
+
+  it("holds only assert and exec", async () => {
+    for (const line of [
+      `send ${A1} --value 1`,
+      `batch (\n      exec ${A1} "f()"\n    )`,
+      `default (\n      exec ${A1} "f()"\n    )`,
+      `verify @me --approve both`,
+    ])
+      await expect(
+        run(
+          tx(`  exec ${A1} "f()"\n  post-verify (\n    ${line}\n  )`),
+          HEGOTA,
+        ),
+      ).rejects.toThrow("only assert and exec go inside post-verify");
+  });
+
+  it("cannot hide inside batch or default", async () => {
+    await expect(
+      run(
+        tx(
+          `  batch (\n    post-verify (\n      exec ${A2} "g()"\n    )\n    exec ${A1} "f()"\n  )`,
+        ),
+        HEGOTA,
+      ),
+    ).rejects.toThrow("post-verify goes last in frames:tx, once");
+    await expect(
+      run(
+        tx(
+          `  exec ${A1} "f()"\n  default (\n    post-verify (\n      exec ${A2} "g()"\n    )\n  )`,
+        ),
+        HEGOTA,
+      ),
+    ).rejects.toThrow("post-verify goes last in frames:tx, once");
+  });
+
+  it("only works inside frames:tx", async () => {
+    await expect(
+      run(`${LOAD}\npost-verify (\n  exec ${A1} "f()"\n)`, HEGOTA),
+    ).rejects.toThrow("post-verify only works inside frames:tx");
+  });
+
+  it("a plain assert in the body is still refused, pointing at post-verify", async () => {
+    await expect(
+      run(tx(`  assert ${A2}::!{f()(uint256)} >= 1`), HEGOTA),
+    ).rejects.toThrow("to check after everything, write it inside post-verify");
   });
 });

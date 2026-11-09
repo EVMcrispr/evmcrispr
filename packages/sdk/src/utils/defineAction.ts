@@ -57,6 +57,16 @@ export interface SimOpcode {
   }): SimOpcodeResult;
 }
 
+/** What a transaction changed, net: each value as it was before its first
+ *  change, and as it is now; only those that differ. Each list is sorted
+ *  ascending by address (slots then by slot). */
+export interface SimStateChanges {
+  balances: { address: Address; before: bigint; after: bigint }[];
+  slots: { address: Address; slot: Hex; before: Hex; after: Hex }[];
+  /** Code hashes. */
+  codes: { address: Address; before: Hex; after: Hex }[];
+}
+
 /** What a simulation backend gives a module action's `simulate`. */
 export interface ModuleActionSimCtx {
   chainId: number;
@@ -77,6 +87,9 @@ export interface ModuleActionSimCtx {
   checkpoint(): Promise<void>;
   commit(): Promise<void>;
   revert(): Promise<void>;
+  /** The net changes since the first `checkpoint()` made through this
+   *  context (what a POST_TX frame's TXTRACE reads). */
+  stateChanges(): Promise<SimStateChanges>;
   getNonce(address: Address): Promise<bigint>;
   setNonce(address: Address, nonce: bigint): Promise<void>;
   getBalance(address: Address): Promise<bigint>;

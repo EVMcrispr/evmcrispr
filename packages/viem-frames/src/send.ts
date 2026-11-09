@@ -243,6 +243,56 @@ export function logFees(
   return payer;
 }
 
+/** A transaction the node admitted, then lost without mining it. */
+export class FrameTransactionDroppedError extends Error {
+  constructor(readonly hash: Hash) {
+    super(
+      `${hash} was dropped: the node no longer has it and it was not mined`,
+    );
+    this.name = "FrameTransactionDroppedError";
+  }
+}
+
+/** How often the node is asked for a receipt, and whether it still has
+ *  the transaction. */
+const RECEIPT_POLL_MS = 2_000;
+
+/**
+ * The receipt, or `FrameTransactionDroppedError` once the node, having had
+ * the transaction, answers twice in a row that it has neither the receipt
+ * nor the transaction, or
+ * viem's timeout error after `timeoutMs`.
+ */
+async function receiptOrDrop(
+  gateway: FrameClient,
+  hash: Hash,
+  timeoutMs: number,
+): Promise<FrameTransactionReceipt> {
+  const until = Date.now() + timeoutMs;
+  // Missing counts only once the node has had it: until then an alt
+  // mempool may still be holding it.
+  let seen = false;
+  let missing = 0;
+  for (;;) {
+    const receipt = (await gateway
+      .request({ method: "eth_getTransactionReceipt", params: [hash] } as never)
+      .catch(() => null)) as unknown;
+    if (receipt)
+      return (await gateway.getTransactionReceipt({
+        hash,
+      })) as FrameTransactionReceipt;
+    const tx = await gateway
+      .request({ method: "eth_getTransactionByHash", params: [hash] } as never)
+      .catch(() => undefined);
+    if (tx) seen = true;
+    missing = seen && tx === null ? missing + 1 : 0;
+    if (missing >= 2) throw new FrameTransactionDroppedError(hash);
+    if (Date.now() >= until)
+      throw new WaitForTransactionReceiptTimeoutError({ hash });
+    await new Promise((r) => setTimeout(r, RECEIPT_POLL_MS));
+  }
+}
+
 /**
  * Submits a signed frame transaction to the alt mempool (the sidecar's
  * `eth_sendFrameTransaction`, JSON) or the canonical one (raw bytes), checks
@@ -322,11 +372,9 @@ export async function submitFrameTransaction({
 
   let receipt: FrameTransactionReceipt;
   try {
-    receipt = (await gateway.waitForTransactionReceipt({
-      hash: expected,
-      timeout: receiptTimeoutMs,
-    })) as FrameTransactionReceipt;
+    receipt = await receiptOrDrop(gateway, expected, receiptTimeoutMs);
   } catch (error) {
+    if (error instanceof FrameTransactionDroppedError) throw error;
     if (error instanceof WaitForTransactionReceiptTimeoutError)
       throw new Error(
         `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the sender would reuse its nonce.${explorer ? ` ${explorer}` : ""}`,

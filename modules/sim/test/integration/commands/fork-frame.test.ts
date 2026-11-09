@@ -40,7 +40,7 @@ for (const backend of BACKENDS) {
       // It says what it refuses (the module's own title for it) and why.
       await expect(refused).rejects.toThrow(
         backend.name !== "anvil"
-          ? /Frame transactions run on the Alt-mempool devnet, the Frames quick devnet or the Frames mining devnet, not on Gnosis: fork one of them to simulate this one/
+          ? /Frame transactions run on the Alt-mempool devnet, the Frames quick devnet, the Frames mining devnet, the Frames alt-mempool devnet or the Hegota devnet, not on Gnosis: fork one of them to simulate this one/
           : /sim:fork simulates "Frame transaction from 0x[0-9a-fA-F]{40}" \(a frame action of the frames module\) only on an in-process backend: write --using ethereumjs or --using revm/,
       );
     }, 120000);

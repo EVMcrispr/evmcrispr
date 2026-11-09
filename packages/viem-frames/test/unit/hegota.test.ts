@@ -85,4 +85,22 @@ describe("the Hegota devnet", () => {
     expect(decoded.fees.maxPriorityFeePerGas).toBe(1n);
     expect(decoded.frames[1]!.flags).toBe(0x4);
   });
+
+  test("a postTx frame takes the profile's POST_TX mode; a profile without it refuses", () => {
+    const post: FrameSpecLike[] = [
+      ...frames,
+      {
+        mode: "postTx",
+        target: DEAD,
+        data: "0x",
+        value: 0n,
+        gas: 50_000n,
+        stateGas: 0n,
+      },
+    ];
+    expect(toFrameRequests(post, ethrexHegotaDevnetProfile)[3]!.mode).toBe(3);
+    expect(() => toFrameRequests(post, eip8141TracerProfile)).toThrow(
+      "The frame profile has no postTx mode",
+    );
+  });
 });

@@ -2,7 +2,7 @@ use revm::context::result::{EVMError, ExecutionResult};
 use revm::context::{BlockEnv, CfgEnv, TxEnv};
 use revm::database::CacheDB;
 use revm::primitives::hardfork::SpecId;
-use revm::primitives::{hex, Address, Bytes, TxKind, B256, U256};
+use revm::primitives::{hex, Address, Bytes, TxKind, B256, KECCAK_EMPTY, U256};
 use revm::state::{AccountInfo, Bytecode};
 use revm::{Context, Database, DatabaseCommit, ExecuteEvm, MainBuilder, MainContext};
 use serde::Deserialize;
@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 
 use revm::context_interface::transaction::{AccessList, AccessListItem};
-use revm::database::DbAccount;
+use revm::database::{AccountState, DbAccount};
 use revm::interpreter::Instruction;
 use revm::InspectEvm;
 use revm::context_interface::Transaction;
@@ -95,6 +95,17 @@ pub struct Fork {
     /// Open checkpoints, innermost last: each account's cached state before
     /// the first change made under it.
     checkpoints: Vec<HashMap<Address, Option<DbAccount>>>,
+    /// What changed since `start_trace`, each value as it was before its
+    /// first change: what a transaction's POST_TX frames read (TXTRACE).
+    trace: Option<TraceRecord>,
+}
+
+#[derive(Default)]
+struct TraceRecord {
+    /// Balance and code hash before the account's first change.
+    accounts: HashMap<Address, (U256, B256)>,
+    /// A slot's value before its first change.
+    slots: HashMap<(Address, U256), U256>,
 }
 
 impl Fork {
@@ -113,6 +124,7 @@ impl Fork {
             timestamp_offset: 0,
             base_fee,
             checkpoints: Vec::new(),
+            trace: None,
         }
     }
 
@@ -135,9 +147,111 @@ impl Fork {
             .filter(|(_, a)| a.is_touched())
             .map(|(addr, _)| *addr)
             .collect();
-        for address in touched {
-            self.record(address);
+        for address in &touched {
+            self.record(*address);
         }
+        if let Some(trace) = self.trace.as_mut() {
+            for address in touched {
+                // The cache still holds the account as it was before this
+                // change (the commit comes after).
+                let before = self
+                    .db
+                    .cache
+                    .accounts
+                    .get(&address)
+                    .map(|a| (a.info.balance, a.info.code_hash))
+                    .unwrap_or((U256::ZERO, KECCAK_EMPTY));
+                trace.accounts.entry(address).or_insert(before);
+                for (slot, value) in &state[&address].storage {
+                    if value.is_changed() {
+                        trace
+                            .slots
+                            .entry((address, *slot))
+                            .or_insert(value.original_value);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Starts recording what changes, for `state_changes`.
+    pub fn start_trace(&mut self) {
+        self.trace = Some(TraceRecord::default());
+    }
+
+    /// The net changes since `start_trace`, each list sorted ascending by
+    /// address (slots then by slot): balances, slots and code hashes whose
+    /// value now differs from before their first change.
+    pub fn state_changes(&self) -> String {
+        let Some(trace) = &self.trace else {
+            return error_env("no trace started");
+        };
+        let now = |address: &Address| {
+            self.db
+                .cache
+                .accounts
+                .get(address)
+                .map(|a| (a.info.balance, a.info.code_hash))
+                .unwrap_or((U256::ZERO, KECCAK_EMPTY))
+        };
+        let mut addresses: Vec<&Address> = trace.accounts.keys().collect();
+        addresses.sort();
+        let mut balances = Vec::new();
+        let mut codes = Vec::new();
+        for address in addresses {
+            let (balance, code) = trace.accounts[address];
+            let (balance_now, code_now) = now(address);
+            if balance != balance_now {
+                balances.push(json!({
+                    "address": addr_hex(address),
+                    "before": u256_hex(balance),
+                    "after": u256_hex(balance_now),
+                }));
+            }
+            if code != code_now {
+                codes.push(json!({
+                    "address": addr_hex(address),
+                    "before": format!("{code:?}"),
+                    "after": format!("{code_now:?}"),
+                }));
+            }
+        }
+        let mut keys: Vec<&(Address, U256)> = trace.slots.keys().collect();
+        keys.sort();
+        let mut slots = Vec::new();
+        for key in keys {
+            let before = trace.slots[key];
+            // A slot the cache no longer holds was put back by a reverted
+            // checkpoint (its account's snapshot predates reading it): it is
+            // unchanged, unless the account's storage was cleared.
+            let after = match self.db.cache.accounts.get(&key.0) {
+                Some(account) => match account.storage.get(&key.1) {
+                    Some(value) => *value,
+                    None if matches!(
+                        account.account_state,
+                        AccountState::StorageCleared | AccountState::NotExisting
+                    ) =>
+                    {
+                        U256::ZERO
+                    }
+                    None => before,
+                },
+                None => before,
+            };
+            if before != after {
+                slots.push(json!({
+                    "address": addr_hex(&key.0),
+                    "slot": format!("{:#066x}", key.1),
+                    "before": u256_hex(before),
+                    "after": u256_hex(after),
+                }));
+            }
+        }
+        json!({
+            "kind": "value",
+            "value": { "balances": balances, "slots": slots, "codes": codes },
+        })
+        .to_string()
     }
 
     pub fn checkpoint(&mut self) {

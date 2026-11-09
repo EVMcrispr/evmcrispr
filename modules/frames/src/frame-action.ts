@@ -5,7 +5,8 @@ import type { Address } from "viem";
  * One frame of an EIP-8141 frame transaction, as `frames:tx` lays it out.
  */
 export interface FrameSpec {
-  mode: "verify" | "sender" | "default";
+  /** `postTx`: a POST_TX frame (`post-verify`), on networks that run them. */
+  mode: "verify" | "sender" | "default" | "postTx";
   /** What a verify frame approves. */
   approve?: "execution" | "payment" | "both";
   /** ATOMIC_BATCH_FLAG: this frame and the next run atomically. */

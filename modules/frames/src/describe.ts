@@ -45,7 +45,7 @@ function steps({ from, data }: Described): ModuleActionDescription["steps"] {
     const atomic = frame.atomic ? ", atomic with the next frame" : "";
     const state = index < prefix ? "0" : limit(frame.stateGas);
     return {
-      label: `${frame.mode}${scope}${self}${atomic} · gas ${limit(frame.gas)}, state gas ${state}`,
+      label: `${frame.mode === "postTx" ? "post-verify" : frame.mode}${scope}${self}${atomic} · gas ${limit(frame.gas)}, state gas ${state}`,
       call: { to: frame.target ?? from, data: frame.data, value: frame.value },
     };
   });

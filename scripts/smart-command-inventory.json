@@ -622,6 +622,9 @@
   "frames/new-sponsor": {
     "kind": "incompatible"
   },
+  "frames/post-verify": {
+    "kind": "incompatible"
+  },
   "frames/tx": {
     "kind": "incompatible"
   },

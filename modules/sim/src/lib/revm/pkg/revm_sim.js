@@ -410,6 +410,28 @@ export class RevmFork {
             wasm.__wbindgen_export4(deferred4_0, deferred4_1, 1);
         }
     }
+    startTrace() {
+        wasm.revmfork_startTrace(this.__wbg_ptr);
+    }
+    /**
+     * @returns {string}
+     */
+    stateChanges() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+            wasm.revmfork_stateChanges(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            deferred1_0 = r0;
+            deferred1_1 = r1;
+            return getStringFromWasm0(r0, r1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export4(deferred1_0, deferred1_1, 1);
+        }
+    }
     /**
      * @param {string} tx_json
      * @returns {string}

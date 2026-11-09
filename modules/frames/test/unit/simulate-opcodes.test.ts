@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { SimOpcode } from "@evmcrispr/sdk";
-import { eip8141TracerProfile as profile } from "@evmcrispr/viem-frames";
+import {
+  ethrexHegotaDevnetProfile,
+  eip8141TracerProfile as profile,
+} from "@evmcrispr/viem-frames";
 import { pad } from "viem";
 import { type FrameContext, frameOpcodes } from "../../src/simulate/opcodes";
 
@@ -137,5 +140,28 @@ describe("the frame opcodes, simulated", () => {
     expect(run(ctx, "SIGPARAM", [1n, 0n])).toMatchObject({
       fail: expect.any(String),
     });
+  });
+
+  test("TXTRACE exists only where POST_TX frames do, and only answers inside one once the body ran", () => {
+    expect(frameOpcodes(context()).some((o) => o.opcode === 0xb6)).toBe(false);
+    const ctx = { ...context(), profile: ethrexHegotaDevnetProfile };
+    const txtrace = frameOpcodes(ctx).find((o) => o.opcode === 0xb6)!;
+    const ask = () =>
+      txtrace.run({ address: SENDER, operands: [0n, 0n], isStatic: true });
+    // Frame 0 is a VERIFY frame.
+    expect(ask()).toMatchObject({ fail: "TXTRACE outside a POST_TX frame" });
+    ctx.frames = [
+      ...ctx.frames,
+      {
+        ...ctx.frames[0]!,
+        mode: ethrexHegotaDevnetProfile.frameModes.POST_TX!,
+      },
+    ];
+    ctx.current = ctx.frames.length - 1;
+    expect(ask()).toMatchObject({
+      fail: "TXTRACE before the transaction's body ran",
+    });
+    ctx.trace = { balances: [], slots: [], codes: [], events: [] };
+    expect(ask()).toEqual({ push: 0n });
   });
 });

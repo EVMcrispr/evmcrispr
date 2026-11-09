@@ -226,9 +226,12 @@ export const plainAction = ({
 export function frameWallet({
   chainId = 1337,
   refuses,
+  profile: signing = profile,
 }: {
   chainId?: number;
   refuses?: string;
+  /** The chain's profile (the Hegota devnet's has POST_TX). */
+  profile?: typeof profile;
 } = {}): {
   wallet: WalletClient;
   asked: { method: string; params: any }[];
@@ -243,8 +246,8 @@ export function frameWallet({
         if (method === "eth_accounts") return [OWNER.address];
         if (method === "eth_signTransaction") {
           if (refuses) throw new Error(refuses);
-          const tx = parseFrameTransactionRequest(params[0], profile);
-          return encodeTx(profile, await signTx(profile, tx, OWNER_KEY));
+          const tx = parseFrameTransactionRequest(params[0], signing);
+          return encodeTx(signing, await signTx(signing, tx, OWNER_KEY));
         }
         throw new Error(`unexpected ${method}`);
       },
@@ -258,9 +261,14 @@ export function frameWallet({
 export function frameNode({
   chainId,
   mines = true,
+  status = "0x1",
+  frameStatuses = [],
 }: {
   chainId: number;
   mines?: boolean;
+  /** The mined receipt's status, and its frames'. */
+  status?: Hex;
+  frameStatuses?: Hex[];
 }) {
   const calls: { method: string; params: any }[] = [];
   let sent: Hash | undefined;
@@ -291,7 +299,7 @@ export function frameNode({
           return mines && sent
             ? {
                 type: "0x6",
-                status: "0x1",
+                status,
                 blockHash: `0x${"11".repeat(32)}`,
                 blockNumber: "0x10",
                 transactionHash: params[0],
@@ -305,7 +313,12 @@ export function frameNode({
                 logs: [],
                 logsBloom: `0x${"00".repeat(256)}`,
                 payer: OWNER.address,
-                frameReceipts: [],
+                frameReceipts: frameStatuses.map((s) => ({
+                  status: s,
+                  gasUsed: "0x0",
+                  stateGasUsed: "0x0",
+                  logs: [],
+                })),
               }
             : null;
         default:

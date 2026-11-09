@@ -39,6 +39,12 @@ export default defineCommand<Frames>({
       throw new ErrorException(
         "verify cannot go inside default: a VERIFY frame is its own mode, so write it outside the default block.",
       );
+    // A check marked by post-verify stays one: default would make it a body
+    // call by the entry point.
+    if (calls.some((call) => frameMarkOf(call)?.mode === "postTx"))
+      throw new ErrorException(
+        "post-verify goes last in frames:tx, once: write it as the block's last statement, not inside a default block",
+      );
     for (const call of calls) markFrame(call, { mode: "default" });
     return actions;
   },

@@ -5,6 +5,7 @@ import {
   encodeErrorResult,
   getAddress,
   getContractAddress,
+  keccak256,
   type PublicClient,
   parseAbi,
 } from "viem";
@@ -789,6 +790,58 @@ export function describeBackendSuite(
         expect(sim.baseFee).toBe(baseFee);
         await sim.setBalance(CALLER, 12345n);
         expect(await sim.getBalance(CALLER)).toBe(12345n);
+      });
+
+      it("reports the net state changes since its first checkpoint, sorted", async () => {
+        // SSTORE(0, calldata word 0); value goes with the call.
+        const sim = await host("0x5f355f5500");
+        await sim.checkpoint();
+        const store = (n: number) =>
+          sim.call({
+            caller: CALLER,
+            to: TARGET,
+            data: word(n),
+            value: 0n,
+            gas: 100_000n,
+            isStatic: false,
+          });
+        expect((await call(sim, { to: DEAD, value: 4n })).success).toBe(true);
+        expect((await store(1)).success).toBe(true);
+        expect((await store(2)).success).toBe(true);
+        const changes = await sim.stateChanges();
+        const lower = (a: string) => a.toLowerCase();
+        expect(changes.balances.map((b) => lower(b.address))).toEqual(
+          [lower(DEAD), lower(CALLER)].sort(),
+        );
+        const dead = changes.balances.find(
+          (b) => lower(b.address) === lower(DEAD),
+        )!;
+        expect(dead.after - dead.before).toBe(4n);
+        expect(changes.slots).toHaveLength(1);
+        expect(lower(changes.slots[0]!.address)).toBe(lower(TARGET));
+        expect(BigInt(changes.slots[0]!.slot)).toBe(0n);
+        expect(BigInt(changes.slots[0]!.after)).toBe(2n);
+        expect(changes.codes).toEqual([]);
+        await sim.commit();
+      });
+
+      it("reports a contract created since its first checkpoint, by its code hash", async () => {
+        const sim = await host("0x00");
+        await sim.checkpoint();
+        // The CREATE2 deployer: salt ‖ init code.
+        const created = await sim.call({
+          caller: CALLER,
+          to: "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+          data: `0x${"00".repeat(31)}07${INITCODE.slice(2)}`,
+          value: 0n,
+          gas: 1_000_000n,
+          isStatic: false,
+        });
+        expect(created.success).toBe(true);
+        const changes = await sim.stateChanges();
+        expect(changes.codes).toHaveLength(1);
+        expect(changes.codes[0]!.after).toBe(keccak256(RUNTIME));
+        await sim.commit();
       });
 
       it("a call leaves the caller's nonce; setNonce sets it", async () => {

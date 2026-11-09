@@ -90,9 +90,11 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
   const grouped = new Set<number>();
 
   const toFrame = (action: TransactionAction, pos: number): FrameSpec => {
-    if (action.readOnly)
+    const mark = frameMarkOf(action);
+    // A post-verify frame is a static call: a read (an assert) is what it is.
+    if (action.readOnly && mark?.mode !== "postTx")
       throw new ErrorException(
-        `Action ${pos} is read-only: a frame transaction only carries calls that are sent, so write it as a plain call or move the read out of the block.`,
+        `Action ${pos} is read-only: a frame transaction only carries calls that are sent, so write it as a plain call or move the read out of the block: to check after everything, write it inside post-verify.`,
       );
     if (action.from && !same(action.from, sender))
       throw new ErrorException(
@@ -106,7 +108,6 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
       throw new ErrorException(
         `Action ${pos} has no recipient: deployments are not supported in a frame transaction, so deploy outside the block.`,
       );
-    const mark = frameMarkOf(action);
     const spec: FrameSpec = {
       mode: mark?.mode ?? "sender",
       target: same(action.to, sender) ? null : action.to,
@@ -188,6 +189,20 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
       },
     ];
   }
+  // POST_TX frames are the transaction's last, outside any atomic group:
+  // post-verify nested in a batch or a default block would put one mid-body.
+  const firstCheck = written.findIndex((f) => f.mode === "postTx");
+  if (
+    firstCheck >= 0 &&
+    written.some(
+      (f, i) =>
+        (i > firstCheck && f.mode !== "postTx") ||
+        (f.mode === "postTx" && grouped.has(i)),
+    )
+  )
+    throw new ErrorException(
+      "post-verify goes last in frames:tx, once: write it as the block's last statement, not inside a batch or a default block",
+    );
   const frames = [...generated, ...written];
   const shift = generated.length;
   const isGrouped = (i: number) => grouped.has(i - shift);
@@ -264,7 +279,9 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
       return {
         ...f,
         gas: f.gas ?? input.gas,
-        stateGas: input.stateGas ?? DEFAULT_STATE_GAS,
+        // A POST_TX frame is a static call: it grows no state.
+        stateGas:
+          f.mode === "postTx" ? 0n : (input.stateGas ?? DEFAULT_STATE_GAS),
       };
     return f;
   });

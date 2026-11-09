@@ -102,6 +102,15 @@ export async function sendFrameAction(
         throw error;
       });
   ctx.onSent?.(hash);
+  // A post-verify check that failed on the chain: the transaction is mined,
+  // its body reverted (measured on the Hegota devnet). Said by the check.
+  const failed = receipt?.frameReceipts?.findIndex(
+    (frame, i) => frames[i]?.mode === "postTx" && frame.status !== "success",
+  );
+  if (failed !== undefined && failed >= 0)
+    throw new Error(
+      `A post-verify check failed: post-verify frame ${failed + 1} reverted, so the transaction's body was reverted (${hash})`,
+    );
   // Admitted and never mined: the run records it as queued, not confirmed.
   return (
     receipt ?? {

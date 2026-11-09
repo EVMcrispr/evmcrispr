@@ -7,7 +7,8 @@ import type { FrameRequest, Profile } from "./types";
  * numbers.
  */
 export interface FrameSpecLike {
-  mode: "verify" | "sender" | "default";
+  /** `postTx`: an EIP-7906 POST_TX frame, on a profile that has the mode. */
+  mode: "verify" | "sender" | "default" | "postTx";
   /** What a verify frame approves. */
   approve?: "execution" | "payment" | "both" | undefined;
   /** ATOMIC_BATCH_FLAG: this frame and the next run atomically. */
@@ -26,6 +27,7 @@ const MODES = {
   verify: "VERIFY",
   sender: "SENDER",
   default: "DEFAULT",
+  postTx: "POST_TX",
 } as const;
 const SCOPES = {
   execution: "EXECUTION",

@@ -21,6 +21,11 @@ const BOX = "0x000000000000000000000000000000000000b0c5";
 const BOX_CODE = "0x36600414600d576004355f55005b5f545f5260205ff3";
 const CREATE2_DEPLOYER = "0x4e59b44847b379578588920ca78fbf26c0b4956c";
 const SEVEN_INIT: Hex = "0x6760075f5260205ff35f5260086018f3";
+// Reverts unless TXTRACE(param, index) >= minimum, read after a selector
+// (`check(uint256 param, uint256 index, uint256 minimum)`); the index is
+// TXTRACE's top operand on the Hegota devnet.
+const AT_LEAST = "0x00000000000000000000000000000000000c4ec5";
+const AT_LEAST_CODE = "0x600435602435b660443511156012575f5ffd5b00";
 // The deployer reverts when the init code it runs reverts.
 const REVERTS = `exec ${CREATE2_DEPLOYER} "f()" --gas 100000`;
 
@@ -46,7 +51,7 @@ afterAll(() => anvil?.kill());
 const run = async (using: string, body: string[]) => {
   const script = [
     "load sim",
-    "load frames [tx verify default new-account new-sponsor]",
+    "load frames [tx verify default new-account new-sponsor post-verify]",
     `sim:fork --using ${using} --on hegotaDevnet (`,
     "  sim:set-balance @me 10e18",
     ...body.map((line) => `  ${line}`),
@@ -126,6 +131,37 @@ for (const using of BACKENDS) {
         `sim:expect @bool(@get(${BOX} "get()(uint256)") == 5)`,
         "sim:expect @bool(@balance(ETH @me) < $before)",
       ]);
+    }, 120_000);
+
+    it("a post-verify check reads the transaction's trace; one that holds keeps the body", async () => {
+      await run(using, [
+        `sim:set-code ${AT_LEAST} ${AT_LEAST_CODE}`,
+        "tx (",
+        `  send ${DEAD} --value 1 --gas 50000`,
+        "  post-verify (",
+        // BALANCE_COUNT >= 2: the sender and the recipient.
+        `    exec ${AT_LEAST} "check(uint256,uint256,uint256)" 0 0 2 --gas 100000`,
+        "  )",
+        ")",
+        `sim:expect @bool(@balance(ETH ${DEAD}) == 1)`,
+      ]);
+    }, 120_000);
+
+    it("a post-verify check that fails stops the run, as a send would, naming it", async () => {
+      await expect(
+        run(using, [
+          `sim:set-code ${AT_LEAST} ${AT_LEAST_CODE}`,
+          "tx (",
+          `  send ${DEAD} --value 1 --gas 50000`,
+          "  post-verify (",
+          // STORAGE_COUNT >= 1: nothing was written.
+          `    exec ${AT_LEAST} "check(uint256,uint256,uint256)" 1 0 1 --gas 100000`,
+          "  )",
+          ")",
+        ]),
+      ).rejects.toThrow(
+        "A post-verify check failed: post-verify frame 3 reverted, so the transaction's body was reverted",
+      );
     }, 120_000);
   });
 }

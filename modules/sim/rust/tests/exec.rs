@@ -358,3 +358,60 @@ fn a_max_fee_below_the_base_fee_is_refused() {
     let env = parse(f.transact(&tx_json));
     assert_eq!(env["kind"], "error", "{env}");
 }
+
+#[test]
+fn state_changes_since_the_trace_started_are_net_and_sorted() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    seed_eoa(&mut f, BOB, "0x0");
+    // Stores calldata word 0 at slot 0.
+    seed_contract(&mut f, CONTRACT, "0x5f355f5500");
+    assert_eq!(parse(f.insert_storage(CONTRACT, "0x0", "0x0"))["kind"], "ok");
+    f.start_trace();
+    let send = format!(r#"{{"from":"{ALICE}","to":"{BOB}","value":"0x4"}}"#);
+    assert_eq!(parse(f.transact(&send))["kind"], "success");
+    for word in ["01", "02"] {
+        let tx_json = tx(ALICE, CONTRACT, &format!("0x{:0>64}", word));
+        assert_eq!(parse(f.transact(&tx_json))["kind"], "success");
+    }
+    let changes = parse(f.state_changes());
+    assert_eq!(changes["kind"], "value", "{changes}");
+    let v = &changes["value"];
+    let balances = v["balances"].as_array().unwrap();
+    assert_eq!(balances.len(), 2, "{v}");
+    // Ascending by address: ALICE (…01) before BOB (…02).
+    assert_eq!(balances[0]["address"], ALICE.to_lowercase());
+    assert_eq!(balances[0]["before"], ONE_ETH);
+    assert_eq!(balances[1]["address"], BOB.to_lowercase());
+    assert_eq!(balances[1]["after"], "0x4");
+    let slots = v["slots"].as_array().unwrap();
+    assert_eq!(slots.len(), 1, "{v}");
+    assert_eq!(slots[0]["address"], CONTRACT.to_lowercase());
+    assert_eq!(slots[0]["before"], "0x0");
+    assert_eq!(slots[0]["after"], "0x2");
+    assert_eq!(v["codes"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn a_slot_first_read_inside_a_reverted_checkpoint_is_not_reported_changed() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    // Stores calldata word 1 at the slot calldata word 0 names.
+    seed_contract(&mut f, CONTRACT, "0x6020355f355500");
+    assert_eq!(parse(f.insert_storage(CONTRACT, "0x64", "0x0"))["kind"], "ok");
+    f.start_trace();
+    f.checkpoint();
+    f.checkpoint();
+    let store = |slot: &str, value: &str| {
+        tx(ALICE, CONTRACT, &format!("0x{:0>64}{:0>64}", slot, value))
+    };
+    // Slot 100 first: the account's snapshot is taken here, without slot 0.
+    assert_eq!(parse(f.transact(&store("64", "1")))["kind"], "success");
+    // Slot 0 is not cached yet: a miss, answered with its upstream value.
+    assert_eq!(parse(f.transact(&store("0", "2")))["kind"], "misses");
+    assert_eq!(parse(f.insert_storage(CONTRACT, "0x0", "0x5"))["kind"], "ok");
+    assert_eq!(parse(f.transact(&store("0", "2")))["kind"], "success");
+    assert_eq!(parse(f.revert_checkpoint())["kind"], "ok");
+    let changes = parse(f.state_changes());
+    assert_eq!(changes["value"]["slots"], serde_json::json!([]), "{changes}");
+}
