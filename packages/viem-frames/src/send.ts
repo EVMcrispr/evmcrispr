@@ -387,10 +387,24 @@ export async function submitFrameTransaction({
     `Frame transaction ${expected} mined in block ${printable(receipt.blockNumber)}, paid by ${receipt.payer === undefined ? "an unknown payer" : printable(receipt.payer)}`,
     "success",
   );
+  // A POST_TX frame that reverted rolls back every frame but the
+  // validation prefix (EIP-7906), whose receipts still read success.
+  const postTx = profile.frameModes.POST_TX;
+  const modeOf = (i: number) => signed.frames[i]?.mode;
+  const rolledBack =
+    postTx !== undefined &&
+    (receipt.frameReceipts ?? []).some(
+      (frame, i) => modeOf(i) === postTx && frame.status !== "success",
+    );
   receipt.frameReceipts?.forEach((frame, i) => {
+    const undone =
+      rolledBack &&
+      frame.status === "success" &&
+      modeOf(i) !== postTx &&
+      modeOf(i) !== profile.frameModes.VERIFY;
     onLog?.(
-      `Frame ${i + 1}: ${printable(frame.status)}`,
-      frame.status === "success" ? "success" : "warning",
+      `Frame ${i + 1}: ${printable(frame.status)}${undone ? ", then rolled back (a POST_TX frame reverted)" : ""}`,
+      frame.status === "success" && !undone ? "success" : "warning",
     );
   });
   return { hash: expected, receipt };

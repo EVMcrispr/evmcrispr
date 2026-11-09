@@ -22,7 +22,7 @@ import {
   toFrameRequests,
 } from "@evmcrispr/viem-frames";
 import { type Address, getAddress, isAddressEqual, zeroAddress } from "viem";
-import type { FrameModuleAction } from "../frame-action";
+import { type FrameModuleAction, postVerifyCheckName } from "../frame-action";
 import { frameNetwork, frameNetworkNames } from "../networks";
 import { frameTxGas } from "./intrinsic";
 
@@ -485,7 +485,7 @@ export async function simulateFrameAction(
     // Mined, its body reverted: the run stops here, as a send would.
     if (failedCheck !== undefined)
       throw new ErrorException(
-        `A post-verify check failed: post-verify frame ${failedCheck + 1} reverted, so the transaction's body was reverted (${sim.transactionHash})`,
+        `A post-verify check failed: ${postVerifyCheckName(specs, failedCheck)} reverted, so the transaction's body was reverted (${sim.transactionHash})`,
       );
     let logIndex = 0;
     return {

@@ -19,6 +19,19 @@ export interface FrameSpec {
   gas?: bigint;
   /** limits.state */
   stateGas?: bigint;
+  /** A post-verify frame's check: its line in the script. */
+  line?: number;
+}
+
+/** How a failed post-verify frame is named: by its check's line. */
+export function postVerifyCheckName(
+  frames: FrameSpec[],
+  index: number,
+): string {
+  const line = frames[index]?.line;
+  return line === undefined
+    ? `post-verify frame ${index + 1}`
+    : `the check on line ${line}`;
 }
 
 /** What `frames:tx` hands the module to send: the frames, the mempool,

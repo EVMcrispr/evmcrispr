@@ -5,6 +5,7 @@ import { custom, defineChain, type Hex, keccak256 } from "viem";
 import {
   type FrameSpecLike,
   FrameTransactionDroppedError,
+  hegotaDevnet,
   sendFrameTransactionWithArbitrarySignature,
   toFrameRequests,
 } from "../../src";
@@ -174,7 +175,7 @@ const LOCAL = defineChain({
 });
 
 /** A plain node: fees come from its blocks; it has no skandha_* methods. */
-function node() {
+function node(receipt: (hash: Hex) => unknown = RECEIPT) {
   const calls: { method: string; params: any }[] = [];
   let sentHash: Hex | undefined;
   const transport = custom({
@@ -203,7 +204,7 @@ function node() {
           sentHash = keccak256(params[0]);
           return sentHash;
         case "eth_getTransactionReceipt":
-          return sentHash ? RECEIPT(sentHash) : null;
+          return sentHash ? receipt(sentHash) : null;
         case "eth_getTransactionByHash":
           return { hash: sentHash };
         default:
@@ -377,6 +378,47 @@ describe("sendFrameTransactionWithArbitrarySignature", () => {
     expect(sent.fees.maxPriorityFeePerGas).toBe(100_000_000n);
     expect(sent.fees.maxFeePerGas).toBe(1_200_000_000n + 100_000_000n);
     expect(n.methods().some((m) => m.startsWith("skandha_"))).toBe(false);
+  });
+
+  test("says which frames a failed POST_TX frame rolled back, though their receipts read success", async () => {
+    const n = node((hash) => ({
+      ...RECEIPT(hash),
+      status: "0x0",
+      frameReceipts: [
+        ...RECEIPT(hash).frameReceipts,
+        { status: "0x0", gasUsed: "0x10", stateGasUsed: "0x0", logs: [] },
+      ],
+    }));
+    const lines: [string, string][] = [];
+    await sendFrameTransactionWithArbitrarySignature({
+      sender: ACCOUNT,
+      frames: [
+        ...FRAMES,
+        {
+          mode: "postTx",
+          target: RECIPIENT,
+          data: "0x",
+          value: 0n,
+          gas: 50_000n,
+          stateGas: 0n,
+        },
+      ],
+      mempool: "canonical",
+      // The Hegota devnet's client, the one that runs POST_TX frames.
+      chain: hegotaDevnet,
+      transport: n.transport,
+      sign: async () => "0xabcdef",
+      onLog: (line, level) => lines.push([line, level]),
+    });
+    expect(lines.filter(([line]) => /^Frame \d/.test(line))).toEqual([
+      ["Frame 1: success", "success"],
+      ["Frame 2: success", "success"],
+      [
+        "Frame 3: success, then rolled back (a POST_TX frame reverted)",
+        "warning",
+      ],
+      ["Frame 4: reverted", "warning"],
+    ]);
   });
 
   test("reads frame receipts on a chain not wrapped by withFrames", async () => {

@@ -3,8 +3,8 @@ import type { TransactionAction } from "@evmcrispr/sdk";
 export type FrameMark =
   | { mode: "default" }
   | { mode: "verify"; approve: "execution" | "payment" | "both" }
-  /** A POST_TX frame, from `post-verify`. */
-  | { mode: "postTx" };
+  /** A POST_TX frame, from `post-verify`: the script line of its check. */
+  | { mode: "postTx"; line?: number };
 
 const marks = new WeakMap<TransactionAction, FrameMark>();
 

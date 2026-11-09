@@ -24,7 +24,7 @@ frames:post-verify <block>
 
 ## How it works
 
-`post-verify` is the last statement of a [frames:tx](tx.md) block. Each line inside it is one POST_TX frame (EIP-7906), run after every other frame of the transaction, as a static call by the entry point. A frame can read what the transaction did: the balances, storage and code it changed and the events it emitted (TXTRACE, EVENTDATACOPY). If one fails, the transaction's body is reverted; the transaction is still mined (status 0), its sender's checks and fee kept, and EVMcrispr reports which check failed.
+`post-verify` is the last statement of a [frames:tx](tx.md) block. Each line inside it is one POST_TX frame (EIP-7906), run after every other frame of the transaction, as a static call by the entry point. A frame can read what the transaction did: the balances, storage and code it changed and the events it emitted (TXTRACE, EVENTDATACOPY). If one fails, the transaction's body is reverted; the transaction is still mined (status 0), its sender's checks and fee kept, and EVMcrispr names the line of the check that failed.
 
 Only `assert` and `exec` go inside:
 

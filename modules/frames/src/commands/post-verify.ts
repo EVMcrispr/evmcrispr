@@ -41,8 +41,14 @@ export default defineCommand<Frames>({
       ((await interpreters.interpretNode(block as BlockExpressionNode, {
         batchContext: interpreters.batchContext,
       })) as Action[] | undefined) ?? [];
-    for (const action of actions)
-      markFrame(action as TransactionAction, { mode: "postTx" });
+    // Each line is one check, one frame: a failed one is named by its line.
+    const lines = actions.length === body.length;
+    actions.forEach((action, i) =>
+      markFrame(action as TransactionAction, {
+        mode: "postTx",
+        line: lines ? body[i]!.loc?.start.line : undefined,
+      }),
+    );
     return actions;
   },
 });

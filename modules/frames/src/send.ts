@@ -12,7 +12,7 @@ import {
   sendFrameTransactionFromWallet,
 } from "@evmcrispr/viem-frames";
 import { sendAccountFrameTransaction } from "./account";
-import type { FrameModuleAction } from "./frame-action";
+import { type FrameModuleAction, postVerifyCheckName } from "./frame-action";
 import { requireLimits } from "./layout";
 import { frameNetwork, frameNetworkNames } from "./networks";
 
@@ -109,7 +109,7 @@ export async function sendFrameAction(
   );
   if (failed !== undefined && failed >= 0)
     throw new Error(
-      `A post-verify check failed: post-verify frame ${failed + 1} reverted, so the transaction's body was reverted (${hash})`,
+      `A post-verify check failed: ${postVerifyCheckName(frames, failed)} reverted, so the transaction's body was reverted (${hash})`,
     );
   // Admitted and never mined: the run records it as queued, not confirmed.
   return (

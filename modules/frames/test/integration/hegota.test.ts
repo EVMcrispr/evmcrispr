@@ -161,7 +161,7 @@ for (const using of BACKENDS) {
           ")",
         ]),
       ).rejects.toThrow(
-        "A post-verify check failed: post-verify frame 3 reverted, so the transaction's body was reverted",
+        "A post-verify check failed: the check on line 9 reverted, so the transaction's body was reverted",
       );
     }, 120_000);
   });

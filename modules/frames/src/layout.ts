@@ -115,6 +115,8 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
       value: action.value ?? 0n,
     };
     if (mark?.mode === "verify") spec.approve = mark.approve;
+    if (mark?.mode === "postTx" && mark.line !== undefined)
+      spec.line = mark.line;
     if (action.gas !== undefined) spec.gas = action.gas;
     else if (spec.mode === "verify")
       spec.gas = spec.target === null ? SELF_VERIFY_GAS : PAYMASTER_VERIFY_GAS;
