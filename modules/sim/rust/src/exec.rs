@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use revm::context_interface::transaction::{AccessList, AccessListItem};
 use revm::database::{AccountState, DbAccount};
 use revm::interpreter::Instruction;
+use revm::context_interface::cfg::gas_params::{GasId, GasParams};
 use revm::InspectEvm;
 use revm::context_interface::Transaction;
 
@@ -21,6 +22,37 @@ use crate::frame::{frame_ops, with_hook, FrameInspector, Hook};
 
 /// Mirrors the ethereumjs backend's fixed block gas limit.
 const BLOCK_GAS_LIMIT: u64 = 30_000_000;
+
+/// EIP-8037's cost per state byte on the Hegota devnet (ethrex's constant).
+const HEGOTA_COST_PER_STATE_BYTE: u64 = 1530;
+
+/// The Hegota devnet's gas schedule (ethrex `hegota-devnet`): Amsterdam, with
+/// EIP-8038's access and write costs, as revm's gas table takes them.
+fn hegota_schedule(cfg: &mut CfgEnv) {
+    cfg.spec = SpecId::AMSTERDAM;
+    // The spec setters would turn these on; the field alone does not.
+    cfg.enable_amsterdam_eip8037 = true;
+    cfg.enable_amsterdam_eip2780 = true;
+    let mut params = GasParams::new_spec(SpecId::AMSTERDAM);
+    params.override_gas([
+        // A cold access is 3000 in all (the warm 100 is charged as well).
+        (GasId::cold_storage_cost(), 2900),
+        (GasId::cold_storage_additional_cost(), 2900),
+        (GasId::cold_account_additional_cost(), 2900),
+        // The first change of a slot this transaction (STORAGE_WRITE).
+        (GasId::sstore_set_without_load_cost(), 10_000),
+        (GasId::sstore_reset_without_cold_load_cost(), 10_000),
+        (GasId::transfer_value_cost(), 10_300),
+        (GasId::create(), 11_000),
+        // Value to an empty account (ACCOUNT_WRITE), besides its state gas.
+        (GasId::new_account_cost_for_selfdestruct(), 8_000),
+    ]);
+    cfg.gas_params = params;
+    // The transfer logs come from the frame inspector, as measured there.
+    cfg.amsterdam_eip7708_disabled = true;
+    // The frame's own limits bound it; the transaction's gas is a formality.
+    cfg.tx_gas_limit_cap = Some(u64::MAX);
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,6 +97,13 @@ struct FrameCallJson {
     /// EIP-7708 transfer logs for this call.
     #[serde(default)]
     transfer_logs: bool,
+    /// "hegota": the Hegota devnet's gas schedule (Amsterdam, EIP-8038's
+    /// access costs, EIP-8037's state gas drawn from `state_gas` alone).
+    #[serde(default)]
+    schedule: Option<String>,
+    /// The call's state-gas pool under the "hegota" schedule.
+    #[serde(default)]
+    state_gas: Option<String>,
     #[serde(default)]
     opcodes: Vec<FrameOpJson>,
     /// What the action's earlier calls warmed: one transaction's frames
@@ -515,19 +554,69 @@ impl Fork {
         // up (gas is free, so only the value is checked).
         let mut cfg = self.cfg_env();
         cfg.disable_balance_check = false;
+        let hegota = call.schedule.as_deref() == Some("hegota");
+        let state_gas = match call.state_gas.as_deref().map(parse_u256).transpose() {
+            Ok(g) => g.unwrap_or_default().saturating_to::<u64>(),
+            Err(e) => return error_env(&e),
+        };
+        let mut inspector = FrameInspector::new(gas, call.is_static, call.transfer_logs);
+        if hegota {
+            hegota_schedule(&mut cfg);
+            inspector = inspector.with_state_pool(state_gas, HEGOTA_COST_PER_STATE_BYTE);
+        }
         let db = std::mem::replace(&mut self.db, CacheDB::new(MissDb));
         let mut evm = Context::mainnet()
             .with_db(db)
             .with_cfg(cfg)
             .with_block(self.block_env())
-            .build_mainnet_with_inspector(FrameInspector::new(gas, call.is_static, call.transfer_logs));
+            .build_mainnet_with_inspector(inspector);
         let ops = frame_ops();
         for byte in pops.keys() {
             evm.instruction
                 .insert_instruction(*byte, Instruction::new(ops[*byte as usize]), 3);
         }
+        if hegota {
+            // EIP-8038: EXTCODESIZE and EXTCODECOPY read the code as well as
+            // the account, one more warm access (100) than their access cost.
+            // Their static gas: the warm read (100) and EIP-8038's code
+            // read (100); the cold surcharge stays dynamic.
+            for op in [0x3bu8, 0x3c] {
+                let instruction = if op == 0x3b {
+                    Instruction::new(revm::interpreter::instructions::host::extcodesize)
+                } else {
+                    Instruction::new(revm::interpreter::instructions::host::extcodecopy)
+                };
+                evm.instruction.insert_instruction(op, instruction, 200);
+            }
+        }
+        // One transaction's frames run as successive calls here, but a slot's
+        // original value (EIP-2200, and EIP-8038's first-change write cost)
+        // is its value at the transaction's start: the slots earlier frames
+        // changed go in with that original.
+        if let Some(trace) = &self.trace {
+            for (&(address, key), &before) in &trace.slots {
+                use revm::context::JournalTr;
+                if evm.ctx.journaled_state.load_account(address).is_err() {
+                    continue;
+                }
+                if evm.ctx.journaled_state.sload(address, key).is_err() {
+                    continue;
+                }
+                if let Some(slot) = evm
+                    .ctx
+                    .journaled_state
+                    .state
+                    .get_mut(&address)
+                    .and_then(|a| a.storage.get_mut(&key))
+                {
+                    slot.original_value = before;
+                }
+            }
+        }
         let (res, failure) = with_hook(pops, hook, || evm.inspect_tx(tx_env));
         let spent = evm.inspector.spent.unwrap_or(0);
+        let state_spent = evm.inspector.state_spent;
+        let refund = evm.inspector.refund;
         self.db = evm.ctx.journaled_state.database;
 
         match res {
@@ -544,6 +633,8 @@ impl Fork {
                 }
                 let mut env: Value = serde_json::from_str(&frame_env(out.result, spent, failure)).unwrap();
                 env["accessed"] = accessed;
+                env["stateGasUsed"] = json!(state_spent);
+                env["gasRefund"] = json!(refund);
                 env.to_string()
             }
             Err(EVMError::Database(m)) => miss_env(&m),

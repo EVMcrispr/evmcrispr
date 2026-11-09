@@ -28,6 +28,12 @@ export interface SimCallResult {
   returnData: Hex;
   /** Execution gas, without the intrinsic gas of a transaction. */
   gasUsed: bigint;
+  /** State gas (EIP-8037), under a schedule that has it; 0 when the call
+   *  failed (its state changes rolled back). */
+  stateGasUsed?: bigint;
+  /** The call's gas refund counter (EIP-3529), uncapped, under a schedule
+   *  whose transaction caps it across calls ("hegota"). */
+  gasRefund?: bigint;
   logs: { address: Hex; topics: Hex[]; data: Hex }[];
   /** The revert or halt, when not a success. */
   error?: string;
@@ -88,6 +94,13 @@ export interface ModuleActionSimCtx {
      *  moves: from `0xff…fe`, topics Transfer(from, to), the amount as
      *  data. A reverted transfer's log goes with it. */
     transferLogs?: boolean;
+    /** "hegota": the Hegota devnet's gas schedule (Amsterdam with EIP-8038's
+     *  access costs; EIP-8037's state gas drawn from `stateGas` alone, a
+     *  charge it cannot cover halting the call as out of gas). Without it,
+     *  the forked chain's own rules. */
+    schedule?: "hegota";
+    /** The call's state-gas pool under the "hegota" schedule. */
+    stateGas?: bigint;
   }): Promise<SimCallResult>;
   checkpoint(): Promise<void>;
   commit(): Promise<void>;

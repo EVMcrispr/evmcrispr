@@ -429,7 +429,17 @@ export async function createRevmBackend(
       baseFee,
       transactionHash: syntheticTxHash(action, txCounter++),
       onLog,
-      async call({ caller, to, data, value, gas, isStatic, transferLogs }) {
+      async call({
+        caller,
+        to,
+        data,
+        value,
+        gas,
+        isStatic,
+        transferLogs,
+        schedule,
+        stateGas,
+      }) {
         await prefetchAccounts([caller, to]);
         const json = JSON.stringify({
           from: caller,
@@ -439,6 +449,10 @@ export async function createRevmBackend(
           gas: numberToHex(gas),
           isStatic,
           transferLogs: transferLogs ?? false,
+          ...(schedule && {
+            schedule,
+            stateGas: numberToHex(stateGas ?? 0n),
+          }),
           opcodes: [...(table?.values() ?? [])].map((o) => ({
             opcode: o.opcode,
             pops: o.pops,
@@ -462,6 +476,12 @@ export async function createRevmBackend(
             success: true,
             returnData: env.returnData,
             gasUsed: BigInt(env.gasUsed),
+            ...(schedule && {
+              stateGasUsed: BigInt(
+                (env as { stateGasUsed?: number }).stateGasUsed ?? 0,
+              ),
+              gasRefund: BigInt((env as { gasRefund?: number }).gasRefund ?? 0),
+            }),
             logs: env.logs,
           };
         if (env.kind === "revert" || env.kind === "halt")

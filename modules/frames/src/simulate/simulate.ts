@@ -50,6 +50,8 @@ const PRECOMPILES = Array.from(
 export interface FrameReceiptOut {
   status: FrameStatus;
   gasUsed: bigint;
+  /** State gas (EIP-8037), on a network that charges it. */
+  stateGasUsed?: bigint;
   logs: SimCallResult["logs"];
   error?: string;
 }
@@ -125,12 +127,27 @@ export async function simulateFrameAction(
           txGas.floor,
         )
       : undefined;
-  /** The gas the transaction used, as the network counts it: the frames'
-   *  gas, and on a network that charges them the intrinsic gas, or the
-   *  calldata floor when that is more. State gas (EIP-8037) is not
-   *  modelled. */
-  const gasUsedOf = (framesGas: bigint) =>
-    txGas ? larger(txGas.intrinsic + framesGas, txGas.floor) : framesGas;
+  /** Each frame's refund counter (EIP-3529), on a network whose
+   *  transaction caps them together. */
+  const refunds: bigint[] = [];
+  /** The gas the transaction used, as the network counts it (ethrex):
+   *  elsewhere the frames' gas; there the intrinsic gas and each frame's
+   *  execution and state gas, less the refunds of the frames that stand
+   *  (capped at a fifth), or the calldata floor when that is more. */
+  const gasUsedOf = (frames: FrameReceiptOut[]) => {
+    const used = frames.reduce(
+      (sum, f) => sum + f.gasUsed + (f.stateGasUsed ?? 0n),
+      0n,
+    );
+    if (!txGas) return used;
+    const total = txGas.intrinsic + used;
+    const refund = frames.reduce(
+      (sum, f, i) => (f.status === "success" ? sum + (refunds[i] ?? 0n) : sum),
+      0n,
+    );
+    const applied = refund < total / 5n ? refund : total / 5n;
+    return larger(total - applied, txGas.floor);
+  };
   const maxFeePerGas = fees?.maxFeePerGas ?? 0n;
   const maxPriorityFeePerGas = fees?.maxPriorityFeePerGas ?? 0n;
   const unsigned = newFrameTransaction({
@@ -227,6 +244,11 @@ export async function simulateFrameAction(
       gas: f.gas - access,
       isStatic: f.mode === VERIFY || f.mode === POST_TX,
       transferLogs: network.gas.transferLogs,
+      // The network's gas schedule, and the frame's own state-gas pool.
+      ...(network.gas.schedule && {
+        schedule: network.gas.schedule,
+        stateGas: f.stateGas,
+      }),
     });
     return { ...result, gasUsed: access + result.gasUsed };
   };
@@ -280,9 +302,13 @@ export async function simulateFrameAction(
           approved = f.mode === VERIFY ? ctx.approved : undefined;
           ctx.statuses[i] = "success";
           ctx.gasUsed[i] = result.gasUsed;
+          refunds[i] = result.gasRefund ?? 0n;
           out.push({
             status: "success",
             gasUsed: result.gasUsed,
+            ...(result.stateGasUsed !== undefined && {
+              stateGasUsed: result.stateGasUsed,
+            }),
             logs: result.logs,
           });
         }
@@ -334,9 +360,13 @@ export async function simulateFrameAction(
           const result = await runFrame(j);
           group.push(j);
           ctx.gasUsed[j] = result.gasUsed;
+          refunds[j] = result.gasRefund ?? 0n;
           out[j] = {
             status: result.success ? "success" : "reverted",
             gasUsed: result.gasUsed,
+            ...(result.stateGasUsed !== undefined && {
+              stateGasUsed: result.stateGasUsed,
+            }),
             logs: result.success ? result.logs : [],
             error: result.error,
           };
@@ -380,9 +410,13 @@ export async function simulateFrameAction(
           }
           const result = await runFrame(j);
           ctx.gasUsed[j] = result.gasUsed;
+          refunds[j] = result.gasRefund ?? 0n;
           out[j] = {
             status: result.success ? "success" : "reverted",
             gasUsed: result.gasUsed,
+            ...(result.stateGasUsed !== undefined && {
+              stateGasUsed: result.stateGasUsed,
+            }),
             logs: [],
             error: result.error,
           };
@@ -402,9 +436,7 @@ export async function simulateFrameAction(
       //    (the pre-charge, less the fee, comes back). One that cannot pay
       //    it makes the whole transaction invalid.
       if (fees) {
-        const fee =
-          gasUsedOf(out.reduce((sum, f) => sum + f.gasUsed, 0n)) *
-          fees.gasPrice;
+        const fee = gasUsedOf(out) * fees.gasPrice;
         const balance = await sim.getBalance(payer);
         if (preCharged !== undefined)
           await sim.setBalance(payer, balance + preCharged - fee);
@@ -440,7 +472,7 @@ export async function simulateFrameAction(
     return {
       status: "success",
       transactionHash: sim.transactionHash,
-      gasUsed: gasUsedOf(out.reduce((sum, f) => sum + f.gasUsed, 0n)),
+      gasUsed: gasUsedOf(out),
       logs: out.flatMap((f) =>
         f.logs.map((log) => ({ ...log, logIndex: logIndex++ })),
       ),

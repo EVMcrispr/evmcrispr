@@ -996,6 +996,69 @@ export function describeBackendSuite(
         });
       });
 
+      describe("the Hegota devnet's gas schedule (schedule: hegota)", () => {
+        // SSTORE(0, calldata word 0)
+        const WRITER = "0x5f355f5500" as const;
+        const store = (
+          sim: Awaited<ReturnType<typeof host>>,
+          n: number,
+          over: { stateGas?: bigint; schedule?: "hegota" } = {
+            schedule: "hegota",
+            stateGas: 400_000n,
+          },
+        ) =>
+          sim.call({
+            caller: CALLER,
+            to: TARGET,
+            data: word(n),
+            value: 0n,
+            gas: 100_000n,
+            isStatic: false,
+            ...over,
+          });
+
+        it("prices a new slot as ethrex does: 3000 cold, 10000 to write, 64 x 1530 state gas", async () => {
+          const sim = await host(WRITER);
+          await sim.checkpoint();
+          const result = await store(sim, 5);
+          expect(result.success).toBe(true);
+          // PUSH0 CALLDATALOAD PUSH0: 7.
+          expect(result.gasUsed).toBe(13_007n);
+          expect(result.stateGasUsed).toBe(97_920n);
+        });
+
+        it("fails a call whose state budget is 1 gas short, and counts no state gas", async () => {
+          const sim = await host(WRITER);
+          await sim.checkpoint();
+          const result = await store(sim, 5, {
+            schedule: "hegota",
+            stateGas: 97_919n,
+          });
+          expect(result.success).toBe(false);
+          expect(result.stateGasUsed ?? 0n).toBe(0n);
+        });
+
+        it("never gives the pool back: a slot set, cleared, then another set, with the budget for one, fails", async () => {
+          // SSTORE(0, 1); SSTORE(0, 0); SSTORE(1, 1)
+          const sim = await host("0x60015f555f5f55600160015500");
+          await sim.checkpoint();
+          const result = await store(sim, 0, {
+            schedule: "hegota",
+            stateGas: 97_920n,
+          });
+          expect(result.success).toBe(false);
+        });
+
+        it("leaves the forked chain's own rules without it", async () => {
+          const sim = await host(WRITER);
+          await sim.checkpoint();
+          const result = await store(sim, 5, {});
+          expect(result.success).toBe(true);
+          expect(result.gasUsed).toBe(22_107n);
+          expect(result.stateGasUsed).toBeUndefined();
+        });
+      });
+
       it("a group that rolls back keeps none of its storage writes, under the transaction's checkpoints", async () => {
         // As a frame transaction's atomic group runs: the transaction's
         // checkpoint, the body's, the group's; two frames write a slot, the

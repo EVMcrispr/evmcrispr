@@ -149,7 +149,7 @@ type Sim = {
   valid?: boolean;
   executionStatus?: string;
   violation?: unknown;
-  frames: { succeeded: boolean; gasUsed: Hex }[];
+  frames: { succeeded: boolean; gasUsed: Hex; stateGasUsed?: Hex }[];
 };
 async function ask(all: ReturnType<typeof frames>): Promise<Sim | string> {
   try {
@@ -923,4 +923,142 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
     }
     console.log("(k)", JSON.stringify(out, null, 1));
   }, 600_000);
+
+  it("(l) state gas (EIP-8037) and execution gas per frame", async () => {
+    // CALL(gas, word 0, value 1); STOP.
+    const sender1 = await deploy("0x5f5f5f5f60015f355af15000");
+    // CALLDATACOPY the calldata, CREATE it with no value; STOP.
+    const creator = await deploy("0x365f5f37365f5ff05000");
+    const fresh = (n: number) =>
+      `0x${(0x5eed0000 + n + Math.floor(Math.random() * 1e6)).toString(16).padStart(40, "0")}` as Hex;
+    const word = (n: bigint) => pad(`0x${n.toString(16)}` as Hex);
+    const writer = await deploy(WRITER);
+    // 10 bytes of runtime code, deployed by init code.
+    const tenBytes = deployable("0x00000000000000000000");
+    const cases: [string, FrameSpec[]][] = [
+      [
+        "SSTORE new slot",
+        [
+          verify,
+          body({
+            target: writer,
+            data: word(5n),
+            gas: 100_000n,
+            stateGas: 200_000n,
+          }),
+        ],
+      ],
+      [
+        "new slot, then overwrite (2nd frame)",
+        [
+          verify,
+          body({
+            target: writer,
+            data: word(5n),
+            gas: 100_000n,
+            stateGas: 200_000n,
+          }),
+          body({
+            target: writer,
+            data: word(6n),
+            gas: 100_000n,
+            stateGas: 200_000n,
+          }),
+        ],
+      ],
+      [
+        "new slot, then cleared (2nd frame)",
+        [
+          verify,
+          body({
+            target: writer,
+            data: word(5n),
+            gas: 100_000n,
+            stateGas: 200_000n,
+          }),
+          body({
+            target: writer,
+            data: word(0n),
+            gas: 100_000n,
+            stateGas: 200_000n,
+          }),
+        ],
+      ],
+      [
+        "SSTORE new slot, state budget 1 short",
+        [
+          verify,
+          body({
+            target: writer,
+            data: word(5n),
+            gas: 100_000n,
+            stateGas: 97_919n,
+          }),
+        ],
+      ],
+      [
+        "CALL value 1 to a new account",
+        [
+          verify,
+          body({
+            target: sender1,
+            data: pad(fresh(1)),
+            value: 1n,
+            gas: 100_000n,
+            stateGas: 300_000n,
+          }),
+        ],
+      ],
+      [
+        "frame value 1 to a new account",
+        [
+          verify,
+          body({
+            target: fresh(2),
+            value: 1n,
+            gas: 100_000n,
+            stateGas: 300_000n,
+          }),
+        ],
+      ],
+      [
+        "CREATE 10 bytes of code",
+        [
+          verify,
+          body({
+            target: creator,
+            data: tenBytes,
+            gas: 200_000n,
+            stateGas: 400_000n,
+          }),
+        ],
+      ],
+      [
+        "empty call to the writer (no write)",
+        [
+          verify,
+          body({ target: writer, data: "0x", gas: 100_000n, stateGas: 0n }),
+        ],
+      ],
+    ];
+    const out: Record<string, unknown> = {};
+    for (const [name, specs] of cases) {
+      const sim = (await ask(frames(specs, []))) as Sim & {
+        frames: { gasUsed: Hex; stateGasUsed: Hex; succeeded: boolean }[];
+        gasUsed: Hex;
+      };
+      out[name] =
+        typeof sim === "string"
+          ? sim
+          : {
+              valid: sim.valid,
+              frames: sim.frames.map(
+                (f) =>
+                  `${f.succeeded ? "ok" : "FAILED"} exec ${BigInt(f.gasUsed)} state ${BigInt(f.stateGasUsed ?? "0x0")}`,
+              ),
+              gasUsed: BigInt(sim.gasUsed).toString(),
+            };
+    }
+    console.log("(l)", JSON.stringify(out, null, 1));
+  }, 900_000);
 });

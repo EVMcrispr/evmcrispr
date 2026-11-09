@@ -12,11 +12,11 @@ use std::collections::HashMap;
 use revm::context::ContextTr;
 use revm::interpreter::instructions::system::copy_cost_and_memory_resize;
 use revm::interpreter::interpreter::EthInterpreter;
-use revm::interpreter::interpreter_types::{InputsTr, LoopControl, RuntimeFlag};
+use revm::interpreter::interpreter_types::{InputsTr, Jumps, LoopControl, RuntimeFlag};
 use revm::context::JournalTr;
 use revm::interpreter::{
     CallInputs, CallOutcome, CreateInputs, CreateOutcome, Host, InstructionContext,
-    InstructionResult, InterpreterAction,
+    InstructionResult, Interpreter, InterpreterAction,
 };
 use revm::primitives::{b256, Address, Bytes, Log, LogData, B256, U256};
 use revm::Inspector;
@@ -418,7 +418,27 @@ pub struct FrameInspector {
     /// Per open call or create: the SELFDESTRUCT it ended with that moved
     /// value to another account (logged once the frame returns).
     destructed: Vec<Option<(Address, Address, U256)>>,
+    /// EIP-8141: what is left of the frame's own state-gas pool
+    /// (`limits.state`), on a network whose frames run EIP-8037. Every state
+    /// charge draws on it, and one it cannot cover halts the call as out of
+    /// gas; it only shrinks (ethrex): a refill or a reverted call's charges
+    /// go back to a reservoir frames do not draw from. revm's own reservoir
+    /// is made too large to run out, and its drops are the charges.
+    state_pool: Option<u64>,
+    /// The state gas the top call used (0 when it failed: rolled back).
+    pub state_spent: u64,
+    /// The top call's refund counter, before any cap (0 when it failed).
+    pub refund: u64,
+    /// Per open call or create: whether it runs init code.
+    creating: Vec<bool>,
+    /// revm's reservoir before the current step.
+    reservoir_before: u64,
+    /// Cost per state byte (EIP-8037), for a create's code deposit.
+    cpsb: u64,
 }
+
+/// A reservoir no frame can drain (the frame's pool is kept by the inspector).
+const UNBOUNDED_RESERVOIR: u64 = 1 << 62;
 
 /// EIP-7708: the log's address, and `keccak256("Transfer(address,address,uint256)")`.
 const SYSTEM_ADDRESS: Address = Address::new([
@@ -453,7 +473,21 @@ impl FrameInspector {
             transfer_logs,
             logged: Vec::new(),
             destructed: Vec::new(),
+            state_pool: None,
+            state_spent: 0,
+            refund: 0,
+            creating: Vec::new(),
+            reservoir_before: 0,
+            cpsb: 0,
         }
+    }
+
+    /// Draws the frame's state charges from `pool` alone (EIP-8141), at
+    /// `cpsb` gas per state byte.
+    pub fn with_state_pool(mut self, pool: u64, cpsb: u64) -> Self {
+        self.state_pool = Some(pool);
+        self.cpsb = cpsb;
+        self
     }
 
     /// Logs a transfer where the value moves; returns where the log is.
@@ -493,12 +527,52 @@ impl FrameInspector {
 }
 
 impl<CTX: ContextTr> Inspector<CTX, EthInterpreter> for FrameInspector {
+    fn step(&mut self, interp: &mut Interpreter<EthInterpreter>, _context: &mut CTX) {
+        let Some(pool) = self.state_pool else {
+            return;
+        };
+        self.reservoir_before = interp.gas.reservoir();
+        // RETURN from init code deposits the code, outside any step: its
+        // state gas is charged to the pool here, and a pool that cannot pay
+        // it halts the create (as a failed charge does).
+        if interp.bytecode.opcode() == 0xf3 && self.creating.last() == Some(&true) {
+            let data = interp.stack.data();
+            if data.len() >= 2 {
+                let size = data[data.len() - 2];
+                let cost = size.saturating_mul(U256::from(self.cpsb));
+                match u64::try_from(cost) {
+                    Ok(cost) if cost <= pool => self.state_pool = Some(pool - cost),
+                    _ => interp.halt_oog(),
+                }
+            }
+        }
+    }
+
+    fn step_end(&mut self, interp: &mut Interpreter<EthInterpreter>, _context: &mut CTX) {
+        let Some(pool) = self.state_pool else {
+            return;
+        };
+        let after = interp.gas.reservoir();
+        if after < self.reservoir_before {
+            let charged = self.reservoir_before - after;
+            if charged > pool {
+                interp.halt_oog();
+            } else {
+                self.state_pool = Some(pool - charged);
+            }
+        }
+    }
+
     fn call(&mut self, context: &mut CTX, inputs: &mut CallInputs) -> Option<CallOutcome> {
         if self.depth == 0 {
             inputs.is_static = self.is_static;
             inputs.gas_limit = self.gas;
+            if self.state_pool.is_some() {
+                inputs.reservoir = UNBOUNDED_RESERVOIR;
+            }
         }
         self.depth += 1;
+        self.creating.push(false);
         let logged = match inputs.transfer_value() {
             Some(value) => {
                 self.log_transfer(context, inputs.transfer_from(), inputs.transfer_to(), value)
@@ -512,8 +586,13 @@ impl<CTX: ContextTr> Inspector<CTX, EthInterpreter> for FrameInspector {
 
     fn call_end(&mut self, context: &mut CTX, _inputs: &CallInputs, outcome: &mut CallOutcome) {
         self.depth -= 1;
+        self.creating.pop();
         if self.depth == 0 {
             self.spent = Some(outcome.result.gas.total_gas_spent());
+            if outcome.result.result.is_ok() {
+                self.state_spent = outcome.result.gas.state_gas_spent().max(0) as u64;
+                self.refund = outcome.result.gas.refunded().max(0) as u64;
+            }
         }
         self.frame_end(context, outcome.result.result.is_ok());
     }
@@ -529,10 +608,12 @@ impl<CTX: ContextTr> Inspector<CTX, EthInterpreter> for FrameInspector {
         let logged = self.log_transfer(context, caller, created, inputs.value());
         self.logged.push(logged);
         self.destructed.push(None);
+        self.creating.push(true);
         None
     }
 
     fn create_end(&mut self, context: &mut CTX, _inputs: &CreateInputs, outcome: &mut CreateOutcome) {
+        self.creating.pop();
         self.frame_end(context, outcome.result.result.is_ok());
     }
 
@@ -542,3 +623,4 @@ impl<CTX: ContextTr> Inspector<CTX, EthInterpreter> for FrameInspector {
         }
     }
 }
+

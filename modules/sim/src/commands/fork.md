@@ -141,6 +141,16 @@ cold); on the Hegota devnet reaching a target costs nothing, and a frame to a
 precompile or to an account without code uses none of its own gas (the
 client charges that to the transaction).
 
+On the Hegota devnet a frame also runs that client's gas schedule, as
+ethrex's `hegota-devnet` build does: Amsterdam's rules with EIP-8038's access
+and write costs (a cold account or slot 3000, the first change of a slot
+10,000, a value transfer 10,300, CREATE 11,000), and EIP-8037's state gas for
+the state a frame creates (1530 a byte: 97,920 for a new slot, 183,600 for a
+new account, 1530 a byte of deployed code). A frame's state gas comes from its
+own `--state-gas` alone: a charge it cannot cover halts the call as out of gas,
+and what a cleared slot or a reverted call gives back does not refill it. Each
+frame's receipt reports its state gas, net and never below 0.
+
 On the Hegota devnet, `post-verify` frames (POST_TX) run after the body, as
 static calls, with TXTRACE and EVENTDATACOPY answered from what the body
 changed (net, since the transaction's start) and the logs of the frames that
@@ -171,13 +181,12 @@ sender often its first byte, `v`; for a frame account only a byte of `r` or
 `s`), so a check of the payer's exact balance can differ by that much.
 
 The fee is the gas used at that price: on the Hegota devnet, as the chain
-counts it, the transaction's intrinsic gas and the frames', or EIP-8141's
-calldata floor when that is more; elsewhere the frames' gas alone.
+counts it, the transaction's intrinsic gas and each frame's execution and
+state gas, less the storage refunds of the frames that took effect (at most a
+fifth), or EIP-8141's calldata floor when that is more; elsewhere the frames'
+gas alone.
 
-Not modelled: state gas (EIP-8037: the chain adds it to the gas used for
-storage a transaction creates;
-a frame whose `--state-gas` is too small can pass here and fail on the chain),
-and the ERC-8421 mempool's admission rules.
+Not modelled: the ERC-8421 mempool's admission rules.
 
 ## Cross-chain simulation
 

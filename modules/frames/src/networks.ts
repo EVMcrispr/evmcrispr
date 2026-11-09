@@ -29,6 +29,10 @@ export interface FrameGasRules {
   preCharge?: { extraBytes: bigint };
   /** Every value transfer to another account emits EIP-7708's log. */
   transferLogs?: boolean;
+  /** The client's gas schedule for frames, when it is not the forked
+   *  chain's: "hegota" is Amsterdam with EIP-8038's access costs and
+   *  EIP-8037's state gas, drawn from each frame's `limits.state`. */
+  schedule?: "hegota";
 }
 
 /** ethrex `eip8141-tracer` (the alt-mempool and local devnets), measured on
@@ -49,6 +53,7 @@ const HEGOTA_GAS: FrameGasRules = {
   codelessFramesFree: true,
   preCharge: { extraBytes: 3n },
   transferLogs: true,
+  schedule: "hegota",
 };
 
 export interface FrameNetwork {

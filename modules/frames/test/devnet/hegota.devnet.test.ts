@@ -1,8 +1,9 @@
 // Live, opt-in (EVMCRISPR_HEGOTA=1): parity of the in-process frame
 // simulation, on a fork of the public Hegota devnet, with the devnet's own
-// (`ethrex_simulateFrameTransaction`). Each frame's outcome and gas must
-// match. Nothing is sent: the transactions are signed with anvil's public
-// key #0 only so the node accepts them for simulation.
+// (`ethrex_simulateFrameTransaction`). Each frame's outcome, execution gas
+// and state gas must match, exactly. Nothing is sent: the transactions are
+// signed with anvil's public key #0 only so the node accepts them for
+// simulation. (hegota-gas.devnet.test.ts covers the gas schedule itself.)
 import { describe, expect, it } from "bun:test";
 import {
   HEGOTA_DEVNET_RPC,
@@ -29,13 +30,6 @@ const KEY =
 const SENDER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 const DEAD = "0x000000000000000000000000000000000000dEaD";
 const DEPLOYER = "0x4e59b44847b379578588920ca78fbf26c0b4956c";
-/** Body frames' execution gas may differ by this much (two EVMs). */
-const GAS_MARGIN = 2_000n;
-/** A frame that runs CREATE: compared by outcome only. Hegota prices state
- *  creation as EIP-8037 does (CREATE's base cost moved to the state gas
- *  pool: 21,000 less execution gas, measured 2026-11-09); the fork runs
- *  Prague, which has no state gas. */
-const CREATES = (f: FrameSpec) => f.target === DEPLOYER;
 
 const verify: FrameSpec = {
   mode: "verify",
@@ -145,7 +139,9 @@ describe.skipIf(!ENABLED)(
             HEGOTA_DEVNET_RPC,
             raw,
             toHex(block),
-          )) as { frames: { gasUsed: Hex; succeeded: boolean }[] };
+          )) as {
+            frames: { gasUsed: Hex; stateGasUsed: Hex; succeeded: boolean }[];
+          };
 
           const sim = await create({
             upstreamRpcUrl: HEGOTA_DEVNET_RPC,
@@ -161,7 +157,11 @@ describe.skipIf(!ENABLED)(
             action,
             sim.simContext!(action, { onLog: () => {} }),
           )) as unknown as {
-            frameReceipts: { status: string; gasUsed: bigint }[];
+            frameReceipts: {
+              status: string;
+              gasUsed: bigint;
+              stateGasUsed?: bigint;
+            }[];
           };
 
           expect(ours.frameReceipts).toHaveLength(theirs.frames.length);
@@ -171,9 +171,9 @@ describe.skipIf(!ENABLED)(
               mine.status === "success" || mine.status === "impersonated",
             ).toBe(frame.succeeded);
             // The sender's verify frame is impersonated in ours.
-            if (mine.status === "impersonated" || CREATES(frames[i]!)) return;
-            const diff = mine.gasUsed - BigInt(frame.gasUsed);
-            expect(diff < 0n ? -diff : diff).toBeLessThanOrEqual(GAS_MARGIN);
+            if (mine.status === "impersonated") return;
+            expect(mine.gasUsed).toBe(BigInt(frame.gasUsed));
+            expect(mine.stateGasUsed ?? 0n).toBe(BigInt(frame.stateGasUsed));
           });
         }, 120_000);
   },

@@ -8,6 +8,7 @@ import {
   createAddressFromString,
   createZeroAddress,
   hexToBytes,
+  unpadBytes,
 } from "@ethereumjs/util";
 import type { VM } from "@ethereumjs/vm";
 import { createVM } from "@ethereumjs/vm";
@@ -40,6 +41,7 @@ import {
   freeOpcodes,
   type OpcodeSlot,
 } from "./ethereumjs-opcodes";
+import { withHegotaSchedule } from "./hegota-schedule";
 
 /**
  * RPCStateManager fetches accounts via eth_getProof, which load-balanced
@@ -142,6 +144,17 @@ class ProofFreeStateManager extends RPCStateManager {
    *  writes). Commit every cache, as checkpoint and revert do. */
   override async commit(): Promise<void> {
     this._caches.commit();
+  }
+
+  /** Storage as ethereumjs's own state managers return it: leading zeros
+   *  stripped, an empty slot empty. RPCStateManager hands back the
+   *  provider's 32-byte words, and EIP-8037's SSTORE state gas only sees a
+   *  slot as empty (charging the new slot) when it is. */
+  override async getStorage(
+    address: EthjsAddress,
+    key: Uint8Array,
+  ): Promise<Uint8Array> {
+    return unpadBytes(await super.getStorage(address, key));
   }
 
   override async getAccountFromProvider(
@@ -466,7 +479,13 @@ export async function createEthereumJSBackend(
       isWarmedAddress(address: Uint8Array): boolean;
       addWarmedAddress(address: Uint8Array): void;
     };
-    if (journal.journalHeight === 0) vm.evm.journal.cleanJournal();
+    if (journal.journalHeight === 0) {
+      vm.evm.journal.cleanJournal();
+      // A slot's original value is its value when the action starts: what
+      // an earlier action read must not stand for it (runCall, unlike
+      // runTx, never clears these).
+      stateManager.originalStorageCache.clear();
+    }
     return {
       chainId,
       blockNumber: currentBlockNumber,
@@ -474,7 +493,17 @@ export async function createEthereumJSBackend(
       baseFee,
       transactionHash: syntheticTxHash(action, txCounter++),
       onLog,
-      async call({ caller, to, data, value, gas, isStatic, transferLogs }) {
+      async call({
+        caller,
+        to,
+        data,
+        value,
+        gas,
+        isStatic,
+        transferLogs,
+        schedule,
+        stateGas,
+      }) {
         opcodeSlot.failure = undefined;
         // EIP-7708 for this call only: the fork's own transactions keep the
         // forked chain's rules.
@@ -483,8 +512,9 @@ export async function createEthereumJSBackend(
         const addLogs = transferLogs && !common.isActivatedEIP(7708);
         if (addLogs) common.setEIPs([...eips, 7708]);
         let result: Awaited<ReturnType<typeof vm.evm.runCall>>;
-        try {
-          result = await vm.evm.runCall({
+        let stateGasUsed: bigint | undefined;
+        const runCall = () =>
+          vm.evm.runCall({
             caller: address(caller),
             to: address(to),
             data: hexToBytes(data),
@@ -494,6 +524,17 @@ export async function createEthereumJSBackend(
             skipNonceIncrement: true,
             block: makeBlockContext(),
           });
+        try {
+          if (schedule === "hegota") {
+            const run = await withHegotaSchedule(
+              vm.evm,
+              stateGas ?? 0n,
+              runCall,
+              (r) => !r.execResult.exceptionError,
+            );
+            result = run.result;
+            stateGasUsed = run.stateGasUsed;
+          } else result = await runCall();
         } finally {
           if (addLogs) common.setEIPs(eips);
         }
@@ -501,6 +542,10 @@ export async function createEthereumJSBackend(
         journal.addWarmedAddress(hexToBytes(caller));
         const error = result.execResult.exceptionError;
         return {
+          ...(stateGasUsed !== undefined && {
+            stateGasUsed,
+            gasRefund: error ? 0n : (result.execResult.gasRefund ?? 0n),
+          }),
           success: !error,
           returnData: bytesToHex(result.execResult.returnValue) as Hex,
           gasUsed: result.execResult.executionGasUsed,
@@ -667,6 +712,8 @@ async function handleGetStorageAt(
 ): Promise<string> {
   const addr = createAddressFromString(params[0]);
   const key = padToBytes32(hexToBytes(params[1]));
+  // A 32-byte word, as eth_getStorageAt answers (the state manager's
+  // storage has its leading zeros stripped).
   const value = await stateManager.getStorage(addr, key);
-  return bytesToHex(value);
+  return bytesToHex(padToBytes32(value));
 }

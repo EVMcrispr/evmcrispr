@@ -126,8 +126,10 @@ Every frame has its own limits.
 - **Execution gas** of a call frame is the `--gas` of its `exec` or `send`, else
   `frames:tx --gas <n>`.
 - **State gas** of every call frame is `frames:tx --state-gas <n>`, 200,000 when
-  it is not given (one new account costs 183,600). Unused state gas is
-  refunded, so a generous value costs only the reservation.
+  it is not given (a new storage slot costs 97,920, a new account 183,600, each
+  byte of deployed code 1,530). Unused state gas is refunded, so a generous
+  value costs only the reservation. A frame whose state gas runs out fails, and
+  `sim:fork` fails it too on the Hegota devnet, whose gas schedule it runs.
 
 ```evml
 load frames [tx]
