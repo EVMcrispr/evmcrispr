@@ -118,6 +118,40 @@ export interface BatchedAction {
 }
 
 /**
+ * One frame of an EIP-8141 frame transaction.
+ */
+export interface FrameSpec {
+  mode: "verify" | "sender" | "default";
+  /** What a verify frame approves. */
+  approve?: "execution" | "payment" | "both";
+  /** ATOMIC_BATCH_FLAG: this frame and the next run atomically. */
+  atomic?: boolean;
+  /** `null` means the transaction's sender. */
+  target: Address | null;
+  data: `0x${string}`;
+  value: bigint;
+  /** limits.execution */
+  gas?: bigint;
+  /** limits.state */
+  stateGas?: bigint;
+}
+
+/**
+ * An EIP-8141 frame transaction. Only hosts that can have it signed and know
+ * the mempool send it (the terminal, from a frame account); the default
+ * handler refuses it.
+ */
+export interface FrameAction {
+  type: "frame";
+  chainId: number;
+  from: Address;
+  frames: FrameSpec[];
+  mempool: "alt" | "canonical";
+  /** Set when `from` is a smart account the `owner` wallet signs for. */
+  account?: { kind: "frame-account"; owner: Address };
+}
+
+/**
  * A request to the wallet provider (e.g. switch chain, sign message).
  */
 export interface WalletAction {
@@ -149,6 +183,7 @@ export type Action =
   | TransactionAction
   | SmartBatchAction
   | BatchedAction
+  | FrameAction
   | WalletAction
   | RpcAction
   | TerminalAction;
@@ -165,6 +200,10 @@ export function isBatchedAction(action: Action): action is BatchedAction {
 
 export function isSmartBatchAction(action: Action): action is SmartBatchAction {
   return "type" in action && action.type === "smartBatch";
+}
+
+export function isFrameAction(action: Action): action is FrameAction {
+  return "type" in action && action.type === "frame";
 }
 
 export function isWalletAction(action: Action): action is WalletAction {
