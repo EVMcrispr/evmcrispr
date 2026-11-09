@@ -37,6 +37,10 @@ ens:set-addr mydao.eth 0x1234567890abcdef1234567890abcdef12345678 @ens:coinType(
 ## Notes
 
 - Without a coin type the default ETH record (coin type 60) is set.
+- On an ENSv2 name the record is written to the name's resolver in ENSv2's
+  ETHRegistry, which must be an ENSv2 resolver (see
+  [ens:create-resolver](create-resolver.md)), by an account with the role to
+  set it there. Subnames of ENSv2 names are not supported yet.
 - Only EVM-style (20-byte hex) addresses are supported for non-default coin
   types.
 

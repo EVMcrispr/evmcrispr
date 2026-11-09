@@ -1,6 +1,8 @@
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import { isRuntimeValue } from "@evmcrispr/sdk/onchain";
 import type Ens from "..";
+import { v2Name, v2Resolver } from "../ethRegistry";
+import { dnsName, SET_CONTENTHASH } from "../permissionedResolver";
 import {
   assertSupportedChain,
   encodeContenthash,
@@ -26,6 +28,16 @@ export default defineCommand<Ens>({
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
     const client = await module.getClient();
+    const v2 = await v2Name(client, chainId, name);
+    if (v2) {
+      const resolver = await v2Resolver(client, name, v2);
+      return [
+        encodeAction(resolver, SET_CONTENTHASH, [
+          dnsName(name),
+          isRuntimeValue(hash) ? hash : encodeContenthash(hash),
+        ]),
+      ];
+    }
     const node = getNode(name);
     const resolver = await getRegistryResolver(client, chainId, node, name);
     return [

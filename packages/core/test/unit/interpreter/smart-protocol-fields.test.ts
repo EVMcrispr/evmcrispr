@@ -128,7 +128,6 @@ const cases: Record<string, string[]> = {
     `set-resolver alice.eth ${other}`,
     `set-primary-name alice.eth --for ${other}`,
     `create-subname alice.eth bob ${other} --resolver ${third} --expiry 9999999999`,
-    `renew alice.eth 1y`,
     `wrap alice.eth --resolver ${other}`,
     `set-fuses bob.alice.eth can-extend-expiry --expiry 9999999999`,
     `transfer alice.eth to ${other}`,

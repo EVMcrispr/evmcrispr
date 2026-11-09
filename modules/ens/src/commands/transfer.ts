@@ -13,7 +13,7 @@ import {
   registryMap,
   requireAddress,
 } from "../addresses";
-import { v2Registration } from "../ethRegistry";
+import { v2Name } from "../ethRegistry";
 import {
   assertSupportedChain,
   eth2LDLabel,
@@ -48,28 +48,26 @@ export default defineCommand<Ens>({
     const client = await module.getClient();
     const node = getNode(name);
 
-    if (isEth2LD(name)) {
-      const v2 = await v2Registration(client, chainId, eth2LDLabel(name));
-      if (v2) {
-        if (
-          !isRuntimeValue(newOwner) &&
-          String(newOwner).toLowerCase() === v2.owner.toLowerCase()
-        ) {
-          throw new ErrorException(
-            `${name} is already owned by ${v2.owner}; an ENSv2 name has no separate controller to reclaim`,
-          );
-        }
-        // The token carries the owner's roles: the registry moves them with
-        // it, and refuses unless the owner may transfer (CAN_TRANSFER_ADMIN,
-        // which a registration gives).
-        return [
-          encodeAction(
-            v2.registry,
-            "safeTransferFrom(address,address,uint256,uint256,bytes)",
-            [v2.owner, newOwner, v2.tokenId, 1, "0x"],
-          ),
-        ];
+    const v2 = await v2Name(client, chainId, name);
+    if (v2) {
+      if (
+        !isRuntimeValue(newOwner) &&
+        String(newOwner).toLowerCase() === v2.owner.toLowerCase()
+      ) {
+        throw new ErrorException(
+          `${name} is already owned by ${v2.owner}; an ENSv2 name has no separate controller to reclaim`,
+        );
       }
+      // The token carries the owner's roles: the registry moves them with
+      // it, and refuses unless the owner may transfer (CAN_TRANSFER_ADMIN,
+      // which a registration gives).
+      return [
+        encodeAction(
+          v2.registry,
+          "safeTransferFrom(address,address,uint256,uint256,bytes)",
+          [v2.owner, newOwner, v2.tokenId, 1, "0x"],
+        ),
+      ];
     }
 
     if (await isWrapped(client, chainId, node)) {

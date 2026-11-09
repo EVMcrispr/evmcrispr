@@ -18,6 +18,18 @@ export const ethRegistrarAbi = parseAbi([
   "function MIN_REGISTER_DURATION() view returns (uint64)",
 ]);
 
+/**
+ * ENSv2's renewers, as deployed (verified on Sourcify): the ETHRegistrar
+ * renews ENSv2 names, ETHRenewerV1 names still on ENS v1. Both pull the price
+ * in an ERC-20 from the sender, and renew a batch with one transfer.
+ */
+export const renewerAbi = parseAbi([
+  "struct RenewData { string label; uint64 duration; bytes32 referrer; }",
+  "function isRenewable(string label) view returns (bool)",
+  "function getRenewPrice(string label, uint64 duration, address paymentToken) view returns (uint256)",
+  "function renewBatch(RenewData[] rds, address paymentToken)",
+]);
+
 export const NO_REFERRER: Hex =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 

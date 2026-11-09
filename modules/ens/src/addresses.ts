@@ -37,6 +37,28 @@ export const ethRegistryMap = new Map<number, Address>([
   [sepolia.id, "0xD4eBcbBdF463C9c45784603Db0dDD499BC44A8B4"],
 ]);
 
+/** ENSv2's ETHRenewerV1: renews names still on ENS v1 (the only v1
+ *  controller left on the BaseRegistrar). ENSv2 names renew on the
+ *  ETHRegistrar. Both are paid in an ERC-20. */
+export const ethRenewerV1Map = new Map<number, Address>([
+  [mainnet.id, "0x56c447F308F463A01121C41E72b0E7e7557fCb68"],
+  [sepolia.id, "0xf2ece44980778966b8a0FccB3A9E339440f6e045"],
+]);
+
+/** ENSv2's VerifiableFactory: deploys a resolver proxy at an address
+ *  predictable from its deployer and salt. */
+export const verifiableFactoryMap = new Map<number, Address>([
+  [mainnet.id, "0x77510ba162dfeA3d8989E3f0928a691B345730D2"],
+  [sepolia.id, "0xDa70306C98E97eCe36F997a21368e53298572991"],
+]);
+
+/** ENSv2's PermissionedResolver implementation, behind every resolver the
+ *  factory deploys for a user (verified on Sourcify for mainnet). */
+export const permissionedResolverImplMap = new Map<number, Address>([
+  [mainnet.id, "0x565b0F456a04Ac9b48758190e90030623Cff57C5"],
+  [sepolia.id, "0x115eb53F0c60696633855F90b138178Fb40b2b2C"],
+]);
+
 /** The token ETHRegistrar is paid in when none is given: USDC (DAI is the
  *  other one it accepts; it takes no ETH). */
 export const defaultPaymentTokenMap = new Map<number, Address>([

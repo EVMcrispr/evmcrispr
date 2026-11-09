@@ -35,8 +35,12 @@ ens:set-text mydao.eth description "Community-owned treasury"
 
 ## Notes
 
-- The action is sent to the name's current resolver; the executing account
-  must own (or operate) the name.
+- The action is sent to the name's current resolver; on ENS v1 the executing
+  account must own (or operate) the name.
+- On an ENSv2 name the record is written to the name's resolver in ENSv2's
+  ETHRegistry, which must be an ENSv2 resolver (see
+  [ens:create-resolver](create-resolver.md)), by an account with the role to
+  set it there. Subnames of ENSv2 names are not supported yet.
 
 ## See Also
 

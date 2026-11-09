@@ -35,6 +35,10 @@ ens:set-contenthash mydao.eth "ipns://k51qzi5uqu5dlvj2baxnqndepeb86cbk3ng7n3i46u
 
 ## Notes
 
+- On an ENSv2 name the record is written to the name's resolver in ENSv2's
+  ETHRegistry, which must be an ENSv2 resolver (see
+  [ens:create-resolver](create-resolver.md)), by an account with the role to
+  set it there. Subnames of ENSv2 names are not supported yet.
 - Accepts `ipfs`, `ipns` and `skynet` URIs (`codec:hash` or `codec://hash`)
   or already-encoded EIP-1577 `0x` bytes (e.g. from `@ens:contenthash`).
 

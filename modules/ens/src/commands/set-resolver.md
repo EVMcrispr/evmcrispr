@@ -34,6 +34,9 @@ ens:set-resolver mydao.eth 0xF29100983E058B709F3D539b0c765937B804AC15
 
 - Wrapped names are handled automatically (the action goes through the
   NameWrapper instead of the registry).
+- An ENSv2 name's resolver is set on its token in ENSv2's ETHRegistry, by an
+  account with the set-resolver role (its owner gets it at registration).
+  Use an ENSv2 resolver: [ens:create-resolver](create-resolver.md) makes one.
 
 ## See Also
 

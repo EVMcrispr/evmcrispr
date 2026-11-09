@@ -10,9 +10,10 @@ load ens
 
 | Command | Description |
 |---------|-------------|
+| [ens:create-resolver](src/commands/create-resolver.md) | Deploy an ENSv2 resolver (PermissionedResolver) through ENS's VerifiableFactory and bind its predicted address to <variable>. Its admin (the sender by default) gets every role, so it can set records of any name that uses it. |
 | [ens:create-subname](src/commands/create-subname.md) ⚗️ | Create a subname under an ENS name you own. |
 | [ens:register](src/commands/register.md) | Register a .eth name with ENSv2's ETHRegistrar: commit, wait, then approve the payment token (USDC by default) and reveal, in one go by default. |
-| [ens:renew](src/commands/renew.md) | Renew ENS domain registrations via bulk renewal. |
+| [ens:renew](src/commands/renew.md) | Renew .eth names, paid in an ERC-20 (USDC by default): ENSv2 names on the ETHRegistrar, names still on ENS v1 on ETHRenewerV1, each with one approval and one batch. |
 | [ens:set-addr](src/commands/set-addr.md) | Set the address record of an ENS name. |
 | [ens:set-contenthash](src/commands/set-contenthash.md) | Set the content hash of an ENS name. |
 | [ens:set-fuses](src/commands/set-fuses.md) ⚗️ | Burn NameWrapper fuses on a wrapped ENS name. |
