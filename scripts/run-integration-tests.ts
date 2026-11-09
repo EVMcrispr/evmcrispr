@@ -207,8 +207,18 @@ try {
     }
 
     console.log(`\n--- Running integration tests: ${pkg} ---`);
+    // A cold fork pulls every account and slot it touches from the upstream
+    // RPC: a lifecycle test spends most of its time there, ~27s on anvil up
+    // to 1.7 (too close to the old 30s) and ~52s from 1.8, which fetches more.
     const result = Bun.spawnSync(
-      [...capPrefix, "bun", "test", "--timeout", "30000", "./test/integration"],
+      [
+        ...capPrefix,
+        "bun",
+        "test",
+        "--timeout",
+        "120000",
+        "./test/integration",
+      ],
       {
         cwd: resolve(import.meta.dir, "..", pkg),
         env: process.env,

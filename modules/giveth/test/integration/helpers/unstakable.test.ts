@@ -99,5 +99,5 @@ sim:fork --using anvil (
   sim:expect @bool(@giveth:lockable() == 1000e18)
   sim:expect @bool(@giveth:unlockable() == 0)
 )`);
-  }, 30000);
+  }, 120000);
 });

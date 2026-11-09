@@ -147,7 +147,7 @@ giveth:lock max 26`,
     },
     {
       name: "maxes out GIVpower with claim/stake max/lock max inside sim:fork",
-      timeout: 30000,
+      timeout: 120000,
       // The executing path: each command runs on the fork before the next,
       // so `max` resolves from real chain state instead of the ledger.
       script: `load sim
@@ -169,7 +169,7 @@ sim:fork --using anvil (
     },
     {
       name: "runs a full stake/lock/unlock/unstake lifecycle inside sim:fork",
-      timeout: 30000,
+      timeout: 120000,
       script: `load sim
 load token
 sim:fork --using anvil (
