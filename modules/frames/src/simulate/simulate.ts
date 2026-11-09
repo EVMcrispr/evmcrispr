@@ -14,16 +14,20 @@ import {
   unpaidFeeError,
 } from "@evmcrispr/sdk";
 import {
+  arbitrarySignatureEntry,
   frameProfileOf,
   frameSignatureHash,
   newFrameTransaction,
   secp256k1Placeholder,
   toFrameRequests,
 } from "@evmcrispr/viem-frames";
-import { type Address, getAddress, isAddressEqual } from "viem";
+import { type Address, getAddress, isAddressEqual, zeroAddress } from "viem";
 import type { FrameModuleAction } from "../frame-action";
 import { frameNetwork, frameNetworkNames } from "../networks";
-import { frameIntrinsicGas } from "./intrinsic";
+import { frameTxGas } from "./intrinsic";
+
+const larger = (a: bigint, b: bigint) => (a > b ? a : b);
+
 import {
   type FrameContext,
   type FrameStatus,
@@ -93,22 +97,40 @@ export async function simulateFrameAction(
   // The fees `frames:tx` was given, held to the fork's base fee; without
   // them the transaction runs free, as any transaction in a fork does.
   const fees = chargedFees(action.data.fees ?? {}, sim.baseFee);
-  /** What the payer is charged when it approves: none without fees, and
-   *  none when a frame has no gas limit to price. */
-  const preCharged =
-    fees && network.gas.preCharge && unsized.size === 0
-      ? fees.maxFeePerGas *
-        (frameIntrinsicGas(
+  /** The transaction's intrinsic gas and calldata floor, on a network
+   *  that charges them (none when a frame has no gas limit to price). */
+  const txGas =
+    network.gas.preCharge && unsized.size === 0
+      ? frameTxGas(
           requests.map((r, i) => ({
             target: r.target ? getAddress(r.target) : null,
             data: r.data,
             value: frames[i]!.value,
           })),
           sender,
-          network.gas.preCharge.intrinsicExtra,
-        ) +
-          frames.reduce((sum, f) => sum + f.gas + f.stateGas, 0n))
+          network.gas.preCharge.extraBytes,
+          action.data.account ? "arbitrary" : "secp256k1",
+        )
       : undefined;
+  /** What the payer is charged when it approves: none without fees. The
+   *  most gas the transaction can use, the intrinsic gas and every frame's
+   *  limits or the calldata floor when that is more (measured on the
+   *  Hegota devnet, hegota-post-tx-probe (k)), at the max fee. */
+  const preCharged =
+    fees && txGas
+      ? fees.maxFeePerGas *
+        larger(
+          txGas.intrinsic +
+            frames.reduce((sum, f) => sum + f.gas + f.stateGas, 0n),
+          txGas.floor,
+        )
+      : undefined;
+  /** The gas the transaction used, as the network counts it: the frames'
+   *  gas, and on a network that charges them the intrinsic gas, or the
+   *  calldata floor when that is more. State gas (EIP-8037) is not
+   *  modelled. */
+  const gasUsedOf = (framesGas: bigint) =>
+    txGas ? larger(txGas.intrinsic + framesGas, txGas.floor) : framesGas;
   const maxFeePerGas = fees?.maxFeePerGas ?? 0n;
   const maxPriorityFeePerGas = fees?.maxPriorityFeePerGas ?? 0n;
   const unsigned = newFrameTransaction({
@@ -123,7 +145,14 @@ export async function simulateFrameAction(
       value: f.value,
       data: f.data,
     })),
-    signatures: [secp256k1Placeholder(profile)],
+    // The entry the send carries: a plain sender's wallet signs the
+    // transaction (secp256k1); a frame account's owner signs for its code
+    // to check (ARBITRARY, 65 bytes, hashed by their length).
+    signatures: [
+      action.data.account
+        ? arbitrarySignatureEntry(`0x${"00".repeat(65)}`, profile)
+        : secp256k1Placeholder(profile),
+    ],
     fees: { maxFeePerGas, maxPriorityFeePerGas },
   });
   const ctx: FrameContext = {
@@ -138,8 +167,10 @@ export async function simulateFrameAction(
     statuses: [],
     gasUsed: [],
     signature: {
-      scheme: profile.sigSchemes.SECP256K1,
-      signer: action.data.account?.owner ?? sender,
+      // An ARBITRARY entry has no signer (EIP-8141).
+      ...(action.data.account
+        ? { scheme: profile.sigSchemes.ARBITRARY!, signer: zeroAddress }
+        : { scheme: profile.sigSchemes.SECP256K1!, signer: sender }),
       data: `0x${"00".repeat(65)}`,
     },
   };
@@ -371,7 +402,9 @@ export async function simulateFrameAction(
       //    (the pre-charge, less the fee, comes back). One that cannot pay
       //    it makes the whole transaction invalid.
       if (fees) {
-        const fee = out.reduce((sum, f) => sum + f.gasUsed, 0n) * fees.gasPrice;
+        const fee =
+          gasUsedOf(out.reduce((sum, f) => sum + f.gasUsed, 0n)) *
+          fees.gasPrice;
         const balance = await sim.getBalance(payer);
         if (preCharged !== undefined)
           await sim.setBalance(payer, balance + preCharged - fee);
@@ -407,7 +440,7 @@ export async function simulateFrameAction(
     return {
       status: "success",
       transactionHash: sim.transactionHash,
-      gasUsed: out.reduce((sum, f) => sum + f.gasUsed, 0n),
+      gasUsed: gasUsedOf(out.reduce((sum, f) => sum + f.gasUsed, 0n)),
       logs: out.flatMap((f) =>
         f.logs.map((log) => ({ ...log, logIndex: logIndex++ })),
       ),

@@ -266,8 +266,86 @@ describe("the frame executor", () => {
         host.sim,
       );
       expect(during).toEqual([ONE - MAX_COST, ONE - MAX_COST]);
-      // The fee: two frames of 21 gas at the base fee 7 plus the tip 1.
-      expect(host.balances.get(SENDER)).toBe(ONE - 42n * 8n);
+      // The fee: the gas used at the base fee 7 plus the tip 1. Two frames
+      // of 21 gas and the intrinsic gas come to less than the calldata
+      // floor: 64 a byte of the signature and the 3 bytes the client adds.
+      const floor = 12_000n + 3n * 475n + 2_800n + 64n * (65n + 3n);
+      expect(host.balances.get(SENDER)).toBe(ONE - floor * 8n);
+    });
+
+    test("a frame account's transaction is priced with its ARBITRARY entry: 100 to verify, not 2800", async () => {
+      const during: (bigint | undefined)[] = [];
+      let balances: Map<string, bigint> | undefined;
+      const host = fakeHost(undefined, 7n, {
+        chainId: HEGOTA,
+        behave: () => {
+          during.push(balances?.get(SENDER));
+          return undefined;
+        },
+      });
+      balances = host.balances;
+      host.balances.set(SENDER, ONE);
+      const base = action(2, FEES, { chainId: HEGOTA });
+      const fromAccount = {
+        ...base,
+        data: {
+          ...base.data,
+          account: {
+            kind: "frame-account" as const,
+            owner: DEAD as `0x${string}`,
+          },
+        },
+      };
+      await frameAction.simulate!(fromAccount, host.sim);
+      expect(during[0]).toBe(ONE - (MAX_COST - 1_000n * (2_800n - 100n)));
+    });
+
+    test("the maximum cost is the calldata floor when that is above the limits, so the fee never exceeds it", async () => {
+      const host = fakeHost(undefined, 7n, {
+        chainId: HEGOTA,
+        code: { [DEAD.toLowerCase()]: "0x00" },
+      });
+      host.balances.set(SENDER, ONE);
+      // One body frame with 2 KB of data and a small limit: the floor
+      // (64 a byte) is above the intrinsic gas and the limits.
+      const data = `0x${"11".repeat(2048)}` as const;
+      const tx = frameAction.create({
+        chainId: HEGOTA,
+        from: SENDER,
+        data: {
+          mempool: "canonical",
+          fees: { maxFeePerGas: 8n, maxPriorityFeePerGas: 1n },
+          frames: [
+            {
+              mode: "verify",
+              approve: "both",
+              target: null,
+              data: "0x",
+              value: 0n,
+              gas: 30_000n,
+            },
+            {
+              mode: "sender",
+              target: DEAD,
+              data,
+              value: 0n,
+              gas: 60_000n,
+              stateGas: 0n,
+            },
+          ],
+        },
+      });
+      const receipt = (await frameAction.simulate!(
+        tx,
+        host.sim,
+      )) as unknown as {
+        gasUsed: bigint;
+      };
+      const floor = 12_000n + 2n * 475n + 2_800n + 64n * (2_048n + 65n + 3n);
+      // Charged the floor at the price (the base fee 7 and the tip 1 reach
+      // the max fee 8): what the gas used and the receipt say.
+      expect(receipt.gasUsed).toBe(floor);
+      expect(host.balances.get(SENDER)).toBe(ONE - floor * 8n);
     });
 
     test("a payer that can pay the gas used but not the maximum cost makes the transaction invalid", async () => {

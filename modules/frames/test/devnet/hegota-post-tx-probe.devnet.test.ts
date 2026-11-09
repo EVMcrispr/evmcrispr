@@ -4,8 +4,9 @@
 // Probe contracts are deployed once from anvil #0 (public key, devnet ETH);
 // the questions are asked through the node's own simulation, except what a
 // failing POST_TX frame does to a sent transaction, which needs one send.
-import { describe, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
+  arbitrarySignatureEntry,
   HEGOTA_DEVNET_RPC,
   ethrexHegotaDevnetProfile as profile,
   simulate,
@@ -30,6 +31,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { FrameSpec } from "../../src/frame-action";
+import { frameTxGas } from "../../src/simulate/intrinsic";
 
 const ENABLED = process.env.EVMCRISPR_HEGOTA === "1";
 const KEY =
@@ -677,4 +679,248 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
     };
     console.log("(g)", JSON.stringify(result, null, 1));
   }, 900_000);
+
+  it("(h) the intrinsic gas of a transaction signed with an ARBITRARY entry (a frame account's)", async () => {
+    // A sender with code: the probe contract stands in for an account.
+    // maxCost is fixed by the transaction alone, before any frame runs.
+    const account = await deploy(TRACE_EXPECT);
+    const nonce = BigInt(
+      await reader.getTransactionCount({
+        address: account,
+        blockTag: "pending",
+      }),
+    );
+    const accountVerify: FrameSpec = { ...verify };
+    const run = async (signature: Hex) => {
+      const all = toFrameRequests([accountVerify, body({})], profile);
+      const tx = newTx({
+        chainId: chain.id,
+        sender: account,
+        nonceSeq: nonce,
+        frames: all as never,
+        signatures: [arbitrarySignatureEntry(signature, profile)],
+        fees: { maxFeePerGas: 1_000n, maxPriorityFeePerGas: 1n },
+      });
+      const sim = await simulate(
+        HEGOTA_DEVNET_RPC,
+        encodeTx(profile, tx),
+      ).catch((e: Error) => e.message.slice(0, 160));
+      if (typeof sim === "string") return sim;
+      const limits = all.reduce(
+        (sum, f) =>
+          sum +
+          BigInt((f as { limits: { execution: bigint } }).limits.execution) +
+          BigInt((f as { limits: { state: bigint } }).limits.state),
+        0n,
+      );
+      const maxCost = (sim as unknown as { maxCost?: string }).maxCost;
+      return maxCost === undefined
+        ? JSON.stringify(sim).slice(0, 200)
+        : (BigInt(maxCost) / 1000n - limits).toString();
+    };
+    const result = {
+      "65 zero bytes": await run(`0x${"00".repeat(65)}`),
+      "65 nonzero bytes": await run(`0x${"11".repeat(65)}`),
+      "65 bytes, one zero": await run(`0x00${"11".repeat(64)}`),
+      "97 nonzero bytes": await run(`0x${"11".repeat(97)}`),
+      "no bytes": await run("0x"),
+    };
+    console.log("(h)", JSON.stringify(result, null, 1));
+  }, 600_000);
+
+  it("(i) the simulator's intrinsic gas is the chain's, for a plain sender and a frame account", async () => {
+    const account = await deploy(TRACE_EXPECT);
+    const ones = (n: number) => `0x${"11".repeat(n)}` as Hex;
+    const layouts: FrameSpec[][] = [
+      [verify, body({})],
+      [verify, body({ value: 3n }), body({ data: ones(40) })],
+      [verify, body({ data: `0x00${"22".repeat(9)}` }), body({})],
+    ];
+    for (const specs of layouts)
+      for (const [scheme, sender] of [
+        ["secp256k1", SENDER],
+        ["arbitrary", account],
+      ] as const) {
+        const all = toFrameRequests(specs, profile);
+        // A signature with no zero byte: the case the simulator prices.
+        const signature = ones(65);
+        const tx = newTx({
+          chainId: chain.id,
+          sender,
+          nonceSeq: 0n,
+          frames: all as never,
+          signatures: [
+            scheme === "arbitrary"
+              ? arbitrarySignatureEntry(signature, profile)
+              : { ...secp256k1Placeholder(profile), signature },
+          ],
+          fees: { maxFeePerGas: 1_000n, maxPriorityFeePerGas: 1n },
+        });
+        const sim = (await simulate(
+          HEGOTA_DEVNET_RPC,
+          encodeTx(profile, tx),
+        )) as unknown as { maxCost: string };
+        const limits = all.reduce(
+          (sum, f) =>
+            sum +
+            BigInt((f as { limits: { execution: bigint } }).limits.execution) +
+            BigInt((f as { limits: { state: bigint } }).limits.state),
+          0n,
+        );
+        expect(BigInt(sim.maxCost) / 1000n - limits).toBe(
+          frameTxGas(
+            all.map((f) => ({
+              target: (f as { target: Hex | null }).target,
+              data: (f as { data: Hex }).data,
+              value: BigInt((f as { value: bigint }).value),
+            })),
+            sender,
+            3n,
+            scheme,
+          ).intrinsic,
+        );
+      }
+  }, 600_000);
+
+  it("(j) the gas a transaction uses: intrinsic and frames, or the calldata floor", async () => {
+    const ones = (n: number) => `0x${"11".repeat(n)}` as Hex;
+    const zeros = (n: number) => `0x${"00".repeat(n)}` as Hex;
+    const target = await deploy(WRITER); // SSTOREs word 0: uses gas
+    const layouts: FrameSpec[][] = [
+      [verify, body({})],
+      [verify, body({ value: 3n })],
+      [verify, body({ data: ones(100) })],
+      [verify, body({ data: zeros(100) })],
+      [verify, body({ data: ones(400) })],
+      [verify, body({ target, data: pad("0x05") })],
+    ];
+    for (const specs of layouts) {
+      const all = toFrameRequests(specs, profile);
+      const nonce = BigInt(
+        await reader.getTransactionCount({
+          address: SENDER,
+          blockTag: "pending",
+        }),
+      );
+      const tx = await signTx(
+        profile,
+        newTx({
+          chainId: chain.id,
+          sender: SENDER,
+          nonceSeq: nonce,
+          frames: all as never,
+          signatures: [secp256k1Placeholder(profile)],
+          fees: { maxFeePerGas: 1_000n, maxPriorityFeePerGas: 1n },
+        }),
+        KEY,
+      );
+      const sim = (await simulate(
+        HEGOTA_DEVNET_RPC,
+        encodeTx(profile, tx),
+      )) as unknown as {
+        gasUsed: Hex;
+        frames: { gasUsed: Hex; stateGasUsed: Hex }[];
+      };
+      const signature = (tx as unknown as { signatures: { signature: Hex }[] })
+        .signatures[0]!.signature;
+      const zeroBytes = BigInt(
+        signature
+          .slice(2)
+          .match(/../g)!
+          .filter((b) => b === "00").length,
+      );
+      const gas = frameTxGas(
+        all.map((f) => ({
+          target: (f as { target: Hex | null }).target,
+          data: (f as { data: Hex }).data,
+          value: BigInt((f as { value: bigint }).value),
+        })),
+        SENDER,
+        3n,
+        "secp256k1",
+      );
+      // The real signature's zero bytes cost 12 less each in the intrinsic
+      // gas; the floor prices every byte alike.
+      const intrinsic = gas.intrinsic - 12n * zeroBytes;
+      const execution = sim.frames.reduce((t, f) => t + BigInt(f.gasUsed), 0n);
+      const state = sim.frames.reduce((t, f) => t + BigInt(f.stateGasUsed), 0n);
+      const standard = intrinsic + execution + state;
+      const floor = gas.floor + state;
+      expect(BigInt(sim.gasUsed)).toBe(standard > floor ? standard : floor);
+    }
+  }, 600_000);
+
+  it("(k) maxCost is the larger of the limits and the calldata floor", async () => {
+    const ones = (n: number) => `0x${"11".repeat(n)}` as Hex;
+    const out: Record<string, unknown> = {};
+    for (const [name, specs] of [
+      [
+        "2 KB, gas 60000",
+        [verify, body({ data: ones(2048), gas: 60_000n, stateGas: 0n })],
+      ],
+      [
+        "2 KB, gas 60000, state 50000",
+        [verify, body({ data: ones(2048), gas: 60_000n, stateGas: 50_000n })],
+      ],
+    ] as [string, FrameSpec[]][]) {
+      const all = toFrameRequests(specs, profile);
+      const tx = await signTx(
+        profile,
+        newTx({
+          chainId: chain.id,
+          sender: SENDER,
+          nonceSeq: BigInt(
+            await reader.getTransactionCount({
+              address: SENDER,
+              blockTag: "pending",
+            }),
+          ),
+          frames: all as never,
+          signatures: [secp256k1Placeholder(profile)],
+          fees: { maxFeePerGas: 1_000n, maxPriorityFeePerGas: 1n },
+        }),
+        KEY,
+      );
+      const sim = await simulate(
+        HEGOTA_DEVNET_RPC,
+        encodeTx(profile, tx),
+      ).catch((e: Error) => `refused: ${e.message.slice(0, 200)}`);
+      const signature = (tx as unknown as { signatures: { signature: Hex }[] })
+        .signatures[0]!.signature;
+      const zeroBytes = BigInt(
+        signature
+          .slice(2)
+          .match(/../g)!
+          .filter((b) => b === "00").length,
+      );
+      const gas = frameTxGas(
+        all.map((f) => ({
+          target: (f as { target: Hex | null }).target,
+          data: (f as { data: Hex }).data,
+          value: BigInt((f as { value: bigint }).value),
+        })),
+        SENDER,
+        3n,
+        "secp256k1",
+      );
+      const exec = all.reduce(
+        (t, f) =>
+          t + BigInt((f as { limits: { execution: bigint } }).limits.execution),
+        0n,
+      );
+      const state = all.reduce(
+        (t, f) => t + BigInt((f as { limits: { state: bigint } }).limits.state),
+        0n,
+      );
+      // The most gas it can use: the limits or the floor (without the state
+      // limits, in this revision), the larger.
+      const standard = gas.intrinsic - 12n * zeroBytes + exec + state;
+      expect(typeof sim).not.toBe("string");
+      expect(BigInt((sim as unknown as { maxCost: Hex }).maxCost) / 1000n).toBe(
+        standard > gas.floor ? standard : gas.floor,
+      );
+      out[name] = "ok";
+    }
+    console.log("(k)", JSON.stringify(out, null, 1));
+  }, 600_000);
 });

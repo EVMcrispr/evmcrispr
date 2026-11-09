@@ -160,14 +160,22 @@ frames' gas used at the price above, and a payer that cannot pay makes the
 transaction invalid. Without them it runs free, like any transaction here.
 On the Hegota devnet, as on the chain, the payer is charged the most the
 transaction can cost when it approves (the max fee times the intrinsic gas and
-every frame's limits; a payer that cannot cover it makes the transaction
-invalid), so the body and the `post-verify` checks see that charge, and the
-part not used comes back after the last frame. The signature is priced as if
-none of its bytes were zero: a real one with zero bytes costs 12 gas less for
-each, so a check of the payer's exact balance can differ by that much.
+every frame's limits, or EIP-8141's calldata floor when that is more; a payer
+that cannot cover it makes the transaction invalid), so the body and the `post-verify` checks see that charge, and the
+part not used comes back after the last frame. The signature is priced as the
+send will carry it: a plain sender's secp256k1 one (2800 gas to verify), a
+frame account's owner signature as an ARBITRARY entry its code checks (100).
+Its 65 bytes are priced as if none were zero, since the signature does not
+exist yet: a real one with zero bytes costs 12 gas less for each (for a plain
+sender often its first byte, `v`; for a frame account only a byte of `r` or
+`s`), so a check of the payer's exact balance can differ by that much.
 
-Not modelled: the intrinsic cost in the fee (only the frames' gas is
-charged), state gas (EIP-8037;
+The fee is the gas used at that price: on the Hegota devnet, as the chain
+counts it, the transaction's intrinsic gas and the frames', or EIP-8141's
+calldata floor when that is more; elsewhere the frames' gas alone.
+
+Not modelled: state gas (EIP-8037: the chain adds it to the gas used for
+storage a transaction creates;
 a frame whose `--state-gas` is too small can pass here and fail on the chain),
 and the ERC-8421 mempool's admission rules.
 
