@@ -166,6 +166,11 @@ impl RevmFork {
         self.inner.start_trace()
     }
 
+    #[wasm_bindgen(js_name = stopTrace)]
+    pub fn stop_trace(&mut self) {
+        self.inner.stop_trace()
+    }
+
     #[wasm_bindgen(js_name = stateChanges)]
     pub fn state_changes(&self) -> String {
         self.inner.state_changes()

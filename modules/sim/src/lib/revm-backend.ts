@@ -422,6 +422,16 @@ export async function createRevmBackend(
     };
     const ok = (json: string) => assertOk(JSON.parse(json));
     let tracing = false;
+    // The action's open checkpoints: when the last closes, it has ended and
+    // its trace is no longer read (nothing more is recorded for it).
+    let depth = 0;
+    const closed = () => {
+      depth--;
+      if (depth === 0 && tracing) {
+        tracing = false;
+        fork.stopTrace();
+      }
+    };
     return {
       chainId,
       blockNumber: fork.blockNumber(),
@@ -507,6 +517,7 @@ export async function createRevmBackend(
           tracing = true;
           fork.startTrace();
         }
+        depth++;
         fork.checkpoint();
       },
       async stateChanges() {
@@ -541,9 +552,11 @@ export async function createRevmBackend(
       },
       async commit() {
         ok(fork.commitCheckpoint());
+        closed();
       },
       async revert() {
         ok(fork.revertCheckpoint());
+        closed();
       },
       async getNonce(address) {
         await prefetchAccounts([address]);

@@ -221,6 +221,11 @@ impl Fork {
         self.trace = Some(TraceRecord::default());
     }
 
+    /// Stops recording: the module action that read it has ended.
+    pub fn stop_trace(&mut self) {
+        self.trace = None;
+    }
+
     /// The net changes since `start_trace`, each list sorted ascending by
     /// address (slots then by slot): balances, slots and code hashes whose
     /// value now differs from before their first change.

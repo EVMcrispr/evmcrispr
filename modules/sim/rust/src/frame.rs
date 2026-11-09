@@ -625,7 +625,13 @@ where
             .map(|a| a.data.info.nonce)
             .unwrap_or(0);
         let created = inputs.created_address(nonce);
-        let logged = self.log_transfer(context, caller, created, inputs.value());
+        // A caller whose nonce cannot grow creates nothing and moves no value
+        // (revm ends that CREATE without a failure for create_end to see).
+        let logged = if nonce == u64::MAX {
+            None
+        } else {
+            self.log_transfer(context, caller, created, inputs.value())
+        };
         self.logged.push(logged);
         self.destructed.push(None);
         self.creating.push(true);

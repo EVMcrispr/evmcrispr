@@ -476,6 +476,16 @@ export async function createEthereumJSBackend(
     // then share what they warm (runCall keeps the journal's access sets).
     // The EVM's Journal (its interface type leaves the warm sets out).
     let tracing = false;
+    // The action's open checkpoints: when the last closes, it has ended and
+    // its trace is no longer read (nothing more is recorded for it).
+    let depth = 0;
+    const closed = () => {
+      depth--;
+      if (depth === 0 && tracing) {
+        tracing = false;
+        stateManager.trace = undefined;
+      }
+    };
     const journal = vm.evm.journal as unknown as {
       journalHeight: number;
       isWarmedAddress(address: Uint8Array): boolean;
@@ -570,6 +580,7 @@ export async function createEthereumJSBackend(
           tracing = true;
           stateManager.trace = { accounts: new Map(), slots: new Map() };
         }
+        depth++;
         return vm.evm.journal.checkpoint();
       },
       async stateChanges() {
@@ -614,8 +625,14 @@ export async function createEthereumJSBackend(
         );
         return { balances, slots, codes };
       },
-      commit: () => vm.evm.journal.commit(),
-      revert: () => vm.evm.journal.revert(),
+      async commit() {
+        await vm.evm.journal.commit();
+        closed();
+      },
+      async revert() {
+        await vm.evm.journal.revert();
+        closed();
+      },
       async getNonce(a) {
         return (await stateManager.getAccount(address(a)))?.nonce ?? 0n;
       },

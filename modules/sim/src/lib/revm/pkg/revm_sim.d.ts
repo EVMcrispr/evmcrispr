@@ -37,6 +37,7 @@ export class RevmFork {
     setStorage(addr: string, slot: string, value: string): string;
     startTrace(): void;
     stateChanges(): string;
+    stopTrace(): void;
     transact(tx_json: string): string;
 }
 
@@ -67,6 +68,7 @@ export interface InitOutput {
     readonly revmfork_setStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
     readonly revmfork_startTrace: (a: number) => void;
     readonly revmfork_stateChanges: (a: number, b: number) => void;
+    readonly revmfork_stopTrace: (a: number) => void;
     readonly revmfork_transact: (a: number, b: number, c: number, d: number) => void;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;

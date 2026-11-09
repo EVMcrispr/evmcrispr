@@ -890,6 +890,31 @@ export function describeBackendSuite(
         expect(await sim.getNonce(TARGET)).toBe(before + 1n);
       });
 
+      it("an action's trace outlives its inner checkpoints and ends with the last", async () => {
+        // SSTORE(0, calldata word 0)
+        const { backend } = await makeBackend();
+        await backend.handleAction({
+          type: "rpc",
+          method: `${prefix}_setCode`,
+          params: [TARGET, "0x5f355f5500"],
+        } as Action);
+        const sim = backend.simContext!(ACTION, { onLog: () => {} });
+        await sim.checkpoint();
+        await sim.checkpoint();
+        await sim.call({
+          caller: CALLER,
+          to: TARGET,
+          data: word(7),
+          value: 0n,
+          gas: 100_000n,
+          isStatic: false,
+        });
+        // A frame's checkpoint closes; the action is still open.
+        await sim.commit();
+        expect((await sim.stateChanges()).slots).toHaveLength(1);
+        await sim.commit();
+      });
+
       it("revert undoes the calls since its checkpoint; commit keeps them", async () => {
         const sim = await host("0x00");
         const start = await sim.getBalance(DEAD);

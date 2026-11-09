@@ -24,6 +24,7 @@ export const revmfork_setNonce: (a: number, b: number, c: number, d: number, e: 
 export const revmfork_setStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
 export const revmfork_startTrace: (a: number) => void;
 export const revmfork_stateChanges: (a: number, b: number) => void;
+export const revmfork_stopTrace: (a: number) => void;
 export const revmfork_transact: (a: number, b: number, c: number, d: number) => void;
 export const __wbindgen_export: (a: number, b: number) => number;
 export const __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;

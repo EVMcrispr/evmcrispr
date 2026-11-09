@@ -432,6 +432,9 @@ export class RevmFork {
             wasm.__wbindgen_export4(deferred1_0, deferred1_1, 1);
         }
     }
+    stopTrace() {
+        wasm.revmfork_stopTrace(this.__wbg_ptr);
+    }
     /**
      * @param {string} tx_json
      * @returns {string}
