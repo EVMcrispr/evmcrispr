@@ -1,4 +1,11 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 export const CHAIN_ID = 100;
@@ -14,7 +21,9 @@ export const CHAIN_ID = 100;
  *
  * `run-integration-tests.ts` acquires a port and exports it, so its child test
  * processes inherit it. A bare `bun test` with nothing set falls back to the
- * default, which keeps the common single-runner case exactly as it was.
+ * default only outside any test process: the test preload claims a port of
+ * its own for a `bun test` that inherited none (`claimAnvilPort`), so test
+ * processes of parallel sessions never share an anvil.
  *
  * Read through the functions, never cached at module load: the runner sets the
  * variable after this module is imported.
@@ -313,8 +322,82 @@ export async function ensureAnvil(): Promise<
  * Creation is exclusive (`wx`), so two runners racing for the same port cannot
  * both win it.
  */
-const LOCK_DIR = resolve(import.meta.dir, "../node_modules/.cache/anvil-ports");
-const PORT_RANGE = 16;
+const PORT_RANGE = 32;
+
+/** Refuse a lock directory another user could plant files or links in. */
+export function checkLockDir(dir: string): void {
+  const st = lstatSync(dir);
+  const uid = process.getuid?.();
+  if (
+    !st.isDirectory() ||
+    (uid !== undefined && st.uid !== uid) ||
+    (st.mode & 0o077) !== 0
+  )
+    throw new Error(
+      `anvil lock directory ${dir} is not private: it must be a directory of yours, mode 0700`,
+    );
+}
+
+let lockDir: string | undefined;
+
+/** Where the port locks live: per user (every checkout and worktree of
+ *  theirs sees the same claims), private to them. */
+export function anvilLockDir(): string {
+  if (lockDir) return lockDir;
+  const runtime = process.env.XDG_RUNTIME_DIR;
+  const dir = runtime
+    ? join(runtime, "evmcrispr-anvil-ports")
+    : join(tmpdir(), `evmcrispr-anvil-ports-${process.getuid?.() ?? "user"}`);
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  checkLockDir(dir);
+  lockDir = dir;
+  return dir;
+}
+
+/** The lock file of `port`, holding the pid of the runner that claimed it. */
+export function anvilPortLock(port: number): string {
+  return join(anvilLockDir(), `${port}.lock`);
+}
+
+/** Claim `port` for this process: a free port, or one whose claimer is
+ *  gone. A stale lock is replaced (removed, then created exclusively),
+ *  never written through. */
+export function claimLock(port: number): boolean {
+  const lock = anvilPortLock(port);
+  const create = () => {
+    try {
+      writeFileSync(lock, String(process.pid), { flag: "wx" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (create()) return true;
+  let owner = 0;
+  try {
+    if (!lstatSync(lock).isSymbolicLink())
+      owner = Number(readFileSync(lock, "utf8"));
+  } catch {
+    // Gone meanwhile, or unreadable: treat as stale.
+  }
+  if (owner === process.pid) return true;
+  if (Number.isInteger(owner) && owner > 0 && pidAlive(owner)) return false;
+  rmSync(lock, { force: true });
+  return create();
+}
+
+/** Whether a live runner other than this process claimed `port`. */
+export function claimedByAnotherRunner(port: number): boolean {
+  let owner: number;
+  try {
+    const lock = anvilPortLock(port);
+    if (lstatSync(lock).isSymbolicLink()) return false;
+    owner = Number(readFileSync(lock, "utf8"));
+  } catch {
+    return false;
+  }
+  return Number.isInteger(owner) && owner !== process.pid && pidAlive(owner);
+}
 
 function pidAlive(pid: number): boolean {
   try {
@@ -325,29 +408,36 @@ function pidAlive(pid: number): boolean {
   }
 }
 
+/**
+ * Claim a port for this process and export it, unless it inherited one (a
+ * runner's, or `with-anvil`'s). Returns the release, or undefined when there
+ * was nothing to claim.
+ */
+export function claimAnvilPort(): (() => void) | undefined {
+  if (process.env[ANVIL_PORT_ENV] !== undefined) return undefined;
+  const { port, release } = acquireAnvilPort();
+  process.env[ANVIL_PORT_ENV] = String(port);
+  return () => {
+    release();
+    if (process.env[ANVIL_PORT_ENV] === String(port))
+      delete process.env[ANVIL_PORT_ENV];
+  };
+}
+
 export function acquireAnvilPort(): { port: number; release: () => void } {
-  mkdirSync(LOCK_DIR, { recursive: true });
   for (let i = 0; i < PORT_RANGE; i++) {
     const port = DEFAULT_ANVIL_PORT + i;
-    const lock = join(LOCK_DIR, `${port}.lock`);
-    try {
-      writeFileSync(lock, String(process.pid), { flag: "wx" });
-    } catch {
-      // Taken, unless whoever took it is gone.
-      let owner = 0;
-      try {
-        owner = Number(readFileSync(lock, "utf8"));
-      } catch {
-        continue;
-      }
-      if (owner !== process.pid && pidAlive(owner)) continue;
-      writeFileSync(lock, String(process.pid));
-    }
+    if (!claimLock(port)) continue;
+    const lock = anvilPortLock(port);
     return {
       port,
       release: () => {
         try {
-          if (Number(readFileSync(lock, "utf8")) === process.pid) rmSync(lock);
+          if (
+            !lstatSync(lock).isSymbolicLink() &&
+            Number(readFileSync(lock, "utf8")) === process.pid
+          )
+            rmSync(lock);
         } catch {
           // Already gone; nothing to release.
         }

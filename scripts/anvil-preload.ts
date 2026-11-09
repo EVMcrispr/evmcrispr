@@ -11,7 +11,13 @@
  * when many suites ran at once.
  */
 import { afterAll } from "bun:test";
-import { ensureAnvil, loadEnv } from "./anvil-config";
+import {
+  claimAnvilPort,
+  ensureAnvil,
+  getEndpoint,
+  loadEnv,
+  resetAnvil,
+} from "./anvil-config";
 
 await loadEnv();
 
@@ -23,14 +29,23 @@ process.env.VITE_PUBLIC_EXPERIMENTAL ??= "true";
 // skip IPFS content verification (the sdk unit tests re-enable it locally).
 process.env.EVMCRISPR_TRUST_IPFS_GATEWAY ??= "true";
 
+// A process no runner started (a bare `bun test`) claims a port of its own,
+// so parallel sessions never share an anvil; one under a runner or
+// `with-anvil` uses the port it inherited.
+const release = claimAnvilPort();
+
 // Reuses a live anvil, replaces a wedged one, or starts a fresh one. When no
 // API key is configured it does nothing: unit tests still work fine and
 // integration tests fail with a clear connection error.
-let anvil = await ensureAnvil();
+const anvil = await ensureAnvil();
+// A port just claimed can still hold the anvil of a run that died without
+// stopping it: start from a pristine fork, not from that run's state.
+const endpoint = getEndpoint();
+if (release && !anvil && endpoint) await resetAnvil(endpoint);
 
+// A preload's afterAll runs once, after every file (bun fires no "exit"
+// handler at the end of a test run).
 afterAll(() => {
-  if (anvil) {
-    anvil.kill();
-    anvil = undefined;
-  }
+  anvil?.kill();
+  release?.();
 });
