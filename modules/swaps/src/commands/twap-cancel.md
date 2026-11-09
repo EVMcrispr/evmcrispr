@@ -2,7 +2,7 @@
 title: "swaps:twap-cancel"
 ---
 
-Cancel a CoW TWAP and revoke its sell-token allowance. Cancellation takes effect when mined; use twap-recover afterwards to return unused tokens.
+Cancel a CoW TWAP and revoke its sell-token allowance. Cancellation takes effect when mined; use twap-recover afterwards to return unused tokens. An order a Safe owns itself is only removed: its tokens never left the Safe, and the allowance its other CoW orders share stays.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
