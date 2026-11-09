@@ -14,7 +14,7 @@ import { mainnet } from "viem/chains";
 import { normalize, packetToBytes } from "viem/ens";
 import type Ens from "..";
 import { EMPTY_DYNAMIC_RETURN, resolverGatedChain } from "../onchain";
-import { getNode, mainnetClient } from "../utils";
+import { ensClient, getNode } from "../utils";
 
 const contenthashAbi = parseAbi([
   "function contenthash(bytes32 node) view returns (bytes)",
@@ -49,7 +49,7 @@ export default defineHelper<Ens>({
     });
     let data: Hex;
     try {
-      [data] = await mainnetClient(module).readContract({
+      [data] = await (await ensClient(module)).readContract({
         address: getChainContractAddress({
           chain: mainnet,
           contract: "ensUniversalResolver",

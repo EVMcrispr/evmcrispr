@@ -14,11 +14,11 @@ import type Ens from "..";
 import { nameWrapperMap } from "../addresses";
 import { onchainAddress, onchainRegistry } from "../onchain";
 import {
+  ensClient,
   getNode,
   getRegistryOwner,
   getWrappedData,
   isWrapped,
-  mainnetClient,
   nameWrapperAbi,
   registryAbi,
 } from "../utils";
@@ -39,7 +39,7 @@ export default defineHelper<Ens>({
     },
   ],
   async run(module, { name }, { node }) {
-    const client = mainnetClient(module);
+    const client = await ensClient(module);
     const ensNode = getNode(name);
     if (await isWrapped(client, mainnet.id, ensNode)) {
       const { owner } = await getWrappedData(client, mainnet.id, ensNode);

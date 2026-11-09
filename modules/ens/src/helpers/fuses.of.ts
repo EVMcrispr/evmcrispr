@@ -7,10 +7,10 @@ import { nameWrapperMap } from "../addresses";
 import { decodeFuses } from "../fuses";
 import { onchainAddress } from "../onchain";
 import {
+  ensClient,
   getNode,
   getWrappedData,
   isWrapped,
-  mainnetClient,
   nameWrapperAbi,
 } from "../utils";
 
@@ -24,7 +24,7 @@ export default defineHelper<Ens>({
   returnType: "array",
   args: [{ name: "name", type: "string", description: "Wrapped ENS name" }],
   async run(module, { name }, { node }) {
-    const client = mainnetClient(module);
+    const client = await ensClient(module);
     const ensNode = getNode(name);
     if (!(await isWrapped(client, mainnet.id, ensNode))) {
       throw new HelperFunctionError(node, `${name} is not wrapped`);

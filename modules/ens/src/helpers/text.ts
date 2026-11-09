@@ -1,10 +1,9 @@
 import { defineHelper, HelperFunctionError } from "@evmcrispr/sdk";
-import { createPublicClient, encodeFunctionData, parseAbi } from "viem";
-import { mainnet } from "viem/chains";
+import { encodeFunctionData, parseAbi } from "viem";
 import { normalize } from "viem/ens";
 import type Ens from "..";
 import { EMPTY_DYNAMIC_RETURN, resolverGatedChain } from "../onchain";
-import { getNode } from "../utils";
+import { ensClient, getNode } from "../utils";
 
 const textAbi = parseAbi([
   "function text(bytes32 node, string key) view returns (string)",
@@ -30,10 +29,7 @@ export default defineHelper<Ens>({
     },
   ],
   async run(module, { name, key }, { node }) {
-    const client = createPublicClient({
-      chain: mainnet,
-      transport: module.getTransport(mainnet.id),
-    });
+    const client = await ensClient(module);
     const text = await client.getEnsText({ name: normalize(name), key });
     if (text === null || text === undefined) {
       throw new HelperFunctionError(

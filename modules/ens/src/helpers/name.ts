@@ -5,16 +5,11 @@ import {
   NodeType,
 } from "@evmcrispr/sdk";
 import { isBangHelperNode } from "@evmcrispr/sdk/onchain";
-import {
-  createPublicClient,
-  encodeFunctionData,
-  getAddress,
-  parseAbi,
-} from "viem";
-import { mainnet } from "viem/chains";
+import { encodeFunctionData, getAddress, parseAbi } from "viem";
 import { namehash } from "viem/ens";
 import type Ens from "..";
 import { EMPTY_DYNAMIC_RETURN, resolverGatedChain } from "../onchain";
+import { ensClient } from "../utils";
 
 const nameAbi = parseAbi(["function name(bytes32 node) view returns (string)"]);
 
@@ -29,10 +24,7 @@ export default defineHelper<Ens>({
     { name: "address", type: "address", description: "Address to resolve" },
   ],
   async run(module, { address }, { node }) {
-    const client = createPublicClient({
-      chain: mainnet,
-      transport: module.getTransport(mainnet.id),
-    });
+    const client = await ensClient(module);
     const name = await client.getEnsName({ address });
     if (!name) {
       throw new HelperFunctionError(

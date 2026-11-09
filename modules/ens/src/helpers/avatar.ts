@@ -1,8 +1,7 @@
 import { defineHelper, HelperFunctionError } from "@evmcrispr/sdk";
-import { createPublicClient } from "viem";
-import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
 import type Ens from "..";
+import { ensClient } from "../utils";
 
 export default defineHelper<Ens>({
   name: "avatar",
@@ -17,10 +16,7 @@ export default defineHelper<Ens>({
     },
   ],
   async run(module, { name }, { node }) {
-    const client = createPublicClient({
-      chain: mainnet,
-      transport: module.getTransport(mainnet.id),
-    });
+    const client = await ensClient(module);
     const avatar = await client.getEnsAvatar({ name: normalize(name) });
     if (!avatar) {
       throw new HelperFunctionError(node, `no avatar found for ${name}`);

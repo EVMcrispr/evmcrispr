@@ -12,7 +12,7 @@ import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { ethRegistrarControllerMap, requireAddress } from "../addresses";
 import { onchainAddress } from "../onchain";
-import { eth2LDLabel, mainnetClient } from "../utils";
+import { ensClient, eth2LDLabel } from "../utils";
 
 export const rentPriceAbi = parseAbi([
   "struct Price { uint256 base; uint256 premium; }",
@@ -41,7 +41,7 @@ export default defineHelper<Ens>({
   ],
   async run(module, { name, duration }) {
     const label = name.includes(".") ? eth2LDLabel(name) : name;
-    const client = mainnetClient(module);
+    const client = await ensClient(module);
     const price = await client.readContract({
       address: requireAddress(
         ethRegistrarControllerMap,

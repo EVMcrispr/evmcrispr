@@ -6,7 +6,7 @@ import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { baseRegistrarMap, requireAddress } from "../addresses";
 import { onchainAddress } from "../onchain";
-import { eth2LDLabel, mainnetClient } from "../utils";
+import { ensClient, eth2LDLabel } from "../utils";
 
 export default defineHelper<Ens>({
   name: "expiry",
@@ -24,7 +24,7 @@ export default defineHelper<Ens>({
   ],
   async run(module, { name }, { node }) {
     const label = eth2LDLabel(name);
-    const client = mainnetClient(module);
+    const client = await ensClient(module);
     const expiry = await client.readContract({
       address: requireAddress(baseRegistrarMap, mainnet.id, "BaseRegistrar"),
       abi: parseAbi([

@@ -6,7 +6,7 @@ import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { registryMap, requireAddress } from "../addresses";
 import { onchainRegistry } from "../onchain";
-import { getNode, mainnetClient, registryAbi } from "../utils";
+import { ensClient, getNode, registryAbi } from "../utils";
 
 export default defineHelper<Ens>({
   name: "resolver",
@@ -27,7 +27,7 @@ export default defineHelper<Ens>({
   // answers its v1 bridge (ENSV1Resolver) for every v1 name, a contract
   // that only resolves through ENSIP-10 and that a record is not set on.
   async run(module, { name }, { node }) {
-    const resolver = await mainnetClient(module).readContract({
+    const resolver = await (await ensClient(module)).readContract({
       address: requireAddress(registryMap, mainnet.id, "registry"),
       abi: registryAbi,
       functionName: "resolver",

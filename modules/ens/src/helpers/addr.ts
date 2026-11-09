@@ -21,7 +21,7 @@ const resolverAddrAbi = parseAbi([
 
 import type Ens from "..";
 import { registryMap, requireAddress } from "../addresses";
-import { getNode, mainnetClient, registryAbi } from "../utils";
+import { ensClient, getNode, registryAbi } from "../utils";
 
 export default defineHelper<Ens>({
   name: "addr",
@@ -44,7 +44,7 @@ export default defineHelper<Ens>({
     },
   ],
   async run(module, { name, coinType }, { node }) {
-    const client = mainnetClient(module);
+    const client = await ensClient(module);
     const address = await client.getEnsAddress({
       name: normalize(name),
       ...(coinType !== undefined ? { coinType: BigInt(String(coinType)) } : {}),
