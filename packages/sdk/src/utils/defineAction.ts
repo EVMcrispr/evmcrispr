@@ -1,6 +1,7 @@
 import type {
   Address,
   Hash,
+  Hex,
   PublicClient,
   Transport,
   WalletClient,
@@ -20,6 +21,88 @@ export interface ModuleActionSendCtx {
   onSent?(hash: Hash): void;
 }
 
+/** One top-level call of a simulated action. */
+export interface SimCallResult {
+  /** False: reverted or halted. */
+  success: boolean;
+  returnData: Hex;
+  /** Execution gas, without the intrinsic gas of a transaction. */
+  gasUsed: bigint;
+  logs: { address: Hex; topics: Hex[]; data: Hex }[];
+  /** The revert or halt, when not a success. */
+  error?: string;
+}
+
+/** What an extra opcode does, decided by the module: the backend pops the
+ *  operands and applies the answer. */
+export type SimOpcodeResult =
+  | { push: bigint }
+  | { write: { offset: bigint; data: Hex } }
+  | { return: { offset: bigint; size: bigint } }
+  | { fail: string };
+
+/** An opcode a module's simulation adds for the calls it runs. `run` is
+ *  synchronous and may be run again for the same call (a backend can
+ *  replay a call after reading missing state). */
+export interface SimOpcode {
+  opcode: number;
+  name: string;
+  /** Stack operands it pops, top first. */
+  pops: number;
+  run(input: {
+    /** The executing account (under a delegatecall, the caller's). */
+    address: Address;
+    operands: bigint[];
+    isStatic: boolean;
+  }): SimOpcodeResult;
+}
+
+/** What a simulation backend gives a module action's `simulate`. */
+export interface ModuleActionSimCtx {
+  chainId: number;
+  blockNumber: bigint;
+  timestamp: bigint;
+  /** One top-level call: no nonce change, no intrinsic gas, no fee. */
+  call(args: {
+    caller: Address;
+    to: Address;
+    data: Hex;
+    value: bigint;
+    gas: bigint;
+    isStatic: boolean;
+  }): Promise<SimCallResult>;
+  checkpoint(): Promise<void>;
+  commit(): Promise<void>;
+  revert(): Promise<void>;
+  getNonce(address: Address): Promise<bigint>;
+  setNonce(address: Address, nonce: bigint): Promise<void>;
+  getBalance(address: Address): Promise<bigint>;
+  getCode(address: Address): Promise<Hex>;
+  /** Whether an earlier call of this action reached `address` (EIP-2929):
+   *  one action's calls share their warm addresses and slots, as one
+   *  transaction's frames do. */
+  isWarm(address: Address): boolean;
+  /** Marks `address` warm for the action's later calls. */
+  warm(address: Address): void;
+  /** Runs `run` with these opcodes added to every call it makes. */
+  withOpcodes<T>(
+    opcodes: readonly SimOpcode[],
+    run: () => Promise<T>,
+  ): Promise<T>;
+  /** The fork's synthetic hash for this action. */
+  transactionHash: Hex;
+  onLog(message: string): void;
+}
+
+/** What a simulated module action returns, as a fork records it. */
+export interface SimulatedReceipt {
+  status: "success";
+  transactionHash: Hex;
+  gasUsed?: bigint;
+  logs: { address: Hex; topics: Hex[]; data: Hex; logIndex: number }[];
+  [extra: string]: unknown;
+}
+
 export interface ModuleActionDef<D> {
   /** What a host's review shows. Called once, when the action is made. */
   describe(
@@ -27,6 +110,11 @@ export interface ModuleActionDef<D> {
   ): ModuleActionDescription;
   /** What executing the action does. */
   send(action: ModuleAction<D>, ctx: ModuleActionSendCtx): Promise<unknown>;
+  /** What it does in a fork (`sim:fork`); without it, a fork refuses it. */
+  simulate?(
+    action: ModuleAction<D>,
+    sim: ModuleActionSimCtx,
+  ): Promise<SimulatedReceipt>;
 }
 
 export interface DefinedModuleAction<D> extends ModuleActionDef<D> {
@@ -34,6 +122,16 @@ export interface DefinedModuleAction<D> extends ModuleActionDef<D> {
   kind: string;
   /** The action, with its module's description. */
   create(fields: { chainId: number; from: Address; data: D }): ModuleAction<D>;
+}
+
+const defined = new Map<string, DefinedModuleAction<any>>();
+
+/** A module action's definition, once its module's code is loaded. */
+export function moduleActionDef(
+  module: string,
+  kind: string,
+): DefinedModuleAction<unknown> | undefined {
+  return defined.get(`${module}:${kind}`);
 }
 
 /**
@@ -45,7 +143,7 @@ export function defineAction<D>(
   kind: string,
   def: ModuleActionDef<D>,
 ): DefinedModuleAction<D> {
-  return {
+  const action: DefinedModuleAction<D> = {
     ...def,
     module,
     kind,
@@ -54,4 +152,6 @@ export function defineAction<D>(
       return { ...action, description: def.describe(action) };
     },
   };
+  defined.set(`${module}:${kind}`, action);
+  return action;
 }

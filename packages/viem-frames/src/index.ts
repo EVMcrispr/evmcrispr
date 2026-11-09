@@ -1,5 +1,12 @@
 export { profile as eip8141TracerProfile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
 export {
+  encodeTx as encodeFrameTransaction,
+  newTx as newFrameTransaction,
+  secp256k1Placeholder,
+  sigHash as frameSignatureHash,
+  txHash as frameTransactionHash,
+} from "@forshtat/hegota-support/tx";
+export {
   altMempoolActions,
   type FrameSimulation,
   type FrameTransactionParameters,

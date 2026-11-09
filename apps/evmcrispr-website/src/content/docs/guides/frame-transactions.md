@@ -140,6 +140,21 @@ Nothing sizes the call frames for you yet: every call needs its `--gas`. A
 missing one stops the run before anything is signed, naming the first frame
 that lacks it.
 
+To learn it, simulate the transaction on a fork of its network: the fork runs
+the frames and logs, for each call written without `--gas`, the gas it used
+and the `--gas` to send it with.
+
+```evml
+load sim
+load frames [tx]
+
+sim:fork --using ethereumjs --on framesMining (
+  tx (
+    send 0x8943545177806ED17B9F23F0a21ee5948eCaa776 --value 1e9
+  )
+)
+```
+
 ### After admission
 
 When the mempool admits the transaction, the run prints its hash. It then
@@ -262,8 +277,7 @@ chain 1337 when experimental features are on.
 - The sender is a frame account, or a plain address whose wallet signs type
   `0x06` transactions. The `frames` module sends wherever the script runs:
   from the terminal with your browser wallet, or from the CLI with
-  `--wallet-rpc`. `sim:fork` refuses frame transactions: no simulation backend
-  runs EIP-8141 frames yet.
+  `--wallet-rpc`.
 - A frame account has one owner and no recovery or rotation.
 - One signature: the sender's own (secp256k1), or the account owner's typed
   data. Not covered: P256 or arbitrary signatures, paymaster signatures, keyed
@@ -277,8 +291,11 @@ chain 1337 when experimental features are on.
 
 ## Combining with
 
-- [Simulation](/guides/simulation): `sim:fork` refuses a frame transaction;
-  simulate the ordinary calls it wraps first, then send the frames.
+- [Simulation](/guides/simulation): `sim:fork --using ethereumjs` (or `revm`)
+  on a fork of a frame network runs a `frames:tx` frame by frame, the
+  sender's verify impersonated, and tells you the `--gas` of each call
+  written without one. Elsewhere it refuses the transaction rather than
+  pretend it ran.
 - [Smart Batches](/guides/smart-batches): a smart batch is EVMcrispr's
   equivalent on contract-based accounts, and `frames:tx` cannot be nested in one.
 - [Operating a Safe](/guides/safe): a Safe collects many owners' approvals for

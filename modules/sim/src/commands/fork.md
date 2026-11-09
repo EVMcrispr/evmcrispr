@@ -90,6 +90,28 @@ sim:fork --as $who --on gnosis (
   executes all batched calls atomically in a single self-call transaction. An
   existing delegation on the EOA is reused as-is.
 
+## Frame transactions
+
+A `frames:tx` runs in the fork when the fork is of a frame network (the
+alt-mempool devnet or the local `framesQuick` and `framesMining` devnets) and
+the backend is in-process (`--using ethereumjs` or `--using revm`): its
+frames run in order with the EIP-8141 opcodes, the validation prefix first
+(a frame that fails or does not approve makes the transaction invalid, and
+nothing of it runs), then the body (a failed frame does not stop the next,
+unless it is in a `batch`, which rolls back as a whole). The sender's own
+verify frame is impersonated, as `--as` impersonates a sender: a simulation
+holds no signature. A sponsor's or paymaster's verify frame runs.
+
+After it, `sim:expect` and assertions see its effects, and the fork logs each
+frame that did not succeed and, for each call without `--gas`, the gas it used
+and the `--gas` to send it with. A frame's gas includes what it pays to reach
+its target (100 when warm, 3000 when cold), as the devnets charge it.
+
+Not modelled: fees (the payer is named, not charged), state gas (EIP-8037;
+a frame whose `--state-gas` is too small can pass here and fail on the chain),
+the EIP-7708 transfer logs of value transfers, and the ERC-8421 mempool's
+admission rules.
+
 ## Cross-chain simulation
 
 A fork is **multichain**: `switch` inside a fork block moves between one fork per chain instead of failing, and each chain keeps its own state, so switching back and forth is safe.

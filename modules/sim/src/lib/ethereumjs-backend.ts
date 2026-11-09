@@ -17,9 +17,10 @@ import {
   ErrorException,
   isRpcAction,
   isTransactionAction,
+  type ModuleActionSimCtx,
   RevertError,
 } from "@evmcrispr/sdk";
-import { custom, keccak256 } from "viem";
+import { custom, type Hex, keccak256 } from "viem";
 import {
   type BalanceChange,
   fetchBlockTimestamp,
@@ -31,6 +32,11 @@ import {
   type SyntheticReceipt,
   syntheticTxHash,
 } from "./backend";
+import {
+  customOpcodes,
+  freeOpcodes,
+  type OpcodeSlot,
+} from "./ethereumjs-opcodes";
 
 /**
  * RPCStateManager fetches accounts via eth_getProof, which load-balanced
@@ -122,7 +128,15 @@ export async function createEthereumJSBackend(
     },
   };
 
-  const vm = await createVM({ common, stateManager, blockchain });
+  // A module action's simulation adds opcodes for the calls it runs.
+  const opcodeSlot: OpcodeSlot = {};
+  const freeBytes = freeOpcodes(common);
+  const vm = await createVM({
+    common,
+    stateManager,
+    blockchain,
+    evmOpts: { customOpcodes: customOpcodes(common, opcodeSlot) },
+  });
 
   let currentBlockNumber = typeof blockTag === "bigint" ? blockTag : 0n;
   let timestampOffset = 0n;
@@ -269,6 +283,9 @@ export async function createEthereumJSBackend(
       status: "success",
       blockNumber: currentBlockNumber,
       transactionHash: syntheticTxHash(action, txCounter++),
+      contractAddress: result.createdAddress
+        ? (result.createdAddress.toString() as `0x${string}`)
+        : undefined,
       // A call's execution gas, plus what a transaction pays before it
       // runs: the base cost and its calldata, counted at the dearer rate.
       gasUsed:
@@ -336,7 +353,91 @@ export async function createEthereumJSBackend(
     },
   });
 
-  return { transport, handleAction };
+  const address = (a: string) => createAddressFromString(a);
+
+  function simContext(
+    action: Action,
+    { onLog }: { onLog: (message: string) => void },
+  ): ModuleActionSimCtx {
+    // The action starts with nothing warm, as a transaction does; its calls
+    // then share what they warm (runCall keeps the journal's access sets).
+    // The EVM's Journal (its interface type leaves the warm sets out).
+    const journal = vm.evm.journal as unknown as {
+      journalHeight: number;
+      isWarmedAddress(address: Uint8Array): boolean;
+      addWarmedAddress(address: Uint8Array): void;
+    };
+    if (journal.journalHeight === 0) vm.evm.journal.cleanJournal();
+    return {
+      chainId,
+      blockNumber: currentBlockNumber,
+      timestamp: getCurrentTimestamp(),
+      transactionHash: syntheticTxHash(action, txCounter++),
+      onLog,
+      async call({ caller, to, data, value, gas, isStatic }) {
+        opcodeSlot.failure = undefined;
+        const result = await vm.evm.runCall({
+          caller: address(caller),
+          to: address(to),
+          data: hexToBytes(data),
+          value,
+          gasLimit: gas,
+          isStatic,
+          skipNonceIncrement: true,
+          block: makeBlockContext(),
+        });
+        journal.addWarmedAddress(hexToBytes(to));
+        journal.addWarmedAddress(hexToBytes(caller));
+        const error = result.execResult.exceptionError;
+        return {
+          success: !error,
+          returnData: bytesToHex(result.execResult.returnValue) as Hex,
+          gasUsed: result.execResult.executionGasUsed,
+          logs: (result.execResult.logs ?? []).map(
+            ([address, topics, data]) => ({
+              address: bytesToHex(address) as Hex,
+              topics: topics.map((t) => bytesToHex(t) as Hex),
+              data: bytesToHex(data) as Hex,
+            }),
+          ),
+          error: error ? (opcodeSlot.failure ?? error.error) : undefined,
+        };
+      },
+      checkpoint: () => vm.evm.journal.checkpoint(),
+      commit: () => vm.evm.journal.commit(),
+      revert: () => vm.evm.journal.revert(),
+      async getNonce(a) {
+        return (await stateManager.getAccount(address(a)))?.nonce ?? 0n;
+      },
+      async setNonce(a, nonce) {
+        await stateManager.modifyAccountFields(address(a), { nonce });
+      },
+      async getBalance(a) {
+        return (await stateManager.getAccount(address(a)))?.balance ?? 0n;
+      },
+      async getCode(a) {
+        return bytesToHex(await stateManager.getCode(address(a))) as Hex;
+      },
+      isWarm: (a) => journal.isWarmedAddress(hexToBytes(a)),
+      warm: (a) => journal.addWarmedAddress(hexToBytes(a)),
+      async withOpcodes(opcodes, run) {
+        for (const op of opcodes)
+          if (!freeBytes.has(op.opcode))
+            throw new ErrorException(
+              `${op.name} (0x${op.opcode.toString(16)}) is an opcode this backend already defines`,
+            );
+        const previous = opcodeSlot.table;
+        opcodeSlot.table = new Map(opcodes.map((op) => [op.opcode, op]));
+        try {
+          return await run();
+        } finally {
+          opcodeSlot.table = previous;
+        }
+      },
+    };
+  }
+
+  return { transport, handleAction, simContext };
 }
 
 async function handleEthCall(

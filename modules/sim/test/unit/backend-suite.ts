@@ -37,6 +37,7 @@ export function describeBackendSuite(
   name: string,
   prefix: string,
   createBackend: (opts: SimBackendOpts) => Promise<SimBackend>,
+  { simContext = true }: { simContext?: boolean } = {},
 ): void {
   let rpcUrl: string;
 
@@ -274,9 +275,14 @@ export function describeBackendSuite(
         blockNumber: BigInt(FORK_BLOCK_NUMBER),
       });
 
-      await backend.handleAction({ from: ADDR, data: INITCODE } as Action);
+      const receipt = await backend.handleAction({
+        from: ADDR,
+        data: INITCODE,
+      } as Action);
       const first = getContractAddress({ from: ADDR, nonce: BigInt(txCount) });
       expect(await client.getCode({ address: first })).toBe(RUNTIME);
+      // The receipt names the contract, as a node's does.
+      expect(receipt?.contractAddress?.toLowerCase()).toBe(first.toLowerCase());
 
       // A second deploy must land at exactly the next nonce — catches any
       // double nonce accounting in the backend.
@@ -482,6 +488,205 @@ export function describeBackendSuite(
       expect(receipt!.logs[0].address.toLowerCase()).toBe(emitter);
       expect(receipt!.logs[0].topics).toEqual([topic]);
       expect(receipt!.logs[0].data).toBe("0x");
+    });
+
+    // -------------------------------------------------------------------------
+    // A module action's simulation context
+    // -------------------------------------------------------------------------
+
+    describe.skipIf(!simContext)("a module action's simulation context", () => {
+      const CALLER = "0x1000000000000000000000000000000000000001";
+      const TARGET = "0x2000000000000000000000000000000000000002";
+      const DEAD = "0x000000000000000000000000000000000000dEaD";
+      const ACTION = {
+        type: "module",
+        module: "probe",
+        kind: "ping",
+        chainId: CHAIN_ID,
+        from: CALLER,
+        data: {},
+        description: { title: "", detail: "", meta: "", steps: [], notes: [] },
+      } as unknown as Action;
+
+      async function host(runtime: `0x${string}`) {
+        const { backend } = await makeBackend();
+        await backend.handleAction({
+          type: "rpc",
+          method: `${prefix}_setCode`,
+          params: [TARGET, runtime],
+        } as Action);
+        await backend.handleAction({
+          type: "rpc",
+          method: `${prefix}_setBalance`,
+          params: [CALLER, "0xde0b6b3a7640000"],
+        } as Action);
+        expect(backend.simContext).toBeDefined();
+        return backend.simContext!(ACTION, { onLog: () => {} });
+      }
+      const call = (
+        sim: Awaited<ReturnType<typeof host>>,
+        over: { isStatic?: boolean; value?: bigint; to?: `0x${string}` } = {},
+      ) =>
+        sim.call({
+          caller: CALLER,
+          to: over.to ?? TARGET,
+          data: "0x",
+          value: over.value ?? 0n,
+          gas: 1_000_000n,
+          isStatic: over.isStatic ?? false,
+        });
+      const word = (n: number): `0x${string}` =>
+        `0x${n.toString(16).padStart(64, "0")}`;
+
+      it("runs an added opcode, which pops its operands and pushes its answer", async () => {
+        // PUSH1 7, 0xb0, PUSH1 0, MSTORE, PUSH1 32, PUSH1 0, RETURN
+        const sim = await host("0x6007b060005260206000f3");
+        const seen: unknown[] = [];
+        const result = await sim.withOpcodes(
+          [
+            {
+              opcode: 0xb0,
+              name: "TIMES_SIX",
+              pops: 1,
+              run: (input) => {
+                seen.push(input);
+                return { push: input.operands[0]! * 6n };
+              },
+            },
+          ],
+          () => call(sim),
+        );
+        expect(result.success).toBe(true);
+        expect(result.returnData).toBe(word(42));
+        expect(seen[0]).toMatchObject({
+          operands: [7n],
+          isStatic: false,
+        });
+        expect((seen[0] as { address: string }).address.toLowerCase()).toBe(
+          TARGET.toLowerCase(),
+        );
+        // Without it, the byte is an invalid opcode again.
+        expect((await call(sim)).success).toBe(false);
+      });
+
+      it("an opcode can end the call like RETURN, write memory, or fail", async () => {
+        // PUSH1 42, PUSH1 0, MSTORE, 0xaa (returns memory[0..32]), INVALID
+        const ret = await host("0x602a600052aafe");
+        const returned = await ret.withOpcodes(
+          [
+            {
+              opcode: 0xaa,
+              name: "END",
+              pops: 0,
+              run: () => ({ return: { offset: 0n, size: 32n } }),
+            },
+          ],
+          () => call(ret),
+        );
+        expect(returned).toMatchObject({ success: true, returnData: word(42) });
+
+        // 0xb2 (writes 42 at 0), PUSH1 32, PUSH1 0, RETURN
+        const write = await host("0xb260206000f3");
+        const written = await write.withOpcodes(
+          [
+            {
+              opcode: 0xb2,
+              name: "WRITE",
+              pops: 0,
+              run: () => ({
+                write: { offset: 0n, data: word(42) as `0x${string}` },
+              }),
+            },
+          ],
+          () => call(write),
+        );
+        expect(written).toMatchObject({ success: true, returnData: word(42) });
+
+        const fail = await host("0xb000");
+        const failed = await fail.withOpcodes(
+          [
+            {
+              opcode: 0xb0,
+              name: "NO",
+              pops: 0,
+              run: () => ({ fail: "not here" }),
+            },
+          ],
+          () => call(fail),
+        );
+        expect(failed.success).toBe(false);
+      });
+
+      it("a static call cannot write; the same call can when not static", async () => {
+        // PUSH1 1, PUSH1 0, SSTORE, STOP
+        const sim = await host(
+          "0x6001600055 00".replace(" ", "") as `0x${string}`,
+        );
+        expect((await call(sim, { isStatic: true })).success).toBe(false);
+        expect((await call(sim)).success).toBe(true);
+      });
+
+      it("a call leaves the caller's nonce; setNonce sets it", async () => {
+        const sim = await host("0x00");
+        const before = await sim.getNonce(CALLER);
+        await call(sim);
+        expect(await sim.getNonce(CALLER)).toBe(before);
+        await sim.setNonce(CALLER, before + 3n);
+        expect(await sim.getNonce(CALLER)).toBe(before + 3n);
+      });
+
+      it("one action's calls share what they warmed, as one transaction's frames do", async () => {
+        // PUSH1 0, SLOAD, POP, STOP: reads slot 0 of the target.
+        const sim = await host("0x6000545000");
+        expect(sim.isWarm(TARGET)).toBe(false);
+        const first = await call(sim);
+        expect(sim.isWarm(TARGET)).toBe(true);
+        const second = await call(sim);
+        // The slot was cold (2100) for the first call, warm (100) after.
+        expect(first.gasUsed - second.gasUsed).toBe(2_000n);
+        sim.warm(DEAD);
+        expect(sim.isWarm(DEAD)).toBe(true);
+      });
+
+      it("a call cannot send more than the caller has", async () => {
+        const sim = await host("0x00");
+        const result = await call(sim, { to: DEAD, value: 10n ** 30n });
+        expect(result.success).toBe(false);
+        expect(await sim.getBalance(DEAD)).toBeLessThan(10n ** 30n);
+      });
+
+      it("a call keeps the nonce its CREATEs used", async () => {
+        // PUSH1 0, PUSH1 0, PUSH1 0, CREATE, POP, STOP: the target creates
+        // an empty contract when it calls itself, as a sender frame does.
+        const sim = await host("0x600060006000f05000");
+        const before = await sim.getNonce(TARGET);
+        const result = await sim.call({
+          caller: TARGET,
+          to: TARGET,
+          data: "0x",
+          value: 0n,
+          gas: 1_000_000n,
+          isStatic: false,
+        });
+        expect(result.success).toBe(true);
+        expect(await sim.getNonce(TARGET)).toBe(before + 1n);
+      });
+
+      it("revert undoes the calls since its checkpoint; commit keeps them", async () => {
+        const sim = await host("0x00");
+        const start = await sim.getBalance(DEAD);
+        await sim.checkpoint();
+        expect((await call(sim, { to: DEAD, value: 5n })).success).toBe(true);
+        expect((await call(sim, { to: DEAD, value: 6n })).success).toBe(true);
+        expect(await sim.getBalance(DEAD)).toBe(start + 11n);
+        await sim.revert();
+        expect(await sim.getBalance(DEAD)).toBe(start);
+        await sim.checkpoint();
+        await call(sim, { to: DEAD, value: 5n });
+        await sim.commit();
+        expect(await sim.getBalance(DEAD)).toBe(start + 5n);
+        expect(await sim.getCode(TARGET)).toBe("0x00");
+      });
     });
   });
 }

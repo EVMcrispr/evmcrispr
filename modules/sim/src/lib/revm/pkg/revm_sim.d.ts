@@ -12,8 +12,17 @@ export class RevmFork {
     [Symbol.dispose](): void;
     blockNumber(): bigint;
     call(tx_json: string): string;
+    checkpoint(): void;
+    commitCheckpoint(): string;
+    /**
+     * One top-level call of a module's simulation, its added opcodes
+     * answered by `host`. A JS throw is caught and becomes the opcode's
+     * failure: it never unwinds through the fork.
+     */
+    frameCall(call_json: string, host: any): string;
     getBalance(addr: string): string;
     getCode(addr: string): string;
+    getNonce(addr: string): string;
     getStorage(addr: string, slot: string): string;
     increaseTime(seconds: bigint): void;
     insertAccount(addr: string, balance: string, nonce: bigint, code: string): string;
@@ -21,8 +30,10 @@ export class RevmFork {
     insertStorage(addr: string, slot: string, value: string): string;
     mine(blocks: bigint): void;
     constructor(chain_id: bigint, block_number: bigint, base_timestamp: bigint);
+    revertCheckpoint(): string;
     setBalance(addr: string, balance: string): string;
     setCode(addr: string, code: string): string;
+    setNonce(addr: string, nonce: bigint): string;
     setStorage(addr: string, slot: string, value: string): string;
     transact(tx_json: string): string;
 }
@@ -34,8 +45,12 @@ export interface InitOutput {
     readonly __wbg_revmfork_free: (a: number, b: number) => void;
     readonly revmfork_blockNumber: (a: number) => bigint;
     readonly revmfork_call: (a: number, b: number, c: number, d: number) => void;
+    readonly revmfork_checkpoint: (a: number) => void;
+    readonly revmfork_commitCheckpoint: (a: number, b: number) => void;
+    readonly revmfork_frameCall: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly revmfork_getBalance: (a: number, b: number, c: number, d: number) => void;
     readonly revmfork_getCode: (a: number, b: number, c: number, d: number) => void;
+    readonly revmfork_getNonce: (a: number, b: number, c: number, d: number) => void;
     readonly revmfork_getStorage: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly revmfork_increaseTime: (a: number, b: bigint) => void;
     readonly revmfork_insertAccount: (a: number, b: number, c: number, d: number, e: number, f: number, g: bigint, h: number, i: number) => void;
@@ -43,14 +58,17 @@ export interface InitOutput {
     readonly revmfork_insertStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
     readonly revmfork_mine: (a: number, b: bigint) => void;
     readonly revmfork_new: (a: bigint, b: bigint, c: bigint) => number;
+    readonly revmfork_revertCheckpoint: (a: number, b: number) => void;
     readonly revmfork_setBalance: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly revmfork_setCode: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly revmfork_setNonce: (a: number, b: number, c: number, d: number, e: bigint) => void;
     readonly revmfork_setStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
     readonly revmfork_transact: (a: number, b: number, c: number, d: number) => void;
-    readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbindgen_export3: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export3: (a: number) => void;
+    readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

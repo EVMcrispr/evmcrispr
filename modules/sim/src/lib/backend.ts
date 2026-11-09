@@ -1,4 +1,8 @@
-import { type Action, ErrorException } from "@evmcrispr/sdk";
+import {
+  type Action,
+  ErrorException,
+  type ModuleActionSimCtx,
+} from "@evmcrispr/sdk";
 import type { Transport } from "viem";
 import { keccak256, toHex } from "viem";
 
@@ -21,6 +25,8 @@ export interface SyntheticReceipt {
    * broadcast in-process, so this is an opaque identifier for tx captures
    * (`> $var`) — it does not resolve on any RPC. */
   transactionHash: `0x${string}`;
+  /** The contract a deployment created. */
+  contractAddress?: `0x${string}`;
   /** Gas the transaction used, as far as the backend can tell. Nothing is
    * charged for it in-process; it is what a fee is estimated from. */
   gasUsed?: bigint;
@@ -50,6 +56,12 @@ export interface BalanceChange {
 export interface SimBackend {
   transport: Transport;
   handleAction(action: Action): Promise<SyntheticReceipt | undefined>;
+  /** What a module action's `simulate` runs on (its calls, checkpoints and
+   *  added opcodes). */
+  simContext?(
+    action: Action,
+    host: { onLog: (message: string) => void },
+  ): ModuleActionSimCtx;
 }
 
 /** A stalled upstream (rate limiter that never responds, dead connection)
@@ -164,13 +176,21 @@ export function syntheticTxHash(
   };
   return keccak256(
     toHex(
-      JSON.stringify({
-        from: a.from,
-        to: a.to,
-        data: a.data,
-        value: a.value !== undefined ? String(a.value) : undefined,
-        counter,
-      }),
+      JSON.stringify(
+        {
+          from: a.from,
+          to: a.to,
+          data: a.data,
+          value: a.value !== undefined ? String(a.value) : undefined,
+          // A module action's own fields (bigints included).
+          data_:
+            (a as { type?: string }).type === "module"
+              ? (action as { data?: unknown }).data
+              : undefined,
+          counter,
+        },
+        (_, v) => (typeof v === "bigint" ? v.toString() : v),
+      ),
     ),
   );
 }

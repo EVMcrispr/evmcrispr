@@ -8,7 +8,15 @@ use revm::{Context, Database, DatabaseCommit, ExecuteEvm, MainBuilder, MainConte
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use std::collections::HashMap;
+
+use revm::context_interface::transaction::{AccessList, AccessListItem};
+use revm::database::DbAccount;
+use revm::interpreter::Instruction;
+use revm::InspectEvm;
+
 use crate::db::{Miss, MissDb};
+use crate::frame::{frame_ops, with_hook, FrameInspector, Hook};
 
 /// Mirrors the ethereumjs backend's fixed block gas limit.
 const BLOCK_GAS_LIMIT: u64 = 30_000_000;
@@ -29,6 +37,40 @@ struct TxJson {
     nonce: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FrameOpJson {
+    opcode: u8,
+    pops: usize,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FrameCallJson {
+    from: String,
+    to: String,
+    #[serde(default)]
+    data: Option<String>,
+    #[serde(default)]
+    value: Option<String>,
+    gas: String,
+    is_static: bool,
+    #[serde(default)]
+    opcodes: Vec<FrameOpJson>,
+    /// What the action's earlier calls warmed: one transaction's frames
+    /// share their warm addresses and slots (EIP-2929).
+    #[serde(default)]
+    access_list: Vec<WarmJson>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WarmJson {
+    address: String,
+    #[serde(default)]
+    storage_keys: Vec<String>,
+}
+
 /// Plain-Rust fork state; `RevmFork` in lib.rs is the thin wasm-bindgen shell.
 /// Every fallible method returns a JSON envelope string — misses are expected
 /// control flow, so structured returns beat exceptions (which would poison the
@@ -40,6 +82,9 @@ pub struct Fork {
     mined_blocks: u64,
     base_timestamp: u64,
     timestamp_offset: u64,
+    /// Open checkpoints, innermost last: each account's cached state before
+    /// the first change made under it.
+    checkpoints: Vec<HashMap<Address, Option<DbAccount>>>,
 }
 
 impl Fork {
@@ -56,7 +101,68 @@ impl Fork {
             mined_blocks: 0,
             base_timestamp,
             timestamp_offset: 0,
+            checkpoints: Vec::new(),
         }
+    }
+
+    // ── checkpoints ──
+
+    /// Keeps `address`'s cached state, the first time it changes under the
+    /// innermost checkpoint.
+    fn record(&mut self, address: Address) {
+        if self.checkpoints.is_empty() {
+            return;
+        }
+        let prior = self.db.cache.accounts.get(&address).cloned();
+        let top = self.checkpoints.last_mut().unwrap();
+        top.entry(address).or_insert(prior);
+    }
+
+    fn record_state(&mut self, state: &revm::state::EvmState) {
+        let touched: Vec<Address> = state
+            .iter()
+            .filter(|(_, a)| a.is_touched())
+            .map(|(addr, _)| *addr)
+            .collect();
+        for address in touched {
+            self.record(address);
+        }
+    }
+
+    pub fn checkpoint(&mut self) {
+        self.checkpoints.push(HashMap::new());
+    }
+
+    /// Keeps what changed since the checkpoint, under the one around it.
+    pub fn commit_checkpoint(&mut self) -> String {
+        let Some(top) = self.checkpoints.pop() else {
+            return error_env("no checkpoint to commit");
+        };
+        if let Some(parent) = self.checkpoints.last_mut() {
+            for (address, prior) in top {
+                parent.entry(address).or_insert(prior);
+            }
+        }
+        ok_env()
+    }
+
+    /// Undoes what changed since the checkpoint. State read from upstream
+    /// meanwhile stays cached: only changed accounts are put back.
+    pub fn revert_checkpoint(&mut self) -> String {
+        let Some(top) = self.checkpoints.pop() else {
+            return error_env("no checkpoint to revert");
+        };
+        for (address, prior) in top {
+            match prior {
+                Some(account) => {
+                    self.db.cache.accounts.insert(address, account);
+                }
+                None => {
+                    self.db.cache.accounts.remove(&address);
+                }
+            }
+        }
+        ok_env()
     }
 
     pub fn block_number(&self) -> u64 {
@@ -118,6 +224,7 @@ impl Fork {
             Ok(info) => {
                 let mut info = info.unwrap_or_default();
                 info.balance = b;
+                self.record(a);
                 self.db.insert_account_info(a, info);
                 ok_env()
             }
@@ -139,6 +246,7 @@ impl Fork {
                 let mut info = info.unwrap_or_default();
                 info.code_hash = code_hash;
                 info.code = Some(bytecode);
+                self.record(a);
                 self.db.insert_account_info(a, info);
                 ok_env()
             }
@@ -147,6 +255,9 @@ impl Fork {
     }
 
     pub fn set_storage(&mut self, addr: &str, slot: &str, value: &str) -> String {
+        if let Ok(a) = parse_addr(addr) {
+            self.record(a);
+        }
         self.insert_storage(addr, slot, value)
     }
 
@@ -186,6 +297,137 @@ impl Fork {
         match self.db.storage(a, s) {
             Ok(v) => value_env(&u256_hex(v)),
             Err(m) => miss_env(&m),
+        }
+    }
+
+    pub fn get_nonce(&mut self, addr: &str) -> String {
+        match parse_addr(addr) {
+            Ok(a) => match self.db.basic(a) {
+                Ok(info) => value_env(&format!("{:#x}", info.map(|i| i.nonce).unwrap_or(0))),
+                Err(m) => miss_env(&m),
+            },
+            Err(e) => error_env(&e),
+        }
+    }
+
+    pub fn set_nonce(&mut self, addr: &str, nonce: u64) -> String {
+        let a = match parse_addr(addr) {
+            Ok(a) => a,
+            Err(e) => return error_env(&e),
+        };
+        match self.db.basic(a) {
+            Ok(info) => {
+                let mut info = info.unwrap_or_default();
+                info.nonce = nonce;
+                self.record(a);
+                self.db.insert_account_info(a, info);
+                ok_env()
+            }
+            Err(m) => miss_env(&m),
+        }
+    }
+
+    /// One top-level call of a module's simulation: the frame's gas and
+    /// static flag, no nonce change, the added opcodes answered by `hook`.
+    /// Committed when it succeeds.
+    pub fn frame_call(&mut self, call_json: &str, hook: &mut Hook<'_>) -> String {
+        let call: FrameCallJson = match serde_json::from_str(call_json) {
+            Ok(c) => c,
+            Err(e) => return error_env(&format!("invalid frame call json: {e}")),
+        };
+        let (caller, to, gas) = match (parse_addr(&call.from), parse_addr(&call.to), parse_u256(&call.gas)) {
+            (Ok(c), Ok(t), Ok(g)) => match u64::try_from(g) {
+                Ok(g) => (c, t, g),
+                Err(_) => return error_env(&format!("frame gas {g} is out of range")),
+            },
+            (c, t, g) => return error_env(&first_err(&[c.err(), t.err(), g.err()])),
+        };
+        let mut warm = Vec::with_capacity(call.access_list.len());
+        for item in &call.access_list {
+            let address = match parse_addr(&item.address) {
+                Ok(a) => a,
+                Err(e) => return error_env(&e),
+            };
+            let mut storage_keys = Vec::with_capacity(item.storage_keys.len());
+            for key in &item.storage_keys {
+                match parse_b256(key) {
+                    Ok(k) => storage_keys.push(k),
+                    Err(e) => return error_env(&e),
+                }
+            }
+            warm.push(AccessListItem { address, storage_keys });
+        }
+        let value = match call.value.as_deref().map(parse_u256).transpose() {
+            Ok(v) => v.unwrap_or_default(),
+            Err(e) => return error_env(&e),
+        };
+        let data = match call.data.as_deref().map(parse_bytes).transpose() {
+            Ok(d) => d.unwrap_or_default(),
+            Err(e) => return error_env(&e),
+        };
+        let nonce = self.db.cache.accounts.get(&caller).map(|a| a.info.nonce).unwrap_or(0);
+        // The transaction's own limit covers any intrinsic cost; the call
+        // itself gets the frame's gas (FrameInspector).
+        let tx_env = TxEnv {
+            tx_type: if warm.is_empty() { 0 } else { 1 },
+            access_list: AccessList(warm),
+            caller,
+            gas_limit: BLOCK_GAS_LIMIT.saturating_add(gas),
+            gas_price: 0,
+            kind: TxKind::Call(to),
+            value,
+            data,
+            nonce,
+            chain_id: Some(self.chain_id),
+            ..Default::default()
+        };
+        let pops: HashMap<u8, usize> = call.opcodes.iter().map(|o| (o.opcode, o.pops)).collect();
+
+        // A frame sends value its caller has, or fails: no balance is made
+        // up (gas is free, so only the value is checked).
+        let mut cfg = self.cfg_env();
+        cfg.disable_balance_check = false;
+        let db = std::mem::replace(&mut self.db, CacheDB::new(MissDb));
+        let mut evm = Context::mainnet()
+            .with_db(db)
+            .with_cfg(cfg)
+            .with_block(self.block_env())
+            .build_mainnet_with_inspector(FrameInspector::new(gas, call.is_static));
+        let ops = frame_ops();
+        for byte in pops.keys() {
+            evm.instruction
+                .insert_instruction(*byte, Instruction::new(ops[*byte as usize]), 3);
+        }
+        let (res, failure) = with_hook(pops, hook, || evm.inspect_tx(tx_env));
+        let spent = evm.inspector.spent.unwrap_or(0);
+        self.db = evm.ctx.journaled_state.database;
+
+        match res {
+            Ok(mut out) => {
+                let accessed = accessed_json(&out.state);
+                if let ExecutionResult::Success { .. } = out.result {
+                    // A frame uses no nonce of its caller's: revm bumped it
+                    // once for the transaction; a CREATE's bumps stay.
+                    if let Some(account) = out.state.get_mut(&caller) {
+                        account.info.nonce = account.info.nonce.saturating_sub(1);
+                    }
+                    self.record_state(&out.state);
+                    self.db.commit(out.state);
+                }
+                let mut env: Value = serde_json::from_str(&frame_env(out.result, spent, failure)).unwrap();
+                env["accessed"] = accessed;
+                env.to_string()
+            }
+            Err(EVMError::Database(m)) => miss_env(&m),
+            // Value the caller does not have: the frame fails.
+            Err(EVMError::Transaction(e)) => json!({
+                "kind": "halt",
+                "reason": format!("{e:?}"),
+                "gasUsed": 0,
+                "accessed": [],
+            })
+            .to_string(),
+            Err(e) => error_env(&format!("{e:?}")),
         }
     }
 
@@ -234,6 +476,7 @@ impl Fork {
                 if commit {
                     if let ExecutionResult::Success { .. } = out.result {
                         changes = self.balance_changes(&out.state);
+                        self.record_state(&out.state);
                         self.db.commit(out.state);
                     }
                 }
@@ -453,6 +696,7 @@ fn result_env(result: ExecutionResult, balance_changes: Vec<Value>) -> String {
                 .collect();
             json!({
                 "kind": "success",
+                "contractAddress": output.address().map(addr_hex),
                 "returnData": bytes_hex(output.data()),
                 "gasUsed": gas.tx_gas_used(),
                 "logs": logs,
@@ -467,4 +711,28 @@ fn result_env(result: ExecutionResult, balance_changes: Vec<Value>) -> String {
             json!({ "kind": "halt", "reason": format!("{reason:?}") }).to_string()
         }
     }
+}
+
+/// Every account a call loaded, with the slots it read or wrote.
+fn accessed_json(state: &revm::state::EvmState) -> Value {
+    json!(state
+        .iter()
+        .map(|(address, account)| json!({
+            "address": addr_hex(address),
+            "storageKeys": account
+                .storage
+                .keys()
+                .map(|k| format!("{:#066x}", k))
+                .collect::<Vec<_>>(),
+        }))
+        .collect::<Vec<_>>())
+}
+
+fn frame_env(result: ExecutionResult, gas_used: u64, failure: Option<String>) -> String {
+    let mut env: Value = serde_json::from_str(&result_env(result, Vec::new())).unwrap();
+    env["gasUsed"] = json!(gas_used);
+    if let Some(f) = failure {
+        env["failure"] = json!(f);
+    }
+    env.to_string()
 }

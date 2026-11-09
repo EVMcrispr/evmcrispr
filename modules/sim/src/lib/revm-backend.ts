@@ -1,12 +1,16 @@
+import { Common, Hardfork, Mainnet } from "@ethereumjs/common";
 import {
   type Action,
   describeRevertData,
   ErrorException,
   isRpcAction,
   isTransactionAction,
+  type ModuleActionSimCtx,
   RevertError,
+  type SimOpcode,
+  type SimOpcodeResult,
 } from "@evmcrispr/sdk";
-import { custom, keccak256, numberToHex } from "viem";
+import { custom, getAddress, keccak256, numberToHex } from "viem";
 import {
   fetchBlockTimestamp,
   resolveLatestBlockNumber,
@@ -16,7 +20,14 @@ import {
   type SyntheticReceipt,
   syntheticTxHash,
 } from "./backend";
+import { freeOpcodes } from "./ethereumjs-opcodes";
 import { loadRevm } from "./revm/load";
+
+/** The bytes an added opcode may take: those Prague leaves undefined (the
+ *  hardfork both in-process backends run). */
+const FREE_BYTES = freeOpcodes(
+  new Common({ chain: Mainnet, hardfork: Hardfork.Prague }),
+);
 
 type Miss =
   | { type: "account"; address: `0x${string}` }
@@ -29,6 +40,8 @@ type Envelope =
   | { kind: "value"; value: `0x${string}` }
   | {
       kind: "success";
+      /** The contract a deployment created. */
+      contractAddress?: `0x${string}` | null;
       returnData: `0x${string}`;
       gasUsed: number;
       logs: {
@@ -43,8 +56,13 @@ type Envelope =
         after: `0x${string}`;
       }[];
     }
-  | { kind: "revert"; revertData: `0x${string}` }
-  | { kind: "halt"; reason: string }
+  | {
+      kind: "revert";
+      revertData: `0x${string}`;
+      gasUsed?: number;
+      failure?: string;
+    }
+  | { kind: "halt"; reason: string; gasUsed?: number; failure?: string }
   | { kind: "misses"; misses: Miss[] }
   | { kind: "error"; message: string };
 
@@ -180,6 +198,7 @@ export async function createRevmBackend(
   ): Promise<void> {
     if (method === "evm_increaseTime") {
       fork.increaseTime(BigInt(params[0] as string));
+      timeOffset += BigInt(params[0] as string);
       return;
     }
     if (method.endsWith("_mine") || method === "evm_increaseBlocks") {
@@ -207,6 +226,7 @@ export async function createRevmBackend(
   }
 
   let txCounter = 0;
+  let timeOffset = 0n;
 
   async function handleTransactionAction(
     action: Action,
@@ -244,6 +264,7 @@ export async function createRevmBackend(
       status: "success",
       blockNumber: fork.blockNumber(),
       transactionHash: syntheticTxHash(action, txCounter++),
+      contractAddress: env.contractAddress ?? undefined,
       gasUsed: BigInt(env.gasUsed),
       logs: env.logs.map((log, logIndex) => ({ ...log, logIndex })),
       balanceChanges: (env.balanceChanges ?? []).map((c) => ({
@@ -339,5 +360,142 @@ export async function createRevmBackend(
     return undefined;
   }
 
-  return { transport, handleAction };
+  /** A simulation's added-opcode answer, as the wasm shell reads it. */
+  const answerJson = (answer: SimOpcodeResult): string =>
+    JSON.stringify(answer, (_, v) =>
+      typeof v === "bigint" ? numberToHex(v) : v,
+    );
+
+  function simContext(
+    action: Action,
+    { onLog }: { onLog: (message: string) => void },
+  ): ModuleActionSimCtx {
+    let table: Map<number, SimOpcode> | undefined;
+    // What this action's calls warmed, address → slots: its calls are one
+    // transaction's frames.
+    const warmed = new Map<string, Set<string>>();
+    const warmAddress = (a: string) => {
+      const key = a.toLowerCase();
+      if (!warmed.has(key)) warmed.set(key, new Set());
+      return warmed.get(key)!;
+    };
+    const host = {
+      opcode(op: number, address: string, isStatic: boolean, operands: string) {
+        const added = table?.get(op);
+        if (!added) return answerJson({ fail: "not an added opcode" });
+        try {
+          return answerJson(
+            added.run({
+              address: getAddress(address),
+              operands: (JSON.parse(operands) as string[]).map(BigInt),
+              isStatic,
+            }),
+          );
+        } catch (error) {
+          return answerJson({ fail: `${added.name} threw: ${String(error)}` });
+        }
+      },
+    };
+    const ok = (json: string) => assertOk(JSON.parse(json));
+    return {
+      chainId,
+      blockNumber: fork.blockNumber(),
+      timestamp: baseTimestamp + timeOffset,
+      transactionHash: syntheticTxHash(action, txCounter++),
+      onLog,
+      async call({ caller, to, data, value, gas, isStatic }) {
+        await prefetchAccounts([caller, to]);
+        const json = JSON.stringify({
+          from: caller,
+          to,
+          data,
+          value: numberToHex(value),
+          gas: numberToHex(gas),
+          isStatic,
+          opcodes: [...(table?.values() ?? [])].map((o) => ({
+            opcode: o.opcode,
+            pops: o.pops,
+          })),
+          accessList: [...warmed].map(([address, slots]) => ({
+            address,
+            storageKeys: [...slots],
+          })),
+        });
+        const env = await execWithReplay(() => fork.frameCall(json, host));
+        warmAddress(caller);
+        warmAddress(to);
+        for (const { address, storageKeys } of (
+          env as { accessed?: { address: string; storageKeys: string[] }[] }
+        ).accessed ?? []) {
+          const slots = warmAddress(address);
+          for (const key of storageKeys) slots.add(key);
+        }
+        if (env.kind === "success")
+          return {
+            success: true,
+            returnData: env.returnData,
+            gasUsed: BigInt(env.gasUsed),
+            logs: env.logs,
+          };
+        if (env.kind === "revert" || env.kind === "halt")
+          return {
+            success: false,
+            returnData: env.kind === "revert" ? env.revertData : "0x",
+            gasUsed: BigInt(env.gasUsed ?? 0),
+            logs: [],
+            error:
+              env.failure ??
+              (env.kind === "halt"
+                ? env.reason
+                : (describeRevertData(env.revertData) ?? "reverted")),
+          };
+        throw new ErrorException(
+          `unexpected revm result: ${JSON.stringify(env)}`,
+        );
+      },
+      async checkpoint() {
+        fork.checkpoint();
+      },
+      async commit() {
+        ok(fork.commitCheckpoint());
+      },
+      async revert() {
+        ok(fork.revertCheckpoint());
+      },
+      async getNonce(address) {
+        await prefetchAccounts([address]);
+        return BigInt(await readValue(() => fork.getNonce(address)));
+      },
+      async setNonce(address, nonce) {
+        await prefetchAccounts([address]);
+        await execWithReplay(() => fork.setNonce(address, nonce));
+      },
+      async getBalance(address) {
+        return BigInt(await readValue(() => fork.getBalance(address)));
+      },
+      async getCode(address) {
+        return readValue(() => fork.getCode(address));
+      },
+      isWarm: (a) => warmed.has(a.toLowerCase()),
+      warm: (a) => {
+        warmAddress(a);
+      },
+      async withOpcodes(opcodes, run) {
+        for (const op of opcodes)
+          if (!FREE_BYTES.has(op.opcode))
+            throw new ErrorException(
+              `${op.name} (0x${op.opcode.toString(16)}) is an opcode this backend already defines`,
+            );
+        const previous = table;
+        table = new Map(opcodes.map((op) => [op.opcode, op]));
+        try {
+          return await run();
+        } finally {
+          table = previous;
+        }
+      },
+    };
+  }
+
+  return { transport, handleAction, simContext };
 }

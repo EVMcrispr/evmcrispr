@@ -20,11 +20,13 @@ const BACKENDS = [
   },
 ] as const;
 
-// No backend runs EIP-8141 frames yet. A frame action the fork does not
-// handle would end the fork as if every frame had run, so it is refused.
+// A frame transaction is simulated on an in-process backend of a frame
+// network's fork (modules/frames/test/integration/simulate.test.ts). A fork
+// of another chain, or a backend without the frames' opcodes, refuses it
+// rather than end as if every frame had run.
 for (const backend of BACKENDS) {
   describe(`Sim > frame transaction inside fork – ${backend.name}`, () => {
-    it("is refused instead of skipped", async () => {
+    it("is refused on a chain without frames, or a backend that cannot run them", async () => {
       const script = [
         "load sim",
         "load frames",
@@ -37,7 +39,9 @@ for (const backend of BACKENDS) {
       const refused = createInterpreter(script, getPublicClient()).interpret();
       // It says what it refuses (the module's own title for it) and why.
       await expect(refused).rejects.toThrow(
-        /sim:fork cannot simulate "Frame transaction from 0x[0-9a-fA-F]{40}" \(a frame action of the frames module\) yet: no simulation backend runs it/,
+        backend.name !== "anvil"
+          ? /Frame transactions run on the Alt-mempool devnet, the Frames quick devnet or the Frames mining devnet, not on Gnosis: fork one of them to simulate this one/
+          : /sim:fork simulates "Frame transaction from 0x[0-9a-fA-F]{40}" \(a frame action of the frames module\) only on an in-process backend: write --using ethereumjs or --using revm/,
       );
     }, 120000);
   });

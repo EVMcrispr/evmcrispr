@@ -1,9 +1,66 @@
 mod db;
 mod exec;
+mod frame;
 
 pub use exec::Fork;
 
+use revm::primitives::U256;
 use wasm_bindgen::prelude::*;
+
+use frame::{OpIn, OpOut};
+
+#[wasm_bindgen]
+extern "C" {
+    /// The JS object answering a simulation's added opcodes:
+    /// `opcode(op, address, isStatic, operandsJson) -> answerJson`.
+    pub type FrameHost;
+
+    #[wasm_bindgen(method, catch)]
+    fn opcode(
+        this: &FrameHost,
+        op: u8,
+        address: &str,
+        is_static: bool,
+        operands: &str,
+    ) -> Result<String, JsValue>;
+}
+
+/// The JS host's answer, as JSON: `{push}`, `{write: {offset, data}}`,
+/// `{return: {offset, size}}` or `{fail}`, numbers as 0x-hex.
+fn parse_answer(answer: &str) -> OpOut {
+    let value: serde_json::Value = match serde_json::from_str(answer) {
+        Ok(v) => v,
+        Err(e) => return OpOut::Fail(format!("the host's answer is not JSON: {e}")),
+    };
+    let hex = |v: &serde_json::Value| -> Option<U256> {
+        let s = v.as_str()?;
+        U256::from_str_radix(s.strip_prefix("0x").unwrap_or(s), 16).ok()
+    };
+    if let Some(p) = value.get("push").and_then(hex) {
+        return OpOut::Push(p);
+    }
+    if let Some(w) = value.get("write") {
+        let data = w
+            .get("data")
+            .and_then(|d| d.as_str())
+            .and_then(|d| revm::primitives::hex::decode(d).ok());
+        if let (Some(offset), Some(data)) = (w.get("offset").and_then(hex), data) {
+            return OpOut::Write(offset, data);
+        }
+    }
+    if let Some(r) = value.get("return") {
+        if let (Some(offset), Some(size)) = (r.get("offset").and_then(hex), r.get("size").and_then(hex)) {
+            return OpOut::Return(offset, size);
+        }
+    }
+    OpOut::Fail(
+        value
+            .get("fail")
+            .and_then(|f| f.as_str())
+            .unwrap_or("the host gave no answer")
+            .to_string(),
+    )
+}
 
 /// Long-lived per-chain fork holding an in-memory `CacheDB`. Fallible methods
 /// return a tagged JSON envelope string: `ok` / `value` / `success` / `revert`
@@ -88,5 +145,45 @@ impl RevmFork {
 
     pub fn transact(&mut self, tx_json: &str) -> String {
         self.inner.transact(tx_json)
+    }
+
+    #[wasm_bindgen(js_name = getNonce)]
+    pub fn get_nonce(&mut self, addr: &str) -> String {
+        self.inner.get_nonce(addr)
+    }
+
+    #[wasm_bindgen(js_name = setNonce)]
+    pub fn set_nonce(&mut self, addr: &str, nonce: u64) -> String {
+        self.inner.set_nonce(addr, nonce)
+    }
+
+    pub fn checkpoint(&mut self) {
+        self.inner.checkpoint()
+    }
+
+    #[wasm_bindgen(js_name = commitCheckpoint)]
+    pub fn commit_checkpoint(&mut self) -> String {
+        self.inner.commit_checkpoint()
+    }
+
+    #[wasm_bindgen(js_name = revertCheckpoint)]
+    pub fn revert_checkpoint(&mut self) -> String {
+        self.inner.revert_checkpoint()
+    }
+
+    /// One top-level call of a module's simulation, its added opcodes
+    /// answered by `host`. A JS throw is caught and becomes the opcode's
+    /// failure: it never unwinds through the fork.
+    #[wasm_bindgen(js_name = frameCall)]
+    pub fn frame_call(&mut self, call_json: &str, host: &FrameHost) -> String {
+        let mut hook = |input: OpIn| -> OpOut {
+            let operands: Vec<String> = input.operands.iter().map(|o| format!("{o:#x}")).collect();
+            let operands = serde_json::to_string(&operands).unwrap_or_default();
+            match host.opcode(input.op, &format!("{:?}", input.address), input.is_static, &operands) {
+                Ok(answer) => parse_answer(&answer),
+                Err(e) => OpOut::Fail(format!("the host threw: {e:?}")),
+            }
+        };
+        self.inner.frame_call(call_json, &mut hook)
     }
 }
