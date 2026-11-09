@@ -46,6 +46,14 @@ describe("MCP server", () => {
       ]);
     });
 
+    it("does not let callers choose the server's RPC", async () => {
+      const { tools } = await client.listTools();
+      const simulate = tools.find((t) => t.name === "evmcrispr_simulate_evml");
+      expect(Object.keys(simulate?.inputSchema.properties ?? {})).not.toContain(
+        "rpcUrl",
+      );
+    });
+
     it("has descriptions for every tool", async () => {
       const { tools } = await client.listTools();
       for (const tool of tools) {
