@@ -5,7 +5,10 @@
  */
 import type { ChainDef, ModuleChainDef } from "@evmcrispr/core";
 import { isChainGatewayDef, toViemChain } from "@evmcrispr/core";
-import { moduleChains } from "@evmcrispr/modules/chains";
+import {
+  experimentalModuleChains,
+  moduleChains,
+} from "@evmcrispr/modules/chains";
 import { isExperimentalEnabled } from "@evmcrispr/sdk";
 import { ALT_MEMPOOL_GATEWAY, altMempoolDevnet } from "@evmcrispr/viem-frames";
 import type { Chain, Transport } from "viem";
@@ -201,11 +204,17 @@ const altMempoolChain: ChainDef = {
   testnet: true,
 };
 
-/** The terminal's networks, with or without the experimental ones. */
+/** Chain ids that only experimental modules declare. */
+const experimentalChainIds = new Set(
+  experimentalModuleChains.map((def) => def.id),
+);
+
+/** The terminal's networks, with or without the experimental ones (the
+ *  alt-mempool devnet and the chains experimental modules declare). */
 export function networks(experimental: boolean) {
   const extraChains = experimental
     ? [...moduleExtraChains, altMempoolChain]
-    : moduleExtraChains;
+    : moduleExtraChains.filter((def) => !experimentalChainIds.has(def.id));
 
   const chains = [
     ...chainConfig.map(([chain]) => chain),

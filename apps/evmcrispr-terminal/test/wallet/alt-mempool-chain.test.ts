@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { experimentalModuleChains } from "@evmcrispr/modules/chains";
 import type { Action } from "@evmcrispr/sdk";
 import { ALT_MEMPOOL_GATEWAY } from "@evmcrispr/viem-frames";
 import { createWalletClient, custom, type WalletClient } from "viem";
@@ -309,7 +310,7 @@ describe("the terminal's chain 1337", () => {
     expect(gw.calls).toHaveLength(0);
   });
 
-  test("chain 1337 is absent when the experimental flag is off", async () => {
+  test("chain 1337 and the experimental modules' chains are absent when the experimental flag is off", async () => {
     const off = networks(false);
     expect(off.chains.some((c) => c.id === 1337)).toBe(false);
     expect(off.rpcUrls[1337]).toBeUndefined();
@@ -318,12 +319,24 @@ describe("the terminal's chain 1337", () => {
     const devnetChain = on.chains.find((c) => c.id === 1337);
     expect(devnetChain?.name).toBe("Alt-mempool devnet");
     expect(on.rpcUrls[1337]).toBe(ALT_MEMPOOL_GATEWAY);
-    // Everything else is as it was.
-    expect(on.chains.filter((c) => c.id !== 1337)).toEqual(
-      off.chains.map((c) =>
-        expect.objectContaining({ id: c.id, name: c.name }),
-      ),
+    // Everything else is as it was, but for the experimental modules' own
+    // chains (the frames devnets), which are listed only with the flag on.
+    const experimental = experimentalModuleChains.map((c) => c.id);
+    expect(experimental).toEqual(expect.arrayContaining([81411, 81412]));
+    for (const id of experimental) {
+      expect(off.chains.some((c) => c.id === id)).toBe(false);
+      expect(on.chains.some((c) => c.id === id)).toBe(true);
+    }
+    expect(
+      on.chains.filter((c) => c.id !== 1337 && !experimental.includes(c.id)),
+    ).toEqual(
+      off.chains
+        .filter((c) => !experimental.includes(c.id))
+        .map((c) => expect.objectContaining({ id: c.id, name: c.name })),
     );
+    // Their RPCs are the user's machine, never the hosted proxy.
+    expect(on.rpcUrls[81411]).toBe("http://127.0.0.1:8570");
+    expect(on.rpcUrls[81412]).toBe("http://127.0.0.1:32003");
 
     // And a run with the flag off asks nothing of the gateway.
     process.env.VITE_PUBLIC_EXPERIMENTAL = "false";

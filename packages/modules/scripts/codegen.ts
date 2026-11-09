@@ -64,6 +64,9 @@ const lines = [
   "/** Chains declared by modules (their `src/chains.ts`), and gateways they give chains viem knows; usable before any module loads. */",
   `export const moduleChains: ModuleChainDef[] = ${JSON.stringify(allChains)};`,
   "",
+  "/** The chains of experimental modules: hosts list them only with experimental features on. */",
+  `export const experimentalModuleChains: ModuleChainDef[] = ${JSON.stringify(experimentalNames.flatMap((name) => chainsByModule.get(name) ?? []))};`,
+  "",
   "export const moduleEntries = [",
   // std is excluded: @evmcrispr/core always loads it.
   ...names

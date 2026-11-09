@@ -3,4 +3,4 @@
  * light entry point for hosts that only need network metadata (wallet
  * config, RPC maps, workers).
  */
-export { moduleChains } from "./_generated";
+export { experimentalModuleChains, moduleChains } from "./_generated";
