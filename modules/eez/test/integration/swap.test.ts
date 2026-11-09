@@ -1,3 +1,4 @@
+import { chainGateway } from "@evmcrispr/sdk";
 import "../setup";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { executeScript } from "@evmcrispr/core";
@@ -172,6 +173,8 @@ async function runAs(account: Account, script: string): Promise<string> {
   const defaults = makeDefaultHandlers({
     account: account.address,
     maximizeGasLimit: false,
+    // The script loads eez, which declares the ChiadoX gateways.
+    gatewayFor: chainGateway,
   });
   const routed = (ctx: ActionHandlerCtx, chainId?: number) => ({
     ...ctx,

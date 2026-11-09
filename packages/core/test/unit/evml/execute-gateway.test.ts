@@ -1,9 +1,11 @@
 import { afterEach, expect as bunExpect, describe, it } from "bun:test";
 import type { TransactionAction } from "@evmcrispr/sdk";
-import { registerChains } from "@evmcrispr/sdk";
+import { chainGateway, registerChains } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 import type { ActionHandlerCtx } from "../../../src/evml/execute";
 import { makeDefaultHandlers } from "../../../src/evml/execute";
+import { ModuleRegistry } from "../../../src/evml/registry";
+import { collectScriptUsage } from "../../../src/scriptUsage";
 
 const FROM = "0x3aD736904E9e65189c3000c7DD2c8AC8bB7cD4e3" as const;
 const TO = "0x44fA8E6f47987339850636F88629646662444217" as const;
@@ -80,6 +82,7 @@ describe("evml > execute > gateway pricing", () => {
   const handlers = makeDefaultHandlers({
     account: FROM,
     maximizeGasLimit: false,
+    gatewayFor: chainGateway,
   });
   const action = (chainId: number, extra: Partial<TransactionAction> = {}) =>
     ({
@@ -169,6 +172,47 @@ describe("evml > execute > gateway pricing", () => {
     );
   });
 
+  it("does not use a quote that commits the transaction to more than the chain's ceiling", async () => {
+    // 400k gas at 1 gwei (1.25 with headroom) is 0.0005: under the default
+    // ceiling of 0.01. At 100 gwei it is over.
+    gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x174876e800",
+      maxPriorityFeePerGas: "0x174876e800",
+    });
+    const { ctx, sent } = makeCtx();
+    await handlers.transaction(action(990001), ctx);
+    expect(sent[0].maxFeePerGas).to.equal(undefined);
+    expect(sent[0].maxPriorityFeePerGas).to.equal(undefined);
+  });
+
+  it("does not let a quote raise the gas the transaction set", async () => {
+    gatewayAnswering({
+      gas: "0x7a120",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const { ctx, sent } = makeCtx();
+    await handlers.transaction(action(990001), ctx);
+    expect(sent[0].gas).to.equal(400_000n);
+    expect(sent[0].maxFeePerGas).to.equal(undefined);
+  });
+
+  it("asks no gateway unless the run grants one", async () => {
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const { ctx, sent } = makeCtx();
+    await makeDefaultHandlers({
+      account: FROM,
+      maximizeGasLimit: false,
+    }).transaction(action(990001), ctx);
+    expect(asked).to.have.lengthOf(0);
+    expect(sent[0].maxFeePerGas).to.equal(undefined);
+  });
+
   it("keeps fees the action set, without asking", async () => {
     const asked = gatewayAnswering({
       gas: "0x1",
@@ -194,5 +238,40 @@ describe("evml > execute > gateway pricing", () => {
     await handlers.transaction(action(1), ctx);
     expect(asked).to.have.lengthOf(0);
     expect(sent[0].maxFeePerGas).to.equal(undefined);
+  });
+});
+
+describe("evml > execute > which runs a gateway serves", () => {
+  it("knows the module that declared each gateway", () => {
+    const registry = new ModuleRegistry();
+    registry.register(
+      "gatewaymod",
+      async () => ({}) as never,
+      undefined,
+      false,
+      [
+        {
+          id: 990003,
+          key: "gatewayOwned",
+          name: "Gateway Owned",
+          rpcUrl: "https://rpc.example/3",
+          gateway: "https://gateway.example/3",
+        },
+        {
+          id: 990004,
+          key: "gatewayless",
+          name: "Gatewayless",
+          rpcUrl: "https://rpc.example/4",
+        },
+      ],
+    );
+    expect(registry.gatewayModule(990003)).to.equal("gatewaymod");
+    expect(registry.gatewayModule(990004)).to.equal(undefined);
+  });
+
+  it("reads the modules a script loads, under their canonical names", () => {
+    const usage = collectScriptUsage("load eez\nload token>tk\nprint 1");
+    expect([...(usage?.loaded ?? [])].sort()).to.eql(["eez", "token"]);
+    expect([...(collectScriptUsage("print 1")?.loaded ?? [])]).to.eql([]);
   });
 });

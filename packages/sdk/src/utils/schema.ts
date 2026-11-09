@@ -186,6 +186,11 @@ export interface ChainDef {
    *  declare a chain viem already knows (keeping viem's key, name and RPC)
    *  only to add this. */
   gateway?: string;
+  /** Most a gateway's quote may commit a transaction on this chain to, in
+   *  wei of the native token (`gas × maxFeePerGas`), as a decimal string.
+   *  A quote above it is not used: the transaction goes out unpriced and
+   *  the gateway refuses it. Default `DEFAULT_GATEWAY_MAX_FEE`. */
+  gatewayMaxFee?: string;
 }
 
 /**

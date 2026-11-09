@@ -1,3 +1,4 @@
+import { chainGateway } from "@evmcrispr/sdk";
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 import { executeScript, isTransactionAction } from "@evmcrispr/core";
@@ -144,6 +145,8 @@ describe.skipIf(!devnet)(
       const defaults = makeDefaultHandlers({
         account: testAccount.address,
         maximizeGasLimit: false,
+        // The script loads eez, which declares the ChiadoX gateways.
+        gatewayFor: chainGateway,
       });
       // A local key is bound to one RPC: pick the wallet by the action's
       // chain, and let `switch` pass without a wallet round-trip.

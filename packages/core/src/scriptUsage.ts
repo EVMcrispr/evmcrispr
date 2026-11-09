@@ -19,6 +19,8 @@ export interface ScriptUsage {
   commandBindings: Map<string, { module: string; name: string }>;
   /** Load-import bindings for helpers, same shape as `commandBindings`. */
   helperBindings: Map<string, { module: string; name: string }>;
+  /** Canonical name of every module the script loads. */
+  loaded: Set<string>;
 }
 
 function isLoadCommand(c: CommandExpressionNode): boolean {
@@ -65,11 +67,13 @@ export function collectScriptUsage(script: string): ScriptUsage | null {
   // Nodes that contain names, not invocations: load import lists and def
   // name nodes (defining `@double` is not a use of `std:double`).
   const skipNodes = new Set<Node>();
+  const loaded = new Set<string>();
 
   for (const c of commands) {
     if (isLoadCommand(c)) {
       const rawTarget = c.args[0]?.value as string | undefined;
       const target = rawTarget ? splitLoadTarget(rawTarget) : null;
+      if (target) loaded.add(target.canonical);
       const moduleName = target
         ? (target.alias ?? target.canonical)
         : rawTarget;
@@ -106,6 +110,7 @@ export function collectScriptUsage(script: string): ScriptUsage | null {
     configVars: new Set(),
     commandBindings: importedCommands,
     helperBindings: importedHelpers,
+    loaded,
   };
 
   const visit = (node: Node): void => {

@@ -7,9 +7,11 @@ import type { ChainDef } from "@evmcrispr/sdk";
 // cross-chain transactions, composes them with the other chain's
 // execution, and prices them (`eez_quoteFee`). A cross-chain transaction
 // pays for its settlement through its priority fee and is refused below
-// it, so the executor asks the gateway before sending. The composer cannot
-// estimate the gas of a cross-chain call itself (`eth_estimateGas`), so
-// `eez:on`/`eez:batch` size their own gas. A devnet; it may be reset.
+// it, so the executor asks the gateway before sending, in scripts that
+// load this module, and uses no quote that commits a transaction to more
+// than `gatewayMaxFee`. The composer cannot estimate the gas of a
+// cross-chain call itself (`eth_estimateGas`), so `eez:on`/`eez:batch`
+// size their own gas. A devnet; it may be reset.
 export const chains: ChainDef[] = [
   // Viem's Gnosis Chiado (same key, name and RPC; the explorer viem
   // lists is gone, this is the one the sdk links), declared only
@@ -24,6 +26,8 @@ export const chains: ChainDef[] = [
     explorerUrl: "https://gnosis-chiado.blockscout.com",
     testnet: true,
     gateway: "https://chiadox.eez.dev/composer/l1",
+    // 0.01 xDAI, about twenty times the settlement fee.
+    gatewayMaxFee: "10000000000000000",
   },
   {
     id: 699169,
@@ -33,5 +37,6 @@ export const chains: ChainDef[] = [
     explorerUrl: "https://chiadox.eez.dev/explorer",
     testnet: true,
     gateway: "https://chiadox.eez.dev/composer/l2",
+    gatewayMaxFee: "10000000000000000",
   },
 ];

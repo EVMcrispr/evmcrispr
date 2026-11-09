@@ -6,6 +6,23 @@ export function chainGateway(chainId: number): string | undefined {
   return registeredChain(chainId)?.gateway;
 }
 
+/** Ceiling on what a quote may commit a transaction to when the chain
+ *  declares none: 0.01 of the native token, about twenty times what an EEZ
+ *  composer charges for settlement. A quote is network input, and a local
+ *  key signs it without anyone looking. */
+export const DEFAULT_GATEWAY_MAX_FEE = 10n ** 16n;
+
+/** The chain's ceiling on a quoted transaction's maximum fee, in wei. */
+export function chainGatewayMaxFee(chainId: number): bigint {
+  const declared = registeredChain(chainId)?.gatewayMaxFee;
+  return declared !== undefined && /^\d+$/.test(declared)
+    ? BigInt(declared)
+    : DEFAULT_GATEWAY_MAX_FEE;
+}
+
+/** Largest gas limit a quote may set: an EEZ composer's own bound. */
+const MAX_QUOTED_GAS = 16_777_216n;
+
 export interface GatewayQuote {
   gas: bigint;
   maxFeePerGas: bigint;
@@ -86,17 +103,28 @@ export async function quoteThroughGateway(
         refused: option.error.message ?? option.error.code ?? "no quote",
       };
     if (!option.gas || !option.maxFeePerGas) return undefined;
+    // The quote is network input: it never raises the gas the transaction
+    // set, stays within the gateway's own gas bound, and commits the
+    // transaction to no more than this chain's ceiling.
+    const gas = BigInt(option.gas);
+    if (gas > MAX_QUOTED_GAS || (tx.gas !== undefined && gas > tx.gas))
+      return {
+        refused: `the gateway quoted a gas limit of ${gas}, above the ${tx.gas ?? MAX_QUOTED_GAS} it may set`,
+      };
     const bump = (v: Hex) => (BigInt(v) * FEE_HEADROOM_PERCENT) / 100n;
     const maxPriorityFeePerGas = bump(option.maxPriorityFeePerGas ?? "0x0");
-    const maxFeePerGas = bump(option.maxFeePerGas);
-    return {
-      gas: BigInt(option.gas),
-      maxFeePerGas:
-        maxFeePerGas > maxPriorityFeePerGas
-          ? maxFeePerGas
-          : maxPriorityFeePerGas,
-      maxPriorityFeePerGas,
-    };
+    const bumped = bump(option.maxFeePerGas);
+    const maxFeePerGas =
+      bumped > maxPriorityFeePerGas ? bumped : maxPriorityFeePerGas;
+    // Checked against the gas the transaction will be signed with: its
+    // own when it set one (a quote never raises it), else the quote's.
+    const ceiling = chainGatewayMaxFee(chainId);
+    const signedGas = tx.gas ?? gas;
+    if (signedGas * maxFeePerGas > ceiling)
+      return {
+        refused: `the gateway quoted up to ${signedGas * maxFeePerGas} wei, above this chain's ceiling of ${ceiling}`,
+      };
+    return { gas, maxFeePerGas, maxPriorityFeePerGas };
   } catch (err) {
     if (signal?.aborted) throw err;
     return undefined;

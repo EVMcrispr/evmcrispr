@@ -1,3 +1,4 @@
+import { chainGateway } from "@evmcrispr/sdk";
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 import { executeScript, isTransactionAction } from "@evmcrispr/core";
@@ -80,6 +81,8 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
     const defaults = makeDefaultHandlers({
       account: testAccount.address,
       maximizeGasLimit: false,
+      // The script loads eez, which declares the ChiadoX gateways.
+      gatewayFor: chainGateway,
     });
 
     const result = await executeScript(

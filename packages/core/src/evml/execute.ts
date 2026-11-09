@@ -39,6 +39,7 @@ import { mainnet } from "viem/chains";
 
 import { Interpreter } from "../interpreter/Interpreter";
 import { parseScript } from "../parsers/script";
+import { collectScriptUsage } from "../scriptUsage";
 import {
   clientForChain,
   collectPreparedSwitchTargets,
@@ -499,6 +500,11 @@ export async function observeTransaction(
 export interface ExecutorEnv {
   account: Address | undefined;
   maximizeGasLimit: boolean;
+  /** The gateway that prices this run's transactions on a chain (see
+   *  `ChainDef.gateway`). `executeScript` grants a chain's gateway only to
+   *  a script that loads the module declaring it; without this, none is
+   *  asked: a gateway sees every transaction it is asked to price. */
+  gatewayFor?: (chainId: number) => string | undefined;
 }
 
 function chainFor(chainId: number, ctx: ActionHandlerCtx) {
@@ -637,7 +643,7 @@ async function priceThroughGateway(
   ctx: ActionHandlerCtx,
   env: ExecutorEnv,
 ): Promise<{ rpcUrl?: string; refused?: string }> {
-  const gateway = chainGateway(chainId);
+  const gateway = env.gatewayFor?.(chainId);
   if (
     !gateway ||
     !request.to ||
@@ -661,7 +667,7 @@ async function priceThroughGateway(
   );
   if (!quote) return {};
   if ("refused" in quote) return { refused: quote.refused };
-  request.gas = quote.gas;
+  request.gas ??= quote.gas;
   request.maxFeePerGas = quote.maxFeePerGas;
   request.maxPriorityFeePerGas = quote.maxPriorityFeePerGas;
   const own =
@@ -1002,9 +1008,18 @@ export async function executeScript(
     return fallback;
   };
 
+  // A chain's gateway sees every transaction it is asked to price: only a
+  // script that loads the module declaring it uses it.
+  const loaded = collectScriptUsage(source)?.loaded ?? new Set<string>();
   const defaults = makeDefaultHandlers({
     account,
     maximizeGasLimit: options.maximizeGasLimit ?? false,
+    gatewayFor: (chainId) => {
+      const owner = registry.gatewayModule(chainId);
+      return owner !== undefined && loaded.has(owner)
+        ? chainGateway(chainId)
+        : undefined;
+    },
   });
 
   const runDefault = (action: Action, ctx: ActionHandlerCtx) => {
