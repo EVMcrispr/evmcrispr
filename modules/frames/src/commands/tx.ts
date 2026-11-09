@@ -1,7 +1,8 @@
-import type { Action, BlockExpressionNode, FrameAction } from "@evmcrispr/sdk";
+import type { Action, BlockExpressionNode } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, withSender } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import type Frames from "..";
+import { frameAction } from "../actions";
 import { gasOption, layoutFrames, requireLimits } from "../layout";
 
 export default defineCommand<Frames>({
@@ -96,18 +97,21 @@ export default defineCommand<Frames>({
     // A frame account's transaction is signed once, exactly as sent, so
     // nothing sizes its frames: each one must carry its limits.
     if (account) requireLimits(frames);
-    const action: FrameAction = {
-      type: "frame",
-      chainId,
-      from: sender,
-      frames,
-      mempool,
-    };
-    if (account)
-      action.account = {
-        kind: "frame-account",
-        owner: await module.getConnectedAccount(),
-      };
-    return [action];
+    return [
+      frameAction.create({
+        chainId,
+        from: sender,
+        data: {
+          frames,
+          mempool,
+          ...(account && {
+            account: {
+              kind: "frame-account",
+              owner: await module.getConnectedAccount(),
+            },
+          }),
+        },
+      }),
+    ];
   },
 });

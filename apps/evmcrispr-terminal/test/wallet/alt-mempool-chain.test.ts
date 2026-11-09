@@ -3,11 +3,11 @@ import { experimentalModuleChains } from "@evmcrispr/modules/chains";
 import type { Action } from "@evmcrispr/sdk";
 import { ALT_MEMPOOL_GATEWAY } from "@evmcrispr/viem-frames";
 import { createWalletClient, custom, type WalletClient } from "viem";
+import { OWNER } from "../../../../modules/frames/test/helpers/frame-gateway";
 import { networks } from "../../src/config/rpc";
 import { ensureAltMempoolChain } from "../../src/wallet/alt-mempool-chain";
 import { testBrowser } from "../helpers/app";
 import { fakeEvml, type Step } from "../helpers/fake-evml";
-import { OWNER } from "../helpers/frame-gateway";
 import { settle } from "../helpers/tabs";
 
 const MISMATCH = `Your wallet's chain 1337 is not the alt-mempool devnet: set its RPC to ${ALT_MEMPOOL_GATEWAY}`;

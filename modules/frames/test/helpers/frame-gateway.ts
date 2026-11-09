@@ -1,8 +1,15 @@
-import type { FrameAction } from "@evmcrispr/sdk";
 import { profile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
 import { newTx, txHash } from "@forshtat/hegota-support/tx";
 import { createWalletClient, custom, type Hash, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { frameAction } from "../../src/actions";
+import type {
+  FrameActionData,
+  FrameModuleAction,
+} from "../../src/frame-action";
+
+// Also used by the terminal's tests (apps/evmcrispr-terminal/test), which
+// send and review this module's frame action.
 
 // Anvil's account #2: the account's owner, the key MetaMask stands for.
 export const OWNER = privateKeyToAccount(
@@ -14,34 +21,40 @@ export const RECIPIENT = "0x90F79bf6EB2c4f870365E785982E1f101E93b906" as const;
 
 /** A FrameAccount's transaction as `frames:tx --account` writes it: the
  *  account's check, then one call. */
-export const accountAction = (
-  over: Partial<FrameAction> = {},
-): FrameAction => ({
-  type: "frame",
-  chainId: 1337,
-  from: ACCOUNT,
-  frames: [
-    {
-      mode: "verify",
-      approve: "both",
-      target: null,
-      data: "0xb22253510000000000000000000000000000000000000000000000000000000000000003",
-      value: 0n,
-      gas: 40_000n,
+export const accountAction = ({
+  chainId = 1337,
+  from = ACCOUNT,
+  ...data
+}: Partial<
+  FrameActionData & { chainId: number; from: `0x${string}` }
+> = {}): FrameModuleAction =>
+  frameAction.create({
+    chainId,
+    from,
+    data: {
+      frames: [
+        {
+          mode: "verify",
+          approve: "both",
+          target: null,
+          data: "0xb22253510000000000000000000000000000000000000000000000000000000000000003",
+          value: 0n,
+          gas: 40_000n,
+        },
+        {
+          mode: "sender",
+          target: RECIPIENT,
+          data: "0xd09de08a",
+          value: 1_000n,
+          gas: 50_000n,
+          stateGas: 200_000n,
+        },
+      ],
+      mempool: "alt",
+      account: { kind: "frame-account", owner: OWNER.address },
+      ...data,
     },
-    {
-      mode: "sender",
-      target: RECIPIENT,
-      data: "0xd09de08a",
-      value: 1_000n,
-      gas: 50_000n,
-      stateGas: 200_000n,
-    },
-  ],
-  mempool: "alt",
-  account: { kind: "frame-account", owner: OWNER.address },
-  ...over,
-});
+  });
 
 /** The hash of the transaction the gateway was handed, as it computes it. */
 function hashOfWire(wire: any): Hash {

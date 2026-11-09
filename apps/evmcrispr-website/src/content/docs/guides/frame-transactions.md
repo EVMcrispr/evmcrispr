@@ -233,9 +233,11 @@ chain 1337 when experimental features are on.
 
 ## Limits
 
-- The sender is a frame account, sent from the terminal. A plain address is
-  refused, the CLI cannot send frame transactions, and `sim:fork` refuses
-  them: no simulation backend runs EIP-8141 frames yet.
+- The sender is a frame account. The `frames` module sends its transaction
+  wherever the script runs: from the terminal with your browser wallet, or
+  from the CLI with `--wallet-rpc` and `--account` (the owner's). A plain
+  address is refused, and `sim:fork` refuses frame transactions: no
+  simulation backend runs EIP-8141 frames yet.
 - A frame account has one owner and no recovery or rotation.
 - One typed-data signature by the account's owner. Not covered: P256 or arbitrary
   signatures, paymaster signatures, keyed nonces other than key 0, recent roots,

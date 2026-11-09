@@ -3,12 +3,12 @@ import {
   asNum,
   type BatchedAction,
   ErrorException,
-  type FrameSpec,
   Num,
   type TransactionAction,
 } from "@evmcrispr/sdk";
 import { type Address, encodeFunctionData, type Hex } from "viem";
 import { frameAccountAbi } from "./contracts/artifacts";
+import type { FrameSpec } from "./frame-action";
 import { frameMarkOf } from "./marks";
 
 export const SELF_VERIFY_GAS = 30_000n;

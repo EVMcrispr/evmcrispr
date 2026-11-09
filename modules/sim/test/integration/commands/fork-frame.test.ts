@@ -34,9 +34,11 @@ for (const backend of BACKENDS) {
         "  )",
         ")",
       ].join("\n");
-      await expect(
-        createInterpreter(script, getPublicClient()).interpret(),
-      ).rejects.toThrow("sim:fork cannot simulate frame transactions yet");
+      const refused = createInterpreter(script, getPublicClient()).interpret();
+      // It says what it refuses (the module's own title for it) and why.
+      await expect(refused).rejects.toThrow(
+        /sim:fork cannot simulate "Frame transaction from 0x[0-9a-fA-F]{40}" \(a frame action of the frames module\) yet: no simulation backend runs it/,
+      );
     }, 120000);
   });
 }

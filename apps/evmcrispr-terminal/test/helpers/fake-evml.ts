@@ -3,8 +3,13 @@ import type {
   WorkerEvml,
   WorkerEvmlClientConfig,
 } from "@evmcrispr/core/worker-client";
-import type { Action, ActionHoldState, BoxSnapshot } from "@evmcrispr/sdk";
-import type { WalletClient } from "viem";
+import type {
+  Action,
+  ActionHoldState,
+  BoxSnapshot,
+  IModuleConstructor,
+} from "@evmcrispr/sdk";
+import type { Transport, WalletClient } from "viem";
 
 /** What the wallet answers to one request: a result, or an error to throw.
  *  Asked again on every attempt. */
@@ -54,6 +59,11 @@ export function fakeEvml(
   options: {
     hold?: boolean;
     resolveOnAbort?: boolean;
+    /** Modules whose actions `ctx.next` sends as the core does: through
+     *  the module's own `send`. */
+    modules?: IModuleConstructor[];
+    /** The run's transports, keyed by chain id, as the core passes them. */
+    transports?: Record<number, Transport>;
     simulation?: Partial<{
       success: boolean;
       actions: Action[];
@@ -138,10 +148,18 @@ export function fakeEvml(
           const kind = "type" in action ? action.type : "transaction";
           const ctx = {
             walletClient: client,
+            transports: options.transports,
             onLog: (text: string) => config.onLog?.(text, []),
             onSent: () => {},
             onStatus: (state: ActionHoldState) => fake.statuses.push(state),
-            next: async (a: Action) => {
+            next: async (a: Action): Promise<unknown> => {
+              if ("type" in a && a.type === "module") {
+                const def = options.modules?.find(
+                  (m) => m.moduleName === a.module,
+                )?.actions?.[a.kind];
+                if (!def) throw new Error(`no module sends ${a.module}`);
+                return def.send(a, ctx);
+              }
               const result = await ask(
                 kind === "batched"
                   ? "wallet_sendCalls"

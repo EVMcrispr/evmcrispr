@@ -1267,7 +1267,9 @@ export function makeExecuteWithCaptures(
       if (
         !isTransactionAction(action) &&
         !isBatchedAction(action) &&
-        !("type" in action && action.type === "smartBatch")
+        !("type" in action && action.type === "smartBatch") &&
+        // A module's action is sent by its module, which returns a receipt.
+        !("type" in action && action.type === "module")
       ) {
         throw new ErrorException(
           "captures require transaction actions (not RPC, wallet, or terminal actions)",

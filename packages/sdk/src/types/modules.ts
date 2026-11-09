@@ -2,6 +2,7 @@ import type { Address, Chain, PublicClient, Transport } from "viem";
 import type { BindingsManager } from "../BindingsManager";
 import type { IPFSResolver } from "../IPFSResolver";
 import type { Module } from "../Module";
+import type { ModuleActionDef } from "../utils/defineAction";
 import type { Param } from "../utils/encoders";
 import type { ArgDef, ArgType, OptDef } from "../utils/schema";
 import type { EventImportMap, Suggestion } from "../utils/suggestions";
@@ -399,4 +400,7 @@ export interface IModuleConstructor {
    *  calls: a host can fetch a script's commands before it runs them. */
   readonly commandLoaders?: Readonly<Record<string, () => Promise<unknown>>>;
   readonly helperLoaders?: Readonly<Record<string, () => Promise<unknown>>>;
+  /** The actions this module produces and sends, keyed by kind
+   *  (`defineAction`). */
+  readonly actions?: Record<string, ModuleActionDef<any>>;
 }

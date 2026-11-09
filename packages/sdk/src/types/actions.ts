@@ -117,38 +117,42 @@ export interface BatchedAction {
   actions: TransactionAction[];
 }
 
-/**
- * One frame of an EIP-8141 frame transaction.
- */
-export interface FrameSpec {
-  mode: "verify" | "sender" | "default";
-  /** What a verify frame approves. */
-  approve?: "execution" | "payment" | "both";
-  /** ATOMIC_BATCH_FLAG: this frame and the next run atomically. */
-  atomic?: boolean;
-  /** `null` means the transaction's sender. */
-  target: Address | null;
+/** A call a module action makes, as its description shows it. */
+export interface ModuleActionCall {
+  to: Address;
   data: `0x${string}`;
   value: bigint;
-  /** limits.execution */
-  gas?: bigint;
-  /** limits.state */
-  stateGas?: bigint;
 }
 
 /**
- * An EIP-8141 frame transaction. Only hosts that can have it signed and know
- * the mempool send it (the terminal, from a frame account); the default
- * handler refuses it.
+ * What a module says its action does, for a host's review. Host-neutral:
+ * plain strings (a host escapes them) and raw calls (a host decodes them).
  */
-export interface FrameAction {
-  type: "frame";
+export interface ModuleActionDescription {
+  /** The one-line form, for lists. */
+  title: string;
+  detail: string;
+  meta: string;
+  warning?: string;
+  /** What it runs, in order. */
+  steps: { label: string; call?: ModuleActionCall }[];
+  /** What the description cannot say, said plainly. */
+  notes: string[];
+}
+
+/**
+ * An action a module owns: the module describes it when it is made, and
+ * sends it (core's `module` handler loads the module and calls its
+ * `send`). `data` must survive a structured clone (the worker boundary).
+ */
+export interface ModuleAction<D = unknown> {
+  type: "module";
+  module: string;
+  kind: string;
   chainId: number;
   from: Address;
-  frames: FrameSpec[];
-  mempool: "alt" | "canonical";
-  /** Set when `from` is a smart account the `owner` wallet signs for. */
-  account?: { kind: "frame-account"; owner: Address };
+  data: D;
+  description: ModuleActionDescription;
 }
 
 /**
@@ -183,7 +187,7 @@ export type Action =
   | TransactionAction
   | SmartBatchAction
   | BatchedAction
-  | FrameAction
+  | ModuleAction
   | WalletAction
   | RpcAction
   | TerminalAction;
@@ -202,8 +206,8 @@ export function isSmartBatchAction(action: Action): action is SmartBatchAction {
   return "type" in action && action.type === "smartBatch";
 }
 
-export function isFrameAction(action: Action): action is FrameAction {
-  return "type" in action && action.type === "frame";
+export function isModuleAction(action: Action): action is ModuleAction {
+  return "type" in action && action.type === "module";
 }
 
 export function isWalletAction(action: Action): action is WalletAction {

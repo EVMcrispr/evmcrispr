@@ -4,7 +4,7 @@ import type {
   ActionReport,
   BatchedAction,
   BoxSnapshot,
-  FrameAction,
+  ModuleAction,
   RpcAction,
   SmartBatchAction,
   TerminalAction,
@@ -13,7 +13,6 @@ import type {
 } from "@evmcrispr/sdk";
 import {
   chainGateway,
-  chainLabel,
   defaultTransport,
   ExitSignal,
   extractRevertData,
@@ -140,7 +139,9 @@ export type ActionHandlers = {
     ctx: ActionHandlerCtx,
   ): Promise<unknown>;
   batched(action: BatchedAction, ctx: ActionHandlerCtx): Promise<unknown>;
-  frame(action: FrameAction, ctx: ActionHandlerCtx): Promise<unknown>;
+  /** An action a module owns: the default loads the module and calls its
+   *  `send`. A host that gates wraps it and calls `ctx.next`. */
+  module(action: ModuleAction, ctx: ActionHandlerCtx): Promise<unknown>;
   wallet(action: WalletAction, ctx: ActionHandlerCtx): Promise<unknown>;
   rpc(action: RpcAction, ctx: ActionHandlerCtx): Promise<unknown>;
   terminal(action: TerminalAction, ctx: ActionHandlerCtx): Promise<unknown>;
@@ -513,6 +514,8 @@ export interface ExecutorEnv {
    *  a script that loads the module declaring it; without this, none is
    *  asked: a gateway sees every transaction it is asked to price. */
   gatewayFor?: (chainId: number) => string | undefined;
+  /** Where a module action's module is found. Without it, none is. */
+  registry?: ModuleRegistry;
 }
 
 function chainFor(chainId: number, ctx: ActionHandlerCtx) {
@@ -817,10 +820,18 @@ export function smartSubmission(
 
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
-    async frame(action) {
-      throw new Error(
-        `This host cannot send frame transactions (${chainLabel(action.chainId)}): send them from the EVMcrispr terminal, from a frame account (frames:tx --account)`,
-      );
+    async module(action, ctx) {
+      const loader = env.registry?.get(action.module);
+      if (!loader)
+        throw new Error(
+          `No module "${action.module}" is loaded here to send its ${action.kind} actions: this host cannot send them`,
+        );
+      const def = (await loader()).default.actions?.[action.kind];
+      if (!def)
+        throw new Error(
+          `The ${action.module} module has no "${action.kind}" action to send`,
+        );
+      return def.send(action, ctx);
     },
     async smartBatch(action, ctx) {
       if (
@@ -1177,6 +1188,7 @@ export async function executeScript(
   // script that loads the module declaring it uses it.
   const loaded = collectScriptUsage(source)?.loaded ?? new Set<string>();
   const defaults = makeDefaultHandlers({
+    registry,
     account,
     maximizeGasLimit: options.maximizeGasLimit ?? false,
     gatewayFor: (chainId) => {
@@ -1194,8 +1206,8 @@ export async function executeScript(
         return defaults.smartBatch(action, ctx);
       case "batched":
         return defaults.batched(action, ctx);
-      case "frame":
-        return defaults.frame(action, ctx);
+      case "module":
+        return defaults.module(action, ctx);
       case "wallet":
         return defaults.wallet(action, ctx);
       case "rpc":

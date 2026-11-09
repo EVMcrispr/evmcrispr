@@ -12,6 +12,7 @@ import { expect, TEST_ACCOUNT_ADDRESS } from "@evmcrispr/test-utils";
 import type { WalletClient } from "viem";
 import { createWorkerEvml } from "../../../src/worker/client";
 import { deserializeError, serializeError } from "../../../src/worker/protocol";
+import { PROBE_HASH, Probe, probeSent } from "./fixtures/probe-module";
 
 // Hermetic RPC stub: chain-id stamping inside the worker otherwise falls
 // back to viem's default public mainnet RPC, which rate-limits busy IPs
@@ -227,6 +228,22 @@ describe("evml > worker", () => {
       expect(logs).to.include("before");
       expect(lines[lines.length - 1]).to.be.null;
       // Cold worker spawn can exceed the 5s default under parallel turbo load.
+    }, 15_000);
+
+    it("a module action crosses the worker and is sent by this thread's module", async () => {
+      probeSent.length = 0;
+      const result = await workerEvml
+        .with({ modules: [Probe] })
+        .script("load probe\nprobe:ping 7")
+        .execute(stubWallet, { prepareChains: false });
+      expect(probeSent.length).to.equal(1);
+      // the bigint in the action's data survives the structured clone
+      expect(probeSent[0]!.data.n).to.equal(7n);
+      expect(probeSent[0]!.description.title).to.equal("Ping 7");
+      expect(
+        (result.executed[0]!.result as { transactionHash: string })
+          .transactionHash,
+      ).to.equal(PROBE_HASH);
     }, 15_000);
 
     it("tells the worker where a held action stands", async () => {

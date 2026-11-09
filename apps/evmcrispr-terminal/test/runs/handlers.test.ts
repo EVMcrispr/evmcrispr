@@ -17,6 +17,18 @@ test("which actions reach the wallet", () => {
     ],
     [{ type: "rpc", method: "evm_mine", params: [] }, false],
     [{ type: "terminal", command: "x", args: {} }, false],
+    [
+      {
+        type: "module",
+        module: "frames",
+        kind: "frame",
+        chainId: 1337,
+        from: to,
+        data: {},
+        description: { title: "", detail: "", meta: "", steps: [], notes: [] },
+      },
+      true,
+    ],
   ];
   for (const [action, expected] of cases)
     expect(reachesWallet(action)).toBe(expected);

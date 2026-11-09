@@ -1,17 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { type ConsoleState, consoleEntries } from "@evmcrispr/editor";
+import Frames from "@evmcrispr/module-frames";
 import type { Action, BoxSnapshot } from "@evmcrispr/sdk";
 import { applyText, revisions } from "@evmcrispr/space";
-import { ORIGIN } from "../../src/space/undo";
-import { lockNames } from "../../src/storage/locks";
-import { testBrowser } from "../helpers/app";
-import { fakeEvml, type Step } from "../helpers/fake-evml";
 import {
   accountAction,
   frameGateway,
   metaMask,
   OWNER,
-} from "../helpers/frame-gateway";
+} from "../../../../modules/frames/test/helpers/frame-gateway";
+import { ORIGIN } from "../../src/space/undo";
+import { lockNames } from "../../src/storage/locks";
+import { testBrowser } from "../helpers/app";
+import { fakeEvml, type Step } from "../helpers/fake-evml";
 import { settle } from "../helpers/tabs";
 
 const to = "0x000000000000000000000000000000000000dEaD" as const;
@@ -241,10 +242,14 @@ describe("run manager", () => {
         return OWNER.signTypedData(typed);
       },
     });
-    const evml = fakeEvml([{ action: accountAction() }], async () => receipt);
+    // The frames module sends it, through the run's transport for the
+    // devnet's chain: the gateway.
+    const evml = fakeEvml([{ action: accountAction() }], async () => receipt, {
+      modules: [Frames],
+      transports: { 1337: gateway.transport },
+    });
     const app = browser.tab({
       evml: () => evml,
-      frameGateway: gateway.transport,
       wallet: async () => ({ client: mm.wallet, address: OWNER.address }),
     });
     const id = await app.spaces.create({ text: "a", source: "user" });

@@ -15,7 +15,7 @@ export function reachesWallet(action: Action): boolean {
   if (!("type" in action)) return !action.readOnly;
   return (
     action.type === "batched" ||
-    action.type === "frame" ||
+    action.type === "module" ||
     action.type === "smartBatch" ||
     action.type === "wallet"
   );

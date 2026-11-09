@@ -1,8 +1,9 @@
+import "../setup";
 import { describe, expect, test } from "bun:test";
-import type { ActionHandlerCtx } from "@evmcrispr/core";
-import type { Action } from "@evmcrispr/sdk";
-import type { Hash, WalletClient } from "viem";
-import { makeFrameHandler } from "../../src/runs/frame-handler";
+import type { ModuleActionSendCtx } from "@evmcrispr/sdk";
+import type { Hash, Transport, WalletClient } from "viem";
+import { frameAction } from "../../src/actions";
+import type { FrameModuleAction } from "../../src/frame-action";
 import {
   ACCOUNT,
   accountAction,
@@ -11,34 +12,35 @@ import {
   OWNER,
 } from "../helpers/frame-gateway";
 
-const CORE_REFUSAL =
-  "This host cannot send frame transactions (Alt-mempool devnet): use the EVMcrispr CLI with EVMCRISPR_PRIVATE_KEY";
+const PLAIN_REFUSAL =
+  "A frame transaction from a plain address cannot be sent yet: send it from a frame account (frames:tx --account)";
 
-function ctx(wallet: WalletClient) {
+/** The context core gives a module action's `send`; the alt-mempool
+ *  gateway is the run's transport for its chain. */
+function ctx(wallet: WalletClient, gateway: Transport) {
   const logs: string[] = [];
   const sent: Hash[] = [];
-  const next: Action[] = [];
   const value = {
     walletClient: wallet,
+    getPublicClient: () => {
+      throw new Error("not used");
+    },
+    transports: { 1337: gateway },
     onLog: (line: string) => logs.push(line),
     onSent: (hash: Hash) => sent.push(hash),
-    next: async (action: Action) => {
-      next.push(action);
-      throw new Error(CORE_REFUSAL);
-    },
-  } as unknown as ActionHandlerCtx;
-  return { ctx: value, logs, sent, next };
+  } as ModuleActionSendCtx;
+  return { ctx: value, logs, sent };
 }
 
-describe("the terminal's frame handler", () => {
+const send = (action: FrameModuleAction, ctx: ModuleActionSendCtx) =>
+  frameAction.send(action, ctx);
+
+describe("the frames module sends its frame action", () => {
   test("routes an account frame action to the wallet-signed sender", async () => {
     const gateway = frameGateway();
     const mm = metaMask();
-    const c = ctx(mm.wallet);
-    await makeFrameHandler({ transport: gateway.transport })(
-      accountAction(),
-      c.ctx,
-    );
+    const c = ctx(mm.wallet, gateway.transport);
+    await send(accountAction(), c.ctx);
 
     const typed = mm.asked.filter((r) => r.method === "eth_signTypedData_v4");
     expect(typed).toHaveLength(1);
@@ -58,7 +60,6 @@ describe("the terminal's frame handler", () => {
       gateway.calls.filter((x) => x.method === "eth_sendFrameTransaction"),
     ).toHaveLength(1);
     expect(c.sent).toEqual([gateway.sent()!]);
-    expect(c.next).toHaveLength(0);
     // Asked of the wallet: its chain, and the one signature.
     expect(
       mm.asked.filter((r) => !/^eth_(chainId|accounts)$/.test(r.method)),
@@ -68,12 +69,9 @@ describe("the terminal's frame handler", () => {
   test("still refuses a plain frame action", async () => {
     const gateway = frameGateway();
     const mm = metaMask();
-    const c = ctx(mm.wallet);
+    const c = ctx(mm.wallet, gateway.transport);
     const plain = accountAction({ account: undefined, from: OWNER.address });
-    await expect(
-      makeFrameHandler({ transport: gateway.transport })(plain, c.ctx),
-    ).rejects.toThrow(CORE_REFUSAL);
-    expect(c.next).toEqual([plain]);
+    await expect(send(plain, c.ctx)).rejects.toThrow(PLAIN_REFUSAL);
     expect(mm.asked).toHaveLength(0);
     expect(gateway.calls).toHaveLength(0);
   });
@@ -81,13 +79,8 @@ describe("the terminal's frame handler", () => {
   test("a wallet on another chain is told to switch 1337 first, and nothing is signed", async () => {
     const gateway = frameGateway();
     const mm = metaMask({ chainId: 100 });
-    const c = ctx(mm.wallet);
-    await expect(
-      makeFrameHandler({ transport: gateway.transport })(
-        accountAction(),
-        c.ctx,
-      ),
-    ).rejects.toThrow(/switch 1337/);
+    const c = ctx(mm.wallet, gateway.transport);
+    await expect(send(accountAction(), c.ctx)).rejects.toThrow(/switch 1337/);
     expect(mm.asked.map((r) => r.method)).toEqual(["eth_chainId"]);
     expect(gateway.calls).toHaveLength(0);
   });
@@ -95,13 +88,10 @@ describe("the terminal's frame handler", () => {
   test("an account action for another chain than the devnet's is refused", async () => {
     const gateway = frameGateway();
     const mm = metaMask();
-    const c = ctx(mm.wallet);
-    await expect(
-      makeFrameHandler({ transport: gateway.transport })(
-        accountAction({ chainId: 100 }),
-        c.ctx,
-      ),
-    ).rejects.toThrow(/1337/);
+    const c = ctx(mm.wallet, gateway.transport);
+    await expect(send(accountAction({ chainId: 100 }), c.ctx)).rejects.toThrow(
+      /Alt-mempool devnet/,
+    );
     expect(mm.asked).toHaveLength(0);
   });
 
@@ -116,12 +106,9 @@ describe("the terminal's frame handler", () => {
         return signature;
       },
     });
-    const c = ctx(mm.wallet);
+    const c = ctx(mm.wallet, gateway.transport);
     await expect(
-      makeFrameHandler({ transport: gateway.transport })(accountAction(), {
-        ...c.ctx,
-        signal: abort.signal,
-      }),
+      send(accountAction(), { ...c.ctx, signal: abort.signal }),
     ).rejects.toThrow(/cancelled/);
     expect(
       mm.asked.filter((r) => r.method === "eth_signTypedData_v4"),
@@ -134,13 +121,10 @@ describe("the terminal's frame handler", () => {
 
   test("without a connected wallet it says so, before anything", async () => {
     const gateway = frameGateway();
-    const c = ctx(undefined as unknown as WalletClient);
-    await expect(
-      makeFrameHandler({ transport: gateway.transport })(
-        accountAction(),
-        c.ctx,
-      ),
-    ).rejects.toThrow(/No wallet is connected/);
+    const c = ctx(undefined as unknown as WalletClient, gateway.transport);
+    await expect(send(accountAction(), c.ctx)).rejects.toThrow(
+      /No wallet is connected/,
+    );
     expect(gateway.calls).toHaveLength(0);
   });
 });

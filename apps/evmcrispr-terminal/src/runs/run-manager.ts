@@ -50,7 +50,6 @@ import {
 } from "../wallet/alt-mempool-chain";
 import { normaliseAction } from "./action-summary";
 import { appendOutput, boundErrors } from "./bounds";
-import { makeFrameHandler } from "./frame-handler";
 import { createGate, type Gate, type Held } from "./gate";
 import { makeSafeBatchedHandler, reachesWallet } from "./handlers";
 import { guardWallet, type WalletGuard } from "./wallet-guard";
@@ -136,8 +135,9 @@ export interface RunDeps {
   /** How long a cancelled run may take to stop before it is ended anyway
    *  (default 3 s: past the worker's own kill grace). */
   cancelGraceMs?: number;
-  /** The alt-mempool gateway frame accounts send through: the devnet's
-   *  own unless a test stands in for it. */
+  /** The alt-mempool gateway offered to the wallet when a script switches
+   *  to the devnet: the devnet's own unless a test stands in for it. (The
+   *  frames module sends through the run's transport for that chain.) */
   frameGateway?: Transport;
 }
 
@@ -528,10 +528,10 @@ export function createRunManager(deps: RunDeps): RunManager {
               }
             : pass,
         ),
-        // A frame account's transaction is signed by the wallet as typed
-        // data; any other is refused by the core's default handler. Both
-        // are held like any action that reaches the wallet.
-        frame: gated(makeFrameHandler({ transport: deps.frameGateway })),
+        // A module's action (a frame transaction, from `frames:tx`) is
+        // held like any action that reaches the wallet, then sent by its
+        // module: what it sends is what was reviewed.
+        module: gated(pass),
         rpc: pass,
         terminal: pass,
       };
