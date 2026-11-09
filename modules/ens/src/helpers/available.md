@@ -2,7 +2,7 @@
 title: "@ens:available"
 ---
 
-Check whether a .eth name is available for registration.
+Check whether a .eth name is available for registration (ENSv2's ETHRegistrar, which counts names still on ENS v1 as taken).
 
 **On-chain (`@ens:available!`)**: Mainnet only: an assertion reads the chain it runs on, and ENS cannot be reached from another chain.
 
@@ -47,5 +47,6 @@ resolves at composition time and is not restricted by the executing chain.
 
 ### Notes
 
-- Asks the controller directly, so it reflects the registrar's own rules
-  (length, reservations) rather than only whether the name is registered.
+- Asks ENSv2's ETHRegistrar (`isAvailable`), so it reflects the registrar's
+  own rules (length, reservations) rather than only whether the name is
+  registered. A name still on ENS v1, migrated or not, counts as taken.

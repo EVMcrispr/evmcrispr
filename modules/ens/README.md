@@ -11,7 +11,7 @@ load ens
 | Command | Description |
 |---------|-------------|
 | [ens:create-subname](src/commands/create-subname.md) ⚗️ | Create a subname under an ENS name you own. |
-| [ens:register](src/commands/register.md) | Register a .eth name via the controller's commit/reveal flow (commits, waits and reveals in one go by default). |
+| [ens:register](src/commands/register.md) | Register a .eth name with ENSv2's ETHRegistrar: commit, wait, then approve the payment token (USDC by default) and reveal, in one go by default. |
 | [ens:renew](src/commands/renew.md) | Renew ENS domain registrations via bulk renewal. |
 | [ens:set-addr](src/commands/set-addr.md) | Set the address record of an ENS name. |
 | [ens:set-contenthash](src/commands/set-contenthash.md) | Set the content hash of an ENS name. |
@@ -28,7 +28,7 @@ load ens
 | Helper | Returns | Description |
 |--------|---------|-------------|
 | [@ens:addr](src/helpers/addr.md) | `address` | Resolve an ENS name to an address, optionally per coin type. |
-| [@ens:available](src/helpers/available.md) | `bool` | Check whether a .eth name is available for registration. |
+| [@ens:available](src/helpers/available.md) | `bool` | Check whether a .eth name is available for registration (ENSv2's ETHRegistrar, which counts names still on ENS v1 as taken). |
 | [@ens:avatar](src/helpers/avatar.md) | `string` | Avatar URI of an ENS name. |
 | [@ens:coinType](src/helpers/coinType.md) | `number` | ENSIP-11 coin type of an EVM chain, for multichain address records. |
 | [@ens:coinType.decode](src/helpers/coinType.decode.md) | `string` | Chain name of an ENSIP-11 coin type (the inverse of @ens:coinType). |

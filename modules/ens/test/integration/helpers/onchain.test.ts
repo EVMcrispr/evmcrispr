@@ -14,7 +14,8 @@ const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
 const REGISTRY = getAddress("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e");
 const NAME_WRAPPER = getAddress("0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401");
 const BASE_REGISTRAR = getAddress("0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85");
-const CONTROLLER = getAddress("0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547");
+/** ENSv2's ETHRegistrar: the only registrar since ENSv2. */
+const ETH_REGISTRAR = getAddress("0xD6D8369e55c94Ae8AFA714E6cF7AB5bE54D5CC81");
 const NAME = "vitalik.eth";
 
 const preamble = `load ens`;
@@ -87,13 +88,13 @@ describeCommand("assert (ens registry faces)", {
       },
     },
     {
-      name: "asks the controller whether a label is available",
+      name: "asks the ETHRegistrar whether a label is available",
       script: `assert @ens:available!(${NAME}) == false`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const call = d.staticCallOf(param);
-        expect(call.target).to.equal(CONTROLLER);
-        expect(call.data.startsWith(selectorOf("available(string)"))).to.be
+        expect(call.target).to.equal(ETH_REGISTRAR);
+        expect(call.data.startsWith(selectorOf("isAvailable(string)"))).to.be
           .true;
         // A bool read judged directly: false is EQ 0.
         d.expectConstraint(param, "Eq", 0n);
