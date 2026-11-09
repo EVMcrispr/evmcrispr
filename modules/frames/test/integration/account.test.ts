@@ -106,6 +106,12 @@ beforeAll(async () => {
   expect(await client.getCode({ address: DETERMINISTIC_DEPLOYER })).not.toBe(
     undefined,
   );
+  // The shared anvil forks Gnosis at a recent block, where anvil's #0 (a
+  // public key) may hold nothing: fund the deployer rather than rely on it.
+  await anvil("anvil_setBalance", [
+    deployer!.account.address,
+    toHex(parseEther("100")),
+  ]);
   for (const tx of deploymentTransactions()) await send(tx.to, tx.data);
   expect(await client.getCode({ address: FACTORY_ADDRESS })).toMatch(/^0x.+/);
 }, 120_000);
