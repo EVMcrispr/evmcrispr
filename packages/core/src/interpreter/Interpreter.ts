@@ -51,6 +51,7 @@ import {
   makeResolveBlockExpression,
 } from "./index";
 import { OutcomeRegistry } from "./outcomes";
+import { prefetchScript, scriptNeeds } from "./prefetch";
 
 /** Log listener: `meta.box` tags lines that belong to a status box. */
 type LogListener = (
@@ -570,6 +571,15 @@ export class Interpreter {
     this.#realRun = actionCallback !== undefined;
     this.#initStd();
     this.bindingsManager.setBindings(this.#buildStdBinding());
+    // Fetch every module, command and helper the script names now, all at
+    // once, rather than each when the run reaches it.
+    prefetchScript(scriptNeeds(ast.body), {
+      std: this.#std,
+      moduleLoader: (name) =>
+        this.registry.isExperimental(name) && !isExperimentalEnabled()
+          ? undefined
+          : this.registry.get(name),
+    });
 
     try {
       const results = await this.interpretNodes(ast.body, true, {
