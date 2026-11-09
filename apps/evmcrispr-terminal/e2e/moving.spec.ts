@@ -1,4 +1,4 @@
-import { singleBlockCid } from "@evmcrispr/core";
+import { encryptScript, singleBlockCid } from "@evmcrispr/core";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 
 const desktop = { width: 1440, height: 900 };
@@ -96,6 +96,29 @@ async function exportLink(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize(desktop);
+});
+
+test("a share link whose key separator a chat app encoded as %23 opens the script", async ({
+  page,
+  context,
+}) => {
+  const net = ipfs();
+  await net.serve(context);
+  const { envelope, key } = await encryptScript({
+    title: "Sealed",
+    script: "print sealed",
+  });
+  const body = JSON.stringify(envelope);
+  const cid = (await singleBlockCid(new TextEncoder().encode(body)))!;
+  net.pins.set(cid, body);
+
+  await page.goto(`/#/${cid}%23${key}`);
+  await expect(
+    page.locator(".evml-viewer, .monaco-editor .view-lines").first(),
+  ).toContainText("print sealed");
+  // The key never stays in the address: it is now the received space's.
+  await expect(page).not.toHaveURL(/%23|Qm/);
+  await expect(page.getByText("Alien DNA")).toHaveCount(0);
 });
 
 test("export a space, then restore it in a browser that does not have it: the same script and what was recorded, approved, no chats", async ({

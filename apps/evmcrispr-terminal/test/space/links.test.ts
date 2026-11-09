@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { decryptScript, encryptPayload, encryptScript } from "@evmcrispr/core";
 import { applyText, head, shareOf } from "@evmcrispr/space";
 import { MAX_EXPORT_CHARS } from "../../src/space/export";
-import { fetchShared, shareRevision } from "../../src/space/links";
+import {
+  fetchShared,
+  restoreKeySeparator,
+  shareRevision,
+} from "../../src/space/links";
 import { ORIGIN } from "../../src/space/undo";
 import { testBrowser } from "../helpers/app";
 import { settle } from "../helpers/tabs";
@@ -246,5 +250,42 @@ describe("shareRevision", () => {
     const shared = await shareRevision(space, revision.id, deps);
     expect(shared).toMatchObject({ ok: true, cid: "QmCid1" });
     expect(pins).toHaveLength(1);
+  });
+});
+
+describe("restoreKeySeparator", () => {
+  const CID = "QmS98aHfCtwHhzfuHgxgvsTjY2nRp54B3r8irgNtq24cNi";
+  const KEY = "WaP6Vcov0zvRh6Q3ZR1SbApM1ye3lKZWoeN1PnrFZvM";
+
+  test("a key whose # a chat app encoded as %23 is a key again", () => {
+    expect(restoreKeySeparator(`#/${CID}%23${KEY}`)).toBe(`#/${CID}#${KEY}`);
+    expect(restoreKeySeparator(`#/${CID}%23${KEY.slice(0, 9)}`)).toBe(
+      `#/${CID}#${KEY.slice(0, 9)}`,
+    );
+  });
+
+  test("also when the link has a query before the key", () => {
+    expect(restoreKeySeparator(`#/${CID}?mode=view%23${KEY}`)).toBe(
+      `#/${CID}?mode=view#${KEY}`,
+    );
+  });
+
+  test("an address that is not a share link with an encoded key is left alone", () => {
+    for (const hash of [
+      "",
+      "#/",
+      `#/${CID}`,
+      `#/${CID}#${KEY}`,
+      // An inline link whose title holds a #: the %23 is text, not a key.
+      "#/?title=Issue%20%2342&script=exec",
+      "#/?title=Fix%23",
+      // A local space id is not a CID.
+      `#/0b6c1f9e-1c1d-4c55-9f53-3c0c4f5b8a11%23${KEY}`,
+      // Not key-shaped: base64url only.
+      `#/${CID}%23not%20a%20key`,
+      // Already has a key: the %23 inside it is left as it is.
+      `#/${CID}?mode=view%23x#${KEY}`,
+    ])
+      expect(restoreKeySeparator(hash)).toBe(hash);
   });
 });

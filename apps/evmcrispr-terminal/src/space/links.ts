@@ -19,6 +19,18 @@ export function isCID(s: string | undefined): s is string {
   return !!s && !!cid(s);
 }
 
+/** A share link `#/<cid>[?query]#<key>` pasted through a chat app or an
+ *  email client can come back with the key's `#` encoded as `%23`. The
+ *  router then reads `<cid>#<key>` as one id, which is no CID. Given
+ *  `location.hash`, returns it with that `#` restored: only after a CID, only
+ *  when the address has no key yet, and only before a key-shaped (base64url)
+ *  tail, so that a `%23` in an inline link's title stays text. */
+export function restoreKeySeparator(hash: string): string {
+  const m = /^#\/([^?#%/]+)(\?[^#]*?)?%23([A-Za-z0-9_-]+)$/.exec(hash);
+  if (!m || !isCID(m[1])) return hash;
+  return `#/${m[1]}${m[2] ?? ""}#${m[3]}`;
+}
+
 export type EncryptedReason = "missing-key" | "invalid-key" | "needs-upgrade";
 
 export type SharedScript =

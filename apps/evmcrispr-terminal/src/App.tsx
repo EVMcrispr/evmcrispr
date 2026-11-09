@@ -19,7 +19,14 @@ import Terminal from "./app/Terminal";
 import { AssistantProvider } from "./assistant/AssistantProvider";
 import { transports } from "./config/wagmi";
 import Wagmi from "./providers/Wagmi";
+import { restoreKeySeparator } from "./space/links";
 import { WalletProvider } from "./wallet/WalletContext";
+
+// Before the router reads the address: a share link whose key separator a
+// chat app encoded (`%23`) would otherwise open as an unknown space.
+const restored = restoreKeySeparator(window.location.hash);
+if (restored !== window.location.hash)
+  window.history.replaceState(window.history.state, "", restored);
 
 const router = createHashRouter(
   createRoutesFromElements(
