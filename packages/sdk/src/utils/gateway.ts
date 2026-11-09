@@ -6,6 +6,23 @@ export function chainGateway(chainId: number): string | undefined {
   return registeredGateway(chainId)?.gateway;
 }
 
+/** Whether revert data from simulating a transaction on the chain's own RPC
+ *  shows it crosses chains (see `ChainDef.crossChainReverts`): the data is
+ *  the gate error itself, as a call to a proxy returns it and a Safe passes
+ *  its inner call's revert on. Only the start of the data counts: anything
+ *  a contract reverts with carries those bytes somewhere by chance. */
+export function revertShowsCrossChain(
+  chainId: number,
+  revertData: string | undefined,
+): boolean {
+  const selectors = registeredGateway(chainId)?.crossChainReverts ?? [];
+  if (!revertData || revertData.length < 10) return false;
+  const head = revertData.slice(0, 10).toLowerCase();
+  return selectors.some(
+    (s) => /^0x[0-9a-f]{8}$/i.test(s) && s.toLowerCase() === head,
+  );
+}
+
 /** Ceiling on what a quote may commit a transaction to when the chain
  *  declares none: 0.01 of the native token, about twenty times what an EEZ
  *  composer charges for settlement. A quote is network input, and a local

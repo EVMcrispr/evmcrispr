@@ -18,12 +18,20 @@ import type { ModuleChainDef } from "@evmcrispr/sdk";
 // own definitions: only their gateways are given here. The composer cannot
 // estimate the gas of a cross-chain call itself (`eth_estimateGas`), so
 // `eez:on`/`eez:batch` size their own gas. Devnets; they may be reset.
+/** The registry's gate errors: a call through a proxy outside the composed
+ *  block it needs reverts with one, so a transaction nobody marked as
+ *  crossing chains (a queued Safe transaction, a hand-written call to a
+ *  proxy) is still priced by the gateway. `ExecutionNotInCurrentBlock(uint64)`
+ *  on L1, `ExecutionNotInCurrentBlock()` on the rollup, `ExecutionNotFound()`. */
+export const CROSS_CHAIN_GATES = ["0x9a499f3b", "0xf9d330ad", "0xed6bc750"];
+
 export const chains: ModuleChainDef[] = [
   // ChiadoX. Ceilings: 0.01 xDAI, about twenty times the settlement fee.
   {
     id: 10200,
     gateway: "https://chiadox.eez.dev/composer/l1",
     gatewayMaxFee: "10000000000000000",
+    crossChainReverts: CROSS_CHAIN_GATES,
   },
   {
     id: 699169,
@@ -34,9 +42,13 @@ export const chains: ModuleChainDef[] = [
     testnet: true,
     gateway: "https://chiadox.eez.dev/composer/l2",
     gatewayMaxFee: "10000000000000000",
+    crossChainReverts: CROSS_CHAIN_GATES,
   },
   // RollupX. Ceilings: 0.003 ETH, about twenty times the settlement fee
   // quoted on 2026-11-10 (0.00015 ETH).
+  // No gate errors on mainnet: any contract can revert with them, and a
+  // mainnet transaction shown to the gateway before it is broadcast is
+  // worth something. Only transactions marked as crossing chains reach it.
   {
     id: 1,
     gateway: "https://rollupx.eez.dev/composer/l1",
@@ -50,5 +62,6 @@ export const chains: ModuleChainDef[] = [
     explorerUrl: "https://rollupx.eez.dev/explorer",
     gateway: "https://rollupx.eez.dev/composer/l2",
     gatewayMaxFee: "3000000000000000",
+    crossChainReverts: CROSS_CHAIN_GATES,
   },
 ];

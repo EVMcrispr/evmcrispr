@@ -191,6 +191,16 @@ export interface ChainDef {
    *  A quote above it is not used: the transaction goes out unpriced and
    *  the gateway refuses it. Default `DEFAULT_GATEWAY_MAX_FEE`. */
   gatewayMaxFee?: string;
+  /** Revert selectors that show a transaction crosses chains when it is
+   *  simulated on the chain's own RPC (`eth_call`), outside the composed
+   *  block it needs: an EEZ registry's gate errors. A transaction nobody
+   *  marked `crossChain` (a queued Safe transaction, a hand-written call to
+   *  a proxy) is shown to a third-party gateway only when its revert data
+   *  starts with one. Any contract can revert with those bytes on purpose,
+   *  so declare them only where showing a transaction to the gateway before
+   *  it is broadcast costs nothing (a testnet), never on a chain with real
+   *  value. */
+  crossChainReverts?: string[];
 }
 
 /**
@@ -202,6 +212,7 @@ export interface ChainGatewayDef {
   id: number;
   gateway: string;
   gatewayMaxFee?: string;
+  crossChainReverts?: string[];
 }
 
 /** What a module's `src/chains.ts` lists: chains it ships, and gateways

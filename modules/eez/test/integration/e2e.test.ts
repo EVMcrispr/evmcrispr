@@ -6,12 +6,15 @@ import { expect, getTransports } from "@evmcrispr/test-utils";
 import { evml } from "@evmcrispr/test-utils/evml";
 import { parseAbi } from "viem";
 import { makeDefaultHandlers } from "../../../../packages/core/src/evml/execute";
+import { eezBaseAbi } from "../../src/abis";
+import { EEZ_CHAINS } from "../../src/constants";
 import {
   deployValue,
   devnet,
   ensureFunded,
   L1_ID,
   L2_ID,
+  L2_ROLLUP_ID,
   l1,
   l1Wallet,
   l2,
@@ -71,6 +74,54 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
     }
     expect(observed).to.equal(expected);
   }, 180_000);
+
+  it("prices a hand-written call to a proxy that nothing marked as crossing chains", async () => {
+    // No eez:on: the script calls the L1 proxy of a rollup contract itself.
+    // The executor simulates it on Chiado's own RPC, sees the registry's
+    // gate error, and only then asks the composer for the settlement price.
+    const value = await deployValue(l2Wallet, l2);
+    const registry = EEZ_CHAINS[L1_ID].registry;
+    const proxy = await l1.readContract({
+      address: registry,
+      abi: eezBaseAbi,
+      functionName: "computeCrossChainProxyAddress",
+      args: [value, L2_ROLLUP_ID],
+    });
+    const created = await l1Wallet.writeContract({
+      address: registry,
+      abi: eezBaseAbi,
+      functionName: "createCrossChainProxy",
+      args: [value, L2_ROLLUP_ID],
+    });
+    await l1.waitForTransactionReceipt({ hash: created, timeout: 60_000 });
+    const expected = BigInt(Date.now());
+
+    // Chiado's own RPC cannot estimate a call to a proxy (it reverts with
+    // the registry's gate error), so the script sizes it.
+    const result = await executeScript(
+      `load eez\nexec ${proxy} setValue(uint256) ${expected} --gas 350000`,
+      evml.registry,
+      {
+        chainId: L1_ID,
+        transports: getTransports(),
+        account: testAccount.address,
+      },
+      l1Wallet,
+      { prepareChains: false },
+    );
+
+    expect(result.executed).to.have.lengthOf(1);
+    expect((result.executed[0].action as any).crossChain).to.equal(undefined);
+    expect((result.executed[0].result as any).status).to.equal("success");
+    let observed: bigint | undefined;
+    for (let i = 0; i < 15 && observed !== expected; i++) {
+      observed = await l2
+        .readContract({ address: value, abi: valueAbi, functionName: "value" })
+        .catch(() => undefined);
+      if (observed !== expected) await Bun.sleep(2_000);
+    }
+    expect(observed).to.equal(expected);
+  }, 240_000);
 
   it("comes back to L1 through the rollup with a nested block", async () => {
     // L1 → L2 → L1: the value contract lives on L1; the script reaches it

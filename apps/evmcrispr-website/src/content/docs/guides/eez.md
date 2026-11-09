@@ -48,7 +48,9 @@ and `eezL2`, but with real ETH: a cross-chain transaction pays about
 0.003 ETH. ETH reaches `rollupX` through the RollupX dashboard's bridge.
 To send cross-chain calls from mainnet with a browser wallet, add
 `https://rollupx.eez.dev/composer/l1` as an RPC for Ethereum and select
-it. The helpers that read on-chain inside a transaction (`@eez:on!`) need
+it. On mainnet only the transactions EVMcrispr builds as cross-chain
+(`eez:on`, `eez:batch`, a Safe block containing them) are priced: a Safe
+transaction executed later by its hash goes out unpriced. The helpers that read on-chain inside a transaction (`@eez:on!`) need
 the Assertions contracts on both chains; RollupX does not have them yet.
 
 ```evml
@@ -233,10 +235,12 @@ is atomic already. The far side must run cross-chain proxies that support
 `executeBatch`, which the devnet does not yet: until it does, the command
 refuses to send.
 
-For several *separate* cross-chain calls sent atomically, put a wallet batch
-around the command instead, `batch ( eez:on eezL2 ( … ) )`, with an
-EIP-7702 account or a Safe (see below). A `batch` inside the block is
-refused: it would only describe the sending wallet.
+For several *separate* cross-chain calls sent atomically, run them through a
+Safe (see below): it sends one ordinary transaction, which the composer
+prices like any other. A wallet batch around the command,
+`batch ( eez:on eezL2 ( … ) )`, cannot carry the fee each cross-chain call
+pays for its settlement, so it is refused on EEZ chains; so is a `batch`
+inside the block, which would only describe the sending wallet.
 
 ## Reading the other chain
 

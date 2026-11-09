@@ -10,7 +10,7 @@ import {
   parseAbiParameters,
 } from "viem";
 import { crossChainProxyAbi, eezBaseAbi } from "../../src/abis";
-import { chains } from "../../src/chains";
+import { CROSS_CHAIN_GATES, chains } from "../../src/chains";
 import { EEZ_CHAINS } from "../../src/constants";
 import {
   assertCrossChainCalls,
@@ -143,6 +143,14 @@ describe("eez utils", () => {
     expect(rollupIdFor(696991)).toBe(2n);
     // A bare number is a chain id first: 1 is Ethereum mainnet.
     expect(rollupIdFor(1)).toBe(0n);
+  });
+
+  it("lets the gateway probe only where an early look costs nothing", () => {
+    // Any contract can revert with the gate's bytes: mainnet transactions
+    // reach RollupX's gateway only when a command marked them.
+    const byId = new Map(chains.map((c) => [c.id, c]));
+    expect(byId.get(1)?.crossChainReverts).toBeUndefined();
+    expect(byId.get(10200)?.crossChainReverts).toEqual(CROSS_CHAIN_GATES);
   });
 
   it("declares a built-in entry for every shipped chain", () => {

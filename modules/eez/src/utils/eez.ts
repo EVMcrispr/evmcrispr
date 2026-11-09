@@ -32,6 +32,7 @@ import {
 } from "viem";
 import type Eez from "..";
 import { crossChainProxyAbi, eezBaseAbi } from "../abis";
+import { CROSS_CHAIN_GATES } from "../chains";
 import { EEZ_CHAINS } from "../constants";
 
 /** The rollup id "on the other side" of a chain when only its own id is
@@ -227,7 +228,7 @@ export const CROSS_CHAIN_FALLBACK_GAS = 700_000n;
  *  for the call) and the block gate that fires before the lookup on either
  *  side, L1's `ExecutionNotInCurrentBlock(uint64)` and L2's
  *  `ExecutionNotInCurrentBlock()`. */
-const CROSS_CHAIN_REVERTS = new Set(["0xed6bc750", "0x9a499f3b", "0xf9d330ad"]);
+const CROSS_CHAIN_REVERTS = new Set(CROSS_CHAIN_GATES);
 
 /** The Assertions core's failed-assertion error, for its message. */
 const CONSTRAINT_FAILED_ABI = parseAbi([
@@ -422,7 +423,8 @@ export type CrossChainCall = TransactionAction & { to: Address };
  * The actions a cross-chain block may produce: plain contract calls, each
  * of which becomes one call through a proxy. Switching chain and deploying
  * have no cross-chain meaning. A `batch` inside the block is a wallet-level
- * notion: `eez:on` refuses it (write `batch ( eez:on … )` instead), while
+ * notion: `eez:on` refuses it (and a wallet batch around it cannot carry
+ * the settlement fee: use `eez:batch` or a Safe), while
  * `eez:batch` flattens it, since everything inside is one call already.
  */
 export function assertCrossChainCalls(

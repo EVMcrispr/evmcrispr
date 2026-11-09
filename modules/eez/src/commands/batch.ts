@@ -113,7 +113,7 @@ export default defineCommand<Eez>({
     const farExists = !!farCode && farCode !== "0x";
     if (farExists && !supportsExecuteBatch(farCode)) {
       throw new ErrorException(
-        `the cross-chain proxies on ${chainLabel(targetChainId)} do not support executeBatch yet: use batch ( eez:on … ) with a wallet that batches, or eez:on for independent calls`,
+        `the cross-chain proxies on ${chainLabel(targetChainId)} do not support executeBatch yet: run eez:on through a Safe (safe:execute) to send the calls atomically, or eez:on for independent calls`,
       );
     }
     let gas: bigint;

@@ -21,6 +21,7 @@ registerChains(
     name: "Gateway Test L1",
     rpcUrl: "https://rpc.example",
     gateway: GATEWAY,
+    crossChainReverts: ["0x9a499f3b"],
   },
   {
     id: 990002,
@@ -54,7 +55,14 @@ function gatewayAnswering(option: Option) {
   return asked;
 }
 
-function makeCtx() {
+/** What viem raises when an `eth_call` reverts with `data`. */
+const reverted = (data: string) =>
+  Object.assign(new Error("execution reverted"), {
+    name: "ExecutionRevertedError",
+    data,
+  });
+
+function makeCtx(simulate: () => Promise<unknown> = async () => "0x") {
   const sent: any[] = [];
   const logs: string[] = [];
   const ctx: ActionHandlerCtx = {
@@ -67,6 +75,7 @@ function makeCtx() {
     } as any,
     getPublicClient: () =>
       ({
+        call: simulate,
         waitForTransactionReceipt: async () => ({
           status: "success",
           transactionHash: HASH,
@@ -230,6 +239,85 @@ describe("evml > execute > gateway pricing", () => {
     await handlers.transaction(action(990002, { crossChain: undefined }), ctx);
     expect(asked).to.have.lengthOf(1);
     expect(sent[1].maxPriorityFeePerGas).to.equal(10n);
+  });
+
+  it("prices an unmarked transaction whose simulation hits a declared gate", async () => {
+    // A queued Safe transaction: nothing marked it, but simulated on the
+    // chain's own RPC it reverts with the registry's gate error (a Safe
+    // passes its inner call's revert on as is).
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const { ctx, sent } = makeCtx(async () => {
+      throw reverted(`0x9a499f3b${"00".repeat(31)}02`);
+    });
+    await handlers.transaction(action(990001, { crossChain: undefined }), ctx);
+    expect(asked).to.have.lengthOf(1);
+    expect(sent[0].maxPriorityFeePerGas).to.equal(10n);
+  });
+
+  it("does not take the gate's bytes elsewhere in a revert for the gate", async () => {
+    // Anything a contract reverts with may carry those bytes somewhere.
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const { ctx } = makeCtx(async () => {
+      throw reverted(
+        `0x6c544f33${"00".repeat(28)}9a499f3b${"00".repeat(31)}02`,
+      );
+    });
+    await handlers.transaction(action(990001, { crossChain: undefined }), ctx);
+    expect(asked).to.have.lengthOf(0);
+  });
+
+  it("keeps an unmarked transaction that simulates fine, or reverts otherwise, from a third-party gateway", async () => {
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    await handlers.transaction(
+      action(990001, { crossChain: undefined }),
+      makeCtx().ctx,
+    );
+    await handlers.transaction(
+      action(990001, { crossChain: undefined }),
+      makeCtx(async () => {
+        throw reverted("0x08c379a0");
+      }).ctx,
+    );
+    expect(asked).to.have.lengthOf(0);
+  });
+
+  it("refuses a wallet batch carrying a cross-chain call on a gateway chain", async () => {
+    const { ctx } = makeCtx();
+    const batch = (crossChain?: boolean) =>
+      ({
+        type: "batched",
+        chainId: 990001,
+        from: FROM,
+        actions: [{ to: TO, data: "0x1234", chainId: 990001, crossChain }],
+      }) as any;
+    await bunExpect(handlers.batched(batch(true), ctx)).rejects.toThrow(
+      /wallet batch cannot carry the fee a cross-chain call pays/,
+    );
+    // An ordinary batch goes to the wallet as before.
+    let calls: unknown;
+    (ctx.walletClient as any).sendCalls = async (args: any) => {
+      calls = args.calls;
+      return { id: "1" };
+    };
+    (ctx.walletClient as any).switchChain = async () => {};
+    (ctx.walletClient as any).waitForCallsStatus = async () => ({
+      status: "success",
+      receipts: [{ transactionHash: HASH, blockNumber: 1n, logs: [] }],
+    });
+    await handlers.batched(batch(undefined), ctx);
+    expect(calls).to.have.lengthOf(1);
   });
 
   it("keeps fees the action set, without asking", async () => {

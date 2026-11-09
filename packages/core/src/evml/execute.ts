@@ -14,11 +14,13 @@ import {
   chainGateway,
   defaultTransport,
   ExitSignal,
+  extractRevertData,
   isTransactionAction,
   quoteThroughGateway,
   RevertError,
   registeredChain,
   resolveChain,
+  revertShowsCrossChain,
   transportUrl,
   truncateAddress,
 } from "@evmcrispr/sdk";
@@ -651,12 +653,18 @@ async function priceThroughGateway(
     request.maxPriorityFeePerGas !== undefined
   )
     return {};
-  // A gateway that is not the chain's own RPC is a third party: it sees a
-  // transaction before it is broadcast only when the transaction needs it.
-  if (registeredChain(chainId)?.rpcUrl !== gateway && !action.crossChain)
-    return {};
   const from = ctx.walletClient.account?.address ?? action.from ?? env.account;
   if (!from) return {};
+  // A gateway that is not the chain's own RPC is a third party: it sees a
+  // transaction before it is broadcast only when the transaction needs it,
+  // because a command marked it so or because simulating it on the chain's
+  // own RPC (which sees it anyway) hits the gate a composed block opens.
+  if (
+    registeredChain(chainId)?.rpcUrl !== gateway &&
+    !action.crossChain &&
+    !(await simulatesCrossChain(chainId, from, request, ctx))
+  )
+    return {};
   const quote = await quoteThroughGateway(
     gateway,
     chainId,
@@ -677,6 +685,28 @@ async function priceThroughGateway(
   const own =
     transportUrl(ctx.transports?.[chainId]) ?? registeredChain(chainId)?.rpcUrl;
   return own === gateway ? {} : { rpcUrl: gateway };
+}
+
+/** Simulate a transaction on the chain's own RPC and tell whether it
+ *  reverts with one of the gate errors its gateway's module declared. */
+async function simulatesCrossChain(
+  chainId: number,
+  from: Address,
+  request: { to?: Address | null; data?: Hex; value?: bigint },
+  ctx: ActionHandlerCtx,
+): Promise<boolean> {
+  if (!request.to) return false;
+  try {
+    await ctx.getPublicClient(chainId).call({
+      account: from,
+      to: request.to,
+      data: request.data,
+      value: request.value,
+    });
+    return false;
+  } catch (err) {
+    return revertShowsCrossChain(chainId, extractRevertData(err));
+  }
 }
 
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
@@ -866,6 +896,16 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         actions.find((a) => a.chainId !== undefined && a.chainId !== chainId)
       ) {
         throw new Error("Batch contains transactions for multiple chains");
+      }
+
+      // A wallet batch (EIP-5792) carries no fees: a call that crosses
+      // chains through it cannot pay the settlement the gateway asks for,
+      // and the gateway would refuse the whole batch after the wallet
+      // prompt. Say so before asking.
+      if (env.gatewayFor?.(chainId) && actions.some((a) => a.crossChain)) {
+        throw new Error(
+          "A wallet batch cannot carry the fee a cross-chain call pays for its settlement. Use eez:batch, which makes the calls one cross-chain transaction, or run the block through a Safe (safe:execute).",
+        );
       }
 
       ctx.onLog(

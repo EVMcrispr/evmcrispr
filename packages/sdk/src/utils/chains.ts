@@ -98,12 +98,15 @@ export function registeredChain(chainId: number): ChainDef | undefined {
  *  with the host's URL policy applied. */
 export function registeredGateway(
   chainId: number,
-): { gateway: string; gatewayMaxFee?: string } | undefined {
+):
+  | { gateway: string; gatewayMaxFee?: string; crossChainReverts?: string[] }
+  | undefined {
   const def = registry.get(chainId) ?? gatewayOverlays.get(chainId);
   if (!def?.gateway) return undefined;
   return {
     gateway: urlPolicy ? urlPolicy(def.gateway) : def.gateway,
     gatewayMaxFee: def.gatewayMaxFee,
+    crossChainReverts: def.crossChainReverts,
   };
 }
 
