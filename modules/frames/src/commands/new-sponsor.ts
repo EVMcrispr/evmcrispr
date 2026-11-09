@@ -6,8 +6,8 @@ import {
 } from "@evmcrispr/sdk";
 import { concatHex, encodeAbiParameters } from "viem";
 import type Frames from "..";
-import { frameSponsorBytecode } from "../contracts/artifacts";
-import { deployInline } from "../deploy";
+import { accountContracts } from "../addresses";
+import { deployInline, frameChainId } from "../deploy";
 import { gasOption } from "../layout";
 
 export default defineCommand<Frames>({
@@ -53,7 +53,8 @@ export default defineCommand<Frames>({
       (await module.getConnectedAccount(true));
     const value = opts.fund === undefined ? 0n : gasOption(opts.fund, "--fund");
     const initCode = concatHex([
-      frameSponsorBytecode,
+      // The current chain's build: the Hegota devnet's differs.
+      accountContracts(await frameChainId(module)).sponsorBytecode,
       encodeAbiParameters(
         [{ type: "address" }, { type: "address" }],
         [owner, sponsored],

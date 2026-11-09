@@ -1,6 +1,6 @@
 import { type Address, defineHelper } from "@evmcrispr/sdk";
 import type Frames from "..";
-import { predictAccountAddress } from "../addresses";
+import { accountContracts } from "../addresses";
 import { saltValue } from "../salt";
 
 export default defineHelper<Frames>({
@@ -22,7 +22,11 @@ export default defineHelper<Frames>({
       description: "Which of the owner's accounts (default 0)",
     },
   ],
-  async run(_module, { owner, salt }) {
-    return predictAccountAddress(owner as Address, saltValue(salt, "salt"));
+  async run(module, { owner, salt }) {
+    // The current chain's build: the Hegota devnet's accounts are elsewhere.
+    return accountContracts(await module.getChainId()).predictAccountAddress(
+      owner as Address,
+      saltValue(salt, "salt"),
+    );
   },
 });

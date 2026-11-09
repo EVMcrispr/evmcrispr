@@ -3,7 +3,10 @@
 // a simulated frame transaction. Operands are listed top of stack first,
 // as the helpers push them.
 import type { SimOpcode, SimOpcodeResult } from "@evmcrispr/sdk";
-import type { Profile } from "@evmcrispr/viem-frames";
+import {
+  ethrexHegotaDevnetProfile,
+  type Profile,
+} from "@evmcrispr/viem-frames";
 import {
   type Address,
   type Hex,
@@ -125,6 +128,7 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
   // EIP-7906, on a network whose profile has POST_TX frames: only valid
   // inside one, and only once the body has run.
   const postTx = ctx.profile.frameModes.POST_TX;
+  const hegota = ctx.profile === ethrexHegotaDevnetProfile;
   const inPostTx = (what: string): SimOpcodeResult | undefined => {
     const frame = ctx.frames[ctx.current];
     if (!frame || frame.mode !== postTx)
@@ -332,7 +336,9 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
       },
     },
     {
-      opcode: 0xb5,
+      // The Hegota devnet (ethrex) moved it to 0xba: 0xb5 is EIP-8272's
+      // RECENTROOTREFLOAD there.
+      opcode: hegota ? 0xba : 0xb5,
       name: "SIGDATACOPY",
       pops: 4,
       run({ operands: [memOffset, offset, length, index] }) {
@@ -340,6 +346,10 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
           return fail(
             `SIGDATACOPY of signature ${index}, which does not exist`,
           );
+        // There only an ARBITRARY entry's bytes are reachable (a
+        // protocol-validated signature's are not, so they can aggregate).
+        if (hegota && ctx.signature.scheme !== ctx.profile.sigSchemes.ARBITRARY)
+          return fail("SIGDATACOPY of a signature that is not ARBITRARY");
         if (length === 0n) return { write: { offset: memOffset!, data: "0x" } };
         if (length! > MAX_COPY) return fail(`SIGDATACOPY of ${length} bytes`);
         return {

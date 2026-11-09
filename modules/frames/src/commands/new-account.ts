@@ -6,13 +6,7 @@ import {
 } from "@evmcrispr/sdk";
 import { encodeFunctionData } from "viem";
 import type Frames from "..";
-import {
-  DETERMINISTIC_DEPLOYER,
-  deploymentTransactions,
-  FACTORY_ADDRESS,
-  IMPLEMENTATION_ADDRESS,
-  predictAccountAddress,
-} from "../addresses";
+import { accountContracts, DETERMINISTIC_DEPLOYER } from "../addresses";
 import { frameAccountFactoryAbi } from "../contracts/artifacts";
 import { sendInline, sendingChainId } from "../deploy";
 import { saltValue } from "../salt";
@@ -59,10 +53,11 @@ export default defineCommand<Frames>({
     // The implementation and the factory, once per chain, each only when it
     // is missing (a chain left half-deployed is resumed). Gas is the
     // wallet's estimate: state gas makes fixed limits a guess.
-    const [implementation, factory] = deploymentTransactions();
+    const contracts = accountContracts(chainId);
+    const [implementation, factory] = contracts.deploymentTransactions();
     for (const [address, tx] of [
-      [IMPLEMENTATION_ADDRESS, implementation!],
-      [FACTORY_ADDRESS, factory!],
+      [contracts.implementation, implementation!],
+      [contracts.factory, factory!],
     ] as const) {
       if (await hasCode(address)) continue;
       if (!(await hasCode(DETERMINISTIC_DEPLOYER)))
@@ -76,10 +71,10 @@ export default defineCommand<Frames>({
         );
     }
 
-    const account = predictAccountAddress(owner, salt);
+    const account = contracts.predictAccountAddress(owner, salt);
     if (!(await hasCode(account))) {
       await sendInline(module, interpreters, {
-        to: FACTORY_ADDRESS,
+        to: contracts.factory,
         data: encodeFunctionData({
           abi: frameAccountFactoryAbi,
           functionName: "createAccount",

@@ -142,6 +142,30 @@ describe("the frame opcodes, simulated", () => {
     });
   });
 
+  test("SIGDATACOPY is 0xba on the Hegota devnet (ethrex: 0xb5 is RECENTROOTREFLOAD there), and copies an ARBITRARY entry only", () => {
+    const hegota = { ...context(), profile: ethrexHegotaDevnetProfile };
+    const byte = (ctx: FrameContext) =>
+      frameOpcodes(ctx).find((o) => o.name === "SIGDATACOPY")!.opcode;
+    expect(byte(context())).toBe(0xb5);
+    expect(byte(hegota)).toBe(0xba);
+    expect(frameOpcodes(hegota).some((o) => o.opcode === 0xb5)).toBe(false);
+    // A secp256k1 entry's bytes are not reachable from the EVM there.
+    expect(run(hegota, "SIGDATACOPY", [0n, 0n, 2n, 0n])).toMatchObject({
+      fail: expect.any(String),
+    });
+    const arbitrary: FrameContext = {
+      ...hegota,
+      signature: {
+        scheme: ethrexHegotaDevnetProfile.sigSchemes.ARBITRARY!,
+        signer: SENDER,
+        data: `0x${"00".repeat(65)}` as `0x${string}`,
+      },
+    };
+    expect(run(arbitrary, "SIGDATACOPY", [0n, 0n, 2n, 0n])).toEqual({
+      write: { offset: 0n, data: "0x0000" },
+    });
+  });
+
   test("TXTRACE exists only where POST_TX frames do, and only answers inside one once the body ran", () => {
     expect(frameOpcodes(context()).some((o) => o.opcode === 0xb6)).toBe(false);
     const ctx = { ...context(), profile: ethrexHegotaDevnetProfile };

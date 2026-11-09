@@ -5,6 +5,7 @@
 import {
   altMempoolDevnet,
   eip8141TracerProfile,
+  ethrexHegotaDevnetProfile,
   frameProfileOf,
   hegotaDevnet,
   withFrames,
@@ -113,6 +114,16 @@ export function isPostTxNetwork(chainId: number): boolean {
   return (
     network !== undefined &&
     frameProfileOf(network.chain).frameModes.POST_TX !== undefined
+  );
+}
+
+/** Whether `chainId`'s network runs the Hegota devnet's client build, whose
+ *  frame opcodes and contracts differ (hegota-support's EIP7906_WORKSHOP). */
+export function isHegotaBuild(chainId: number): boolean {
+  const network = frameNetwork(chainId);
+  return (
+    network !== undefined &&
+    frameProfileOf(network.chain) === ethrexHegotaDevnetProfile
   );
 }
 
