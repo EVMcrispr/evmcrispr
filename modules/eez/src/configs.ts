@@ -6,18 +6,18 @@ export const configs: ConfigDef[] = [
     name: "registry",
     type: "address",
     description:
-      "EEZ registry on the current chain: the L1 `EEZ` contract or the rollup's `EEZL2` predeploy. Known for the EEZ devnet chains; set it to use another deployment (e.g. a local enclave).",
+      "EEZ registry on the current chain: the L1 `EEZ` contract or the rollup's `EEZL2` manager. Known for the ChiadoX testnet chains; set it to use another deployment (e.g. a local enclave).",
   },
   {
     name: "rollupId",
     type: "number",
     description:
-      "EEZ rollup id of the current chain (0 for L1). Known for the EEZ devnet chains.",
+      "EEZ rollup id of the current chain (0 for L1). Known for the ChiadoX testnet chains.",
   },
   {
     name: "faucetKey",
     type: "bytes32",
     description:
-      "Private key of a funded account that `eez:faucet` sends from. Known for the EEZ devnet chains (a public hardhat key); set it for another devnet.",
+      "Private key of a funded account that `eez:faucet` sends from. The hosted networks have none (their rollups are funded by bridging); set it for a devnet with a pre-funded key, such as a local enclave.",
   },
 ];

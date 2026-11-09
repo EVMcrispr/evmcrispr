@@ -112,7 +112,7 @@ print @safe:address(${other} 42)`;
     expect((await compile(script, 100)).logs).toEqual(canonical);
     const eez = (await compile(script, 10200)).logs;
     expect(eez[2]).not.toBe(canonical[2]);
-    expect((await compile(script, 6291)).logs).toEqual(eez);
+    expect((await compile(script, 699169)).logs).toEqual(eez);
   });
 
   it("predicts after collecting a deployment in a batch", async () => {

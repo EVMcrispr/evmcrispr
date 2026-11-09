@@ -4,7 +4,7 @@ import { describeCommand } from "@evmcrispr/test-utils/evml";
 import { decodeFunctionData, isAddressEqual, toHex } from "viem";
 import { eezBaseAbi } from "../../../src/abis";
 import { EEZ_CHAINS } from "../../../src/constants";
-import { devnet, L1_ID } from "../../devnet";
+import { devnet, L1_ID, L2_ROLLUP_ID } from "../../devnet";
 
 const DEAD = "0x000000000000000000000000000000000000dEaD";
 /** A target nobody has proxied: fresh per run, so the create action is emitted. */
@@ -29,7 +29,7 @@ describeCommand("deploy-proxy", {
           data: action.data,
         });
         expect(decoded.functionName).to.equal("createCrossChainProxy");
-        expect(decoded.args?.[1]).to.equal(1n);
+        expect(decoded.args?.[1]).to.equal(L2_ROLLUP_ID);
       },
     },
     {

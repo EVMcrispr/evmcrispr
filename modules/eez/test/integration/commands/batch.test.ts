@@ -23,6 +23,7 @@ import {
   ensureFunded,
   L1_ID,
   L2_ID,
+  L2_ROLLUP_ID,
   l1,
   l1Wallet,
   l2,
@@ -46,7 +47,7 @@ const proxyOf = (target: `0x${string}`) =>
     address: registry,
     abi: eezBaseAbi,
     functionName: "computeCrossChainProxyAddress",
-    args: [target, 1n],
+    args: [target, L2_ROLLUP_ID],
   });
 
 /** The test account's proxy on L2: what runs the batch over there. */
@@ -69,7 +70,7 @@ const ensureSelfProxy = async () => {
     address: registry,
     abi: eezBaseAbi,
     functionName: "createCrossChainProxy",
-    args: [self, 1n],
+    args: [self, L2_ROLLUP_ID],
   });
   await l1.waitForTransactionReceipt({ hash, timeout: 60_000 });
 };

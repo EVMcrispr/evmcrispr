@@ -2,7 +2,7 @@
 title: "eez:faucet"
 ---
 
-Send devnet ETH to an account from the EEZ devnet's pre-funded faucet key, so a fresh wallet can pay for gas. The faucet signs the transfer itself; nothing is asked of the connected wallet.
+Send devnet ETH to an account from a pre-funded key set in $eez:faucetKey, so a fresh wallet can pay for gas on a devnet that has one (a local enclave). The faucet signs the transfer itself; nothing is asked of the connected wallet. The hosted ChiadoX testnet has no such key: its rollup is funded by bridging.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -29,9 +29,8 @@ eez:faucet [recipient]
 ## Examples
 
 ```evml
-# Give the connected wallet some devnet ETH for gas
-switch eezL2
-eez:faucet @me
+# Top up the connected wallet from the key set in $eez:faucetKey
+eez:faucet @me --amount 1e12
 ```
 
 <!-- HAND-WRITTEN -->

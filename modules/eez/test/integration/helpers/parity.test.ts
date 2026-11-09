@@ -4,7 +4,14 @@ import { describeParity } from "@evmcrispr/test-utils/onchain";
 import { helpers } from "../../../src/_generated";
 import { eezBaseAbi } from "../../../src/abis";
 import { EEZ_CHAINS } from "../../../src/constants";
-import { devnet, ensureFunded, L1_ID, l1, l1Wallet } from "../../devnet";
+import {
+  devnet,
+  ensureFunded,
+  L1_ID,
+  L2_ROLLUP_ID,
+  l1,
+  l1Wallet,
+} from "../../devnet";
 
 /**
  * `@eez:proxy!` and `@eez:target!` against the live devnet registry on L1,
@@ -25,7 +32,7 @@ const proxyOf = (target: `0x${string}`) =>
     address: registry,
     abi: eezBaseAbi,
     functionName: "computeCrossChainProxyAddress",
-    args: [target, 1n],
+    args: [target, L2_ROLLUP_ID],
   });
 
 const ensureKnownProxy = async () => {
@@ -37,7 +44,7 @@ const ensureKnownProxy = async () => {
     address: registry,
     abi: eezBaseAbi,
     functionName: "createCrossChainProxy",
-    args: [KNOWN, 1n],
+    args: [KNOWN, L2_ROLLUP_ID],
   });
   await l1.waitForTransactionReceipt({ hash, timeout: 60_000 });
 };

@@ -17,6 +17,7 @@ import {
   isDeployed,
   isProxyOn,
   remoteLabel,
+  splitFarProxyCreations,
   sumValues,
   supportsExecuteBatch,
 } from "../utils/eez";
@@ -52,16 +53,30 @@ export default defineCommand<Eez>({
     },
   ],
   async run(module, { chain, block }, { interpreters, opts }) {
-    const { config, remote, targetChainId, rollupId, remoteSender, calls } =
-      await interpretRemoteBlock(
-        module,
-        chain,
-        block as BlockExpressionNode,
-        interpreters,
-        "eez:batch",
-        { flattenBatches: true },
-      );
-    if (calls.length === 0) return [];
+    const {
+      config,
+      remote,
+      targetChainId,
+      rollupId,
+      remoteSender,
+      calls: blockCalls,
+    } = await interpretRemoteBlock(
+      module,
+      chain,
+      block as BlockExpressionNode,
+      interpreters,
+      "eez:batch",
+      { flattenBatches: true },
+    );
+    // Proxies the block creates over there (a nested `eez:on`) are made
+    // by plain transactions on that chain, ahead of the batch.
+    const { crossing: calls, direct } = splitFarProxyCreations(
+      blockCalls,
+      remote,
+      config.chainId,
+      !!interpreters.batchContext,
+    );
+    if (calls.length === 0) return direct;
     for (const call of calls) {
       if (call.from) {
         throw new ErrorException(
@@ -125,6 +140,6 @@ export default defineCommand<Eez>({
         }
       }
     }
-    return [...creates, { to: proxy, data, value, gas }];
+    return [...direct, ...creates, { to: proxy, data, value, gas }];
   },
 });

@@ -3,7 +3,7 @@
  * module's chain declarations, overridable per chain with
  * EVMCRISPR_RPC_URL_<id> (the CLI's knob) so a local Kurtosis enclave works
  * too. The tests skip when EEZ_DEVNET_FUNDER_KEY (funds the test account on
- * Chiado) is unset, as in CI; set EEZ_DEVNET=0 to force-skip.
+ * both chains) is unset, as in CI; set EEZ_DEVNET=0 to force-skip.
  */
 
 import { toViemChain } from "@evmcrispr/sdk";
@@ -28,15 +28,18 @@ import { privateKeyToAccount } from "viem/accounts";
 import { gnosisChiado } from "viem/chains";
 import { eezBaseAbi } from "../src/abis";
 import { chains } from "../src/chains";
+import { EEZ_CHAINS } from "../src/constants";
 import { supportsExecuteBatch } from "../src/utils/eez";
 
 export const L1_ID = 10200;
-export const L2_ID = 6291;
+export const L2_ID = 699169;
+/** The rollup's id in the registries (not its chain id). */
+export const L2_ROLLUP_ID = EEZ_CHAINS[L2_ID].rollupId;
 
 // L1 is Gnosis Chiado, which the module does not declare (viem knows it).
 // The tests reach it through the EEZ composer, which also takes the
 // cross-chain transactions sent from L1.
-const L1_DEFAULT_RPC = "https://eez.asuscomm.com/composer/l1";
+const L1_DEFAULT_RPC = "https://chiadox.eez.dev/composer/l1";
 const l2Def = chains.find((c) => c.id === L2_ID)!;
 
 export const L1_RPC =
@@ -54,11 +57,6 @@ export const TEST_KEY = keccak256(
   stringToHex("evmcrispr-eez-devnet-test-account"),
 );
 export const testAccount = privateKeyToAccount(TEST_KEY);
-
-/** Anvil #1 — pre-funded on the rollup (#0 is the devnet operator's busy
- *  key, whose nonce races); only used to top up there. */
-const FAUCET_KEY: Hex =
-  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
 /** `contract Value { uint256 public value; function setValue(uint256 v) external { value = v; } }` (solc 0.8.28). */
 export const VALUE_BYTECODE: Hex =
@@ -127,24 +125,26 @@ export const l2Wallet: WalletClient<Transport, Chain, Account> =
   });
 
 /** Top an account (the test identity by default) up on both chains when it
- *  runs low. The rollup's genesis funds anvil #1; Chiado is a public testnet
- *  where it holds nothing, so L1 top-ups come from EEZ_DEVNET_FUNDER_KEY
- *  (a local key, funded by hand with a little Chiado xDAI) and stay small:
- *  gas there costs cents per thousand transactions. */
+ *  runs low, from EEZ_DEVNET_FUNDER_KEY: a local key funded by hand with a
+ *  little Chiado xDAI, part of it bridged to the rollup in the ChiadoX
+ *  dashboard (the rollup has no pre-funded key). Top-ups stay small: a
+ *  plain transaction costs next to nothing, a cross-chain one about
+ *  0.0004 xDAI in settlement fees. */
 export async function ensureFunded(
   address: Address = testAccount.address,
-  minimum = parseEther("1"),
+  minimum = parseEther("0.005"),
 ): Promise<void> {
-  const l1Funder = process.env.EEZ_DEVNET_FUNDER_KEY as Hex | undefined;
-  for (const [client, chain, rpc, key, min, topUp] of [
-    [l1, l1Chain, L1_RPC, l1Funder, parseEther("0.02"), parseEther("0.05")],
-    [l2, l2Chain, L2_RPC, FAUCET_KEY, minimum, parseEther("50")],
+  const funder = process.env.EEZ_DEVNET_FUNDER_KEY as Hex | undefined;
+  for (const [client, chain, rpc, min, topUp] of [
+    [l1, l1Chain, L1_RPC, parseEther("0.005"), parseEther("0.02")],
+    [l2, l2Chain, L2_RPC, minimum, parseEther("0.01")],
   ] as const) {
+    const key = funder;
     const balance = await client.getBalance({ address });
     if (balance >= min) continue;
     if (!key)
       throw new Error(
-        `${address} needs ${chain.name} funds: set EEZ_DEVNET_FUNDER_KEY to a key holding Chiado xDAI`,
+        `${address} needs ${chain.name} funds: set EEZ_DEVNET_FUNDER_KEY to a key holding Chiado xDAI on both chains`,
       );
     const wallet = createWalletClient({
       account: privateKeyToAccount(key),

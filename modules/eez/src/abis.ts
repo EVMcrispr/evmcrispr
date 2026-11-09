@@ -1,6 +1,6 @@
 import { parseAbi } from "viem";
 
-/** Shared surface of the L1 `EEZ` registry and the rollup `EEZL2` predeploy. */
+/** Shared surface of the L1 `EEZ` registry and the rollup `EEZL2` manager. */
 export const eezBaseAbi = parseAbi([
   "function createCrossChainProxy(address originalAddress, uint64 originalRollupId) returns (address proxy)",
   "function computeCrossChainProxyAddress(address originalAddress, uint64 originalRollupId) view returns (address)",

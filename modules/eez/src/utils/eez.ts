@@ -3,6 +3,7 @@ import type {
   BlockExpressionNode,
   NodesInterpreters,
   TransactionAction,
+  WalletAction,
 } from "@evmcrispr/sdk";
 import {
   chainIdForName,
@@ -19,6 +20,7 @@ import {
 import type { Address, Hex } from "viem";
 import {
   decodeErrorResult,
+  decodeFunctionData,
   encodeAbiParameters,
   encodeFunctionData,
   getAbiItem,
@@ -32,7 +34,9 @@ import type Eez from "..";
 import { crossChainProxyAbi, eezBaseAbi } from "../abis";
 import { EEZ_CHAINS } from "../constants";
 
-/** The rollup id "on the other side" of a chain: L1 (0) ↔ the rollup (1). */
+/** The rollup id "on the other side" of a chain when only its own id is
+ *  known (a custom `$eez:rollupId`): L1 (0) ↔ rollup 1, as on a local
+ *  enclave. Built-in chains name their peer in `EEZ_CHAINS`. */
 export function peerRollup(rollupId: bigint): bigint {
   return rollupId === 0n ? 1n : 0n;
 }
@@ -282,8 +286,8 @@ export async function estimateCallGas(
   if (rollupId !== config.peerRollupId || config.peerChainId === undefined) {
     return CROSS_CHAIN_FALLBACK_GAS;
   }
+  const remote = await clientFor(module, config.peerChainId);
   try {
-    const remote = await clientFor(module, config.peerChainId);
     const remoteGas = await remote.estimateGas({
       account: from,
       to: target,
@@ -292,16 +296,97 @@ export async function estimateCallGas(
     const estimate = (remoteGas * 3n) / 2n + CROSS_CHAIN_OVERHEAD;
     return estimate > CROSS_CHAIN_MIN_GAS ? estimate : CROSS_CHAIN_MIN_GAS;
   } catch (err) {
-    const revert = isChainFailure(err) ? extractRevertData(err) : undefined;
+    let revert = isChainFailure(err) ? extractRevertData(err) : undefined;
+    // An EEZ composer's estimate drops the revert data of a call that
+    // crosses chains again; the same call through `eth_call` keeps the
+    // registry's gate error, which says so.
+    if (revert === "0x")
+      revert = await callRevertData(remote, from, target, data ?? "0x");
     const crossesAgain =
       revert === undefined ||
       CROSS_CHAIN_REVERTS.has(revert.slice(0, 10).toLowerCase());
-    if (failOnRevert && !crossesAgain) {
+    if (failOnRevert && revert !== undefined && !crossesAgain) {
       throw new ErrorException(
         `the call to ${target} would revert on ${chainLabel(config.peerChainId)}: ${describeRemoteRevert(revert)}`,
       );
     }
     return CROSS_CHAIN_FALLBACK_GAS;
+  }
+}
+
+const CREATE_PROXY_SELECTOR = toFunctionSelector(
+  getAbiItem({ abi: eezBaseAbi, name: "createCrossChainProxy" }),
+);
+
+const switchTo = (chainId: number): WalletAction => ({
+  type: "wallet",
+  method: "wallet_switchEthereumChain",
+  params: [{ chainId: `0x${chainId.toString(16)}` }],
+});
+
+/**
+ * Take the proxy creations a remote block asks of the far chain's registry
+ * (a nested `eez:on` creating the proxies it needs over there) out of the
+ * calls to route. The composer can neither price nor compose a proxy
+ * created by a cross-chain call, so each becomes an ordinary transaction
+ * on the far chain, sent before the cross-chain one: the wallet switches
+ * there, creates, and switches back.
+ *
+ * A block collected into someone else's transaction (a Safe, a timelock)
+ * cannot switch chains on the way: there the proxy must exist first.
+ */
+export function splitFarProxyCreations(
+  calls: CrossChainCall[],
+  remote: EezConfig,
+  homeChainId: number,
+  collected: boolean,
+): { crossing: CrossChainCall[]; direct: Action[] } {
+  const isCreation = (call: CrossChainCall) =>
+    call.to.toLowerCase() === remote.registry.toLowerCase() &&
+    call.data?.slice(0, 10).toLowerCase() === CREATE_PROXY_SELECTOR;
+  const creations = calls.filter(isCreation);
+  const crossing = calls.filter((call) => !isCreation(call));
+  if (creations.length === 0) return { crossing, direct: [] };
+  if (collected) {
+    const [target, rollupId] = decodeFunctionData({
+      abi: eezBaseAbi,
+      data: creations[0].data!,
+    }).args as [Address, bigint];
+    throw new ErrorException(
+      `the proxy on ${chainLabel(remote.chainId)} of ${target} (rollup ${rollupId}) has not been created yet, and a cross-chain call cannot create it — create it first on ${chainLabel(remote.chainId)}: \`eez:deploy-proxy ${target} --chain ${rollupId}\``,
+    );
+  }
+  return {
+    crossing,
+    direct: [
+      switchTo(remote.chainId),
+      ...creations.map(
+        (call): TransactionAction => ({
+          to: call.to,
+          data: call.data,
+          value: 0n,
+          chainId: remote.chainId,
+        }),
+      ),
+      switchTo(homeChainId),
+    ],
+  };
+}
+
+/** The revert data of a call, when it reverts with some. */
+async function callRevertData(
+  client: {
+    call(args: { account: Address; to: Address; data: Hex }): Promise<unknown>;
+  },
+  from: Address,
+  to: Address,
+  data: Hex,
+): Promise<Hex | undefined> {
+  try {
+    await client.call({ account: from, to, data });
+    return undefined;
+  } catch (err) {
+    return isChainFailure(err) ? extractRevertData(err) : undefined;
   }
 }
 

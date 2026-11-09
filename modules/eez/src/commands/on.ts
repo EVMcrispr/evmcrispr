@@ -15,6 +15,7 @@ import {
   isDeployed,
   isProxyOn,
   remoteLabel,
+  splitFarProxyCreations,
 } from "../utils/eez";
 
 export default defineCommand<Eez>({
@@ -46,7 +47,7 @@ export default defineCommand<Eez>({
       targetChainId,
       rollupId,
       remoteSender,
-      calls,
+      calls: blockCalls,
       remoteFrom,
     } = await interpretRemoteBlock(
       module,
@@ -54,6 +55,15 @@ export default defineCommand<Eez>({
       block as BlockExpressionNode,
       interpreters,
       "eez:on",
+    );
+
+    // Proxies the block creates over there (a nested `eez:on`) are made
+    // by plain transactions on that chain, ahead of the crossing.
+    const { crossing: calls, direct } = splitFarProxyCreations(
+      blockCalls,
+      remote,
+      config.chainId,
+      !!interpreters.batchContext,
     );
 
     // Every distinct target gets its proxy resolved once; the ones nobody
@@ -104,6 +114,6 @@ export default defineCommand<Eez>({
 
     const routed: TransactionAction[] = [];
     for (const call of calls) routed.push(await route(call));
-    return [...creates, ...routed];
+    return [...direct, ...creates, ...routed];
   },
 });
