@@ -3,11 +3,13 @@ import type { TransactionAction } from "@evmcrispr/sdk";
 import {
   balanceParam,
   COMPOSABLE_EXECUTOR_ADDRESS,
+  COMPOSABLE_STORAGE_ADDRESS,
   CORE_ADDRESS,
   type ComposableExecution,
   encodeComposable,
   encodeCond,
   type InputParam,
+  OUTPUT_FETCHER_TYPE,
   PARAM_TYPE,
   rawParam,
   staticCallParam,
@@ -15,7 +17,12 @@ import {
   wordParam,
 } from "@evmcrispr/sdk/onchain";
 import { expect } from "@evmcrispr/test-utils";
-import { encodeFunctionData, toFunctionSelector, zeroAddress } from "viem";
+import {
+  encodeAbiParameters,
+  encodeFunctionData,
+  toFunctionSelector,
+  zeroAddress,
+} from "viem";
 import { CANONICAL_DEPLOYMENT as D } from "../../src/addresses";
 import {
   type AllowOpts,
@@ -426,6 +433,60 @@ describe("Safe > utils > assess", () => {
       expect(assess(toSafe)[0].message).to.include(
         "a call to the Safe itself with arguments resolved at execution time",
       );
+    });
+
+    describe("outputs", () => {
+      const SLOT = `0x${"ca".repeat(32)}` as const;
+      // The two output layouts the SDK writes: a return capture
+      // (count, storage, slot) and a snapshot (count, core, calldata,
+      // storage, slot).
+      const execResult = (storage: `0x${string}`) => ({
+        fetcherType: OUTPUT_FETCHER_TYPE.ExecResult,
+        paramData: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "address" }, { type: "bytes32" }],
+          [1n, storage, SLOT],
+        ),
+      });
+      const snapshot = (storage: `0x${string}`) => ({
+        fetcherType: OUTPUT_FETCHER_TYPE.StaticCall,
+        paramData: encodeAbiParameters(
+          [
+            { type: "uint256" },
+            { type: "address" },
+            { type: "bytes" },
+            { type: "address" },
+            { type: "bytes32" },
+          ],
+          [1n, CORE_ADDRESS, "0x12345678", storage, SLOT],
+        ),
+      });
+      const withOutputs = (outputParams: ComposableExecution["outputParams"]) =>
+        smart([
+          { functionSig: "0x00000000", inputParams: [], outputParams },
+          call(targetParam(TOKEN), "0xa9059cbb"),
+        ]);
+
+      it("accepts outputs that write to the executor's storage", () => {
+        for (const output of [
+          execResult(COMPOSABLE_STORAGE_ADDRESS),
+          snapshot(COMPOSABLE_STORAGE_ADDRESS),
+        ]) {
+          const tx = withOutputs([output]);
+          expect(blocked(tx)).to.eql([]);
+          const [executor] = decodeSafeTxCalls(signableOf(tx));
+          expect(executor.decoded.source).to.equal("erc-8211");
+        }
+      });
+
+      it("refuses outputs that write anywhere else", () => {
+        for (const output of [execResult(OTHER), snapshot(OTHER)]) {
+          const tx = withOutputs([output]);
+          expect(blocked(tx)).to.eql(["delegatecall"]);
+          expect(assess(tx)[0].message).to.include(
+            "an output that does not write to the executor's storage",
+          );
+        }
+      });
     });
 
     it("refuses a call target resolved at execution time", () => {

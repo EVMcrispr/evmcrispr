@@ -66,12 +66,14 @@ function literal(
 
 /** Outputs write to the executor's storage contract, and nowhere else. */
 function checkOutput(output: OutputParam): void {
-  const [, storage] =
+  // ExecResult: (count, storage, slot). StaticCall: (count, target,
+  // calldata, storage, slot).
+  const storage =
     output.fetcherType === OUTPUT_FETCHER_TYPE.ExecResult
       ? decodeAbiParameters(
           [{ type: "uint256" }, { type: "address" }, { type: "bytes32" }],
           output.paramData,
-        )
+        )[1]
       : output.fetcherType === OUTPUT_FETCHER_TYPE.StaticCall
         ? decodeAbiParameters(
             [
@@ -82,8 +84,8 @@ function checkOutput(output: OutputParam): void {
               { type: "bytes32" },
             ],
             output.paramData,
-          ).slice(3)
-        : [];
+          )[3]
+        : undefined;
   if (
     !storage ||
     !isAddressEqual(storage as Address, COMPOSABLE_STORAGE_ADDRESS)
