@@ -24,8 +24,15 @@ import type { SimBackend } from "./backend";
 import { rpcPrefix } from "./modes";
 
 /** The anvil (or Hardhat node) a local fork swaps, unless the chain's own
- *  RPC is a local anvil. */
-export const LOCAL_RPC = "http://localhost:8545";
+ *  RPC is a local anvil: the one on 8545, or on EVMCRISPR_ANVIL_PORT where a
+ *  process sets it (a test run on its own port must never swap another's). */
+const anvilPortEnv =
+  typeof process !== "undefined"
+    ? Number(process.env?.EVMCRISPR_ANVIL_PORT)
+    : Number.NaN;
+export const LOCAL_RPC = `http://localhost:${
+  Number.isInteger(anvilPortEnv) && anvilPortEnv > 0 ? anvilPortEnv : 8545
+}`;
 
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
