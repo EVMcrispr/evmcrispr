@@ -35,7 +35,7 @@ import {
   type RunStatus,
   UNFINISHED,
 } from "@evmcrispr/space";
-import type { WalletClient } from "viem";
+import type { Transport, WalletClient } from "viem";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { browserSafeUrl } from "../config/browserSafeUrl";
 import type { LiveSpace } from "../space/live-space";
@@ -43,8 +43,14 @@ import type { Spaces } from "../space/spaces";
 import type { Changes } from "../storage/changes";
 import { type Locks, lockNames, type Release } from "../storage/locks";
 import type { Records } from "../storage/records";
+import {
+  ensureAltMempoolChain,
+  isAltMempoolChain,
+  switchTarget,
+} from "../wallet/alt-mempool-chain";
 import { normaliseAction } from "./action-summary";
 import { appendOutput, boundErrors } from "./bounds";
+import { makeFrameHandler } from "./frame-handler";
 import { createGate, type Gate, type Held } from "./gate";
 import { makeSafeBatchedHandler, reachesWallet } from "./handlers";
 import { guardWallet, type WalletGuard } from "./wallet-guard";
@@ -130,6 +136,9 @@ export interface RunDeps {
   /** How long a cancelled run may take to stop before it is ended anyway
    *  (default 3 s: past the worker's own kill grace). */
   cancelGraceMs?: number;
+  /** The alt-mempool gateway frame accounts send through: the devnet's
+   *  own unless a test stands in for it. */
+  frameGateway?: Transport;
 }
 
 const FLUSH_EVERY = 2_000;
@@ -473,6 +482,10 @@ export function createRunManager(deps: RunDeps): RunManager {
             (state) => ctx.onStatus?.(state),
           );
       const pass = (action: Action, ctx: ActionHandlerCtx) => ctx.next(action);
+      const toAltMempool = (client: WalletClient) =>
+        ensureAltMempoolChain(client, undefined, {
+          transport: deps.frameGateway,
+        });
       // Every kind of action the core knows, so a kind added there does
       // not compile until it is placed here. Each goes through the gate
       // unless it never asks the wallet for anything; and should one of
@@ -480,7 +493,17 @@ export function createRunManager(deps: RunDeps): RunManager {
       const handlers: ActionHandlers = {
         // A wallet request is sent in the form it is described in: what
         // the held action shows is the very value the wallet receives.
-        wallet: (action, ctx) => gated(pass)(normaliseAction(action), ctx),
+        //
+        // A change to the alt-mempool devnet (experimental) offers the
+        // wallet its gateway and checks the wallet's chain is the devnet's
+        // before the script goes on.
+        wallet: (action, ctx) => {
+          const normalised = normaliseAction(action);
+          const target = switchTarget(normalised);
+          return target !== undefined && isAltMempoolChain(target)
+            ? gated(() => toAltMempool(ctx.walletClient))(normalised, ctx)
+            : gated(pass)(normalised, ctx);
+        },
         // Endpoints a module asks to submit through are declared as the
         // module sees them; the browser can only use https.
         transaction: (action, ctx) => {
@@ -505,6 +528,10 @@ export function createRunManager(deps: RunDeps): RunManager {
               }
             : pass,
         ),
+        // A frame account's transaction is signed by the wallet as typed
+        // data; any other is refused by the core's default handler. Both
+        // are held like any action that reaches the wallet.
+        frame: gated(makeFrameHandler({ transport: deps.frameGateway })),
         rpc: pass,
         terminal: pass,
       };
@@ -522,7 +549,9 @@ export function createRunManager(deps: RunDeps): RunManager {
               async (reportSent) => {
                 sent = reportSent;
                 try {
-                  return await align();
+                  return await (guard && isAltMempoolChain(chainId)
+                    ? toAltMempool(guard.client)
+                    : align());
                 } finally {
                   sent = undefined;
                 }

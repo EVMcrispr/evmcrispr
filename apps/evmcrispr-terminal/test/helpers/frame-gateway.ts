@@ -1,0 +1,164 @@
+import type { FrameAction } from "@evmcrispr/sdk";
+import { profile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
+import { newTx, txHash } from "@forshtat/hegota-support/tx";
+import { createWalletClient, custom, type Hash, type WalletClient } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+
+// Anvil's account #2: the account's owner, the key MetaMask stands for.
+export const OWNER = privateKeyToAccount(
+  "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+);
+// Anvil's account #1 as the FrameAccount, and #3 as a call's target.
+export const ACCOUNT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as const;
+export const RECIPIENT = "0x90F79bf6EB2c4f870365E785982E1f101E93b906" as const;
+
+/** A FrameAccount's transaction as `frames:tx --account` writes it: the
+ *  account's check, then one call. */
+export const accountAction = (
+  over: Partial<FrameAction> = {},
+): FrameAction => ({
+  type: "frame",
+  chainId: 1337,
+  from: ACCOUNT,
+  frames: [
+    {
+      mode: "verify",
+      approve: "both",
+      target: null,
+      data: "0xb22253510000000000000000000000000000000000000000000000000000000000000003",
+      value: 0n,
+      gas: 40_000n,
+    },
+    {
+      mode: "sender",
+      target: RECIPIENT,
+      data: "0xd09de08a",
+      value: 1_000n,
+      gas: 50_000n,
+      stateGas: 200_000n,
+    },
+  ],
+  mempool: "alt",
+  account: { kind: "frame-account", owner: OWNER.address },
+  ...over,
+});
+
+/** The hash of the transaction the gateway was handed, as it computes it. */
+function hashOfWire(wire: any): Hash {
+  return txHash(
+    profile,
+    newTx({
+      chainId: BigInt(wire.chainId),
+      sender: wire.sender,
+      nonceSeq: BigInt(wire.nonceSeq ?? wire.nonce),
+      nonceKeys: wire.nonceKeys?.map(BigInt),
+      frames: wire.frames.map((f: any) => ({
+        mode: Number(f.mode),
+        flags: Number(f.flags),
+        target: f.target,
+        limits: {
+          execution: BigInt(f.limits.execution),
+          state: BigInt(f.limits.state),
+        },
+        value: BigInt(f.value),
+        data: f.data,
+      })),
+      signatures: wire.signatures.map((s: any) => ({
+        scheme: Number(s.scheme),
+        signer: s.signer,
+        msg: s.msg,
+        signature: s.signature,
+      })),
+      fees: {
+        maxFeePerGas: BigInt(wire.maxFeePerGas ?? wire.fees.maxFeePerGas),
+        maxPriorityFeePerGas: BigInt(
+          wire.maxPriorityFeePerGas ?? wire.fees.maxPriorityFeePerGas,
+        ),
+      },
+    }),
+  ) as Hash;
+}
+
+/** The alt-mempool gateway: the account has code, the sent transaction is
+ *  admitted under its own hash and mined at once. */
+export function frameGateway() {
+  const calls: { method: string; params: any }[] = [];
+  let sent: Hash | undefined;
+  const transport = custom({
+    async request({ method, params }: { method: string; params: any }) {
+      calls.push({ method, params });
+      switch (method) {
+        case "eth_chainId":
+          return "0x539";
+        case "eth_getCode":
+          return "0x6001";
+        case "eth_getTransactionCount":
+          return "0x3";
+        case "skandha_getGasPrice":
+          return {
+            maxFeePerGas: "0x77359400",
+            maxPriorityFeePerGas: "0x3b9aca00",
+          };
+        case "eth_sendFrameTransaction":
+          sent = hashOfWire(params[0]);
+          return sent;
+        case "skandha_frameTransactionStatus":
+          return { tx: sent, status: "OnChain" };
+        case "eth_blockNumber":
+          return "0x10";
+        case "eth_getTransactionReceipt":
+          return {
+            type: "0x6",
+            status: "0x1",
+            blockHash: `0x${"11".repeat(32)}`,
+            blockNumber: "0x10",
+            transactionHash: params[0],
+            transactionIndex: "0x0",
+            from: ACCOUNT,
+            to: null,
+            cumulativeGasUsed: "0x1",
+            gasUsed: "0x1",
+            effectiveGasPrice: "0x7",
+            contractAddress: null,
+            logs: [],
+            logsBloom: `0x${"00".repeat(256)}`,
+            payer: ACCOUNT,
+            frameReceipts: [],
+          };
+        case "eth_getTransactionByHash":
+          return null;
+        default:
+          throw new Error(`unexpected ${method}`);
+      }
+    },
+  });
+  return { transport, calls, sent: () => sent };
+}
+
+/** MetaMask as the run sees it: a JSON-RPC account on `chainId`, signing
+ *  typed data with the owner's key unless `sign` answers otherwise. */
+export function metaMask({
+  chainId = 1337,
+  sign,
+}: {
+  chainId?: number;
+  sign?: (typed: any) => Promise<unknown>;
+} = {}): { wallet: WalletClient; asked: { method: string; params: any }[] } {
+  const asked: { method: string; params: any }[] = [];
+  const wallet: WalletClient = createWalletClient({
+    account: OWNER.address,
+    transport: custom({
+      async request({ method, params }: { method: string; params: any }) {
+        asked.push({ method, params });
+        if (method === "eth_chainId") return `0x${chainId.toString(16)}`;
+        if (method === "eth_accounts") return [OWNER.address];
+        if (method === "eth_signTypedData_v4") {
+          const typed = JSON.parse(params[1]);
+          return sign ? sign(typed) : OWNER.signTypedData(typed);
+        }
+        throw new Error(`unexpected ${method}`);
+      },
+    }),
+  });
+  return { wallet, asked };
+}

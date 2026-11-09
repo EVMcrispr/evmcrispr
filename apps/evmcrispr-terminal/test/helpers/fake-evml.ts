@@ -137,6 +137,9 @@ export function fakeEvml(
           const action = step.action;
           const kind = "type" in action ? action.type : "transaction";
           const ctx = {
+            walletClient: client,
+            onLog: (text: string) => config.onLog?.(text, []),
+            onSent: () => {},
             onStatus: (state: ActionHoldState) => fake.statuses.push(state),
             next: async (a: Action) => {
               const result = await ask(

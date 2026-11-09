@@ -413,3 +413,141 @@ describe("a smart batch", () => {
     expect(d.notes.join(" ")).toContain("resolved during execution");
   });
 });
+
+describe("a frame transaction", () => {
+  const ACCOUNT = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" as const;
+  const OWNER = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" as const;
+  const SPONSOR = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" as const;
+  const check = `0xb2225351${"0".repeat(63)}3` as const;
+  const frame = (over: Record<string, unknown> = {}): Action =>
+    ({
+      type: "frame",
+      chainId: 1337,
+      from: ACCOUNT,
+      frames: [
+        {
+          mode: "verify",
+          approve: "both",
+          target: null,
+          data: check,
+          value: 0n,
+          gas: 40_000n,
+        },
+        {
+          mode: "sender",
+          target: to,
+          data: transfer,
+          value: 10n ** 18n,
+          gas: 50_000n,
+          stateGas: 200_000n,
+        },
+      ],
+      mempool: "alt",
+      account: { kind: "frame-account", owner: OWNER },
+      ...over,
+    }) as Action;
+
+  test("the summary shows frames, payer and typed data", () => {
+    const d = actionSummary(frame());
+    expect(d.title).toBe(`Frame transaction from account ${ACCOUNT}`);
+    expect(d.chainId).toBe(1337);
+    expect(d.steps).toHaveLength(2);
+    const [verify, call] = d.steps!;
+    expect(verify.label).toContain("verify approving both");
+    expect(verify.label).toContain("gas 40000");
+    expect(verify.call).toMatchObject({ to: ACCOUNT, selector: "0xb2225351" });
+    expect(call.label).toContain("sender");
+    expect(call.label).toContain("gas 50000");
+    expect(call.label).toContain("state gas 200000");
+    expect(call.call).toMatchObject({
+      to,
+      selector: "0xa9059cbb",
+      wei: "1000000000000000000",
+      data: transfer,
+    });
+    expect(d.detail).toContain(`paid by the account ${ACCOUNT}`);
+    const notes = d.notes.join("\n");
+    expect(notes).toContain("FrameTransaction(bytes32 sigHash)");
+    expect(notes).toContain('"EVMcrispr Frame Account"');
+    expect(notes).toContain('version "1"');
+    expect(notes).toContain("chain 1337");
+    expect(notes).toContain(`verifying contract ${ACCOUNT}`);
+    expect(notes).toContain(OWNER);
+  });
+
+  test("a sponsor that approves payment is the payer", () => {
+    const d = actionSummary(
+      frame({
+        frames: [
+          {
+            mode: "verify",
+            approve: "execution",
+            target: null,
+            data: check,
+            value: 0n,
+            gas: 40_000n,
+          },
+          {
+            mode: "verify",
+            approve: "payment",
+            target: SPONSOR,
+            data: "0xfc735e99",
+            value: 0n,
+            gas: 50_000n,
+          },
+        ],
+      }),
+    );
+    expect(d.detail).toContain(`paid by the sponsor ${SPONSOR}`);
+  });
+
+  test("every value from the action is escaped", () => {
+    const d = actionSummary(
+      frame({
+        from: `${ACCOUNT}‮\n`,
+        account: { kind: "frame-account", owner: `${OWNER}\u001b[2J` },
+        frames: [
+          {
+            mode: "sender",
+            target: `${to}\u200b`,
+            data: "0x",
+            value: 0n,
+            gas: 1n,
+            stateGas: 1n,
+          },
+        ],
+      }),
+    );
+    const shown = JSON.stringify(d);
+    expect(shown).not.toContain("‮");
+    expect(shown).not.toContain("\u001b");
+    expect(shown).not.toContain("\u200b");
+    expect(d.steps?.[0].call?.to).toContain("\\u{200B}");
+    expect(d.title).toContain("\\u202e");
+    expect(d.notes.join("\n")).toContain("\\x1b");
+  });
+
+  test("a verify frame that approves nothing says so", () => {
+    const d = actionSummary(
+      frame({
+        frames: [
+          {
+            mode: "verify",
+            target: null,
+            data: check,
+            value: 0n,
+            gas: 40_000n,
+          },
+        ],
+      }),
+    );
+    expect(d.steps?.[0].label).toContain("verify approving nothing");
+    expect(d.steps?.[0].label).not.toContain("execution");
+  });
+
+  test("a frame transaction without an account is still not supported", () => {
+    const d = actionSummary(frame({ account: undefined }));
+    expect(d.title).toBe("Frame transaction");
+    expect(d.meta).toBe("Not supported in the terminal");
+  });
+});
