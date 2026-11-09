@@ -710,6 +710,17 @@
         "react-dom": "^19.2.4",
       },
     },
+    "packages/viem-frames": {
+      "name": "@evmcrispr/viem-frames",
+      "version": "0.0.0",
+      "dependencies": {
+        "@forshtat/hegota-support": "0.0.1",
+        "viem": "^2.56.8",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
+      },
+    },
   },
   "overrides": {
     "@types/node": "^26.6.2",
@@ -1010,6 +1021,8 @@
 
     "@evmcrispr/test-utils": ["@evmcrispr/test-utils@workspace:packages/test-utils"],
 
+    "@evmcrispr/viem-frames": ["@evmcrispr/viem-frames@workspace:packages/viem-frames"],
+
     "@expressive-code/core": ["@expressive-code/core@0.44.2", "", { "dependencies": { "@ctrl/tinycolor": "^4.0.4", "hast-util-select": "^6.0.2", "hast-util-to-html": "^9.0.1", "hast-util-to-text": "^4.0.1", "hastscript": "^9.0.0", "postcss": "^8.4.38", "postcss-nested": "^6.0.1", "unist-util-visit": "^5.0.0", "unist-util-visit-parents": "^6.0.1" } }, "sha512-Yw5KonQCD1HoOO2P89y4wifqS9qrJcGVY0LkVMUsVZjhi++bhz4WwQ37inenKFNOEVo50P7cjoVsCdaVnUbq8w=="],
 
     "@expressive-code/plugin-frames": ["@expressive-code/plugin-frames@0.44.2", "", { "dependencies": { "@expressive-code/core": "^0.44.2" } }, "sha512-gVLm6TQMNIRWIaM7o+mCtxkGNjLZY5/2faSTLoXeo9wv/Pkj/0QAtZyXPVPrRsPARqiipATNFmfvQFLJudxPHQ=="],
@@ -1029,6 +1042,8 @@
     "@fontsource-variable/instrument-sans": ["@fontsource-variable/instrument-sans@5.3.0", "", {}, "sha512-u4gKbDBTNFGkg997tfQn3eHOhHuquWUFTRT/rwzuKtrxX5P2ekfs2x+LgBPP4P32+cC+vUwF1Cr+IdRoPQbrGw=="],
 
     "@fontsource/jetbrains-mono": ["@fontsource/jetbrains-mono@5.3.0", "", {}, "sha512-fqDfB5I9f1p1TV486aUgB9t8zP84P0O1FtQR5Ol9vjwPy+S+EIGlVYm1cvj2W5shcZMTg2nZFdVMoH5wFu8a1A=="],
+
+    "@forshtat/hegota-support": ["@forshtat/hegota-support@0.0.1", "", { "peerDependencies": { "solc": "0.8.28", "viem": "^2.57.0" }, "optionalPeers": ["solc"] }, "sha512-F6ZvduwrMBjzjoYE85DH7JHRaDyx2V2+kgSsi2eUDLiAJR1uiqp6mRzkYOLA+Y3pjxDpw60Z07mTer/4bebcZQ=="],
 
     "@happy-dom/global-registrator": ["@happy-dom/global-registrator@20.14.5", "", { "dependencies": { "@types/node": ">=20.0.0", "happy-dom": "^20.14.5" } }, "sha512-B05ID9DhSwLs6mlm1fzlkAtTIvB3duCvjJjfr19LBrlTK7VZtRjDqoTRIVv13GuYuNdhByu8LSZgThwV3Rkj7g=="],
 

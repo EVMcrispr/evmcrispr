@@ -1,0 +1,268 @@
+import { describe, expect, test } from "bun:test";
+import { profile } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
+import { newTx, sigHash, txHash } from "@forshtat/hegota-support/tx";
+import { custom, type Hex, keccak256 } from "viem";
+import {
+  type FrameSpecLike,
+  sendFrameTransactionWithArbitrarySignature,
+  toFrameRequests,
+} from "../../src";
+
+const ACCOUNT = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const SPONSOR = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const RECIPIENT = "0x8943545177806ED17B9F23F0a21ee5948eCaa776";
+
+/** A contract sender's check, a paymaster's, then one call. */
+const FRAMES: FrameSpecLike[] = [
+  {
+    mode: "verify",
+    approve: "execution",
+    target: null,
+    data: "0xb22253510000000000000000000000000000000000000000000000000000000000000002",
+    value: 0n,
+    gas: 40_000n,
+  },
+  {
+    mode: "verify",
+    approve: "payment",
+    target: SPONSOR,
+    data: "0xfc735e99",
+    value: 0n,
+    gas: 50_000n,
+  },
+  {
+    mode: "sender",
+    target: RECIPIENT,
+    data: "0xd09de08a",
+    value: 0n,
+    gas: 50_000n,
+    stateGas: 200_000n,
+  },
+];
+
+const RECEIPT = (hash: Hex) => ({
+  type: "0x6",
+  status: "0x1",
+  blockHash: `0x${"11".repeat(32)}`,
+  blockNumber: "0x10",
+  transactionHash: hash,
+  transactionIndex: "0x0",
+  from: ACCOUNT,
+  to: null,
+  cumulativeGasUsed: "0x52fe",
+  gasUsed: "0x52fe",
+  effectiveGasPrice: "0x7",
+  contractAddress: null,
+  logs: [],
+  logsBloom: `0x${"00".repeat(256)}`,
+  payer: SPONSOR,
+  frameReceipts: [
+    { status: "0x1", gasUsed: "0x0", stateGasUsed: "0x0", logs: [] },
+    { status: "0x1", gasUsed: "0x0", stateGasUsed: "0x0", logs: [] },
+    { status: "0x1", gasUsed: "0x10", stateGasUsed: "0x0", logs: [] },
+  ],
+});
+
+/**
+ * The gateway stand-in. `send` answers `eth_sendFrameTransaction` from the
+ * wire transaction it was given (by default: its true hash).
+ */
+function gateway({
+  code = "0x6000",
+  send,
+  mined = true,
+  fees = { maxFeePerGas: "0x77359400", maxPriorityFeePerGas: "0x3b9aca00" },
+}: {
+  code?: Hex | (() => never);
+  send?: (wire: any) => unknown;
+  mined?: boolean;
+  fees?: { maxFeePerGas: Hex; maxPriorityFeePerGas: Hex };
+} = {}) {
+  const calls: { method: string; params: any }[] = [];
+  let sentHash: Hex | undefined;
+  const transport = custom({
+    async request({ method, params }: { method: string; params: any }) {
+      calls.push({ method, params });
+      switch (method) {
+        case "eth_chainId":
+          return "0x539";
+        case "eth_blockNumber":
+          return "0x10";
+        case "eth_getTransactionCount":
+          return "0x7";
+        case "eth_getCode":
+          return typeof code === "function" ? code() : code;
+        case "skandha_getGasPrice":
+          return fees;
+        case "eth_sendFrameTransaction": {
+          if (send) return send(params[0]);
+          sentHash = txHash(profile, fromWire(params[0]));
+          return sentHash;
+        }
+        case "eth_sendRawTransaction":
+          sentHash = keccak256(params[0]);
+          return sentHash;
+        case "skandha_frameTransactionStatus":
+          return { status: "Pending" };
+        case "eth_getTransactionReceipt":
+          return mined && sentHash ? RECEIPT(sentHash) : null;
+        default:
+          throw new Error(`unexpected ${method}`);
+      }
+    },
+  });
+  return { transport, calls, methods: () => calls.map((c) => c.method) };
+}
+
+/** The library's transaction back from the wire JSON. */
+function fromWire(wire: any) {
+  return newTx({
+    chainId: BigInt(wire.chainId),
+    sender: wire.sender,
+    nonceSeq: BigInt(wire.nonceSeq ?? wire.nonce),
+    nonceKeys: wire.nonceKeys?.map(BigInt),
+    frames: wire.frames.map((f: any) => ({
+      mode: Number(f.mode),
+      flags: Number(f.flags),
+      target: f.target,
+      limits: {
+        execution: BigInt(f.limits.execution),
+        state: BigInt(f.limits.state),
+      },
+      value: BigInt(f.value),
+      data: f.data,
+    })),
+    signatures: wire.signatures.map((s: any) => ({
+      scheme: Number(s.scheme),
+      signer: s.signer,
+      msg: s.msg,
+      signature: s.signature,
+    })),
+    fees: {
+      maxFeePerGas: BigInt(wire.maxFeePerGas ?? wire.fees.maxFeePerGas),
+      maxPriorityFeePerGas: BigInt(
+        wire.maxPriorityFeePerGas ?? wire.fees.maxPriorityFeePerGas,
+      ),
+    },
+  });
+}
+
+const send = (
+  g: ReturnType<typeof gateway>,
+  extra: Partial<
+    Parameters<typeof sendFrameTransactionWithArbitrarySignature>[0]
+  > = {},
+) =>
+  sendFrameTransactionWithArbitrarySignature({
+    sender: ACCOUNT,
+    frames: FRAMES,
+    mempool: "alt",
+    transport: g.transport,
+    sign: async () => "0xabcdef",
+    ...extra,
+  });
+
+describe("sendFrameTransactionWithArbitrarySignature", () => {
+  test("signs the transaction's signature hash and sends the bytes in an ARBITRARY entry", async () => {
+    const g = gateway();
+    const asked: Hex[] = [];
+    const lines: [string, string][] = [];
+    const { hash, receipt } = await send(g, {
+      sign: async (h) => {
+        asked.push(h);
+        return "0xabcdef";
+      },
+      onLog: (line, level) => lines.push([line, level]),
+    });
+
+    const [wire] = g.calls.find(
+      (c) => c.method === "eth_sendFrameTransaction",
+    )!.params;
+    const sent = fromWire(wire);
+    expect(sent.sender).toBe(ACCOUNT);
+    expect(sent.nonceSeq).toBe(7n);
+    expect(sent.frames).toEqual(toFrameRequests(FRAMES) as typeof sent.frames);
+    // Any bytes: what they mean is the sender's code's business.
+    expect(sent.signatures).toHaveLength(1);
+    expect(sent.signatures[0]!.scheme).toBe(0);
+    expect(sent.signatures[0]!.signature).toBe("0xabcdef");
+    // `sign` was given the hash of the transaction with those bytes elided.
+    expect(asked).toEqual([sigHash(profile, sent)]);
+    expect(hash).toBe(txHash(profile, sent));
+    expect(receipt?.payer).toBe(SPONSOR);
+    // Plain lines with a level; how they look is the caller's.
+    expect(lines[0]![1]).toBe("info");
+    expect(lines.some(([l, v]) => v === "success" && l.includes(hash))).toBe(
+      true,
+    );
+    expect(lines.every(([l]) => !/^:\w+:/.test(l))).toBe(true);
+  });
+
+  test("refuses a sender without code, before signing", async () => {
+    const g = gateway({ code: "0x" });
+    let signed = false;
+    await expect(
+      send(g, {
+        sign: async () => {
+          signed = true;
+          return "0x";
+        },
+      }),
+    ).rejects.toThrow(/has no code .* nothing to check an ARBITRARY signature/);
+    expect(signed).toBe(false);
+  });
+
+  test("refuses frames without limits, before any request", async () => {
+    const g = gateway();
+    const noState = FRAMES.map((f, i) =>
+      i === 2 ? { ...f, stateGas: undefined } : f,
+    );
+    await expect(send(g, { frames: noState })).rejects.toThrow(
+      /Frame 3 has no `stateGas`/,
+    );
+    expect(g.methods()).toEqual([]);
+  });
+
+  test("passes the signer's error on unchanged, and sends nothing", async () => {
+    const g = gateway();
+    const refusal = new Error("the signer said no");
+    await expect(
+      send(g, {
+        sign: async () => {
+          throw refusal;
+        },
+      }),
+    ).rejects.toBe(refusal);
+    expect(g.methods()).not.toContain("eth_sendFrameTransaction");
+  });
+
+  test("refuses a signature that is not hex", async () => {
+    const g = gateway();
+    await expect(send(g, { sign: async () => "nope" as Hex })).rejects.toThrow(
+      /The signature is not hex/,
+    );
+    expect(g.methods()).not.toContain("eth_sendFrameTransaction");
+  });
+
+  test("sends nothing when cancelled while signing", async () => {
+    const g = gateway();
+    const controller = new AbortController();
+    await expect(
+      send(g, {
+        signal: controller.signal,
+        sign: async () => {
+          controller.abort();
+          return "0xab";
+        },
+      }),
+    ).rejects.toThrow(/nothing was sent/);
+    expect(g.methods()).not.toContain("eth_sendFrameTransaction");
+  });
+
+  test("sends the raw bytes for the canonical mempool", async () => {
+    const g = gateway();
+    await send(g, { mempool: "canonical" });
+    expect(g.methods()).toContain("eth_sendRawTransaction");
+    expect(g.methods()).not.toContain("eth_sendFrameTransaction");
+  });
+});
