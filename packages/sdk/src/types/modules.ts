@@ -395,4 +395,8 @@ export interface IModuleConstructor {
   /** Events this module turns into suggested assertions after a
    *  simulation (codegen'd from `src/events`). */
   readonly events?: EventImportMap;
+  /** Each command's and helper's code loader, the same ones an instance
+   *  calls: a host can fetch a script's commands before it runs them. */
+  readonly commandLoaders?: Readonly<Record<string, () => Promise<unknown>>>;
+  readonly helperLoaders?: Readonly<Record<string, () => Promise<unknown>>>;
 }

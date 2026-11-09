@@ -12,6 +12,8 @@ import { registerChains } from "./chains";
 import { isExperimentalEnabled } from "./experimental";
 import type { ArgType, ChainDef, ConfigDef, CustomArgTypes } from "./schema";
 
+/** A name to the function that fetches its code. */
+type LoaderMap = Readonly<Record<string, () => Promise<unknown>>>;
 /**
  * Create a module class with the given name, commands, and helpers.
  */
@@ -34,6 +36,8 @@ function createModuleClass<M extends Module>(
 ): IModuleConstructor {
   return class extends Module {
     static readonly moduleName = name;
+    static readonly commandLoaders = commands as LoaderMap;
+    static readonly helperLoaders = helpers as LoaderMap;
 
     constructor(context: ModuleContext) {
       super(

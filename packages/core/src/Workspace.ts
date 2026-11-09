@@ -406,6 +406,16 @@ export class EvmlWorkspace {
 
   async #ensureModulesInCache(names: string[]): Promise<void> {
     const ctx = this.#createModuleContext();
+    // Every module's code is fetched at once; the cache is still filled in
+    // order below. One after another, each fetch waited for the last.
+    const fetched = new Map(
+      names.map((name) => {
+        const loader = this.registry.get(name);
+        const loading = loader?.();
+        loading?.catch(() => undefined);
+        return [name, loading] as const;
+      }),
+    );
     for (const name of names) {
       // Skip only when a real schema is cached: synthetic entries (from a
       // previous edit's `def module` / `--from`) and nulled tombstones are
@@ -415,10 +425,10 @@ export class EvmlWorkspace {
         BindingsSpace.MODULE,
       );
       if (existing && !existing.synthetic) continue;
-      const loader = this.registry.get(name);
-      if (!loader) continue;
+      const loading = fetched.get(name);
+      if (!loading) continue;
       try {
-        const { default: Ctor } = await loader();
+        const { default: Ctor } = await loading;
         const instance = new Ctor(ctx);
         this.#moduleCache.setBinding(
           name,
