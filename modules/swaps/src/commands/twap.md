@@ -2,7 +2,7 @@
 title: "swaps:twap"
 ---
 
-Sell tokens in equal timed parts through CoW from a reusable Safe controlled by @sender. Requires --parts, --every and exactly one of --min or --price-protection. Live preflight is required unless --offline is explicit.
+Sell tokens in equal timed parts through CoW. A Safe @sender owns the order itself; any other @sender gets a reusable Safe it controls. Requires --parts, --every and exactly one of --min or --price-protection. Live preflight is required unless --offline is explicit.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
@@ -187,13 +187,26 @@ That account must be able to execute arbitrary calls and hold the sell tokens.
 ```evml
 load safe
 load swaps
-safe:propose 0x1111111111111111111111111111111111111111 (
+safe:propose 0x1111111111111111111111111111111111111111 --allow-fallback-handler-to 0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5 (
   swaps:twap $order 12000e18 @token(DAI) to @token(WETH) --parts 12 --every 3600 --min 4e18
 )
 ```
 
-Each TWAP runs in a dedicated 1-of-1 Safe whose sole owner is its controller.
-The command creates an execution Safe if needed, approves funding, and encodes
+When `@sender` is a Safe, the Safe owns the order itself: nothing is deployed
+and no tokens move. If the Safe's fallback handler is not yet CoW's
+ExtensibleFallbackHandler, the block sets it and delegates the CoW settlement
+domain to ComposableCoW; a Safe that already delegates that domain to another
+verifier is refused. Replacing a Safe's fallback handler is reviewed before
+signing, so the first TWAP of a Safe needs
+`--allow-fallback-handler-to 0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5` on
+`safe:execute` or `safe:propose`. It
+then raises its relayer allowance for the sell token by the order's total, so
+its other CoW orders keep theirs, and registers the order. Bought tokens go to
+`--to` or the Safe.
+
+Any other controller (a wallet, an Aragon agent) gets a dedicated 1-of-1 Safe
+whose sole owner it is. The command creates that execution Safe if needed,
+approves funding, and encodes
 a Safe transaction that pulls the full sell amount, approves CoW's relayer, and
 registers the order. Bought tokens go directly to `--to` or the controller.
 The source wallet's fallback handler is not changed. Only ERC-20 tokens are
@@ -209,7 +222,8 @@ simulation demonstrates registration and validity, not future solver fills.
 
 ## Reuse and recovery
 
-The command checks up to 32 deterministic account slots per controller and
+This section is about execution Safes; a Safe that owns its orders needs none
+of it. The command checks up to 32 deterministic account slots per controller and
 chain. It reuses an idle account only when its proxy, singleton, sole owner,
 threshold, fallback handler, domain verifier, modules, guards, and prior token
 allowances match expectations. A live order or an uncleared allowance selects
@@ -233,7 +247,7 @@ its controller retains ordinary Safe control.
 ## The order hash
 
 `$order` is bound to the order's **hash** (a `bytes32`); `print $order` shows
-it. The order's status box links to the execution Safe's page on CoW Explorer,
+it. The order's status box links to its owner's page on CoW Explorer,
 where the parts appear as CoW's watchtower submits them. The hash is the only
 thing `@swaps:twapStatus`, `@swaps:twapParts`, `swaps:twap-cancel` and
 `swaps:twap-recover` take. In another session, set it again with
@@ -244,8 +258,8 @@ programmatic-order indexer first; an order it has not indexed yet, or any
 order while it is unavailable, is found by scanning roughly the last six hours
 of blocks. Either way the result is verified on-chain before use: the
 parameters must hash to the order, the registration event must be in a
-successful transaction, and the execution Safe must be one `swaps:twap`
-derives from its controller. An order that is older than six hours and missing
+successful transaction, and its owner must be a Safe: one `swaps:twap`
+derives from its controller, or the controller itself. An order that is older than six hours and missing
 from the indexer cannot be found. Within the script that created it, the hash
 resolves before the registration is mined. A successful encoding or proposal
 is not proof that the order was registered.

@@ -35,6 +35,9 @@ conditional order and revokes its sell-token allowance in one Safe transaction.
 Already filled parts are unaffected. Cancellation becomes effective when mined,
 including invalidation of previously generated signatures for unfilled parts.
 
+A Safe that owns the order itself only removes it: its tokens never left the
+Safe, and the relayer allowance stays, as the Safe's other CoW orders share it.
+
 Unused tokens remain in the execution Safe. After cancellation has been mined,
 run `swaps:twap-recover $order` in a separate transaction. Do not combine a
 pending cancellation and a balance-based recovery in the same encoded batch.

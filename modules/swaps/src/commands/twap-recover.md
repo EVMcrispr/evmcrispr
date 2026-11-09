@@ -34,6 +34,8 @@ swaps:twap-recover $order
 Recovery removes the old order authorization, clears its relayer allowance,
 and transfers the execution Safe's current balance of the sell token to the
 original controller. It does not assume that an expired order was filled.
+An order a Safe owns itself has nothing to recover and is refused:
+`swaps:twap-cancel` removes it.
 
 The order must be cancelled on-chain, past its full schedule, or proven fully
 filled through canonical settlement receipts. Incomplete history or API-reported

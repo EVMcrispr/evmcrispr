@@ -21,6 +21,7 @@ import {
   getAddress,
   isAddressEqual,
   keccak256,
+  maxUint256,
   parseAbi,
   parseAbiParameters,
   sliceHex,
@@ -65,6 +66,7 @@ export const accountAbi = parseAbi([
   "function setDomainVerifier(bytes32 domainSeparator, address verifier)",
   "function domainVerifiers(address safe, bytes32 domainSeparator) view returns (address)",
   "event SafeMultiSigTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures, bytes additionalInfo)",
+  "function setFallbackHandler(address handler)",
 ]);
 const multiSendAbi = parseAbi(["function multiSend(bytes transactions)"]);
 
@@ -109,13 +111,152 @@ async function prediction(module: Module, controller: Address, slot: number) {
   };
 }
 
+/** Whether `address` is a Safe: it has code and answers the owner reads
+ * every Safe version has. An Aragon Agent or a timelock does not. */
+export async function isSafeAccount(
+  client: PublicClient,
+  address: Address,
+): Promise<boolean> {
+  const code = await client.getCode({ address });
+  if (!code || code === "0x") return false;
+  try {
+    await Promise.all([
+      client.readContract({
+        address,
+        abi: accountAbi,
+        functionName: "getOwners",
+      }),
+      client.readContract({
+        address,
+        abi: accountAbi,
+        functionName: "getThreshold",
+      }),
+    ]);
+    return true;
+  } catch (error) {
+    if (error instanceof ContractFunctionExecutionError) return false;
+    throw error;
+  }
+}
+
+/** An order its controller's own Safe registered: nothing was deployed for
+ * it and its tokens never left the Safe. */
+export const selfOwned = (ref: Pick<TwapReference, "account" | "controller">) =>
+  isAddressEqual(ref.account, ref.controller);
+
+/**
+ * What a Safe needs before it can own a TWAP itself: CoW's
+ * ExtensibleFallbackHandler, which answers the order signatures, with
+ * ComposableCoW as the verifier of CoW's domain; then an allowance to the
+ * vault relayer raised by the order's total, so the Safe's other CoW orders
+ * keep theirs. Calls already planned in this run are not repeated; `commit`
+ * records these once the order's actions are final.
+ */
+export async function prepareOwnSafe(
+  module: Swaps,
+  safe: Address,
+  token: Address,
+  total: bigint,
+): Promise<{ calls: TransactionAction[]; commit: () => void }> {
+  const client = await module.getClient();
+  let reserved = module.twapReservations.get(client);
+  if (!reserved) {
+    reserved = new Set();
+    module.twapReservations.set(client, reserved);
+  }
+  const block = await client.getBlock();
+  const blockNumber = block.number;
+  const [fallback, domain, allowance] = await Promise.all([
+    client.getStorageAt({ address: safe, slot: FALLBACK_SLOT, blockNumber }),
+    client.readContract({
+      address: COMPOSABLE_COW,
+      abi: cowAbi,
+      functionName: "domainSeparator",
+      blockNumber,
+    }),
+    client.readContract({
+      address: token,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [safe, COW_VAULT_RELAYER],
+      blockNumber,
+    }),
+  ]);
+  const calls: TransactionAction[] = [];
+  const configured = `${safe.toLowerCase()}:configured`;
+  if (!reserved.has(configured)) {
+    const handler = storageAddress(fallback);
+    const extensible = isAddressEqual(handler, COW_FALLBACK);
+    const verifier = extensible
+      ? await client.readContract({
+          address: COW_FALLBACK,
+          abi: accountAbi,
+          functionName: "domainVerifiers",
+          args: [safe, domain],
+          blockNumber,
+        })
+      : zeroAddress;
+    if (
+      !isAddressEqual(verifier, zeroAddress) &&
+      !isAddressEqual(verifier, COMPOSABLE_COW)
+    )
+      throw new ErrorException(
+        `Safe ${safe} verifies CoW signatures with ${verifier}, not ComposableCoW; a TWAP would replace it`,
+      );
+    if (!extensible) {
+      calls.push({
+        to: safe,
+        data: encodeFunctionData({
+          abi: accountAbi,
+          functionName: "setFallbackHandler",
+          args: [COW_FALLBACK],
+        }),
+      });
+    }
+    if (isAddressEqual(verifier, zeroAddress))
+      calls.push({
+        to: safe,
+        data: encodeFunctionData({
+          abi: accountAbi,
+          functionName: "setDomainVerifier",
+          args: [domain, COMPOSABLE_COW],
+        }),
+      });
+    reserved.add(configured);
+  }
+  // Orders planned earlier in this run raised the allowance already.
+  const key = `${safe.toLowerCase()}:allowance:${token.toLowerCase()}`;
+  const planned = module.twapAllowances.get(client)?.get(key) ?? allowance;
+  const raised = planned + total;
+  if (raised <= maxUint256)
+    calls.push({
+      to: token,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [COW_VAULT_RELAYER, raised],
+      }),
+    });
+  // Recorded only once the order's actions are returned: an order refused
+  // after this (and skipped by a capture) leaves the next one its setup.
+  const commit = () => {
+    reserved.add(configured);
+    if (raised > maxUint256) return;
+    const allowances = module.twapAllowances.get(client) ?? new Map();
+    module.twapAllowances.set(client, allowances);
+    allowances.set(key, raised);
+  };
+  return { calls, commit };
+}
+
 /** The controller and slot an execution Safe was derived from, checked
- * against every current owner so an added owner does not hide it. */
+ * against every current owner so an added owner does not hide it. A Safe
+ * that is none of these owns its orders itself: slot `null`. */
 export async function locateAccount(
   client: PublicClient,
   chainId: number,
   account: Address,
-): Promise<{ controller: Address; slot: number }> {
+): Promise<{ controller: Address; slot: number | null }> {
   const deployment = safeDeployment(chainId);
   const notOurs = new ErrorException(
     `TWAP account ${account} was not created by swaps:twap`,
@@ -151,7 +292,7 @@ export async function locateAccount(
         return { controller: owner, slot };
     }
   }
-  throw notOurs;
+  return { controller: account, slot: null };
 }
 
 const storageAddress = (value: Hex | undefined): Address =>
@@ -664,6 +805,10 @@ export async function ownedAccount(
   if (!isAddressEqual(controller, ref.controller))
     throw new ErrorException(
       "TWAP must be managed by its original controller (@sender)",
+    );
+  if (ref.slot === null)
+    throw new ErrorException(
+      "This TWAP belongs to the Safe itself, not to an execution account",
     );
   const predicted = await prediction(module, controller, ref.slot);
   if (!isAddressEqual(predicted.address, ref.account))
