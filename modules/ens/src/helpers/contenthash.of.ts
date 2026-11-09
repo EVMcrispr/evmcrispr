@@ -13,7 +13,7 @@ import {
 import { mainnet } from "viem/chains";
 import { normalize, packetToBytes } from "viem/ens";
 import type Ens from "..";
-import { EMPTY_DYNAMIC_RETURN, resolverGatedChain } from "../onchain";
+import { EMPTY_DYNAMIC_RETURN, universalResolverRead } from "../onchain";
 import { ensClient, getNode } from "../utils";
 
 const contenthashAbi = parseAbi([
@@ -86,14 +86,13 @@ export default defineHelper<Ens>({
   // the two compose: assert @ens:contenthash.of!(x) == @ens:contenthash(u).
   compile: async (ctx, node) => {
     const name = String(await ctx.interpreters.interpretNode(node.args[0]));
-    const ensNode = getNode(name);
-    return resolverGatedChain(
+    return universalResolverRead(
       ctx,
-      ensNode,
+      name,
       encodeFunctionData({
         abi: contenthashAbi,
         functionName: "contenthash",
-        args: [ensNode],
+        args: [getNode(name)],
       }),
       EMPTY_DYNAMIC_RETURN,
       "Bytes",

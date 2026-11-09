@@ -4,6 +4,7 @@ import { encodeFunctionData } from "viem";
 import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { nameWrapperMap } from "../addresses";
+import { v2Name } from "../ethRegistry";
 import { decodeFuses } from "../fuses";
 import { onchainAddress } from "../onchain";
 import {
@@ -25,6 +26,12 @@ export default defineHelper<Ens>({
   args: [{ name: "name", type: "string", description: "Wrapped ENS name" }],
   async run(module, { name }, { node }) {
     const client = await ensClient(module);
+    if (await v2Name(client, mainnet.id, name)) {
+      throw new HelperFunctionError(
+        node,
+        `${name} is an ENSv2 name: it has roles, not fuses`,
+      );
+    }
     const ensNode = getNode(name);
     if (!(await isWrapped(client, mainnet.id, ensNode))) {
       throw new HelperFunctionError(node, `${name} is not wrapped`);

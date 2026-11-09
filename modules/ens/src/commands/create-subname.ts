@@ -4,10 +4,22 @@ import {
   encodeAction,
   normalizeEnsName,
 } from "@evmcrispr/sdk";
-import { labelhash } from "viem";
+import type { Address } from "viem";
+import { encodeFunctionData, labelhash, zeroAddress } from "viem";
 import { normalize } from "viem/ens";
 import type Ens from "..";
-import { nameWrapperMap, registryMap, requireAddress } from "../addresses";
+import {
+  nameWrapperMap,
+  registryMap,
+  requireAddress,
+  userRegistryImplMap,
+} from "../addresses";
+import {
+  OWNER_ROLES,
+  userRegistryAbi,
+  v2Name,
+  v2Subregistry,
+} from "../ethRegistry";
 import { validateFusePrereqs } from "../fuses";
 import {
   assertSupportedChain,
@@ -16,12 +28,16 @@ import {
   isWrapped,
   registryAbi,
 } from "../utils";
+import { ALL_ROLES, factoryDeployment } from "../verifiableFactory";
+
+const YEAR = 365n * 24n * 60n * 60n;
 
 export default defineCommand<Ens>({
   smartSupport: { kind: "runtime" },
   name: "create-subname",
   experimental: true,
-  description: "Create a subname under an ENS name you own.",
+  description:
+    "Create a subname under an ENS name you own. Under an ENSv2 name it registers the subname in the name's subregistry, deploying and attaching one first when the name has none.",
   args: [
     {
       name: "parent",
@@ -57,7 +73,8 @@ export default defineCommand<Ens>({
       name: "expiry",
       runtime: true,
       type: "number",
-      description: "Subname expiry timestamp (wrapped parents only)",
+      description:
+        "Subname expiry timestamp (wrapped and ENSv2 parents; ENSv2 default: a year from now)",
     },
   ],
   async run(module, { parent, label, owner }, { opts }) {
@@ -66,6 +83,58 @@ export default defineCommand<Ens>({
     const client = await module.getClient();
     const parentNode = getNode(parent);
     const normalizedLabel = normalize(label);
+
+    const v2 = await v2Name(client, chainId, parent);
+    if (v2) {
+      if (opts.fuses !== undefined) {
+        throw new ErrorException(
+          "--fuses do not apply to ENSv2 names: their subnames get roles, not fuses",
+        );
+      }
+      const actions = [];
+      let registry = await v2Subregistry(client, v2);
+      if (registry === zeroAddress) {
+        // The parent's own registry of subnames, with the sender holding
+        // every role on it (it registers the subname right after), as the
+        // ENS app does; attached to the parent's token.
+        const sender = (await module.getSender()) as Address;
+        const deployment = await factoryDeployment(
+          module,
+          chainId,
+          requireAddress(userRegistryImplMap, chainId, "UserRegistry"),
+          encodeFunctionData({
+            abi: userRegistryAbi,
+            functionName: "initialize",
+            args: [[{ account: sender, roleBitmap: ALL_ROLES }]],
+          }),
+          sender,
+        );
+        actions.push(
+          deployment.action,
+          encodeAction(v2.registry, "setSubregistry(uint256,address)", [
+            v2.tokenId,
+            deployment.address,
+          ]),
+        );
+        registry = deployment.address;
+      }
+      const expiry = opts.expiry ?? (await client.getBlock()).timestamp + YEAR;
+      actions.push(
+        encodeAction(
+          registry,
+          "register(string,address,address,address,uint256,uint64)",
+          [
+            normalizedLabel,
+            owner,
+            zeroAddress,
+            opts.resolver ?? v2.resolver,
+            OWNER_ROLES,
+            expiry,
+          ],
+        ),
+      );
+      return actions;
+    }
 
     const resolver =
       opts.resolver ??

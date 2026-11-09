@@ -37,7 +37,6 @@ const answers: [string, string, unknown[]][] = [
   ["getThreshold()", "uint256", [1n]],
   ["VERSION()", "string", ["1.4.1"]],
   ["groupCounter()", "uint256", [7n]],
-  ["rentPrice(string[],uint256)", "uint256", [1n]],
   // ENSv2's ETHRegistry: alice.eth is RESERVED there (still on ENS v1), so
   // ens:transfer keeps its v1 (wrapped) path.
   [

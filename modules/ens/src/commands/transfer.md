@@ -2,7 +2,7 @@
 title: "ens:transfer"
 ---
 
-Transfer ownership of an ENS name. An ENSv2 .eth name moves its registry token, with the owner's roles. On ENS v1, an unwrapped .eth name hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role.
+Transfer ownership of an ENS name. An ENSv2 name (or subname) moves its registry token, with the owner's roles. On ENS v1, an unwrapped .eth name hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role.
 
 Supports runtime fields inside smart blocks. Use explicit `@helper!` expressions or captured outputs; other fields are evaluated at build time.
 

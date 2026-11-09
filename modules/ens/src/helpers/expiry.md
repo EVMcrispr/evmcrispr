@@ -48,3 +48,9 @@ resolves at composition time and is not restricted by the executing chain.
 ### Notes
 
 - An unregistered name reads as `0`. The plain face throws instead.
+- On ENSv2 the name is read where it is registered when the assertion is
+  judged: in ENSv2's ETHRegistry for a .eth name, in its parent's
+  subregistry for a subname; while its .eth name is still on ENS v1, on ENS
+  v1. A name migrated between building and executing is read on ENSv2.
+- An ENS v1 subname has no expiry and reads as `0`; an ENSv2 subname has its
+  own.

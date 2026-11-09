@@ -1,18 +1,23 @@
 import { defineHelper, HelperFunctionError } from "@evmcrispr/sdk";
 import type { Operand } from "@evmcrispr/sdk/onchain";
 import {
-  coreCall,
   encodeCond,
   rawParam,
   staticCallParam,
   toWord,
   wordOpParam,
 } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData, zeroAddress } from "viem";
+import { encodeFunctionData, labelhash, zeroAddress } from "viem";
 import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { nameWrapperMap } from "../addresses";
-import { onchainAddress, onchainRegistry } from "../onchain";
+import { v2Name } from "../ethRegistry";
+import {
+  onchainAddress,
+  onchainRegistry,
+  v2OrV1Read,
+  v2ReadAbi,
+} from "../onchain";
 import {
   ensClient,
   getNode,
@@ -40,6 +45,8 @@ export default defineHelper<Ens>({
   ],
   async run(module, { name }, { node }) {
     const client = await ensClient(module);
+    const v2 = await v2Name(client, mainnet.id, name);
+    if (v2) return v2.owner;
     const ensNode = getNode(name);
     if (await isWrapped(client, mainnet.id, ensNode)) {
       const { owner } = await getWrappedData(client, mainnet.id, ensNode);
@@ -77,8 +84,8 @@ export default defineHelper<Ens>({
         args: [BigInt(ensNode)],
       }),
     );
-    return coreCall(
-      ctx,
+    const v1 = staticCallParam(
+      ctx.core,
       encodeCond(
         wordOpParam(
           ctx,
@@ -90,6 +97,18 @@ export default defineHelper<Ens>({
         wrappedOwner,
         registryOwner,
       ),
+    );
+    // An ENSv2 name's owner is its registry's (zero once expired).
+    return v2OrV1Read(
+      ctx,
+      name,
+      (label) =>
+        encodeFunctionData({
+          abi: v2ReadAbi,
+          functionName: "getOwner",
+          args: [BigInt(labelhash(label))],
+        }),
+      v1,
       "Address",
     );
   },

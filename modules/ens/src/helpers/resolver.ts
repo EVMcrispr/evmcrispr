@@ -5,7 +5,8 @@ import { encodeFunctionData, zeroAddress } from "viem";
 import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { registryMap, requireAddress } from "../addresses";
-import { onchainRegistry } from "../onchain";
+import { v2Name, registryAbi as v2RegistryAbi } from "../ethRegistry";
+import { onchainRegistry, v2OrV1Read, v2ReadAbi } from "../onchain";
 import { ensClient, getNode, registryAbi } from "../utils";
 
 export default defineHelper<Ens>({
@@ -27,12 +28,23 @@ export default defineHelper<Ens>({
   // answers its v1 bridge (ENSV1Resolver) for every v1 name, a contract
   // that only resolves through ENSIP-10 and that a record is not set on.
   async run(module, { name }, { node }) {
-    const resolver = await (await ensClient(module)).readContract({
-      address: requireAddress(registryMap, mainnet.id, "registry"),
-      abi: registryAbi,
-      functionName: "resolver",
-      args: [getNode(name)],
-    });
+    const client = await ensClient(module);
+    // The resolver the name itself has in its registry, not one inherited
+    // from an ancestor: on ENSv2 in the registry holding the name.
+    const v2 = await v2Name(client, mainnet.id, name);
+    const resolver = v2
+      ? await client.readContract({
+          address: v2.registry,
+          abi: v2RegistryAbi,
+          functionName: "getResolver",
+          args: [v2.label],
+        })
+      : await client.readContract({
+          address: requireAddress(registryMap, mainnet.id, "registry"),
+          abi: registryAbi,
+          functionName: "resolver",
+          args: [getNode(name)],
+        });
     if (resolver === zeroAddress) {
       throw new HelperFunctionError(node, `no resolver found for ${name}`);
     }
@@ -40,17 +52,26 @@ export default defineHelper<Ens>({
   },
   compile: async (ctx, node): Promise<Operand> => {
     const name = String(await ctx.interpreters.interpretNode(node.args[0]));
-    return {
-      kind: "call",
-      param: staticCallParam(
-        await onchainRegistry(ctx),
+    const v1 = staticCallParam(
+      await onchainRegistry(ctx),
+      encodeFunctionData({
+        abi: registryAbi,
+        functionName: "resolver",
+        args: [getNode(name)],
+      }),
+    );
+    // The resolver the name itself has in its registry, as the plain face.
+    return v2OrV1Read(
+      ctx,
+      name,
+      (label) =>
         encodeFunctionData({
-          abi: registryAbi,
-          functionName: "resolver",
-          args: [getNode(name)],
+          abi: v2ReadAbi,
+          functionName: "getResolver",
+          args: [label],
         }),
-      ),
-      cat: "Address",
-    };
+      v1,
+      "Address",
+    );
   },
 });

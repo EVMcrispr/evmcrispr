@@ -30,7 +30,7 @@ export default defineCommand<Ens>({
     const client = await module.getClient();
     const v2 = await v2Name(client, chainId, name);
     if (v2) {
-      const resolver = await v2Resolver(client, name, v2);
+      const resolver = v2Resolver(name, v2);
       return [
         encodeAction(resolver, SET_CONTENTHASH, [
           dnsName(name),

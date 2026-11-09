@@ -49,3 +49,7 @@ resolves at composition time and is not restricted by the executing chain.
 
 - Reads the registry word, so a name nobody owns is the zero address rather
   than an error. The plain face throws instead.
+- On ENSv2 the name is read where it is registered when the assertion is
+  judged: in ENSv2's ETHRegistry for a .eth name, in its parent's
+  subregistry for a subname; while its .eth name is still on ENS v1, on ENS
+  v1. A name migrated between building and executing is read on ENSv2.

@@ -171,6 +171,10 @@
   "ens/create-subname": {
     "kind": "runtime"
   },
+  "ens/migrate": {
+    "kind": "static",
+    "reason": "The name's ENS v1 state decides which controller and token the migration goes through when the script is built."
+  },
   "ens/register": {
     "kind": "static",
     "reason": "Commitment hashing and price quotes require concrete registration inputs."

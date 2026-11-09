@@ -7,7 +7,13 @@ import {
   selectorOf,
   word,
 } from "@evmcrispr/test-utils/evml";
-import { getAddress, labelhash, namehash } from "viem";
+import {
+  encodeFunctionData,
+  getAddress,
+  labelhash,
+  namehash,
+  parseAbi,
+} from "viem";
 
 const ASSERTIONS = getAddress(CORE_ADDRESS);
 const OPERATIONS = getAddress(OPERATIONS_ADDRESS);
@@ -26,6 +32,29 @@ const d = createAssertDecoders({
 });
 
 const NODE = namehash(NAME);
+/** ENSv2's ETHRegistry, where a .eth name is read once it is on ENSv2. */
+const ETH_REGISTRY = getAddress("0xf60aba43E1f7F3DAB1186Ff03B561401C9Df85E2");
+const ID = word(BigInt(labelhash("vitalik"))).slice(2);
+
+/** A registry face reads a name where it is when the assertion is judged:
+ *  cond(ETHRegistry.getStatus(id) == REGISTERED, the ENSv2 read, the ENS
+ *  v1 read). Checks the condition and the ENSv2 read; returns the v1 one. */
+function expectV2OrV1(param: unknown, v2Data: string) {
+  const cond = d.core(param as never);
+  expect(cond.functionName).to.equal("cond");
+  const [status, registered] = d.opReadOf(
+    cond.args[0] as never,
+    "eq(uint256,uint256)",
+  );
+  const statusCall = d.staticCallOf(status);
+  expect(statusCall.target).to.equal(ETH_REGISTRY);
+  expect(statusCall.data).to.equal(`${selectorOf("getStatus(uint256)")}${ID}`);
+  d.expectRawWord(registered, 2n);
+  const v2 = d.staticCallOf(cond.args[1] as never);
+  expect(v2.target).to.equal(ETH_REGISTRY);
+  expect(v2.data).to.equal(v2Data);
+  return cond.args[2];
+}
 
 describeCommand("assert (ens registry faces)", {
   describeName: "Ens > helpers > registry on-chain faces",
@@ -36,12 +65,22 @@ describeCommand("assert (ens registry faces)", {
   preamble,
   cases: [
     {
-      name: "reads the resolver straight off the registry",
+      name: "reads the resolver off the ENSv2 registry, or the v1 registry for a v1 name",
       script: `assert @ens:resolver!(${NAME}) != 0x0000000000000000000000000000000000000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a } = d.expectOpJudge(param, "ne(uint256,uint256)");
-        const call = d.staticCallOf(a);
+        const v1 = expectV2OrV1(
+          a,
+          encodeFunctionData({
+            abi: parseAbi([
+              "function getResolver(string) view returns (address)",
+            ]),
+            functionName: "getResolver",
+            args: ["vitalik"],
+          }),
+        );
+        const call = d.staticCallOf(v1 as never);
         expect(call.target).to.equal(REGISTRY);
         expect(call.data).to.equal(
           `${selectorOf("resolver(bytes32)")}${NODE.slice(2)}`,
@@ -49,11 +88,15 @@ describeCommand("assert (ens registry faces)", {
       },
     },
     {
-      name: "unwraps a wrapped owner through a cond",
+      name: "reads the owner on ENSv2, or unwraps a wrapped v1 owner through a cond",
       script: `assert @ens:owner!(${NAME}) == 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        const cond = d.core(param);
+        const v1 = expectV2OrV1(
+          param,
+          `${selectorOf("getOwner(uint256)")}${ID}`,
+        );
+        const cond = d.core(v1 as never);
         expect(cond.functionName).to.equal("cond");
         // The condition asks whether the registry owner IS the wrapper.
         const eqArgs = d.opReadOf(cond.args[0] as never, "eq(uint256,uint256)");
@@ -75,11 +118,15 @@ describeCommand("assert (ens registry faces)", {
       },
     },
     {
-      name: "reads the expiry off the base registrar by labelhash",
+      name: "reads the expiry on ENSv2, or off the base registrar by labelhash",
       script: `assert @ens:expiry!(${NAME}) > 1700000000`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        const call = d.staticCallOf(param);
+        const v1 = expectV2OrV1(
+          param,
+          `${selectorOf("getExpiry(uint256)")}${ID}`,
+        );
+        const call = d.staticCallOf(v1 as never);
         expect(call.target).to.equal(BASE_REGISTRAR);
         expect(call.data).to.equal(
           `${selectorOf("nameExpires(uint256)")}${word(BigInt(labelhash("vitalik"))).slice(2)}`,

@@ -37,6 +37,8 @@ ens:unwrap mydao.eth
 ## Notes
 
 - Fails if the name has burned `cannot-unwrap`.
+- ENSv2 names stop with an error: the NameWrapper is ENS v1's, and ENSv2
+  names have roles instead of fuses.
 
 ## See Also
 

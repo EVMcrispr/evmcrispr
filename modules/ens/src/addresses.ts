@@ -17,11 +17,6 @@ export const nameWrapperMap = new Map<number, Address>([
   [sepolia.id, "0x0635513f179D50A207757E05759CbD106d7dFcE8"],
 ]);
 
-export const ethRegistrarControllerMap = new Map<number, Address>([
-  [mainnet.id, "0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547"],
-  [sepolia.id, "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968"],
-]);
-
 /** ENSv2's ETHRegistrar: since ENSv2 (mainnet 2026-10-27) the only way to
  *  register a .eth name. No v1 controller is authorised on either chain.
  *  Addresses from ensjs; checked to have code and the register role. */
@@ -57,6 +52,26 @@ export const verifiableFactoryMap = new Map<number, Address>([
 export const permissionedResolverImplMap = new Map<number, Address>([
   [mainnet.id, "0x565b0F456a04Ac9b48758190e90030623Cff57C5"],
   [sepolia.id, "0x115eb53F0c60696633855F90b138178Fb40b2b2C"],
+]);
+
+/** ENSv2's UserRegistry implementation: the registry of an ENSv2 name's
+ *  subnames, deployed per name through the VerifiableFactory. */
+export const userRegistryImplMap = new Map<number, Address>([
+  [mainnet.id, "0xC927bCaA77cd7bE283518760896Be0CF3Cfbe08d"],
+  [sepolia.id, "0x9BD8a88719068D09ecee662f36C0E3856708366a"],
+]);
+
+/** ENSv2's migration controllers: a v1 .eth name moves to ENSv2 when its
+ *  owner transfers it to one, with the migration data. Unwrapped names and
+ *  wrapped names that can still be unwrapped go to the unlocked one; locked
+ *  wrapped names (CANNOT_UNWRAP burned) to the locked one. */
+export const unlockedMigrationControllerMap = new Map<number, Address>([
+  [mainnet.id, "0xaB821Ca676CF2e0790Fa273526a165CFa86aEB64"],
+  [sepolia.id, "0x2a35B94DF22cc7354570be2284655E2CDC0e64A2"],
+]);
+export const lockedMigrationControllerMap = new Map<number, Address>([
+  [mainnet.id, "0x3ceA18620883a69ED349B23328A3B6302598e51A"],
+  [sepolia.id, "0x6029a063d69b09D23c52a754a90E4FE43aDac3A8"],
 ]);
 
 /** The token ETHRegistrar is paid in when none is given: USDC (DAI is the

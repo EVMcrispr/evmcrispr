@@ -20,17 +20,6 @@ export const SET_TEXT = "setText(bytes,string,string)";
 export const SET_ADDRESS = "setAddress(bytes,uint256,bytes)";
 export const SET_CONTENTHASH = "setContenthash(bytes,bytes)";
 
-/** Every role and its admin, as ensjs grants the deployer of a resolver:
- *  roles sit 4 bits apart, and each admin 128 bits above its role. */
-export const ALL_ROLES = BigInt(
-  "0x1111111111111111111111111111111111111111111111111111111111111111",
-);
-
-export const verifiableFactoryAbi = parseAbi([
-  "function deployProxy(address implementation, uint256 salt, bytes data) returns (address)",
-  "function predictProxyAddress(address deployer, uint256 salt) view returns (address)",
-]);
-
 /** The DNS wire form of a name, as the setters take it. */
 export const dnsName = (name: string): Hex =>
   toHex(packetToBytes(normalize(name)));

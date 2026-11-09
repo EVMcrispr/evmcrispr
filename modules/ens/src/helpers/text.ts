@@ -2,7 +2,7 @@ import { defineHelper, HelperFunctionError } from "@evmcrispr/sdk";
 import { encodeFunctionData, parseAbi } from "viem";
 import { normalize } from "viem/ens";
 import type Ens from "..";
-import { EMPTY_DYNAMIC_RETURN, resolverGatedChain } from "../onchain";
+import { EMPTY_DYNAMIC_RETURN, universalResolverRead } from "../onchain";
 import { ensClient, getNode } from "../utils";
 
 const textAbi = parseAbi([
@@ -42,14 +42,13 @@ export default defineHelper<Ens>({
   compile: async (ctx, node) => {
     const name = String(await ctx.interpreters.interpretNode(node.args[0]));
     const key = String(await ctx.interpreters.interpretNode(node.args[1]));
-    const ensNode = getNode(name);
-    return resolverGatedChain(
+    return universalResolverRead(
       ctx,
-      ensNode,
+      name,
       encodeFunctionData({
         abi: textAbi,
         functionName: "text",
-        args: [ensNode, key],
+        args: [getNode(name), key],
       }),
       EMPTY_DYNAMIC_RETURN,
       "String",
