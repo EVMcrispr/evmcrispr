@@ -1,8 +1,13 @@
-import type { AbiFunction, Address, Hex } from "viem";
+import type { AbiFunction, AbiParameter, Address, Hex } from "viem";
 import { parseAbiItem } from "viem";
 import { COLLECTIONS_ADDRESS } from "./addresses";
 import { unwrapBytesParam } from "./collections";
-import { byteLenParamOf, opReadParam, wordOpParam } from "./compile";
+import {
+  byteLenParamOf,
+  opReadParam,
+  returnWordParam,
+  wordOpParam,
+} from "./compile";
 import { type ArgSpec, buildCall, callParam } from "./construct";
 import { encodePick, encodeRead, gatherParam } from "./core";
 import type { InputParam } from "./erc8211";
@@ -500,24 +505,30 @@ export function unzipParam(
 }
 
 /**
- * A P1 single-read operand: a direct staticcall with build-time calldata.
- * `pickWord` unwraps one word of a multi-value return through a core
- * `pick`, so the operand stays a clean single word for the word machine
- * (a single constraint checks word 0, but nested splices carry the full
- * returndata).
+ * A P1 single-read operand: a direct staticcall with build-time calldata,
+ * whose returndata encodes `outputs`. `pickWord` unwraps one word of a
+ * multi-value return through a core `pick`, so the operand stays a clean
+ * single word for the word machine (a single constraint checks word 0,
+ * but nested splices carry the full returndata). A word that holds a
+ * narrow value (`uint8`, `address`) is read through `nav`, which checks
+ * it for its declared type.
  */
 export function directReadOperand(
   ctx: CompileCtx,
   target: Address,
   data: Hex,
+  outputs: readonly AbiParameter[],
   cat: Category,
   pickWord?: bigint,
 ): Operand {
-  const param = staticCallParam(target, data);
-  if (pickWord === undefined) return { kind: "call", param, cat };
   return {
     kind: "call",
-    param: staticCallParam(ctx.core, encodePick(param, pickWord)),
+    param: returnWordParam(
+      ctx,
+      staticCallParam(target, data),
+      outputs,
+      pickWord,
+    ),
     cat,
   };
 }

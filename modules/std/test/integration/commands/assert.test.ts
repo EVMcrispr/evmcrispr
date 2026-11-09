@@ -313,7 +313,9 @@ describeCommand("assert", {
         expect(pick.args[1]).to.equal(1n);
         const inner = staticCallOf(pick.args[0] as unknown as Param);
         expect(inner.target).to.equal(TOKEN);
-        expectConstraint(param, "Gte", 1000n);
+        // The bound is cut to uint112's range, so a reserve word out of
+        // range fails it without a typed nav.
+        expectIn(param, 1000n, (1n << 112n) - 1n);
       },
     },
     {
@@ -448,8 +450,14 @@ describeCommand("assert", {
         expectConstraint(param, "Eq", 0n);
         const isValid = core(param);
         expect(isValid.functionName).to.equal("isValid");
-        const inner = isValid.args[0] as unknown as Param;
-        expect(staticCallOf(inner).target).to.equal(TOKEN);
+        // The probed read is typed: a word that is not a bool fails it.
+        const nav = core(isValid.args[0] as unknown as Param);
+        expect(nav.functionName).to.equal("nav");
+        expect(nav.args[1]).to.equal("(bool)");
+        expect(nav.args[2]).to.deep.equal([0n]);
+        expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
+          TOKEN,
+        );
       },
     },
     {
@@ -1113,8 +1121,14 @@ describeCommand("assert", {
       validate: (actions) => {
         const { param } = decodeAssert(actions);
         const args = opReadOf(param, "add(uint256,uint256)");
-        // The cast is free: the paused() call itself is the left operand.
-        expect(staticCallOf(args[0]).target).to.equal(TOKEN);
+        // The cast is free: the paused() read itself is the left operand,
+        // typed, since add would take any word.
+        const nav = core(args[0]);
+        expect(nav.functionName).to.equal("nav");
+        expect(nav.args[1]).to.equal("(bool)");
+        expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
+          TOKEN,
+        );
       },
     },
     // ---- env getters -------------------------------------------------------

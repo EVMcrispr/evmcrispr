@@ -42,7 +42,8 @@ import {
 } from "./compile";
 import { compileOnchainHelper, isBangHelperNode } from "./dispatch";
 import { constraint, type InputParam } from "./erc8211";
-import { judged, opJudge, wordJudge } from "./judge";
+import { judged, opJudge, rangedWordJudge, wordJudge } from "./judge";
+import { uncheckedWord } from "./narrow-words";
 import type { Category, CompileCtx, CompileHints, Operand } from "./types";
 
 /** Operators each category supports at the top level of an assertion. */
@@ -158,6 +159,12 @@ function requireNum(o: Operand & { kind: "const" }, what: string): Num {
   throw new ErrorException(`${what} must be a number, got a ${o.cat} value`);
 }
 
+/** The read an EQ 0 or EQ 1 constraint judges: the raw word of a narrow
+ *  read, since an equality with an in-range value already refuses every
+ *  word out of range, so the `nav` check would buy nothing. */
+const exactRead = (param: InputParam): InputParam =>
+  uncheckedWord(param)?.raw ?? param;
+
 /**
  * Compile an assertion to its judged param. The subject is always the live
  * side: `5 < $t::f()` mirrors to `$t::f() > 5`. Booleans fold `!=` into
@@ -200,7 +207,10 @@ export async function compileAssertion(
     const bare = { subject: lhs };
     // assertTrue(eq(x, 0)) ≡ x EQ 0: drop the wrapper when we can.
     if (lhs.notOf) {
-      return done(judged(lhs.notOf, [constraint("Eq", 0n)], ctx), bare);
+      return done(
+        judged(exactRead(lhs.notOf), [constraint("Eq", 0n)], ctx),
+        bare,
+      );
     }
     // assertTrue(isValid(x)) ≡ x resolving: judge a zero-constraint
     // entry on the raw operand, so a failure reports the resolution's
@@ -208,7 +218,10 @@ export async function compileAssertion(
     if (lhs.validOf) {
       return done(judged(lhs.validOf, [], ctx), bare);
     }
-    return done(judged(lhs.param, [constraint("Eq", 1n)], ctx), bare);
+    return done(
+      judged(exactRead(lhs.param), [constraint("Eq", 1n)], ctx),
+      bare,
+    );
   }
 
   if (!(spec.operator in MIRRORED)) {
@@ -328,7 +341,7 @@ export async function compileAssertion(
     // bound.
     if (live.notOf) {
       return done(
-        judged(live.notOf, [constraint("Eq", want ? 0n : 1n)], ctx),
+        judged(exactRead(live.notOf), [constraint("Eq", want ? 0n : 1n)], ctx),
         sides,
       );
     }
@@ -339,7 +352,7 @@ export async function compileAssertion(
       return done(judged(live.validOf, [], ctx), sides);
     }
     return done(
-      judged(live.param, [constraint("Eq", want ? 1n : 0n)], ctx),
+      judged(exactRead(live.param), [constraint("Eq", want ? 1n : 0n)], ctx),
       sides,
     );
   }
@@ -428,6 +441,15 @@ export async function compileAssertion(
     default:
       throw new ErrorException(`unsupported category ${category}`);
   }
+
+  // A narrow unsigned read compared against one interval is judged raw,
+  // with the interval cut to its type's range; anything else judges the
+  // read `nav` checked.
+  const narrow = category === "Int" ? undefined : uncheckedWord(live.param);
+  const ranged =
+    narrow &&
+    rangedWordJudge(ctx, narrow.raw, narrow.max, fragment, expectedWord, delta);
+  if (ranged) return done(ranged, sides);
 
   return done(
     wordJudge(ctx, live.param, fragment, expectedWord, {

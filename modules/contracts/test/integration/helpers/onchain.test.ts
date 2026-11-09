@@ -42,8 +42,9 @@ describeCommand("assert (@contracts:codeAt!)", {
         const { param } = d.decodeAssert(actions);
         const len = d.opReadOf(param, "byteLen(bytes)");
         const args = d.opReadOf(len[0], "code(address)");
-        // The address is itself a read, not a literal.
-        const call = d.staticCallOf(args[0]);
+        // The address is itself a read, not a literal, typed before it is
+        // spliced.
+        const call = d.staticCallOf(d.checkedReadOf(args[0], "(address)"));
         expect(call.target).to.equal(FACTORY);
         expect(call.data).to.equal(selectorOf("predicted()"));
       },

@@ -1,6 +1,6 @@
 import { defineHelper, HelperFunctionError } from "@evmcrispr/sdk";
 import { directReadOperand } from "@evmcrispr/sdk/onchain";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, getAbiItem } from "viem";
 import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { nameWrapperMap } from "../addresses";
@@ -54,6 +54,7 @@ export default defineHelper<Ens>({
         functionName: "getData",
         args: [BigInt(getNode(name))],
       }),
+      getAbiItem({ abi: nameWrapperAbi, name: "getData" }).outputs,
       "Uint",
       1n,
     );

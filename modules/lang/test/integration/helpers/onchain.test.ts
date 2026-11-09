@@ -259,7 +259,10 @@ describeCommand("assert (lang on-chain faces)", {
         const idx = d.opReadOf(cmp[0], "wordIndexOf(bytes,bytes32)");
         expect(idx).to.have.lengthOf(3);
         d.expectRawWord(idx[0], 96n);
-        expect(d.staticCallOf(idx[1]).target).to.equal(TOKEN);
+        // wordIndexOf compares any word: the address needle arrives typed.
+        expect(
+          d.staticCallOf(d.checkedReadOf(idx[1], "(address)")).target,
+        ).to.equal(TOKEN);
         expect(d.staticCallOf(expectWordsPayload(idx[2])).target).to.equal(
           TOKEN,
         );

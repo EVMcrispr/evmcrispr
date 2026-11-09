@@ -291,6 +291,7 @@ export function makeAaveStyleAdapter(
           functionName: "getReserveData",
           args: [token],
         }),
+        getAbiItem({ abi: poolAbi, name: "getReserveData" }).outputs,
         "Uint",
         side === "supply" ? 2n : 4n,
       );
@@ -360,6 +361,7 @@ export function makeAaveStyleAdapter(
           functionName: "getAssetPrice",
           args: [token],
         }),
+        getAbiItem({ abi: oracleAbi, name: "getAssetPrice" }).outputs,
         "Uint",
       );
       // One 512-bit mulDiv keeps zero headroom at zero with no branch;

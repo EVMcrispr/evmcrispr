@@ -128,3 +128,68 @@ export function wordJudge(
       throw new ErrorException(`unsupported operator fragment ${fragment}`);
   }
 }
+
+/**
+ * The judged param for an unsigned comparison over a raw word whose
+ * declared type admits exactly 0..`max` (a `uint8`, an `address`, a
+ * `bool`): the comparison's interval cut to that range, as one inline
+ * constraint, so a word out of range fails it as surely as `nav` would
+ * have refused it, at no extra cost. A comparison no valid value meets is
+ * a build error. `undefined` for `!=`, which is not one interval: the
+ * caller judges the checked read instead.
+ */
+export function rangedWordJudge(
+  addrs: OpsAddresses,
+  raw: InputParam,
+  max: bigint,
+  fragment: string,
+  expected: bigint,
+  delta?: bigint,
+): InputParam | undefined {
+  let lower: bigint;
+  let upper: bigint;
+  switch (fragment) {
+    case "Eq":
+      [lower, upper] = [expected, expected];
+      break;
+    case "Ge":
+      [lower, upper] = [expected, MAX_UINT];
+      break;
+    case "Gt":
+      [lower, upper] = [expected + 1n, MAX_UINT];
+      break;
+    case "Le":
+      [lower, upper] = [0n, expected];
+      break;
+    case "Lt":
+      if (expected === 0n) return undefined;
+      [lower, upper] = [0n, expected - 1n];
+      break;
+    case "ApproxEq":
+      if (delta === undefined) return undefined;
+      [lower, upper] = [
+        expected > delta ? expected - delta : 0n,
+        expected + delta,
+      ];
+      break;
+    default:
+      return undefined;
+  }
+  if (lower > max) {
+    throw new ErrorException(
+      `the value read can be at most ${max} for its declared type, so the assertion would always fail`,
+    );
+  }
+  if (upper > max) upper = max;
+  return judged(
+    raw,
+    [
+      lower === upper
+        ? constraint("Eq", lower)
+        : lower === 0n
+          ? constraint("Lte", upper)
+          : inConstraint(lower, upper),
+    ],
+    addrs,
+  );
+}

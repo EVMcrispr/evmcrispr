@@ -84,6 +84,12 @@ import {
 import type { Constraint, InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
 import { bytesPayloadParam, envelopeLenParam } from "./layout";
+import {
+  checkedWordParam,
+  registerUnchecked,
+  wordLeaf,
+  wordRange,
+} from "./narrow-words";
 import { OP_SELECTORS, opSelector } from "./operators";
 import { interpretSmartValue, runtimeBinding, smartValueParam } from "./smart";
 import { hasRuntimeValue } from "./smart-types";
@@ -910,32 +916,62 @@ function checkNavigableDynamic(
   }
 }
 
+/**
+ * The one word a read face judges, out of `base`'s returndata encoding
+ * `outputs`: head word `pickWord` through a core `pick` (or word 0, the
+ * returndata itself, when absent). A word that holds a narrow value
+ * (`uint8`, `address`) is read through `nav` instead, which checks it for
+ * its declared type; the raw read stays on record for a caller that
+ * judges it within the type's range.
+ */
+export function returnWordParam(
+  ctx: { core: Address },
+  base: InputParam,
+  outputs: readonly AbiParameter[],
+  pickWord?: bigint,
+): InputParam {
+  const raw =
+    pickWord === undefined
+      ? base
+      : staticCallParam(ctx.core, encodePick(base, pickWord));
+  const leaf = wordLeaf(outputs, pickWord ?? 0n);
+  if (!leaf || !wordRange(leaf.type)) return raw;
+  return checkedWordParam(
+    ctx.core,
+    base,
+    formatReturnTuple(outputs),
+    leaf.path,
+    leaf.type,
+    raw,
+  );
+}
+
 /** Fold a lens selection over a resolved value into the core calldata
- *  that extracts it: raw `pick` when the target word position is static,
- *  typed `nav` otherwise. `outputs` describes the value's ABI shape — a
- *  call's return tuple, or an error's arguments once `revertData` has
- *  stripped the selector. Every ABI terminal is representable, including
- *  static arrays and tuples; each consumer checks its own accepted types. */
+ *  that extracts it: raw `pick` when the target word position is static
+ *  and its type admits every word, typed `nav` otherwise, so a narrow
+ *  word (`uint8`, `address`) is range-checked for its declared type.
+ *  `raw` is the unchecked `pick` of such a word, for a caller that judges
+ *  it within the type's range itself. `outputs` describes the
+ *  value's ABI shape — a call's return tuple, or an error's arguments
+ *  once `revertData` has stripped the selector. Every ABI terminal is
+ *  representable, including static arrays and tuples; each consumer
+ *  checks its own accepted types. */
 export function lensSelectData(
   base: InputParam,
   outputs: readonly AbiParameter[],
   slots: unknown[],
   context: string,
-): { data: Hex; terminal: AbiParameter } {
+): { data: Hex; terminal: AbiParameter; raw?: Hex } {
   const path = lensPath(slots);
   const { terminal, resolved } = walkNavPath(outputs, path, context);
-  if (SINGLE_WORD_ABI.test(terminal.type)) {
-    return {
-      data: pickableIndex(outputs, resolved)
-        ? encodePick(base, BigInt(resolved[0]))
-        : encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
-      terminal,
-    };
+  const nav = encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt));
+  if (SINGLE_WORD_ABI.test(terminal.type) && pickableIndex(outputs, resolved)) {
+    const pick = encodePick(base, BigInt(resolved[0]));
+    return wordRange(terminal.type)
+      ? { data: nav, terminal, raw: pick }
+      : { data: pick, terminal };
   }
-  return {
-    data: encodeNav(base, formatReturnTuple(outputs), resolved.map(BigInt)),
-    terminal,
-  };
+  return { data: nav, terminal };
 }
 
 /**
@@ -959,18 +995,35 @@ export async function compileCallValue(
         `${node.method} returns multiple values; use a destructure lens to select one, e.g. \`${node.method}(...)[_ $ _]\``,
       );
     }
-    // A single return value: the raw returndata is already the value's
-    // canonical encoding (word or envelope) — no selector needed.
-    return { param: base, terminal: outputs[0] };
+    // A single return value: the returndata is the value's encoding (word
+    // or envelope), which a narrow word must still prove in range.
+    const terminal = outputs[0];
+    if (wordRange(terminal.type)) {
+      return {
+        param: checkedWordParam(
+          ctx.core,
+          base,
+          formatReturnTuple(outputs),
+          [0n],
+          terminal.type,
+          base,
+        ),
+        terminal,
+      };
+    }
+    return { param: base, terminal };
   }
 
-  const { data, terminal } = lensSelectData(
+  const { data, terminal, raw } = lensSelectData(
     base,
     outputs,
     node.returnDestructure,
     node.method,
   );
-  return { param: staticCallParam(ctx.core, data), terminal };
+  const param = staticCallParam(ctx.core, data);
+  if (raw)
+    registerUnchecked(param, staticCallParam(ctx.core, raw), terminal.type);
+  return { param, terminal };
 }
 
 // ---------------------------------------------------------------------------

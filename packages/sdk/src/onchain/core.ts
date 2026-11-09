@@ -2,6 +2,7 @@ import type { Address, Hex } from "viem";
 import { encodeFunctionData, parseAbi } from "viem";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
+import { conditionRead, targetRead } from "./unchecked-words";
 
 /**
  * ABI of the ERC-8211-speaking primitives of the Assertions core (v2.0).
@@ -88,9 +89,10 @@ export function encodeNav(
 
 /** Encode `chain(start, calls)` — staticcalls across runtime-resolved
  *  addresses: `start` resolves to the first hop's target, each hop's first
- *  return word is the next target, the last hop's returndata passes through. */
+ *  return word is the next target, the last hop's returndata passes through.
+ *  A checked address read as `start` goes in raw: `chain` checks it. */
 export function encodeChain(start: InputParam, calls: readonly Hex[]): Hex {
-  return encodeCore("chain", [start, [...calls]]);
+  return encodeCore("chain", [targetRead(start), [...calls]]);
 }
 
 /** Encode `read(target, selector, args)` — a staticcall constructed at
@@ -99,13 +101,13 @@ export function encodeChain(start: InputParam, calls: readonly Hex[]): Hex {
  *  SEGMENTS, not necessarily one per Solidity argument: a RAW_BYTES segment
  *  carries any literal span, a STATIC_CALL segment computes a span
  *  on-chain. In error reporting the target is operand 0, args[i] operand
- *  i + 1. */
+ *  i + 1. A checked address read as `target` goes in raw: `read` checks it. */
 export function encodeRead(
   target: InputParam,
   selector: Hex,
   args: readonly InputParam[],
 ): Hex {
-  return encodeCore("read", [target, selector, [...args]]);
+  return encodeCore("read", [targetRead(target), selector, [...args]]);
 }
 
 /** Encode `read(operators, selector, args)` — an Operations call composed
@@ -135,7 +137,12 @@ export function encodeGet(
   argumentTypes: string,
   args: readonly InputParam[],
 ): Hex {
-  return encodeCore("get", [target, selector, argumentTypes, [...args]]);
+  return encodeCore("get", [
+    targetRead(target),
+    selector,
+    argumentTypes,
+    [...args],
+  ]);
 }
 
 /** Encode `gather(args)` — each operand resolved once, in-frame, the raw
@@ -171,13 +178,14 @@ export function gatherParam(
 }
 
 /** Encode `cond(c, then, else)` — the lazy conditional: only the winning
- *  branch is resolved and its bytes pass through raw. */
+ *  branch is resolved and its bytes pass through raw. A checked narrow
+ *  read as `c` goes in raw: only its zero-ness matters. */
 export function encodeCond(
   c: InputParam,
   then_: InputParam,
   else_: InputParam,
 ): Hex {
-  return encodeCore("cond", [c, then_, else_]);
+  return encodeCore("cond", [conditionRead(c), then_, else_]);
 }
 
 /** Encode `orElse(a, b)` — resolve `a`; any revert selects `b`. */

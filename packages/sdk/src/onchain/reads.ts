@@ -17,6 +17,7 @@ import {
   compileOperand,
   materializeWord,
   PRECOMPILED_OPERAND,
+  returnWordParam,
 } from "./compile";
 import type { ArgSpec } from "./construct";
 import { buildCall, callParam } from "./construct";
@@ -134,7 +135,9 @@ async function argSpec(
  * `pick` (the same service `directReadOperand` provides for build-time
  * calldata), so the operand stays a single word wherever it
  * nests — a single constraint only inspects the first word, but a nested splice
- * would otherwise carry the whole returndata.
+ * would otherwise carry the whole returndata. A word that holds a narrow
+ * value (`uint8`, `address`) is read through `nav`, which checks it for
+ * the type `fnAbi` declares.
  */
 export async function callReadOperand(
   ctx: CompileCtx,
@@ -164,7 +167,9 @@ export async function callReadOperand(
       buildCall(ctx, fnAbi, specs),
     );
   }
-  if (pickWord !== undefined) {
+  if (cat !== "String" && cat !== "Bytes") {
+    param = returnWordParam(ctx, param, fnAbi.outputs, pickWord);
+  } else if (pickWord !== undefined) {
     param = staticCallParam(ctx.core, encodePick(param, pickWord));
   }
   return { kind: "call", param, cat };
