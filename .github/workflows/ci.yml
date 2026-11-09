@@ -27,13 +27,17 @@ jobs:
           node-version: 26
       # Pinned, not nightly or stable: a nightly shipped an anvil built
       # without the optimism network family (`anvil_reset` onto a Base fork
-      # failed), and anvil after 1.5 redacts the URL it forks in
-      # `anvil_nodeInfo`, so a sim:fork that leaves the runner's own chain
-      # cannot come back to it. 1.5.1 is what development runs on.
+      # failed); anvil 1.8 forks about twice as slowly as 1.7 (a cold fork
+      # test goes from ~27s to ~52s: since foundry-rs/foundry#15975 every
+      # mined block reads the EIP-4788/7002/7251 system contracts from the
+      # upstream, one after another); 1.9 also redacts the URL it forks in
+      # `anvil_nodeInfo`, so a sim:fork cannot come back to the runner's own
+      # chain after leaving it.
+      # 1.7.1 is the newest release with none of these.
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: v1.5.1
+          version: v1.7.1
       - name: Install Dependencies
         run: bun i
 
