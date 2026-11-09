@@ -140,6 +140,10 @@ export default defineCommand<Eez>({
         }
       }
     }
-    return [...direct, ...creates, { to: proxy, data, value, gas }];
+    return [
+      ...direct,
+      ...creates,
+      { to: proxy, data, value, gas, crossChain: true },
+    ];
   },
 });

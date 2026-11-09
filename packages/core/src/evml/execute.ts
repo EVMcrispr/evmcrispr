@@ -651,6 +651,10 @@ async function priceThroughGateway(
     request.maxPriorityFeePerGas !== undefined
   )
     return {};
+  // A gateway that is not the chain's own RPC is a third party: it sees a
+  // transaction before it is broadcast only when the transaction needs it.
+  if (registeredChain(chainId)?.rpcUrl !== gateway && !action.crossChain)
+    return {};
   const from = ctx.walletClient.account?.address ?? action.from ?? env.account;
   if (!from) return {};
   const quote = await quoteThroughGateway(

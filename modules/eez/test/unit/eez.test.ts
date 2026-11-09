@@ -137,6 +137,14 @@ describe("eez utils", () => {
     expect(remoteLabel(l1, 7n)).toBe("rollup 7");
   });
 
+  it("names RollupX's chains by key and resolves their rollups", () => {
+    expect(rollupIdFor("rollupX")).toBe(2n);
+    expect(rollupIdFor("mainnet")).toBe(0n);
+    expect(rollupIdFor(696991)).toBe(2n);
+    // A bare number is a chain id first: 1 is Ethereum mainnet.
+    expect(rollupIdFor(1)).toBe(0n);
+  });
+
   it("declares a built-in entry for every shipped chain", () => {
     for (const chain of chains) {
       expect(EEZ_CHAINS[chain.id]).toBeDefined();

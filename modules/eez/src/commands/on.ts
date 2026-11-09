@@ -87,6 +87,7 @@ export default defineCommand<Eez>({
         to: proxies.get(call.to)!,
         data: call.data,
         value: call.value,
+        crossChain: true,
       };
       if (call.from) action.from = call.from;
       const gas =

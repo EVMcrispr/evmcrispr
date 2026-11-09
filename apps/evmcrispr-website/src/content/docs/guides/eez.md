@@ -26,8 +26,9 @@ print "balance on L2:" @balance(ETH @me)
 A transaction that crosses chains pays for its settlement on Chiado through
 its priority fee, about 0.0005 xDAI per transaction, and the EEZ composer
 refuses one priced below that. EVMcrispr asks the composer for the price
-just before each transaction is signed and offers it to the wallet; leave
-the suggested fee as it is. A transaction the composer will not price is
+of each cross-chain transaction just before it is signed and offers it to
+the wallet; leave the suggested fee as it is. An ordinary Chiado or
+mainnet transaction is not shown to the composer. A transaction the composer will not price is
 one that would fail once composed, and the error says so.
 
 A cross-chain transaction composes only when it reaches the composer. The
@@ -36,6 +37,26 @@ a network wallets know already, with its public RPC: to send cross-chain
 calls *from* Chiado with a browser wallet, add
 `https://chiadox.eez.dev/composer/l1` as an RPC for Chiado (chain id 10200)
 in the wallet and select it. It serves ordinary Chiado traffic too.
+
+## RollupX
+
+The EEZ team also runs RollupX (<https://rollupx.eez.dev>), a devnet
+settled on Ethereum mainnet: `mainnet` ↔ `rollupX`. Everything in this
+guide works there with those two chain names in place of `gnosisChiado`
+and `eezL2`, but with real ETH: a cross-chain transaction pays about
+0.00015 ETH for its settlement, and EVMcrispr uses no quote above
+0.003 ETH. ETH reaches `rollupX` through the RollupX dashboard's bridge.
+To send cross-chain calls from mainnet with a browser wallet, add
+`https://rollupx.eez.dev/composer/l1` as an RPC for Ethereum and select
+it. The helpers that read on-chain inside a transaction (`@eez:on!`) need
+the Assertions contracts on both chains; RollupX does not have them yet.
+
+```evml
+load eez
+
+switch mainnet
+print "my proxy on RollupX:" @eez:on(rollupX @eez:proxy(mainnet @me))
+```
 
 ## Cross-chain proxies
 

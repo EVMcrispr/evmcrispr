@@ -145,7 +145,7 @@ export function rollupIdFor(value: unknown): bigint {
   const known = chainId !== undefined ? EEZ_CHAINS[chainId] : undefined;
   if (!known) {
     throw new ErrorException(
-      `unknown rollup "${text}" — pass a rollup id, or an EEZ chain (gnosisChiado, eezL2)`,
+      `unknown rollup "${text}" — pass a rollup id, or an EEZ chain (gnosisChiado, eezL2, mainnet, rollupX)`,
     );
   }
   return known.rollupId;

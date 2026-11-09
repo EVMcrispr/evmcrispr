@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { evml } from "@evmcrispr/core";
-import type { ChainDef } from "@evmcrispr/sdk";
+import type { ModuleChainDef } from "@evmcrispr/sdk";
 
 const MODULES_DIR = resolve(import.meta.dirname, "../../../../modules");
 const PREFIX = "@evmcrispr/module-";
@@ -30,7 +30,7 @@ export function registerAllModules(): void {
     // for module-shipped chains before the module itself loads.
     const chainsPath = join(MODULES_DIR, dir, "src/chains.ts");
     const chains = existsSync(chainsPath)
-      ? ((require(chainsPath).chains ?? []) as ChainDef[])
+      ? ((require(chainsPath).chains ?? []) as ModuleChainDef[])
       : [];
     entries.push({
       name,

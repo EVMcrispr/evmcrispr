@@ -1,7 +1,8 @@
 import type { Address } from "viem";
 
-/** `EEZL2` manager on the ChiadoX rollup (an upgradeable proxy in its
- *  genesis, no longer the `0x42…07` predeploy of earlier devnets). */
+/** `EEZL2` manager on the ChiadoX and RollupX rollups (an upgradeable proxy
+ *  in their genesis, no longer the `0x42…07` predeploy of earlier devnets);
+ *  RollupX's L1 registry sits at the same address on Ethereum mainnet. */
 export const EEZ_L2_MANAGER: Address =
   "0x4B2760F84B83d6b3829E30A7573B0172B6d6402C";
 
@@ -37,5 +38,21 @@ export const EEZ_CHAINS: Record<number, EezChainInfo> = {
     rollupId: 2n,
     peerRollupId: 0n,
     peerChainId: 10200,
+  },
+  // RollupX, the EEZ team's devnet on Ethereum mainnet
+  // (https://rollupx.eez.dev): mainnet settles rollup 2, with the registry
+  // and the rollup's manager at the same address. From the network's
+  // dashboard config and `eez_composerInfo`, checked on chain (2026-11-10).
+  1: {
+    registry: EEZ_L2_MANAGER,
+    rollupId: 0n,
+    peerRollupId: 2n,
+    peerChainId: 696991,
+  },
+  696991: {
+    registry: EEZ_L2_MANAGER,
+    rollupId: 2n,
+    peerRollupId: 0n,
+    peerChainId: 1,
   },
 };

@@ -51,6 +51,14 @@ export interface TransactionAction {
    */
   rpcUrl?: string;
   /**
+   * The transaction composes with another chain (it calls a cross-chain
+   * proxy, or wraps a call that does). On a chain whose gateway is not the
+   * chain's own RPC (`ChainGatewayDef`: a settlement layer viem knows), only
+   * a transaction marked so is shown to the gateway for a price: an
+   * ordinary one is nobody else's business before it is broadcast.
+   */
+  crossChain?: boolean;
+  /**
    * The gas limit for the transaction (maximum gas units to consume).
    */
   gas?: bigint;

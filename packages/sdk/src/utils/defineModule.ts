@@ -10,7 +10,12 @@ import type {
 } from "../types";
 import { registerChains } from "./chains";
 import { isExperimentalEnabled } from "./experimental";
-import type { ArgType, ChainDef, ConfigDef, CustomArgTypes } from "./schema";
+import type {
+  ArgType,
+  ConfigDef,
+  CustomArgTypes,
+  ModuleChainDef,
+} from "./schema";
 
 /** A name to the function that fetches its code. */
 type LoaderMap = Readonly<Record<string, () => Promise<unknown>>>;
@@ -88,7 +93,7 @@ export function defineModule(
   types?: CustomArgTypes,
   constants?: Record<string, string>,
   configs?: ConfigDef[],
-  chains?: ChainDef[],
+  chains?: ModuleChainDef[],
 ): IModuleConstructor {
   // Chains a module ships become usable (`switch <id>`) as soon as the
   // module class exists, even before any of its commands load.

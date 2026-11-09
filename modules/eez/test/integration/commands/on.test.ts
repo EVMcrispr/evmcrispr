@@ -271,6 +271,10 @@ describeCommand("on", {
         ]);
         expect(isAddressEqual(call.to, await proxyOf(hop))).to.be.true;
         expect(setValueArg(call.data)).to.equal(2n);
+        // Only the crossing is shown to Chiado's gateway for a price.
+        expect(call.crossChain).to.equal(true);
+        expect(createRemote.crossChain).to.equal(undefined);
+        expect(createHome.crossChain).to.equal(undefined);
       },
     },
     {
@@ -311,7 +315,7 @@ describeCommand("on", {
     },
     {
       name: "refuses a chain that is not an EEZ chain",
-      script: `eez:on mainnet (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
+      script: `eez:on gnosis (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
       error: "not a known EEZ chain",
     },
     {

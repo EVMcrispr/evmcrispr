@@ -1,4 +1,4 @@
-import type { ChainDef } from "@evmcrispr/sdk";
+import type { ModuleChainDef } from "@evmcrispr/sdk";
 import { isExperimentalEnabled, registerChains } from "@evmcrispr/sdk";
 import type { ModuleLoader } from "./types";
 
@@ -22,7 +22,7 @@ export class ModuleRegistry {
     loader: ModuleLoader,
     description?: string,
     experimental?: boolean,
-    chains?: ChainDef[],
+    chains?: ModuleChainDef[],
   ): void {
     // Eager on purpose: a script may `switch` to a module's chain before
     // (or without) loading the module.

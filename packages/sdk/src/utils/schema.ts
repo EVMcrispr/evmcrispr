@@ -194,6 +194,25 @@ export interface ChainDef {
 }
 
 /**
+ * A gateway for a chain viem already knows, which the module gives one
+ * without declaring the chain again: viem's own definition (its contracts,
+ * explorers, formatters) stays the chain everyone uses.
+ */
+export interface ChainGatewayDef {
+  id: number;
+  gateway: string;
+  gatewayMaxFee?: string;
+}
+
+/** What a module's `src/chains.ts` lists: chains it ships, and gateways
+ *  for chains viem knows. */
+export type ModuleChainDef = ChainDef | ChainGatewayDef;
+
+export function isChainGatewayDef(def: ModuleChainDef): def is ChainGatewayDef {
+  return !("rpcUrl" in def);
+}
+
+/**
  * Coerce integer values (Num or bigint) passed where `bytes32` is expected
  * into a left-padded 32-byte hex string, mirroring Solidity's
  * `bytes32(uint256(...))` cast. Negative integers wrap two's-complement.

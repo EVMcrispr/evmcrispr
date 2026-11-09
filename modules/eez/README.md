@@ -24,8 +24,19 @@ Networks this module ships. They are available to `switch` as soon as the module
 
 | Chain | Key | Id | RPC | Explorer |
 |-------|-----|----|-----|----------|
-| Gnosis Chiado (testnet) | `gnosisChiado` | `10200` | <https://rpc.chiadochain.net> | <https://gnosis-chiado.blockscout.com> |
 | EEZ L2 (testnet) | `eezL2` | `699169` | <https://chiadox.eez.dev/composer/l2> | <https://chiadox.eez.dev/explorer> |
+| RollupX | `rollupX` | `696991` | <https://rollupx.eez.dev/composer/l2> | <https://rollupx.eez.dev/explorer> |
+
+## Gateways
+
+In a script that loads this module, a cross-chain transaction on these chains is priced by the gateway just before it is signed, sent at the quoted fees, and submitted there by a local key. Where the gateway is not the chain's own RPC, an ordinary transaction is not shown to it.
+
+| Chain id | Gateway |
+|----------|---------|
+| `10200` | <https://chiadox.eez.dev/composer/l1> |
+| `699169` | <https://chiadox.eez.dev/composer/l2> |
+| `1` | <https://rollupx.eez.dev/composer/l1> |
+| `696991` | <https://rollupx.eez.dev/composer/l2> |
 
 ## Commands
 

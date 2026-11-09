@@ -6,7 +6,8 @@
  * both chains) is unset, as in CI; set EEZ_DEVNET=0 to force-skip.
  */
 
-import { toViemChain } from "@evmcrispr/sdk";
+import type { ChainDef } from "@evmcrispr/sdk";
+import { isChainGatewayDef, toViemChain } from "@evmcrispr/sdk";
 import type {
   Account,
   Address,
@@ -40,7 +41,9 @@ export const L2_ROLLUP_ID = EEZ_CHAINS[L2_ID].rollupId;
 // The tests reach it through the EEZ composer, which also takes the
 // cross-chain transactions sent from L1.
 const L1_DEFAULT_RPC = "https://chiadox.eez.dev/composer/l1";
-const l2Def = chains.find((c) => c.id === L2_ID)!;
+const l2Def = chains.find(
+  (c): c is ChainDef => c.id === L2_ID && !isChainGatewayDef(c),
+)!;
 
 export const L1_RPC =
   process.env[`EVMCRISPR_RPC_URL_${L1_ID}`] ?? L1_DEFAULT_RPC;

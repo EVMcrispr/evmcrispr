@@ -994,10 +994,13 @@ function extractConfigs(mod: ModuleInfo): ConfigMeta[] {
 
 interface ChainMeta {
   id: number;
-  name: string;
-  rpcUrl: string;
+  /** Absent on a gateway-only entry (a chain viem knows). */
+  name?: string;
+  key?: string;
+  rpcUrl?: string;
   explorerUrl?: string;
   testnet?: boolean;
+  gateway?: string;
 }
 
 /** Load a module's shipped chains from its literal-only `src/chains.ts`. */
@@ -1077,7 +1080,8 @@ function generateModuleIndex(
     lines.push("");
   }
 
-  const chains = extractChains(mod);
+  const entries = extractChains(mod);
+  const chains = entries.filter((c) => c.rpcUrl !== undefined);
   if (chains.length > 0) {
     lines.push("## Chains");
     lines.push("");
@@ -1092,6 +1096,22 @@ function generateModuleIndex(
       lines.push(
         `| ${c.name}${c.testnet ? " (testnet)" : ""} | \`${c.key}\` | \`${c.id}\` | <${c.rpcUrl}> | ${explorer} |`,
       );
+    }
+    lines.push("");
+  }
+
+  const gateways = entries.filter((c) => c.gateway !== undefined);
+  if (gateways.length > 0) {
+    lines.push("## Gateways");
+    lines.push("");
+    lines.push(
+      "In a script that loads this module, a cross-chain transaction on these chains is priced by the gateway just before it is signed, sent at the quoted fees, and submitted there by a local key. Where the gateway is not the chain's own RPC, an ordinary transaction is not shown to it.",
+    );
+    lines.push("");
+    lines.push("| Chain id | Gateway |");
+    lines.push("|----------|---------|");
+    for (const c of gateways) {
+      lines.push(`| \`${c.id}\` | <${c.gateway}> |`);
     }
     lines.push("");
   }

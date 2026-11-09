@@ -90,6 +90,7 @@ describe("evml > execute > gateway pricing", () => {
       data: "0x1234",
       chainId,
       gas: 400_000n,
+      crossChain: true,
       ...extra,
     }) as TransactionAction;
 
@@ -211,6 +212,24 @@ describe("evml > execute > gateway pricing", () => {
     }).transaction(action(990001), ctx);
     expect(asked).to.have.lengthOf(0);
     expect(sent[0].maxFeePerGas).to.equal(undefined);
+  });
+
+  it("shows a third-party gateway only the transactions that cross chains", async () => {
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const { ctx, sent } = makeCtx();
+    // 990001's gateway is not its RPC: an ordinary transaction is not its
+    // business before it is broadcast.
+    await handlers.transaction(action(990001, { crossChain: undefined }), ctx);
+    expect(asked).to.have.lengthOf(0);
+    expect(sent[0].maxFeePerGas).to.equal(undefined);
+    // 990002's gateway is its own RPC: it sees every transaction anyway.
+    await handlers.transaction(action(990002, { crossChain: undefined }), ctx);
+    expect(asked).to.have.lengthOf(1);
+    expect(sent[1].maxPriorityFeePerGas).to.equal(10n);
   });
 
   it("keeps fees the action set, without asking", async () => {

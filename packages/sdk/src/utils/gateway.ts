@@ -1,9 +1,9 @@
 import type { Address, Hex } from "viem";
-import { registeredChain } from "./chains";
+import { registeredGateway } from "./chains";
 
 /** The chain's gateway (see `ChainDef.gateway`), if a module declared one. */
 export function chainGateway(chainId: number): string | undefined {
-  return registeredChain(chainId)?.gateway;
+  return registeredGateway(chainId)?.gateway;
 }
 
 /** Ceiling on what a quote may commit a transaction to when the chain
@@ -14,7 +14,7 @@ export const DEFAULT_GATEWAY_MAX_FEE = 10n ** 16n;
 
 /** The chain's ceiling on a quoted transaction's maximum fee, in wei. */
 export function chainGatewayMaxFee(chainId: number): bigint {
-  const declared = registeredChain(chainId)?.gatewayMaxFee;
+  const declared = registeredGateway(chainId)?.gatewayMaxFee;
   return declared !== undefined && /^\d+$/.test(declared)
     ? BigInt(declared)
     : DEFAULT_GATEWAY_MAX_FEE;
