@@ -27,6 +27,7 @@ frames:tx <block>
 | `--account` | `address` | Build time | Frame account the wallet signs for: it becomes the sender, and its checks are called |
 | `--paymaster` | `address` | Build time | Account that pays for the transaction |
 | `--paymaster-data` | `bytes` | Build time | Data of the paymaster's pay frame |
+| `--gas` | `number` | Build time | Execution gas of every call frame written without its own --gas |
 | `--state-gas` | `number` | Build time | State gas limit of every body frame (200000 by default) |
 | `--mempool` | `string` | Build time | `alt` or `canonical`; by default `alt` where the network has an alt mempool, else `canonical` |
 

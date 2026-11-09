@@ -44,11 +44,11 @@
 - Produces: `frameAccountAbi`, `frameAccountBytecode: Hex`, `frameSponsorAbi`, `frameSponsorBytecode: Hex` from `modules/frames/src/contracts/artifacts.ts`.
 - Contract behaviour: exactly the spec's "Contracts" section (FrameAccount `owner()`, `domainSeparator()`, `receive()`, `verify(uint8)`; FrameSponsor `owner()`, `sponsored()`, `receive()`, `verify()`, `withdraw(address,uint256)`).
 
-- [ ] **Step 1: Write the failing test** `the committed bytecode matches a fresh compile`: compile both sources with `compileSolidity(..., { optimizer: true })` and expect `bytecode` and `abi` to equal the committed ones; `the ABIs expose the spec's functions`: `verify(uint8)` selector `0xb2225351` on the account, `verify()` selector `0xfc735e99` on the sponsor.
-- [ ] **Step 2: Run** `cd modules/frames && bun test test/unit/contracts.test.ts`. Expected: FAIL (artifacts missing).
-- [ ] **Step 3: Implement** the sources, the build script and the generated artifacts (`bun run build:contracts`).
-- [ ] **Step 4: Run** the test and `bun run type-check` at the root. Expected: PASS.
-- [ ] **Step 5: Commit** `git commit -m "frame: account and sponsor contracts"`.
+- [x] **Step 1: Write the failing test** `the committed bytecode matches a fresh compile`: compile both sources with `compileSolidity(..., { optimizer: true })` and expect `bytecode` and `abi` to equal the committed ones; `the ABIs expose the spec's functions`: `verify(uint8)` selector `0xb2225351` on the account, `verify()` selector `0xfc735e99` on the sponsor.
+- [x] **Step 2: Run** `cd modules/frames && bun test test/unit/contracts.test.ts`. Expected: FAIL (artifacts missing).
+- [x] **Step 3: Implement** the sources, the build script and the generated artifacts (`bun run build:contracts`).
+- [x] **Step 4: Run** the test and `bun run type-check` at the root. Expected: PASS.
+- [x] **Step 5: Commit** `git commit -m "frame: account and sponsor contracts"`.
 
 ### Task 2: `frames:new-account` and `frames:new-sponsor`
 
@@ -63,17 +63,17 @@
 - Produces (`deploy.ts`): `deployInline(module, interpreters, initCode: Hex, value?: bigint): Promise<Address>`: sends `{ data: initCode, value, gas: 6_000_000n, chainId }` through `interpreters.actionCallback` (as `modules/giveth/src/utils/tx.ts` does), gets the receipt (the callback's result, or `getTransactionReceipt` by hash), throws unless `status === "success"` and `contractAddress` is set, returns `contractAddress`. Each command binds the variable with `module.bindingsManager.setBinding(variable, address, BindingsSpace.USER, true, undefined, true)` (as `contracts:deploy` does) and returns `[]`.
 - Both deploy on the current chain and refuse any chain but 1337 (the contracts only work there), naming the chain with `chainLabel`.
 
-- [ ] **Step 1: Write the failing tests**, interpreting scripts with a fake `actionCallback` that records the action and answers a receipt:
+- [x] **Step 1: Write the failing tests**, interpreting scripts with a fake `actionCallback` that records the action and answers a receipt:
   - `new-account deploys a FrameAccount owned by @me and binds the receipt's address`: the action's `data` starts with `frameAccountBytecode` and ends with the ABI-encoded owner; `gas` is `6_000_000n`; `$account` equals the receipt's `contractAddress`.
   - `new-sponsor deploys a FrameSponsor for the account, funded with --fund`: `value` is the `--fund` amount; constructor args `(owner, for)`.
   - `binds the receipt's address, not a predicted one`: the fake receipt's address differs from `getContractAddress(sender, nonce)`; the binding is the receipt's.
   - `refuses a reverted deployment`.
   - `needs an execution context with a wallet` (Review Focus 4): no `actionCallback` → `/needs .*wallet/`.
   - `refuses a chain other than 1337`.
-- [ ] **Step 2: Run** `cd modules/frames && bun test test/unit/new-commands.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement** `deploy.ts`, the two commands and their `.md` files (examples must pass `bun run validate-docs`), regenerate codegen.
-- [ ] **Step 4: Run** the module tests and `bun run type-check`. Expected: PASS.
-- [ ] **Step 5: Commit** `git commit -m "frame: new-account and new-sponsor commands"`.
+- [x] **Step 2: Run** `cd modules/frames && bun test test/unit/new-commands.test.ts`. Expected: FAIL.
+- [x] **Step 3: Implement** `deploy.ts`, the two commands and their `.md` files (examples must pass `bun run validate-docs`), regenerate codegen.
+- [x] **Step 4: Run** the module tests and `bun run type-check`. Expected: PASS.
+- [x] **Step 5: Commit** `git commit -m "frame: new-account and new-sponsor commands"`.
 
 ### Task 3: `frames:tx --account` and the generated check calls
 
@@ -86,14 +86,14 @@
 - `frames:tx` gains `--account <address>`. With it, the block runs inside `withSender(module, account, …)` (`@evmcrispr/sdk`), `LayoutInput.sender` is the account, and the action carries `account: { kind: "frame-account", owner: await module.getConnectedAccount() }` (the wallet, i.e. `@me`; use the module's existing accessor for the connected account).
 - Produces (`layout.ts`): `LayoutInput.accountChecks?: boolean`. When true: the generated self/only verify frame's `data` is `verify(uint8)` with its scope (3 or 2) and `gas` 40,000; when a `paymaster` is given without `paymasterData`, the pay frame's `data` is `0xfc735e99` and `gas` 50,000. Without `accountChecks` nothing changes (existing tests stay green).
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - layout `account checks call verify(scope)`: self-pay → frame 1 data `0xb2225351…03`, gas 40,000; with paymaster → frame 1 `…02`, frame 2 data `0xfc735e99`, gas 50,000.
   - layout `explicit paymaster data still wins`.
   - commands `tx --account makes the account the sender and marks the action`: `from` is the account, `account.owner` is `TEST_ACCOUNT_ADDRESS`, `@sender` inside the block is the account and `@me` the wallet.
-- [ ] **Step 2: Run** `cd modules/frames && bun test`. Expected: the new tests FAIL.
-- [ ] **Step 3: Implement**; update `tx.md`.
-- [ ] **Step 4: Run** the module tests and `bun run type-check`. Expected: PASS.
-- [ ] **Step 5: Commit** `git commit -m "frame: tx --account, with the account's and sponsor's checks"`.
+- [x] **Step 2: Run** `cd modules/frames && bun test`. Expected: the new tests FAIL.
+- [x] **Step 3: Implement**; update `tx.md`.
+- [x] **Step 4: Run** the module tests and `bun run type-check`. Expected: PASS.
+- [x] **Step 5: Commit** `git commit -m "frame: tx --account, with the account's and sponsor's checks"`.
 
 ### Task 4: One wallet-signed sender in viem-frames
 
@@ -122,18 +122,20 @@
   ```
   It: refuses if the wallet's address ≠ `owner` (Review Focus 1) or the account has no code (Review Focus 2); refuses any frame without limits (no sizing for accounts: message says to give `--gas` and `--state-gas`); fetches the account's pending nonce and the sidecar's fees; builds the transaction with one `ARBITRARY` entry; computes the sig hash; asks `wallet.signTypedData(frameAccountTypedData(account, sigHash))`; checks it recovers to `owner`; submits (`eth_sendFrameTransaction`, or raw for canonical); requires the returned hash to equal its own; waits for the receipt like the CLI handler (timeout → throws "admitted but not mined …").
 
-- [ ] **Step 1: Write the failing tests** with a `custom` sidecar transport (as `test/unit/client.test.ts`) and a local-account wallet client standing in for MetaMask:
+- [x] **Step 1: Write the failing tests** with a `custom` sidecar transport (as `test/unit/client.test.ts`) and a local-account wallet client standing in for MetaMask:
   - `asks the wallet for the frame account typed data and sends it in an ARBITRARY entry`: the typed data equals `frameAccountTypedData(account, sigHash)` with the Global Constraints values; the wire signature entry has scheme `0` and the 65-byte signature; the hash checks.
   - `refuses when the wallet is not the account's owner, before signing` (Review Focus 1).
   - `refuses an account with no code` (Review Focus 2).
   - `refuses frames without limits`.
   - `shows the mempool's refusal for an unfunded sponsor` (Review Focus 5): sidecar error text with an ESC is escaped and names the sponsor.
-- [ ] **Step 2: Run** `cd packages/viem-frames && bun test test/unit`. Expected: FAIL.
-- [ ] **Step 3: Implement**.
-- [ ] **Step 4: Run** viem-frames and `packages/cli` tests and `bun run type-check`. Expected: PASS.
-- [ ] **Step 5: Commit** `git commit -m "viem-frames: send a frame transaction from a wallet-signed account"`.
+- [x] **Step 2: Run** `cd packages/viem-frames && bun test test/unit`. Expected: FAIL.
+- [x] **Step 3: Implement**.
+- [x] **Step 4: Run** viem-frames and `packages/cli` tests and `bun run type-check`. Expected: PASS.
+- [x] **Step 5: Commit** `git commit -m "viem-frames: send a frame transaction from a wallet-signed account"`.
 
 ### Task 5: The CLI sends account frame actions
+
+> Superseded 2026-11-08: the CLI's frame work was removed (`2026-11-08-frames-in-module-design.md`); not done, on purpose.
 
 **Files:**
 - Modify: `packages/cli/src/lib/frame-handler.ts`, `packages/cli/src/commands/run.ts` (the frame handler is installed for `--wallet-rpc` runs too)
@@ -162,11 +164,11 @@
 - `frame` handler: `gated(...)` as today; an action with `account` → `sendAccountFrameTransaction({ wallet: ctx.walletClient, account: action.from, owner: action.account.owner, frames: action.frames, mempool: action.mempool, onLog: ctx.onLog })`, `ctx.onSent(hash)`; without `account` → the core refusal (unchanged).
 - Summary for an account frame action: title `Frame transaction from account <account>`; one line per frame (mode, scope, target, value, selector, limits); payer (the pay frame's target, else the account); the typed data to be requested (domain name, version, chain, verifying contract, `FrameTransaction(bytes32 sigHash)`), with every value escaped.
 
-- [ ] **Step 1: Write the failing tests**: `routes an account frame action to the wallet-signed sender` (a mock wallet; the typed data is asked once); `still refuses a plain frame action`; `the summary shows frames, payer and typed data`.
-- [ ] **Step 2: Run** the terminal tests (`cd apps/evmcrispr-terminal && bun test test/app` or the folder the existing tests use). Expected: FAIL.
-- [ ] **Step 3: Implement**.
-- [ ] **Step 4: Run** the terminal tests, `test/app/ui-conventions.test.ts`, and `bun run type-check`. Expected: PASS.
-- [ ] **Step 5: Commit** `git commit -m "terminal: send and review frame transactions from accounts"`.
+- [x] **Step 1: Write the failing tests**: `routes an account frame action to the wallet-signed sender` (a mock wallet; the typed data is asked once); `still refuses a plain frame action`; `the summary shows frames, payer and typed data`.
+- [x] **Step 2: Run** the terminal tests (`cd apps/evmcrispr-terminal && bun test test/app` or the folder the existing tests use). Expected: FAIL.
+- [x] **Step 3: Implement**.
+- [x] **Step 4: Run** the terminal tests, `test/app/ui-conventions.test.ts`, and `bun run type-check`. Expected: PASS.
+- [x] **Step 5: Commit** `git commit -m "terminal: send and review frame transactions from accounts"`.
 
 ### Task 7: The terminal's chain 1337 (experimental)
 
@@ -179,11 +181,11 @@
 **Interfaces:**
 - Produces: `ensureAltMempoolChain(wallet: WalletClient, gateway?: string): Promise<void>`: when the target chain is 1337 and the flag is on, first `wallet_addEthereumChain` with the gateway (chain id `0x539`, name `Alt-mempool devnet`, native ETH), then switch, then compare `eth_getBlockByNumber("latest")` hashes from the wallet and from the gateway (allow the wallet to be at most a few blocks behind: compare the wallet's block hash against the gateway's block of the same number); on mismatch throw `Your wallet's chain 1337 is not the alt-mempool devnet: set its RPC to https://altmempoolgateway.forshtat.com/rpc` before any transaction.
 
-- [ ] **Step 1: Write the failing tests**: `adds the gateway before switching to 1337`; `stops when the wallet's chain 1337 is not the gateway's` (Review Focus 3); `does nothing for other chains`; `chain 1337 is absent when the experimental flag is off`.
-- [ ] **Step 2: Run** the new tests. Expected: FAIL.
-- [ ] **Step 3: Implement**.
-- [ ] **Step 4: Run** the terminal tests and `bun run type-check`. Expected: PASS.
-- [ ] **Step 5: Commit** `git commit -m "terminal: chain 1337 for the alt-mempool devnet, checked"`.
+- [x] **Step 1: Write the failing tests**: `adds the gateway before switching to 1337`; `stops when the wallet's chain 1337 is not the gateway's` (Review Focus 3); `does nothing for other chains`; `chain 1337 is absent when the experimental flag is off`.
+- [x] **Step 2: Run** the new tests. Expected: FAIL.
+- [x] **Step 3: Implement**.
+- [x] **Step 4: Run** the terminal tests and `bun run type-check`. Expected: PASS.
+- [x] **Step 5: Commit** `git commit -m "terminal: chain 1337 for the alt-mempool devnet, checked"`.
 
 ### Task 8: Guide and the live demo run
 
@@ -192,8 +194,8 @@
 - Create: `packages/cli/test/frame-account-devnet.test.ts`
 - Generated: reference docs (`bun run scripts/generate-docs.ts`)
 
-- [ ] **Step 1: Write the live test**, skipped unless `EVMCRISPR_FRAME_DEVNET=1`: a throwaway key funded by the faucet runs the spec's demo script through `evmcrispr run --yes --experimental` with `EVMCRISPR_PRIVATE_KEY`, `EVMCRISPR_DEFAULT_CHAIN_ID=1337`, `EVMCRISPR_RPC_URL_1337=https://altmempoolgateway.forshtat.com/rpc`; assert the output has the admitted hash; if mined within the wait, the receipt's payer is the sponsor.
-- [ ] **Step 2: Run** it once for real. Expected: PASS; record the hash.
-- [ ] **Step 3: Write the guide section**: the two commands, `--account`, what MetaMask shows, the sponsor, the gas defaults (40,000 / 50,000; body frames need `--gas` and `--state-gas`), the MetaMask network note, experimental only. Every `evml` block passes `bun run validate-docs`.
-- [ ] **Step 4: Run** `bun run scripts/generate-docs.ts`, `bun run validate-docs`, `bun run type-check`. Expected: no errors.
-- [ ] **Step 5: Commit** `git commit -m "frame: smart-account guide and live demo run"`.
+- [ ] **Step 1: Write the live test** (superseded: no CLI frame sending; the live tests are `modules/frames` `test:devnet`), skipped unless `EVMCRISPR_FRAME_DEVNET=1`: a throwaway key funded by the faucet runs the spec's demo script through `evmcrispr run --yes --experimental` with `EVMCRISPR_PRIVATE_KEY`, `EVMCRISPR_DEFAULT_CHAIN_ID=1337`, `EVMCRISPR_RPC_URL_1337=https://altmempoolgateway.forshtat.com/rpc`; assert the output has the admitted hash; if mined within the wait, the receipt's payer is the sponsor.
+- [ ] **Step 2: Run** (superseded, see Step 1) it once for real. Expected: PASS; record the hash.
+- [x] **Step 3: Write the guide section**: the two commands, `--account`, what MetaMask shows, the sponsor, the gas defaults (40,000 / 50,000; body frames need `--gas` and `--state-gas`), the MetaMask network note, experimental only. Every `evml` block passes `bun run validate-docs`.
+- [x] **Step 4: Run** `bun run scripts/generate-docs.ts`, `bun run validate-docs`, `bun run type-check`. Expected: no errors.
+- [x] **Step 5: Commit** `git commit -m "frame: smart-account guide and live demo run"`.

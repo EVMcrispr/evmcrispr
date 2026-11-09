@@ -51,26 +51,26 @@
   - `DEVNET_STATE_FILE` = `node_modules/.cache/frame-devnet.json`, holding `{ mode: "quick" | "mining"; rpcUrl: string; chainId: number }`.
 - Produces (CLI): `bun scripts/frame-devnet.ts up quick|mining`, `down`, `status`, `rpc-url`. `rpc-url` prints only the URL (for scripts and tests).
 
-- [ ] **Step 1: Write the failing tests** in `scripts/test/frame-devnet-config.test.ts`:
+- [x] **Step 1: Write the failing tests** in `scripts/test/frame-devnet-config.test.ts`:
   - `devAccounts()[0].address` equals `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` and `[1]` equals `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` (anvil's #0 and #1; these two are the cross-check, the rest is derived).
   - `extendGenesis` on a small fixture `{ config: { chainId: 9 }, alloc: { "0xabc…": { balance: "0x1" } } }` keeps `alloc["0xabc…"]` deep-equal, adds ten entries with `balance` `0xd3c21bcecceda1000000`, leaves `config` deep-equal.
   - `extendGenesis` throws `/already funded with a different balance/` when an anvil address is in `alloc` with another balance.
   - Address keys are compared ignoring case and a `0x` prefix, and new keys are written in the format the fixture's existing keys use (one fixture with `0x`-prefixed keys, one without). Before writing the fixture, read the real file's key format: `docker run --rm --entrypoint cat ghcr.io/forshtat/eip8141-devnet@sha256:c9a7… /fixtures/genesis/l1-hegota.json | head -c 600`.
   - `kurtosisConfig(addresses)`: `network_params.heze_fork_epoch === 2`, `participants[0].el_image === "ethrex:local"`, `participants[0].cl_image === "ethpandaops/lighthouse:focil"`, and `JSON.parse(network_params.prefunded_accounts)` has the ten addresses each with `{ balance: "1000000ETH" }`.
-- [ ] **Step 2: Run** `bun test scripts/test/frame-devnet-config.test.ts`; expected FAIL (module not found).
-- [ ] **Step 3: Implement `scripts/frame-devnet-config.ts`** with the values in Global Constraints.
-- [ ] **Step 4: Run** the test again; expected PASS.
-- [ ] **Step 5: Implement `scripts/frame-devnet.ts`.**
+- [x] **Step 2: Run** `bun test scripts/test/frame-devnet-config.test.ts`; expected FAIL (module not found).
+- [x] **Step 3: Implement `scripts/frame-devnet-config.ts`** with the values in Global Constraints.
+- [x] **Step 4: Run** the test again; expected PASS.
+- [x] **Step 5: Implement `scripts/frame-devnet.ts`.**
   - `up quick`: read the genesis out of the pinned image (`docker run --rm --entrypoint cat <image> /fixtures/genesis/l1-hegota.json`), `extendGenesis`, write it to `node_modules/.cache/frame-devnet/l1-hegota.json`, start container `evmcrispr-frame-devnet` with that file mounted read-only at `/genesis.json`, wait up to 60 s for `eth_chainId`, write the state file.
   - `up mining`: `docker pull` + `docker tag` the EL image, `kurtosis engine start`, write `kurtosisConfig` to `node_modules/.cache/frame-devnet/kurtosis.json`, `kurtosis run --enclave evmcrispr-frames <package ref> --args-file <file>`, resolve the RPC with `kurtosis port print`, write the state file, then wait until the latest block's timestamp is past genesis + 384 s + 12 s (print progress every minute; fail after 15 minutes or 90 s without a new block).
   - `down`: `docker rm -f evmcrispr-frame-devnet` and `kurtosis enclave rm evmcrispr-frames --force`, delete the state file.
   - `status`: chain id, latest block, anvil #0's balance.
   - Refuse to start on a non-amd64 host with a message naming the images.
-- [ ] **Step 6: Verify by hand** (stop any probe containers first: `docker rm -f evmcrispr-ethrex-probe; kurtosis enclave rm evmcrispr-frames --force`):
+- [x] **Step 6: Verify by hand** (stop any probe containers first: `docker rm -f evmcrispr-ethrex-probe; kurtosis enclave rm evmcrispr-frames --force`):
   - `bun run devnet:frames up quick` then `bun run devnet:frames status` → chain id `9`, block `0`, anvil #0 balance `1000000 ETH`.
   - `bun run devnet:frames up mining` (≈ 7 min) then `status` → chain id `3151908`, block > 64, anvil #0 balance `1000000 ETH`.
   - `bun run devnet:frames down` → both gone (`docker ps`, `kurtosis enclave ls`).
-- [ ] **Step 7: Commit** `git add scripts/frame-devnet.ts scripts/frame-devnet-config.ts scripts/test/frame-devnet-config.test.ts package.json && git commit --no-verify -m "scripts: frame devnets, quick and mining, with anvil accounts funded"`
+- [x] **Step 7: Commit** `git add scripts/frame-devnet.ts scripts/frame-devnet-config.ts scripts/test/frame-devnet-config.test.ts package.json && git commit --no-verify -m "scripts: frame devnets, quick and mining, with anvil accounts funded"`
 
 ### Task 2: A contract build that resolves OpenZeppelin
 
@@ -81,11 +81,11 @@
 **Interfaces:**
 - Produces: `compileFrameContract(name: string, source: string): { abi: Abi; bytecode: Hex }` — solc-js 0.8.28 (`solc` devDependency), `evmVersion: "cancun"`, optimizer on, 200 runs, no viaIR (the settings `compileSolidity` uses today, so v1 bytecode is unchanged); imports starting `@forshtat/hegota-support/` resolve to that package's files, `@openzeppelin/contracts/` to that package's; anything else is an error naming the import.
 
-- [ ] **Step 1: Switch `contracts.test.ts`'s "the committed bytecode matches a fresh compile"** to `compileFrameContract`; run `bun test test/unit/contracts.test.ts` in `modules/frames` → FAIL (module not found).
-- [ ] **Step 2: Implement `compileFrameContract`**; point `build-contracts.ts` at it; `bun install`.
-- [ ] **Step 3: Run** the test → PASS with the committed v1 artifacts unchanged (same settings, same compiler).
-- [ ] **Step 4: Add a test** that compiling a source importing `@openzeppelin/contracts/proxy/Clones.sol` succeeds and one importing `forge-std/Test.sol` throws `/cannot import "forge-std\/Test.sol"/`. Run → PASS.
-- [ ] **Step 5: Commit** `git commit --no-verify -m "frames: compile contracts with OpenZeppelin imports"` (the files above and `bun.lock`).
+- [x] **Step 1: Switch `contracts.test.ts`'s "the committed bytecode matches a fresh compile"** to `compileFrameContract`; run `bun test test/unit/contracts.test.ts` in `modules/frames` → FAIL (module not found).
+- [x] **Step 2: Implement `compileFrameContract`**; point `build-contracts.ts` at it; `bun install`.
+- [x] **Step 3: Run** the test → PASS with the committed v1 artifacts unchanged (same settings, same compiler).
+- [x] **Step 4: Add a test** that compiling a source importing `@openzeppelin/contracts/proxy/Clones.sol` succeeds and one importing `forge-std/Test.sol` throws `/cannot import "forge-std\/Test.sol"/`. Run → PASS.
+- [x] **Step 5: Commit** `git commit --no-verify -m "frames: compile contracts with OpenZeppelin imports"` (the files above and `bun.lock`).
 
 ### Task 3: FrameAccount and its factory
 
@@ -114,17 +114,17 @@
   - `deploymentTransactions(): { to: Address; data: Hex }[]` — implementation, then factory, each `salt ‖ initCode` to the deployer.
   - `predictAccountAddress(owner: Address, salt: bigint): Address` — the clone's CREATE2 address computed in TS (OpenZeppelin's clone-with-immutable-args init code: `0x61` ‖ uint16(0x2d + args.length) ‖ `3d81600a3d39f3363d3d373d3d3d363d73` ‖ implementation ‖ `5af43d82803e903d91602b57fd5bf3` ‖ args).
 
-- [ ] **Step 1: Write the integration tests** (`test/integration/account.test.ts`, anvil gnosis fork, deploy through `deploymentTransactions()` from `TEST_ACCOUNT`):
+- [x] **Step 1: Write the integration tests** (`test/integration/account.test.ts`, anvil gnosis fork, deploy through `deploymentTransactions()` from `TEST_ACCOUNT`):
   - `predictAccountAddress(owner, salt)` equals `factory.getAddress(owner, salt)` for owners anvil #0 and #1 and salts `0n`, `1n`, `2n**255n`.
   - `createAccount` twice returns the same address and deploys once (one `AccountCreated` log); `owner()` of the clone equals the owner; `accountId()` equals `evmcrispr.frame-account.2.0.0`.
   - `execute` with a batch of two transfers, called by the account itself (`anvil_impersonateAccount` the clone), moves both; called by anyone else reverts; a delegatecall mode reverts `UnsupportedExecutionMode`.
   - `installModule(2, executor, "0x")` from the account, then `isModuleInstalled(2, executor, "0x")` true and `executeFromExecutor` from `executor` works; `installModule(1, …)` reverts `UnsupportedModuleType(1)`.
   - ERC-7739: owner #0 signs a message for account A (`viem/experimental/erc7739` `signMessage` with `verifier` A); A's `isValidSignature` returns `0x1626ba7e`, account B (same owner, salt 1) returns `0xffffffff`; a high-`s` variant of the inner signature returns `0xffffffff`.
-- [ ] **Step 2: Run** `bun scripts/run-integration-tests.ts frames` → FAIL (contracts missing).
-- [ ] **Step 3: Write the contracts** per the Interfaces; add the factory to `build-contracts.ts`; `bun run build:contracts`; write `addresses.ts`.
-- [ ] **Step 4: Update `test/unit/contracts.test.ts`**: compile-matches-committed for both contracts; `frameAccountAbi` contains `verify(uint8)` (`0xb2225351`), `execute(bytes32,bytes)`, `isValidSignature(bytes32,bytes)`, `accountId()`; replace the v1 source-regex test of low `s` / `v` with the integration test above (OpenZeppelin `ECDSA` enforces both).
-- [ ] **Step 5: Run** unit and integration tests → PASS. Note in the commit body nothing; record the implementation's and a clone's runtime sizes in the PR notes for Task 6.
-- [ ] **Step 6: Commit** `git commit --no-verify -m "frames: frame account, a factory of clones with ERC-7579 and ERC-7739"`
+- [x] **Step 2: Run** `bun scripts/run-integration-tests.ts frames` → FAIL (contracts missing).
+- [x] **Step 3: Write the contracts** per the Interfaces; add the factory to `build-contracts.ts`; `bun run build:contracts`; write `addresses.ts`.
+- [x] **Step 4: Update `test/unit/contracts.test.ts`**: compile-matches-committed for both contracts; `frameAccountAbi` contains `verify(uint8)` (`0xb2225351`), `execute(bytes32,bytes)`, `isValidSignature(bytes32,bytes)`, `accountId()`; replace the v1 source-regex test of low `s` / `v` with the integration test above (OpenZeppelin `ECDSA` enforces both).
+- [x] **Step 5: Run** unit and integration tests → PASS. Note in the commit body nothing; record the implementation's and a clone's runtime sizes in the PR notes for Task 6.
+- [x] **Step 6: Commit** `git commit --no-verify -m "frames: frame account, a factory of clones with ERC-7579 and ERC-7739"`
 
 ### Task 4: viem-frames on any frame chain, canonical mempool without a sidecar
 
@@ -136,10 +136,10 @@
 - `sendFrameTransactionWithArbitrarySignature` gains `chain?: Chain` (default `altMempoolDevnet`; its id goes into the transaction, its explorer, when it has one, into the not-mined error) and reads fees from the sidecar (`skandha_getGasPrice`) when `mempool === "alt"`, from the node (viem `estimateFeesPerGas`) when `"canonical"`; the sidecar status call is skipped for `"canonical"`.
 - `frameAccountTypedData(account: Address, sigHash: Hex, chainId: number)` (chain id now required); `sendAccountFrameTransaction` gains `chain?: Chain` and passes it on.
 
-- [ ] **Step 1: Tests (viem-frames):** with a gateway mock answering `eth_chainId` `0x301824`, `eth_feeHistory`/`eth_maxPriorityFeePerGas` and no `skandha_*`, `send(g, { chain: kurtosisChain, mempool: "canonical" })` sends `eth_sendRawTransaction` whose decoded `chainId` is `3151908n`, and `g.methods()` contains no `skandha_` method. With `mempool: "alt"` the existing tests pass unchanged.
-- [ ] **Step 2: Tests (frames):** `frameAccountTypedData(A, h, 3151908).domain.chainId === 3151908`; `sendAccountFrameTransaction({ …, chain })` asks typed data with that chain id.
-- [ ] **Step 3: Run** both → FAIL. **Step 4: Implement.** **Step 5: Run** both → PASS; `bun run type-check` in both packages and the terminal (rebuild `modules/frames` types with `bun run types` first).
-- [ ] **Step 6: Commit** `git commit --no-verify -m "viem-frames: any frame chain, canonical fees from the node"`
+- [x] **Step 1: Tests (viem-frames):** with a gateway mock answering `eth_chainId` `0x301824`, `eth_feeHistory`/`eth_maxPriorityFeePerGas` and no `skandha_*`, `send(g, { chain: kurtosisChain, mempool: "canonical" })` sends `eth_sendRawTransaction` whose decoded `chainId` is `3151908n`, and `g.methods()` contains no `skandha_` method. With `mempool: "alt"` the existing tests pass unchanged.
+- [x] **Step 2: Tests (frames):** `frameAccountTypedData(A, h, 3151908).domain.chainId === 3151908`; `sendAccountFrameTransaction({ …, chain })` asks typed data with that chain id.
+- [x] **Step 3: Run** both → FAIL. **Step 4: Implement.** **Step 5: Run** both → PASS; `bun run type-check` in both packages and the terminal (rebuild `modules/frames` types with `bun run types` first).
+- [x] **Step 6: Commit** `git commit --no-verify -m "viem-frames: any frame chain, canonical fees from the node"`
 
 ### Task 5: `frames:new-account` through the factory, and `@frames:account`
 
@@ -155,15 +155,15 @@
 - `frames:new-account <variable> [--owner <address>] [--salt <number>]`: when `FACTORY_ADDRESS` has no code, sends `deploymentTransactions()` first (one transaction each, through the host's wallet, waiting for each receipt); when the predicted account has no code, sends `createAccount(owner, salt)` to the factory; binds `predictAccountAddress(owner, salt)` after checking it has code. `--salt` is a non-negative integer below 2^256 (`gasOption`-style error: `--salt must be a non-negative integer below 2^256`).
 - `@frames:account(owner [salt])` → the predicted address, no transaction (`optional: true` on `salt`, default 0).
 
-- [ ] **Step 1: Tests** (`new-commands.test.ts`, with an `actionCallback` that records actions and answers receipts, and a mocked `getCode`):
+- [x] **Step 1: Tests** (`new-commands.test.ts`, with an `actionCallback` that records actions and answers receipts, and a mocked `getCode`):
   - factory missing, account missing → three actions: to the deployer (implementation), to the deployer (factory), to the factory (`createAccount(owner, 0)`); the variable equals `predictAccountAddress(owner, 0n)`.
   - factory present, account missing → one action; account present → no action, still bound.
   - `--salt 7` → `createAccount(owner, 7)`; `--salt -1` → the salt error.
   - on chain 100 → the refusal naming Gnosis and the three chains.
   - `@frames:account(@me)` equals `predictAccountAddress(TEST_ACCOUNT_ADDRESS, 0n)` and `@frames:account(@me 3)` with salt 3; no action is sent.
-- [ ] **Step 2: Run** `bun run test:unit` in `modules/frames` → FAIL. **Step 3: Implement**, `bun run codegen`. **Step 4: Run** → PASS; `bun run scripts/validate-docs.ts` from the repo root → 0 errors.
-- [ ] **Step 5: Docs:** `new-account.md` (factory, salt, idempotence, predicted address), `account.md` (the helper, an example funding an account before creating it), the guide's "From a smart account" section (the same, and: accounts made before the factory are devnet leftovers, create a new one).
-- [ ] **Step 6: Commit** `git commit --no-verify -m "frames: new-account through the factory, @frames:account"`
+- [x] **Step 2: Run** `bun run test:unit` in `modules/frames` → FAIL. **Step 3: Implement**, `bun run codegen`. **Step 4: Run** → PASS; `bun run scripts/validate-docs.ts` from the repo root → 0 errors.
+- [x] **Step 5: Docs:** `new-account.md` (factory, salt, idempotence, predicted address), `account.md` (the helper, an example funding an account before creating it), the guide's "From a smart account" section (the same, and: accounts made before the factory are devnet leftovers, create a new one).
+- [x] **Step 6: Commit** `git commit --no-verify -m "frames: new-account through the factory, @frames:account"`
 
 ### Task 6: Live end to end on the mining devnet
 
@@ -175,12 +175,12 @@
 - Consumes: `bun scripts/frame-devnet.ts rpc-url` (Task 1), `deploymentTransactions`, `predictAccountAddress`, `FACTORY_ADDRESS` (Task 3), `sendAccountFrameTransaction({ chain, mempool: "canonical" })` (Task 4), `layoutFrames` and `requireLimits` (existing, `modules/frames/src/layout.ts`).
 - The test is skipped unless `EVMCRISPR_FRAME_DEVNET=1`; it reads the RPC from the state file and refuses to run if the chain id is not 3151908.
 
-- [ ] **Step 1: Write the test.** With anvil #0 as owner and sender of ordinary transactions (viem wallet client, `defineChain({ id: 3151908, … })`):
+- [x] **Step 1: Write the test.** With anvil #0 as owner and sender of ordinary transactions (viem wallet client, `defineChain({ id: 3151908, … })`):
   1. deploy implementation and factory when missing; `createAccount(owner, 0)`; fund the account with 1 ETH;
   2. lay out `frames:tx --account` frames for one SENDER frame sending 1 wei to `0x000000000000000000000000000000000000dEaD` (`gas: 50_000n`, `stateGas: 200_000n`) with `layoutFrames({ accountChecks: true, … })`;
   3. **checkpoint:** sign the unsigned transaction's typed data and run `ethrex_simulateFrameTransaction` (viem-frames `simulate`) → expect `executionStatus: "success"`, `canonicalMempoolValid: true`, and the account's verify frame's `gasUsed` below `ACCOUNT_CHECK_GAS` (40,000, `modules/frames/src/layout.ts`; v1 used about 15,000). If it is not below, raise `ACCOUNT_CHECK_GAS` to the measured value ×1.25 rounded up to a thousand, with a comment giving the measurement and date;
   4. `sendAccountFrameTransaction({ mempool: "canonical", chain, … })` → receipt `status: "success"`, `payer` = the account, every `frameReceipts[i].status === "success"`, `0xdEaD`'s balance up by 1 wei.
-- [ ] **Step 2: Run** `bun run devnet:frames up mining`, then `bun run test:devnet` in `modules/frames` → PASS.
+- [x] **Step 2: Run** `bun run devnet:frames up mining`, then `bun run test:devnet` in `modules/frames` → PASS.
   - **If the checkpoint shows `canonicalMempoolValid: false`**, record `canonicalMempoolViolation` and stop: report it to the owner with the two fallbacks (a whole contract per account through the factory, no clone; or validation without the delegatecall chain) rather than choosing one.
-- [ ] **Step 3: Final verification** (the commits skipped the hook): from the repo root `bun run type-check`, `biome check .`, `bun test:unit`, `bun scripts/run-integration-tests.ts frames sim`, `bun run scripts/validate-docs.ts`, `bun run test:devnet` in `modules/frames`. All pass.
-- [ ] **Step 4: Commit** `git commit --no-verify -m "frames: live frame account test on the mining devnet"`. Do not push; regroup with the existing history only when the owner asks to push.
+- [x] **Step 3: Final verification** (the commits skipped the hook): from the repo root `bun run type-check`, `biome check .`, `bun test:unit`, `bun scripts/run-integration-tests.ts frames sim`, `bun run scripts/validate-docs.ts`, `bun run test:devnet` in `modules/frames`. All pass.
+- [x] **Step 4: Commit** `git commit --no-verify -m "frames: live frame account test on the mining devnet"`. Do not push; regroup with the existing history only when the owner asks to push.

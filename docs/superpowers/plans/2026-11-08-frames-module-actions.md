@@ -49,13 +49,13 @@
   - `defineAction<D>(module: string, kind: string, def: ModuleActionDef<D>): ModuleActionDef<D> & { module: string; kind: string; create(fields: { chainId: number; from: Address; data: D }): ModuleAction<D> }` — `create` fills `type`, `module`, `kind` and `description: def.describe(...)`.
   - `IModuleConstructor.actions?: Record<string, ModuleActionDef<any>>` (keyed by kind)
 
-- [ ] **Step 1: Write the failing test** `module-actions.test.ts`:
+- [x] **Step 1: Write the failing test** `module-actions.test.ts`:
   - `"create() makes a module action described by its module"`: a `defineAction<{ n: bigint }>("probe", "ping", { describe: (a) => ({ title: \`ping ${a.data.n}\`, detail: "d", meta: "m", steps: [], notes: [] }), send: async () => "sent" })`; `create({ chainId: 100, from: A, data: { n: 7n } })` equals `{ type: "module", module: "probe", kind: "ping", chainId: 100, from: A, data: { n: 7n }, description: { title: "ping 7", … } }`.
   - `"isModuleAction tells a module action from the others"`: true for the created one; false for `{ type: "batched", … }`, for a transaction action `{ to, data }`.
-- [ ] **Step 2: Run** `cd packages/sdk && bun test test/unit/module-actions.test.ts` — Expected: FAIL, `defineAction` not exported.
-- [ ] **Step 3: Implement** the Produces block. `FrameAction` stays in the union for now (Task 3 removes it).
-- [ ] **Step 4: Run** the test and `bunx tsc --noEmit -p packages/sdk` — Expected: PASS, no type errors.
-- [ ] **Step 5: Commit** `sdk: actions a module owns, described when made`
+- [x] **Step 2: Run** `cd packages/sdk && bun test test/unit/module-actions.test.ts` — Expected: FAIL, `defineAction` not exported.
+- [x] **Step 3: Implement** the Produces block. `FrameAction` stays in the union for now (Task 3 removes it).
+- [x] **Step 4: Run** the test and `bunx tsc --noEmit -p packages/sdk` — Expected: PASS, no type errors.
+- [x] **Step 5: Commit** `sdk: actions a module owns, described when made`
 
 ### Task 2: Core dispatch of module actions
 
@@ -70,17 +70,17 @@
 
 The default handler: `const loader = registry.get(action.module)`; none → throw `` `No module "${module}" is loaded here to send its ${kind} actions: this host cannot send them` ``; `(await loader()).default.actions?.[action.kind]` none → `` `The ${module} module has no "${kind}" action to send` ``; else `def.send(action, ctx)`. `makeDefaultHandlers` takes the registry in its env (`ExecutorEnv.registry?: ModuleRegistry`); without one, the first error.
 
-- [ ] **Step 1: Write the failing tests** in `execute-module-action.test.ts`, each running `executeScript("load probe\nprobe:ping 7", registry, …)` with the probe module registered:
+- [x] **Step 1: Write the failing tests** in `execute-module-action.test.ts`, each running `executeScript("load probe\nprobe:ping 7", registry, …)` with the probe module registered:
   - `"the module sends its action"`: the probe's `send` got the action with `data.n === 7n`; `executed[0].result` is its return value.
   - `"a wrapping handler gates it and passes it on"`: `handlers.module` records the action, then `ctx.next(action)`; both the wrapper and `send` saw it, in that order.
   - `"a host without the module refuses it by name"`: `makeDefaultHandlers({ account, maximizeGasLimit: false }).module(action, ctx)` rejects with `No module "probe" is loaded here to send its ping actions`.
   - `"an unknown kind is refused by name"`: action with `kind: "pong"` → `The probe module has no "pong" action to send`.
   - `"$> $tx captures what send returned"`: `probe:ping 7 $> $tx` then `print $tx`… use the capture form the existing `actionCallback.test.ts` uses for a transaction receipt; the captured value's hash is the probe's.
   - in `worker.test.ts`, `"a module action crosses the worker and is sent by the main thread's module"`: worker evml with `modules: [probeEntry]`; the main-thread `send` receives `data.n` as the bigint `7n`.
-- [ ] **Step 2: Run** `cd packages/core && bun test test/unit/evml/execute-module-action.test.ts test/unit/evml/worker.test.ts` — Expected: FAIL (`module` handler missing).
-- [ ] **Step 3: Implement** the Produces block; `frame` stays until Task 3.
-- [ ] **Step 4: Run** the same tests and `bun test` in `packages/core` — Expected: PASS.
-- [ ] **Step 5: Commit** `core: send a module's actions through the module`
+- [x] **Step 2: Run** `cd packages/core && bun test test/unit/evml/execute-module-action.test.ts test/unit/evml/worker.test.ts` — Expected: FAIL (`module` handler missing).
+- [x] **Step 3: Implement** the Produces block; `frame` stays until Task 3.
+- [x] **Step 4: Run** the same tests and `bun test` in `packages/core` — Expected: PASS.
+- [x] **Step 5: Commit** `core: send a module's actions through the module`
 
 ### Task 3: The frames module owns its frame action
 
@@ -103,11 +103,11 @@ Rulings this plan makes (record them in the ledger as made):
 - A plain sender's frame action is refused by the module: `A frame transaction from a plain address cannot be sent yet: send it from a frame account (frames:tx --account)`. It was core's refusal; the CLI now sends a frame account's transaction with its `--wallet-rpc` wallet (spec section 1: the default handler sends what a module owns).
 - `sim:fork` refuses any module action: `` `sim:fork cannot simulate ${module}'s ${kind} actions yet: they would not run in the fork. Move them out of it.` `` (step 6 adds the extension point).
 
-- [ ] **Step 1: Move the tests first.** `send.test.ts`: the terminal's frame-handler cases, calling `frameAction.send(action, ctx)` with the gateway as `ctx.transports[1337]` (the `frameGateway()` helper moves to `modules/frames/test/helpers/frame-gateway.ts`); plus `"a plain sender is refused"` with the text above. `describe.test.ts`: the action-summary frame cases against `describeFrameAction`, asserting raw (unescaped) strings. `commands.test.ts`: `frames:tx` returns `{ type: "module", module: "frames", kind: "frame", data: { frames, mempool, account } }` with a description whose title is `Frame transaction from account <address>`. Sim: `frames:tx` inside `sim:fork` rejects with `sim:fork cannot simulate frames's frame actions yet`.
-- [ ] **Step 2: Run** `cd modules/frames && bun test test/unit` and the sim test — Expected: FAIL (no `actions`, `frames:tx` returns `type: "frame"`).
-- [ ] **Step 3: Implement** the files above; delete the SDK's frame types and core's `frame` handler; fix every importer the type-check names.
-- [ ] **Step 4: Run** frames unit, `bun run test:integration` for frames, the sim test, and `bunx turbo run type-check` — Expected: PASS. The opt-in devnet test still passes with `EVMCRISPR_FRAME_DEVNET=1` (it imports `layout` and `account`, not the SDK types).
-- [ ] **Step 5: Commit** `frames: the module owns its frame action, described and sent by it`
+- [x] **Step 1: Move the tests first.** `send.test.ts`: the terminal's frame-handler cases, calling `frameAction.send(action, ctx)` with the gateway as `ctx.transports[1337]` (the `frameGateway()` helper moves to `modules/frames/test/helpers/frame-gateway.ts`); plus `"a plain sender is refused"` with the text above. `describe.test.ts`: the action-summary frame cases against `describeFrameAction`, asserting raw (unescaped) strings. `commands.test.ts`: `frames:tx` returns `{ type: "module", module: "frames", kind: "frame", data: { frames, mempool, account } }` with a description whose title is `Frame transaction from account <address>`. Sim: `frames:tx` inside `sim:fork` rejects with `sim:fork cannot simulate frames's frame actions yet`.
+- [x] **Step 2: Run** `cd modules/frames && bun test test/unit` and the sim test — Expected: FAIL (no `actions`, `frames:tx` returns `type: "frame"`).
+- [x] **Step 3: Implement** the files above; delete the SDK's frame types and core's `frame` handler; fix every importer the type-check names.
+- [x] **Step 4: Run** frames unit, `bun run test:integration` for frames, the sim test, and `bunx turbo run type-check` — Expected: PASS. The opt-in devnet test still passes with `EVMCRISPR_FRAME_DEVNET=1` (it imports `layout` and `account`, not the SDK types).
+- [x] **Step 5: Commit** `frames: the module owns its frame action, described and sent by it`
 
 ### Task 4: The terminal sends and reviews module actions
 
@@ -122,12 +122,12 @@ Rulings this plan makes (record them in the ledger as made):
 **Interfaces:**
 - Consumes: Task 3's `frameAction.create`, `ModuleAction`.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `action-summary.test.ts` `"a module action is shown as its module describes it, escaped"`: a probe module action whose description title holds `"a‮b"` and one step with a call; the summary's title shows `a\u{202E}b`, its step's `call` is decoded (`to` and `value` as `describeCall` gives them), `notes` kept.
   - `handlers.test.ts` `"a module action reaches the wallet"`: `reachesWallet(frameAction.create(...)) === true`.
   - `run-manager.test.ts`: the existing frame-account run passes with the frame action now a module action and sent by the module (review held, then sent through the gateway).
-- [ ] **Step 2: Run** `cd apps/evmcrispr-terminal && bun test test/runs` — Expected: FAIL.
-- [ ] **Step 3: Implement** the files above.
-- [ ] **Step 4: Run** `bun test test/runs test/app` (includes `foreign-writers` and `ui-conventions`), `bunx turbo run type-check`, biome, `bun run test:unit` — Expected: PASS.
-- [ ] **Step 5: Commit** `terminal: send and review module actions; the frame handler goes`
-- [ ] **Step 6: Docs.** AGENTS.md "Key Patterns" gains: actions a module owns (`src/actions.ts`, `defineAction`, `static readonly actions`, described when made, sent through core's `module` handler). The frames guide's line on where frame transactions can be sent says the CLI sends a frame account's with `--wallet-rpc`. Run `bun run scripts/validate-docs.ts`. Commit `docs: actions a module owns`.
+- [x] **Step 2: Run** `cd apps/evmcrispr-terminal && bun test test/runs` — Expected: FAIL.
+- [x] **Step 3: Implement** the files above.
+- [x] **Step 4: Run** `bun test test/runs test/app` (includes `foreign-writers` and `ui-conventions`), `bunx turbo run type-check`, biome, `bun run test:unit` — Expected: PASS.
+- [x] **Step 5: Commit** `terminal: send and review module actions; the frame handler goes`
+- [x] **Step 6: Docs.** AGENTS.md "Key Patterns" gains: actions a module owns (`src/actions.ts`, `defineAction`, `static readonly actions`, described when made, sent through core's `module` handler). The frames guide's line on where frame transactions can be sent says the CLI sends a frame account's with `--wallet-rpc`. Run `bun run scripts/validate-docs.ts`. Commit `docs: actions a module owns`.

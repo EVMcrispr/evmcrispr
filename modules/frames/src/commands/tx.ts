@@ -1,11 +1,91 @@
-import type { Action, BlockExpressionNode } from "@evmcrispr/sdk";
-import { defineCommand, ErrorException, withSender } from "@evmcrispr/sdk";
+import type {
+  Action,
+  BatchedAction,
+  BlockExpressionNode,
+} from "@evmcrispr/sdk";
+import {
+  defineCommand,
+  ErrorException,
+  isSmartBatchAction,
+  withSender,
+} from "@evmcrispr/sdk";
+import {
+  ERC7579_SMART_ABI,
+  lowerSmartBatch,
+  verifySmartDeployment,
+} from "@evmcrispr/sdk/onchain";
 import { frameSidecarOf } from "@evmcrispr/viem-frames";
-import type { Address } from "viem";
+import { type Address, isAddressEqual } from "viem";
 import type Frames from "..";
 import { frameAction } from "../actions";
 import { gasOption, layoutFrames, requireLimits } from "../layout";
 import { frameNetwork } from "../networks";
+
+/**
+ * A smart batch (`batch !(...)`) in the block, as the frames that run it: a
+ * frame account calls the composable executor it installed (ERC-7579, type
+ * 2), which calls back the account's `executeFromExecutor`. Its frames are
+ * one atomic group.
+ */
+async function lowerSmartBatches(
+  module: Frames,
+  actions: Action[],
+  account: Address | undefined,
+  chainId: number,
+): Promise<Action[]> {
+  if (!actions.some(isSmartBatchAction)) return actions;
+  const out: Action[] = [];
+  for (const action of actions) {
+    if (!isSmartBatchAction(action)) {
+      out.push(action);
+      continue;
+    }
+    if (!account)
+      throw new ErrorException(
+        "A smart batch (batch !(...)) runs through an ERC-7579 account: send the frame transaction from one with --account",
+      );
+    const { plan } = action;
+    if (!isAddressEqual(plan.account, account) || plan.chainId !== chainId)
+      throw new ErrorException(
+        `The smart batch runs from ${plan.account}, not the frame account ${account}: write it inside the frames:tx --account block`,
+      );
+    if (plan.route !== "executor")
+      throw new ErrorException(
+        "Only the executor route of a smart batch runs in a frame transaction",
+      );
+    const client = await module.getClient();
+    await verifySmartDeployment(client, plan);
+    const installed = await client
+      .readContract({
+        address: account,
+        abi: ERC7579_SMART_ABI,
+        functionName: "isModuleInstalled",
+        args: [2n, plan.executor, "0x"],
+      })
+      .catch(() => false);
+    if (!installed)
+      throw new ErrorException(
+        `The frame account ${account} has not installed the smart-batch executor ${plan.executor}: install it first, in a frames:tx --account block, with exec ${account} "installModule(uint256,address,bytes)" 2 ${plan.executor} @bytes("" utf8)`,
+      );
+    const lowered = lowerSmartBatch(plan).map((call) => ({
+      ...call,
+      operation: undefined,
+      from: account,
+      chainId,
+    }));
+    out.push(
+      lowered.length === 1
+        ? lowered[0]!
+        : ({
+            type: "batched",
+            from: account,
+            chainId,
+            actions: lowered,
+          } as BatchedAction),
+    );
+  }
+  return out;
+}
 
 export default defineCommand<Frames>({
   smartSupport: {
@@ -42,6 +122,12 @@ export default defineCommand<Frames>({
       description: "Data of the paymaster's pay frame",
     },
     {
+      name: "gas",
+      type: "number",
+      description:
+        "Execution gas of every call frame written without its own --gas",
+    },
+    {
       name: "state-gas",
       type: "number",
       description: "State gas limit of every body frame (200000 by default)",
@@ -72,6 +158,8 @@ export default defineCommand<Frames>({
       opts["state-gas"] === undefined
         ? undefined
         : gasOption(opts["state-gas"], "--state-gas");
+    const gas =
+      opts.gas === undefined ? undefined : gasOption(opts.gas, "--gas");
 
     const account = opts.account as Address | undefined;
     const run = async () =>
@@ -93,7 +181,8 @@ export default defineCommand<Frames>({
     const sender = account ?? (await module.getSender());
     const chainId = await module.getChainId();
     const frames = layoutFrames({
-      actions,
+      actions: await lowerSmartBatches(module, actions, account, chainId),
+      gas,
       sender,
       chainId,
       paymaster: opts.paymaster,

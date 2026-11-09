@@ -123,7 +123,8 @@ Every frame has its own limits.
   builders' defaults unless it has `--gas`: 30,000 when its target is the
   sender, 50,000 otherwise. A `default` frame that is a pre_verify needs its own
   `--gas`.
-- **Execution gas** of a call frame is the `--gas` of its `exec` or `send`.
+- **Execution gas** of a call frame is the `--gas` of its `exec` or `send`, else
+  `frames:tx --gas <n>`.
 - **State gas** of every call frame is `frames:tx --state-gas <n>`, 200,000 when
   it is not given (one new account costs 183,600). Unused state gas is
   refunded, so a generous value costs only the reservation.
@@ -136,7 +137,8 @@ tx --state-gas 200000 (
 )
 ```
 
-Nothing sizes the call frames for you yet: every call needs its `--gas`. A
+Nothing sizes the call frames for you yet: every call needs its `--gas` (or the
+block's). A
 missing one stops the run before anything is signed, naming the first frame
 that lacks it.
 
@@ -232,6 +234,35 @@ The three steps run top to bottom: the account and the sponsor are deployed,
 then one frame transaction is sent from the account and paid by the sponsor.
 The account keeps its own balance for what it sends (the `send $account`), and
 pays nothing for gas.
+
+### Smart batches
+
+A frame account is an ERC-7579 account, so a smart batch (`batch !(...)`,
+with values read on-chain while it runs) can be one of its frame
+transactions. The account calls the composable executor, which calls back the
+account's `executeFromExecutor`; the calls are one atomic group. The account
+installs the executor once, in a frame transaction of its own, and the batch's
+calls take the block's `--gas`:
+
+```evml
+load frames [tx new-account]
+switch 1337
+
+new-account $account --owner @me
+tx --account $account --gas 200000 (
+  exec $account "installModule(uint256,address,bytes)" 2 0x0000821108B5C9F3fe17E40811bE5b66DaF8f0e7 @bytes("" utf8)
+)
+tx --account $account --gas 300000 (
+  batch !(
+    send 0x8943545177806ED17B9F23F0a21ee5948eCaa776 --value 1e9
+  )
+)
+```
+
+The executor must be deployed on the chain (it is checked by its code before
+anything is signed). A value a call in the batch captures (`-> [...]`) can
+be passed to a later call in it, as in any smart batch. A plain sender cannot
+run one: the route needs the account.
 
 ### What the wallet shows
 

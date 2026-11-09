@@ -313,10 +313,10 @@ helpers in its constructor.
     address; on a chain where that account exists it only binds it.
   - `@frames:account(<owner> [salt])`: the address an owner's account has
     or will have, without deploying, so an account can be funded first.
-  - Later: a smart batch (`batch !(...)`) inside `frames:tx --account`,
-    lowered through the account's ERC-7579 route (the composable executor
-    installed once with `installModule`). `frames:tx` refuses smart-batch
-    actions today, and the frame simulation (section 5) would run it.
+  - A smart batch (`batch !(...)`) inside `frames:tx --account`, lowered
+    through the account's ERC-7579 route (the composable executor installed
+    once with `installModule`), and run by the frame simulation (section 5).
+    Done 2026-11-09, see step 7.
 - **Builder's checks.** Whether the clone-with-arguments and ECDSA come from
   OpenZeppelin (audited; `Clones.cloneDeterministicWithImmutableArgs`,
   `fetchCloneArgs`, `ECDSA`) needs the module's contract build, which
@@ -350,9 +350,9 @@ helpers in its constructor.
 1. SDK module actions + core dispatch; frames module returns one; the
    terminal's frame handler replaced by the module's `send` (behaviour
    unchanged: account senders only).
-2. viem-frames made publishable (version, `files`, its own README as the
-   package's docs) and added to `scripts/publish-packages.ts` ahead of the
-   frames module.
+2. Done 2026-11-09: viem-frames made publishable (version, `files`, its own
+   README as the package's docs); `scripts/publish-packages.ts` orders it
+   ahead of the frames module by its dependency.
 3. Done 2026-11-08: `eth_signTransaction` (type 0x06) for plain senders in
    the module's `send` (viem-frames' `sendFrameTransactionFromWallet`,
    `formatFrameTransactionRequest` / `parseFrameTransactionRequest`); the
@@ -363,13 +363,25 @@ helpers in its constructor.
    sidecar's estimate (every call still needs `--gas`), and refusing a chain
    outside the table at interpretation (the review warns, the send refuses).
    Live: a plain sender admitted on `up quick` and mined on `up mining`.
-4. The test wallet, gallery first (`2026-11-08-dev-wallet-design.md`, its own steps).
-5. `scripts/frame-devnet.ts`, funded anvil accounts, live tests.
+4. Done 2026-11-09: the test wallet, gallery first (`2026-11-08-dev-wallet-design.md`, steps 1-4).
+5. Done 2026-11-08: `scripts/frame-devnet.ts` (quick and mining devnets),
+   funded anvil accounts, the live frame account test on the mining devnet
+   (`2026-11-08-frame-devnets-and-accounts.md`).
 6. The simulation extension point and the frame executor
    (`2026-11-08-frame-simulation-design.md`), then gas sizing from it.
+   Done 2026-11-09 on ethereumjs and revm
+   (`2026-11-09-frame-simulation-both-backends-design.md`); gas is reported
+   by the fork, not sized at send time (see that spec's Decisions).
 
 7. Frame accounts through a CREATE2 factory, with the ERC-7579 surface
    (section 7); then smart batches inside `frames:tx --account`.
+   Smart batches done 2026-11-09: a `batch !(...)` in `frames:tx --account`
+   is checked (executor code, installed as a type-2 module) and lowered by the
+   SDK's `lowerSmartBatch` into one atomic group of SENDER frames; their gas
+   is `frames:tx --gas` (new: the execution gas of every call written
+   without its own). A capture (`-> [...]`) feeds later calls of the batch
+   as anywhere else (the executor's storage persists across the group's
+   frames). Plain senders are refused: the route needs the account.
 
 Each step leaves the tree building and its tests passing.
 

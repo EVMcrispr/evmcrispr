@@ -73,6 +73,8 @@ export interface LayoutInput {
   paymaster?: Address;
   paymasterData?: Hex;
   stateGas?: bigint;
+  /** Execution gas of every body frame written without its own. */
+  gas?: bigint;
   /** The sender is a frame account and the paymaster a sponsor: call their checks. */
   accountChecks?: boolean;
 }
@@ -259,7 +261,11 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
 
   return frames.map((f, j) => {
     if (j >= prefixLength)
-      return { ...f, stateGas: input.stateGas ?? DEFAULT_STATE_GAS };
+      return {
+        ...f,
+        gas: f.gas ?? input.gas,
+        stateGas: input.stateGas ?? DEFAULT_STATE_GAS,
+      };
     return f;
   });
 }

@@ -175,6 +175,17 @@ tx (
     expect((await run(block, 81412))[0]!.data.mempool).toBe("canonical");
   });
 
+  it("tx --gas is the execution gas of every call written without its own", async () => {
+    const [action] = await run(
+      `load frames [tx]\ntx --gas 77000 (\n  exec ${A1} "f()"\n  exec ${A1} "g()" --gas 5000\n)`,
+    );
+    expect(action!.data.frames.map((f) => f.gas)).toEqual([
+      30_000n,
+      77_000n,
+      5_000n,
+    ]);
+  });
+
   it("an empty block yields no action", async () => {
     expect(await run(`load frames [tx]\ntx (\n)`)).toHaveLength(0);
   });
