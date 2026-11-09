@@ -23,6 +23,11 @@ export {
   sendAccountFrameTransaction,
 } from "./account";
 export { frameAction } from "./actions";
+export {
+  frameAccountAbi,
+  frameAccountFactoryAbi,
+  frameSponsorAbi,
+} from "./contracts/artifacts";
 export { describeFrameAction } from "./describe";
 export type {
   FrameActionData,

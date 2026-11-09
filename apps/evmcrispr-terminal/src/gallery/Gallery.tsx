@@ -9,6 +9,7 @@ import { Marks } from "./sections/Marks";
 import { Overlays } from "./sections/Overlays";
 import { Primitives } from "./sections/Primitives";
 import { Rows } from "./sections/Rows";
+import { TestWallet } from "./sections/TestWallet";
 import { Transactions } from "./sections/Transactions";
 
 /** The sections, in page order. A component is added here with the
@@ -23,6 +24,7 @@ const SECTIONS: { id: string; title: string; Component: ComponentType }[] = [
   { id: "chrome", title: "Headers, notices, fields", Component: Chrome },
   { id: "overlays", title: "Overlays", Component: Overlays },
   { id: "primitives", title: "Menus, tabs, toasts", Component: Primitives },
+  { id: "test-wallet", title: "Test wallet", Component: TestWallet },
   { id: "compositions", title: "Compositions", Component: Compositions },
 ];
 

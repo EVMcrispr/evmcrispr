@@ -66,6 +66,7 @@
       "dependencies": {
         "@evmcrispr/ai": "*",
         "@evmcrispr/core": "*",
+        "@evmcrispr/dev-wallet": "*",
         "@evmcrispr/editor": "*",
         "@evmcrispr/module-frames": "*",
         "@evmcrispr/modules": "*",
@@ -596,6 +597,20 @@
         "viem": "^2.56.8",
       },
     },
+    "packages/dev-wallet": {
+      "name": "@evmcrispr/dev-wallet",
+      "version": "0.11.1",
+      "dependencies": {
+        "@evmcrispr/viem-frames": "workspace:*",
+        "@forshtat/hegota-support": "0.0.1",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.2",
+      },
+      "peerDependencies": {
+        "viem": "^2.56.8",
+      },
+    },
     "packages/editor": {
       "name": "@evmcrispr/editor",
       "version": "0.11.1",
@@ -984,6 +999,8 @@
     "@evmcrispr/ai": ["@evmcrispr/ai@workspace:packages/ai"],
 
     "@evmcrispr/core": ["@evmcrispr/core@workspace:packages/core"],
+
+    "@evmcrispr/dev-wallet": ["@evmcrispr/dev-wallet@workspace:packages/dev-wallet"],
 
     "@evmcrispr/editor": ["@evmcrispr/editor@workspace:packages/editor"],
 

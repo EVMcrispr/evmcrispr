@@ -310,7 +310,7 @@ describe("the terminal's chain 1337", () => {
     expect(gw.calls).toHaveLength(0);
   });
 
-  test("chain 1337 and the experimental modules' chains are absent when the experimental flag is off", async () => {
+  test("chain 1337, the local anvil and the experimental modules' chains are absent when the experimental flag is off", async () => {
     const off = networks(false);
     expect(off.chains.some((c) => c.id === 1337)).toBe(false);
     expect(off.rpcUrls[1337]).toBeUndefined();
@@ -328,7 +328,9 @@ describe("the terminal's chain 1337", () => {
       expect(on.chains.some((c) => c.id === id)).toBe(true);
     }
     expect(
-      on.chains.filter((c) => c.id !== 1337 && !experimental.includes(c.id)),
+      on.chains.filter(
+        (c) => ![1337, 31337].includes(c.id) && !experimental.includes(c.id),
+      ),
     ).toEqual(
       off.chains
         .filter((c) => !experimental.includes(c.id))

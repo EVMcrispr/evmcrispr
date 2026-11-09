@@ -4,9 +4,12 @@ import makeBlockie from "ethereum-blockies-base64";
 import { useState } from "react";
 import { Link } from "react-router";
 import type { Connector } from "wagmi";
-import { useConnect, useConnectors, useDisconnect } from "wagmi";
+import { useConnect, useConnection, useConnectors, useDisconnect } from "wagmi";
 
 import logo from "../../assets/logo.svg";
+import { AccountPicker } from "../../wallet/test-wallet/AccountPicker";
+import { TEST_WALLET_CONNECTOR_ID } from "../../wallet/test-wallet/connector";
+import { terminalTestWallet } from "../../wallet/test-wallet/instance";
 import { useWallet } from "../../wallet/WalletContext";
 import TypeWriter from "../animations/TypeWriter";
 import SelectWalletModal from "../wallet/SelectWalletModal";
@@ -22,6 +25,9 @@ export default function TerminalHeader() {
   const { mutate: connect } = useConnect();
   const connectors = useConnectors();
   const safeConnector = connectors.find((c: Connector) => c.id === "safe");
+  const { connector: active } = useConnection();
+  const testWallet =
+    active?.id === TEST_WALLET_CONNECTOR_ID ? terminalTestWallet : undefined;
 
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
 
@@ -50,16 +56,20 @@ export default function TerminalHeader() {
         </div>
         {address ? (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-(--radius) border-2 border-edge bg-surface-1 px-2.5 py-1">
-              <img
-                src={makeBlockie(address.toLowerCase())}
-                alt=""
-                className="size-4"
-              />
-              <span className="font-head text-body text-fg">
-                {addressShortened}
-              </span>
-            </div>
+            {testWallet ? (
+              <AccountPicker wallet={testWallet.wallet} address={address} />
+            ) : (
+              <div className="flex items-center gap-2 rounded-(--radius) border-2 border-edge bg-surface-1 px-2.5 py-1">
+                <img
+                  src={makeBlockie(address.toLowerCase())}
+                  alt=""
+                  className="size-4"
+                />
+                <span className="font-head text-body text-fg">
+                  {addressShortened}
+                </span>
+              </div>
+            )}
             {!safeConnector && (
               <Button variant="quiet" onClick={onDisconnect} size="sm">
                 Disconnect

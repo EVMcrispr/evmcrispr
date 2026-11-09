@@ -17,8 +17,8 @@ and the dev terminal, not on evmcrispr.com.
 :::caution
 From a plain address, your wallet is asked to sign the frame transaction
 itself, a type `0x06` transaction, with the standard `eth_signTransaction`.
-No browser wallet does that yet (MetaMask refuses with its own error), so with
-one, send **from a smart account** that your wallet authorizes with typed data
+No browser wallet does that yet (MetaMask refuses with its own error): use the
+terminal's test wallet on a local devnet, or send **from a smart account** that your wallet authorizes with typed data
 (see [From a smart account](#from-a-smart-account)). Frame transactions are
 sent on devnets only: chain 1337, which can be reset at any time, and the
 local ones.
@@ -160,6 +160,16 @@ transaction the wallet returns is sent only if it is exactly the one asked
 for and its signature is your address's; the wallet never chooses the
 mempool. A wallet that cannot sign it answers with its own error, and the run
 stops there with a hint to use `--account`.
+
+The terminal's **Test wallet** (experimental, in the wallet menu) signs them.
+It holds anvil's ten public accounts and serves only chains whose RPC is on
+your machine: a local anvil on port 8545 (`switch 31337`) and the frame devnets
+`framesQuick` and `framesMining`. Before it signs anything it shows what it
+was asked, read from the bytes: for a frame transaction, every frame's mode
+and what it means, its approval scope, target, value, decoded call and
+limits, then who pays, the nonce, the fees, the most it can cost and the
+signature hash. Approve signs; Reject stops the run. Its keys are public, so
+it refuses any chain reached over the network, chain 1337 included.
 
 ## From a smart account
 

@@ -204,16 +204,28 @@ const altMempoolChain: ChainDef = {
   testnet: true,
 };
 
+/** A plain local anvil, for the test wallet (experimental): its accounts are
+ *  the test wallet's, and its RPC is on this machine. */
+const localAnvilChain: ChainDef = {
+  id: 31337,
+  key: "localAnvil",
+  name: "Local anvil",
+  rpcUrl: "http://127.0.0.1:8545",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  testnet: true,
+};
+
 /** Chain ids that only experimental modules declare. */
 const experimentalChainIds = new Set(
   experimentalModuleChains.map((def) => def.id),
 );
 
 /** The terminal's networks, with or without the experimental ones (the
- *  alt-mempool devnet and the chains experimental modules declare). */
+ *  alt-mempool devnet, a local anvil and the chains experimental modules
+ *  declare). */
 export function networks(experimental: boolean) {
   const extraChains = experimental
-    ? [...moduleExtraChains, altMempoolChain]
+    ? [...moduleExtraChains, altMempoolChain, localAnvilChain]
     : moduleExtraChains.filter((def) => !experimentalChainIds.has(def.id));
 
   const chains = [

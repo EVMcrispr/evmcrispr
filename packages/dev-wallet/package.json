@@ -1,0 +1,32 @@
+{
+  "name": "@evmcrispr/dev-wallet",
+  "version": "0.11.1",
+  "private": true,
+  "description": "A test wallet over anvil's public accounts, for local chains only: an EIP-1193 provider that turns every signing request into a model decoded from its bytes and signs only once the host approves it",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@evmcrispr/viem-frames": "workspace:*",
+    "@forshtat/hegota-support": "0.0.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
+  },
+  "peerDependencies": {
+    "viem": "^2.56.8"
+  },
+  "scripts": {
+    "lint": "biome check src test",
+    "test:unit": "bun test ./test/unit",
+    "test:integration": "bun test ./test/integration",
+    "test:devnet": "EVMCRISPR_FRAME_DEVNET=1 bun test ./test/devnet",
+    "type-check": "tsc --noEmit"
+  }
+}

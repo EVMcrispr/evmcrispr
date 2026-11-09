@@ -20,6 +20,8 @@ import { AssistantProvider } from "./assistant/AssistantProvider";
 import { transports } from "./config/wagmi";
 import Wagmi from "./providers/Wagmi";
 import { restoreKeySeparator } from "./space/links";
+import { terminalTestWallet } from "./wallet/test-wallet/instance";
+import { TestWalletPrompt } from "./wallet/test-wallet/TestWalletPrompt";
 import { WalletProvider } from "./wallet/WalletContext";
 
 // Before the router reads the address: a share link whose key separator a
@@ -55,6 +57,7 @@ const App = ({ app }: { app: AppObject }) => {
         </Wagmi>
       </Tooltip.Provider>
       <Toaster />
+      {terminalTestWallet && <TestWalletPrompt test={terminalTestWallet} />}
     </div>
   );
 };

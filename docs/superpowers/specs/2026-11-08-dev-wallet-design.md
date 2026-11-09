@@ -1,6 +1,6 @@
 # A test wallet in the terminal, with clear signing
 
-Status: design, awaiting approval (2026-11-08). Asked for by the owner on
+Status: steps 1-4 built (2026-11-09); step 5 (ERC-7730) open. Asked for by the owner on
 2026-11-08, after `forshtat/hegota-demo` (live at
 https://eip7906.forshtat.com/demo): "only the wallet functionality
 (including the clear signing)". Replaces section 3 ("The dev wallet") and
@@ -205,6 +205,17 @@ does.
 4. Decoding beyond selectors: verified ABIs, session deployments, token
    formatting.
 5. ERC-7730 descriptors.
+
+Steps 1-4 done 2026-11-09 (`packages/dev-wallet`, private for now;
+`apps/evmcrispr-terminal/src/wallet/test-wallet/`). Decisions taken then:
+the name "Test wallet"; every signature asks; a local anvil (31337,
+`localAnvil`) added to the experimental networks; the frame account,
+sponsor and factory ABIs reach the wallet from the terminal as named
+standards, verified sources through `fetchContractSource` ("verified
+source"). Not done: ENS names and the account's own labels for addresses,
+and the typed data of a frame account shown with the frames it covers (the
+wallet sees only the hash). Live: an ordinary transfer and a plain sender's
+frame transaction mined on `up mining` through the wallet.
 
 ## Open questions for the owner
 
