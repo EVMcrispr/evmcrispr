@@ -93,6 +93,14 @@ async function answersAsAnvil(url: string): Promise<boolean> {
  *  default 10s request timeout — the node isn't dead, it's fetching. */
 const forkTransport = (url: string) => http(url, { timeout: 60_000 });
 
+/** How often to poll a local fork node (for a receipt, the block number).
+ *  viem derives it from the chain's block time (2.5s on Gnosis), but a local
+ *  node mines on demand. Anvil >= 1.8 answers `eth_sendTransaction` before
+ *  the block is mined (it first runs the beacon-root and request system
+ *  calls, reading their slots from the upstream), so the first receipt poll
+ *  misses and the next one would come a whole block time later. */
+const LOCAL_POLLING_MS = 100;
+
 /** Loose equality for RPC URLs that should be treated as the same node. */
 export function isSameLocalRpc(a: string, b: string): boolean {
   const normalize = (u: string) =>
@@ -496,10 +504,12 @@ export class ForkManager {
         publicClient: createPublicClient({
           chain,
           transport: forkTransport(node),
+          pollingInterval: LOCAL_POLLING_MS,
         }) as PublicClient,
         walletClient: createWalletClient({
           chain,
           transport: forkTransport(node),
+          pollingInterval: LOCAL_POLLING_MS,
         }),
       };
       this.#handles.set(chainId, handle);
