@@ -3,8 +3,13 @@ import { ErrorException } from "../errors";
 import { encodeCond, encodeRead } from "./core";
 import { type InputParam, rawParam, staticCallParam, toWord } from "./erc8211";
 import type { Category, CompileCtx } from "./types";
+import { uncheckedWord, wordRange } from "./unchecked-words";
 
-/** Validate a live integer before its word is used as an ABI argument. */
+/** Validate a live integer before its word is used as an ABI argument.
+ *  A type-checked narrow read passed as a type of the same range goes in
+ *  raw: the callee decodes it. Passed as a narrower type, the guard below
+ *  judges its raw word, since that range check refuses every word outside
+ *  the source's range as well. */
 export function guardAbiInteger(
   ctx: CompileCtx,
   param: InputParam,
@@ -15,6 +20,12 @@ export function guardAbiInteger(
   if (!m) return param;
   if (actual !== "Uint" && actual !== "Int")
     throw new ErrorException(`Cannot encode ${actual} as ${destination}`);
+  const narrow = uncheckedWord(param);
+  const destinationMax = wordRange(destination)?.max;
+  if (narrow && destinationMax !== undefined && destinationMax <= narrow.max) {
+    if (destinationMax === narrow.max) return narrow.raw;
+    param = narrow.raw;
+  }
   const bits = BigInt(m[2] || "256");
   const signed = m[1] === "int";
   const word = (x: bigint) => rawParam(toWord(x));

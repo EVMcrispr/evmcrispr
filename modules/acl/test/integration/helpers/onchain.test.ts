@@ -66,14 +66,15 @@ describeCommand("assert (acl on-chain faces)", {
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
         const { a, b } = d.expectOpJudge(param, "bitAnd(uint256,uint256)");
+        // eq and ge take any word, so each narrow read arrives typed.
         const eqArgs = d.opReadOf(a, "eq(uint256,uint256)");
-        expect(d.staticCallOf(eqArgs[0]).data).to.equal(
-          selectorOf("defaultAdmin()"),
-        );
+        expect(
+          d.staticCallOf(d.checkedReadOf(eqArgs[0], "(address)")).data,
+        ).to.equal(selectorOf("defaultAdmin()"));
         const geArgs = d.opReadOf(b, "ge(uint256,uint256)");
-        expect(d.staticCallOf(geArgs[0]).data).to.equal(
-          selectorOf("defaultAdminDelay()"),
-        );
+        expect(
+          d.staticCallOf(d.checkedReadOf(geArgs[0], "(uint48)")).data,
+        ).to.equal(selectorOf("defaultAdminDelay()"));
       },
     },
     {

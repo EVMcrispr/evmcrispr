@@ -69,6 +69,13 @@ export interface AssertDecoders {
   ): ReturnType<typeof decodeFunctionData>;
   /** A param pointed straight at the Operations contract — its calldata. */
   opsDirect(param: DecodedParam, at?: Address): Hex;
+  /** A narrow read checked for its declared type: `nav` over `retTypes`
+   *  along `path`. Returns the read it checks. */
+  checkedReadOf(
+    param: DecodedParam,
+    retTypes: string,
+    path?: readonly bigint[],
+  ): DecodedParam;
   expectConstraint(
     param: DecodedParam,
     type: keyof typeof CONSTRAINT_TYPE,
@@ -154,6 +161,18 @@ export function createAssertDecoders(
     return data;
   };
 
+  const checkedReadOf = (
+    param: DecodedParam,
+    retTypes: string,
+    path: readonly bigint[] = [0n],
+  ): DecodedParam => {
+    const nav = core(param);
+    expect(nav.functionName).to.equal("nav");
+    expect(nav.args![1]).to.equal(retTypes);
+    expect(nav.args![2]).to.deep.equal([...path]);
+    return nav.args![0] as unknown as DecodedParam;
+  };
+
   const expectConstraint = (
     param: DecodedParam,
     type: keyof typeof CONSTRAINT_TYPE,
@@ -228,6 +247,7 @@ export function createAssertDecoders(
     staticCallOf,
     core,
     opsDirect,
+    checkedReadOf,
     expectConstraint,
     expectIn,
     expectRawWord,

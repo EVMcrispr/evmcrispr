@@ -167,6 +167,7 @@ const compoundV3: LendingAdapter = {
       ctx,
       comet,
       encodeFunctionData({ abi: cometAbi, functionName: "getUtilization" }),
+      getAbiItem({ abi: cometAbi, name: "getUtilization" }).outputs,
       "Uint",
     );
     const rate = await callReadOperand(

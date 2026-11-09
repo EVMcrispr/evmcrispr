@@ -14,6 +14,7 @@ import {
   wordPiece,
 } from "./layout";
 import type { CompileCtx } from "./types";
+import { argumentRead } from "./unchecked-words";
 
 /**
  * Nested live call arguments compile to one of the core's two call
@@ -128,6 +129,11 @@ export function buildCall(
       `${fnAbi.name} expects ${inputs.length} argument(s), got ${specs.length}`,
     );
   }
+  specs = specs.map((s, i) =>
+    s.kind === "word"
+      ? { kind: "word", param: argumentRead(s.param, inputs[i].type) }
+      : s,
+  );
   if (chooseHost(specs, inputs) === "get") {
     return {
       host: "get",

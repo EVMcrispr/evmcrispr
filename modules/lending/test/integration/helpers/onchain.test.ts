@@ -48,11 +48,14 @@ describeCommand("assert (lending on-chain faces)", {
         const perSecond = d.opReadOf(add[1], "div(uint256,uint256)");
         d.expectRawWord(perSecond[1], SECONDS_PER_YEAR);
 
-        // The rate itself: word 2 of the reserve struct, read live.
-        const pick = d.core(perSecond[0]);
-        expect(pick.functionName).to.equal("pick");
-        expect(pick.args[1]).to.equal(2n);
-        const call = d.staticCallOf(pick.args[0] as never);
+        // The rate itself: currentLiquidityRate, field 2 of the reserve
+        // struct, read live and typed as the uint128 it is, since div
+        // would take any word.
+        const nav = d.core(perSecond[0]);
+        expect(nav.functionName).to.equal("nav");
+        expect(nav.args[1]).to.match(/^\(\(uint256,uint128,uint128,/);
+        expect(nav.args[2]).to.deep.equal([0n, 2n]);
+        const call = d.staticCallOf(nav.args[0] as never);
         expect(call.target).to.equal(getAddress(AAVE_POOL));
         expect(call.data.startsWith(selectorOf("getReserveData(address)"))).to
           .be.true;
@@ -67,10 +70,10 @@ describeCommand("assert (lending on-chain faces)", {
         const pow = d.opReadOf(sub[0], "rpow(uint256,uint256,uint256)");
         const add = d.opReadOf(pow[0], "add(uint256,uint256)");
         const perSecond = d.opReadOf(add[1], "div(uint256,uint256)");
-        const pick = d.core(perSecond[0]);
-        expect(pick.functionName).to.equal("pick");
+        const nav = d.core(perSecond[0]);
+        expect(nav.functionName).to.equal("nav");
         // currentVariableBorrowRate rather than currentLiquidityRate.
-        expect(pick.args[1]).to.equal(4n);
+        expect(nav.args[2]).to.deep.equal([0n, 4n]);
       },
     },
     {

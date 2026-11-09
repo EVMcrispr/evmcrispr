@@ -89,7 +89,10 @@ describeCommand("assert (superfluid on-chain faces)", {
       script: `assert @flow!(${USDCX} ${SOME_ADDRESS} ${RECEIVER}) > 0 "stream stopped"`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        const call = d.staticCallOf(signedCmp(param, "gt", 0n));
+        // The int96 rate is typed before the int256 compare takes it.
+        const call = d.staticCallOf(
+          d.checkedReadOf(signedCmp(param, "gt", 0n), "(int96)"),
+        );
         expect(call.target).to.equal(getAddress(CFA_FORWARDER));
         expect(call.data).to.equal(
           `${selectorOf("getFlowrate(address,address,address)")}${args(
@@ -120,7 +123,7 @@ describeCommand("assert (superfluid on-chain faces)", {
           "add(int256,int256)",
         );
         expect(segments).to.have.lengthOf(2);
-        const cfa = d.staticCallOf(segments[0]);
+        const cfa = d.staticCallOf(d.checkedReadOf(segments[0], "(int96)"));
         expect(cfa.target).to.equal(getAddress(CFA_FORWARDER));
         expect(cfa.data).to.equal(
           `${selectorOf("getAccountFlowrate(address,address)")}${args(
@@ -128,7 +131,7 @@ describeCommand("assert (superfluid on-chain faces)", {
             BigInt(SOME_ADDRESS),
           )}`,
         );
-        const gda = d.staticCallOf(segments[1]);
+        const gda = d.staticCallOf(d.checkedReadOf(segments[1], "(int96)"));
         expect(gda.target).to.equal(getAddress(GDA_FORWARDER));
         expect(gda.data).to.equal(
           `${selectorOf("getNetFlow(address,address)")}${args(
@@ -224,7 +227,9 @@ describeCommand("assert (superfluid on-chain faces)", {
       script: `assert @memberFlowrate!(${POOL} ${RECEIVER}) >= 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        const call = d.staticCallOf(signedCmp(param, "ge", 0n));
+        const call = d.staticCallOf(
+          d.checkedReadOf(signedCmp(param, "ge", 0n), "(int96)"),
+        );
         expect(call.target).to.equal(POOL);
         expect(call.data).to.equal(
           `${selectorOf("getMemberFlowRate(address)")}${args(BigInt(RECEIVER))}`,
@@ -236,7 +241,9 @@ describeCommand("assert (superfluid on-chain faces)", {
       script: `assert @distributionFlowrate!(${USDCX} ${SOME_ADDRESS} ${POOL}) > 0`,
       validate: (actions) => {
         const { param } = d.decodeAssert(actions);
-        const call = d.staticCallOf(signedCmp(param, "gt", 0n));
+        const call = d.staticCallOf(
+          d.checkedReadOf(signedCmp(param, "gt", 0n), "(int96)"),
+        );
         expect(call.target).to.equal(getAddress(GDA_FORWARDER));
         expect(call.data).to.equal(
           `${selectorOf("getFlowDistributionFlowRate(address,address,address)")}${args(
@@ -273,7 +280,7 @@ describeCommand("assert (superfluid on-chain faces)", {
         const { param } = d.decodeAssert(actions);
         // A flow rate is signed, so `> 0` wraps the read in a signed compare.
         const { target, selector, segments } = d.readOf(
-          signedCmp(param, "gt", 0n),
+          d.checkedReadOf(signedCmp(param, "gt", 0n), "(int96)"),
         );
         d.expectRawWord(target, BigInt(CFA_FORWARDER));
         expect(selector).to.equal(
