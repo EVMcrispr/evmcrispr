@@ -1,16 +1,17 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { experimentalModuleChains } from "@evmcrispr/modules/chains";
 import type { Action } from "@evmcrispr/sdk";
-import { ALT_MEMPOOL_GATEWAY } from "@evmcrispr/viem-frames";
 import { createWalletClient, custom, type WalletClient } from "viem";
 import { OWNER } from "../../../../modules/frames/test/helpers/frame-gateway";
-import { networks } from "../../src/config/rpc";
-import { ensureAltMempoolChain } from "../../src/wallet/alt-mempool-chain";
+import { networks, sharedChain } from "../../src/config/rpc";
+import { ensureSharedChain } from "../../src/wallet/shared-chain";
 import { testBrowser } from "../helpers/app";
 import { fakeEvml, type Step } from "../helpers/fake-evml";
 import { settle } from "../helpers/tabs";
 
-const MISMATCH = `Your wallet's chain 1337 is not the alt-mempool devnet: set its RPC to ${ALT_MEMPOOL_GATEWAY}`;
+const ALT_MEMPOOL = sharedChain(1337, true)!;
+const ALT_MEMPOOL_GATEWAY = ALT_MEMPOOL.rpcUrl;
+const MISMATCH = `Your wallet's chain 1337 is not the Alt-mempool devnet: set its RPC to ${ALT_MEMPOOL_GATEWAY}`;
 const refusal = Object.assign(new Error("User rejected the request."), {
   code: 4001,
 });
@@ -114,12 +115,12 @@ afterEach(() => {
   else process.env.VITE_PUBLIC_EXPERIMENTAL = flag;
 });
 
-describe("ensureAltMempoolChain", () => {
+describe("ensureSharedChain", () => {
   test("adds the gateway before switching to 1337", async () => {
     const devnet = node("dd", 0x20);
     const mm = wallet({ chainId: 1, local: node("aa", 5), devnet });
     const gw = gateway(devnet);
-    await ensureAltMempoolChain(mm.client, undefined, {
+    await ensureSharedChain(mm.client, ALT_MEMPOOL, {
       transport: gw.transport,
     });
     const methods = mm.methods();
@@ -148,7 +149,7 @@ describe("ensureAltMempoolChain", () => {
     for (const local of [node("aa", 5), node("aa", 0x40), node("bb", 0x20)]) {
       const mm = wallet({ chainId: 1, local, devnet, addTakes: false });
       await expect(
-        ensureAltMempoolChain(mm.client, undefined, {
+        ensureSharedChain(mm.client, ALT_MEMPOOL, {
           transport: gateway(devnet).transport,
           retryMs: 0,
         }),
@@ -161,7 +162,7 @@ describe("ensureAltMempoolChain", () => {
     // The wallet's node is at 0x20, the gateway already at 0x23.
     const mm = wallet({ chainId: 1337, local: node("dd", 0x20), devnet });
     devnet.state.latest = 0x23;
-    await ensureAltMempoolChain(mm.client, undefined, {
+    await ensureSharedChain(mm.client, ALT_MEMPOOL, {
       transport: gateway(devnet).transport,
     });
     expect(mm.methods()).not.toContain("wallet_addEthereumChain");
@@ -173,7 +174,7 @@ describe("ensureAltMempoolChain", () => {
     const ahead = node("dd", 0x22);
     mm.state.network = ahead;
     const gw = gateway(devnet);
-    await ensureAltMempoolChain(mm.client, undefined, {
+    await ensureSharedChain(mm.client, ALT_MEMPOOL, {
       transport: gw.transport,
       retryMs: 0,
     });
@@ -186,7 +187,7 @@ describe("ensureAltMempoolChain", () => {
   test("a wallet already on the devnet is not asked to add it", async () => {
     const devnet = node("dd", 0x20);
     const mm = wallet({ chainId: 1337, local: devnet, devnet });
-    await ensureAltMempoolChain(mm.client, undefined, {
+    await ensureSharedChain(mm.client, ALT_MEMPOOL, {
       transport: gateway(devnet).transport,
     });
     expect(mm.methods()).not.toContain("wallet_addEthereumChain");
@@ -205,7 +206,7 @@ describe("ensureAltMempoolChain", () => {
       ...devnet,
       block: () => ({ number: "0x5", hash: "‮evil" }),
     } as unknown as Node;
-    const error = await ensureAltMempoolChain(mm.client, undefined, {
+    const error = await ensureSharedChain(mm.client, ALT_MEMPOOL, {
       transport: gateway(devnet).transport,
       retryMs: 0,
     }).catch((e: Error) => e);
@@ -223,7 +224,7 @@ async function run(
   const evml = fakeEvml(steps, async () => undefined);
   const app = browser.tab({
     evml: () => evml,
-    frameGateway: gw.transport,
+    sharedChainTransports: { 1337: gw.transport },
     wallet: async () => ({ client: mm.client, address: OWNER.address }),
   });
   const id = await app.spaces.create({ text: "a", source: "user" });
@@ -321,7 +322,11 @@ describe("the terminal's chain 1337", () => {
     expect(on.rpcUrls[1337]).toBe(ALT_MEMPOOL_GATEWAY);
     // Everything else is as it was, but for the experimental modules' own
     // chains (the frames devnets), which are listed only with the flag on.
-    const experimental = experimentalModuleChains.map((c) => c.id);
+    // Declared chains only: a gateway an experimental module gives a chain
+    // viem knows (EEZ's for Chiado) leaves that chain listed.
+    const experimental = experimentalModuleChains
+      .filter((c) => "rpcUrl" in c)
+      .map((c) => c.id);
     expect(experimental).toEqual(expect.arrayContaining([81411, 81412]));
     for (const id of experimental) {
       expect(off.chains.some((c) => c.id === id)).toBe(false);

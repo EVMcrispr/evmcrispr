@@ -31,7 +31,7 @@ export function testBrowser() {
       options: {
         evml?: () => WorkerEvml;
         wallet?: () => Promise<Wallet>;
-        frameGateway?: Transport;
+        sharedChainTransports?: Record<number, Transport>;
       } = {},
     ): App {
       // Remembers the locks this tab holds, to let go of them on close.
@@ -69,7 +69,7 @@ export function testBrowser() {
         me,
         createWorker,
         cancelGraceMs: 20,
-        frameGateway: options.frameGateway,
+        sharedChainTransports: options.sharedChainTransports,
         wallet:
           options.wallet ??
           (async () => ({ client: undefined, address: undefined })),

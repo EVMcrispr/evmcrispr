@@ -25,8 +25,16 @@ export class ModuleRegistry {
     chains?: ModuleChainDef[],
   ): void {
     // Eager on purpose: a script may `switch` to a module's chain before
-    // (or without) loading the module.
-    if (chains?.length) registerChains(...chains);
+    // (or without) loading the module. A chain on an id other networks
+    // share (`sharedId`) is the exception when its module is experimental:
+    // declared, it becomes the id's default RPC, so it is only declared
+    // with experimental features on (the flag is set before modules are).
+    const declared = (chains ?? []).filter(
+      (chain) =>
+        !(experimental && "sharedId" in chain && chain.sharedId) ||
+        isExperimentalEnabled(),
+    );
+    if (declared.length) registerChains(...declared);
     for (const chain of chains ?? []) {
       if (chain.gateway) this.#gatewayOwners.set(chain.id, name);
     }

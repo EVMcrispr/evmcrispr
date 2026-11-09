@@ -173,6 +173,8 @@ tx (
     const block = `load frames [tx]\ntx (\n  exec ${A1} "f()"\n)`;
     expect((await run(block))[0]!.data.mempool).toBe("alt");
     expect((await run(block, 81412))[0]!.data.mempool).toBe("canonical");
+    // The local alt-mempool devnet has its sidecar, as the public one.
+    expect((await run(block, 81413))[0]!.data.mempool).toBe("alt");
   });
 
   it("tx --gas is the execution gas of every call written without its own", async () => {

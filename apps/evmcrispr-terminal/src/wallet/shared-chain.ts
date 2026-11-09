@@ -1,31 +1,29 @@
-// Chain 1337 in the terminal (experimental only). It is the alt-mempool
-// devnet's id and also every local devnet's: a wallet that already has a
-// chain-1337 network ("Localhost 8545") switches to that one, and the
-// script's ordinary transactions would go to the user's localhost. So the
-// gateway is offered to the wallet before switching, and the wallet's
-// chain is checked to be the devnet's before anything is sent on it.
+// Chains whose id other networks share (experimental only): the alt-mempool
+// devnet's 1337 is also every local devnet's, the Hegota devnet's 3151908
+// Kurtosis'. A wallet that already has a network on that id ("Localhost
+// 8545") switches to that one, and the script's ordinary transactions
+// would go there. So the declared RPC is offered to the wallet before
+// switching, and the wallet's chain is checked to be the declared one
+// before anything is sent on it.
 import { classifyError } from "@evmcrispr/core";
-import { type Action, isExperimentalEnabled } from "@evmcrispr/sdk";
-import {
-  ALT_MEMPOOL_GATEWAY,
-  altMempoolDevnet,
-  printable,
-} from "@evmcrispr/viem-frames";
+import type { Action, ChainDef } from "@evmcrispr/sdk";
+import { printable } from "@evmcrispr/viem-frames";
 import {
   createPublicClient,
   http,
   type Transport,
   type WalletClient,
 } from "viem";
+import { sharedChain } from "../config/rpc";
 
-const CHAIN_ID = altMempoolDevnet.id;
 const RETRY_MS = 2_000;
 /** Wallets that do not know the request: the check alone decides. */
 const UNSUPPORTED = new Set([4200, -32601]);
 
-/** Whether a change of the wallet's chain to `chainId` is checked here. */
-export const isAltMempoolChain = (chainId: number): boolean =>
-  chainId === CHAIN_ID && isExperimentalEnabled();
+/** The shared-id chain a change of the wallet's chain to `chainId` is
+ *  checked against, if any. */
+export const sharedChainOf = (chainId: number): ChainDef | undefined =>
+  sharedChain(chainId);
 
 /** The chain a `wallet_switchEthereumChain` request asks for. */
 export const switchTarget = (action: Action): number | undefined => {
@@ -74,27 +72,27 @@ const rethrow = (what: string, error: unknown): never => {
 };
 
 /**
- * Brings `wallet` to the alt-mempool devnet, or throws. When the wallet's
- * chain is not already the devnet's, the gateway is added for chain 1337
+ * Brings `wallet` to `chain`, or throws. When the wallet's chain is not
+ * already that one, its declared RPC is added for the id
  * (`wallet_addEthereumChain`), then switched to; then the wallet's latest
- * block, as its own RPC reports it, must be the gateway's block of the
+ * block, as its own RPC reports it, must be the declared RPC's block of the
  * same number. A refusal in the wallet is thrown as the wallet gave it.
  *
- * Callers use it for chain 1337 with the experimental flag on
- * (`isAltMempoolChain`), and nowhere else.
+ * Callers use it for the chains `sharedChainOf` gives, and nowhere else.
  */
-export async function ensureAltMempoolChain(
+export async function ensureSharedChain(
   wallet: WalletClient,
-  gateway: string = ALT_MEMPOOL_GATEWAY,
+  chain: ChainDef,
   options: {
-    /** How the gateway is read; `http(gateway)` by default. */
+    /** How the declared RPC is read; `http(chain.rpcUrl)` by default. */
     transport?: Transport;
-    /** How long a gateway behind the wallet is given to catch up. */
+    /** How long a declared RPC behind the wallet is given to catch up. */
     retryMs?: number;
   } = {},
 ): Promise<void> {
+  const CHAIN_ID = chain.id;
   const node = createPublicClient({
-    transport: options.transport ?? http(gateway),
+    transport: options.transport ?? http(chain.rpcUrl),
   });
   type Ask = (args: { method: string; params: unknown[] }) => Promise<unknown>;
   /** Block `n` as `ask`'s node has it. */
@@ -115,12 +113,9 @@ export async function ensureAltMempoolChain(
   // The wallet is asked through its own RPC: that is where the script's
   // transactions would go.
   const ofWallet = read(wallet.request as unknown as Ask, "the wallet");
-  const ofGateway = read(
-    node.request as unknown as Ask,
-    "the alt-mempool gateway",
-  );
+  const ofGateway = read(node.request as unknown as Ask, `the ${chain.name}`);
 
-  /** Whether the wallet's chain is the gateway's. */
+  /** Whether the wallet's chain is the declared RPC's. */
   const same = async (): Promise<boolean> => {
     const mine = await ofWallet("latest");
     if (!mine) return false;
@@ -132,7 +127,7 @@ export async function ensureAltMempoolChain(
       theirs = await ofGateway(mine.number);
     }
     if (theirs) return theirs.hash === mine.hash;
-    // The gateway is behind the wallet: its latest block is compared with
+    // The declared RPC is behind the wallet: its latest block is compared with
     // the wallet's block of that number.
     const latest = await ofGateway("latest");
     if (!latest || latest.number >= mine.number) return false;
@@ -150,29 +145,30 @@ export async function ensureAltMempoolChain(
       params: [
         {
           chainId: `0x${CHAIN_ID.toString(16)}`,
-          chainName: altMempoolDevnet.name,
-          nativeCurrency: altMempoolDevnet.nativeCurrency,
-          rpcUrls: [gateway],
-          blockExplorerUrls: [altMempoolDevnet.blockExplorers.default.url],
+          chainName: chain.name,
+          nativeCurrency: chain.nativeCurrency ?? {
+            name: "Ether",
+            symbol: "ETH",
+            decimals: 18,
+          },
+          rpcUrls: [chain.rpcUrl],
+          ...(chain.explorerUrl && { blockExplorerUrls: [chain.explorerUrl] }),
         },
       ],
     });
   } catch (error) {
     const code = (error as { code?: unknown } | null)?.code;
     if (typeof code !== "number" || !UNSUPPORTED.has(code))
-      rethrow(`The wallet did not add the ${altMempoolDevnet.name}`, error);
+      rethrow(`The wallet did not add the ${chain.name}`, error);
   }
   if ((await wallet.getChainId()) !== CHAIN_ID)
     await wallet
       .switchChain({ id: CHAIN_ID })
       .catch((error) =>
-        rethrow(
-          `The wallet did not switch to the ${altMempoolDevnet.name}`,
-          error,
-        ),
+        rethrow(`The wallet did not switch to the ${chain.name}`, error),
       );
   if (!(await onDevnet()))
     throw new Error(
-      `Your wallet's chain 1337 is not the alt-mempool devnet: set its RPC to ${ALT_MEMPOOL_GATEWAY}`,
+      `Your wallet's chain ${CHAIN_ID} is not the ${chain.name}: set its RPC to ${chain.rpcUrl}`,
     );
 }

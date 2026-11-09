@@ -204,7 +204,7 @@ stops there with a hint to use `--account`.
 The terminal's **Test wallet** (experimental, in the wallet menu) signs them.
 It holds anvil's ten public accounts and serves only chains whose RPC is on
 your machine: a local anvil on port 8545 (`switch 31337`) and the frame devnets
-`framesQuick` and `framesMining`. Before it signs anything it shows what it
+`framesQuick`, `framesMining` and `framesAltMempool`. Before it signs anything it shows what it
 was asked, read from the bytes: for a frame transaction, every frame's mode
 and what it means, its approval scope, target, value, decoded call and
 limits, then who pays, the nonce, the fees, the most it can cost and the
@@ -242,7 +242,7 @@ wallet must be the account's owner; it signs but never sends. With
 
 ```evml
 load frames [tx new-account new-sponsor]
-switch 1337
+switch altMempoolDevnet
 
 new-account $account --owner @me
 send $account --value 0.001e18
@@ -269,7 +269,7 @@ calls take the block's `--gas`:
 
 ```evml
 load frames [tx new-account]
-switch 1337
+switch altMempoolDevnet
 
 new-account $account --owner @me
 tx --account $account --gas 200000 (
@@ -318,13 +318,20 @@ per gas is refused before the wallet is asked.
 
 ### The MetaMask network
 
-Chain 1337 is also the id of local development nodes. The terminal adds the
-alt-mempool gateway as chain 1337 to MetaMask when it is missing, and refuses to
-continue if MetaMask already has a chain 1337 that is another network, rather
-than sign for it. Set that network's RPC to
-`https://altmempoolgateway.forshtat.com/rpc` (or remove the network, and the
-terminal adds the gateway) and run the script again. The terminal only offers
-chain 1337 when experimental features are on.
+The public devnets share their chain ids with local tooling: 1337 is the id of
+local development nodes, 3151908 Kurtosis' default. A chain with one of those
+ids is the public devnet only where its block 0 is the declared RPC's.
+
+The terminal adds the devnet's RPC to MetaMask when the script switches to it,
+and refuses to continue if MetaMask already has that id as another network,
+rather than sign for it. Set that network's RPC to the devnet's
+(`https://altmempool.forshtat.com/rpc` for chain 1337,
+`https://rpc1.hegota.ethrex.xyz` for 3151908), or remove the network so the
+terminal adds it, and run the script again. In the CLI a local node on one of
+those ids is used as itself: set the id's RPC to it
+(`EVMCRISPR_RPC_URL_<id>`); a wallet on another network than the one the id is
+read from is refused before anything is signed. The terminal only offers these
+networks when experimental features are on.
 
 ## Limits
 
@@ -336,10 +343,16 @@ chain 1337 when experimental features are on.
 - One signature: the sender's own (secp256k1), or the account owner's typed
   data. Not covered: P256 or arbitrary signatures, paymaster signatures, keyed
   nonces other than key 0, recent roots, `deploy` frames and `--expires`.
-- Frame transactions are sent on chain 1337, the alt-mempool devnet, and on the
-  local devnets `framesQuick` and `framesMining` (`bun scripts/frame-devnet.ts
-  up quick|mining` in the repository), which have no alt mempool (there
-  `--mempool` defaults to `canonical`). Any other chain is refused by name. The quick
+- Frame transactions are sent on the public `altMempoolDevnet` (chain 1337)
+  and `hegotaDevnet` (chain 3151908), and on the local devnets `framesQuick`,
+  `framesMining` and `framesAltMempool` (`bun scripts/frame-devnet.ts up
+  quick|mining|altmempool` in the repository; `altmempool` is the mining
+  devnet's stack with the alt-mempool sidecar in front, as on the public
+  one). Only the alt-mempool devnets have an alt mempool (elsewhere, and on
+  a local node on the public one's id, `--mempool` defaults to `canonical`).
+  Any other chain is refused by name.
+  The Hegota devnet runs POST_TX assertion frames, which `frames:tx` does
+  not write yet. The quick
   devnet never mines, and admits one transaction per sender until it is
   restarted.
 

@@ -15,6 +15,8 @@ const declared = (key: string): ChainDef => {
 export const QUICK_CHAIN = declared("framesQuick");
 /** The mining devnet's chain, as the frames module declares it (id, RPC). */
 export const MINING_CHAIN = declared("framesMining");
+/** The alt-mempool devnet's chain: its RPC is the sidecar's. */
+export const ALT_MEMPOOL_CHAIN = declared("framesAltMempool");
 
 /** The port of a declared chain's local RPC. */
 export const rpcPort = (chain: ChainDef): number => {
@@ -97,7 +99,13 @@ const EIP8282_DEPOSIT_CODE =
  * forshtat/mempool-workshop-sidecar's test/e2e/kurtosis/eip8141-single-node.yaml):
  * Osaka at genesis, Amsterdam at epoch 1, Hegota (frames) at epoch 2.
  */
-export function kurtosisConfig(funded: Address[]): object {
+export function kurtosisConfig(
+  funded: Address[],
+  chain: ChainDef = MINING_CHAIN,
+  /** Where Kurtosis starts publishing the EL's ports: one range per devnet,
+   *  so the mining and the alt-mempool devnets can run together. */
+  portStart = 32_000,
+): object {
   return {
     participants: [
       {
@@ -115,7 +123,7 @@ export function kurtosisConfig(funded: Address[]): object {
       },
     ],
     network_params: {
-      network_id: String(MINING_CHAIN.id),
+      network_id: String(chain.id),
       seconds_per_slot: 6,
       fulu_fork_epoch: 0,
       gloas_fork_epoch: 1,
@@ -137,8 +145,67 @@ export function kurtosisConfig(funded: Address[]): object {
     ethereum_genesis_generator_params: {
       image: "ethpandaops/ethereum-genesis-generator:6.1.6",
     },
-    port_publisher: { el: { enabled: true, public_port_start: 32000 } },
+    port_publisher: { el: { enabled: true, public_port_start: portStart } },
   };
+}
+
+/**
+ * The ERC-8421 sidecar (forshtat/mempool-workshop-sidecar, the public
+ * alt-mempool devnet's), built from this commit: it publishes no image.
+ */
+export const SIDECAR_REPO =
+  "https://github.com/forshtat/mempool-workshop-sidecar.git";
+export const SIDECAR_COMMIT = "2e22ff0a2898e69ea4bf5275bce1be8581a8582a";
+export const SIDECAR_IMAGE = `evmcrispr/mempool-sidecar:${SIDECAR_COMMIT.slice(0, 7)}`;
+/** EIP-8141's fixed entry-point sentinel and the sidecars' shared mempool id
+ *  (the sidecar's `config.json.default`). */
+const ENTRY_POINT = "0x00000000000000000000000000000000000000aa";
+const MEMPOOL_ID = "QmcFZKUX9qoo3StwVycJTAhwdiqbEjcwNvQVK246p3z1rk";
+
+/**
+ * The sidecar's config: it relays admitted transactions to `ethrexUrl`
+ * (`ethrex_submitPrivilegedFrameTransaction`), with `relayerKey` as its
+ * relayer. No staking registry: every account counts as unstaked.
+ */
+export function sidecarConfig(ethrexUrl: string, relayerKey: Hex): object {
+  return {
+    entryPoints: [ENTRY_POINT],
+    canonicalEntryPoint: ENTRY_POINT,
+    standardMempoolId: MEMPOOL_ID,
+    supportedMempools: [{ mempoolId: MEMPOOL_ID, entryPoint: ENTRY_POINT }],
+    relayers: [relayerKey],
+    rpcEndpoint: ethrexUrl,
+    rpcEndpointSubmit: ethrexUrl,
+  };
+}
+
+/** `skandha node`'s arguments: the API on the declared chain's port, its
+ *  reads passed on to ethrex, transactions relayed as they come. */
+export function sidecarArgs(apiPort: number, dir: string): string[] {
+  return [
+    "node",
+    "--configFile",
+    `${dir}/config.json`,
+    "--dataDir",
+    `${dir}/data`,
+    "--api.address",
+    "127.0.0.1",
+    "--api.port",
+    String(apiPort),
+    "--api.wsPort",
+    String(apiPort),
+    "--p2p.host",
+    "127.0.0.1",
+    "--p2p.enrHost",
+    "127.0.0.1",
+    "--p2p.port",
+    "4337",
+    "--p2p.enrPort",
+    "4337",
+    "--executor.bundlingMode",
+    "auto",
+    "--redirectRpc",
+  ];
 }
 
 /** Why a step failed: Bun's ShellError says only the exit code, so what the command printed is added. */

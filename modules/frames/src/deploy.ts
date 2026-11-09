@@ -3,16 +3,14 @@ import { chainLabel, ErrorException } from "@evmcrispr/sdk";
 import type { Hex } from "viem";
 import type Frames from ".";
 import { chains } from "./chains";
+import { frameNetworkNames } from "./networks";
 
 /**
- * The chains the frame contracts work on: the public alt-mempool devnet
- * (1337) and the two local devnets of scripts/frame-devnet.ts (`framesQuick`,
- * `framesMining`; see chains.ts).
+ * The chains the frame contracts work on: the ones the module declares
+ * (the public alt-mempool and Hegota devnets, and the two local devnets of
+ * scripts/frame-devnet.ts; see chains.ts).
  */
-export const FRAME_CHAIN_IDS: readonly number[] = [
-  1337,
-  ...chains.map((c) => c.id),
-];
+export const FRAME_CHAIN_IDS: readonly number[] = chains.map((c) => c.id);
 export const DEPLOY_GAS = 6_000_000n;
 
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -38,7 +36,7 @@ export async function frameChainId(module: Frames): Promise<number> {
   const chainId = await module.getChainId();
   if (!FRAME_CHAIN_IDS.includes(chainId))
     throw new ErrorException(
-      `frame accounts only work on the alt-mempool devnet, ${chains.map((c) => `the ${c.name}`).join(" and ")}, not ${chainLabel(chainId)}: switch to one first.`,
+      `frame accounts only work on ${frameNetworkNames()}, not ${chainLabel(chainId)}: switch to one first.`,
     );
   return chainId;
 }

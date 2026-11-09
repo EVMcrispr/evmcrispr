@@ -105,7 +105,7 @@ describe("the frames module describes its frame action", () => {
 
   test("a transaction on a chain outside the frame networks is warned of, for both senders", () => {
     const warning =
-      "Frame transactions are sent on the Alt-mempool devnet, the Frames quick devnet or the Frames mining devnet, not on Gnosis: it will be refused.";
+      "Frame transactions are sent on the Alt-mempool devnet, the Frames quick devnet, the Frames mining devnet, the Frames alt-mempool devnet or the Hegota devnet, not on Gnosis: it will be refused.";
     expect(frame({ chainId: 100 }).warning).toBe(warning);
     expect(
       frame({ chainId: 100, account: undefined, from: OWNER }).warning,

@@ -35,7 +35,8 @@ describe("frame > contracts", () => {
     expect(account.abi).toEqual(frameAccountAbi as never);
     expect(sponsor.bytecode).toBe(frameSponsorBytecode);
     expect(sponsor.abi).toEqual(frameSponsorAbi as never);
-  });
+    // Three solc compiles: about 5.5 s, past the default 5 s.
+  }, 30_000);
 
   it("resolves OpenZeppelin imports and refuses any other source", () => {
     const uses = (path: string) =>

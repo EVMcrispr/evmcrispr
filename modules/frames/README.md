@@ -14,8 +14,11 @@ Networks this module ships. They are available to `switch` as soon as the module
 
 | Chain | Key | Id | RPC | Explorer |
 |-------|-----|----|-----|----------|
+| Alt-mempool devnet (testnet) | `altMempoolDevnet` | `1337` | <https://altmempool.forshtat.com/rpc> | <https://explorer.altmempool.wtf> |
+| Hegota devnet (testnet) | `hegotaDevnet` | `3151908` | <https://rpc1.hegota.ethrex.xyz> | <https://dora.hegota.ethrex.xyz> |
 | Frames quick devnet (testnet) | `framesQuick` | `81411` | <http://127.0.0.1:8570> | — |
 | Frames mining devnet (testnet) | `framesMining` | `81412` | <http://127.0.0.1:32003> | — |
+| Frames alt-mempool devnet (testnet) | `framesAltMempool` | `81413` | <http://127.0.0.1:14337/rpc> | — |
 
 ## Commands
 

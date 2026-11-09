@@ -1,6 +1,5 @@
 import { profile as tracer } from "@forshtat/hegota-support/profiles/ethrex-eip8141-tracer";
 import type { Address, Hex } from "viem";
-import { ATOMIC_BATCH_FLAG } from "./frames";
 import type { FrameRequest, Profile } from "./types";
 
 /**
@@ -64,6 +63,11 @@ export function toFrameRequests(
       : 0;
     if (scope === undefined)
       throw new Error(`The frame profile has no ${frame.approve} scope`);
+    const atomic = frame.atomic ? profile.flagBits.ATOMIC_BATCH : 0;
+    if (atomic === undefined)
+      throw new Error(
+        "The frame profile has no atomic batch flag: these frames cannot run atomically",
+      );
     let limits: FrameRequest["limits"];
     if (i < prefix) {
       if (frame.gas !== undefined) limits = { execution: frame.gas, state: 0n };
@@ -72,7 +76,7 @@ export function toFrameRequests(
     }
     return {
       mode,
-      flags: scope | (frame.atomic ? ATOMIC_BATCH_FLAG : 0),
+      flags: scope | atomic,
       target: frame.target,
       limits,
       value: frame.value,

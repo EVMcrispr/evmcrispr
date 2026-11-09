@@ -50,6 +50,7 @@
     "codegen": "evmcrispr-build --codegen",
     "types": "evmcrispr-build --types",
     "build:contracts": "bun scripts/build-contracts.ts",
-    "test:devnet": "EVMCRISPR_FRAME_DEVNET=1 bun test ./test/devnet"
+    "test:devnet": "EVMCRISPR_FRAME_DEVNET=1 bun test ./test/devnet",
+    "test:hegota": "EVMCRISPR_HEGOTA=1 bun test ./test/devnet/hegota.devnet.test.ts"
   }
 }

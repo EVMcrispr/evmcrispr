@@ -11,6 +11,7 @@ import {
 } from "viem";
 import { parseAccount } from "viem/accounts";
 import { estimateFeesPerGas, getCode, getTransactionCount } from "viem/actions";
+import { ethrexHegotaDevnetProfile } from "./profiles";
 import { frameSerializer, toFrameTx } from "./serializer";
 import type {
   Frame,
@@ -20,10 +21,12 @@ import type {
   Profile,
 } from "./types";
 
-/** The public alt-mempool devnet's gateway: the Skandha sidecar, which forwards chain reads to ethrex. */
-export const ALT_MEMPOOL_GATEWAY = "https://altmempoolgateway.forshtat.com/rpc";
+/** The public alt-mempool devnet's gateway: the Skandha sidecar, which forwards chain reads to ethrex (docs.altmempool.wtf/guides/devnet). */
+export const ALT_MEMPOOL_GATEWAY = "https://altmempool.forshtat.com/rpc";
 /** The devnet's ethrex node (the miner), which serves `ethrex_simulateFrameTransaction`. */
 export const ALT_MEMPOOL_NODE = "https://altmempool.forshtat.com";
+/** The public Hegota devnet's ethrex node: a plain node (no sidecar) that also serves `ethrex_simulateFrameTransaction`. */
+export const HEGOTA_DEVNET_RPC = "https://rpc1.hegota.ethrex.xyz";
 
 interface RpcFrameReceipt {
   status: Hex;
@@ -343,4 +346,28 @@ export const altMempoolDevnet = withFrames(
     testnet: true,
   }),
   { profile: tracer, simulationUrl: ALT_MEMPOOL_NODE, sidecar: true },
+);
+
+/**
+ * The public Hegota devnet (chain 3151908, ethrex `hegota-devnet`): frame
+ * transactions with EIP-7906 assertions, canonical mempool only. Its chain
+ * id is also Kurtosis' default, so a host should not assume a chain with
+ * that id is this one.
+ */
+export const hegotaDevnet = withFrames(
+  defineChain({
+    id: 3151908,
+    name: "Hegota devnet",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    rpcUrls: { default: { http: [HEGOTA_DEVNET_RPC] } },
+    blockExplorers: {
+      default: { name: "Dora", url: "https://dora.hegota.ethrex.xyz" },
+    },
+    testnet: true,
+  }),
+  {
+    profile: ethrexHegotaDevnetProfile,
+    simulationUrl: HEGOTA_DEVNET_RPC,
+    sidecar: false,
+  },
 );

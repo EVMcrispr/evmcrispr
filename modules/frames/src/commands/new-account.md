@@ -36,7 +36,7 @@ frames:new-account <variable>
 - **Predictable.** The address follows from the owner and the salt alone (default 0), the same on every frame chain: [`@frames:account`](../helpers/account/) gives it before the account exists, so it can be funded first.
 - **Idempotent.** On a chain where the account exists, nothing is sent: the address is only bound. `--salt` gives an owner several accounts.
 - **The factory comes first.** On a chain without it, the implementation and the factory are deployed first (up to two transactions, through the deterministic deployer), then the account; a chain left half-deployed is resumed. Gas is the wallet's estimate.
-- **Frame chains that mine:** the alt-mempool devnet and the local mining devnet (`switch framesMining`). The quick devnet (`framesQuick`) never mines, so the command refuses it; `@frames:account` works there.
+- **Frame chains that mine:** the alt-mempool devnet, the local mining and alt-mempool devnets (`switch framesMining`, `switch framesAltMempool`) and the Hegota devnet (not tried there yet: the factory is not deployed on it, so the first `new-account` deploys it). The quick devnet (`framesQuick`) never mines, so the command refuses it; `@frames:account` works there.
 
 Accounts created before the factory existed are devnet leftovers: create a new one.
 

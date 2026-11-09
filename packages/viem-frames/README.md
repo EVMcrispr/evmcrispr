@@ -38,7 +38,16 @@ The wire format comes from
 [`@forshtat/hegota-support`](https://www.npmjs.com/package/@forshtat/hegota-support)
 (MIT): every devnet runs its own revision of the drafts, and the library
 describes each as a profile. The default is `ethrex-eip8141-tracer`, the
-alt-mempool devnet's.
+alt-mempool devnet's. `withFrames(chain, { profile })` sets another, and two
+chains come ready:
+
+- **`altMempoolDevnet`** (chain 1337): the alt-mempool workshop's devnet,
+  through its sidecar.
+- **`hegotaDevnet`** (chain 3151908): the public Hegota devnet, a plain ethrex
+  node with EIP-7906 assertions, on `ethrexHegotaDevnetProfile`. That is the
+  library's `ethrex-hegota-devnet` profile with the atomic batch flag the
+  chain honours, which the library's leaves out. Its chain id is also
+  Kurtosis' default: do not take a chain with that id for this one.
 
 ```ts
 import { createWalletClient, http } from "viem";

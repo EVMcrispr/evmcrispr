@@ -209,6 +209,11 @@ export interface ChainDef {
    *  gateway: unlike a revert, the registry's answer cannot be forged, so
    *  it is safe on any chain. */
   crossChainRegistry?: string;
+  /** Other networks use this id (1337 is every local devnet's, 3151908
+   *  Kurtosis'): a node with this id is this chain only when its block 0 is
+   *  the declared RPC's (`identifyChain`). Hosts then never take a local
+   *  node on the id for this chain, nor read it through the declared RPC. */
+  sharedId?: boolean;
 }
 
 /**

@@ -5,10 +5,35 @@
 import {
   altMempoolDevnet,
   eip8141TracerProfile,
+  hegotaDevnet,
   withFrames,
 } from "@evmcrispr/viem-frames";
 import { type Chain, defineChain } from "viem";
 import { chains } from "./chains";
+
+/** How a network's client charges a frame's own gas, as `sim:fork`
+ *  models it (both measured on the chains). */
+export interface FrameGasRules {
+  /** What a frame pays out of its gas to reach its target (EIP-2929). */
+  targetAccess: { warm: bigint; cold: bigint };
+  /** A frame whose target has no code, or is a precompile, uses none of
+   *  its own gas: the client charges it to the transaction instead. */
+  codelessFramesFree: boolean;
+}
+
+/** ethrex `eip8141-tracer` (the alt-mempool and local devnets), measured on
+ *  `up quick` on 2026-11-09. */
+const TRACER_GAS: FrameGasRules = {
+  targetAccess: { warm: 100n, cold: 3_000n },
+  codelessFramesFree: false,
+};
+
+/** ethrex `hegota-devnet`, measured on the chain on 2026-11-09: a target
+ *  with code ran with a 20-gas limit, a precompile and a transfer with 1. */
+const HEGOTA_GAS: FrameGasRules = {
+  targetAccess: { warm: 0n, cold: 0n },
+  codelessFramesFree: true,
+};
 
 export interface FrameNetwork {
   /** A chain from viem-frames' `withFrames`: its profile, and whether its RPC is an ERC-8421 sidecar (the alt mempool). */
@@ -17,9 +42,10 @@ export interface FrameNetwork {
   switchTo: string;
   /** false: the chain admits transactions but never mines them. */
   mines: boolean;
+  gas: FrameGasRules;
 }
 
-const local = (key: string, mines: boolean): FrameNetwork => {
+const local = (key: string, mines: boolean, sidecar = false): FrameNetwork => {
   const def = chains.find((c) => c.key === key)!;
   return {
     chain: withFrames(
@@ -30,21 +56,30 @@ const local = (key: string, mines: boolean): FrameNetwork => {
         rpcUrls: { default: { http: [def.rpcUrl] } },
         testnet: true,
       }),
-      { profile: eip8141TracerProfile, sidecar: false },
+      { profile: eip8141TracerProfile, sidecar },
     ),
     switchTo: def.key,
     mines,
+    gas: TRACER_GAS,
   };
 };
 
 export const frameNetworks: readonly FrameNetwork[] = [
   {
     chain: altMempoolDevnet,
-    switchTo: String(altMempoolDevnet.id),
+    switchTo: "altMempoolDevnet",
     mines: true,
+    gas: TRACER_GAS,
   },
   local("framesQuick", false),
   local("framesMining", true),
+  local("framesAltMempool", true, true),
+  {
+    chain: hegotaDevnet,
+    switchTo: "hegotaDevnet",
+    mines: true,
+    gas: HEGOTA_GAS,
+  },
 ];
 
 export function frameNetwork(chainId: number): FrameNetwork | undefined {

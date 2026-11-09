@@ -3,7 +3,7 @@
 // a simulated frame transaction. Operands are listed top of stack first,
 // as the helpers push them.
 import type { SimOpcode, SimOpcodeResult } from "@evmcrispr/sdk";
-import { eip8141TracerProfile as profile } from "@evmcrispr/viem-frames";
+import type { Profile } from "@evmcrispr/viem-frames";
 import {
   type Address,
   type Hex,
@@ -30,6 +30,8 @@ export type FrameStatus = "success" | "reverted" | "skipped" | "impersonated";
 
 /** What the opcodes read and APPROVE records. */
 export interface FrameContext {
+  /** The network's: the same opcode bytes on every one, its own numbers. */
+  profile: Profile;
   sender: Address;
   nonce: bigint;
   maxFeePerGas: bigint;
@@ -123,7 +125,7 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
       pops: 3,
       run({ address, operands: [offset, length, scope] }) {
         const frame = ctx.frames[ctx.current];
-        if (!frame || frame.mode !== profile.frameModes.VERIFY)
+        if (!frame || frame.mode !== ctx.profile.frameModes.VERIFY)
           return fail("APPROVE outside a VERIFY frame");
         if (!isAddressEqual(address, frame.target))
           return fail(
@@ -136,7 +138,7 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
             `APPROVE of scope ${asked}, which the frame's flags (${allowed}) do not allow`,
           );
         if (
-          asked & profile.approveScopes.EXECUTION &&
+          asked & ctx.profile.approveScopes.EXECUTION &&
           !isAddressEqual(address, ctx.sender)
         )
           return fail(
@@ -154,7 +156,7 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
         const frame = ctx.frames[ctx.current];
         switch (Number(param)) {
           case TX.TYPE:
-            return { push: BigInt(profile.txType) };
+            return { push: BigInt(ctx.profile.txType) };
           case TX.NONCE:
           case TX.LEGACY_NONCE:
             return { push: ctx.nonce };
@@ -247,7 +249,7 @@ export function frameOpcodes(ctx: FrameContext): SimOpcode[] {
             return { push: BigInt(frame.flags & 3) };
           case FRAME.ATOMIC_BATCH:
             return {
-              push: frame.flags & profile.flagBits.ATOMIC_BATCH ? 1n : 0n,
+              push: frame.flags & ctx.profile.flagBits.ATOMIC_BATCH ? 1n : 0n,
             };
           case FRAME.VALUE:
             return { push: frame.value };

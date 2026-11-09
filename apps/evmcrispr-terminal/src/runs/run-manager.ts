@@ -26,7 +26,7 @@ import {
   emptyConsole,
   reduceConsole,
 } from "@evmcrispr/editor";
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, ChainDef } from "@evmcrispr/sdk";
 import {
   type Author,
   head,
@@ -44,10 +44,10 @@ import type { Changes } from "../storage/changes";
 import { type Locks, lockNames, type Release } from "../storage/locks";
 import type { Records } from "../storage/records";
 import {
-  ensureAltMempoolChain,
-  isAltMempoolChain,
+  ensureSharedChain,
+  sharedChainOf,
   switchTarget,
-} from "../wallet/alt-mempool-chain";
+} from "../wallet/shared-chain";
 import { normaliseAction } from "./action-summary";
 import { appendOutput, boundErrors } from "./bounds";
 import { createGate, type Gate, type Held } from "./gate";
@@ -135,10 +135,10 @@ export interface RunDeps {
   /** How long a cancelled run may take to stop before it is ended anyway
    *  (default 3 s: past the worker's own kill grace). */
   cancelGraceMs?: number;
-  /** The alt-mempool gateway offered to the wallet when a script switches
-   *  to the devnet: the devnet's own unless a test stands in for it. (The
-   *  frames module sends through the run's transport for that chain.) */
-  frameGateway?: Transport;
+  /** How a shared-id chain's declared RPC is read when a script switches
+   *  to it, by chain id: the declared RPC unless a test stands in for it.
+   *  (The frames module sends through the run's transport for that chain.) */
+  sharedChainTransports?: Record<number, Transport>;
 }
 
 const FLUSH_EVERY = 2_000;
@@ -482,9 +482,9 @@ export function createRunManager(deps: RunDeps): RunManager {
             (state) => ctx.onStatus?.(state),
           );
       const pass = (action: Action, ctx: ActionHandlerCtx) => ctx.next(action);
-      const toAltMempool = (client: WalletClient) =>
-        ensureAltMempoolChain(client, undefined, {
-          transport: deps.frameGateway,
+      const toSharedChain = (client: WalletClient, chain: ChainDef) =>
+        ensureSharedChain(client, chain, {
+          transport: deps.sharedChainTransports?.[chain.id],
         });
       // Every kind of action the core knows, so a kind added there does
       // not compile until it is placed here. Each goes through the gate
@@ -494,14 +494,20 @@ export function createRunManager(deps: RunDeps): RunManager {
         // A wallet request is sent in the form it is described in: what
         // the held action shows is the very value the wallet receives.
         //
-        // A change to the alt-mempool devnet (experimental) offers the
-        // wallet its gateway and checks the wallet's chain is the devnet's
-        // before the script goes on.
+        // A change to a chain whose id other networks share (the
+        // alt-mempool and Hegota devnets, experimental) offers the wallet
+        // its declared RPC and checks the wallet's chain is that one before
+        // the script goes on.
         wallet: (action, ctx) => {
           const normalised = normaliseAction(action);
           const target = switchTarget(normalised);
-          return target !== undefined && isAltMempoolChain(target)
-            ? gated(() => toAltMempool(ctx.walletClient))(normalised, ctx)
+          const shared =
+            target === undefined ? undefined : sharedChainOf(target);
+          return shared
+            ? gated(() => toSharedChain(ctx.walletClient, shared))(
+                normalised,
+                ctx,
+              )
             : gated(pass)(normalised, ctx);
         },
         // Endpoints a module asks to submit through are declared as the
@@ -549,8 +555,9 @@ export function createRunManager(deps: RunDeps): RunManager {
               async (reportSent) => {
                 sent = reportSent;
                 try {
-                  return await (guard && isAltMempoolChain(chainId)
-                    ? toAltMempool(guard.client)
+                  const shared = guard ? sharedChainOf(chainId) : undefined;
+                  return await (guard && shared
+                    ? toSharedChain(guard.client, shared)
                     : align());
                 } finally {
                   sent = undefined;

@@ -10,7 +10,6 @@ import {
   moduleChains,
 } from "@evmcrispr/modules/chains";
 import { isExperimentalEnabled } from "@evmcrispr/sdk";
-import { ALT_MEMPOOL_GATEWAY, altMempoolDevnet } from "@evmcrispr/viem-frames";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
 import {
@@ -190,20 +189,6 @@ const moduleExtraChains: ChainDef[] = (moduleChains as ModuleChainDef[])
   .filter((def) => !chainConfig.some(([chain]) => chain.id === def.id))
   .map((def) => ({ ...def, rpcUrl: browserSafeUrl(def.rpcUrl) }));
 
-/** The alt-mempool devnet (EIP-8141 frame transactions), through its
- *  gateway. Chain 1337 is also every local devnet's id, so it is never a
- *  module chain: only the terminal declares it, and only with the
- *  experimental flag on. Without it, 1337 stays viem's localhost. */
-const altMempoolChain: ChainDef = {
-  id: altMempoolDevnet.id,
-  key: "altMempoolDevnet",
-  name: altMempoolDevnet.name,
-  rpcUrl: ALT_MEMPOOL_GATEWAY,
-  nativeCurrency: altMempoolDevnet.nativeCurrency,
-  explorerUrl: altMempoolDevnet.blockExplorers.default.url,
-  testnet: true,
-};
-
 /** A plain local anvil, for the test wallet (experimental): its accounts are
  *  the test wallet's, and its RPC is on this machine. */
 const localAnvilChain: ChainDef = {
@@ -225,7 +210,7 @@ const experimentalChainIds = new Set(
  *  declare). */
 export function networks(experimental: boolean) {
   const extraChains = experimental
-    ? [...moduleExtraChains, altMempoolChain, localAnvilChain]
+    ? [...moduleExtraChains, localAnvilChain]
     : moduleExtraChains.filter((def) => !experimentalChainIds.has(def.id));
 
   const chains = [
@@ -259,3 +244,14 @@ export function networks(experimental: boolean) {
 export const { chains, rpcUrls, transports } = networks(
   isExperimentalEnabled(),
 );
+
+/** A chain the terminal lists whose id other networks share (`sharedId`,
+ *  from an experimental module: the alt-mempool devnet's 1337, the Hegota
+ *  devnet's 3151908). A wallet on that id is checked to be it. */
+export function sharedChain(
+  chainId: number,
+  experimental: boolean = isExperimentalEnabled(),
+): ChainDef | undefined {
+  if (!experimental) return undefined;
+  return moduleExtraChains.find((def) => def.id === chainId && def.sharedId);
+}

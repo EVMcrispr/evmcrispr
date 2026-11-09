@@ -21,9 +21,11 @@ import {
   isTransactionAction,
   quoteThroughGateway,
   RevertError,
+  type RpcRequest,
   registeredChain,
   resolveChain,
   revertShowsCrossChain,
+  sameChain,
   tracesCrossChainProxy,
   transportUrl,
   truncateAddress,
@@ -818,6 +820,47 @@ export function smartSubmission(
     : { ...tx, crossChain: true };
 }
 
+/** Wallets already found on the node a shared-id chain is read from. */
+const checkedWallets = new WeakMap<WalletClient, Map<number, Promise<void>>>();
+
+/**
+ * On a chain whose id other networks share (`sharedId`: 1337, 3151908),
+ * the wallet must be on the node the chain is read from: otherwise its
+ * transactions go to one network and their receipts are awaited on the
+ * other. Asked once per wallet and chain; a node that does not say what
+ * its block 0 is is not refused for it.
+ */
+async function assertWalletOnReadChain(
+  chainId: number,
+  ctx: ActionHandlerCtx,
+): Promise<void> {
+  const def = registeredChain(chainId);
+  if (!def?.sharedId) return;
+  let checked = checkedWallets.get(ctx.walletClient);
+  if (!checked) checkedWallets.set(ctx.walletClient, (checked = new Map()));
+  let check = checked.get(chainId);
+  if (!check) {
+    const reads = ctx.getPublicClient(chainId);
+    check = sameChain(
+      ctx.walletClient.request as unknown as RpcRequest,
+      reads.request as unknown as RpcRequest,
+    ).then((verdict) => {
+      if (verdict !== "different") return;
+      const url =
+        transportUrl(ctx.transports?.[chainId]) ??
+        transportUrl(defaultTransport(chainId)) ??
+        def.rpcUrl;
+      throw new Error(
+        `The wallet's chain ${chainId} is another network than the ${def.name} EVMcrispr reads it from (${url}): their block 0 differs. Connect the wallet to the ${def.name}, or set chain ${chainId}'s RPC to the wallet's node.`,
+      );
+    });
+    checked.set(chainId, check);
+    // A failed check is asked again next time (after the wallet changed).
+    check.catch(() => checked.delete(chainId));
+  }
+  return check;
+}
+
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
     async module(action, ctx) {
@@ -831,6 +874,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         throw new Error(
           `The ${action.module} module has no "${action.kind}" action to send`,
         );
+      await assertWalletOnReadChain(action.chainId, ctx);
       return def.send(action, ctx);
     },
     async smartBatch(action, ctx) {
@@ -852,6 +896,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         );
       if ((await ctx.walletClient.getChainId()) !== action.chainId)
         throw new Error("wallet chain does not match the smart batch");
+      await assertWalletOnReadChain(action.chainId, ctx);
       const client = ctx.getPublicClient(action.chainId);
       const tx = await prepareSmartAccountTransaction(client, action.plan);
       const simulation = await prepareSmartAccountSimulation(
@@ -954,6 +999,8 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         // estimate, where the sending chain cannot estimate it.
         request.gas ??= action.fallbackGas;
         const rpcUrl = priced.rpcUrl;
+        // Sent by the wallet: it must be on the node the chain is read from.
+        if (!rpcUrl) await assertWalletOnReadChain(chainId, ctx);
         let tx: Hash;
         try {
           tx = rpcUrl
@@ -1048,6 +1095,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
       if (chain) {
         await ctx.walletClient.switchChain({ id: chainId });
       }
+      await assertWalletOnReadChain(chainId, ctx);
 
       // Contract deployments (no 'to' address) cannot be batched — fail
       // loudly instead of silently dropping them from the batch.

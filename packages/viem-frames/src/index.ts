@@ -21,6 +21,8 @@ export {
   frameProfileOf,
   frameSidecarOf,
   frameSimulationUrlOf,
+  HEGOTA_DEVNET_RPC,
+  hegotaDevnet,
   sidecarGasPrice,
   simulate,
   withFrames,
@@ -39,6 +41,7 @@ export {
   selfVerify,
 } from "./frames";
 export { printable } from "./printable";
+export { ethrexHegotaDevnetProfile } from "./profiles";
 export {
   describeFrameTransaction,
   type FrameLogLevel,

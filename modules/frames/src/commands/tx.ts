@@ -2,11 +2,14 @@ import type {
   Action,
   BatchedAction,
   BlockExpressionNode,
+  RpcRequest,
 } from "@evmcrispr/sdk";
 import {
   defineCommand,
   ErrorException,
+  identifyChain,
   isSmartBatchAction,
+  transportUrl,
   withSender,
 } from "@evmcrispr/sdk";
 import {
@@ -153,11 +156,28 @@ export default defineCommand<Frames>({
   ],
   batchable: false,
   async run(module, { block }, { opts, interpreters }) {
-    // The default is the network's: the alt mempool where it has one.
-    const network = frameNetwork(await module.getChainId());
+    // The default is the network's: the alt mempool where it has one, and
+    // only on that network itself (a local node on its id has no sidecar).
+    const chainNow = await module.getChainId();
+    const network = frameNetwork(chainNow);
+    const onItself = async () => {
+      const url = transportUrl(module.getTransport(chainNow));
+      return (
+        (await identifyChain(
+          chainNow,
+          url
+            ? { url }
+            : ((
+                await module.getClient()
+              ).request as unknown as RpcRequest),
+        )) !== "other"
+      );
+    };
     const mempool =
       opts.mempool ??
-      (network && !frameSidecarOf(network.chain) ? "canonical" : "alt");
+      ((!network || frameSidecarOf(network.chain)) && (await onItself())
+        ? "alt"
+        : "canonical");
     if (mempool !== "alt" && mempool !== "canonical")
       throw new ErrorException(
         `--mempool is alt or canonical, not ${mempool}.`,

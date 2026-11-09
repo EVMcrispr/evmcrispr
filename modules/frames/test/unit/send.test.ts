@@ -131,7 +131,7 @@ describe("the frames module sends its frame action", () => {
       const fw = frameWallet({ chainId: 100 });
       const c = ctx(fw.wallet, gateway.transport);
       await expect(send(action, c.ctx)).rejects.toThrow(
-        "Frame transactions are sent on the Alt-mempool devnet, the Frames quick devnet or the Frames mining devnet, not on Gnosis",
+        "Frame transactions are sent on the Alt-mempool devnet, the Frames quick devnet, the Frames mining devnet, the Frames alt-mempool devnet or the Hegota devnet, not on Gnosis",
       );
       expect(fw.asked).toHaveLength(0);
     }
@@ -190,11 +190,13 @@ describe("the frames module sends its frame action", () => {
     expect(c.sent).toEqual([node.sent()!]);
   });
 
-  test("a wallet on another chain is told to switch 1337 first, and nothing is signed", async () => {
+  test("a wallet on another chain is told to switch altMempoolDevnet first, and nothing is signed", async () => {
     const gateway = frameGateway();
     const mm = metaMask({ chainId: 100 });
     const c = ctx(mm.wallet, gateway.transport);
-    await expect(send(accountAction(), c.ctx)).rejects.toThrow(/switch 1337/);
+    await expect(send(accountAction(), c.ctx)).rejects.toThrow(
+      /switch altMempoolDevnet/,
+    );
     expect(mm.asked.map((r) => r.method)).toEqual(["eth_chainId"]);
     expect(gateway.calls).toHaveLength(0);
   });

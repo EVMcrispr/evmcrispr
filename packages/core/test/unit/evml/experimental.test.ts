@@ -1,7 +1,12 @@
 import "../../setup";
 
 import { afterEach, beforeEach, describe, it } from "bun:test";
-import { defineCommand, defineHelper, defineModule } from "@evmcrispr/sdk";
+import {
+  defineCommand,
+  defineHelper,
+  defineModule,
+  registeredChain,
+} from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 
 import type { ParseDiagnostic } from "../../../src";
@@ -206,5 +211,38 @@ describe("evml > experimental gating", () => {
         .getCompletions("load expmod --", { line: 1, col: 14 });
       expect(optItems.map((c) => c.label)).to.include("--from");
     });
+  });
+});
+
+describe("an experimental module's chains on shared ids", () => {
+  const chains = [
+    {
+      id: 913390,
+      key: "sharedExperimentalDevnet",
+      name: "Shared experimental devnet",
+      rpcUrl: "https://shared.example",
+      sharedId: true,
+    },
+    {
+      id: 913391,
+      key: "ownExperimentalDevnet",
+      name: "Own experimental devnet",
+      rpcUrl: "http://127.0.0.1:9",
+    },
+  ];
+  const loader = async () => ({ default: StableModule }) as never;
+
+  it("are not declared without experimental features: the id keeps no default RPC", () => {
+    setEnv(undefined);
+    new ModuleRegistry().register("devnets", loader, "", true, chains);
+    expect(registeredChain(913390)).to.be.undefined;
+    // A chain whose id is its own is declared as before.
+    expect(registeredChain(913391)?.key).to.equal("ownExperimentalDevnet");
+  });
+
+  it("are declared with experimental features on", () => {
+    setEnv("true");
+    new ModuleRegistry().register("devnets", loader, "", true, chains);
+    expect(registeredChain(913390)?.key).to.equal("sharedExperimentalDevnet");
   });
 });

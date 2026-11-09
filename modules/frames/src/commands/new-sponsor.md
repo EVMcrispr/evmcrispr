@@ -32,7 +32,7 @@ frames:new-sponsor <variable>
 
 ## How it works
 
-`new-sponsor` deploys a sponsor contract that pays the gas of an account's frame transactions, and binds its address to the variable. `--fund` is the amount in wei sent with the deployment; `--owner` (default `@me`) may withdraw. It works only on chain 1337.
+`new-sponsor` deploys a sponsor contract that pays the gas of an account's frame transactions, and binds its address to the variable. `--fund` is the amount in wei sent with the deployment; `--owner` (default `@me`) may withdraw. It works only on the frame chains (the networks `frames:tx` sends on).
 
 ```evml
 load frames [new-account new-sponsor]

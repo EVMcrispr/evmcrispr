@@ -119,8 +119,11 @@ sim:fork --using revm (
 
 ## Frame transactions
 
-A `frames:tx` runs in the fork when the fork is of a frame network (the
-alt-mempool devnet or the local `framesQuick` and `framesMining` devnets) and
+A `frames:tx` runs in the fork when the fork is of a frame network
+(`altMempoolDevnet`, `hegotaDevnet`, or the local `framesQuick`,
+`framesMining` and `framesAltMempool` devnets; a node on the id of one of
+the public two is
+simulated by its family's rules) and
 the backend is in-process (`--using ethereumjs` or `--using revm`): its
 frames run in order with the EIP-8141 opcodes, the validation prefix first
 (a frame that fails or does not approve makes the transaction invalid, and
@@ -131,8 +134,16 @@ holds no signature. A sponsor's or paymaster's verify frame runs.
 
 After it, `sim:expect` and assertions see its effects, and the fork logs each
 frame that did not succeed and, for each call without `--gas`, the gas it used
-and the `--gas` to send it with. A frame's gas includes what it pays to reach
-its target (100 when warm, 3000 when cold), as the devnets charge it.
+and the `--gas` to send it with. A frame's gas is charged as the network's
+client charges it, measured on each: on the alt-mempool and local devnets it
+includes what the frame pays to reach its target (100 when warm, 3000 when
+cold); on the Hegota devnet reaching a target costs nothing, and a frame to a
+precompile or to an account without code uses none of its own gas (the
+client charges that to the transaction).
+
+`sim:fork --on hegotaDevnet` forks the public Hegota devnet. To fork a local
+node on its id (a Kurtosis devnet), set the id's RPC to it (in the CLI,
+`EVMCRISPR_RPC_URL_3151908`).
 
 With `--max-fee-per-gas` or `--max-priority-fee-per-gas` on `frames:tx`, the
 payer (the account or sender that approved paying, or its sponsor) pays the

@@ -7,7 +7,11 @@ const SENDER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 const DEAD = "0x000000000000000000000000000000000000dEaD";
 
 /** A host whose body calls throw on the `failAt`-th call (a lost RPC). */
-function fakeHost(failAt?: number, baseFee = 0n) {
+function fakeHost(
+  failAt?: number,
+  baseFee = 0n,
+  { chainId = 81412, code = {} as Record<string, `0x${string}`> } = {},
+) {
   let depth = 0;
   const balances = new Map<string, bigint>();
   let calls = 0;
@@ -15,7 +19,7 @@ function fakeHost(failAt?: number, baseFee = 0n) {
   const nonces = new Map<string, bigint>();
   const log: string[] = [];
   const sim: ModuleActionSimCtx = {
-    chainId: 81412,
+    chainId,
     blockNumber: 1n,
     timestamp: 1n,
     baseFee,
@@ -49,7 +53,7 @@ function fakeHost(failAt?: number, baseFee = 0n) {
     async setBalance(a, b) {
       balances.set(a, b);
     },
-    getCode: async () => "0x",
+    getCode: async (a) => code[a.toLowerCase()] ?? "0x",
     isWarm: (a) => warm.has(a.toLowerCase()),
     warm: (a) => warm.add(a.toLowerCase()),
     withOpcodes: (_, run) => run(),
@@ -60,9 +64,10 @@ function fakeHost(failAt?: number, baseFee = 0n) {
 const action = (
   n = 2,
   fees?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint },
+  { chainId = 81412, gas = 50_000n } = {},
 ) =>
   frameAction.create({
-    chainId: 81412,
+    chainId,
     from: SENDER,
     data: {
       mempool: "canonical",
@@ -81,7 +86,7 @@ const action = (
           target: DEAD as `0x${string}`,
           data: "0x" as const,
           value: 0n,
-          gas: 50_000n,
+          gas,
           stateGas: 200_000n,
         })),
       ],
@@ -154,5 +159,47 @@ describe("the frame executor", () => {
       frameAction.simulate!(action(2, { maxFeePerGas: 6n }), host.sim),
     ).rejects.toThrow("is below the base fee");
     expect(host.log).not.toContain("checkpoint 1");
+  });
+
+  describe("on the Hegota devnet", () => {
+    const HEGOTA = 3151908;
+    test("a frame to a codeless target uses none of its gas, and runs with 1", async () => {
+      const host = fakeHost(undefined, 0n, { chainId: HEGOTA });
+      const receipt = (await frameAction.simulate!(
+        action(2, undefined, { chainId: HEGOTA, gas: 1n }),
+        host.sim,
+      )) as unknown as { frameReceipts: { status: string; gasUsed: bigint }[] };
+      expect(receipt.frameReceipts.map((f) => [f.status, f.gasUsed])).toEqual([
+        ["impersonated", 0n],
+        ["success", 0n],
+        ["success", 0n],
+      ]);
+    });
+
+    test("a frame to a target with code pays nothing to reach it, cold or warm", async () => {
+      const host = fakeHost(undefined, 0n, {
+        chainId: HEGOTA,
+        code: { [DEAD.toLowerCase()]: "0x00" },
+      });
+      const receipt = (await frameAction.simulate!(
+        action(2, undefined, { chainId: HEGOTA }),
+        host.sim,
+      )) as unknown as { frameReceipts: { gasUsed: bigint }[] };
+      // The fake's every call uses 21: no 3000 cold or 100 warm on top.
+      expect(receipt.frameReceipts.map((f) => f.gasUsed)).toEqual([
+        0n,
+        21n,
+        21n,
+      ]);
+    });
+
+    test("the tracer devnets still charge a codeless frame to reach its target", async () => {
+      const host = fakeHost();
+      const receipt = (await frameAction.simulate!(
+        action(1, undefined, { gas: 1n }),
+        host.sim,
+      )) as unknown as { frameReceipts: { status: string }[] };
+      expect(receipt.frameReceipts[1]!.status).toBe("reverted");
+    });
   });
 });

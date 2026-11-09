@@ -107,7 +107,7 @@ describe("the test wallet's accounts and chains", () => {
     ])
       expect(isLoopbackUrl(url)).toBe(true);
     for (const url of [
-      "https://altmempoolgateway.forshtat.com/rpc",
+      "https://altmempool.forshtat.com/rpc",
       "http://127.0.0.1.example.com",
       "not a url",
     ])
@@ -129,7 +129,7 @@ describe("the test wallet's accounts and chains", () => {
     const gateway = chain({
       id: 1337,
       name: "Alt-mempool devnet",
-      rpcUrl: "https://altmempoolgateway.forshtat.com/rpc",
+      rpcUrl: "https://altmempool.forshtat.com/rpc",
     });
     const w = wallet({
       chains: [
@@ -230,7 +230,7 @@ describe("the test wallet's signing requests", () => {
         chain({
           id: 1337,
           name: "Alt-mempool devnet",
-          rpcUrl: "https://altmempoolgateway.forshtat.com/rpc",
+          rpcUrl: "https://altmempool.forshtat.com/rpc",
         }),
       ],
     });

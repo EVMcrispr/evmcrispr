@@ -110,7 +110,7 @@ describe("frame > new-account / new-sponsor", () => {
         100,
       ),
     ).rejects.toThrow(
-      /the alt-mempool devnet, the Frames quick devnet and the Frames mining devnet, not Gnosis/,
+      /the Alt-mempool devnet, the Frames quick devnet, the Frames mining devnet, the Frames alt-mempool devnet or the Hegota devnet, not Gnosis/,
     );
   });
 

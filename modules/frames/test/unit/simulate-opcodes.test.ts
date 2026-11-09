@@ -11,6 +11,7 @@ const { PAYMENT, EXECUTION } = profile.approveScopes;
 
 function context(): FrameContext {
   return {
+    profile,
     sender: SENDER,
     nonce: 4n,
     maxFeePerGas: 7n,

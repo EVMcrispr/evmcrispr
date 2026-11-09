@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { chains } from "../../modules/frames/src/chains";
 import {
+  ALT_MEMPOOL_CHAIN,
   devAccounts,
   extendGenesis,
   FUNDED_BALANCE,
@@ -8,6 +9,10 @@ import {
   kurtosisConfig,
   MINING_CHAIN,
   QUICK_CHAIN,
+  SIDECAR_COMMIT,
+  SIDECAR_IMAGE,
+  sidecarArgs,
+  sidecarConfig,
 } from "../frame-devnet-config";
 
 const OTHER = "0x00000000219ab540356cbb839cbe05303d7705fa";
@@ -99,6 +104,53 @@ describe("frame devnet config", () => {
     expect(MINING_CHAIN.id).toBe(81412);
     expect(QUICK_CHAIN.rpcUrl).toBe("http://127.0.0.1:8570");
     expect(MINING_CHAIN.rpcUrl).toBe("http://127.0.0.1:32003");
+  });
+
+  it("writes the alt-mempool devnet's chain on its own id and port range", () => {
+    const config = kurtosisConfig([], ALT_MEMPOOL_CHAIN, 33_000) as {
+      network_params: { network_id: string };
+      port_publisher: { el: { public_port_start: number } };
+    };
+    expect(ALT_MEMPOOL_CHAIN.id).toBe(81413);
+    expect(config.network_params.network_id).toBe("81413");
+    expect(config.port_publisher.el.public_port_start).toBe(33_000);
+    // The mining devnet keeps its own.
+    const mining = kurtosisConfig([]) as typeof config;
+    expect(mining.network_params.network_id).toBe("81412");
+    expect(mining.port_publisher.el.public_port_start).toBe(32_000);
+  });
+
+  it("puts the sidecar in front of ethrex, on the declared RPC's port", () => {
+    const relayer = devAccounts()[9]!.privateKey;
+    expect(sidecarConfig("http://127.0.0.1:33003", relayer)).toEqual({
+      entryPoints: ["0x00000000000000000000000000000000000000aa"],
+      canonicalEntryPoint: "0x00000000000000000000000000000000000000aa",
+      standardMempoolId: "QmcFZKUX9qoo3StwVycJTAhwdiqbEjcwNvQVK246p3z1rk",
+      supportedMempools: [
+        {
+          mempoolId: "QmcFZKUX9qoo3StwVycJTAhwdiqbEjcwNvQVK246p3z1rk",
+          entryPoint: "0x00000000000000000000000000000000000000aa",
+        },
+      ],
+      relayers: [relayer],
+      rpcEndpoint: "http://127.0.0.1:33003",
+      rpcEndpointSubmit: "http://127.0.0.1:33003",
+    });
+    expect(ALT_MEMPOOL_CHAIN.rpcUrl).toBe("http://127.0.0.1:14337/rpc");
+    const args = sidecarArgs(14337, "/sidecar");
+    expect(args.slice(0, 5)).toEqual([
+      "node",
+      "--configFile",
+      "/sidecar/config.json",
+      "--dataDir",
+      "/sidecar/data",
+    ]);
+    expect(args).toContain("--redirectRpc");
+    expect(args[args.indexOf("--api.port") + 1]).toBe("14337");
+    expect(args[args.indexOf("--executor.bundlingMode") + 1]).toBe("auto");
+    expect(SIDECAR_IMAGE).toBe(
+      `evmcrispr/mempool-sidecar:${SIDECAR_COMMIT.slice(0, 7)}`,
+    );
   });
 
   it("says why a command failed, with what it printed", () => {

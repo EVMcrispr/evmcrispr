@@ -14,9 +14,9 @@ import {
   unpaidFeeError,
 } from "@evmcrispr/sdk";
 import {
+  frameProfileOf,
   frameSignatureHash,
   newFrameTransaction,
-  eip8141TracerProfile as profile,
   secp256k1Placeholder,
   toFrameRequests,
 } from "@evmcrispr/viem-frames";
@@ -33,29 +33,13 @@ import {
 /** Execution gas of a body frame written without `--gas`. */
 export const UNSIZED_GAS = 30_000_000n;
 
-/**
- * What a frame pays to reach its target, out of its own gas, as the
- * devnets' ethrex charges it (measured on `up quick`, 2026-11-09): 100 for
- * a warm target (the sender, the entry point, a precompile, or a target an
- * earlier frame reached), 3000 for a cold one. A frame given less fails,
- * having used all of its gas.
- */
-export const WARM_TARGET_GAS = 100n;
-export const COLD_TARGET_GAS = 3_000n;
+// What a frame pays to reach its target, and whether a codeless one is
+// free, are the network's (`FrameGasRules` in networks.ts). Warm from the
+// start: the sender, the entry point and the precompiles.
 const PRECOMPILES = Array.from(
   { length: 0x11 },
   (_, i) => `0x${(i + 1).toString(16).padStart(40, "0")}`,
 );
-
-const VERIFY = profile.frameModes.VERIFY;
-const SENDER = profile.frameModes.SENDER;
-const ATOMIC = profile.flagBits.ATOMIC_BATCH;
-const ENTRY_POINT = getAddress(profile.entryPoint);
-const MODE_NAME: Record<number, string> = {
-  [profile.frameModes.DEFAULT]: "default",
-  [VERIFY]: "verify",
-  [SENDER]: "sender",
-};
 
 export interface FrameReceiptOut {
   status: FrameStatus;
@@ -74,6 +58,18 @@ export async function simulateFrameAction(
       throw new ErrorException(
         `Frame transactions run on ${frameNetworkNames()}, not on ${chainLabel(id)}: fork one of them to simulate this one.`,
       );
+  // The fork's network: its client's numbers and how it charges gas.
+  const network = frameNetwork(sim.chainId)!;
+  const profile = frameProfileOf(network.chain);
+  const VERIFY = profile.frameModes.VERIFY!;
+  const SENDER = profile.frameModes.SENDER!;
+  const ATOMIC = profile.flagBits.ATOMIC_BATCH ?? 0;
+  const ENTRY_POINT = getAddress(profile.entryPoint);
+  const MODE_NAME: Record<number, string> = {
+    [profile.frameModes.DEFAULT!]: "default",
+    [VERIFY]: "verify",
+    [SENDER]: "sender",
+  };
   const sender = getAddress(action.from);
   const specs = action.data.frames;
   const requests = toFrameRequests(specs, profile);
@@ -112,6 +108,7 @@ export async function simulateFrameAction(
     fees: { maxFeePerGas, maxPriorityFeePerGas },
   });
   const ctx: FrameContext = {
+    profile,
     sender,
     nonce,
     maxFeePerGas,
@@ -137,15 +134,31 @@ export async function simulateFrameAction(
   const alwaysWarm = new Set(
     [sender, ENTRY_POINT, ...PRECOMPILES].map((a) => a.toLowerCase()),
   );
+  const precompiles = new Set(PRECOMPILES);
   const runFrame = async (i: number): Promise<SimCallResult> => {
     const f = frames[i]!;
     ctx.current = i;
     ctx.approved = undefined;
     const target = f.target.toLowerCase();
-    const access =
-      alwaysWarm.has(target) || sim.isWarm(f.target)
-        ? WARM_TARGET_GAS
-        : COLD_TARGET_GAS;
+    // A network that charges a codeless or precompile frame to the
+    // transaction runs it unbounded and counts none of its gas.
+    if (
+      network.gas.codelessFramesFree &&
+      (precompiles.has(target) || (await sim.getCode(f.target)) === "0x")
+    ) {
+      sim.warm(f.target);
+      const result = await sim.call({
+        caller: f.mode === SENDER ? sender : ENTRY_POINT,
+        to: f.target,
+        data: f.data,
+        value: f.value,
+        gas: UNSIZED_GAS,
+        isStatic: f.mode === VERIFY,
+      });
+      return { ...result, gasUsed: 0n };
+    }
+    const { warm, cold } = network.gas.targetAccess;
+    const access = alwaysWarm.has(target) || sim.isWarm(f.target) ? warm : cold;
     sim.warm(f.target);
     if (f.gas < access)
       return {
