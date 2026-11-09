@@ -28,6 +28,7 @@ export * from "./experimental";
 export * from "./fixed";
 export * from "./format";
 export * from "./formatters";
+export * from "./gateway";
 export * from "./imports";
 export * from "./localAbi";
 export * from "./moduleSource";

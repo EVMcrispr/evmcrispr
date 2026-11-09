@@ -33,6 +33,7 @@ function withPolicy(def: ChainDef): ChainDef {
     ...(def.explorerApiUrl
       ? { explorerApiUrl: urlPolicy(def.explorerApiUrl) }
       : {}),
+    ...(def.gateway ? { gateway: urlPolicy(def.gateway) } : {}),
   };
 }
 

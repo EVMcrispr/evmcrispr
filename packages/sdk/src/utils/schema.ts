@@ -179,6 +179,13 @@ export interface ChainDef {
    *  `<explorerUrl>/api`. */
   explorerApiUrl?: string;
   testnet?: boolean;
+  /** Endpoint that prices and admits transactions on this chain before
+   *  they are sent: an EEZ composer front, answering `eez_quoteFee`. When
+   *  it quotes a transaction (one that crosses chains), the executor sends
+   *  it at the quoted fees, and a local key submits it there. A module may
+   *  declare a chain viem already knows (keeping viem's key, name and RPC)
+   *  only to add this. */
+  gateway?: string;
 }
 
 /**
