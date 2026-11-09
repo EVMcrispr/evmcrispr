@@ -130,6 +130,8 @@ export async function simulateFrameAction(
   /** Each frame's refund counter (EIP-3529), on a network whose
    *  transaction caps them together. */
   const refunds: bigint[] = [];
+  /** Frames an atomic group's failure rolled back. */
+  const rolledBack = new Set<number>();
   /** The gas the transaction used, as the network counts it (ethrex):
    *  elsewhere the frames' gas; there the intrinsic gas and each frame's
    *  execution and state gas, less the refunds of the frames that stand
@@ -142,7 +144,10 @@ export async function simulateFrameAction(
     if (!txGas) return used;
     const total = txGas.intrinsic + used;
     const refund = frames.reduce(
-      (sum, f, i) => (f.status === "success" ? sum + (refunds[i] ?? 0n) : sum),
+      (sum, f, i) =>
+        f.status === "success" && !rolledBack.has(i)
+          ? sum + (refunds[i] ?? 0n)
+          : sum,
       0n,
     );
     const applied = refund < total / 5n ? refund : total / 5n;
@@ -213,7 +218,8 @@ export async function simulateFrameAction(
       network.gas.codelessFramesFree &&
       (precompiles.has(target) || (await sim.getCode(f.target)) === "0x")
     ) {
-      sim.warm(f.target);
+      // A network on ethrex's schedule leaves a frame's target cold.
+      if (!network.gas.schedule) sim.warm(f.target);
       const result = await sim.call({
         caller: f.mode === SENDER ? sender : ENTRY_POINT,
         to: f.target,
@@ -227,7 +233,7 @@ export async function simulateFrameAction(
     }
     const { warm, cold } = network.gas.targetAccess;
     const access = alwaysWarm.has(target) || sim.isWarm(f.target) ? warm : cold;
-    sim.warm(f.target);
+    if (!network.gas.schedule) sim.warm(f.target);
     if (f.gas < access)
       return {
         success: false,
@@ -314,7 +320,22 @@ export async function simulateFrameAction(
         }
         if (approved !== undefined) {
           if (approved & profile.approveScopes.EXECUTION) execution = true;
-          if (approved & profile.approveScopes.PAYMENT) payer ??= f.target;
+          if (approved & profile.approveScopes.PAYMENT && payer === undefined) {
+            payer = f.target;
+            // The approval collects the most the transaction can cost
+            // (EIP-8141's max_cost; ethrex debits it at APPROVE), on a
+            // network that charges it then: later frames, a POST_TX frame's
+            // trace included, see the payer charged. The unused part comes
+            // back after the last frame.
+            if (preCharged !== undefined) {
+              const balance = await sim.getBalance(payer);
+              if (balance < preCharged)
+                throw new ErrorException(
+                  `The frame transaction is invalid: ${unpaidFeeError(sim.chainId, payer, preCharged, balance, "its gas limits cost up to").message}`,
+                );
+              await sim.setBalance(payer, balance - preCharged);
+            }
+          }
         }
       }
       if (!execution)
@@ -325,18 +346,6 @@ export async function simulateFrameAction(
         throw new ErrorException(
           "The frame transaction is invalid: no verify frame approved paying for it.",
         );
-      // The payer's approval collects the most the transaction can cost
-      // (EIP-8141's max_cost), on a network that charges it then: frames
-      // that read the payer's balance, a POST_TX frame's trace included,
-      // see it charged. The unused part comes back after the last frame.
-      if (preCharged !== undefined) {
-        const balance = await sim.getBalance(payer);
-        if (balance < preCharged)
-          throw new ErrorException(
-            `The frame transaction is invalid: ${unpaidFeeError(sim.chainId, payer, preCharged, balance, "its gas limits cost up to").message}`,
-          );
-        await sim.setBalance(payer, balance - preCharged);
-      }
       // The transaction uses the sender's nonce once validated; what its
       // body creates moves the nonce on from there.
       await sim.setNonce(sender, (await sim.getNonce(sender)) + 1n);
@@ -379,11 +388,17 @@ export async function simulateFrameAction(
         if (failed === undefined) await commit();
         else {
           await revert();
-          // The group's earlier frames are rolled back with it.
+          // The group's earlier frames are rolled back with it: their
+          // changes and logs go, and their refunds. A client that keeps
+          // their status (ethrex: each executed) reports them succeeded.
           for (const j of group)
             if (j !== failed) {
-              out[j] = { ...out[j]!, status: "reverted", logs: [] };
-              ctx.statuses[j] = "reverted";
+              rolledBack.add(j);
+              const status = network.gas.rolledBackFramesSucceed
+                ? "success"
+                : "reverted";
+              out[j] = { ...out[j]!, status, logs: [] };
+              ctx.statuses[j] = status;
             }
           for (let j = failed + 1; j <= end; j++) {
             out[j] = { status: "skipped", gasUsed: 0n, logs: [] };
@@ -457,6 +472,10 @@ export async function simulateFrameAction(
       if (frame.status !== "success" && frame.status !== "impersonated")
         sim.onLog(
           `:warning:Frame ${i + 1} ${frame.status}${frame.error ? ` (${frame.error})` : ""}`,
+        );
+      else if (rolledBack.has(i))
+        sim.onLog(
+          `:warning:Frame ${i + 1} was rolled back with its atomic group (its receipt reads success, as the chain's does)`,
         );
       if (unsized.has(i) && i >= prefix)
         sim.onLog(

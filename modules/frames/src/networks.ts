@@ -33,6 +33,9 @@ export interface FrameGasRules {
    *  chain's: "hegota" is Amsterdam with EIP-8038's access costs and
    *  EIP-8037's state gas, drawn from each frame's `limits.state`. */
   schedule?: "hegota";
+  /** A frame an atomic group's failure rolled back keeps its status in the
+   *  receipt (success; ethrex), its changes and logs gone. */
+  rolledBackFramesSucceed?: boolean;
 }
 
 /** ethrex `eip8141-tracer` (the alt-mempool and local devnets), measured on
@@ -54,6 +57,7 @@ const HEGOTA_GAS: FrameGasRules = {
   preCharge: { extraBytes: 3n },
   transferLogs: true,
   schedule: "hegota",
+  rolledBackFramesSucceed: true,
 };
 
 export interface FrameNetwork {

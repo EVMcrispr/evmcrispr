@@ -433,6 +433,9 @@ pub struct FrameInspector {
     creating: Vec<bool>,
     /// revm's reservoir before the current step.
     reservoir_before: u64,
+    /// The frame's target, to make cold again at its first step: ethrex
+    /// does not warm a frame's target (revm warms a call's destination).
+    cool: Option<Address>,
     /// Cost per state byte (EIP-8037), for a create's code deposit.
     cpsb: u64,
 }
@@ -478,8 +481,16 @@ impl FrameInspector {
             refund: 0,
             creating: Vec::new(),
             reservoir_before: 0,
+            cool: None,
             cpsb: 0,
         }
+    }
+
+    /// Leaves the frame's `target` cold, as ethrex does, unless an earlier
+    /// frame warmed it.
+    pub fn with_cold_target(mut self, target: Address) -> Self {
+        self.cool = Some(target);
+        self
     }
 
     /// Draws the frame's state charges from `pool` alone (EIP-8141), at
@@ -526,8 +537,17 @@ impl FrameInspector {
     }
 }
 
-impl<CTX: ContextTr> Inspector<CTX, EthInterpreter> for FrameInspector {
-    fn step(&mut self, interp: &mut Interpreter<EthInterpreter>, _context: &mut CTX) {
+impl<CTX> Inspector<CTX, EthInterpreter> for FrameInspector
+where
+    CTX: ContextTr,
+    CTX::Journal: JournalTr<State = revm::state::EvmState>,
+{
+    fn step(&mut self, interp: &mut Interpreter<EthInterpreter>, context: &mut CTX) {
+        if let Some(target) = self.cool.take() {
+            if let Some(account) = context.journal_mut().evm_state_mut().get_mut(&target) {
+                account.mark_cold();
+            }
+        }
         let Some(pool) = self.state_pool else {
             return;
         };

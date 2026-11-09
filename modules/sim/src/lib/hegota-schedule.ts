@@ -5,7 +5,8 @@
 // each frame's state gas drawn from its own pool (EIP-8141): a state charge
 // the pool cannot cover halts the call as out of gas rather than spilling
 // into execution gas. Everything is restored after the call.
-import { EVMError } from "@ethereumjs/evm";
+import { EVMError, getOpcodesForHF } from "@ethereumjs/evm";
+import { hexToBytes } from "@ethereumjs/util";
 
 /** EIP-8037's cost per state byte there (ethrex's constant). */
 export const HEGOTA_COST_PER_STATE_BYTE = 1530n;
@@ -39,6 +40,8 @@ export async function withHegotaSchedule<T>(
   stateGas: bigint,
   run: () => Promise<T>,
   succeeded: (result: T) => boolean,
+  /** Whether a module's opcode is installed at `byte` for this call. */
+  isModuleOpcode: (byte: number) => boolean,
 ): Promise<{ result: T; stateGasUsed: bigint }> {
   const common = evm.common;
   const hardfork = common.hardfork();
@@ -49,7 +52,21 @@ export async function withHegotaSchedule<T>(
   common.updateParams({ 8038: EIP8038_PARAMS });
   evm.getActiveOpcodes();
 
+  // Precompiles are warm from a transaction's start (runCall, unlike runTx,
+  // does not warm them).
+  for (const address of evm.precompiles.keys())
+    evm.journal.addWarmedAddress(hexToBytes(`0x${address}`));
+
   const map: OpEntry[] = evm._opcodeMap.slice();
+  // The backend's slots for module opcodes cover every byte Prague leaves
+  // free, which Amsterdam's new opcodes (CLZ, SLOTNUM, DUPN…) now use:
+  // those bytes get Amsterdam's opcode back, unless a module's is there.
+  const amsterdam = getOpcodesForHF(common).opcodeMap as OpEntry[];
+  for (let op = 0; op < 256; op++) {
+    const real = amsterdam[op] as OpEntry & { opcodeInfo: { name: string } };
+    if (real && real.opcodeInfo.name !== "INVALID" && !isModuleOpcode(op))
+      map[op] = real;
+  }
   // RETURN from init code deposits the code: its state gas comes from the
   // pool, and a pool that cannot pay it halts the create.
   const ret = map[0xf3]!;

@@ -245,6 +245,8 @@ export async function createEthereumJSBackend(
         prevRandao: new Uint8Array(32),
         gasLimit: 30_000_000n,
         baseFeePerGas: baseFee,
+        // SLOTNUM (Amsterdam): a fork has no beacon slot.
+        slotNumber: 0n,
         getBlobGasPrice: () => undefined,
       },
     };
@@ -531,6 +533,7 @@ export async function createEthereumJSBackend(
               stateGas ?? 0n,
               runCall,
               (r) => !r.execResult.exceptionError,
+              (byte) => opcodeSlot.table?.has(byte) ?? false,
             );
             result = run.result;
             stateGasUsed = run.stateGasUsed;
@@ -538,7 +541,8 @@ export async function createEthereumJSBackend(
         } finally {
           if (addLogs) common.setEIPs(eips);
         }
-        journal.addWarmedAddress(hexToBytes(to));
+        // ethrex leaves a frame's target cold (its own code may warm it).
+        if (schedule !== "hegota") journal.addWarmedAddress(hexToBytes(to));
         journal.addWarmedAddress(hexToBytes(caller));
         const error = result.execResult.exceptionError;
         return {

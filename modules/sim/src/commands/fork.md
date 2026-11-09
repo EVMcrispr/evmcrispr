@@ -149,7 +149,10 @@ the state a frame creates (1530 a byte: 97,920 for a new slot, 183,600 for a
 new account, 1530 a byte of deployed code). A frame's state gas comes from its
 own `--state-gas` alone: a charge it cannot cover halts the call as out of gas,
 and what a cleared slot or a reverted call gives back does not refill it. Each
-frame's receipt reports its state gas, net and never below 0.
+frame's receipt reports its state gas, net and never below 0. A frame's target
+starts cold (its own code warms it), precompiles warm. A frame that an atomic
+group's failure rolls back keeps its status, as the chain reports it: its
+changes and logs are gone, and the run says so.
 
 On the Hegota devnet, `post-verify` frames (POST_TX) run after the body, as
 static calls, with TXTRACE and EVENTDATACOPY answered from what the body
@@ -171,7 +174,9 @@ transaction invalid. Without them it runs free, like any transaction here.
 On the Hegota devnet, as on the chain, the payer is charged the most the
 transaction can cost when it approves (the max fee times the intrinsic gas and
 every frame's limits, or EIP-8141's calldata floor when that is more; a payer
-that cannot cover it makes the transaction invalid), so the body and the `post-verify` checks see that charge, and the
+that cannot cover it makes the transaction invalid; a transaction with a call
+that has no `--gas`, the run that sizes it, has no limits to price and is not
+charged), so the body and the `post-verify` checks see that charge, and the
 part not used comes back after the last frame. The signature is priced as the
 send will carry it: a plain sender's secp256k1 one (2800 gas to verify), a
 frame account's owner signature as an ARBITRARY entry its code checks (100).

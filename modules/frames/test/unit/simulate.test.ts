@@ -348,6 +348,65 @@ describe("the frame executor", () => {
       expect(host.balances.get(SENDER)).toBe(ONE - floor * 8n);
     });
 
+    test("the payer is charged when it approves, not after the whole validation prefix (ethrex)", async () => {
+      const during: (bigint | undefined)[] = [];
+      let balances: Map<string, bigint> | undefined;
+      const host = fakeHost(undefined, 7n, {
+        chainId: HEGOTA,
+        code: { [DEAD.toLowerCase()]: "0x00" },
+        behave: () => {
+          during.push(balances?.get(SENDER));
+          return undefined;
+        },
+      });
+      balances = host.balances;
+      host.balances.set(SENDER, ONE);
+      const tx = frameAction.create({
+        chainId: HEGOTA,
+        from: SENDER,
+        data: {
+          mempool: "canonical",
+          fees: FEES,
+          frames: [
+            {
+              mode: "verify",
+              approve: "payment",
+              target: null,
+              data: "0x",
+              value: 0n,
+              gas: 30_000n,
+            },
+            // Inside the prefix, after the payer approved.
+            {
+              mode: "default",
+              target: DEAD,
+              data: "0x",
+              value: 0n,
+              gas: 50_000n,
+            },
+            {
+              mode: "verify",
+              approve: "execution",
+              target: null,
+              data: "0x",
+              value: 0n,
+              gas: 30_000n,
+            },
+            {
+              mode: "sender",
+              target: DEAD,
+              data: "0x",
+              value: 0n,
+              gas: 50_000n,
+              stateGas: 200_000n,
+            },
+          ],
+        },
+      });
+      await frameAction.simulate!(tx, host.sim);
+      expect(during[0]).toBeLessThan(ONE);
+    });
+
     test("a payer that can pay the gas used but not the maximum cost makes the transaction invalid", async () => {
       const host = fakeHost(undefined, 7n, { chainId: HEGOTA });
       host.balances.set(SENDER, MAX_COST - 1n);
@@ -492,10 +551,12 @@ describe("the frame executor", () => {
       }
       // DEAD's log only: the rolled-back group's is gone.
       expect(counts).toEqual([{ push: 1n }, { push: 1n }]);
+      // The frame its atomic group rolled back keeps its status, as on the
+      // Hegota devnet (its changes and logs are gone, as checked above).
       expect(receipt.frameReceipts.map((f) => f.status)).toEqual([
         "impersonated",
         "success",
-        "reverted",
+        "success",
         "reverted",
         "success",
         "success",

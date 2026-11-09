@@ -1061,4 +1061,48 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
     }
     console.log("(l)", JSON.stringify(out, null, 1));
   }, 900_000);
+
+  it("(m) SELFDESTRUCT to itself: the logs (EIP-7708's Burn?)", async () => {
+    const probe = await deploy(TRACE_EXPECT);
+    const destructSelf = await deploy("0x30ff");
+    // CALLDATACOPY; CREATE(value 4, calldata); STOP.
+    const creator4 = await deploy("0x365f5f37365f6004f05000");
+    const BURN =
+      "0xcc16f5dbb4873280815c1ee09dbd06736cffcc184412cf7a71a0fdb75d397ca5";
+    const check = async (
+      specs: FrameSpec[],
+      checks: [string, number, bigint, bigint][],
+    ) => {
+      const out: string[] = [];
+      for (const [label, param, in2, value] of checks) {
+        const r = await ask(
+          frames(specs, [
+            { target: probe, data: expectWord(param, in2, value) },
+          ]),
+        );
+        out.push(`${label}: ${holds(r)}`);
+      }
+      return out;
+    };
+    const result = {
+      "A: an existing contract with 5 wei destructs to itself": await check(
+        [verify, body({ target: destructSelf, value: 5n })],
+        [
+          ["1 event", 0x0c, 0n, 1n],
+          ["2 events", 0x0c, 0n, 2n],
+          ["event 1 is a Burn", 0x0f, 1n, BigInt(BURN)],
+        ],
+      ),
+      "B: a contract created with 4 wei destructs to itself in its init code":
+        await check(
+          [verify, body({ target: creator4, data: "0x30ff", value: 10n })],
+          [
+            ["2 events", 0x0c, 0n, 2n],
+            ["3 events", 0x0c, 0n, 3n],
+            ["event 2 is a Burn", 0x0f, 2n, BigInt(BURN)],
+          ],
+        ),
+    };
+    console.log("(m)", JSON.stringify(result, null, 1));
+  }, 600_000);
 });

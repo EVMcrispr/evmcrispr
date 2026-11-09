@@ -533,6 +533,8 @@ impl Fork {
             Err(e) => return error_env(&e),
         };
         let nonce = self.db.cache.accounts.get(&caller).map(|a| a.info.nonce).unwrap_or(0);
+        // Whether an earlier frame warmed this frame's target.
+        let target_warm = warm.iter().any(|item| item.address == to);
         // The transaction's own limit covers any intrinsic cost; the call
         // itself gets the frame's gas (FrameInspector).
         let tx_env = TxEnv {
@@ -563,6 +565,9 @@ impl Fork {
         if hegota {
             hegota_schedule(&mut cfg);
             inspector = inspector.with_state_pool(state_gas, HEGOTA_COST_PER_STATE_BYTE);
+            if !target_warm {
+                inspector = inspector.with_cold_target(to);
+            }
         }
         let db = std::mem::replace(&mut self.db, CacheDB::new(MissDb));
         let mut evm = Context::mainnet()
@@ -967,8 +972,13 @@ fn result_env(result: ExecutionResult, balance_changes: Vec<Value>) -> String {
 
 /// Every account a call loaded, with the slots it read or wrote.
 fn accessed_json(state: &revm::state::EvmState) -> Value {
+    // An account still cold (a frame's untouched target) was loaded, not
+    // accessed: it stays out, unless its storage was.
     json!(state
         .iter()
+        .filter(|(_, account)| {
+            !account.status.contains(revm::state::AccountStatus::Cold) || !account.storage.is_empty()
+        })
         .map(|(address, account)| json!({
             "address": addr_hex(address),
             "storageKeys": account

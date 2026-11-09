@@ -1049,6 +1049,31 @@ export function describeBackendSuite(
           expect(result.success).toBe(false);
         });
 
+        it("emits no Burn log: a contract created with value that destructs to itself logs only the transfers (as ethrex)", async () => {
+          // CALLDATACOPY; CREATE(value 4, calldata); the init code is
+          // SELFDESTRUCT(ADDRESS).
+          const sim = await host("0x365f5f37365f6004f05000");
+          await sim.checkpoint();
+          const result = await sim.call({
+            caller: CALLER,
+            to: TARGET,
+            data: "0x30ff",
+            value: 10n,
+            gas: 400_000n,
+            isStatic: false,
+            transferLogs: true,
+            schedule: "hegota",
+            stateGas: 400_000n,
+          });
+          expect(result.success).toBe(true);
+          const BURN =
+            "0xcc16f5dbb4873280815c1ee09dbd06736cffcc184412cf7a71a0fdb75d397ca5";
+          expect(
+            result.logs.filter((l) => l.topics[0]?.toLowerCase() === BURN),
+          ).toEqual([]);
+          expect(result.logs).toHaveLength(2);
+        });
+
         it("leaves the forked chain's own rules without it", async () => {
           const sim = await host(WRITER);
           await sim.checkpoint();

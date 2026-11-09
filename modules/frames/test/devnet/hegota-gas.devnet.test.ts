@@ -84,7 +84,6 @@ async function deploy(runtime: Hex): Promise<Hex> {
   return address;
 }
 
-const hex20 = (a: string) => a.slice(2).toLowerCase();
 const word = (n: bigint | string) =>
   pad(typeof n === "string" ? (n as Hex) : toHex(n));
 /** An address nothing has touched. */
@@ -134,15 +133,55 @@ const P = {
   callThenWrite: "0x5f5f5f5f5f5f355af15060016005550" + "0",
   /** SSTORE(0, 1); SSTORE(0, 0); SSTORE(1, 1) */
   setClearSet: "0x60015f555f5f556001600155" + "00",
+  /** CALL(gas, word 0, 0) with the rest of the calldata, 64 bytes back */
+  callWithArgs: "0x6020360360205f3760405f602036035f5f5f355af15000",
+  /** DELEGATECALL(gas, word 0) */
+  delegate: "0x5f5f5f5f5f355af45000",
+  /** CALLCODE(gas, word 0, 0) */
+  callcode: "0x5f5f5f5f5f5f355af25000",
+  /** MSTORE(0x10000, 1) */
+  memory: "0x6001620100005200",
+  /** MCOPY(0x20, 0, 0x20) */
+  mcopy: "0x60205f60205e00",
+  /** CLZ(1), SLOTNUM */
+  newOps: "0x60011e504b5000",
+  /** CREATE(value 1000, empty code): fails without the balance */
+  createV: "0x5f5f6103e8f05000",
+  /** CALL(gas, 0x…dEaD, 1 wei), then REVERT */
+  sendThenRevert:
+    "0x5f5f5f5f600173000000000000000000000000000000000000dead5af1505f5ffd",
+  /** SELFDESTRUCT(ADDRESS) */
+  destructSelf: "0x30ff",
 } as const;
 
 describe.skipIf(!ENABLED)(
   "frame gas parity with the Hegota devnet (execution and state gas)",
   () => {
     const A: Record<string, Hex> = {};
-    it("deploys the programs", async () => {
+    // Anvil's public key #1, delegated (EIP-7702) to the setSet program.
+    const DELEGATED = privateKeyToAccount(
+      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+    );
+    it("deploys the programs, and delegates an account to one", async () => {
       for (const [name, runtime] of Object.entries(P))
         A[name] = await deploy(runtime as Hex);
+      const designator = `0xef0100${A.setSet!.slice(2).toLowerCase()}`;
+      const code = await reader.getCode({ address: DELEGATED.address });
+      if (code?.toLowerCase() !== designator) {
+        const authorization = await DELEGATED.signAuthorization({
+          contractAddress: A.setSet!,
+          chainId: chain.id,
+          nonce: await reader.getTransactionCount({
+            address: DELEGATED.address,
+          }),
+        });
+        const hash = await wallet.sendTransaction({
+          authorizationList: [authorization],
+          to: DELEGATED.address,
+          gas: 1_000_000n,
+        });
+        await reader.waitForTransactionReceipt({ hash });
+      }
     }, 600_000);
 
     const verify: FrameSpec = {
@@ -361,6 +400,105 @@ describe.skipIf(!ENABLED)(
         ],
       ],
       ["LOG0, KECCAK256, TSTORE and TLOAD", () => [run(() => A.misc!)]],
+      ...(
+        [
+          ["ecrecover", 0x01, `0x${"11".repeat(128)}`],
+          ["sha256", 0x02, `0x${"11".repeat(64)}`],
+          ["identity", 0x04, `0x${"11".repeat(64)}`],
+          ["modexp", 0x05, concat([word(1n), word(1n), word(1n), "0x030507"])],
+          ["bn254 add", 0x06, `0x${"00".repeat(128)}`],
+          [
+            "blake2f",
+            0x09,
+            concat(["0x0000000c", `0x${"00".repeat(64 + 128 + 16)}`, "0x01"]),
+          ],
+          ["bls12-381 G1 add", 0x0b, `0x${"00".repeat(256)}`],
+          ["p256verify", 0x100, `0x${"00".repeat(160)}`],
+        ] as [string, number, Hex][]
+      ).map(([precompile, address, input]): [string, () => Step[]] => [
+        `a call to the ${precompile} precompile`,
+        () => [
+          run(
+            () => A.callWithArgs!,
+            () => concat([word(BigInt(address)), input]),
+          ),
+        ],
+      ]),
+      [
+        "DELEGATECALL to a program that writes",
+        () => [
+          run(
+            () => A.delegate!,
+            () => word(A.setSet!),
+          ),
+        ],
+      ],
+      [
+        "CALLCODE to a program that writes",
+        () => [
+          run(
+            () => A.callcode!,
+            () => word(A.setSet!),
+          ),
+        ],
+      ],
+      ["memory expanded to 64 KiB", () => [run(() => A.memory!)]],
+      ["MCOPY", () => [run(() => A.mcopy!)]],
+      ["CLZ and SLOTNUM", () => [run(() => A.newOps!)]],
+      [
+        "CREATE with value the contract does not have",
+        () => [run(() => A.createV!)],
+      ],
+      [
+        "a call that sends value, then the caller reverts",
+        () => [
+          run(
+            () => A.sendThenRevert!,
+            () => "0x",
+            { value: 1n },
+          ),
+        ],
+      ],
+      [
+        "SELFDESTRUCT to itself",
+        () => [
+          run(
+            () => A.destructSelf!,
+            () => "0x",
+            { value: 5n },
+          ),
+        ],
+      ],
+      [
+        "SELFDESTRUCT inside init code, with value",
+        () => [
+          run(
+            () => A.create!,
+            () => "0x30ff",
+            { value: 4n },
+          ),
+        ],
+      ],
+      [
+        "an atomic group with a new slot, rolled back by the next frame",
+        () => [
+          run(
+            () => A.writer!,
+            () => word(5n),
+            { atomic: true },
+          ),
+          run(() => A.writeRevert!),
+        ],
+      ],
+      [
+        "a call to an account delegated (EIP-7702) to a program that writes",
+        () => [
+          run(
+            () => A.call0!,
+            () => word(DELEGATED.address),
+          ),
+        ],
+      ],
       [
         "a reverted child's new slot, then a new slot, with the state budget for one",
         () => [

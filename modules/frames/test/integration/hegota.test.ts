@@ -117,7 +117,8 @@ for (const using of BACKENDS) {
       ]);
       const text = logs.join("\n");
       expect(text).toContain("Frame 3 reverted");
-      expect(text).toContain("Frame 5 reverted");
+      // The group's first frame keeps its status, as the chain reports it.
+      expect(text).toContain("Frame 5 was rolled back with its atomic group");
       expect(text).toContain("Frame 6 reverted");
     }, 120_000);
 
