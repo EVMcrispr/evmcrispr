@@ -51,14 +51,22 @@ async function moduleEvents(
     "std",
     module.context.getStd?.()?.constructor as IModuleConstructor | undefined,
   );
-  for (const name of module.context.getAvailableModuleNames()) {
-    if (name === "std") continue;
-    try {
-      add(name, (await module.context.loadModule(name)).default);
-    } catch {
-      // Not loadable here: nothing to match against.
-    }
-  }
+  // Loaded all at once: in a browser each is a chunk fetched on first use,
+  // and one after another a gateway's latency added up to seconds on the
+  // first run. Added in registry order, as before.
+  const names = module.context
+    .getAvailableModuleNames()
+    .filter((name) => name !== "std");
+  const loaded = await Promise.all(
+    names.map((name) =>
+      module.context.loadModule(name).then(
+        (mod) => mod.default,
+        // Not loadable here: nothing to match against.
+        () => undefined,
+      ),
+    ),
+  );
+  names.forEach((name, i) => add(name, loaded[i]));
   return found;
 }
 
