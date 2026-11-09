@@ -25,9 +25,8 @@ export interface FrameGasRules {
    *  and every frame's limits) when it approves, and refunded what the
    *  transaction did not use after its last frame (EIP-8141's max_cost).
    *  The gas used is the intrinsic gas and the frames', or the calldata
-   *  floor when that is more. `extraBytes`: bytes the client counts on top
-   *  of the transaction's, priced as non-zero in both. */
-  preCharge?: { extraBytes: bigint };
+   *  floor when that is more. */
+  preCharge?: boolean;
   /** Every value transfer to another account emits EIP-7708's log. */
   transferLogs?: boolean;
   /** The client's gas schedule for frames, when it is not the forked
@@ -55,7 +54,7 @@ const TRACER_GAS: FrameGasRules = {
 const HEGOTA_GAS: FrameGasRules = {
   targetAccess: { warm: 0n, cold: 0n },
   codelessFramesFree: true,
-  preCharge: { extraBytes: 3n },
+  preCharge: true,
   transferLogs: true,
   schedule: "hegota",
   rolledBackFramesSucceed: true,

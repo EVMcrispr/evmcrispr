@@ -1,9 +1,18 @@
 // A frame transaction's gas before any frame runs, as EIP-8141 prices it:
 // its intrinsic gas, and the calldata floor its gas used never falls below.
 // Measured against the Hegota devnet on 2026-11-09 (hegota-post-tx-probe
-// (f), (h), (i), (j)): exact, with a few bytes the client counts on top of
-// the transaction's (FrameGasRules.preCharge.extraBytes).
-import { type Address, type Hex, isAddressEqual } from "viem";
+// (f), (h), (i), (j)): exact, with the bytes ethrex counts on top of the
+// frames' and the signature's: rlp(nonce_keys) || rlp(nonce_seq) (EIP-8250)
+// and rlp(recent_root_references) (EIP-8272), two empty lists around the
+// nonce.
+import {
+  type Address,
+  concatHex,
+  type Hex,
+  isAddressEqual,
+  numberToBytes,
+  toRlp,
+} from "viem";
 
 const FRAME_TX_INTRINSIC_COST = 12_000n;
 const FRAME_TX_PER_FRAME_COST = 475n;
@@ -36,20 +45,32 @@ export interface FrameTxGas {
   floor: bigint;
 }
 
-/** `extraBytes`: bytes the client counts on top of the transaction's, as
- *  non-zero ones; `scheme`: the signature entry the send carries. */
+/** The calldata ethrex adds for the nonce and the recent roots: no nonce
+ *  keys, the sender's nonce, no recent roots. It grows with the nonce. */
+function nonceCalldata(nonce: bigint): Hex {
+  return concatHex([
+    toRlp([]),
+    // RLP's integer: big-endian, no leading zeros, 0 the empty string.
+    toRlp(nonce === 0n ? "0x" : numberToBytes(nonce)),
+    toRlp([]),
+  ]);
+}
+
+/** `nonce`: the transaction's (its sender's) nonce; `scheme`: the
+ *  signature entry the send carries. */
 export function frameTxGas(
   frames: readonly { target: Address | null; data: Hex; value: bigint }[],
   sender: Address,
-  extraBytes: bigint,
+  nonce: bigint,
   scheme: keyof typeof VERIFICATION,
 ): FrameTxGas {
   let base =
     FRAME_TX_INTRINSIC_COST +
     FRAME_TX_PER_FRAME_COST * BigInt(frames.length) +
     VERIFICATION[scheme];
-  let dataTokens = 4n * (SIGNATURE_BYTES + extraBytes);
-  let bytes = SIGNATURE_BYTES + extraBytes;
+  const extra = nonceCalldata(nonce);
+  let dataTokens = 4n * SIGNATURE_BYTES + tokens(extra);
+  let bytes = SIGNATURE_BYTES + BigInt((extra.length - 2) / 2);
   for (const f of frames) {
     dataTokens += tokens(f.data);
     bytes += BigInt((f.data.length - 2) / 2);

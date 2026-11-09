@@ -110,7 +110,7 @@ export async function simulateFrameAction(
             value: frames[i]!.value,
           })),
           sender,
-          network.gas.preCharge.extraBytes,
+          nonce,
           action.data.account ? "arbitrary" : "secp256k1",
         )
       : undefined;

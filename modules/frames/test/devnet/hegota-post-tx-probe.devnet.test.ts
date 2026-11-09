@@ -775,7 +775,7 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
               value: BigInt((f as { value: bigint }).value),
             })),
             sender,
-            3n,
+            0n,
             scheme,
           ).intrinsic,
         );
@@ -836,7 +836,7 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
           value: BigInt((f as { value: bigint }).value),
         })),
         SENDER,
-        3n,
+        nonce,
         "secp256k1",
       );
       // The real signature's zero bytes cost 12 less each in the intrinsic
@@ -900,7 +900,7 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
           value: BigInt((f as { value: bigint }).value),
         })),
         SENDER,
-        3n,
+        (tx as unknown as { nonceSeq: bigint }).nonceSeq,
         "secp256k1",
       );
       const exec = all.reduce(
