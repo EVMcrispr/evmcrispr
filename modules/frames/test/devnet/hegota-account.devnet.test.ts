@@ -22,13 +22,15 @@ import {
   createWalletClient,
   encodeAbiParameters,
   encodeFunctionData,
+  getContractAddress,
   type Hex,
   http,
+  pad,
   parseEther,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { frameAction } from "../../src/actions";
-import { accountContracts } from "../../src/addresses";
+import { accountContracts, DETERMINISTIC_DEPLOYER } from "../../src/addresses";
 import { frameAccountFactoryAbi } from "../../src/contracts/artifacts";
 import type { FrameModuleAction } from "../../src/frame-action";
 
@@ -41,6 +43,24 @@ const DEAD = "0x000000000000000000000000000000000000dEaD";
 const SALT = 0x8141n;
 const contracts = accountContracts(HEGOTA);
 const ACCOUNT = contracts.predictAccountAddress(OWNER.address, SALT);
+
+/** The account's sponsor, deployed once through the deterministic
+ *  deployer and reused: a send right after a sponsor's deployment was
+ *  admitted and then dropped by the devnet twice (the same bytes, sent
+ *  again later, were mined at once). */
+const SPONSOR_INIT_CODE = concatHex([
+  contracts.sponsorBytecode,
+  encodeAbiParameters(
+    [{ type: "address" }, { type: "address" }],
+    [OWNER.address, ACCOUNT],
+  ),
+]);
+const SPONSOR = getContractAddress({
+  opcode: "CREATE2",
+  from: DETERMINISTIC_DEPLOYER,
+  salt: pad("0x00", { size: 32 }),
+  bytecode: SPONSOR_INIT_CODE,
+});
 
 const transport = http(HEGOTA_DEVNET_RPC);
 const reader = createPublicClient({ chain: hegotaDevnet, transport });
@@ -100,6 +120,13 @@ describe.skipIf(!ENABLED)("a frame account on the Hegota devnet", () => {
       );
     if ((await reader.getBalance({ address: ACCOUNT })) < parseEther("0.01"))
       await sendAndWait(ACCOUNT, "0x", parseEther("0.02"));
+    if (!(await hasCode(SPONSOR)))
+      await sendAndWait(
+        DETERMINISTIC_DEPLOYER,
+        concatHex([pad("0x00", { size: 32 }), SPONSOR_INIT_CODE]),
+      );
+    if ((await reader.getBalance({ address: SPONSOR })) < parseEther("0.005"))
+      await sendAndWait(SPONSOR, "0x", parseEther("0.01"));
   }, 600_000);
 
   it("is the Hegota build, deployed there", async () => {
@@ -123,25 +150,7 @@ describe.skipIf(!ENABLED)("a frame account on the Hegota devnet", () => {
     }, 300_000);
 
   it("sends from the account on the chain, paid by a sponsor built for Hegota", async () => {
-    const initCode = concatHex([
-      contracts.sponsorBytecode,
-      encodeAbiParameters(
-        [{ type: "address" }, { type: "address" }],
-        [OWNER.address, ACCOUNT],
-      ),
-    ]);
-    const gas = await reader.estimateGas({
-      account: OWNER.address,
-      data: initCode,
-      value: parseEther("0.01"),
-    });
-    const hash = await wallet.sendTransaction({
-      data: initCode,
-      value: parseEther("0.01"),
-      gas: (gas * 6n) / 5n,
-    });
-    const sponsor = (await reader.waitForTransactionReceipt({ hash }))
-      .contractAddress!;
+    const sponsor = SPONSOR;
     const interpreter = new Interpreter(evml.registry, {
       account: OWNER.address,
       chainId: HEGOTA,
