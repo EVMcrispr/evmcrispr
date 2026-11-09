@@ -47,3 +47,11 @@ export {
   toFrameTx,
 } from "./serializer";
 export type * from "./types";
+export {
+  type FrameRpcRequest,
+  type FrameTransactionRpcRequest,
+  FrameWalletError,
+  formatFrameTransactionRequest,
+  parseFrameTransactionRequest,
+  sendFrameTransactionFromWallet,
+} from "./wallet";

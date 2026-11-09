@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { BatchedAction, TransactionAction } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 import {
+  DEFAULT_STATE_GAS,
   layoutFrames,
   MAX_FRAMES,
   PAYMASTER_VERIFY_GAS,
@@ -168,7 +169,8 @@ describe("layoutFrames", () => {
   it("state gas goes on every body frame and no validation frame", () => {
     const f = lay([call(TO), call(TO)], { paymaster: P, stateGas: 5n });
     expect(f.map((x) => x.stateGas)).toEqual([undefined, undefined, 5n, 5n]);
-    expect(lay([call(TO)])[1].stateGas).toBeUndefined();
+    // Without --state-gas: the default reservation.
+    expect(lay([call(TO)])[1].stateGas).toBe(DEFAULT_STATE_GAS);
   });
   it("a default frame in the body is accepted", () => {
     const f = lay([call(TO), call(Q, { mode: "default" })]);
@@ -211,7 +213,7 @@ describe("layoutFrames", () => {
       target: P,
       gas: PAYMASTER_VERIFY_GAS,
     });
-    expect(f[3].stateGas).toBeUndefined();
+    expect(f[3].stateGas).toBe(DEFAULT_STATE_GAS);
   });
 
   it("refuses an action with no recipient (a deployment)", () => {

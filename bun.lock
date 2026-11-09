@@ -735,13 +735,16 @@
     },
     "packages/viem-frames": {
       "name": "@evmcrispr/viem-frames",
-      "version": "0.0.0",
+      "version": "0.11.1",
       "dependencies": {
         "@forshtat/hegota-support": "0.0.1",
-        "viem": "^2.56.8",
       },
       "devDependencies": {
+        "@evmcrispr/sdk": "workspace:*",
         "@types/bun": "^1.4.2",
+      },
+      "peerDependencies": {
+        "viem": "^2.56.8",
       },
     },
   },

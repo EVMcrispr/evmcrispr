@@ -1,10 +1,16 @@
 # @evmcrispr/viem-frames
 
-Proof of concept: [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) frame
-transactions in viem, submitted through the
-[ERC-8421 alternative mempool](https://docs.altmempool.wtf/). Not published
-yet. It ships no account contract: a contract sender's signature is the
-caller's to produce.
+[EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) frame transactions in
+viem, submitted through the
+[ERC-8421 alternative mempool](https://docs.altmempool.wtf/) or a node's
+canonical mempool. Experimental: EIP-8141 is a draft, and the encoding follows
+the devnets' (`@forshtat/hegota-support`'s ethrex profile), so expect breaking
+changes with them. It ships no account contract: a contract sender's
+signature is the caller's to produce.
+
+```sh
+bun add @evmcrispr/viem-frames viem
+```
 
 It is built the way `viem/tempo` adds Tempo's transaction type, with an
 alt-mempool extension in the manner of `viem/account-abstraction`'s bundler
@@ -22,6 +28,11 @@ actions:
   `simulateFrameTransaction`, `getFrameTransactionStatus`, `requestFaucet`.
 - **Frame builders**: `selfVerify()`, `onlyVerify()`, `pay(paymaster)`,
   `call({ to, data, value })` and `atomic([...])`.
+- **`sendFrameTransactionFromWallet`** sends an account's frame transaction
+  that its wallet (any EIP-1193 provider) signs through `eth_signTransaction`
+  with a type `0x6` request, and checks what comes back before sending it.
+- **`sendFrameTransactionWithArbitrarySignature`** sends a contract sender's
+  transaction whose one `ARBITRARY` signature entry the caller produces.
 
 The wire format comes from
 [`@forshtat/hegota-support`](https://www.npmjs.com/package/@forshtat/hegota-support)
@@ -56,28 +67,30 @@ sender without code, 50k for a paymaster). Body frames without limits are
 sized when the transaction is prepared:
 
 - **A sender with code:** `eth_estimateFrameTransactionGas` on the sidecar.
-- **A sender without code:** nothing can estimate without a real signature.
-  The sidecar's estimate drops signatures, so the protocol's default code
-  never approves, and the node runs no frame of a transaction whose signature
-  does not authenticate the sender. So such a sender either gives every call
-  `gas` and `stateGas`, or opts in with `sizeBySimulation: true`: the
-  transaction is signed with generous limits and simulated with
-  `ethrex_simulateFrameTransaction` on the chain's `simulationUrl` (the
-  devnet's ethrex node; the sidecar does not serve the method). That
-  provisional transaction is valid as signed, and whoever receives it could
-  broadcast it (same calls and nonce, larger limits). Execution is what was
-  used, ×1.25 + 5,000. The alt-mempool node reports no state gas, so 200,000
-  is reserved (one new account is 183,600); unused state gas is refunded.
+- **A sender without code:** nothing estimates them. The sidecar's estimate
+  drops signatures, so the protocol's default code never approves, and the
+  node runs no frame of a transaction whose signature does not authenticate
+  the sender. Such a sender gives every call `gas` and `stateGas`; unused
+  state gas is refunded, so a generous reservation (one new account is
+  183,600) costs nothing once mined.
 
 ## Limits
 
-- **Signing:** a local account, with one secp256k1 signature and an
-  empty `msg`. Browser wallets do not sign type `0x06`; a contract sender
-  does, through `sendFrameTransactionWithArbitrarySignature`: one
-  `ARBITRARY` entry whose bytes the caller's `sign(sigHash)` returns, in
-  whatever form the sender's VERIFY code checks (for an account that
-  accepts its owner's EIP-712 signature over the hash, the wallet's typed
-  data signature). Its frames carry their limits (nothing sizes them).
+- **Signing:** one secp256k1 signature with an empty `msg`, by a local
+  account, or by a wallet through `sendFrameTransactionFromWallet`: the
+  wallet is asked the standard `eth_signTransaction` with a type `0x6`
+  request (`formatFrameTransactionRequest`: the whole transaction, nonce and
+  fees filled in), and the bytes it returns are sent only if they are that
+  transaction, signed in canonical form by the sender. A wallet that does
+  not implement EIP-8141 refuses with its own error (a `FrameWalletError`);
+  `parseFrameTransactionRequest` is the other side, for a wallet that
+  signs them. A contract sender signs through
+  `sendFrameTransactionWithArbitrarySignature`: one `ARBITRARY` entry whose
+  bytes the caller's `sign(sigHash)` returns, in whatever form the sender's
+  VERIFY code checks (for an account that accepts its owner's EIP-712
+  signature over the hash, the wallet's typed data signature). Neither
+  sizes frames: they carry their limits. Both take `waitForReceipt: false`
+  for a chain that never mines.
 - **Not covered:** P256 signatures, paymaster signatures, keyed nonces
   other than key 0, recent roots, `deploy` frames.
 - **Mining:** on 2026-11-06 the devnet admitted frame transactions but bundled

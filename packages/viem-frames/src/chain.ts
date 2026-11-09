@@ -69,7 +69,6 @@ type PrepareArgs = Record<string, unknown> & {
   nonceKeys?: readonly bigint[];
   maxFeePerGas?: bigint;
   maxPriorityFeePerGas?: bigint;
-  sizeBySimulation?: boolean;
 };
 
 /** Hex strings or numbers from the sidecar, as bigints. */
@@ -83,10 +82,7 @@ const big = (x: unknown): bigint => BigInt(x as string);
 async function prepareFrameRequest(
   args: PrepareArgs,
   { client }: { client: Client },
-  {
-    profile,
-    simulationUrl,
-  }: { profile: Profile; simulationUrl?: string | undefined },
+  { profile }: { profile: Profile },
 ): Promise<PrepareArgs> {
   if (!args.frames) return args;
   const sender =
@@ -127,31 +123,24 @@ async function prepareFrameRequest(
       maxPriorityFeePerGas,
       profile,
     };
+    // The sidecar's estimate skips signatures, so the protocol's default
+    // code (an account without code) cannot approve in it, and the node runs
+    // no frame of a transaction whose signature does not authenticate the
+    // sender: such a sender's frames carry their own limits.
     const code = await getCode(client, { address: sender });
-    let limits: Frame["limits"][];
-    if (code && code !== "0x") {
-      limits = (await estimateFrameGas(client, request)).frames;
-    } else {
-      // The sidecar's estimate skips signatures, so the protocol's default
-      // code (an account without code) cannot approve in it, and the node
-      // runs no frame of a transaction whose signature does not authenticate
-      // the sender. Sizing then takes a real signature over a transaction
-      // that could be broadcast: only when the caller asks for it.
-      if (!args.sizeBySimulation)
-        throw new Error(
-          "The frames of a sender without code cannot be estimated without signing: give every call gas and stateGas, or pass sizeBySimulation: true to sign a provisional transaction and send it to the chain's simulation node",
-        );
-      limits = await sizeBySimulation(args.account, request, simulationUrl);
-    }
+    if (!code || code === "0x")
+      throw new Error(
+        "The frames of a sender without code are not estimated (the estimate skips signatures, so the sender's default code cannot approve): give every frame gas and stateGas",
+      );
+    const limits = (await estimateFrameGas(client, request)).frames;
     frames = args.frames.map((f, i) => ({
       ...f,
       limits: f.limits ?? limits[i]!,
     }));
   }
 
-  const { sizeBySimulation: _, ...rest } = args;
   return {
-    ...rest,
+    ...args,
     type: "frame",
     chainId,
     nonce,
@@ -164,89 +153,6 @@ async function prepareFrameRequest(
       0n,
     ),
   };
-}
-
-/** Execution gas a body frame may use while it is sized. */
-const SIZING_EXECUTION_GAS = 1_000_000n;
-/**
- * State gas reserved for a body frame when the node does not report what it
- * used: one new account (183,600 on these devnets). Unused state gas is
- * refunded, so the reservation costs nothing once mined.
- */
-const DEFAULT_STATE_GAS = 200_000n;
-
-type SizingRequest = Parameters<typeof estimateFrameGas>[1];
-
-/**
- * Signs the transaction with generous body limits, dry-runs it with
- * `ethrex_simulateFrameTransaction`, and sizes each body frame's execution
- * limit from what it used, with a margin. Validation frames keep their own.
- *
- * The provisional transaction is valid as signed: the simulation node, or
- * anyone who sees the request, could broadcast it. It makes the same calls
- * with the same nonce and only larger limits (and unused gas is refunded),
- * but it is still a signature the caller never reviewed, hence the opt-in.
- */
-async function sizeBySimulation(
-  account: unknown,
-  request: SizingRequest,
-  simulationUrl: string | undefined,
-): Promise<Frame["limits"][]> {
-  if (!simulationUrl)
-    throw new Error(
-      "Sizing the frames of a sender without code needs the chain's simulationUrl (an ethrex node): pass gas and stateGas, or give withFrames a simulationUrl",
-    );
-  const signer = account ? parseAccount(account as Address) : undefined;
-  if (signer?.type !== "local" || !signer.signTransaction)
-    throw new Error(
-      "Sizing frames by simulation needs a local account to sign the provisional transaction",
-    );
-
-  const provisional: Frame[] = request.frames.map(
-    (f) =>
-      (f.limits
-        ? f
-        : {
-            ...f,
-            limits: {
-              execution: SIZING_EXECUTION_GAS,
-              state: DEFAULT_STATE_GAS,
-            },
-          }) as Frame,
-  );
-  const raw = await signer.signTransaction(
-    {
-      type: "frame",
-      chainId: request.chainId,
-      from: request.sender,
-      nonce: request.nonce,
-      nonceKeys: request.nonceKeys,
-      frames: provisional,
-      maxFeePerGas: request.maxFeePerGas,
-      maxPriorityFeePerGas: request.maxPriorityFeePerGas,
-    } as never,
-    { serializer: frameSerializer(request.profile) },
-  );
-  const result = (await simulate(simulationUrl, raw)) as {
-    executionStatus?: string;
-    executionError?: unknown;
-    frames?: { gasUsed: Hex; stateGasUsed?: Hex; succeeded: boolean }[];
-  };
-  const failed = result.frames?.findIndex((f) => !f.succeeded) ?? -1;
-  if (!result.frames || result.executionStatus !== "success" || failed >= 0)
-    throw new Error(
-      `The transaction fails when simulated${failed >= 0 ? ` (frame ${failed})` : ""}: ${JSON.stringify(result.executionError ?? result)}`,
-    );
-  return result.frames.map(
-    (f, i) =>
-      request.frames[i]!.limits ?? {
-        execution: (big(f.gasUsed) * 5n) / 4n + 5_000n,
-        state:
-          f.stateGasUsed === undefined
-            ? DEFAULT_STATE_GAS
-            : big(f.stateGasUsed),
-      },
-  );
 }
 
 /** `ethrex_simulateFrameTransaction` on an ethrex node (the sidecar does not serve it). */
@@ -375,7 +281,7 @@ export function withFrames<const chain extends Chain>(
     sidecar = false,
   }: {
     profile?: Profile;
-    /** An ethrex node serving `ethrex_simulateFrameTransaction`, to size the frames of senders without code. */
+    /** An ethrex node serving `ethrex_simulateFrameTransaction` (the sidecar does not). */
     simulationUrl?: string;
     /** The chain's RPC is an ERC-8421 sidecar (`skandha_*` methods: fees, status), not a plain node. */
     sidecar?: boolean;
@@ -398,10 +304,7 @@ export function withFrames<const chain extends Chain>(
     },
     prepareTransactionRequest: [
       ((args: PrepareArgs, options: { client: Client }) =>
-        prepareFrameRequest(args, options, {
-          profile,
-          simulationUrl,
-        })) as never,
+        prepareFrameRequest(args, options, { profile })) as never,
       { runAt: ["beforeFillTransaction"] },
     ],
   }) as unknown as chain;

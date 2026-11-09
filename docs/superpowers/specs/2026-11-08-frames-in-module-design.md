@@ -109,15 +109,19 @@ specifics:
   `FrameTransaction(bytes32 sigHash)` as EIP-712 typed data
   (`eth_signTypedData_v4`), as the module's `sendAccountFrameTransaction`
   does now.
-- **Plain sender**: the wallet is asked `wallet_signFrameTransaction` with
-  the whole unsigned transaction, so it can show what it signs (defined in
-  `2026-11-08-dev-wallet-design.md`, section 4; it replaces the raw-hash
-  `wallet_signHash` this spec had). Only the test wallet answers it. A
-  wallet that does not (MetaMask and every other third-party wallet) gets:
-  "This wallet cannot sign a frame transaction from a plain address:
-  connect the test wallet (experimental), or send from a frame account with
-  `--account`." A frame account's transaction is asked the same way first,
-  and falls back to plain `eth_signTypedData_v4`.
+- **Plain sender** (owner, 2026-11-08): the connected wallet is asked
+  as if it supported frame transactions, with the standard
+  `eth_signTransaction` and a type `"0x6"` request (the frames, the nonce
+  and the fees the module filled in; defined in
+  `2026-11-08-dev-wallet-design.md`, section 4). A wallet that implements
+  EIP-8141 then works with EVMcrispr unchanged; the test wallet is the
+  first to. EVMcrispr does not refuse a plain sender: a wallet that cannot
+  sign one answers with its own error (unsupported method or type), shown
+  as it is, with the hint "send from a frame account with `--account`, or
+  connect a wallet that signs frame transactions (the test wallet,
+  experimental)". It replaces the invented `wallet_signFrameTransaction`
+  and the raw-hash `wallet_signHash` this spec had. A frame account's
+  transaction keeps `eth_signTypedData_v4` by its owner.
 - The module checks the returned signature recovers to the sender before
   it is sent, as Safe's `requestSafeSignature` does.
 - **Where it is sent** comes from the chain, not from the module's code:
@@ -168,7 +172,7 @@ experimental; nothing is released yet.
 Moved to its own spec, `2026-11-08-dev-wallet-design.md` (anvil's and
 hardhat's accounts, loopback-RPC chains only, every signature shown and
 asked, clear signing decoded from the bytes signed,
-`wallet_signFrameTransaction`).
+`eth_signTransaction` for frame transactions).
 
 ### 4. The CLI: no frame code, no local key (done 2026-11-08)
 
@@ -327,7 +331,7 @@ helpers in its constructor.
   wrapping handler, reviewed through `describe`, carried across the worker
   boundary and captured by `$> $tx`.
 - **Frames module, unit**: `send` against a mocked gateway and node for both
-  senders; `wallet_signFrameTransaction` unanswered → the error above; a signature that
+  senders; a wallet refusing `eth_signTransaction` for type 0x06 → its error with the hint above; a returned transaction whose fields differ from the request is refused; a signature that
   recovers to someone else is refused; a chain outside the network table is
   refused. The terminal's frame-handler tests (and, from `frametx`, the CLI's
   plain-sender ones) move here
@@ -349,8 +353,16 @@ helpers in its constructor.
 2. viem-frames made publishable (version, `files`, its own README as the
    package's docs) and added to `scripts/publish-packages.ts` ahead of the
    frames module.
-3. `wallet_signFrameTransaction` in the module's `send`; frame network table;
-   `--size-by-simulation` removed from viem-frames.
+3. Done 2026-11-08: `eth_signTransaction` (type 0x06) for plain senders in
+   the module's `send` (viem-frames' `sendFrameTransactionFromWallet`,
+   `formatFrameTransactionRequest` / `parseFrameTransactionRequest`); the
+   frame network table (`modules/frames/src/networks.ts`: 1337, framesQuick,
+   framesMining; the quick devnet is not waited on once admitted);
+   `sizeBySimulation` removed from viem-frames; body frames reserve 200,000
+   state gas by default. Not done: sizing an account sender's frames with the
+   sidecar's estimate (every call still needs `--gas`), and refusing a chain
+   outside the table at interpretation (the review warns, the send refuses).
+   Live: a plain sender admitted on `up quick` and mined on `up mining`.
 4. The test wallet, gallery first (`2026-11-08-dev-wallet-design.md`, its own steps).
 5. `scripts/frame-devnet.ts`, funded anvil accounts, live tests.
 6. The simulation extension point and the frame executor

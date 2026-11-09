@@ -10,9 +10,9 @@ const A2 = "0x0000000000000000000000000000000000000002";
 const PAYMASTER = "0x00000000000000000000000000000000000000aa";
 const SELECTOR = toFunctionSelector("f()");
 
-const run = async (script: string) => {
+const run = async (script: string, chainId = 1337) => {
   const interpreter = createInterpreter(script, undefined as never, {
-    chainId: 1337,
+    chainId,
   });
   return (await interpreter.interpret()) as FrameModuleAction[];
 };
@@ -169,6 +169,12 @@ tx (
     expect(action.data.mempool).toBe("canonical");
   });
 
+  it("--mempool defaults to the network's: alt with a sidecar, else canonical", async () => {
+    const block = `load frames [tx]\ntx (\n  exec ${A1} "f()"\n)`;
+    expect((await run(block))[0]!.data.mempool).toBe("alt");
+    expect((await run(block, 81412))[0]!.data.mempool).toBe("canonical");
+  });
+
   it("an empty block yields no action", async () => {
     expect(await run(`load frames [tx]\ntx (\n)`)).toHaveLength(0);
   });
@@ -231,14 +237,12 @@ tx (
     ).rejects.toThrow(/Frame 2 has no gas limit: give its exec or send --gas/);
   });
 
-  it("tx --account refuses a transaction without --state-gas", async () => {
-    await expect(
-      run(
-        `load frames [tx]\ntx --account ${A2} (\n  exec ${A1} "f()" --gas 1\n)`,
-      ),
-    ).rejects.toThrow(
-      /Frame 2 has no state gas limit: add --state-gas to frames:tx/,
-    );
+  it("tx without --state-gas reserves 200000 state gas for every body frame", async () => {
+    const [action] = (await run(
+      `load frames [tx]\ntx --account ${A2} (\n  exec ${A1} "f()" --gas 1\n)`,
+    )) as any[];
+    expect(action.data.frames[0].stateGas).toBeUndefined();
+    expect(action.data.frames[1].stateGas).toBe(200_000n);
   });
 
   it("tx --account refuses a pre_verify without --gas", async () => {

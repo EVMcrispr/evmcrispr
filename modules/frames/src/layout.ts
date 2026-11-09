@@ -14,6 +14,12 @@ import { frameMarkOf } from "./marks";
 export const SELF_VERIFY_GAS = 30_000n;
 export const PAYMASTER_VERIFY_GAS = 50_000n;
 export const MAX_FRAMES = 64;
+/**
+ * State gas reserved for a body frame without `--state-gas`: one new account
+ * (183,600 on these devnets). Unused state gas is refunded, so the
+ * reservation costs nothing once mined.
+ */
+export const DEFAULT_STATE_GAS = 200_000n;
 export const ACCOUNT_CHECK_GAS = 40_000n;
 /** `verify()` of a sponsor. */
 export const SPONSOR_CHECK_DATA = "0xfc735e99" as Hex;
@@ -51,11 +57,11 @@ export function requireLimits(frames: readonly FrameSpec[]): void {
       throw new ErrorException(
         i < prefix
           ? `Frame ${n} is in the validation prefix and has no gas limit: give its call --gas (validation frames are never sized)`
-          : `Frame ${n} has no gas limit: give its exec or send --gas (a frame account's frames are not sized)`,
+          : `Frame ${n} has no gas limit: give its exec or send --gas (frames are not sized yet)`,
       );
     if (i >= prefix && frame.stateGas === undefined)
       throw new ErrorException(
-        `Frame ${n} has no state gas limit: add --state-gas to frames:tx (a frame account's frames are not sized)`,
+        `Frame ${n} has no state gas limit: add --state-gas to frames:tx (frames are not sized yet)`,
       );
   });
 }
@@ -252,8 +258,8 @@ export function layoutFrames(input: LayoutInput): FrameSpec[] {
   stray(prefixLength);
 
   return frames.map((f, j) => {
-    if (j >= prefixLength && input.stateGas !== undefined)
-      return { ...f, stateGas: input.stateGas };
+    if (j >= prefixLength)
+      return { ...f, stateGas: input.stateGas ?? DEFAULT_STATE_GAS };
     return f;
   });
 }

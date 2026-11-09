@@ -8,18 +8,20 @@ frames, each with its own caller, gas limits and result. It is the protocol's
 native form of what EVMcrispr does with `batch`: one signed unit carrying many
 steps, with validation and payment as part of the transaction itself. The
 `frames` module writes one from a block and sends it to the ERC-8421
-*alternative mempool*, today a public devnet (chain 1337).
+*alternative mempool*, today a public devnet (chain 1337), or to the
+canonical mempool of a local frame devnet.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com)
 and the dev terminal, not on evmcrispr.com.
 
 :::caution
-A browser wallet cannot sign a type `0x06` transaction, and the terminal holds
-no keys. So a frame transaction is sent from the terminal **from a smart
-account** that your wallet authorizes with typed data (see
-[From a smart account](#from-a-smart-account)). A `frames:tx` from a plain
-address stops with an error. Chain 1337 is the only chain that sends frame
-transactions, and it is a devnet that can be reset at any time.
+From a plain address, your wallet is asked to sign the frame transaction
+itself, a type `0x06` transaction, with the standard `eth_signTransaction`.
+No browser wallet does that yet (MetaMask refuses with its own error), so with
+one, send **from a smart account** that your wallet authorizes with typed data
+(see [From a smart account](#from-a-smart-account)). Frame transactions are
+sent on devnets only: chain 1337, which can be reset at any time, and the
+local ones.
 :::
 
 ## One transaction, several frames
@@ -100,10 +102,11 @@ tx --paymaster 0x0000000000000000000000000000000000000002 --paymaster-data 0x123
 )
 ```
 
-`--mempool alt|canonical` picks where the transaction goes: `alt` (the
-default) is the alternative mempool, the one the devnet exercises; `canonical`
+`--mempool alt|canonical` picks where the transaction goes: `alt` is the
+alternative mempool, the one chain 1337 exercises and its default; `canonical`
 sends the raw bytes to the node's public mempool, which admits a frame
-transaction only under EIP-8141's strict rules.
+transaction only under EIP-8141's strict rules, and is the default on the
+local devnets, which have no alternative mempool.
 
 The block is checked before anything is signed. The validation prefix must be
 one the mempool recognizes (`[self_verify]` or `[only_verify, pay]`, each
@@ -121,8 +124,9 @@ Every frame has its own limits.
   sender, 50,000 otherwise. A `default` frame that is a pre_verify needs its own
   `--gas`.
 - **Execution gas** of a call frame is the `--gas` of its `exec` or `send`.
-- **State gas** of every call frame is `frames:tx --state-gas <n>`. Unused state
-  gas is refunded, so a generous value costs only the reservation.
+- **State gas** of every call frame is `frames:tx --state-gas <n>`, 200,000 when
+  it is not given (one new account costs 183,600). Unused state gas is
+  refunded, so a generous value costs only the reservation.
 
 ```evml
 load frames [tx]
@@ -132,22 +136,34 @@ tx --state-gas 200000 (
 )
 ```
 
-Nothing sizes the call frames for you: every call needs its `--gas`, and the
-`frames:tx` its `--state-gas`. A missing one stops the run before anything is
-signed, naming the first frame that lacks it.
+Nothing sizes the call frames for you yet: every call needs its `--gas`. A
+missing one stops the run before anything is signed, naming the first frame
+that lacks it.
 
 ### After admission
 
-When the alt mempool admits the transaction, the run prints its hash. It then
+When the mempool admits the transaction, the run prints its hash. It then
 waits up to two minutes for the receipt and prints each frame's status and the
 payer. If the transaction is not mined by then, the run stops with the mempool's
 status and a link to the explorer (`https://explorer.altmempool.wtf`): a pending
 frame transaction holds the sender's nonce, so a later transaction from the same
-sender would collide with it.
+sender would collide with it. The `framesQuick` devnet never mines: there the
+run stops waiting once the transaction is admitted, and says so.
+
+## From a plain address
+
+Without `--account`, the transaction's sender is your wallet's address. When
+it is sent, the frames, the nonce and the fees go to the wallet in one
+`eth_signTransaction` request of type `0x6`, the standard request for any
+transaction type, so a wallet that implements EIP-8141 works unchanged. The
+transaction the wallet returns is sent only if it is exactly the one asked
+for and its signature is your address's; the wallet never chooses the
+mempool. A wallet that cannot sign it answers with its own error, and the run
+stops there with a hint to use `--account`.
 
 ## From a smart account
 
-A wallet cannot sign a frame transaction, but it can sign typed data. The
+Most wallets cannot sign a frame transaction, but they can sign typed data. The
 module therefore ships a *frame account*: a contract whose validation frame
 accepts an EIP-712 signature of its owner. Your wallet signs, the account is the
 transaction's sender, and a *sponsor* contract can pay for it. This is how the
@@ -201,7 +217,7 @@ frames themselves, so the terminal's review lists them before you are asked:
 every frame's mode, approval scope, target, value, limits and call, the account,
 who pays, and the shape of the typed data the owner signs (its domain and its
 one field). The review does not show the nonce, the fees, the cost or the hash:
-they are read from the gateway when the transaction is sent. The fees, and the
+they are read from the chain when the transaction is sent. The fees, and the
 most the frames' gas can cost at them, appear as a console line just before
 MetaMask asks. The transaction signed is exactly the one reviewed; only the
 nonce, the fees and the generated validation calls are added.
@@ -217,9 +233,9 @@ withdraw what is left.
 
 The account's check gets 40,000 execution gas and the sponsor's 50,000; they
 used about 15,000 and 10,500. Body frames are never sized for a smart account, so
-every call needs its own `--gas` and the `frames:tx` needs `--state-gas`, as in
-the example (a missing one stops the run before anything is signed). The fees are
-the gateway's; a fee above 10 gwei per gas is refused before the wallet is asked.
+every call needs its own `--gas`, as in the example (a missing one stops the
+run before anything is signed). The fees are the gateway's; a fee above 10 gwei
+per gas is refused before the wallet is asked.
 
 ### The MetaMask network
 
@@ -233,20 +249,21 @@ chain 1337 when experimental features are on.
 
 ## Limits
 
-- The sender is a frame account. The `frames` module sends its transaction
-  wherever the script runs: from the terminal with your browser wallet, or
-  from the CLI with `--wallet-rpc` and `--account` (the owner's). A plain
-  address is refused, and `sim:fork` refuses frame transactions: no
-  simulation backend runs EIP-8141 frames yet.
+- The sender is a frame account, or a plain address whose wallet signs type
+  `0x06` transactions. The `frames` module sends wherever the script runs:
+  from the terminal with your browser wallet, or from the CLI with
+  `--wallet-rpc`. `sim:fork` refuses frame transactions: no simulation backend
+  runs EIP-8141 frames yet.
 - A frame account has one owner and no recovery or rotation.
-- One typed-data signature by the account's owner. Not covered: P256 or arbitrary
-  signatures, paymaster signatures, keyed nonces other than key 0, recent roots,
-  `deploy` frames and `--expires`.
-- Frame transactions are sent on chain 1337, the alt-mempool devnet, only; any
-  other chain is refused by name. Accounts and sponsors can also be made on the
-  local mining devnet, `framesMining` (`bun scripts/frame-devnet.ts up mining`
-  in the repository). The quick devnet, `framesQuick`, never mines: it is for
-  reads and simulation, and the commands that send refuse it.
+- One signature: the sender's own (secp256k1), or the account owner's typed
+  data. Not covered: P256 or arbitrary signatures, paymaster signatures, keyed
+  nonces other than key 0, recent roots, `deploy` frames and `--expires`.
+- Frame transactions are sent on chain 1337, the alt-mempool devnet, and on the
+  local devnets `framesQuick` and `framesMining` (`bun scripts/frame-devnet.ts
+  up quick|mining` in the repository), which have no alt mempool (there
+  `--mempool` defaults to `canonical`). Any other chain is refused by name. The quick
+  devnet never mines, and admits one transaction per sender until it is
+  restarted.
 
 ## Combining with
 

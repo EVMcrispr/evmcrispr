@@ -114,7 +114,7 @@ describe("prepare", () => {
 });
 
 describe("prepare, for a sender without code", () => {
-  test("refuses to size unlimited frames unless sizeBySimulation is passed, and signs nothing", async () => {
+  test("refuses to size the unlimited frames of a sender without code, and signs nothing", async () => {
     const realFetch = globalThis.fetch;
     let fetched = false;
     globalThis.fetch = (async () => {
@@ -124,7 +124,7 @@ describe("prepare, for a sender without code", () => {
     try {
       const { client } = mockSidecar(undefined, "0x");
       await expect(client.prepareFrameTransaction({ frames })).rejects.toThrow(
-        "sizeBySimulation",
+        "give every frame gas and stateGas",
       );
       expect(fetched).toBe(false);
     } finally {
@@ -144,56 +144,6 @@ describe("prepare, for a sender without code", () => {
       execution: 50_000n,
       state: 200_000n,
     });
-  });
-
-  test("sizes the body frame from a simulation of a provisionally signed transaction", async () => {
-    const posted: any[] = [];
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = (async (url: string, init: RequestInit) => {
-      posted.push({ url, body: JSON.parse(init.body as string) });
-      return new Response(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          result: {
-            executionStatus: "success",
-            frames: [
-              { gasUsed: "0x64", succeeded: true },
-              { gasUsed: "0xbb8", succeeded: true },
-            ],
-          },
-        }),
-      );
-    }) as typeof fetch;
-    try {
-      const { client, methods } = mockSidecar(undefined, "0x");
-      const prepared = (await client.prepareFrameTransaction({
-        frames,
-        sizeBySimulation: true,
-      })) as any;
-      expect(prepared.sizeBySimulation).toBeUndefined();
-      expect(methods()).not.toContain("eth_estimateFrameTransactionGas");
-      const [request] = posted;
-      expect(request.url).toBe(
-        altMempoolDevnet.custom!.frameSimulationUrl as string,
-      );
-      expect(request.body.method).toBe("ethrex_simulateFrameTransaction");
-      // The provisional transaction is signed: a sender without code cannot approve otherwise.
-      expect(
-        parseFrameTransaction(request.body.params[0]).signatures[0]!.signature,
-      ).not.toBe("0x");
-      expect(prepared.frames[0].limits).toEqual({
-        execution: 30_000n,
-        state: 0n,
-      });
-      // 3000 used: x1.25 + 5000. No state gas reported: one new account reserved.
-      expect(prepared.frames[1].limits).toEqual({
-        execution: 8_750n,
-        state: 200_000n,
-      });
-    } finally {
-      globalThis.fetch = realFetch;
-    }
   });
 });
 

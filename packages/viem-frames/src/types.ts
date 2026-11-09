@@ -6,11 +6,10 @@ export type { Frame, FrameTx, Profile };
 
 /**
  * A frame as the caller writes it. `limits` may be left out on a body frame
- * (one after the validation prefix): preparing the transaction sizes it,
- * through the sidecar's estimate for a sender with code, or, for one without
- * and only with `sizeBySimulation`, by simulating a provisionally signed
- * transaction. Validation-prefix frames always carry their own limits:
- * nothing estimates those.
+ * (one after the validation prefix) of a sender with code: preparing the
+ * transaction sizes it through the sidecar's estimate. A sender without code
+ * gives every frame its limits, and validation-prefix frames always carry
+ * their own: nothing estimates those.
  */
 export type FrameRequest = Omit<Frame, "limits"> & {
   limits?: Frame["limits"] | undefined;
@@ -28,14 +27,6 @@ export interface FrameTransactionRequest {
    * against `tx.sender`.
    */
   signer?: Hex | undefined;
-  /**
-   * Opt-in, for a sender without code whose body frames have no limits:
-   * sign a provisional transaction with generous limits and send it to the
-   * chain's simulation node to size them. That transaction is valid and could
-   * be broadcast by whoever receives it. Without this, such frames need
-   * `gas` and `stateGas`.
-   */
-  sizeBySimulation?: boolean | undefined;
 }
 
 /** A prepared frame transaction, as viem hands it to the chain's serializer. */

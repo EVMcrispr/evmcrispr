@@ -79,6 +79,7 @@ export async function sendAccountFrameTransaction({
   signWith,
   signal,
   chain = altMempoolDevnet,
+  waitForReceipt = true,
 }: {
   wallet: WalletClient;
   /** The FrameAccount: `tx.sender`. */
@@ -87,7 +88,7 @@ export async function sendAccountFrameTransaction({
   owner: Address;
   frames: readonly FrameSpecLike[];
   mempool: "alt" | "canonical";
-  /** The gateway; altMempoolDevnet's by default. */
+  /** The chain's RPC (the gateway on the Alt-mempool devnet); the chain's own by default. */
   transport?: Transport;
   onLog?: (line: string, level: FrameLogLevel) => void;
   receiptTimeoutMs?: number;
@@ -99,6 +100,8 @@ export async function sendAccountFrameTransaction({
   signal?: AbortSignal;
   /** The frame chain the account lives on; altMempoolDevnet by default. */
   chain?: Chain;
+  /** false: return once the mempool admits it (a chain that never mines). */
+  waitForReceipt?: boolean;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   // Both go into every line below: refused here unless they are addresses.
   for (const [name, value] of [
@@ -145,6 +148,7 @@ export async function sendAccountFrameTransaction({
     signWith,
     signal,
     chain,
+    waitForReceipt,
     async sign(sigHash) {
       const typedData = frameAccountTypedData(account, sigHash, chain.id);
       const signature: unknown = await wallet

@@ -13,6 +13,7 @@ import {
   isAddress,
   isAddressEqual,
   isHex,
+  type PublicClient,
   size,
   type Transport,
   WaitForTransactionReceiptTimeoutError,
@@ -74,6 +75,24 @@ function missingLimit(
   return undefined;
 }
 
+/** The frames as the profile encodes them, refused unless each carries its limits. */
+export function framesWithLimits(
+  frames: readonly FrameSpecLike[],
+  profile: Profile,
+): Frame[] {
+  const prefix = prefixLength(frames);
+  frames.forEach((frame, i) => {
+    const missing = missingLimit(frame, i, i < prefix);
+    if (missing) throw new Error(missing);
+  });
+  const requests = toFrameRequests(frames, profile);
+  if (!requests.every((f) => f.limits))
+    throw new Error(
+      "Every frame needs its limits: `gas`, and `stateGas` after the validation prefix",
+    );
+  return requests as Frame[];
+}
+
 /** The name a profile gives a value of one of its tables, else the number. */
 function nameOf(table: Record<string, number>, value: number): string {
   const found = Object.entries(table).find(([, v]) => v === value)?.[0];
@@ -114,6 +133,193 @@ function dataLines(data: Hex): string[] {
   for (let i = 8; i < hex.length; i += 64)
     lines.push(`      ${printable(hex.slice(i, i + 64))}`);
   return lines;
+}
+
+/**
+ * A client for the frame chain's RPC (the gateway, or the node). A chain
+ * withFrames has not seen gets its formatters here, so frame receipts
+ * (payer, each frame's status) are read whatever chain is given.
+ */
+export function frameClient(
+  chain: Chain,
+  transport: Transport | undefined,
+): PublicClient<Transport, Chain> {
+  const framed = chain.custom?.frameProfile
+    ? chain
+    : withFrames(chain, {
+        profile: frameProfileOf(chain),
+        sidecar: frameSidecarOf(chain),
+      });
+  return createPublicClient({ chain: framed, transport: transport ?? http() });
+}
+
+type FrameClient = PublicClient<Transport, Chain>;
+
+/**
+ * The fees a frame transaction carries, refused above the cap. A sidecar
+ * prices transactions itself (and serves no fee history); a plain node
+ * through its blocks.
+ */
+export async function readFees(
+  gateway: FrameClient,
+  sidecar: boolean,
+  maxFeePerGasCap: bigint = DEFAULT_MAX_FEE_PER_GAS_CAP,
+): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
+  // A malformed answer would otherwise reach the error through BigInt's
+  // message.
+  const fees = sidecar
+    ? await sidecarGasPrice(gateway).catch((error: unknown) => {
+        throw new Error(
+          `The gateway gave no usable fees (skandha_getGasPrice): ${printable(refusalText(error), TEXT_MAX)}`,
+        );
+      })
+    : await estimateFeesPerGas(gateway).catch((error: unknown) => {
+        throw new Error(
+          `The node gave no usable fees: ${printable(refusalText(error), TEXT_MAX)}`,
+        );
+      });
+
+  // A signer that signs a hash never sees the fees: they are capped here.
+  for (const [name, fee] of [
+    ["maxFeePerGas", fees.maxFeePerGas],
+    ["maxPriorityFeePerGas", fees.maxPriorityFeePerGas],
+  ] as const)
+    if (fee > maxFeePerGasCap)
+      throw new Error(
+        `The gateway asks a ${name} of ${formatGwei(fee)} gwei, above the cap of ${formatGwei(maxFeePerGasCap)} gwei: nothing was signed`,
+      );
+  return fees;
+}
+
+/** The sender's pending nonce. */
+export function readNonce(gateway: FrameClient, sender: Address) {
+  return getTransactionCount(gateway, {
+    address: sender,
+    blockTag: "pending",
+  }).catch((error: unknown) => {
+    throw new Error(
+      `The gateway could not read ${sender}'s nonce: ${printable(refusalText(error), TEXT_MAX)}`,
+    );
+  });
+}
+
+/** The fees and the payer's cost, logged before anything is signed; the payer, printable. */
+export function logFees(
+  unsigned: FrameTx,
+  profile: Profile,
+  onLog: ((line: string, level: FrameLogLevel) => void) | undefined,
+): string {
+  const payer = printable(payerOfTx(unsigned, profile), 200);
+  onLog?.(
+    `Fees: max ${formatGwei(unsigned.fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(unsigned.fees.maxPriorityFeePerGas)}); ${costLine(unsigned)}, paid by ${payer}`,
+    "info",
+  );
+  return payer;
+}
+
+/**
+ * Submits a signed frame transaction to the alt mempool (the sidecar's
+ * `eth_sendFrameTransaction`, JSON) or the canonical one (raw bytes), checks
+ * the hash the RPC answers, and waits for the receipt unless told not to.
+ */
+export async function submitFrameTransaction({
+  gateway,
+  chain,
+  signed,
+  mempool,
+  payer,
+  onLog,
+  receiptTimeoutMs = 120_000,
+  waitForReceipt = true,
+}: {
+  gateway: FrameClient;
+  chain: Chain;
+  signed: FrameTx;
+  mempool: "alt" | "canonical";
+  /** Already printable. */
+  payer: string;
+  onLog?: ((line: string, level: FrameLogLevel) => void) | undefined;
+  receiptTimeoutMs?: number;
+  waitForReceipt?: boolean;
+}): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
+  const profile = frameProfileOf(chain);
+  const sidecar = frameSidecarOf(chain);
+  const explorer = chain.blockExplorers?.default.url;
+  const sender = printable(signed.sender, 60);
+  const expected = txHash(profile, signed) as Hash;
+  let answer: unknown;
+  try {
+    answer =
+      mempool === "canonical"
+        ? await gateway.request({
+            method: "eth_sendRawTransaction",
+            params: [encodeTx(profile, signed)],
+          } as never)
+        : await gateway.request({
+            method: "eth_sendFrameTransaction",
+            params: [toWire(signed)],
+          } as never);
+  } catch (error) {
+    throw new Error(
+      `The ${mempool} mempool refused the frame transaction from ${sender}, paid by ${payer}: ${printable(refusalText(error), TEXT_MAX)}`,
+    );
+  }
+  // Only the hash of the bytes signed is shown and waited on.
+  if (
+    typeof answer !== "string" ||
+    answer.toLowerCase() !== expected.toLowerCase()
+  )
+    throw new Error(
+      `The ${mempool === "canonical" ? "node" : "gateway"} returned ${printable(typeof answer === "string" ? answer : JSON.stringify(answer), 80)} for a transaction whose hash is ${expected}`,
+    );
+
+  // Only a sidecar reports a frame transaction's status.
+  const status = async () =>
+    !sidecar
+      ? "unknown"
+      : printable(
+          (
+            (await gateway
+              .request({
+                method: "skandha_frameTransactionStatus",
+                params: [expected],
+              } as never)
+              .catch(() => undefined)) as { status?: unknown } | undefined
+          )?.status ?? "unknown",
+          40,
+        );
+  onLog?.(
+    `Frame transaction ${expected} from ${sender} admitted to the ${mempool} mempool of the ${chain.name} (status ${await status()})`,
+    "success",
+  );
+  if (!waitForReceipt) return { hash: expected };
+
+  let receipt: FrameTransactionReceipt;
+  try {
+    receipt = (await gateway.waitForTransactionReceipt({
+      hash: expected,
+      timeout: receiptTimeoutMs,
+    })) as FrameTransactionReceipt;
+  } catch (error) {
+    if (error instanceof WaitForTransactionReceiptTimeoutError)
+      throw new Error(
+        `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the sender would reuse its nonce.${explorer ? ` ${explorer}` : ""}`,
+      );
+    throw new Error(
+      `Waiting for ${expected}'s receipt failed: ${printable(refusalText(error), TEXT_MAX)}`,
+    );
+  }
+  onLog?.(
+    `Frame transaction ${expected} mined in block ${printable(receipt.blockNumber)}, paid by ${receipt.payer === undefined ? "an unknown payer" : printable(receipt.payer)}`,
+    "success",
+  );
+  receipt.frameReceipts?.forEach((frame, i) => {
+    onLog?.(
+      `Frame ${i + 1}: ${printable(frame.status)}`,
+      frame.status === "success" ? "success" : "warning",
+    );
+  });
+  return { hash: expected, receipt };
 }
 
 /**
@@ -186,6 +392,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
   signWith,
   signal,
   chain = altMempoolDevnet,
+  waitForReceipt = true,
 }: {
   /** `tx.sender`: a contract. */
   sender: Address;
@@ -205,35 +412,19 @@ export async function sendFrameTransactionWithArbitrarySignature({
   signal?: AbortSignal;
   /** The frame chain: its id is signed, its explorer named; altMempoolDevnet by default. */
   chain?: Chain;
+  /** false: return once the mempool admits it (a chain that never mines). */
+  waitForReceipt?: boolean;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   const profile = frameProfileOf(chain);
-  const explorer = chain.blockExplorers?.default.url;
   const sidecar = frameSidecarOf(chain);
 
   // It goes into every line below: refused here unless it is an address.
   if (typeof sender !== "string" || !isAddress(sender, { strict: false }))
     throw new Error(`The sender ${printable(sender, 60)} is not an address`);
 
-  const prefix = prefixLength(frames);
-  frames.forEach((frame, i) => {
-    const missing = missingLimit(frame, i, i < prefix);
-    if (missing) throw new Error(missing);
-  });
-  const requests = toFrameRequests(frames, profile);
-  if (!requests.every((f) => f.limits))
-    throw new Error(
-      "Every frame needs its limits: `gas`, and `stateGas` after the validation prefix",
-    );
+  const requests = framesWithLimits(frames, profile);
 
-  // A chain withFrames has not seen gets its formatters here, so frame
-  // receipts (payer, each frame's status) are read whatever chain is given.
-  const framed = chain.custom?.frameProfile
-    ? chain
-    : withFrames(chain, { profile, sidecar });
-  const gateway = createPublicClient({
-    chain: framed,
-    transport: transport ?? http(),
-  });
+  const gateway = frameClient(chain, transport);
   // Every gateway answer below is the node's text in viem's errors: escaped.
   const code = await getCode(gateway, { address: sender }).catch(
     (error: unknown) => {
@@ -247,55 +438,20 @@ export async function sendFrameTransactionWithArbitrarySignature({
       `${sender} has no code on the ${chain.name}: there is nothing to check an ARBITRARY signature`,
     );
 
-  const nonce = await getTransactionCount(gateway, {
-    address: sender,
-    blockTag: "pending",
-  }).catch((error: unknown) => {
-    throw new Error(
-      `The gateway could not read ${sender}'s nonce: ${printable(refusalText(error), TEXT_MAX)}`,
-    );
-  });
-  // A sidecar prices transactions itself (and serves no fee history); a
-  // plain node through its blocks. A malformed answer would otherwise reach
-  // the error through BigInt's message.
-  const fees = sidecar
-    ? await sidecarGasPrice(gateway).catch((error: unknown) => {
-        throw new Error(
-          `The gateway gave no usable fees (skandha_getGasPrice): ${printable(refusalText(error), TEXT_MAX)}`,
-        );
-      })
-    : await estimateFeesPerGas(gateway).catch((error: unknown) => {
-        throw new Error(
-          `The node gave no usable fees: ${printable(refusalText(error), TEXT_MAX)}`,
-        );
-      });
-
-  // The signer signs a hash: it never sees the fees, so they are capped and
-  // shown here, with the most the transaction can cost its payer.
-  for (const [name, fee] of [
-    ["maxFeePerGas", fees.maxFeePerGas],
-    ["maxPriorityFeePerGas", fees.maxPriorityFeePerGas],
-  ] as const)
-    if (fee > maxFeePerGasCap)
-      throw new Error(
-        `The gateway asks a ${name} of ${formatGwei(fee)} gwei, above the cap of ${formatGwei(maxFeePerGasCap)} gwei: nothing was signed`,
-      );
+  const nonce = await readNonce(gateway, sender);
+  const fees = await readFees(gateway, sidecar, maxFeePerGasCap);
   const unsigned: FrameTx = newTx({
     chainId: chain.id,
     sender,
     nonceSeq: BigInt(nonce),
-    frames: requests as Frame[],
+    frames: requests,
     signatures: [arbitrarySignatureEntry("0x", profile)],
     fees: {
       maxFeePerGas: fees.maxFeePerGas,
       maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
     },
   });
-  const payer = printable(payerOfTx(unsigned, profile), 200);
-  onLog?.(
-    `Fees: max ${formatGwei(fees.maxFeePerGas)} gwei per gas (priority ${formatGwei(fees.maxPriorityFeePerGas)}); ${costLine(unsigned)}, paid by ${payer}`,
-    "info",
-  );
+  const payer = logFees(unsigned, profile, onLog);
   const hashToSign = sigHash(profile, unsigned);
   const description = describeFrameTransaction({
     tx: unsigned,
@@ -321,81 +477,18 @@ export async function sendFrameTransactionWithArbitrarySignature({
     throw new Error(
       "The signed transaction's signature hash differs from the one signed: nothing was sent",
     );
-  const expected = txHash(profile, signed) as Hash;
   // Cancelled while the signer was asked: the signature is dropped unsent.
   if (signal?.aborted)
     throw new Error("The call was cancelled while signing: nothing was sent");
 
-  let answer: unknown;
-  try {
-    answer =
-      mempool === "canonical"
-        ? await gateway.request({
-            method: "eth_sendRawTransaction",
-            params: [encodeTx(profile, signed)],
-          } as never)
-        : await gateway.request({
-            method: "eth_sendFrameTransaction",
-            params: [toWire(signed)],
-          } as never);
-  } catch (error) {
-    throw new Error(
-      `The ${mempool} mempool refused the frame transaction from ${sender}, paid by ${payer}: ${printable(refusalText(error), TEXT_MAX)}`,
-    );
-  }
-  // Only the hash of the bytes signed is shown and waited on.
-  if (
-    typeof answer !== "string" ||
-    answer.toLowerCase() !== expected.toLowerCase()
-  )
-    throw new Error(
-      `The ${mempool === "canonical" ? "node" : "gateway"} returned ${printable(typeof answer === "string" ? answer : JSON.stringify(answer), 80)} for a transaction whose hash is ${expected}`,
-    );
-
-  // Only a sidecar reports a frame transaction's status.
-  const status = async () =>
-    !sidecar
-      ? "unknown"
-      : printable(
-          (
-            (await gateway
-              .request({
-                method: "skandha_frameTransactionStatus",
-                params: [expected],
-              } as never)
-              .catch(() => undefined)) as { status?: unknown } | undefined
-          )?.status ?? "unknown",
-          40,
-        );
-  onLog?.(
-    `Frame transaction ${expected} from ${sender} admitted to the ${mempool} mempool of the ${chain.name} (status ${await status()})`,
-    "success",
-  );
-
-  let receipt: FrameTransactionReceipt;
-  try {
-    receipt = (await gateway.waitForTransactionReceipt({
-      hash: expected,
-      timeout: receiptTimeoutMs,
-    })) as FrameTransactionReceipt;
-  } catch (error) {
-    if (error instanceof WaitForTransactionReceiptTimeoutError)
-      throw new Error(
-        `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the sender would reuse its nonce.${explorer ? ` ${explorer}` : ""}`,
-      );
-    throw new Error(
-      `Waiting for ${expected}'s receipt failed: ${printable(refusalText(error), TEXT_MAX)}`,
-    );
-  }
-  onLog?.(
-    `Frame transaction ${expected} mined in block ${printable(receipt.blockNumber)}, paid by ${receipt.payer === undefined ? "an unknown payer" : printable(receipt.payer)}`,
-    "success",
-  );
-  receipt.frameReceipts?.forEach((frame, i) => {
-    onLog?.(
-      `Frame ${i + 1}: ${printable(frame.status)}`,
-      frame.status === "success" ? "success" : "warning",
-    );
+  return submitFrameTransaction({
+    gateway,
+    chain,
+    signed,
+    mempool,
+    payer,
+    onLog,
+    receiptTimeoutMs,
+    waitForReceipt,
   });
-  return { hash: expected, receipt };
 }

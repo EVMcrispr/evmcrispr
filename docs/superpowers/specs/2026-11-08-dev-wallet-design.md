@@ -79,7 +79,7 @@ Read from `forshtat/hegota-demo@master` (paths relative to it):
 | `eth_sendTransaction`, `eth_signTransaction` | chain, from, to (named), value (in the chain's currency), the decoded call, nonce, gas and fees, the most it can cost |
 | `eth_signTypedData_v4` | the domain (name, version, chain, contract), the primary type, every field decoded by its type (addresses named, amounts of known tokens formatted) |
 | `personal_sign` | the message as text when it is UTF-8, else hex |
-| `wallet_signFrameTransaction` (ours, below) | the frame transaction, frame by frame |
+| `eth_signTransaction` with `type: "0x6"` (below) | the frame transaction, frame by frame |
 | `eth_accounts`, `eth_requestAccounts`, `eth_chainId`, `wallet_switchEthereumChain` | nothing (no signature) |
 
 `eth_sign` is refused: it signs a bare hash, which cannot be shown.
@@ -89,32 +89,42 @@ Reject answers the standard user-rejection error (EIP-1193 code 4001).
 The run's review stays what it is: the terminal reviews what the script
 built, the wallet then shows what it is asked to sign, as with MetaMask.
 
-### 4. Frame transactions: `wallet_signFrameTransaction`
+### 4. Frame transactions: `eth_signTransaction`, type 0x06 (owner, 2026-11-08)
 
-A wallet that is only given a hash signs blind, so the request carries the
-transaction:
+The frames module asks the connected wallet as if it supported frame
+transactions, so any wallet that implements EIP-8141 works with EVMcrispr,
+and the request is the standard one rather than a name of ours:
 
 ```ts
-wallet_signFrameTransaction([{
-  transaction: Hex,   // the unsigned type-0x06 transaction, serialized
-  profile: string,    // the hegota-support profile it is encoded under
-  as:
-    | { kind: "sender" }                       // a plain sender: secp256k1 over the sig hash
-    | { kind: "typed-data"; typedData: … },    // a contract sender: EIP-712 by its owner
-}]) → Hex
+eth_signTransaction([{
+  type: "0x6",
+  chainId: Hex, from: Address,             // from = the transaction's sender
+  nonce: Hex,
+  maxFeePerGas: Hex, maxPriorityFeePerGas: Hex,
+  frames: [{ mode, flags, target, gasLimit, stateGasLimit, value, data }],
+}]) → Hex                                  // the signed type-0x06 transaction
 ```
 
-- The wallet decodes the transaction itself (viem-frames'
-  `parseFrameTransaction` under the named profile) and computes the
-  signature hash itself.
-- `sender`: the transaction's sender must be the connected account; the
-  wallet returns a canonical secp256k1 signature over the hash (recovery id
-  0 or 1, low `s`).
-- `typed-data`: the typed data must carry the transaction's signature
-  hash as a `bytes32` field named `sigHash` (the FrameAccount's
-  `FrameTransaction(bytes32 sigHash)`), else the wallet refuses: it would
-  be signing a hash it cannot tie to the transaction shown. The typed data
-  is shown with the frames.
+- The request is the whole transaction, filled in by the module (nonce and
+  fees from the chain's node or sidecar): the wallet signs it as it is and
+  shows it before. Its JSON shape is viem-frames'
+  `formatFrameTransactionRequest` (and `parseFrameTransactionRequest` on the
+  wallet's side); the wallet encodes it under the chain's profile.
+- `from` must be the connected account; the wallet returns the signed
+  transaction with a canonical secp256k1 signature over its signature hash
+  (recovery id 0 or 1, low `s`).
+- The module parses the returned transaction, checks every field is the
+  one it asked for and that the signature recovers to the sender, and only
+  then sends it, to the alt or canonical mempool `--mempool` names. The
+  wallet never chooses the mempool.
+- A wallet that does not implement it (MetaMask today) answers with its own
+  error; the module shows it with the hint to use `--account` or a wallet
+  that signs frame transactions. Nothing in EVMcrispr refuses it first.
+- A frame account's transaction is still signed by its owner as typed data
+  (`eth_signTypedData_v4`, `FrameTransaction(bytes32 sigHash)`): the
+  wallet's account is not the transaction's sender there. The test wallet
+  shows that typed data with the frames it covers when the request comes
+  from a run of the frames module.
 - The panel, after the demo's layout: one entry per frame with its mode
   and a gloss of what the mode means ("approves the transaction for the
   sender", "a call made by the sender", "a call made by the entry point"),
@@ -122,16 +132,6 @@ wallet_signFrameTransaction([{
   empty), the value, the decoded call and the limits; then who pays, the
   nonce, the fees, the most it can cost, and the signature hash with the
   chain and the sender.
-- The name is ours and not a standard: no wallet request for EIP-8141
-  exists (viem's draft support keeps the type off wallet requests). The
-  frames module asks it of any wallet, and a wallet that does not answer
-  gets the error that names the test wallet or `--account`. For a frame
-  account with a third-party wallet the module keeps asking plain
-  `eth_signTypedData_v4`, as today.
-
-This replaces the raw-hash request of `2026-11-08-frames-in-module-design.md`
-section 2: the frames module's `send` asks `wallet_signFrameTransaction`
-first and falls back to `eth_signTypedData_v4` for a frame account.
 
 ### 5. Decoding (the clear signing)
 
@@ -199,8 +199,8 @@ does.
    the request model; tests.
 2. The connector, the panel and the account picker in `packages/ui`, the
    gallery and the terminal.
-3. `wallet_signFrameTransaction` in the wallet and in the frames module's
-   `send` (needs module-owned actions, `frames-in-module` step 1, and the
+3. `eth_signTransaction` for type 0x06 in the wallet and in the frames
+   module's `send` (needs module-owned actions, `frames-in-module` step 1, and the
    frame network table, step 3).
 4. Decoding beyond selectors: verified ABIs, session deployments, token
    formatting.
@@ -212,5 +212,12 @@ does.
 - **Approval in the wallet**: every signature asks (proposed, as a real
   wallet does), or an "approve without asking" switch for long runs on a
   local chain?
-- **`wallet_signFrameTransaction`**: worth proposing upstream (to the
-  EIP-8141 discussion or viem) once it has run here, or kept ours?
+- **The request's JSON shape** for type 0x06 (`frames` field names): worth
+  proposing upstream (to the EIP-8141 discussion or viem) once it has run
+  here? Built 2026-11-08 as viem-frames' `formatFrameTransactionRequest`
+  (`{ type: "0x6", chainId, from, nonce, maxFeePerGas,
+  maxPriorityFeePerGas, frames: [{ mode, flags, target, gasLimit,
+  stateGasLimit, value, data }] }`, every number a 0x-quantity, `target`
+  null for the sender); `parseFrameTransactionRequest` is the wallet's side.
+  It is sent with `wallet.request`, not through viem's
+  `chain.formatters.transactionRequest`.

@@ -2,12 +2,10 @@
 // written, who pays, and what the wallet will be asked. Host-neutral: plain
 // strings and raw calls; the host escapes and decodes them.
 import { chainLabel, type ModuleActionDescription } from "@evmcrispr/sdk";
-import { altMempoolDevnet } from "@evmcrispr/viem-frames";
+import { frameSidecarOf } from "@evmcrispr/viem-frames";
 import { FRAME_ACCOUNT_DOMAIN_NAME } from "./account";
 import type { FrameModuleAction } from "./frame-action";
-
-export const PLAIN_SENDER_REFUSAL =
-  "A frame transaction from a plain address cannot be sent yet: send it from a frame account (frames:tx --account)";
+import { frameNetwork, frameNetworkNames } from "./networks";
 
 type Described = Omit<FrameModuleAction, "description">;
 
@@ -52,6 +50,16 @@ function steps({ from, data }: Described): ModuleActionDescription["steps"] {
   });
 }
 
+/** Why sending will refuse it, said before anything is signed. */
+function warning({ chainId, data }: Described): string | undefined {
+  const network = frameNetwork(chainId);
+  if (!network)
+    return `Frame transactions are sent on ${frameNetworkNames()}, not on ${chainLabel(chainId)}: it will be refused.`;
+  if (data.mempool === "alt" && !frameSidecarOf(network.chain))
+    return `The ${network.chain.name} has no alt mempool: it will be refused (write \`--mempool canonical\`).`;
+  return undefined;
+}
+
 export function describeFrameAction(
   action: Described,
 ): ModuleActionDescription {
@@ -62,25 +70,24 @@ export function describeFrameAction(
       title: `Frame transaction from ${from}`,
       detail: `${count}, paid by ${payer(action)}`,
       meta: count,
-      warning: `${PLAIN_SENDER_REFUSAL}.`,
+      warning: warning(action),
       steps: steps(action),
-      notes: [],
+      notes: [
+        `When it is sent, the wallet of the sender ${from} is asked to sign it as a type 0x06 transaction (eth_signTransaction), with the nonce and fees filled in; a wallet that does not sign frame transactions refuses it.`,
+      ],
     };
-  const devnet = altMempoolDevnet;
   const owner = data.account.owner;
+  const chain = frameNetwork(chainId)?.chain.name ?? chainLabel(chainId);
   return {
     title: `Frame transaction from account ${from}`,
     detail: `${count}, paid by ${payer(action)}`,
     meta: `${count} · typed data signed by ${owner}`,
-    warning:
-      chainId === devnet.id
-        ? undefined
-        : `A frame account's transaction is only sent on the ${devnet.name}, not on ${chainLabel(chainId)}: it will be refused.`,
+    warning: warning(action),
     steps: steps(action),
     notes: [
       `When it is sent, the wallet of the owner ${owner} is asked to sign typed data FrameTransaction(bytes32 sigHash).`,
-      `Its domain: name "${FRAME_ACCOUNT_DOMAIN_NAME}", version "1", the ${devnet.name}'s chain, verifying contract ${from} (the account).`,
-      "sigHash is the transaction's signature hash. The nonce and fees it covers are read from the gateway when it is sent, so they and the hash are not shown here: the wallet's prompt shows the hash.",
+      `Its domain: name "${FRAME_ACCOUNT_DOMAIN_NAME}", version "1", the ${chain}'s chain, verifying contract ${from} (the account).`,
+      "sigHash is the transaction's signature hash. The nonce and fees it covers are read from the chain when it is sent, so they and the hash are not shown here: the wallet's prompt shows the hash.",
     ],
   };
 }

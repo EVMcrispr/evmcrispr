@@ -1,9 +1,11 @@
 import type { Action, BlockExpressionNode } from "@evmcrispr/sdk";
 import { defineCommand, ErrorException, withSender } from "@evmcrispr/sdk";
+import { frameSidecarOf } from "@evmcrispr/viem-frames";
 import type { Address } from "viem";
 import type Frames from "..";
 import { frameAction } from "../actions";
 import { gasOption, layoutFrames, requireLimits } from "../layout";
+import { frameNetwork } from "../networks";
 
 export default defineCommand<Frames>({
   smartSupport: {
@@ -13,7 +15,7 @@ export default defineCommand<Frames>({
   },
   name: "tx",
   description:
-    "Send the calls of a block as one EIP-8141 frame transaction: a verify frame first, then one frame per call, `batch` groups atomic. Experimental: the alt-mempool devnet only.",
+    "Send the calls of a block as one EIP-8141 frame transaction: a verify frame first, then one frame per call, `batch` groups atomic. Experimental: on the alt-mempool devnet and the local frame devnets.",
   args: [
     {
       name: "block",
@@ -42,17 +44,22 @@ export default defineCommand<Frames>({
     {
       name: "state-gas",
       type: "number",
-      description: "State gas limit of every body frame",
+      description: "State gas limit of every body frame (200000 by default)",
     },
     {
       name: "mempool",
       type: "string",
-      description: "`alt` (default) or `canonical`",
+      description:
+        "`alt` or `canonical`; by default `alt` where the network has an alt mempool, else `canonical`",
     },
   ],
   batchable: false,
   async run(module, { block }, { opts, interpreters }) {
-    const mempool = opts.mempool ?? "alt";
+    // The default is the network's: the alt mempool where it has one.
+    const network = frameNetwork(await module.getChainId());
+    const mempool =
+      opts.mempool ??
+      (network && !frameSidecarOf(network.chain) ? "canonical" : "alt");
     if (mempool !== "alt" && mempool !== "canonical")
       throw new ErrorException(
         `--mempool is alt or canonical, not ${mempool}.`,
@@ -95,7 +102,8 @@ export default defineCommand<Frames>({
       accountChecks: account !== undefined,
     });
     // A frame account's transaction is signed once, exactly as sent, so
-    // nothing sizes its frames: each one must carry its limits.
+    // nothing sizes its frames: each one must carry its limits. A plain
+    // sender's are checked when it is sent (nothing sizes them yet either).
     if (account) requireLimits(frames);
     return [
       frameAction.create({

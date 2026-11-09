@@ -119,10 +119,7 @@ export function altMempoolActions() {
     }
 
     return {
-      /**
-       * Fills nonce, fees and every frame's limits. It signs nothing, except
-       * the provisional transaction `sizeBySimulation` asks for.
-       */
+      /** Fills nonce, fees and every frame's limits. It signs nothing. */
       prepareFrameTransaction: (parameters: FrameTransactionParameters) =>
         prepareTransactionRequest(client, {
           ...parameters,

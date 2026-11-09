@@ -34,7 +34,7 @@ run("alt-mempool devnet", () => {
     .extend(altMempoolActions());
   let hash: `0x${string}` | undefined;
 
-  test("a self-relayed transfer, its gas estimated, is admitted by the alt mempool", async () => {
+  test("a self-relayed transfer is admitted by the alt mempool", async () => {
     await client.requestFaucet(account.address);
     for (
       let i = 0;
@@ -45,10 +45,16 @@ run("alt-mempool devnet", () => {
       await Bun.sleep(2_000);
     }
 
-    // A throwaway key: signing the provisional transaction risks nothing.
     hash = await client.sendFrameTransaction({
-      frames: [selfVerify(), call({ to: RECIPIENT, value: 1_000_000_000n })],
-      sizeBySimulation: true,
+      frames: [
+        selfVerify(),
+        call({
+          to: RECIPIENT,
+          value: 1_000_000_000n,
+          gas: 50_000n,
+          stateGas: 200_000n,
+        }),
+      ],
     });
     console.log(
       `admitted: ${hash} (${altMempoolDevnet.blockExplorers?.default.url}, search the hash)`,

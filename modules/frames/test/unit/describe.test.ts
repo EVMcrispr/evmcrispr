@@ -103,18 +103,31 @@ describe("the frames module describes its frame action", () => {
     expect(d.steps[0]!.label).not.toContain("execution");
   });
 
-  test("an account's transaction on another chain is warned of", () => {
-    expect(frame({ chainId: 100 }).warning).toBe(
-      "A frame account's transaction is only sent on the Alt-mempool devnet, not on Gnosis: it will be refused.",
-    );
+  test("a transaction on a chain outside the frame networks is warned of, for both senders", () => {
+    const warning =
+      "Frame transactions are sent on the Alt-mempool devnet, the Frames quick devnet or the Frames mining devnet, not on Gnosis: it will be refused.";
+    expect(frame({ chainId: 100 }).warning).toBe(warning);
+    expect(
+      frame({ chainId: 100, account: undefined, from: OWNER }).warning,
+    ).toBe(warning);
   });
 
-  test("a plain sender's frame transaction says it cannot be sent yet", () => {
+  test("the alt mempool on a network without one is warned of", () => {
+    expect(frame({ chainId: 81412 }).warning).toBe(
+      "The Frames mining devnet has no alt mempool: it will be refused (write `--mempool canonical`).",
+    );
+    expect(
+      frame({ chainId: 81412, mempool: "canonical" }).warning,
+    ).toBeUndefined();
+  });
+
+  test("a plain sender's frame transaction says its wallet is asked eth_signTransaction", () => {
     const d = frame({ account: undefined, from: OWNER });
     expect(d.title).toBe(`Frame transaction from ${OWNER}`);
     expect(d.steps).toHaveLength(2);
-    expect(d.warning).toBe(
-      "A frame transaction from a plain address cannot be sent yet: send it from a frame account (frames:tx --account).",
-    );
+    expect(d.warning).toBeUndefined();
+    expect(d.notes).toEqual([
+      `When it is sent, the wallet of the sender ${OWNER} is asked to sign it as a type 0x06 transaction (eth_signTransaction), with the nonce and fees filled in; a wallet that does not sign frame transactions refuses it.`,
+    ]);
   });
 });

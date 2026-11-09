@@ -1,7 +1,7 @@
 {
   "name": "@evmcrispr/module-frames",
   "version": "0.11.1",
-  "description": "EIP-8141 frame transactions: one transaction of many frames, verified and paid by contracts, sent through the ERC-8421 alternative mempool. Experimental: the alt-mempool devnet only, from the terminal with a frame account.",
+  "description": "EIP-8141 frame transactions: one transaction of many frames, verified and paid by contracts, sent through the ERC-8421 alternative mempool. Experimental: the alt-mempool devnet and local frame devnets, from a frame account or a wallet that signs frame transactions.",
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
