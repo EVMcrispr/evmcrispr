@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@evmcrispr/module-contracts": "workspace:*",
+    "@evmcrispr/module-frames": "workspace:*",
     "@evmcrispr/module-token": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },

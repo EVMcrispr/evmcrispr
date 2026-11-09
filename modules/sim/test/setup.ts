@@ -15,6 +15,13 @@ evml.use({
   load: () => import("@evmcrispr/module-token"),
 });
 
+// frames (a devDependency) is loaded to check that sim:fork refuses its
+// transactions.
+evml.use({
+  name: "frames",
+  load: () => import("@evmcrispr/module-frames"),
+});
+
 // Create and start MSW server
 export const server = createTestServer();
 server.listen({ onUnhandledRequest: "bypass" });

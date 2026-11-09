@@ -5,6 +5,7 @@ import {
   defineCommand,
   ErrorException,
   isBatchedAction,
+  isFrameAction,
   isRpcAction,
   isSmartBatchAction,
   isTerminalAction,
@@ -412,6 +413,14 @@ export default defineCommand<Sim>({
     ): Promise<unknown> => {
       if (module.context.signal?.aborted) {
         throw new ErrorException("Execution cancelled");
+      }
+      // No backend runs EIP-8141 frames (anvil, hardhat and tenderly do not
+      // know the transaction type; ethereumjs and revm lack its opcodes), and
+      // an action left unhandled would end the fork as if it had succeeded.
+      if (isFrameAction(action)) {
+        throw new ErrorException(
+          "sim:fork cannot simulate frame transactions yet: no simulation backend runs EIP-8141 frames, so the frames would not run. Move frames:tx out of the fork.",
+        );
       }
       if (isWalletAction(action)) {
         if (action.method !== "wallet_switchEthereumChain") {
