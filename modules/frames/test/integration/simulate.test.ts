@@ -111,6 +111,21 @@ for (const using of BACKENDS) {
       expect(text).toContain("Frame 7 skipped");
     }, 120_000);
 
+    it("a failed atomic group keeps none of its frames' storage writes", async () => {
+      const logs = await run(using, [
+        `sim:set-code ${BOX} ${BOX_CODE}`,
+        "tx (",
+        "  batch (",
+        `    exec ${BOX} "put(uint256)" 1 --gas 50000`,
+        `    exec ${BOX} "put(uint256)" 2 --gas 50000`,
+        `    ${FAILS}`,
+        "  )",
+        ")",
+        `sim:expect @bool(@get(${BOX} "get()(uint256)") == 0)`,
+      ]);
+      expect(logs.join("\n")).toContain("Frame 4 reverted");
+    }, 120_000);
+
     it("a smart batch in a frame account's transaction runs through its ERC-7579 executor, atomically", async () => {
       await run(using, [
         `sim:set-code ${COMPOSABLE_EXECUTOR_ADDRESS} ${composable.executor}`,

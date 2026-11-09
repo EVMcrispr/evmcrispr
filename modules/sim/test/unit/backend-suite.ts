@@ -905,6 +905,56 @@ export function describeBackendSuite(
         expect(await sim.getBalance(DEAD)).toBe(start + 5n);
         expect(await sim.getCode(TARGET)).toBe("0x00");
       });
+
+      it("a group that rolls back keeps none of its storage writes, under the transaction's checkpoints", async () => {
+        // As a frame transaction's atomic group runs: the transaction's
+        // checkpoint, the body's, the group's; two frames write a slot, the
+        // third fails, the group reverts and the rest commits.
+        const { backend, client } = await makeBackend();
+        await backend.handleAction({
+          type: "rpc",
+          method: `${prefix}_setCode`,
+          params: [TARGET, "0x5f355f5500"], // SSTORE(0, calldata word 0)
+        } as Action);
+        await backend.handleAction({
+          type: "rpc",
+          method: `${prefix}_setBalance`,
+          params: [CALLER, "0xde0b6b3a7640000"],
+        } as Action);
+        const sim = backend.simContext!(ACTION, { onLog: () => {} });
+        await sim.checkpoint();
+        await sim.checkpoint();
+        await sim.checkpoint();
+        const store = await sim.call({
+          caller: CALLER,
+          to: TARGET,
+          data: word(7),
+          value: 0n,
+          gas: 100_000n,
+          isStatic: false,
+        });
+        expect(store.success).toBe(true);
+        const again = await sim.call({
+          caller: CALLER,
+          to: TARGET,
+          data: word(9),
+          value: 0n,
+          gas: 100_000n,
+          isStatic: false,
+        });
+        expect(again.success).toBe(true);
+        const fails = await call(sim, { to: DEAD, value: 10n ** 30n });
+        expect(fails.success).toBe(false);
+        await sim.revert();
+        expect((await sim.stateChanges()).slots).toEqual([]);
+        await sim.commit();
+        await sim.commit();
+        expect(
+          BigInt(
+            (await client.getStorageAt({ address: TARGET, slot: word(0) }))!,
+          ),
+        ).toBe(0n);
+      });
     });
   });
 }

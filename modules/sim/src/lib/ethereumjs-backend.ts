@@ -135,6 +135,15 @@ class ProofFreeStateManager extends RPCStateManager {
     return super.putStorage(address, key, value);
   }
 
+  /** RPCStateManager's commit (ethereumjs 10.1.3) commits only the account
+   *  cache: the storage and code caches keep every committed checkpoint's
+   *  diff, so a later revert pops an inner call's diff instead of its own
+   *  and keeps what it should undo (a rolled-back atomic group's storage
+   *  writes). Commit every cache, as checkpoint and revert do. */
+  override async commit(): Promise<void> {
+    this._caches.commit();
+  }
+
   override async getAccountFromProvider(
     address: EthjsAddress,
   ): Promise<Account> {
