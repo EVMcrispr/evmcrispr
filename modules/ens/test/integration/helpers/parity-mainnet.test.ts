@@ -30,8 +30,10 @@ import { decodeFuses } from "../../../src/fuses";
 const NAME = "vitalik.eth";
 /** The ETHRegistrarController the faces read on mainnet. */
 const CONTROLLER = "0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547";
-/** Wrapped at the fork block (NameWrapper getData shows burned fuses). */
-const WRAPPED = "jefflau.eth";
+/** A wrapped name that stays wrapped: CANNOT_UNWRAP is burned, it expires in
+ *  2039, and the NameWrapper has no upgrade contract, so neither its owner nor
+ *  a migration can take it out (jefflau.eth, which burned nothing, was). */
+const WRAPPED = "dnaholdings.eth";
 /** vitalik.eth's forward-consistent reverse record. */
 const VITALIK_ADDR = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
 /** Anvil account #0 — no reverse record on mainnet. */
