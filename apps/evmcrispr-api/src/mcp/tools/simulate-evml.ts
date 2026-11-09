@@ -23,10 +23,6 @@ export function registerSimulateEvml(server: McpServer): void {
           .string()
           .optional()
           .describe("Address to impersonate as sender (0x...)"),
-        rpcUrl: z
-          .string()
-          .optional()
-          .describe("RPC URL override (default: uses DRPC_API_KEY)"),
       },
       annotations: {
         readOnlyHint: true,
@@ -35,8 +31,16 @@ export function registerSimulateEvml(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async (args) => {
-      const result = await simulateEvml({ ...args, using: "revm" });
+    // The server picks the RPC for each chain: a caller-supplied URL would
+    // make it send requests wherever the caller points it.
+    async ({ script, chainId, blockNumber, from }) => {
+      const result = await simulateEvml({
+        script,
+        chainId,
+        blockNumber,
+        from,
+        using: "revm",
+      });
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
