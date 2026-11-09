@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { afterEach, expect, setSystemTime, test } from "bun:test";
 import path from "node:path";
 import type { Action } from "@evmcrispr/sdk";
 import { act, fireEvent, screen } from "@testing-library/react";
@@ -14,6 +14,8 @@ const to = "0x000000000000000000000000000000000000dEaD" as const;
 const refusal = Object.assign(new Error("User rejected the request."), {
   code: 4001,
 });
+
+afterEach(() => setSystemTime());
 
 // Resume passes a held action to the wallet. It was prepared before the
 // pause, so it is only ever offered next to what it will send.
@@ -56,6 +58,9 @@ test("says why the run paused, what Resume will send and to whom, before the but
     chainId: 100,
   };
   const t = await paused([{ action }]);
+  // The test browser's clock counts from 1000; HeldRun reads the wall's.
+  // Put the wall where the run was held, so its age is what it would be.
+  setSystemTime(t.run().held!.since);
   renderInSpace(<HeldRun run={t.run()} />, t);
   const held = screen.getByRole("group", { name: "Held action" });
   expect(held.textContent).toContain("Paused: you declined in your wallet");
@@ -68,8 +73,8 @@ test("says why the run paused, what Resume will send and to whom, before the but
   // The calldata is there in full, behind its summary.
   expect(held.querySelector("details pre")?.textContent).toBe("0xa9059cbb00");
   expect(screen.getByRole("button", { name: `Copy ${to}` })).toBeTruthy();
-  // For how long it has been held (the test's clock is not the wall's).
-  expect(held.textContent).toMatch(/just now|min ago/);
+  // For how long it has been held.
+  expect(held.textContent).toContain("just now");
 
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
