@@ -47,6 +47,18 @@ export async function localNodeUrl(
   return LOOPBACK.has(host) && (await isAnvil(url)) ? url : LOCAL_RPC;
 }
 
+/** `url` when it names more than a host: anvil after 1.5 reports the URL
+ *  it forks redacted to its origin, which forks nothing. */
+function completeUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const { pathname, search } = new URL(url);
+    return pathname !== "/" || search ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Whether `url` answers as an anvil (`anvil_nodeInfo`). */
 async function answersAsAnvil(url: string): Promise<boolean> {
   try {
@@ -150,6 +162,9 @@ export interface ForkManagerOptions {
 /** Per-chain saved state for the anvil/hardhat single-node network swap. */
 interface LocalNodeChainState {
   upstreamRpcUrl?: string;
+  /** The chain's RPC is the node itself: its upstream is the one the node
+   *  was started on, which a reset keeps when it names no URL. */
+  ownFork?: boolean;
   forkBlockNumber?: bigint;
   stateBlob?: `0x${string}`;
   timeOffset: bigint;
@@ -171,6 +186,9 @@ export class ForkManager {
   #local = new Map<number, LocalNodeChainState>();
   /** The node an anvil/hardhat fork swaps, chosen on its first visit. */
   #node?: string;
+  /** Whether that node still forks the upstream it was started on: true
+   *  until a reset points it at another chain's. */
+  #nodeOnOwnFork = true;
   #tenderlyLinks: string[] = [];
 
   constructor(module: Sim, mode: SimMode, opts: ForkManagerOptions = {}) {
@@ -487,23 +505,26 @@ export class ForkManager {
       // forking from itself deadlocks — ask the node for its real
       // upstream instead.
       let upstreamRpcUrl = this.#upstreamRpcUrl(chainId, chain);
-      if (
+      const ownFork =
         prefix === "anvil" &&
-        upstreamRpcUrl &&
-        isSameLocalRpc(upstreamRpcUrl, node)
-      ) {
+        !!upstreamRpcUrl &&
+        isSameLocalRpc(upstreamRpcUrl, node);
+      if (ownFork) {
+        // Only needed to come back to this chain after re-forking the node
+        // onto another one. Anvil after 1.5 redacts it to its origin.
         try {
           const nodeInfo = (await handle.walletClient!.request({
             method: "anvil_nodeInfo" as any,
             params: [] as any,
           })) as { forkConfig?: { forkUrl?: string } } | undefined;
-          upstreamRpcUrl = nodeInfo?.forkConfig?.forkUrl;
+          upstreamRpcUrl = completeUrl(nodeInfo?.forkConfig?.forkUrl);
         } catch {
           upstreamRpcUrl = undefined;
         }
       }
       state = {
         upstreamRpcUrl,
+        ownFork,
         forkBlockNumber:
           pinBlockNumber !== undefined ? BigInt(pinBlockNumber) : undefined,
         timeOffset: 0n,
@@ -512,12 +533,24 @@ export class ForkManager {
     }
 
     const resetParams: any[] = [];
-    if (state.upstreamRpcUrl) {
+    if (state.ownFork && this.#nodeOnOwnFork) {
+      // A reset that names no URL keeps the node's own: nothing to know.
+      const forking: any = {};
+      if (state.forkBlockNumber !== undefined) {
+        forking.blockNumber = Number(state.forkBlockNumber);
+      }
+      resetParams.push({ forking });
+    } else if (state.upstreamRpcUrl) {
       const forking: any = { jsonRpcUrl: state.upstreamRpcUrl };
       if (state.forkBlockNumber !== undefined) {
         forking.blockNumber = Number(state.forkBlockNumber);
       }
       resetParams.push({ forking });
+    } else if (state.ownFork) {
+      // A bare reset would leave fork mode: an empty chain, not this one.
+      throw new ErrorException(
+        `cannot switch back to ${chainLabel(chainId)} in this fork: its RPC is the ${backendName} node itself, which does not report the URL it forks. Point ${chainLabel(chainId)}'s RPC at that upstream to switch chains in and out of it.`,
+      );
     }
 
     // Re-forking pulls fresh state from the upstream RPC; at `latest` on a
@@ -543,6 +576,7 @@ export class ForkManager {
         `Failed to reset ${backendName} at ${node}. Make sure ${backendName} is running: ${resetError.message}`,
       );
     }
+    if (!state.ownFork && state.upstreamRpcUrl) this.#nodeOnOwnFork = false;
 
     // Pin the fork base on first visit so revisits re-fork the same block.
     if (state.forkBlockNumber === undefined) {
