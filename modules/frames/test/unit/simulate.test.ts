@@ -230,6 +230,78 @@ describe("the frame executor", () => {
       ]);
     });
 
+    // Measured on the chain (hegota-post-tx-probe (e), (f)): the payer is
+    // charged max fee × (intrinsic gas + every frame's limits) when it
+    // approves, and refunded the unused part after the POST_TX frames.
+    // Intrinsic: EIP-8141's 12000 + 475 a frame + the frames' data + 2800
+    // and the signature's 65 bytes + 6000 a frame with value, and 48 more.
+    const FEES = { maxFeePerGas: 1_000n, maxPriorityFeePerGas: 1n };
+    const MAX_COST =
+      1_000n *
+      (12_000n +
+        3n * 475n +
+        2_800n +
+        65n * 16n +
+        48n +
+        30_000n +
+        2n * (50_000n + 200_000n));
+    const ONE = 10n ** 18n;
+
+    test("the payer is charged its maximum cost when it approves, and refunded what it did not use", async () => {
+      const during: (bigint | undefined)[] = [];
+      let balances: Map<string, bigint> | undefined;
+      const host = fakeHost(undefined, 7n, {
+        chainId: HEGOTA,
+        // A target with code: its frames use the fake's 21 gas each.
+        code: { [DEAD.toLowerCase()]: "0x00" },
+        behave: () => {
+          during.push(balances?.get(SENDER));
+          return undefined;
+        },
+      });
+      balances = host.balances;
+      host.balances.set(SENDER, ONE);
+      await frameAction.simulate!(
+        action(2, FEES, { chainId: HEGOTA }),
+        host.sim,
+      );
+      expect(during).toEqual([ONE - MAX_COST, ONE - MAX_COST]);
+      // The fee: two frames of 21 gas at the base fee 7 plus the tip 1.
+      expect(host.balances.get(SENDER)).toBe(ONE - 42n * 8n);
+    });
+
+    test("a payer that can pay the gas used but not the maximum cost makes the transaction invalid", async () => {
+      const host = fakeHost(undefined, 7n, { chainId: HEGOTA });
+      host.balances.set(SENDER, MAX_COST - 1n);
+      await expect(
+        frameAction.simulate!(action(2, FEES, { chainId: HEGOTA }), host.sim),
+      ).rejects.toThrow(
+        `The frame transaction is invalid: ${SENDER} cannot pay the fee: its gas limits cost up to`,
+      );
+      expect(host.depth()).toBe(0);
+    });
+
+    test("without fees, or on the tracer devnets, nothing is charged before the body", async () => {
+      for (const [chainId, fees] of [
+        [HEGOTA, undefined],
+        [81412, FEES],
+      ] as const) {
+        const during: (bigint | undefined)[] = [];
+        let balances: Map<string, bigint> | undefined;
+        const host = fakeHost(undefined, 7n, {
+          chainId,
+          behave: () => {
+            during.push(balances?.get(SENDER));
+            return undefined;
+          },
+        });
+        balances = host.balances;
+        host.balances.set(SENDER, ONE);
+        await frameAction.simulate!(action(2, fees, { chainId }), host.sim);
+        expect(during).toEqual([ONE, ONE]);
+      }
+    });
+
     test("the tracer devnets still charge a codeless frame to reach its target", async () => {
       const host = fakeHost();
       const receipt = (await frameAction.simulate!(

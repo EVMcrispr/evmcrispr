@@ -146,7 +146,7 @@ static calls, with TXTRACE and EVENTDATACOPY answered from what the body
 changed (net, since the transaction's start) and the logs of the frames that
 took effect; a failing one reverts the body, skips the checks after it, and
 stops the run naming it, as sending the transaction would. Not modelled there: the EIP-7708 transfer logs the chain
-emits for ETH transfers, and the sender's gas pre-charge in the balances.
+emits for ETH transfers.
 
 `sim:fork --on hegotaDevnet` forks the public Hegota devnet. To fork a local
 node on its id (a Kurtosis devnet), set the id's RPC to it (in the CLI,
@@ -156,6 +156,13 @@ With `--max-fee-per-gas` or `--max-priority-fee-per-gas` on `frames:tx`, the
 payer (the account or sender that approved paying, or its sponsor) pays the
 frames' gas used at the price above, and a payer that cannot pay makes the
 transaction invalid. Without them it runs free, like any transaction here.
+On the Hegota devnet, as on the chain, the payer is charged the most the
+transaction can cost when it approves (the max fee times the intrinsic gas and
+every frame's limits; a payer that cannot cover it makes the transaction
+invalid), so the body and the `post-verify` checks see that charge, and the
+part not used comes back after the last frame. The signature is priced as if
+none of its bytes were zero: a real one with zero bytes costs 12 gas less for
+each, so a check of the payer's exact balance can differ by that much.
 
 Not modelled: the intrinsic cost in the fee (only the frames' gas is
 charged), state gas (EIP-8037;

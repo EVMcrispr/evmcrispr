@@ -47,12 +47,14 @@ export function chargedFees(
   };
 }
 
-/** The refusal of a transaction whose payer cannot pay its fee. */
+/** The refusal of a transaction whose payer cannot pay its fee: `fee` is
+ *  what `cost` says (its gas used, or the most its gas limits can cost). */
 export function unpaidFeeError(
   chainId: number,
   payer: string,
   fee: bigint,
   balance: bigint,
+  cost = "the gas used costs",
 ): ErrorException {
   const { symbol, decimals } = viemChainById(chainId)?.nativeCurrency ?? {
     symbol: "ETH",
@@ -60,6 +62,6 @@ export function unpaidFeeError(
   };
   const amount = (v: bigint) => `${formatUnits(v, decimals)} ${symbol}`;
   return new ErrorException(
-    `${payer} cannot pay the fee: the gas used costs ${amount(fee)}, and it has ${amount(balance)}`,
+    `${payer} cannot pay the fee: ${cost} ${amount(fee)}, and it has ${amount(balance)}`,
   );
 }

@@ -430,4 +430,164 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
     );
     console.log("(c) the same probe expecting the wrong word:", holds(wrong));
   }, 120_000);
+
+  it("(e) the payer's balance as a POST_TX frame sees it: the gas pre-charge", async () => {
+    const probe = await deploy(TRACE_EXPECT);
+    const balance = await reader.getBalance({
+      address: SENDER,
+      blockTag: "pending",
+    });
+    const block = await reader.getBlock({ blockTag: "latest" });
+    const baseFee = block.baseFeePerGas ?? 0n;
+    // Whether TXTRACE(param, in2) == f(the transaction's own simulation),
+    // iterated until the expected word, and so the calldata and the
+    // transaction's maxCost, stop changing.
+    const check = async (
+      param: number,
+      in2: bigint,
+      f: (s: { maxCost: bigint; gasUsed: bigint }) => bigint,
+    ) => {
+      let value = 0n;
+      for (let round = 0; round < 6; round++) {
+        const sim = await ask(
+          frames(
+            [verify, body({ value: 1n })],
+            [{ target: probe, data: expectWord(param, in2, value) }],
+          ),
+        );
+        if (typeof sim === "string") return sim;
+        const s2 = sim as Sim & { maxCost: string; gasUsed: string };
+        const next = f({
+          maxCost: BigInt(s2.maxCost),
+          gasUsed: BigInt(s2.gasUsed),
+        });
+        if (next === value)
+          return {
+            holds: holds(sim),
+            value: value.toString(),
+            maxCost: s2.maxCost,
+            gasUsed: s2.gasUsed,
+          };
+        value = next;
+      }
+      return "did not settle";
+    };
+    const out = {
+      balance: balance.toString(),
+      baseFee: baseFee.toString(),
+      count: await check(0x00, 0n, () => 2n),
+      senderIsEntry1: await check(0x03, 1n, () => BigInt(SENDER)),
+      beforeIsBalance: await check(0x04, 1n, () => balance),
+      afterMaxCost: await check(0x05, 1n, (s) => balance - 1n - s.maxCost),
+      afterUsedAtMaxFee: await check(
+        0x05,
+        1n,
+        (s) => balance - 1n - s.gasUsed * 1000n,
+      ),
+      afterUsedAtPrice: await check(
+        0x05,
+        1n,
+        (s) => balance - 1n - s.gasUsed * (baseFee + 1n),
+      ),
+      afterNoCharge: await check(0x05, 1n, () => balance - 1n),
+    };
+    console.log("(e)", JSON.stringify(out, null, 1));
+  }, 600_000);
+
+  it("(f) the intrinsic gas in maxCost", async () => {
+    // intrinsic = maxCost / maxFeePerGas - the frames' execution and state limits.
+    const tokens = (data: Hex) => {
+      let t = 0n;
+      for (let i = 2; i < data.length; i += 2)
+        t += data.slice(i, i + 2) === "00" ? 1n : 4n;
+      return t;
+    };
+    const intrinsic = async (all: ReturnType<typeof frames>) => {
+      const nonce = BigInt(
+        await reader.getTransactionCount({
+          address: SENDER,
+          blockTag: "pending",
+        }),
+      );
+      const tx = await signTx(
+        profile,
+        newTx({
+          chainId: chain.id,
+          sender: SENDER,
+          nonceSeq: nonce,
+          frames: all as never,
+          signatures: [secp256k1Placeholder(profile)],
+          fees: { maxFeePerGas: 1_000n, maxPriorityFeePerGas: 1n },
+        }),
+        KEY,
+      );
+      const raw = encodeTx(profile, tx);
+      const sim = await simulate(HEGOTA_DEVNET_RPC, raw).catch((e: Error) =>
+        e.message.slice(0, 100),
+      );
+      if (typeof sim === "string") return sim;
+      const limits = all.reduce(
+        (sum, f) =>
+          sum +
+          BigInt((f as { limits: { execution: bigint } }).limits.execution) +
+          BigInt((f as { limits: { state: bigint } }).limits.state),
+        0n,
+      );
+      const gas =
+        BigInt((sim as unknown as { maxCost: string }).maxCost) / 1000n -
+        limits;
+      const sig = (tx as unknown as { signatures: Record<string, Hex>[] })
+        .signatures[0]!;
+      const model =
+        12_000n +
+        475n * BigInt(all.length) +
+        all.reduce((t, f) => t + 4n * tokens(f.data as Hex), 0n) +
+        2_800n +
+        Object.entries(sig).reduce(
+          (t, [k, v]) =>
+            typeof v === "string" && v.startsWith("0x") && k !== "scheme"
+              ? t + 4n * tokens(v)
+              : t,
+          0n,
+        ) +
+        6_000n *
+          BigInt(
+            all.filter(
+              (f) =>
+                BigInt(f.value as bigint) > 0n &&
+                f.target &&
+                f.target.toLowerCase() !== SENDER.toLowerCase(),
+            ).length,
+          );
+      return `${gas} (model ${model}, diff ${gas - model}; signature fields ${Object.keys(sig).join(",")})`;
+    };
+    const zeros = (n: number) => `0x${"00".repeat(n)}` as Hex;
+    const ones = (n: number) => `0x${"11".repeat(n)}` as Hex;
+    const out: Record<string, string> = {};
+    out["verify + body"] = await intrinsic(frames([verify, body({})], []));
+    out["verify + 2 bodies"] = await intrinsic(
+      frames([verify, body({}), body({})], []),
+    );
+    out["verify + 3 bodies"] = await intrinsic(
+      frames([verify, body({}), body({}), body({})], []),
+    );
+    out["body value 1"] = await intrinsic(
+      frames([verify, body({ value: 1n })], []),
+    );
+    for (const n of [1, 32, 64, 100])
+      out[`body data ${n} zero bytes`] = await intrinsic(
+        frames([verify, body({ data: zeros(n) })], []),
+      );
+    for (const n of [1, 32, 64, 100])
+      out[`body data ${n} nonzero bytes`] = await intrinsic(
+        frames([verify, body({ data: ones(n) })], []),
+      );
+    out["body + post-tx (no data)"] = await intrinsic(
+      frames([verify, body({})], [{ target: DEAD, data: "0x" }]),
+    );
+    out["body + post-tx 32 nonzero"] = await intrinsic(
+      frames([verify, body({})], [{ target: DEAD, data: ones(32) }]),
+    );
+    console.log("(f)", JSON.stringify(out, null, 1));
+  }, 600_000);
 });

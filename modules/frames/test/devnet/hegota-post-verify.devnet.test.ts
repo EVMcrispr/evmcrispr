@@ -40,10 +40,11 @@ const TRANSFER =
 const transport = http(HEGOTA_DEVNET_RPC);
 const reader = createPublicClient({ transport });
 
-/** A `frames:tx` that sends 1 wei to `0x…dEaD`, then `checks`. */
-const script = (checks: string) =>
+/** A `frames:tx` that sends 1 wei to `0x…dEaD`, then `checks`; with
+ *  `fees`, it pays a max fee of 1000 wei a gas (a tip of 1). */
+const script = (checks: string, fees = false) =>
   [
-    "tx --gas 300000 (",
+    `tx --gas 300000${fees ? " --max-fee-per-gas 1000 --max-priority-fee-per-gas 1" : ""} (`,
     `  send ${DEAD} --value 1 --gas 50000`,
     "  post-verify (",
     `    ${checks}`,
@@ -52,13 +53,17 @@ const script = (checks: string) =>
   ].join("\n");
 
 /** The fork's verdict: whether a post-verify frame failed. */
-async function simulated(using: string, checks: string): Promise<boolean> {
+async function simulated(
+  using: string,
+  checks: string,
+  fees = false,
+): Promise<boolean> {
   const interpreter = createInterpreter(
     [
       "load sim",
       "load frames [tx post-verify]",
       `sim:fork --using ${using} --on hegotaDevnet --as ${SENDER} (`,
-      ...script(checks).split("\n"),
+      ...script(checks, fees).split("\n"),
       ")",
     ].join("\n"),
     reader as never,
@@ -74,7 +79,7 @@ async function simulated(using: string, checks: string): Promise<boolean> {
 }
 
 /** The chain's verdict: the frame action sent, mined, judged. */
-async function sent(checks: string): Promise<boolean> {
+async function sent(checks: string, fees = false): Promise<boolean> {
   // Anvil #0 is the run's own account (no switch --as outside a fork).
   const interpreter = new Interpreter(evml.registry, {
     account: SENDER,
@@ -82,7 +87,7 @@ async function sent(checks: string): Promise<boolean> {
     transports: getTransports(),
   });
   const [action] = (await interpreter.interpret(
-    `load frames [tx post-verify]\n${script(checks)}`,
+    `load frames [tx post-verify]\n${script(checks, fees)}`,
   )) as FrameModuleAction[];
   const wallet = createWalletClient({
     account: SENDER,
@@ -138,6 +143,25 @@ const CASES: [string, string, boolean, boolean?][] = [
 ];
 
 describe.skipIf(!ENABLED)("post-verify on the Hegota devnet", () => {
+  it("a check sees the payer charged its maximum cost (the gas pre-charge), on the chain and on the fork", async () => {
+    // At most the balance before, less the wei sent and the send frame's
+    // limit alone at the max fee: only a charge made before the checks
+    // (the whole maxCost) brings the balance that low.
+    const bound = async () =>
+      (await reader.getBalance({ address: SENDER })) - 1n - 50_000n * 1_000n;
+    for (const using of ["ethereumjs", "revm"])
+      expect(
+        await simulated(
+          using,
+          `assert @balance!(ETH ${SENDER}) <= ${await bound()}`,
+          true,
+        ),
+      ).toBe(true);
+    expect(
+      await sent(`assert @balance!(ETH ${SENDER}) <= ${await bound()}`, true),
+    ).toBe(true);
+  }, 300_000);
+
   for (const [name, checks, holds, onFork = holds] of CASES)
     it(`${name}: it ${holds ? "holds" : "fails"} on the chain${onFork === holds ? ", and the fork agrees" : ", not on the fork"}`, async () => {
       for (const using of ["ethereumjs", "revm"])

@@ -23,6 +23,7 @@ import {
 import { type Address, getAddress, isAddressEqual } from "viem";
 import type { FrameModuleAction } from "../frame-action";
 import { frameNetwork, frameNetworkNames } from "../networks";
+import { frameIntrinsicGas } from "./intrinsic";
 import {
   type FrameContext,
   type FrameStatus,
@@ -92,6 +93,22 @@ export async function simulateFrameAction(
   // The fees `frames:tx` was given, held to the fork's base fee; without
   // them the transaction runs free, as any transaction in a fork does.
   const fees = chargedFees(action.data.fees ?? {}, sim.baseFee);
+  /** What the payer is charged when it approves: none without fees, and
+   *  none when a frame has no gas limit to price. */
+  const preCharged =
+    fees && network.gas.preCharge && unsized.size === 0
+      ? fees.maxFeePerGas *
+        (frameIntrinsicGas(
+          requests.map((r, i) => ({
+            target: r.target ? getAddress(r.target) : null,
+            data: r.data,
+            value: frames[i]!.value,
+          })),
+          sender,
+          network.gas.preCharge.intrinsicExtra,
+        ) +
+          frames.reduce((sum, f) => sum + f.gas + f.stateGas, 0n))
+      : undefined;
   const maxFeePerGas = fees?.maxFeePerGas ?? 0n;
   const maxPriorityFeePerGas = fees?.maxPriorityFeePerGas ?? 0n;
   const unsigned = newFrameTransaction({
@@ -249,6 +266,18 @@ export async function simulateFrameAction(
         throw new ErrorException(
           "The frame transaction is invalid: no verify frame approved paying for it.",
         );
+      // The payer's approval collects the most the transaction can cost
+      // (EIP-8141's max_cost), on a network that charges it then: frames
+      // that read the payer's balance, a POST_TX frame's trace included,
+      // see it charged. The unused part comes back after the last frame.
+      if (preCharged !== undefined) {
+        const balance = await sim.getBalance(payer);
+        if (balance < preCharged)
+          throw new ErrorException(
+            `The frame transaction is invalid: ${unpaidFeeError(sim.chainId, payer, preCharged, balance, "its gas limits cost up to").message}`,
+          );
+        await sim.setBalance(payer, balance - preCharged);
+      }
       // The transaction uses the sender's nonce once validated; what its
       // body creates moves the nonce on from there.
       await sim.setNonce(sender, (await sim.getNonce(sender)) + 1n);
@@ -336,16 +365,19 @@ export async function simulateFrameAction(
           if (out[j]) out[j] = { ...out[j]!, logs: [] };
       }
 
-      // 4. The fee: what the frames' gas used costs, taken from the payer.
-      //    One that cannot pay it makes the whole transaction invalid.
+      // 4. The fee: what the frames' gas used costs, taken from the payer
+      //    (the pre-charge, less the fee, comes back). One that cannot pay
+      //    it makes the whole transaction invalid.
       if (fees) {
         const fee = out.reduce((sum, f) => sum + f.gasUsed, 0n) * fees.gasPrice;
         const balance = await sim.getBalance(payer);
-        if (balance < fee)
+        if (preCharged !== undefined)
+          await sim.setBalance(payer, balance + preCharged - fee);
+        else if (balance < fee)
           throw new ErrorException(
             `The frame transaction is invalid: ${unpaidFeeError(sim.chainId, payer, fee, balance).message}`,
           );
-        await sim.setBalance(payer, balance - fee);
+        else await sim.setBalance(payer, balance - fee);
       }
 
       await commit();

@@ -20,6 +20,11 @@ export interface FrameGasRules {
   /** A frame whose target has no code, or is a precompile, uses none of
    *  its own gas: the client charges it to the transaction instead. */
   codelessFramesFree: boolean;
+  /** The payer is charged its maximum cost (max fee × the intrinsic gas
+   *  and every frame's limits) when it approves, and refunded what the
+   *  transaction did not use after its last frame (EIP-8141's max_cost).
+   *  `intrinsicExtra`: what the client adds to EIP-8141's intrinsic gas. */
+  preCharge?: { intrinsicExtra: bigint };
 }
 
 /** ethrex `eip8141-tracer` (the alt-mempool and local devnets), measured on
@@ -30,10 +35,13 @@ const TRACER_GAS: FrameGasRules = {
 };
 
 /** ethrex `hegota-devnet`, measured on the chain on 2026-11-09: a target
- *  with code ran with a 20-gas limit, a precompile and a transfer with 1. */
+ *  with code ran with a 20-gas limit, a precompile and a transfer with 1;
+ *  a POST_TX frame saw the payer charged the transaction's maxCost, whose
+ *  intrinsic gas is EIP-8141's plus 48 (hegota-post-tx-probe (e), (f)). */
 const HEGOTA_GAS: FrameGasRules = {
   targetAccess: { warm: 0n, cold: 0n },
   codelessFramesFree: true,
+  preCharge: { intrinsicExtra: 48n },
 };
 
 export interface FrameNetwork {
