@@ -43,6 +43,17 @@ import {
 } from "./ethereumjs-opcodes";
 import { withHegotaSchedule } from "./hegota-schedule";
 
+/** Each EVM's calls, run one after another. */
+const queues = new WeakMap<object, Promise<unknown>>();
+function oneAtATime<T>(evm: object, run: () => Promise<T>): Promise<T> {
+  const result = (queues.get(evm) ?? Promise.resolve()).then(run, run);
+  queues.set(
+    evm,
+    result.catch(() => {}),
+  );
+  return result;
+}
+
 /**
  * RPCStateManager fetches accounts via eth_getProof, which load-balanced
  * providers reject once the pinned fork block falls more than a few blocks
@@ -505,73 +516,79 @@ export async function createEthereumJSBackend(
       baseFee,
       transactionHash: syntheticTxHash(action, txCounter++),
       onLog,
-      async call({
-        caller,
-        to,
-        data,
-        value,
-        gas,
-        isStatic,
-        transferLogs,
-        schedule,
-        stateGas,
-      }) {
-        opcodeSlot.failure = undefined;
-        // EIP-7708 for this call only: the fork's own transactions keep the
-        // forked chain's rules.
-        const common = vm.evm.common;
-        const eips = common.eips();
-        const addLogs = transferLogs && !common.isActivatedEIP(7708);
-        if (addLogs) common.setEIPs([...eips, 7708]);
-        let result: Awaited<ReturnType<typeof vm.evm.runCall>>;
-        let stateGasUsed: bigint | undefined;
-        const runCall = () =>
-          vm.evm.runCall({
-            caller: address(caller),
-            to: address(to),
-            data: hexToBytes(data),
-            value,
-            gasLimit: gas,
-            isStatic,
-            skipNonceIncrement: true,
-            block: makeBlockContext(),
-          });
-        try {
-          if (schedule === "hegota") {
-            const run = await withHegotaSchedule(
-              vm.evm,
-              stateGas ?? 0n,
-              runCall,
-              (r) => !r.execResult.exceptionError,
-              (byte) => opcodeSlot.table?.has(byte) ?? false,
-            );
-            result = run.result;
-            stateGasUsed = run.stateGasUsed;
-          } else result = await runCall();
-        } finally {
-          if (addLogs) common.setEIPs(eips);
-        }
-        // ethrex leaves a frame's target cold (its own code may warm it).
-        if (schedule !== "hegota") journal.addWarmedAddress(hexToBytes(to));
-        journal.addWarmedAddress(hexToBytes(caller));
-        const error = result.execResult.exceptionError;
-        return {
-          ...(stateGasUsed !== undefined && {
-            stateGasUsed,
-            gasRefund: error ? 0n : (result.execResult.gasRefund ?? 0n),
-          }),
-          success: !error,
-          returnData: bytesToHex(result.execResult.returnValue) as Hex,
-          gasUsed: result.execResult.executionGasUsed,
-          logs: (result.execResult.logs ?? []).map(
-            ([address, topics, data]) => ({
-              address: bytesToHex(address) as Hex,
-              topics: topics.map((t) => bytesToHex(t) as Hex),
-              data: bytesToHex(data) as Hex,
+      call(request) {
+        // A call switches the EVM's shared rules (EIPs, and on the Hegota
+        // devnet its hardfork and parameters) until it ends: calls are run
+        // one at a time, or one would restore the other's.
+        return oneAtATime(vm.evm, () => runOne(request));
+        async function runOne({
+          caller,
+          to,
+          data,
+          value,
+          gas,
+          isStatic,
+          transferLogs,
+          schedule,
+          stateGas,
+        }: Parameters<ModuleActionSimCtx["call"]>[0]) {
+          opcodeSlot.failure = undefined;
+          // EIP-7708 for this call only: the fork's own transactions keep the
+          // forked chain's rules.
+          const common = vm.evm.common;
+          const eips = common.eips();
+          const addLogs = transferLogs && !common.isActivatedEIP(7708);
+          if (addLogs) common.setEIPs([...eips, 7708]);
+          let result: Awaited<ReturnType<typeof vm.evm.runCall>>;
+          let stateGasUsed: bigint | undefined;
+          const runCall = () =>
+            vm.evm.runCall({
+              caller: address(caller),
+              to: address(to),
+              data: hexToBytes(data),
+              value,
+              gasLimit: gas,
+              isStatic,
+              skipNonceIncrement: true,
+              block: makeBlockContext(),
+            });
+          try {
+            if (schedule === "hegota") {
+              const run = await withHegotaSchedule(
+                vm.evm,
+                stateGas ?? 0n,
+                runCall,
+                (r) => !r.execResult.exceptionError,
+                (byte) => opcodeSlot.table?.has(byte) ?? false,
+              );
+              result = run.result;
+              stateGasUsed = run.stateGasUsed;
+            } else result = await runCall();
+          } finally {
+            if (addLogs) common.setEIPs(eips);
+          }
+          // ethrex leaves a frame's target cold (its own code may warm it).
+          if (schedule !== "hegota") journal.addWarmedAddress(hexToBytes(to));
+          journal.addWarmedAddress(hexToBytes(caller));
+          const error = result.execResult.exceptionError;
+          return {
+            ...(stateGasUsed !== undefined && {
+              stateGasUsed,
+              gasRefund: error ? 0n : (result.execResult.gasRefund ?? 0n),
             }),
-          ),
-          error: error ? (opcodeSlot.failure ?? error.error) : undefined,
-        };
+            success: !error,
+            returnData: bytesToHex(result.execResult.returnValue) as Hex,
+            gasUsed: result.execResult.executionGasUsed,
+            logs: (result.execResult.logs ?? []).map(
+              ([address, topics, data]) => ({
+                address: bytesToHex(address) as Hex,
+                topics: topics.map((t) => bytesToHex(t) as Hex),
+                data: bytesToHex(data) as Hex,
+              }),
+            ),
+            error: error ? (opcodeSlot.failure ?? error.error) : undefined,
+          };
+        }
       },
       checkpoint: () => {
         // The first checkpoint is the transaction's start: what changes

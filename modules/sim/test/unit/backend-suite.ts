@@ -1052,6 +1052,34 @@ export function describeBackendSuite(
           expect(result.stateGasUsed).toBe(97_920n);
         });
 
+        it("leaves the fork's own rules in place after calls that overlap", async () => {
+          const plain = { schedule: undefined } as const;
+          const baseline = await host(WRITER);
+          await baseline.checkpoint();
+          // The slot warm, as the calls below leave it.
+          await store(baseline, 0, plain);
+          const expected = (await store(baseline, 5, plain)).gasUsed;
+          const sim = await host(WRITER);
+          await sim.checkpoint();
+          // Two calls under the schedule, the second started before the
+          // first has ended, each writing nothing (0 into an empty slot).
+          await Promise.all([
+            store(sim, 0),
+            sim.call({
+              caller: CALLER,
+              to: TARGET,
+              data: word(0),
+              value: 1n,
+              gas: 100_000n,
+              isStatic: false,
+              transferLogs: true,
+              schedule: "hegota",
+              stateGas: 400_000n,
+            }),
+          ]);
+          expect((await store(sim, 5, plain)).gasUsed).toBe(expected);
+        });
+
         it("fails a call whose state budget is 1 gas short, and counts no state gas", async () => {
           const sim = await host(WRITER);
           await sim.checkpoint();
