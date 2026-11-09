@@ -164,15 +164,20 @@
     "kind": "incompatible",
     "reason": "Cross-chain execution changes account and chain; it cannot run inside a single-account smart batch."
   },
+  "ens/create-resolver": {
+    "kind": "static",
+    "reason": "The resolver's address is predicted from its salt and deployer when the script is built."
+  },
   "ens/create-subname": {
     "kind": "runtime"
   },
   "ens/register": {
     "kind": "static",
-    "reason": "Commitment hashing and rent quotes require concrete registration inputs."
+    "reason": "Commitment hashing and price quotes require concrete registration inputs."
   },
   "ens/renew": {
-    "kind": "runtime"
+    "kind": "static",
+    "reason": "Each name is routed to its renewer and priced in the payment token when the script is built."
   },
   "ens/set-addr": {
     "kind": "runtime"
