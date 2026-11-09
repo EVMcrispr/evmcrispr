@@ -30,6 +30,13 @@ export const ethRegistrarMap = new Map<number, Address>([
   [sepolia.id, "0xf633e7FC17e2bbE0D0965D18ec1821dcB754a3d3"],
 ]);
 
+/** ENSv2's ETHRegistry: the .eth registry of ENSv2 names, an ERC-1155 whose
+ *  tokens carry the owner's roles. Names still on ENS v1 are RESERVED there. */
+export const ethRegistryMap = new Map<number, Address>([
+  [mainnet.id, "0xf60aba43E1f7F3DAB1186Ff03B561401C9Df85E2"],
+  [sepolia.id, "0xD4eBcbBdF463C9c45784603Db0dDD499BC44A8B4"],
+]);
+
 /** The token ETHRegistrar is paid in when none is given: USDC (DAI is the
  *  other one it accepts; it takes no ETH). */
 export const defaultPaymentTokenMap = new Map<number, Address>([

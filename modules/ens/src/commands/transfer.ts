@@ -13,6 +13,7 @@ import {
   registryMap,
   requireAddress,
 } from "../addresses";
+import { v2Registration } from "../ethRegistry";
 import {
   assertSupportedChain,
   eth2LDLabel,
@@ -26,7 +27,7 @@ export default defineCommand<Ens>({
   smartSupport: { kind: "runtime" },
   name: "transfer",
   description:
-    "Transfer ownership of an ENS name. For unwrapped .eth names this hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role.",
+    "Transfer ownership of an ENS name. An ENSv2 .eth name moves its registry token, with the owner's roles. On ENS v1, an unwrapped .eth name hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role.",
   args: [
     { name: "name", type: "string", description: "ENS name (e.g. mydao.eth)" },
     { name: "to", type: "command", description: "Keyword `to`" },
@@ -46,6 +47,30 @@ export default defineCommand<Ens>({
     assertSupportedChain(chainId);
     const client = await module.getClient();
     const node = getNode(name);
+
+    if (isEth2LD(name)) {
+      const v2 = await v2Registration(client, chainId, eth2LDLabel(name));
+      if (v2) {
+        if (
+          !isRuntimeValue(newOwner) &&
+          String(newOwner).toLowerCase() === v2.owner.toLowerCase()
+        ) {
+          throw new ErrorException(
+            `${name} is already owned by ${v2.owner}; an ENSv2 name has no separate controller to reclaim`,
+          );
+        }
+        // The token carries the owner's roles: the registry moves them with
+        // it, and refuses unless the owner may transfer (CAN_TRANSFER_ADMIN,
+        // which a registration gives).
+        return [
+          encodeAction(
+            v2.registry,
+            "safeTransferFrom(address,address,uint256,uint256,bytes)",
+            [v2.owner, newOwner, v2.tokenId, 1, "0x"],
+          ),
+        ];
+      }
+    }
 
     if (await isWrapped(client, chainId, node)) {
       const { owner } = await getWrappedData(client, chainId, node);

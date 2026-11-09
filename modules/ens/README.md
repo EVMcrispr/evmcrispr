@@ -19,7 +19,7 @@ load ens
 | [ens:set-primary-name](src/commands/set-primary-name.md) | Set the primary ENS name (reverse record) of the calling account. |
 | [ens:set-resolver](src/commands/set-resolver.md) | Set the resolver contract of an ENS name. |
 | [ens:set-text](src/commands/set-text.md) | Set a text record on an ENS name. |
-| [ens:transfer](src/commands/transfer.md) | Transfer ownership of an ENS name. For unwrapped .eth names this hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role. |
+| [ens:transfer](src/commands/transfer.md) | Transfer ownership of an ENS name. An ENSv2 .eth name moves its registry token, with the owner's roles. On ENS v1, an unwrapped .eth name hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role. |
 | [ens:unwrap](src/commands/unwrap.md) ⚗️ | Unwrap an ENS name from the NameWrapper. |
 | [ens:wrap](src/commands/wrap.md) ⚗️ | Wrap an ENS name in the NameWrapper. |
 
