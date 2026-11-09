@@ -38,10 +38,15 @@ export async function resolveValue(
   // resolve() validates constraints before returning, so a judged param would
   // revert instead of yielding its value. Only the OUTER constraints are
   // dropped — nested ones are part of what the expression means.
+  // A call that pays no gas price runs without the block's base fee (geth's
+  // NoBaseFee; anvil 1.9 does it too, 1.5 did not): BASEFEE would read 0. An
+  // assertion is judged inside a transaction, which pays at least that fee.
+  const { baseFeePerGas } = await client.getBlock();
   const { data } = await client.call({
     to: opts.core,
     data: encodeResolve({ ...operand.param, constraints: [] }),
     ...(opts.from === undefined ? {} : { account: opts.from }),
+    ...(baseFeePerGas ? { gasPrice: baseFeePerGas } : {}),
   });
 
   if (operand.collection?.transport === "abi")
