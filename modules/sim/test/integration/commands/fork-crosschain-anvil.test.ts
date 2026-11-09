@@ -1,7 +1,13 @@
 import "../../setup";
 import { afterAll, beforeEach, describe, it } from "bun:test";
-import { expect, getTransports, resetAnvil } from "@evmcrispr/test-utils";
+import {
+  expect,
+  getEndpoint,
+  getTransports,
+  resetAnvil,
+} from "@evmcrispr/test-utils";
 import { evml, Interpreter } from "@evmcrispr/test-utils/evml";
+import { http } from "viem";
 import { gnosis } from "viem/chains";
 import TestBridge, {
   EMITTER,
@@ -13,11 +19,22 @@ evml.use(TestBridge);
 const SENDER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 const ADDR = "0x59c2de8db2d1516bd9354ca31a58fea25eb37ba9";
 
+/** Gnosis at its real upstream rather than at the test anvil: coming back to
+ *  Gnosis after swapping the node onto Ethereum re-forks that URL, and anvil
+ *  1.9 no longer reports the full URL it forks (`anvil_nodeInfo` redacts it
+ *  to its origin), so a fork of the anvil itself could not find its way back. */
+function transports() {
+  const upstream = getEndpoint(gnosis.id);
+  return upstream
+    ? { ...getTransports(), [gnosis.id]: http(upstream) }
+    : getTransports();
+}
+
 function createRunner() {
   const logs: string[] = [];
   const evm = new Interpreter(evml.registry, {
     account: SENDER,
-    transports: getTransports(),
+    transports: transports(),
     onLog: (message: string) => logs.push(message),
   });
   evm.switchChainId(gnosis.id);

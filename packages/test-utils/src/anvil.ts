@@ -10,7 +10,10 @@ import {
 } from "../../../scripts/anvil-config";
 import { ANVIL_POLLING_MS } from "./client";
 
-export { getForkBlockNumber } from "../../../scripts/anvil-config";
+export {
+  getEndpoint,
+  getForkBlockNumber,
+} from "../../../scripts/anvil-config";
 
 const viemChains = {
   1: mainnet,
