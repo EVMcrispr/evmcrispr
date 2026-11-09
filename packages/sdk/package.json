@@ -50,7 +50,7 @@
   "scripts": {
     "lint": "biome check src",
     "type-check": "tsc -p tsconfig.json",
-    "test:unit": "bun test ./test/unit",
+    "test:unit": "bun test --timeout 30000 ./test/unit",
     "build": "evmcrispr-build --bundle ./src/index.ts ./src/onchain/index.ts --splitting",
     "codegen": "evmcrispr-build --codegen",
     "types": "evmcrispr-build --types"

@@ -41,7 +41,7 @@
     "lint": "biome check src",
     "type-check": "tsc -p tsconfig.json",
     "build": "evmcrispr-build --bundle",
-    "test:unit": "bun test ./test/unit",
+    "test:unit": "bun test --timeout 30000 ./test/unit",
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
     "codegen": "evmcrispr-build --codegen",
