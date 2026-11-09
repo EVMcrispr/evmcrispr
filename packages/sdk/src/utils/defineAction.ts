@@ -62,6 +62,9 @@ export interface ModuleActionSimCtx {
   chainId: number;
   blockNumber: bigint;
   timestamp: bigint;
+  /** The base fee of the forked block: what a transaction that gives fees
+   *  pays at least (`chargedFees`). */
+  baseFee: bigint;
   /** One top-level call: no nonce change, no intrinsic gas, no fee. */
   call(args: {
     caller: Address;
@@ -77,6 +80,8 @@ export interface ModuleActionSimCtx {
   getNonce(address: Address): Promise<bigint>;
   setNonce(address: Address, nonce: bigint): Promise<void>;
   getBalance(address: Address): Promise<bigint>;
+  /** Sets an account's balance: what a module charges for a fee. */
+  setBalance(address: Address, balance: bigint): Promise<void>;
   getCode(address: Address): Promise<Hex>;
   /** Whether an earlier call of this action reached `address` (EIP-2929):
    *  one action's calls share their warm addresses and slots, as one

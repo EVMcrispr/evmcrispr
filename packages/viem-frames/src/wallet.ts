@@ -258,6 +258,7 @@ export async function sendFrameTransactionFromWallet({
   onLog,
   receiptTimeoutMs,
   maxFeePerGasCap,
+  fees: givenFees,
   signal,
   chain = altMempoolDevnet,
   waitForReceipt = true,
@@ -273,6 +274,8 @@ export async function sendFrameTransactionFromWallet({
   receiptTimeoutMs?: number;
   /** Refuses, before the wallet is asked, fees above this (wei per gas; 10 gwei by default). */
   maxFeePerGasCap?: bigint;
+  /** Fees to carry instead of the node's: a fee given here is neither read nor capped. */
+  fees?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint };
   /** Checked once the wallet has signed: aborted, nothing is submitted. */
   signal?: AbortSignal;
   /** The frame chain; altMempoolDevnet by default. */
@@ -311,7 +314,12 @@ export async function sendFrameTransactionFromWallet({
 
   const gateway = frameClient(chain, transport);
   const nonce = await readNonce(gateway, sender);
-  const fees = await readFees(gateway, frameSidecarOf(chain), maxFeePerGasCap);
+  const fees = await readFees(
+    gateway,
+    frameSidecarOf(chain),
+    maxFeePerGasCap,
+    givenFees,
+  );
   const unsigned = newTx({
     chainId: chain.id,
     sender,

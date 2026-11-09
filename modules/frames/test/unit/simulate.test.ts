@@ -7,8 +7,9 @@ const SENDER = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 const DEAD = "0x000000000000000000000000000000000000dEaD";
 
 /** A host whose body calls throw on the `failAt`-th call (a lost RPC). */
-function fakeHost(failAt?: number) {
+function fakeHost(failAt?: number, baseFee = 0n) {
   let depth = 0;
+  const balances = new Map<string, bigint>();
   let calls = 0;
   const warm = new Set<string>();
   const nonces = new Map<string, bigint>();
@@ -17,6 +18,7 @@ function fakeHost(failAt?: number) {
     chainId: 81412,
     blockNumber: 1n,
     timestamp: 1n,
+    baseFee,
     transactionHash: `0x${"00".repeat(32)}`,
     onLog: (m) => log.push(m),
     async call({ to }) {
@@ -43,21 +45,28 @@ function fakeHost(failAt?: number) {
     async setNonce(a, n) {
       nonces.set(a, n);
     },
-    getBalance: async () => 0n,
+    getBalance: async (a) => balances.get(a) ?? 0n,
+    async setBalance(a, b) {
+      balances.set(a, b);
+    },
     getCode: async () => "0x",
     isWarm: (a) => warm.has(a.toLowerCase()),
     warm: (a) => warm.add(a.toLowerCase()),
     withOpcodes: (_, run) => run(),
   };
-  return { sim, depth: () => depth, log, nonces };
+  return { sim, depth: () => depth, log, nonces, balances };
 }
 
-const action = (n = 2) =>
+const action = (
+  n = 2,
+  fees?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint },
+) =>
   frameAction.create({
     chainId: 81412,
     from: SENDER,
     data: {
       mempool: "canonical",
+      ...(fees && { fees }),
       frames: [
         {
           mode: "verify",
@@ -108,5 +117,42 @@ describe("the frame executor", () => {
       3021n,
       121n,
     ]);
+  });
+
+  test("without fees nothing is charged; with them the payer pays the frames' gas used at the base fee plus the tip", async () => {
+    const free = fakeHost(undefined, 7n);
+    free.balances.set(SENDER, 1_000_000n);
+    await frameAction.simulate!(action(2), free.sim);
+    expect(free.balances.get(SENDER)).toBe(1_000_000n);
+
+    const paying = fakeHost(undefined, 7n);
+    paying.balances.set(SENDER, 1_000_000n);
+    const receipt = await frameAction.simulate!(
+      action(2, { maxFeePerGas: 100n, maxPriorityFeePerGas: 3n }),
+      paying.sim,
+    );
+    // 0 + 3021 + 121 gas, at 7 + 3 wei.
+    expect(receipt.gasUsed).toBe(3142n);
+    expect(paying.balances.get(SENDER)).toBe(1_000_000n - 3142n * 10n);
+  });
+
+  test("a payer that cannot pay makes the transaction invalid, and every checkpoint is unwound", async () => {
+    const host = fakeHost(undefined, 7n);
+    host.balances.set(SENDER, 100n);
+    await expect(
+      frameAction.simulate!(action(2, { maxFeePerGas: 7n }), host.sim),
+    ).rejects.toThrow(
+      `The frame transaction is invalid: ${SENDER} cannot pay the fee: the gas used costs`,
+    );
+    expect(host.depth()).toBe(0);
+    expect(host.balances.get(SENDER)).toBe(100n);
+  });
+
+  test("a max fee below the fork's base fee is refused before anything runs", async () => {
+    const host = fakeHost(undefined, 7n);
+    await expect(
+      frameAction.simulate!(action(2, { maxFeePerGas: 6n }), host.sim),
+    ).rejects.toThrow("is below the base fee");
+    expect(host.log).not.toContain("checkpoint 1");
   });
 });

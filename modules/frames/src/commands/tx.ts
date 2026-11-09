@@ -133,6 +133,18 @@ export default defineCommand<Frames>({
       description: "State gas limit of every body frame (200000 by default)",
     },
     {
+      name: "max-fee-per-gas",
+      type: "number",
+      description:
+        "Max fee per gas (EIP-1559); by default the node's, and nothing in a fork",
+    },
+    {
+      name: "max-priority-fee-per-gas",
+      type: "number",
+      description:
+        "Max priority fee per gas (EIP-1559); by default the node's, and nothing in a fork",
+    },
+    {
       name: "mempool",
       type: "string",
       description:
@@ -160,6 +172,13 @@ export default defineCommand<Frames>({
         : gasOption(opts["state-gas"], "--state-gas");
     const gas =
       opts.gas === undefined ? undefined : gasOption(opts.gas, "--gas");
+
+    const fee = (name: string) =>
+      opts[name] === undefined ? undefined : BigInt(opts[name]);
+    const fees = {
+      maxFeePerGas: fee("max-fee-per-gas"),
+      maxPriorityFeePerGas: fee("max-priority-fee-per-gas"),
+    };
 
     const account = opts.account as Address | undefined;
     const run = async () =>
@@ -201,6 +220,8 @@ export default defineCommand<Frames>({
         data: {
           frames,
           mempool,
+          ...((fees.maxFeePerGas !== undefined ||
+            fees.maxPriorityFeePerGas !== undefined) && { fees }),
           ...(account && {
             account: {
               kind: "frame-account",

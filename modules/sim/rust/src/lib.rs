@@ -74,9 +74,9 @@ pub struct RevmFork {
 #[wasm_bindgen]
 impl RevmFork {
     #[wasm_bindgen(constructor)]
-    pub fn new(chain_id: u64, block_number: u64, base_timestamp: u64) -> RevmFork {
+    pub fn new(chain_id: u64, block_number: u64, base_timestamp: u64, base_fee: u64) -> RevmFork {
         RevmFork {
-            inner: Fork::new(chain_id, block_number, base_timestamp),
+            inner: Fork::new(chain_id, block_number, base_timestamp, base_fee),
         }
     }
 

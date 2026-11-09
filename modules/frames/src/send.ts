@@ -80,6 +80,7 @@ export async function sendFrameAction(
     // A signature given after Cancel is dropped, never submitted.
     signal: ctx.signal,
     waitForReceipt: network.mines,
+    fees: action.data.fees,
   };
   const { hash, receipt } = account
     ? await sendAccountFrameTransaction({

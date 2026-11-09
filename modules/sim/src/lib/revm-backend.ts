@@ -1,6 +1,7 @@
 import { Common, Hardfork, Mainnet } from "@ethereumjs/common";
 import {
   type Action,
+  chargedFees,
   describeRevertData,
   ErrorException,
   isRpcAction,
@@ -9,10 +10,11 @@ import {
   RevertError,
   type SimOpcode,
   type SimOpcodeResult,
+  unpaidFeeError,
 } from "@evmcrispr/sdk";
 import { custom, getAddress, keccak256, numberToHex } from "viem";
 import {
-  fetchBlockTimestamp,
+  fetchForkBlock,
   resolveLatestBlockNumber,
   rpcFetch,
   type SimBackend,
@@ -64,6 +66,9 @@ type Envelope =
     }
   | { kind: "halt"; reason: string; gasUsed?: number; failure?: string }
   | { kind: "misses"; misses: Miss[] }
+  /** A transaction that gave fees and whose sender cannot pay them for the
+   *  gas it used: nothing was committed. */
+  | { kind: "unpaidFee"; fee: `0x${string}`; balance: `0x${string}` }
   | { kind: "error"; message: string };
 
 /** Backstop for a buggy non-converging replay loop; each iteration normally
@@ -79,7 +84,7 @@ export async function createRevmBackend(
   const baseBlockNumber = opts.blockNumber
     ? BigInt(opts.blockNumber)
     : await resolveLatestBlockNumber(upstreamRpcUrl, signal);
-  const baseTimestamp = await fetchBlockTimestamp(
+  const { timestamp: baseTimestamp, baseFee } = await fetchForkBlock(
     upstreamRpcUrl,
     baseBlockNumber,
     signal,
@@ -89,6 +94,7 @@ export async function createRevmBackend(
     BigInt(chainId),
     baseBlockNumber,
     baseTimestamp,
+    baseFee,
   );
   // Fork state is read at the pinned block, mirroring RPCStateManager's blockTag.
   const blockTag = numberToHex(baseBlockNumber);
@@ -235,6 +241,8 @@ export async function createRevmBackend(
 
     const from = action.from ?? `0x${"0".repeat(40)}`;
     await prefetchAccounts([from as `0x${string}`, action.to]);
+    // Checked here, so both backends refuse a fee the same way.
+    const fees = chargedFees(action, baseFee);
     const tx = JSON.stringify({
       from,
       to: action.to,
@@ -242,6 +250,8 @@ export async function createRevmBackend(
       value: action.value !== undefined ? numberToHex(action.value) : undefined,
       gas: action.gas !== undefined ? numberToHex(action.gas) : undefined,
       nonce: action.nonce !== undefined ? numberToHex(action.nonce) : undefined,
+      maxFeePerGas: fees && numberToHex(fees.maxFeePerGas),
+      maxPriorityFeePerGas: fees && numberToHex(fees.maxPriorityFeePerGas),
     });
 
     const env = await execWithReplay(() => fork.transact(tx));
@@ -254,6 +264,13 @@ export async function createRevmBackend(
     if (env.kind === "halt") {
       throw new RevertError(`Transaction reverted: ${env.reason}`);
     }
+    if (env.kind === "unpaidFee")
+      throw unpaidFeeError(
+        chainId,
+        getAddress(from),
+        BigInt(env.fee),
+        BigInt(env.balance),
+      );
     if (env.kind !== "success") {
       throw new ErrorException(
         `unexpected revm result: ${JSON.stringify(env)}`,
@@ -401,6 +418,7 @@ export async function createRevmBackend(
       chainId,
       blockNumber: fork.blockNumber(),
       timestamp: baseTimestamp + timeOffset,
+      baseFee,
       transactionHash: syntheticTxHash(action, txCounter++),
       onLog,
       async call({ caller, to, data, value, gas, isStatic }) {
@@ -472,6 +490,12 @@ export async function createRevmBackend(
       },
       async getBalance(address) {
         return BigInt(await readValue(() => fork.getBalance(address)));
+      },
+      async setBalance(address, balance) {
+        await prefetchAccounts([address]);
+        await execWithReplay(() =>
+          fork.setBalance(address, numberToHex(balance)),
+        );
       },
       async getCode(address) {
         return readValue(() => fork.getCode(address));

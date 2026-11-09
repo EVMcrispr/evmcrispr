@@ -29,7 +29,7 @@ export class RevmFork {
     insertBlockHash(number: bigint, hash: string): string;
     insertStorage(addr: string, slot: string, value: string): string;
     mine(blocks: bigint): void;
-    constructor(chain_id: bigint, block_number: bigint, base_timestamp: bigint);
+    constructor(chain_id: bigint, block_number: bigint, base_timestamp: bigint, base_fee: bigint);
     revertCheckpoint(): string;
     setBalance(addr: string, balance: string): string;
     setCode(addr: string, code: string): string;
@@ -57,7 +57,7 @@ export interface InitOutput {
     readonly revmfork_insertBlockHash: (a: number, b: number, c: bigint, d: number, e: number) => void;
     readonly revmfork_insertStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
     readonly revmfork_mine: (a: number, b: bigint) => void;
-    readonly revmfork_new: (a: bigint, b: bigint, c: bigint) => number;
+    readonly revmfork_new: (a: bigint, b: bigint, c: bigint, d: bigint) => number;
     readonly revmfork_revertCheckpoint: (a: number, b: number) => void;
     readonly revmfork_setBalance: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly revmfork_setCode: (a: number, b: number, c: number, d: number, e: number, f: number) => void;

@@ -7,7 +7,12 @@ import type {
   SimCallResult,
   SimulatedReceipt,
 } from "@evmcrispr/sdk";
-import { chainLabel, ErrorException } from "@evmcrispr/sdk";
+import {
+  chainLabel,
+  chargedFees,
+  ErrorException,
+  unpaidFeeError,
+} from "@evmcrispr/sdk";
 import {
   frameSignatureHash,
   newFrameTransaction,
@@ -86,6 +91,11 @@ export async function simulateFrameAction(
     };
   });
   const nonce = await sim.getNonce(sender);
+  // The fees `frames:tx` was given, held to the fork's base fee; without
+  // them the transaction runs free, as any transaction in a fork does.
+  const fees = chargedFees(action.data.fees ?? {}, sim.baseFee);
+  const maxFeePerGas = fees?.maxFeePerGas ?? 0n;
+  const maxPriorityFeePerGas = fees?.maxPriorityFeePerGas ?? 0n;
   const unsigned = newFrameTransaction({
     chainId: action.chainId,
     sender,
@@ -99,13 +109,13 @@ export async function simulateFrameAction(
       data: f.data,
     })),
     signatures: [secp256k1Placeholder(profile)],
-    fees: { maxFeePerGas: 0n, maxPriorityFeePerGas: 0n },
+    fees: { maxFeePerGas, maxPriorityFeePerGas },
   });
   const ctx: FrameContext = {
     sender,
     nonce,
-    maxFeePerGas: 0n,
-    maxPriorityFeePerGas: 0n,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
     sigHash: frameSignatureHash(profile, unsigned),
     frames,
     current: -1,
@@ -265,6 +275,18 @@ export async function simulateFrameAction(
           }
         }
         i = end + 1;
+      }
+
+      // 3. The fee: what the frames' gas used costs, taken from the payer.
+      //    One that cannot pay it makes the whole transaction invalid.
+      if (fees) {
+        const fee = out.reduce((sum, f) => sum + f.gasUsed, 0n) * fees.gasPrice;
+        const balance = await sim.getBalance(payer);
+        if (balance < fee)
+          throw new ErrorException(
+            `The frame transaction is invalid: ${unpaidFeeError(sim.chainId, payer, fee, balance).message}`,
+          );
+        await sim.setBalance(payer, balance - fee);
       }
 
       await commit();

@@ -14,6 +14,7 @@ use revm::context_interface::transaction::{AccessList, AccessListItem};
 use revm::database::DbAccount;
 use revm::interpreter::Instruction;
 use revm::InspectEvm;
+use revm::context_interface::Transaction;
 
 use crate::db::{Miss, MissDb};
 use crate::frame::{frame_ops, with_hook, FrameInspector, Hook};
@@ -35,6 +36,12 @@ struct TxJson {
     gas: Option<String>,
     #[serde(default)]
     nonce: Option<String>,
+    /// EIP-1559 fees, both set or neither: the TS side has resolved and
+    /// checked them (`chargedFees`). Without them the transaction is free.
+    #[serde(default)]
+    max_fee_per_gas: Option<String>,
+    #[serde(default)]
+    max_priority_fee_per_gas: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -82,16 +89,19 @@ pub struct Fork {
     mined_blocks: u64,
     base_timestamp: u64,
     timestamp_offset: u64,
+    /// The forked block's base fee: the block's `basefee` for every run, and
+    /// what a transaction that gives fees pays at least.
+    base_fee: u64,
     /// Open checkpoints, innermost last: each account's cached state before
     /// the first change made under it.
     checkpoints: Vec<HashMap<Address, Option<DbAccount>>>,
 }
 
 impl Fork {
-    pub fn new(chain_id: u64, block_number: u64, base_timestamp: u64) -> Self {
+    pub fn new(chain_id: u64, block_number: u64, base_timestamp: u64, base_fee: u64) -> Self {
         let mut db = CacheDB::new(MissDb);
         // The handler loads the block beneficiary on every execution. Our block
-        // context is synthetic (coinbase = zero, basefee 0), so seed it empty
+        // context is synthetic (coinbase = zero), so seed it empty
         // instead of letting every fork pay an upstream fetch for 0x0.
         db.insert_account_info(Address::ZERO, AccountInfo::default());
         Fork {
@@ -101,6 +111,7 @@ impl Fork {
             mined_blocks: 0,
             base_timestamp,
             timestamp_offset: 0,
+            base_fee,
             checkpoints: Vec::new(),
         }
     }
@@ -461,20 +472,44 @@ impl Fork {
 
         // No blanket `Database for &mut T` in revm 42, so hand the CacheDB to the
         // EVM by value and take it back out of the context afterwards.
+        // A transaction that gives fees is held to the base fee and pays
+        // them; one that gives none runs free, at a zero gas price.
+        let mut cfg = self.cfg_env();
+        cfg.disable_base_fee = tx.max_fee_per_gas.is_none();
         let db = std::mem::replace(&mut self.db, CacheDB::new(MissDb));
         let mut evm = Context::mainnet()
             .with_db(db)
-            .with_cfg(self.cfg_env())
+            .with_cfg(cfg)
             .with_block(self.block_env())
             .build_mainnet();
-        let res = evm.transact(tx_env);
+        let res = evm.transact(tx_env.clone());
         self.db = evm.ctx.journaled_state.database;
 
         match res {
-            Ok(out) => {
+            Ok(mut out) => {
                 let mut changes = Vec::new();
                 if commit {
-                    if let ExecutionResult::Success { .. } = out.result {
+                    if let ExecutionResult::Success { gas, .. } = &out.result {
+                        let gas_used = gas.tx_gas_used();
+                        // revm charges nothing (`disable_fee_charge`): the
+                        // fee is what the gas used costs, taken here.
+                        if tx_env.tx_type == 2 {
+                            let price = tx_env.effective_gas_price(self.base_fee as u128);
+                            let fee = U256::from(price) * U256::from(gas_used);
+                            let Some(sender) = out.state.get_mut(&tx_env.caller) else {
+                                return error_env("the sender is missing from the transaction's state");
+                            };
+                            // Nothing is committed: the TS side words it.
+                            if sender.info.balance < fee {
+                                return json!({
+                                    "kind": "unpaidFee",
+                                    "fee": u256_hex(fee),
+                                    "balance": u256_hex(sender.info.balance),
+                                })
+                                .to_string();
+                            }
+                            sender.info.balance -= fee;
+                        }
                         changes = self.balance_changes(&out.state);
                         self.record_state(&out.state);
                         self.db.commit(out.state);
@@ -547,11 +582,18 @@ impl Fork {
                 .map(|a| a.info.nonce)
                 .unwrap_or(0),
         };
+        let fee = |v: &Option<String>| -> Result<Option<u128>, String> {
+            v.as_deref()
+                .map(|f| parse_u256(f).and_then(|n| u128::try_from(n).map_err(|_| format!("fee out of range: {f}"))))
+                .transpose()
+        };
+        let (max_fee, tip) = (fee(&tx.max_fee_per_gas)?, fee(&tx.max_priority_fee_per_gas)?);
         Ok(TxEnv {
-            tx_type: 0,
+            tx_type: if max_fee.is_some() { 2 } else { 0 },
             caller,
             gas_limit,
-            gas_price: 0,
+            gas_price: max_fee.unwrap_or(0),
+            gas_priority_fee: tip,
             kind,
             value,
             data,
@@ -571,6 +613,8 @@ impl Fork {
         cfg.disable_block_gas_limit = true;
         cfg.disable_eip3607 = true;
         cfg.disable_base_fee = true;
+        // A fork charges a fee itself, on the gas used (`execute`).
+        cfg.disable_fee_charge = true;
         cfg
     }
 
@@ -580,7 +624,7 @@ impl Fork {
             beneficiary: Address::ZERO,
             timestamp: U256::from(self.base_timestamp + self.timestamp_offset),
             gas_limit: BLOCK_GAS_LIMIT,
-            basefee: 0,
+            basefee: self.base_fee,
             difficulty: U256::ZERO,
             prevrandao: Some(B256::ZERO),
             ..Default::default()

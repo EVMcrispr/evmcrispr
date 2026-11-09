@@ -157,6 +157,29 @@ sim:fork --using ethereumjs --on framesMining (
 )
 ```
 
+### Fees
+
+The fees are the node's unless the block gives them: `frames:tx
+--max-fee-per-gas <wei>` and `--max-priority-fee-per-gas <wei>` are signed as
+written. In a fork they are what the payer pays for the frames' gas used, so a
+simulation shows who paid and how much; without them the simulated
+transaction runs free.
+
+```evml
+load sim
+load frames [tx new-account]
+
+sim:fork --using revm --on framesMining (
+  sim:set-balance @me 1e18
+  new-account $account --owner @me
+  send $account --value 0.01e18
+  tx --account $account --max-fee-per-gas 50e9 (
+    send 0x8943545177806ED17B9F23F0a21ee5948eCaa776 --value 1e9 --gas 50000
+  )
+  sim:expect @bool(@balance(ETH $account) < 0.01e18 - 1e9)
+)
+```
+
 ### After admission
 
 When the mempool admits the transaction, the run prints its hash. It then

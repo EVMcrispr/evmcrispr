@@ -164,10 +164,20 @@ export async function readFees(
   gateway: FrameClient,
   sidecar: boolean,
   maxFeePerGasCap: bigint = DEFAULT_MAX_FEE_PER_GAS_CAP,
+  given: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint } = {},
 ): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
+  // Fees the caller gave are carried as given: only the others are read.
+  if (
+    given.maxFeePerGas !== undefined &&
+    given.maxPriorityFeePerGas !== undefined
+  )
+    return checkedFees({
+      maxFeePerGas: given.maxFeePerGas,
+      maxPriorityFeePerGas: given.maxPriorityFeePerGas,
+    });
   // A malformed answer would otherwise reach the error through BigInt's
   // message.
-  const fees = sidecar
+  const read = sidecar
     ? await sidecarGasPrice(gateway).catch((error: unknown) => {
         throw new Error(
           `The gateway gave no usable fees (skandha_getGasPrice): ${printable(refusalText(error), TEXT_MAX)}`,
@@ -179,15 +189,31 @@ export async function readFees(
         );
       });
 
-  // A signer that signs a hash never sees the fees: they are capped here.
+  // A signer that signs a hash never sees the fees: the ones read are
+  // capped here.
   for (const [name, fee] of [
-    ["maxFeePerGas", fees.maxFeePerGas],
-    ["maxPriorityFeePerGas", fees.maxPriorityFeePerGas],
+    ["maxFeePerGas", read.maxFeePerGas],
+    ["maxPriorityFeePerGas", read.maxPriorityFeePerGas],
   ] as const)
-    if (fee > maxFeePerGasCap)
+    if (given[name] === undefined && fee > maxFeePerGasCap)
       throw new Error(
         `The gateway asks a ${name} of ${formatGwei(fee)} gwei, above the cap of ${formatGwei(maxFeePerGasCap)} gwei: nothing was signed`,
       );
+  return checkedFees({
+    maxFeePerGas: given.maxFeePerGas ?? read.maxFeePerGas,
+    maxPriorityFeePerGas:
+      given.maxPriorityFeePerGas ?? read.maxPriorityFeePerGas,
+  });
+}
+
+function checkedFees(fees: {
+  maxFeePerGas: bigint;
+  maxPriorityFeePerGas: bigint;
+}) {
+  if (fees.maxPriorityFeePerGas > fees.maxFeePerGas)
+    throw new Error(
+      `The maxPriorityFeePerGas of ${formatGwei(fees.maxPriorityFeePerGas)} gwei is above the maxFeePerGas of ${formatGwei(fees.maxFeePerGas)} gwei: nothing was signed`,
+    );
   return fees;
 }
 
@@ -389,6 +415,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
   onLog,
   receiptTimeoutMs = 120_000,
   maxFeePerGasCap = DEFAULT_MAX_FEE_PER_GAS_CAP,
+  fees: givenFees,
   signWith,
   signal,
   chain = altMempoolDevnet,
@@ -406,6 +433,8 @@ export async function sendFrameTransactionWithArbitrarySignature({
   receiptTimeoutMs?: number;
   /** Refuses, before signing, fees above this (wei per gas; 10 gwei by default): the signer never sees them. */
   maxFeePerGasCap?: bigint;
+  /** Fees to carry instead of the node's: a fee given here is neither read nor capped. */
+  fees?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint };
   /** Wraps the one signature with a description of the transaction (a caller that confirms signatures shows it). */
   signWith?: <T>(description: string, sign: () => Promise<T>) => Promise<T>;
   /** Checked once `sign` has returned: aborted, nothing is submitted. */
@@ -439,7 +468,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
     );
 
   const nonce = await readNonce(gateway, sender);
-  const fees = await readFees(gateway, sidecar, maxFeePerGasCap);
+  const fees = await readFees(gateway, sidecar, maxFeePerGasCap, givenFees);
   const unsigned: FrameTx = newTx({
     chainId: chain.id,
     sender,

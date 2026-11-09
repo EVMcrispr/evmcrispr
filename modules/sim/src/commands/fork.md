@@ -90,6 +90,33 @@ sim:fork --as $who --on gnosis (
   executes all batched calls atomically in a single self-call transaction. An
   existing delegation on the EOA is reused as-is.
 
+## Fees
+
+On the in-process backends (`ethereumjs` and `revm`) a transaction pays a fee
+only when it gives one. `exec` and `send` with `--max-fee-per-gas` or
+`--max-priority-fee-per-gas` pay what their gas used costs at the EIP-1559
+price, `min(max fee, base fee + priority fee)`, against the base fee of the
+forked block. A missing priority fee is 0, and a missing max fee is the base
+fee plus the priority fee. A max fee below the base fee is refused, as is a
+sender that cannot pay for the gas it used (nothing of the transaction is
+kept). Contracts read that price with `GASPRICE`, and the block's base fee
+with `BASEFEE`.
+
+A transaction that gives no fee runs free, at a gas price of 0, so an
+impersonated account needs no funds for gas. No block producer is paid (the
+fork's coinbase is the zero address), and the base fee stays the forked
+block's for the whole fork.
+
+```evml
+load sim
+
+sim:fork --using revm (
+  sim:set-balance @me 1e18
+  send 0x000000000000000000000000000000000000dEaD --value 1 --max-priority-fee-per-gas 1e9
+  sim:expect @bool(@balance(ETH @me) < 1e18 - 1)
+)
+```
+
 ## Frame transactions
 
 A `frames:tx` runs in the fork when the fork is of a frame network (the
@@ -107,7 +134,13 @@ frame that did not succeed and, for each call without `--gas`, the gas it used
 and the `--gas` to send it with. A frame's gas includes what it pays to reach
 its target (100 when warm, 3000 when cold), as the devnets charge it.
 
-Not modelled: fees (the payer is named, not charged), state gas (EIP-8037;
+With `--max-fee-per-gas` or `--max-priority-fee-per-gas` on `frames:tx`, the
+payer (the account or sender that approved paying, or its sponsor) pays the
+frames' gas used at the price above, and a payer that cannot pay makes the
+transaction invalid. Without them it runs free, like any transaction here.
+
+Not modelled: the intrinsic cost in the fee (only the frames' gas is
+charged), state gas (EIP-8037;
 a frame whose `--state-gas` is too small can pass here and fail on the chain),
 the EIP-7708 transfer logs of value transfers, and the ERC-8421 mempool's
 admission rules.

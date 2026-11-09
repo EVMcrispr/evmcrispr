@@ -229,13 +229,13 @@ for (const using of BACKENDS) {
       ]);
     }, 120_000);
 
-    it("a frame account approves itself and runs two default frames (the account funding)", async () => {
+    it("a frame account approves itself, runs two default frames and pays for them (the account funding)", async () => {
       await run(using, [
         `sim:set-code ${BOX} ${BOX_CODE}`,
         `sim:set-code ${BOX2} ${BOX_CODE}`,
         "new-account $account --owner @me",
         "send $account --value 0.01e18",
-        "tx --account $account (",
+        "tx --account $account --max-fee-per-gas 50e9 --max-priority-fee-per-gas 1e9 (",
         "  default (",
         `    exec ${BOX} "mint(uint256)" 100 --gas 50000`,
         `    exec ${BOX2} "executeAction(uint256)" 9 --gas 50000`,
@@ -243,7 +243,37 @@ for (const using of BACKENDS) {
         ")",
         `sim:expect @bool(@get(${BOX} "get()(uint256)") == 100)`,
         `sim:expect @bool(@get(${BOX2} "get()(uint256)") == 9)`,
+        "sim:expect @bool(@balance(ETH $account) < 0.01e18)",
       ]);
+    }, 120_000);
+
+    it("a sponsor pays the fee of the account it sponsors, and the account pays nothing", async () => {
+      await run(using, [
+        `sim:set-code ${BOX} ${BOX_CODE}`,
+        "new-account $account --owner @me",
+        "send $account --value 0.01e18",
+        "new-sponsor $sponsor --for $account --fund 0.05e18",
+        "tx --account $account --paymaster $sponsor --max-fee-per-gas 50e9 (",
+        `  exec ${BOX} "put(uint256)" 5 --gas 50000`,
+        ")",
+        `sim:expect @bool(@get(${BOX} "get()(uint256)") == 5)`,
+        "sim:expect @bool(@balance(ETH $account) == 0.01e18)",
+        "sim:expect @bool(@balance(ETH $sponsor) < 0.05e18)",
+      ]);
+    }, 120_000);
+
+    it("a frame transaction whose payer cannot pay its fee is invalid", async () => {
+      await expect(
+        run(using, [
+          "new-account $account --owner @me",
+          "send $account --value 1000",
+          "tx --account $account --max-fee-per-gas 50e9 (",
+          `  send ${DEAD} --value 1 --gas 50000`,
+          ")",
+        ]),
+      ).rejects.toThrow(
+        /The frame transaction is invalid: 0x[0-9a-fA-F]{40} cannot pay the fee/,
+      );
     }, 120_000);
   });
 }

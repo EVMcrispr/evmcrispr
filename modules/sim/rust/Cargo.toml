@@ -20,6 +20,7 @@ revm = { version = "=42.0.1", default-features = false, features = [
   "optional_block_gas_limit",
   "optional_eip3607",
   "optional_no_base_fee",
+  "optional_fee_charge",
 ] }
 wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }

@@ -13,17 +13,19 @@ import type { VM } from "@ethereumjs/vm";
 import { createVM } from "@ethereumjs/vm";
 import {
   type Action,
+  chargedFees,
   describeRevertData,
   ErrorException,
   isRpcAction,
   isTransactionAction,
   type ModuleActionSimCtx,
   RevertError,
+  unpaidFeeError,
 } from "@evmcrispr/sdk";
-import { custom, type Hex, keccak256 } from "viem";
+import { custom, getAddress, type Hex, keccak256 } from "viem";
 import {
   type BalanceChange,
-  fetchBlockTimestamp,
+  fetchForkBlock,
   padToBytes32,
   resolveLatestBlockNumber,
   rpcFetch,
@@ -141,7 +143,7 @@ export async function createEthereumJSBackend(
   let currentBlockNumber = typeof blockTag === "bigint" ? blockTag : 0n;
   let timestampOffset = 0n;
 
-  const baseTimestamp = await fetchBlockTimestamp(
+  const { timestamp: baseTimestamp, baseFee } = await fetchForkBlock(
     upstreamRpcUrl,
     currentBlockNumber,
     signal,
@@ -160,7 +162,7 @@ export async function createEthereumJSBackend(
         difficulty: 0n,
         prevRandao: new Uint8Array(32),
         gasLimit: 30_000_000n,
-        baseFeePerGas: 0n,
+        baseFeePerGas: baseFee,
         getBlobGasPrice: () => undefined,
       },
     };
@@ -231,10 +233,14 @@ export async function createEthereumJSBackend(
       });
     }
 
+    // Checked before anything runs, as a node checks it.
+    const fees = chargedFees(action, baseFee);
+
     await vm.evm.journal.checkpoint();
     stateManager.recording = new Map();
 
     const result = await vm.evm.runCall({
+      gasPrice: fees?.gasPrice ?? 0n,
       caller: senderAddr,
       to: toAddr,
       data: action.data ? hexToBytes(action.data) : undefined,
@@ -263,6 +269,34 @@ export async function createEthereumJSBackend(
       );
     }
 
+    // A call's execution gas, plus what a transaction pays before it
+    // runs: the base cost and its calldata, counted at the dearer rate.
+    const gasUsed =
+      result.execResult.executionGasUsed +
+      21_000n +
+      16n * BigInt(action.data ? (action.data.length - 2) / 2 : 0);
+
+    // runCall charges no fee: one that the transaction gives is what its
+    // gas used costs, taken here, before the commit.
+    if (fees) {
+      const fee = gasUsed * fees.gasPrice;
+      const balance =
+        (await stateManager.getAccount(senderAddr))?.balance ?? 0n;
+      if (balance < fee) {
+        stateManager.recording = undefined;
+        await vm.evm.journal.revert();
+        throw unpaidFeeError(
+          chainId,
+          getAddress(senderAddr.toString()),
+          fee,
+          balance,
+        );
+      }
+      await stateManager.modifyAccountFields(senderAddr, {
+        balance: balance - fee,
+      });
+    }
+
     // runCall already bumped the sender nonce (depth-0 behavior mirroring a
     // real tx), so the journal commit persists it — no manual increment.
     await vm.evm.journal.commit();
@@ -286,12 +320,7 @@ export async function createEthereumJSBackend(
       contractAddress: result.createdAddress
         ? (result.createdAddress.toString() as `0x${string}`)
         : undefined,
-      // A call's execution gas, plus what a transaction pays before it
-      // runs: the base cost and its calldata, counted at the dearer rate.
-      gasUsed:
-        result.execResult.executionGasUsed +
-        21_000n +
-        16n * BigInt(action.data ? (action.data.length - 2) / 2 : 0),
+      gasUsed,
       balanceChanges,
       logs: (result.execResult.logs ?? []).map(
         ([address, topics, data], logIndex) => ({
@@ -372,6 +401,7 @@ export async function createEthereumJSBackend(
       chainId,
       blockNumber: currentBlockNumber,
       timestamp: getCurrentTimestamp(),
+      baseFee,
       transactionHash: syntheticTxHash(action, txCounter++),
       onLog,
       async call({ caller, to, data, value, gas, isStatic }) {
@@ -414,6 +444,9 @@ export async function createEthereumJSBackend(
       },
       async getBalance(a) {
         return (await stateManager.getAccount(address(a)))?.balance ?? 0n;
+      },
+      async setBalance(a, balance) {
+        await stateManager.modifyAccountFields(address(a), { balance });
       },
       async getCode(a) {
         return bytesToHex(await stateManager.getCode(address(a))) as Hex;

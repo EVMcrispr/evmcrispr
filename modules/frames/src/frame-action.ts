@@ -1,4 +1,4 @@
-import type { ModuleAction } from "@evmcrispr/sdk";
+import type { FeeFields, ModuleAction } from "@evmcrispr/sdk";
 import type { Address } from "viem";
 
 /**
@@ -27,6 +27,8 @@ export interface FrameActionData {
   mempool: "alt" | "canonical";
   /** Set when the sender is a FrameAccount the `owner` wallet signs for. */
   account?: { kind: "frame-account"; owner: Address };
+  /** The fees `frames:tx` was given; without them the node's are used. */
+  fees?: FeeFields;
 }
 
 /** The frames module's `frame` action. */

@@ -282,9 +282,10 @@ export class RevmFork {
      * @param {bigint} chain_id
      * @param {bigint} block_number
      * @param {bigint} base_timestamp
+     * @param {bigint} base_fee
      */
-    constructor(chain_id, block_number, base_timestamp) {
-        const ret = wasm.revmfork_new(chain_id, block_number, base_timestamp);
+    constructor(chain_id, block_number, base_timestamp, base_fee) {
+        const ret = wasm.revmfork_new(chain_id, block_number, base_timestamp, base_fee);
         this.__wbg_ptr = ret;
         RevmForkFinalization.register(this, this.__wbg_ptr, this);
         return this;

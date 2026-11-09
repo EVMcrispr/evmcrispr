@@ -16,7 +16,11 @@ import {
   getForkBlockNumber,
   loadEnv,
 } from "../../../../scripts/anvil-config";
-import type { SimBackend, SimBackendOpts } from "../../src/lib/backend";
+import {
+  fetchForkBlock,
+  type SimBackend,
+  type SimBackendOpts,
+} from "../../src/lib/backend";
 
 const FORK_BLOCK_NUMBER = await getForkBlockNumber();
 
@@ -246,6 +250,156 @@ export function describeBackendSuite(
       );
       // The forwarder passed it on: its balance did not change.
       expect(changes).toEqual({ [getAddress(ADDR)]: -4n, [payee]: 4n });
+    });
+
+    // -------------------------------------------------------------------------
+    // Fees: a transaction that gives them pays its gas used; one that gives
+    // none runs free
+    // -------------------------------------------------------------------------
+
+    // Gnosis' base fee is a few wei: the tip is of the same size.
+    const TIP = 3n;
+    const slot0 = async (client: PublicClient, address: `0x${string}`) => {
+      const word = await client.getStorageAt({ address, slot: "0x0" });
+      return !word || word === "0x" ? 0n : BigInt(word);
+    };
+    const PAYEE = getAddress("0x00000000000000000000000000000000000fee02");
+    async function feeBackend() {
+      const made = await makeBackend();
+      const { baseFee } = await fetchForkBlock(
+        rpcUrl,
+        BigInt(FORK_BLOCK_NUMBER),
+      );
+      await made.backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setBalance`,
+        params: [ADDR, "0xde0b6b3a7640000"],
+      });
+      return { ...made, baseFee };
+    }
+    const changesOf = (
+      receipt: Awaited<ReturnType<SimBackend["handleAction"]>>,
+    ) =>
+      Object.fromEntries(
+        (receipt?.balanceChanges ?? []).map((c) => [
+          getAddress(c.address),
+          c.after - c.before,
+        ]),
+      );
+
+    it("a transaction that gives fees pays its gas used at the base fee plus its tip", async () => {
+      const { backend, client, baseFee } = await feeBackend();
+      expect(baseFee).toBeGreaterThan(0n);
+      const before = await client.getBalance({ address: ADDR });
+      const receipt = await backend.handleAction({
+        to: PAYEE,
+        from: ADDR,
+        value: 4n,
+        maxFeePerGas: baseFee * 2n + TIP,
+        maxPriorityFeePerGas: TIP,
+      });
+      const fee = receipt!.gasUsed! * (baseFee + TIP);
+      expect(receipt!.gasUsed).toBe(21_000n);
+      expect(await client.getBalance({ address: ADDR })).toBe(
+        before - 4n - fee,
+      );
+      // The fee is in what the transaction changed; no block producer is paid.
+      expect(changesOf(receipt)).toEqual({
+        [getAddress(ADDR)]: -4n - fee,
+        [PAYEE]: 4n,
+      });
+    });
+
+    it("a max fee caps the price, and the tip alone sets the max fee to the base fee plus it", async () => {
+      const { backend, client, baseFee } = await feeBackend();
+      const start = await client.getBalance({ address: ADDR });
+      await backend.handleAction({
+        to: PAYEE,
+        from: ADDR,
+        maxFeePerGas: baseFee + 1n,
+        maxPriorityFeePerGas: TIP,
+      });
+      const capped = await client.getBalance({ address: ADDR });
+      expect(capped).toBe(start - 21_000n * (baseFee + 1n));
+      await backend.handleAction({
+        to: PAYEE,
+        from: ADDR,
+        maxPriorityFeePerGas: TIP,
+      });
+      expect(await client.getBalance({ address: ADDR })).toBe(
+        capped - 21_000n * (baseFee + TIP),
+      );
+    });
+
+    it("a transaction that gives no fee runs free, and sees a zero gas price", async () => {
+      const { backend, client } = await feeBackend();
+      const reader = getAddress("0x00000000000000000000000000000000000fee03");
+      // GASPRICE PUSH0 SSTORE STOP
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setCode`,
+        params: [reader, "0x3a5f5500"],
+      });
+      const before = await client.getBalance({ address: ADDR });
+      await backend.handleAction({ to: reader, from: ADDR, value: 4n });
+      expect(await client.getBalance({ address: ADDR })).toBe(before - 4n);
+      expect(await slot0(client, reader)).toBe(0n);
+    });
+
+    it("a call sees the price a transaction with fees pays (GASPRICE)", async () => {
+      const { backend, client, baseFee } = await feeBackend();
+      const reader = getAddress("0x00000000000000000000000000000000000fee03");
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setCode`,
+        params: [reader, "0x3a5f5500"],
+      });
+      await backend.handleAction({
+        to: reader,
+        from: ADDR,
+        maxFeePerGas: baseFee * 2n,
+        maxPriorityFeePerGas: TIP,
+      });
+      expect(await slot0(client, reader)).toBe(baseFee + TIP);
+    });
+
+    it("refuses a max fee below the base fee, and a tip above the max fee", async () => {
+      const { backend, baseFee } = await feeBackend();
+      await expect(
+        backend.handleAction({
+          to: PAYEE,
+          from: ADDR,
+          maxFeePerGas: baseFee - 1n,
+        }),
+      ).rejects.toThrow(/is below the base fee/);
+      await expect(
+        backend.handleAction({
+          to: PAYEE,
+          from: ADDR,
+          maxFeePerGas: baseFee * 2n,
+          maxPriorityFeePerGas: baseFee * 2n + 1n,
+        }),
+      ).rejects.toThrow(/is higher than the max fee per gas/);
+    });
+
+    it("refuses a sender that cannot pay for its gas used, and keeps nothing of it", async () => {
+      const { backend, client, baseFee } = await feeBackend();
+      const poor = getAddress("0x00000000000000000000000000000000000fee04");
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setBalance`,
+        params: [poor, "0x1000"],
+      });
+      await expect(
+        backend.handleAction({
+          to: PAYEE,
+          from: poor,
+          value: 1n,
+          maxFeePerGas: baseFee,
+        }),
+      ).rejects.toThrow(`${poor} cannot pay the fee: the gas used costs`);
+      expect(await client.getBalance({ address: poor })).toBe(0x1000n);
+      expect(await client.getBalance({ address: PAYEE })).toBe(0n);
     });
 
     it("executes a transaction action (approve on WXDAI)", async () => {
@@ -624,6 +778,17 @@ export function describeBackendSuite(
         );
         expect((await call(sim, { isStatic: true })).success).toBe(false);
         expect((await call(sim)).success).toBe(true);
+      });
+
+      it("knows the forked block's base fee; setBalance sets a balance", async () => {
+        const sim = await host("0x00");
+        const { baseFee } = await fetchForkBlock(
+          rpcUrl,
+          BigInt(FORK_BLOCK_NUMBER),
+        );
+        expect(sim.baseFee).toBe(baseFee);
+        await sim.setBalance(CALLER, 12345n);
+        expect(await sim.getBalance(CALLER)).toBe(12345n);
       });
 
       it("a call leaves the caller's nonce; setNonce sets it", async () => {

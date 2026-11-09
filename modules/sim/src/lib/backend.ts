@@ -135,11 +135,13 @@ export async function resolveLatestBlockNumber(
 const BLOCK_FETCH_ATTEMPTS = 5;
 const BLOCK_FETCH_RETRY_MS = 1_500;
 
-export async function fetchBlockTimestamp(
+/** The forked block's timestamp, and its base fee (0 before London): what
+ *  a transaction that gives fees pays at least. */
+export async function fetchForkBlock(
   rpcUrl: string,
   blockNumber: bigint,
   signal?: AbortSignal,
-): Promise<bigint> {
+): Promise<{ timestamp: bigint; baseFee: bigint }> {
   for (let attempt = 1; ; attempt++) {
     const block = await rpcFetch(
       rpcUrl,
@@ -147,7 +149,11 @@ export async function fetchBlockTimestamp(
       [`0x${blockNumber.toString(16)}`, false],
       signal,
     );
-    if (block != null) return BigInt(block.timestamp);
+    if (block != null)
+      return {
+        timestamp: BigInt(block.timestamp),
+        baseFee: block.baseFeePerGas ? BigInt(block.baseFeePerGas) : 0n,
+      };
     if (attempt >= BLOCK_FETCH_ATTEMPTS) {
       throw new ErrorException(
         `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +

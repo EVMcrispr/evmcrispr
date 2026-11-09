@@ -76,6 +76,7 @@ export async function sendAccountFrameTransaction({
   onLog,
   receiptTimeoutMs,
   maxFeePerGasCap,
+  fees,
   signWith,
   signal,
   chain = altMempoolDevnet,
@@ -94,6 +95,8 @@ export async function sendAccountFrameTransaction({
   receiptTimeoutMs?: number;
   /** Refuses, before signing, fees above this (wei per gas; 10 gwei by default): the wallet never sees them. */
   maxFeePerGasCap?: bigint;
+  /** Fees to carry instead of the node's: a fee given here is neither read nor capped. */
+  fees?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint };
   /** Wraps the one signature request with a description of the transaction (a host that confirms signatures shows it). */
   signWith?: <T>(description: string, sign: () => Promise<T>) => Promise<T>;
   /** Checked once the wallet has signed: aborted, nothing is submitted. */
@@ -145,6 +148,7 @@ export async function sendAccountFrameTransaction({
     onLog,
     receiptTimeoutMs,
     maxFeePerGasCap,
+    fees,
     signWith,
     signal,
     chain,

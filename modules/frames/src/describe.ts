@@ -3,6 +3,7 @@
 // strings and raw calls; the host escapes and decodes them.
 import { chainLabel, type ModuleActionDescription } from "@evmcrispr/sdk";
 import { frameSidecarOf } from "@evmcrispr/viem-frames";
+import { formatGwei } from "viem";
 import { FRAME_ACCOUNT_DOMAIN_NAME } from "./account";
 import type { FrameModuleAction } from "./frame-action";
 import { frameNetwork, frameNetworkNames } from "./networks";
@@ -60,6 +61,20 @@ function warning({ chainId, data }: Described): string | undefined {
   return undefined;
 }
 
+/** The fees the script gave, which replace the node's when it is sent. */
+function feeNote({ data }: Described): string[] {
+  const { maxFeePerGas, maxPriorityFeePerGas } = data.fees ?? {};
+  const given = [
+    maxFeePerGas !== undefined &&
+      `max fee per gas ${formatGwei(maxFeePerGas)} gwei`,
+    maxPriorityFeePerGas !== undefined &&
+      `max priority fee per gas ${formatGwei(maxPriorityFeePerGas)} gwei`,
+  ].filter(Boolean);
+  return given.length
+    ? [`Fees as written, not the node's: ${given.join(", ")}.`]
+    : [];
+}
+
 export function describeFrameAction(
   action: Described,
 ): ModuleActionDescription {
@@ -74,6 +89,7 @@ export function describeFrameAction(
       steps: steps(action),
       notes: [
         `When it is sent, the wallet of the sender ${from} is asked to sign it as a type 0x06 transaction (eth_signTransaction), with the nonce and fees filled in; a wallet that does not sign frame transactions refuses it.`,
+        ...feeNote(action),
       ],
     };
   const owner = data.account.owner;
@@ -88,6 +104,7 @@ export function describeFrameAction(
       `When it is sent, the wallet of the owner ${owner} is asked to sign typed data FrameTransaction(bytes32 sigHash).`,
       `Its domain: name "${FRAME_ACCOUNT_DOMAIN_NAME}", version "1", the ${chain}'s chain, verifying contract ${from} (the account).`,
       "sigHash is the transaction's signature hash. The nonce and fees it covers are read from the chain when it is sent, so they and the hash are not shown here: the wallet's prompt shows the hash.",
+      ...feeNote(action),
     ],
   };
 }

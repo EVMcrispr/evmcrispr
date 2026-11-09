@@ -16,7 +16,7 @@ export const revmfork_insertAccount: (a: number, b: number, c: number, d: number
 export const revmfork_insertBlockHash: (a: number, b: number, c: bigint, d: number, e: number) => void;
 export const revmfork_insertStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
 export const revmfork_mine: (a: number, b: bigint) => void;
-export const revmfork_new: (a: bigint, b: bigint, c: bigint) => number;
+export const revmfork_new: (a: bigint, b: bigint, c: bigint, d: bigint) => number;
 export const revmfork_revertCheckpoint: (a: number, b: number) => void;
 export const revmfork_setBalance: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
 export const revmfork_setCode: (a: number, b: number, c: number, d: number, e: number, f: number) => void;

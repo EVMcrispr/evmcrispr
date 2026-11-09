@@ -29,6 +29,8 @@ frames:tx <block>
 | `--paymaster-data` | `bytes` | Build time | Data of the paymaster's pay frame |
 | `--gas` | `number` | Build time | Execution gas of every call frame written without its own --gas |
 | `--state-gas` | `number` | Build time | State gas limit of every body frame (200000 by default) |
+| `--max-fee-per-gas` | `number` | Build time | Max fee per gas (EIP-1559); by default the node's, and nothing in a fork |
+| `--max-priority-fee-per-gas` | `number` | Build time | Max priority fee per gas (EIP-1559); by default the node's, and nothing in a fork |
 | `--mempool` | `string` | Build time | `alt` or `canonical`; by default `alt` where the network has an alt mempool, else `canonical` |
 
 <!-- HAND-WRITTEN -->
@@ -49,6 +51,8 @@ A frame is one call. The block lists the transaction's frames in order, and `fra
 Frames come out in the order written; the only ones `frames:tx` adds are the shortcuts' at the start. The validation prefix must be one of the shapes the mempool recognizes (`[self_verify]` or `[only_verify, pay]`, each with an optional pre-verify), and the block is checked before anything is signed. Every call needs its `--gas` (nothing sizes frames yet); `--state-gas` sets the state gas limit of every body frame, 200,000 by default (unused state gas is refunded).
 
 Without `--account`, the sender is the connected wallet's address, and the wallet is asked to sign the whole transaction as a type `0x06` transaction with the standard `eth_signTransaction`. A wallet that does not sign frame transactions (MetaMask today) refuses with its own error. The transaction is sent on the chain's frame network: the alt-mempool devnet (chain 1337), or the local `framesQuick` and `framesMining` devnets, where `--mempool` defaults to `canonical`.
+
+`--max-fee-per-gas` and `--max-priority-fee-per-gas` are carried as written instead of the node's fees (one that is not given is still read from the node, and only those read are capped at 10 gwei). In `sim:fork` the payer pays the frames' gas used at that price; without them the simulated transaction runs free.
 
 `--account <account>` sends the transaction from a frame account (see `new-account`) that the connected wallet signs for. Inside the block `@sender` is the account and `@me` stays the wallet. The generated verify frame calls the account's `verify(scope)` (scope 3 when the account pays, 2 with a paymaster; 40,000 gas), and the generated pay frame calls the sponsor's `verify()` (50,000 gas) unless `--paymaster-data` is given. A `verify` written in the block is kept as written.
 
