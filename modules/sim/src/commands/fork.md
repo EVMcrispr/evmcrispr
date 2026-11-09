@@ -145,8 +145,10 @@ On the Hegota devnet, `post-verify` frames (POST_TX) run after the body, as
 static calls, with TXTRACE and EVENTDATACOPY answered from what the body
 changed (net, since the transaction's start) and the logs of the frames that
 took effect; a failing one reverts the body, skips the checks after it, and
-stops the run naming it, as sending the transaction would. Not modelled there: the EIP-7708 transfer logs the chain
-emits for ETH transfers.
+stops the run naming it, as sending the transaction would. As on the chain,
+every value transfer to another account emits an EIP-7708 log (from
+`0xff…fe`, `Transfer(from, to)`, the amount as data), so a check that reads
+events sees them.
 
 `sim:fork --on hegotaDevnet` forks the public Hegota devnet. To fork a local
 node on its id (a Kurtosis devnet), set the id's RPC to it (in the CLI,
@@ -167,8 +169,7 @@ each, so a check of the payer's exact balance can differ by that much.
 Not modelled: the intrinsic cost in the fee (only the frames' gas is
 charged), state gas (EIP-8037;
 a frame whose `--state-gas` is too small can pass here and fail on the chain),
-the EIP-7708 transfer logs of value transfers, and the ERC-8421 mempool's
-admission rules.
+and the ERC-8421 mempool's admission rules.
 
 ## Cross-chain simulation
 

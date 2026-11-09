@@ -429,7 +429,7 @@ export async function createRevmBackend(
       baseFee,
       transactionHash: syntheticTxHash(action, txCounter++),
       onLog,
-      async call({ caller, to, data, value, gas, isStatic }) {
+      async call({ caller, to, data, value, gas, isStatic, transferLogs }) {
         await prefetchAccounts([caller, to]);
         const json = JSON.stringify({
           from: caller,
@@ -438,6 +438,7 @@ export async function createRevmBackend(
           value: numberToHex(value),
           gas: numberToHex(gas),
           isStatic,
+          transferLogs: transferLogs ?? false,
           opcodes: [...(table?.values() ?? [])].map((o) => ({
             opcode: o.opcode,
             pops: o.pops,

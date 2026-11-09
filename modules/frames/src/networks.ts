@@ -25,6 +25,8 @@ export interface FrameGasRules {
    *  transaction did not use after its last frame (EIP-8141's max_cost).
    *  `intrinsicExtra`: what the client adds to EIP-8141's intrinsic gas. */
   preCharge?: { intrinsicExtra: bigint };
+  /** Every value transfer to another account emits EIP-7708's log. */
+  transferLogs?: boolean;
 }
 
 /** ethrex `eip8141-tracer` (the alt-mempool and local devnets), measured on
@@ -37,11 +39,13 @@ const TRACER_GAS: FrameGasRules = {
 /** ethrex `hegota-devnet`, measured on the chain on 2026-11-09: a target
  *  with code ran with a 20-gas limit, a precompile and a transfer with 1;
  *  a POST_TX frame saw the payer charged the transaction's maxCost, whose
- *  intrinsic gas is EIP-8141's plus 48 (hegota-post-tx-probe (e), (f)). */
+ *  intrinsic gas is EIP-8141's plus 48 (hegota-post-tx-probe (e), (f));
+ *  value transfers emit EIP-7708's logs, as the EIP lays them out (g). */
 const HEGOTA_GAS: FrameGasRules = {
   targetAccess: { warm: 0n, cold: 0n },
   codelessFramesFree: true,
   preCharge: { intrinsicExtra: 48n },
+  transferLogs: true,
 };
 
 export interface FrameNetwork {

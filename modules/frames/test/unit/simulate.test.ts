@@ -302,6 +302,23 @@ describe("the frame executor", () => {
       }
     });
 
+    test("its frames emit EIP-7708 transfer logs; the tracer devnets' do not", async () => {
+      for (const [chainId, logs] of [
+        [HEGOTA, true],
+        [81412, false],
+      ] as const) {
+        const host = fakeHost(undefined, 0n, { chainId });
+        await frameAction.simulate!(
+          action(2, undefined, { chainId }),
+          host.sim,
+        );
+        expect(host.seen.map((c) => c.transferLogs ?? false)).toEqual([
+          logs,
+          logs,
+        ]);
+      }
+    });
+
     test("the tracer devnets still charge a codeless frame to reach its target", async () => {
       const host = fakeHost();
       const receipt = (await frameAction.simulate!(

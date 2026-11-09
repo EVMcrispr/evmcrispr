@@ -83,6 +83,11 @@ export interface ModuleActionSimCtx {
     value: bigint;
     gas: bigint;
     isStatic: boolean;
+    /** Emit EIP-7708's log for every value transfer to another account
+     *  (the call's own value, CALL, CREATE, SELFDESTRUCT), where the value
+     *  moves: from `0xff…fe`, topics Transfer(from, to), the amount as
+     *  data. A reverted transfer's log goes with it. */
+    transferLogs?: boolean;
   }): Promise<SimCallResult>;
   checkpoint(): Promise<void>;
   commit(): Promise<void>;

@@ -13,10 +13,12 @@ use revm::context::ContextTr;
 use revm::interpreter::instructions::system::copy_cost_and_memory_resize;
 use revm::interpreter::interpreter::EthInterpreter;
 use revm::interpreter::interpreter_types::{InputsTr, LoopControl, RuntimeFlag};
+use revm::context::JournalTr;
 use revm::interpreter::{
-    CallInputs, CallOutcome, Host, InstructionContext, InstructionResult, InterpreterAction,
+    CallInputs, CallOutcome, CreateInputs, CreateOutcome, Host, InstructionContext,
+    InstructionResult, InterpreterAction,
 };
-use revm::primitives::{Address, Bytes, U256};
+use revm::primitives::{b256, Address, Bytes, Log, LogData, B256, U256};
 use revm::Inspector;
 
 /// What an added opcode is given.
@@ -409,28 +411,134 @@ pub struct FrameInspector {
     pub is_static: bool,
     pub spent: Option<u64>,
     depth: usize,
+    /// EIP-7708: log every value transfer to another account.
+    transfer_logs: bool,
+    /// Per open call or create: where its transfer log is, if it logged one.
+    logged: Vec<Option<usize>>,
+    /// Per open call or create: the SELFDESTRUCT it ended with that moved
+    /// value to another account (logged once the frame returns).
+    destructed: Vec<Option<(Address, Address, U256)>>,
+}
+
+/// EIP-7708: the log's address, and `keccak256("Transfer(address,address,uint256)")`.
+const SYSTEM_ADDRESS: Address = Address::new([
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xfe,
+]);
+const TRANSFER_TOPIC: B256 =
+    b256!("ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef");
+
+fn transfer_log(from: Address, to: Address, value: U256) -> Log {
+    Log {
+        address: SYSTEM_ADDRESS,
+        data: LogData::new(
+            vec![
+                TRANSFER_TOPIC,
+                B256::left_padding_from(from.as_slice()),
+                B256::left_padding_from(to.as_slice()),
+            ],
+            Bytes::copy_from_slice(&value.to_be_bytes::<32>()),
+        )
+        .expect("3 topics"),
+    }
 }
 
 impl FrameInspector {
-    pub fn new(gas: u64, is_static: bool) -> Self {
-        FrameInspector { gas, is_static, spent: None, depth: 0 }
+    pub fn new(gas: u64, is_static: bool, transfer_logs: bool) -> Self {
+        FrameInspector {
+            gas,
+            is_static,
+            spent: None,
+            depth: 0,
+            transfer_logs,
+            logged: Vec::new(),
+            destructed: Vec::new(),
+        }
+    }
+
+    /// Logs a transfer where the value moves; returns where the log is.
+    fn log_transfer<CTX: ContextTr>(
+        &self,
+        context: &mut CTX,
+        from: Address,
+        to: Address,
+        value: U256,
+    ) -> Option<usize> {
+        if !self.transfer_logs || value.is_zero() || from == to {
+            return None;
+        }
+        let at = context.journal_mut().logs().len();
+        context.journal_mut().log(transfer_log(from, to, value));
+        Some(at)
+    }
+
+    /// A frame returned: a failed one takes its transfer log back (revm
+    /// reverted the transfer), a SELFDESTRUCT that moved value logs it.
+    fn frame_end<CTX: ContextTr>(&mut self, context: &mut CTX, ok: bool) {
+        let logged = self.logged.pop().flatten();
+        let destructed = self.destructed.pop().flatten();
+        if !ok {
+            if let Some(at) = logged {
+                let journal = context.journal_mut();
+                let mut logs = journal.take_logs();
+                logs.truncate(at);
+                for log in logs {
+                    journal.log(log);
+                }
+            }
+        } else if let Some((from, to, value)) = destructed {
+            self.log_transfer(context, from, to, value);
+        }
     }
 }
 
 impl<CTX: ContextTr> Inspector<CTX, EthInterpreter> for FrameInspector {
-    fn call(&mut self, _context: &mut CTX, inputs: &mut CallInputs) -> Option<CallOutcome> {
+    fn call(&mut self, context: &mut CTX, inputs: &mut CallInputs) -> Option<CallOutcome> {
         if self.depth == 0 {
             inputs.is_static = self.is_static;
             inputs.gas_limit = self.gas;
         }
         self.depth += 1;
+        let logged = match inputs.transfer_value() {
+            Some(value) => {
+                self.log_transfer(context, inputs.transfer_from(), inputs.transfer_to(), value)
+            }
+            None => None,
+        };
+        self.logged.push(logged);
+        self.destructed.push(None);
         None
     }
 
-    fn call_end(&mut self, _context: &mut CTX, _inputs: &CallInputs, outcome: &mut CallOutcome) {
+    fn call_end(&mut self, context: &mut CTX, _inputs: &CallInputs, outcome: &mut CallOutcome) {
         self.depth -= 1;
         if self.depth == 0 {
             self.spent = Some(outcome.result.gas.total_gas_spent());
+        }
+        self.frame_end(context, outcome.result.result.is_ok());
+    }
+
+    fn create(&mut self, context: &mut CTX, inputs: &mut CreateInputs) -> Option<CreateOutcome> {
+        let caller = inputs.caller();
+        let nonce = context
+            .journal_mut()
+            .load_account(caller)
+            .map(|a| a.data.info.nonce)
+            .unwrap_or(0);
+        let created = inputs.created_address(nonce);
+        let logged = self.log_transfer(context, caller, created, inputs.value());
+        self.logged.push(logged);
+        self.destructed.push(None);
+        None
+    }
+
+    fn create_end(&mut self, context: &mut CTX, _inputs: &CreateInputs, outcome: &mut CreateOutcome) {
+        self.frame_end(context, outcome.result.result.is_ok());
+    }
+
+    fn selfdestruct(&mut self, contract: Address, target: Address, value: U256) {
+        if let Some(last) = self.destructed.last_mut() {
+            *last = Some((contract, target, value));
         }
     }
 }

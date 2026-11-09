@@ -135,10 +135,9 @@ const CASES: [string, string, boolean, boolean?][] = [
     false,
   ],
   [
-    "the demo's check for the transfer's event (EIP-7708, which the fork does not emit)",
+    "the demo's check for the transfer's event (EIP-7708)",
     `exec ${REQUIRED_EVENT} "assertRequiredEvent(bytes32,uint256)" ${TRANSFER} 1`,
     true,
-    false,
   ],
 ];
 

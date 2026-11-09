@@ -173,6 +173,7 @@ export async function simulateFrameAction(
         value: f.value,
         gas: UNSIZED_GAS,
         isStatic: f.mode === VERIFY || f.mode === POST_TX,
+        transferLogs: network.gas.transferLogs,
       });
       return { ...result, gasUsed: 0n };
     }
@@ -194,6 +195,7 @@ export async function simulateFrameAction(
       value: f.value,
       gas: f.gas - access,
       isStatic: f.mode === VERIFY || f.mode === POST_TX,
+      transferLogs: network.gas.transferLogs,
     });
     return { ...result, gasUsed: access + result.gasUsed };
   };

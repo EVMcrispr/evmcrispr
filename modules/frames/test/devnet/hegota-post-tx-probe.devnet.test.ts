@@ -590,4 +590,91 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
     );
     console.log("(f)", JSON.stringify(out, null, 1));
   }, 600_000);
+
+  it("(g) the EIP-7708 transfer logs a POST_TX frame sees", async () => {
+    const probe = await deploy(TRACE_EXPECT);
+    const SYSTEM = "0xfffffffffffffffffffffffffffffffffffffffe";
+    const TRANSFER =
+      "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+    const hex20 = (a: string) => a.slice(2).toLowerCase();
+    // Reverts with any value.
+    const reverter = await deploy("0x5f5ffd");
+    // LOG0; CALL 0x…dEaD with 2 wei; CALL the reverter with 3 wei; STOP.
+    const relay = await deploy(
+      `0x5f5fa05f5f5f5f600273${hex20(DEAD)}5af1505f5f5f5f600373${hex20(reverter)}5af15000`,
+    );
+    // CREATE(value 4, empty init code); STOP.
+    const creator = await deploy("0x5f5f6004f05000");
+    // SELFDESTRUCT to 0x…dEaD.
+    const destructor = await deploy(`0x73${hex20(DEAD)}ff`);
+    const word = (a: string) => BigInt(a);
+    /** Whether every TXTRACE(param, in2) == value, after `specs`. */
+    const all = async (
+      specs: FrameSpec[],
+      checks: [number, bigint, bigint][],
+    ) => {
+      const out: string[] = [];
+      for (const [param, in2, value] of checks) {
+        const r = await ask(
+          frames(specs, [
+            { target: probe, data: expectWord(param, in2, value) },
+          ]),
+        );
+        out.push(
+          `TXTRACE(0x${param.toString(16)}, ${in2}) == 0x${value.toString(16)}: ${holds(r)}`,
+        );
+      }
+      return out;
+    };
+    const created = getContractAddress({ from: creator, nonce: 1n });
+    const result = {
+      "A value to a codeless account": await all(
+        [verify, body({ value: 7n })],
+        [
+          [0x0c, 0n, 1n],
+          [0x0d, 0n, word(SYSTEM)],
+          [0x0e, 0n, 3n],
+          [0x0f, 0n, word(TRANSFER)],
+          [0x10, 0n, word(SENDER)],
+          [0x11, 0n, word(DEAD)],
+          [0x13, 0n, 32n],
+        ],
+      ),
+      "B value to a contract that logs, sends on, and makes a reverted call with value":
+        await all(
+          [verify, body({ target: relay, value: 10n })],
+          [
+            [0x0c, 0n, 3n],
+            [0x0d, 0n, word(SYSTEM)],
+            [0x10, 0n, word(SENDER)],
+            [0x11, 0n, word(relay)],
+            [0x0d, 1n, word(relay)],
+            [0x0e, 1n, 0n],
+            [0x0d, 2n, word(SYSTEM)],
+            [0x10, 2n, word(relay)],
+            [0x11, 2n, word(DEAD)],
+          ],
+        ),
+      "C CREATE with value": await all(
+        [verify, body({ target: creator, value: 10n })],
+        [
+          [0x0c, 0n, 2n],
+          [0x0d, 1n, word(SYSTEM)],
+          [0x10, 1n, word(creator)],
+          [0x11, 1n, word(created)],
+        ],
+      ),
+      "D SELFDESTRUCT to another account": await all(
+        [verify, body({ target: destructor, value: 5n })],
+        [
+          [0x0c, 0n, 2n],
+          [0x0d, 1n, word(SYSTEM)],
+          [0x10, 1n, word(destructor)],
+          [0x11, 1n, word(DEAD)],
+        ],
+      ),
+      "E no value": await all([verify, body({})], [[0x0c, 0n, 0n]]),
+    };
+    console.log("(g)", JSON.stringify(result, null, 1));
+  }, 900_000);
 });

@@ -906,6 +906,96 @@ export function describeBackendSuite(
         expect(await sim.getCode(TARGET)).toBe("0x00");
       });
 
+      describe("EIP-7708 transfer logs (transferLogs)", () => {
+        const SYSTEM = "0xfffffffffffffffffffffffffffffffffffffffe";
+        const TRANSFER =
+          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+        const REVERTER = "0x3000000000000000000000000000000000000003";
+        const pad = (a: string) =>
+          `0x${a.slice(2).toLowerCase().padStart(64, "0")}`;
+        const hex20 = (a: string) => a.slice(2).toLowerCase();
+        const transfer = (from: string, to: string, value: bigint) => ({
+          address: SYSTEM,
+          topics: [TRANSFER, pad(from), pad(to)],
+          data: word(Number(value)),
+        });
+        const lower = (
+          logs: { address: string; topics: string[]; data: string }[],
+        ) =>
+          logs.map((l) => ({
+            address: l.address.toLowerCase(),
+            topics: l.topics.map((t) => t.toLowerCase()),
+            data: l.data.toLowerCase(),
+          }));
+        async function run(
+          runtime: `0x${string}`,
+          value: bigint,
+          transferLogs: boolean,
+          to: `0x${string}` = TARGET,
+        ) {
+          const { backend } = await makeBackend();
+          for (const [address, code] of [
+            [TARGET, runtime],
+            [REVERTER, "0x5f5ffd"],
+          ] as const)
+            await backend.handleAction({
+              type: "rpc",
+              method: `${prefix}_setCode`,
+              params: [address, code],
+            } as Action);
+          await backend.handleAction({
+            type: "rpc",
+            method: `${prefix}_setBalance`,
+            params: [CALLER, "0xde0b6b3a7640000"],
+          } as Action);
+          const sim = backend.simContext!(ACTION, { onLog: () => {} });
+          // As a deployed contract's: its first CREATE uses nonce 1.
+          await sim.setNonce(TARGET, 1n);
+          const result = await sim.call({
+            caller: CALLER,
+            to,
+            data: "0x",
+            value,
+            gas: 1_000_000n,
+            isStatic: false,
+            transferLogs,
+          });
+          expect(result.success).toBe(true);
+          return lower(result.logs);
+        }
+
+        it("logs the call's own value, before the logs of the code it runs; none without the option", async () => {
+          expect(await run("0x00", 7n, true, DEAD)).toEqual([
+            transfer(CALLER, DEAD, 7n),
+          ]);
+          expect(await run("0x00", 7n, false, DEAD)).toEqual([]);
+          expect(await run("0x00", 0n, true, DEAD)).toEqual([]);
+        });
+
+        it("logs a CALL's value where it moves, and drops a reverted one's", async () => {
+          // LOG0; CALL 0x…dEaD with 2 wei; CALL the reverter with 3 wei.
+          const relay =
+            `0x5f5fa05f5f5f5f600273${hex20(DEAD)}5af1505f5f5f5f600373${hex20(REVERTER)}5af15000` as const;
+          expect(await run(relay, 10n, true)).toEqual([
+            transfer(CALLER, TARGET, 10n),
+            { address: TARGET.toLowerCase(), topics: [], data: "0x" },
+            transfer(TARGET, DEAD, 2n),
+          ]);
+        });
+
+        it("logs a CREATE's value to the created account, and a SELFDESTRUCT's to its beneficiary", async () => {
+          const created = getContractAddress({ from: TARGET, nonce: 1n });
+          expect(await run("0x5f5f6004f05000", 10n, true)).toEqual([
+            transfer(CALLER, TARGET, 10n),
+            transfer(TARGET, created, 4n),
+          ]);
+          expect(await run(`0x73${hex20(DEAD)}ff`, 5n, true)).toEqual([
+            transfer(CALLER, TARGET, 5n),
+            transfer(TARGET, DEAD, 5n),
+          ]);
+        });
+      });
+
       it("a group that rolls back keeps none of its storage writes, under the transaction's checkpoints", async () => {
         // As a frame transaction's atomic group runs: the transaction's
         // checkpoint, the body's, the group's; two frames write a slot, the

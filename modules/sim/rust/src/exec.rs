@@ -62,6 +62,9 @@ struct FrameCallJson {
     value: Option<String>,
     gas: String,
     is_static: bool,
+    /// EIP-7708 transfer logs for this call.
+    #[serde(default)]
+    transfer_logs: bool,
     #[serde(default)]
     opcodes: Vec<FrameOpJson>,
     /// What the action's earlier calls warmed: one transaction's frames
@@ -517,7 +520,7 @@ impl Fork {
             .with_db(db)
             .with_cfg(cfg)
             .with_block(self.block_env())
-            .build_mainnet_with_inspector(FrameInspector::new(gas, call.is_static));
+            .build_mainnet_with_inspector(FrameInspector::new(gas, call.is_static, call.transfer_logs));
         let ops = frame_ops();
         for byte in pops.keys() {
             evm.instruction

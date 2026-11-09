@@ -373,8 +373,8 @@ The transaction is sent as written: a check guards against what happens
 between signing and inclusion (a sandwich, a swapped implementation), so
 nothing is checked before you sign. To see the checks run first, simulate:
 `sim:fork --on hegotaDevnet` runs POST_TX frames on both in-process backends.
-The simulation does not emit the EIP-7708 transfer logs the chain emits for
-ETH transfers, so a check that counts events can differ there. A check of the
+The simulation emits the EIP-7708 transfer logs the chain emits for ETH
+transfers, so a check that reads events sees what it would on the chain. A check of the
 payer's balance sees it charged the most the transaction can cost, as on the
 chain, when `frames:tx` gives fees (`--max-fee-per-gas`); without them the
 simulation charges nothing.

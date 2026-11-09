@@ -474,18 +474,29 @@ export async function createEthereumJSBackend(
       baseFee,
       transactionHash: syntheticTxHash(action, txCounter++),
       onLog,
-      async call({ caller, to, data, value, gas, isStatic }) {
+      async call({ caller, to, data, value, gas, isStatic, transferLogs }) {
         opcodeSlot.failure = undefined;
-        const result = await vm.evm.runCall({
-          caller: address(caller),
-          to: address(to),
-          data: hexToBytes(data),
-          value,
-          gasLimit: gas,
-          isStatic,
-          skipNonceIncrement: true,
-          block: makeBlockContext(),
-        });
+        // EIP-7708 for this call only: the fork's own transactions keep the
+        // forked chain's rules.
+        const common = vm.evm.common;
+        const eips = common.eips();
+        const addLogs = transferLogs && !common.isActivatedEIP(7708);
+        if (addLogs) common.setEIPs([...eips, 7708]);
+        let result: Awaited<ReturnType<typeof vm.evm.runCall>>;
+        try {
+          result = await vm.evm.runCall({
+            caller: address(caller),
+            to: address(to),
+            data: hexToBytes(data),
+            value,
+            gasLimit: gas,
+            isStatic,
+            skipNonceIncrement: true,
+            block: makeBlockContext(),
+          });
+        } finally {
+          if (addLogs) common.setEIPs(eips);
+        }
         journal.addWarmedAddress(hexToBytes(to));
         journal.addWarmedAddress(hexToBytes(caller));
         const error = result.execResult.exceptionError;
