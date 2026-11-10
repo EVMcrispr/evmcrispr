@@ -154,9 +154,9 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
       l1Wallet,
       {
         prepareChains: false,
-        // The target's proxy on L2 is created on L2 (the composer cannot
-        // create one through a cross-chain call): the wallet switches
-        // there and back, so each chain gets its own local wallet.
+        // The target's proxy on L2 is created on L2 (a cross-chain call
+        // may not target the manager, EEZDestinationForbidden): the wallet
+        // switches there and back, so each chain gets its own local wallet.
         handlers: {
           wallet: async (action, ctx) =>
             action.method === "wallet_switchEthereumChain"

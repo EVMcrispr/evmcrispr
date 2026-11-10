@@ -251,9 +251,9 @@ describeCommand("on", {
           functionName: "computeCrossChainProxyAddress",
           args: [fresh4, 0n],
         });
-        // The L2 proxy of the target: the composer cannot create a proxy
-        // through a cross-chain call, so a plain transaction on L2 does,
-        // first, with the wallet switched there and back.
+        // The L2 proxy of the target: a cross-chain call may not target the
+        // manager (EEZDestinationForbidden), so a plain transaction on L2
+        // creates it first, with the wallet switched there and back.
         expect(toL2.method).to.equal("wallet_switchEthereumChain");
         expect(toL2.params[0].chainId).to.equal(toHex(L2_ID));
         expect(createRemote.chainId).to.equal(L2_ID);
