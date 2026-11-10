@@ -21,17 +21,15 @@ import type { Address, Hex } from "viem";
 import {
   decodeErrorResult,
   decodeFunctionData,
-  encodeAbiParameters,
   encodeFunctionData,
   getAbiItem,
   getAddress,
   isAddress,
   parseAbi,
-  parseAbiParameters,
   toFunctionSelector,
 } from "viem";
 import type Eez from "..";
-import { crossChainProxyAbi, eezBaseAbi } from "../abis";
+import { eezBaseAbi } from "../abis";
 import { CROSS_CHAIN_GATES } from "../chains";
 import { EEZ_CHAINS } from "../constants";
 
@@ -441,14 +439,12 @@ export type CrossChainCall = TransactionAction & { to: Address };
  * The actions a cross-chain block may produce: plain contract calls, each
  * of which becomes one call through a proxy. Switching chain and deploying
  * have no cross-chain meaning. A `batch` inside the block is a wallet-level
- * notion: `eez:on` refuses it (and a wallet batch around it cannot carry
- * the settlement fee: use `eez:batch` or a Safe), while
- * `eez:batch` flattens it, since everything inside is one call already.
+ * notion `eez:on` refuses (and a wallet batch around it cannot carry the
+ * settlement fee: use a Safe or a smart account).
  */
 export function assertCrossChainCalls(
   actions: Action[],
   commandName: string,
-  { flattenBatches = false }: { flattenBatches?: boolean } = {},
 ): CrossChainCall[] {
   const calls: CrossChainCall[] = [];
   const pushCall = (action: TransactionAction) => {
@@ -465,13 +461,9 @@ export function assertCrossChainCalls(
       continue;
     }
     if (action.type === "batched") {
-      if (!flattenBatches) {
-        throw new ErrorException(
-          `batch cannot be used inside ${commandName}: wrap the whole thing instead, \`batch ( ${commandName} … )\`, or use eez:batch to run the calls atomically from your proxy`,
-        );
-      }
-      action.actions.forEach(pushCall);
-      continue;
+      throw new ErrorException(
+        `batch cannot be used inside ${commandName}: to run the calls atomically, put ${commandName} inside a Safe's block (safe:execute) or a smart account's \`batch !( … )\``,
+      );
     }
     if (
       action.type === "wallet" &&
@@ -487,49 +479,6 @@ export function assertCrossChainCalls(
   }
   return calls;
 }
-
-/**
- * Ether the calls send in total: what the one transaction carrying them
- * all must be funded with.
- */
-export function sumValues(calls: TransactionAction[]): bigint {
-  return calls.reduce((total, call) => total + (call.value ?? 0n), 0n);
-}
-
-/**
- * Calldata for `executeBatch` on the caller's far-side proxy: the calls as
- * an ERC-7579 `Execution[]` (`(address target, uint256 value, bytes callData)`),
- * the batch encoding EIP-7702 delegations and smart accounts share. The
- * proxy runs them one by one as itself.
- */
-export function encodeExecuteBatch(calls: CrossChainCall[]): Hex {
-  const executions = calls.map((call) => ({
-    target: call.to,
-    value: call.value ?? 0n,
-    callData: call.data ?? "0x",
-  }));
-  return encodeFunctionData({
-    abi: crossChainProxyAbi,
-    functionName: "executeBatch",
-    args: [encodeAbiParameters(EXECUTION_ARRAY, [executions])],
-  });
-}
-
-/** `executeBatch(bytes)`, the selector a batch-capable proxy dispatches. */
-const EXECUTE_BATCH_SELECTOR = toFunctionSelector(
-  getAbiItem({ abi: crossChainProxyAbi, name: "executeBatch" }),
-).slice(2);
-
-/** Whether a deployed cross-chain proxy's code knows `executeBatch`: a
- *  proxy built before the batch mode forwards that selector like any
- *  calldata instead. */
-export function supportsExecuteBatch(code: Hex): boolean {
-  return code.toLowerCase().includes(EXECUTE_BATCH_SELECTOR);
-}
-
-const EXECUTION_ARRAY = parseAbiParameters(
-  "(address target, uint256 value, bytes callData)[]",
-);
 
 /** What a cross-chain block resolved to, seen from the sending chain. */
 export interface RemoteBlock {
@@ -561,7 +510,6 @@ export async function interpretRemoteBlock(
   block: BlockExpressionNode,
   interpreters: NodesInterpreters,
   commandName: string,
-  { flattenBatches = false }: { flattenBatches?: boolean } = {},
 ): Promise<RemoteBlock> {
   const config = await eezConfig(module);
   const targetChainId = eezChainId(chain);
@@ -590,9 +538,7 @@ export async function interpretRemoteBlock(
         batchContext: interpreters.batchContext,
       }),
     );
-    const calls = assertCrossChainCalls(actions ?? [], commandName, {
-      flattenBatches,
-    });
+    const calls = assertCrossChainCalls(actions ?? [], commandName);
     for (const call of calls) {
       if (call.from && !remoteFrom.has(call.from)) {
         remoteFrom.set(

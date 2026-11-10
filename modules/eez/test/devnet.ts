@@ -27,10 +27,8 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { gnosisChiado } from "viem/chains";
-import { eezBaseAbi } from "../src/abis";
 import { chains } from "../src/chains";
 import { EEZ_CHAINS } from "../src/constants";
-import { supportsExecuteBatch } from "../src/utils/eez";
 
 export const L1_ID = 10200;
 export const L2_ID = 699169;
@@ -196,25 +194,4 @@ export async function deployValue(
   });
   if (!receipt.contractAddress) throw new Error("Value deployment failed");
   return receipt.contractAddress;
-}
-
-/** Whether the cross-chain proxies on a chain carry `executeBatch`, by
- *  looking at the code of the proxy standing in for `original` (from
- *  rollup `originalRollupId`) there; false while nobody has created that
- *  proxy. The devnet lags the eez-core-protocol change that adds it;
- *  batch tests that reach the far side wait for that. */
-export async function proxySupportsBatch(
-  client: PublicClient,
-  registry: Address,
-  original: Address,
-  originalRollupId: bigint,
-): Promise<boolean> {
-  const proxy = await client.readContract({
-    address: registry,
-    abi: eezBaseAbi,
-    functionName: "computeCrossChainProxyAddress",
-    args: [original, originalRollupId],
-  });
-  const code = await client.getCode({ address: proxy });
-  return !!code && code !== "0x" && supportsExecuteBatch(code);
 }
