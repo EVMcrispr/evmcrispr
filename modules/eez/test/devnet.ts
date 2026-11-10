@@ -49,6 +49,21 @@ export const L1_RPC =
   process.env[`EVMCRISPR_RPC_URL_${L1_ID}`] ?? L1_DEFAULT_RPC;
 export const L2_RPC = process.env[`EVMCRISPR_RPC_URL_${L2_ID}`] ?? l2Def.rpcUrl;
 
+// Reads (receipts above all) go to the chains' own RPCs: the composer
+// fronts forward them, and a receipt read through a front sometimes never
+// comes back although the transaction is mined. Transactions still go out
+// through the fronts. Overridable with EVMCRISPR_READ_RPC_URL_<id>.
+export const L1_READ_RPC =
+  process.env[`EVMCRISPR_READ_RPC_URL_${L1_ID}`] ??
+  (process.env[`EVMCRISPR_RPC_URL_${L1_ID}`]
+    ? L1_RPC
+    : "https://chiadox.eez.dev/rpc/l1");
+export const L2_READ_RPC =
+  process.env[`EVMCRISPR_READ_RPC_URL_${L2_ID}`] ??
+  (process.env[`EVMCRISPR_RPC_URL_${L2_ID}`]
+    ? L2_RPC
+    : "https://chiadox.eez.dev/rpc/l2");
+
 export const l1Chain: Chain = {
   ...gnosisChiado,
   rpcUrls: { default: { http: [L1_RPC] } },
@@ -107,11 +122,11 @@ export const devnet = await probe();
 
 export const l1: PublicClient = createPublicClient({
   chain: l1Chain,
-  transport: http(L1_RPC),
+  transport: http(L1_READ_RPC),
 });
 export const l2: PublicClient = createPublicClient({
   chain: l2Chain,
-  transport: http(L2_RPC),
+  transport: http(L2_READ_RPC),
 });
 
 export const l1Wallet: WalletClient<Transport, Chain, Account> =
