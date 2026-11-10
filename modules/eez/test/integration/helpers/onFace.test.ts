@@ -23,6 +23,7 @@ import {
   l1Wallet,
   l2,
   l2Wallet,
+  RECEIPT_TIMEOUT,
   testAccount,
 } from "../../devnet";
 
@@ -75,7 +76,7 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
       functionName: "createCrossChainProxy",
       args: [target, rollupId],
     });
-    await client.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    await client.waitForTransactionReceipt({ hash, timeout: RECEIPT_TIMEOUT });
     return proxy;
   };
 
@@ -153,7 +154,7 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
       functionName: "setValue",
       args: [expected],
     });
-    await l2.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    await l2.waitForTransactionReceipt({ hash, timeout: RECEIPT_TIMEOUT });
 
     const result = await executeScript(
       `load eez\nassert @eez:on!(eezL2 ${value}::!{value()(uint256)}) == ${expected}`,

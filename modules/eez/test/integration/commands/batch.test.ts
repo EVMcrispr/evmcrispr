@@ -29,6 +29,7 @@ import {
   l2,
   l2Wallet,
   proxySupportsBatch,
+  RECEIPT_TIMEOUT,
   testAccount,
   VALUE_BYTECODE,
 } from "../../devnet";
@@ -72,7 +73,7 @@ const ensureSelfProxy = async () => {
     functionName: "createCrossChainProxy",
     args: [self, L2_ROLLUP_ID],
   });
-  await l1.waitForTransactionReceipt({ hash, timeout: 60_000 });
+  await l1.waitForTransactionReceipt({ hash, timeout: RECEIPT_TIMEOUT });
 };
 
 /** The ERC-7579 executions inside an `executeBatch` call. */

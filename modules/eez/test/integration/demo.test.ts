@@ -13,8 +13,8 @@ import {
 import {
   devnet,
   ensureFunded,
+  L1_CHAIN_RPC,
   L1_ID,
-  L1_RPC,
   L2_ID,
   L2_RPC,
   l1Chain,
@@ -127,14 +127,14 @@ describe.skipIf(!devnet)(
   () => {
     beforeAll(async () => {
       await ensureFunded();
-    }, 120_000);
+    }, 400_000);
 
     it("runs the whole showcase script end to end", async () => {
       const wallets: Record<number, WalletClient> = {
         [L1_ID]: createWalletClient({
           account: testAccount,
           chain: l1Chain,
-          transport: http(L1_RPC),
+          transport: http(L1_CHAIN_RPC),
         }),
         [L2_ID]: createWalletClient({
           account: testAccount,

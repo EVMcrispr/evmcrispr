@@ -49,20 +49,27 @@ export const L1_RPC =
   process.env[`EVMCRISPR_RPC_URL_${L1_ID}`] ?? L1_DEFAULT_RPC;
 export const L2_RPC = process.env[`EVMCRISPR_RPC_URL_${L2_ID}`] ?? l2Def.rpcUrl;
 
-// Reads (receipts above all) go to the chains' own RPCs: the composer
-// fronts forward them, and a receipt read through a front sometimes never
-// comes back although the transaction is mined. Transactions still go out
-// through the fronts. Overridable with EVMCRISPR_READ_RPC_URL_<id>.
-export const L1_READ_RPC =
-  process.env[`EVMCRISPR_READ_RPC_URL_${L1_ID}`] ??
+// Reads and ordinary transactions go to the chains' own RPCs, as a user's
+// would: an ordinary Chiado transaction sent through the composer front can
+// wait more than a minute (empty Chiado blocks meanwhile, on 2026-11-10)
+// before it lands, together with others. Cross-chain transactions still
+// reach the fronts: the executor sends them through the gateway.
+// Overridable with EVMCRISPR_CHAIN_RPC_URL_<id>.
+export const L1_CHAIN_RPC =
+  process.env[`EVMCRISPR_CHAIN_RPC_URL_${L1_ID}`] ??
   (process.env[`EVMCRISPR_RPC_URL_${L1_ID}`]
     ? L1_RPC
     : "https://chiadox.eez.dev/rpc/l1");
-export const L2_READ_RPC =
-  process.env[`EVMCRISPR_READ_RPC_URL_${L2_ID}`] ??
+export const L2_CHAIN_RPC =
+  process.env[`EVMCRISPR_CHAIN_RPC_URL_${L2_ID}`] ??
   (process.env[`EVMCRISPR_RPC_URL_${L2_ID}`]
     ? L2_RPC
     : "https://chiadox.eez.dev/rpc/l2");
+
+/** How long a test waits for a setup transaction's receipt: Chiado takes
+ *  from one block to over a minute to include a transaction (measured on
+ *  2026-11-10, through its public RPC and through ChiadoX's alike). */
+export const RECEIPT_TIMEOUT = 180_000;
 
 export const l1Chain: Chain = {
   ...gnosisChiado,
@@ -122,18 +129,18 @@ export const devnet = await probe();
 
 export const l1: PublicClient = createPublicClient({
   chain: l1Chain,
-  transport: http(L1_READ_RPC),
+  transport: http(L1_CHAIN_RPC),
 });
 export const l2: PublicClient = createPublicClient({
   chain: l2Chain,
-  transport: http(L2_READ_RPC),
+  transport: http(L2_CHAIN_RPC),
 });
 
 export const l1Wallet: WalletClient<Transport, Chain, Account> =
   createWalletClient({
     account: testAccount,
     chain: l1Chain,
-    transport: http(L1_RPC),
+    transport: http(L1_CHAIN_RPC),
   });
 export const l2Wallet: WalletClient<Transport, Chain, Account> =
   createWalletClient({
@@ -154,7 +161,7 @@ export async function ensureFunded(
 ): Promise<void> {
   const funder = process.env.EEZ_DEVNET_FUNDER_KEY as Hex | undefined;
   for (const [client, chain, rpc, min, topUp] of [
-    [l1, l1Chain, L1_RPC, parseEther("0.005"), parseEther("0.02")],
+    [l1, l1Chain, L1_CHAIN_RPC, parseEther("0.005"), parseEther("0.02")],
     [l2, l2Chain, L2_RPC, minimum, parseEther("0.01")],
   ] as const) {
     const key = funder;
@@ -170,7 +177,7 @@ export async function ensureFunded(
       transport: http(rpc),
     });
     const hash = await wallet.sendTransaction({ to: address, value: topUp });
-    await client.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    await client.waitForTransactionReceipt({ hash, timeout: RECEIPT_TIMEOUT });
   }
 }
 
@@ -185,7 +192,7 @@ export async function deployValue(
   });
   const receipt = await client.waitForTransactionReceipt({
     hash,
-    timeout: 60_000,
+    timeout: RECEIPT_TIMEOUT,
   });
   if (!receipt.contractAddress) throw new Error("Value deployment failed");
   return receipt.contractAddress;

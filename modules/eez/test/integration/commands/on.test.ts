@@ -20,6 +20,7 @@ import {
   l1Wallet,
   l2,
   l2Wallet,
+  RECEIPT_TIMEOUT,
   VALUE_BYTECODE,
 } from "../../devnet";
 
@@ -54,7 +55,7 @@ const ensureKnownProxy = async () => {
     functionName: "createCrossChainProxy",
     args: [KNOWN, L2_ROLLUP_ID],
   });
-  await l1.waitForTransactionReceipt({ hash, timeout: 60_000 });
+  await l1.waitForTransactionReceipt({ hash, timeout: RECEIPT_TIMEOUT });
 };
 
 /** Make sure `original` (an address on the other side) has its proxy on
@@ -81,7 +82,7 @@ const ensureProxyOn = async (
     functionName: "createCrossChainProxy",
     args: [original, originalRollup],
   });
-  await client.waitForTransactionReceipt({ hash, timeout: 60_000 });
+  await client.waitForTransactionReceipt({ hash, timeout: RECEIPT_TIMEOUT });
   return proxy;
 };
 

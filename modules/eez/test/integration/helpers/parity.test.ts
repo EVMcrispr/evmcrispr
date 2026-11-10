@@ -11,6 +11,7 @@ import {
   L2_ROLLUP_ID,
   l1,
   l1Wallet,
+  RECEIPT_TIMEOUT,
 } from "../../devnet";
 
 /**
@@ -46,7 +47,7 @@ const ensureKnownProxy = async () => {
     functionName: "createCrossChainProxy",
     args: [KNOWN, L2_ROLLUP_ID],
   });
-  await l1.waitForTransactionReceipt({ hash, timeout: 60_000 });
+  await l1.waitForTransactionReceipt({ hash, timeout: RECEIPT_TIMEOUT });
 };
 
 const knownProxy = devnet ? await proxyOf(KNOWN) : DEAD;

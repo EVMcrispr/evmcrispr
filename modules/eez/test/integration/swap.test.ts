@@ -20,8 +20,8 @@ import {
 import {
   devnet,
   ensureFunded,
+  L1_CHAIN_RPC,
   L1_ID,
-  L1_RPC,
   L2_ID,
   L2_RPC,
   l1,
@@ -162,7 +162,7 @@ async function runAs(account: Account, script: string): Promise<string> {
     [L1_ID]: createWalletClient({
       account,
       chain: l1Chain,
-      transport: http(L1_RPC),
+      transport: http(L1_CHAIN_RPC),
     }),
     [L2_ID]: createWalletClient({
       account,

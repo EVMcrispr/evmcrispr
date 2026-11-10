@@ -19,6 +19,7 @@ import {
   l1Wallet,
   l2,
   l2Wallet,
+  RECEIPT_TIMEOUT,
   testAccount,
 } from "../devnet";
 
@@ -32,7 +33,7 @@ const valueAbi = parseAbi(["function value() view returns (uint256)"]);
 describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
   beforeAll(async () => {
     await ensureFunded();
-  }, 120_000);
+  }, 400_000);
 
   it("sets a value on the rollup from L1 in one atomic transaction", async () => {
     const value = await deployValue(l2Wallet, l2);
@@ -73,7 +74,7 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
       if (observed !== expected) await Bun.sleep(2_000);
     }
     expect(observed).to.equal(expected);
-  }, 180_000);
+  }, 600_000);
 
   it("prices a hand-written call to a proxy that nothing marked as crossing chains", async () => {
     // No eez:on: the script calls the L1 proxy of a rollup contract itself.
@@ -93,7 +94,10 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
       functionName: "createCrossChainProxy",
       args: [value, L2_ROLLUP_ID],
     });
-    await l1.waitForTransactionReceipt({ hash: created, timeout: 60_000 });
+    await l1.waitForTransactionReceipt({
+      hash: created,
+      timeout: RECEIPT_TIMEOUT,
+    });
     const expected = BigInt(Date.now());
 
     // Chiado's own RPC cannot estimate a call to a proxy (it reverts with
@@ -121,7 +125,7 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
       if (observed !== expected) await Bun.sleep(2_000);
     }
     expect(observed).to.equal(expected);
-  }, 240_000);
+  }, 600_000);
 
   it("comes back to L1 through the rollup with a nested block", async () => {
     // L1 → L2 → L1: the value contract lives on L1; the script reaches it
@@ -187,5 +191,5 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
         functionName: "value",
       }),
     ).to.equal(expected);
-  }, 240_000);
+  }, 600_000);
 });
