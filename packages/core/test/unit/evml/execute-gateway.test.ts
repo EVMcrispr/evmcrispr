@@ -175,16 +175,16 @@ describe("evml > execute > gateway pricing", () => {
     expect(sent[0].maxPriorityFeePerGas).to.equal(10n);
   });
 
-  it("sends a transaction the gateway does not quote as it was", async () => {
+  it("sends a cross-chain transaction the gateway does not quote as it was, to the gateway", async () => {
     gatewayAnswering({
-      error: { code: "unsupported_transaction", message: "not cross-chain" },
+      error: { code: "unsupported_transaction", message: "no quote" },
     });
     const { ctx, sent, logs } = makeCtx();
     await handlers.transaction(action(990001), ctx);
     expect(sent[0].maxFeePerGas).to.equal(undefined);
     expect(sent[0].maxPriorityFeePerGas).to.equal(undefined);
     expect(sent[0].gas).to.equal(400_000n);
-    expect(logs.join("\n")).not.to.include("must reach");
+    expect(logs.join("\n")).to.include(`must reach ${GATEWAY}`);
   });
 
   it("says why the gateway would not price a transaction it then refuses", async () => {
@@ -195,7 +195,7 @@ describe("evml > execute > gateway pricing", () => {
           "unsupported quote: gas estimation or final effect validation failed",
       },
     });
-    const { ctx } = makeCtx();
+    const { ctx, logs } = makeCtx();
     (ctx.walletClient as any).sendTransaction = async () => {
       throw new Error(
         "Transaction creation failed. settlement tariff admission failed",
@@ -204,6 +204,9 @@ describe("evml > execute > gateway pricing", () => {
     await bunExpect(handlers.transaction(action(990001), ctx)).rejects.toThrow(
       /unsupported quote: gas estimation or final effect validation failed: the gateway could not price this cross-chain transaction/,
     );
+    // Unpriced, it still goes to the gateway, which refuses it before
+    // anything is mined: the chain's own RPC would mine it and revert.
+    expect(logs.join("\n")).to.include(`must reach ${GATEWAY}`);
   });
 
   it("lets the quote size a transaction that set no gas, and sends its own estimate when none comes back", async () => {

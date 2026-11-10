@@ -692,8 +692,15 @@ async function priceThroughGateway(
     ctx.signal,
   );
   if (!quote) return {};
+  const own =
+    transportUrl(ctx.transports?.[chainId]) ?? registeredChain(chainId)?.rpcUrl;
+  const through = own === gateway ? {} : { rpcUrl: gateway };
+  // Refused, it still goes to the gateway: a cross-chain transaction the
+  // chain's own RPC took would be mined and revert, at the sender's cost;
+  // the gateway refuses it before anything is mined.
   if ("refused" in quote)
     return {
+      ...through,
       refused: quote.refused,
       temporary: quote.temporary,
       gateway,
@@ -702,9 +709,7 @@ async function priceThroughGateway(
   request.gas ??= quote.gas;
   request.maxFeePerGas = quote.maxFeePerGas;
   request.maxPriorityFeePerGas = quote.maxPriorityFeePerGas;
-  const own =
-    transportUrl(ctx.transports?.[chainId]) ?? registeredChain(chainId)?.rpcUrl;
-  return own === gateway ? {} : { rpcUrl: gateway };
+  return through;
 }
 
 /** Why a gateway refused a transaction it would not price. Its own gas
