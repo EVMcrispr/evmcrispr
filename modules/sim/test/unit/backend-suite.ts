@@ -137,6 +137,25 @@ export function describeBackendSuite(
     // handleAction: setStorageAt
     // -------------------------------------------------------------------------
 
+    it("CHAINID is the forked chain's id, in a call and in a transaction", async () => {
+      const { backend, client } = await makeBackend();
+      const reader = getAddress("0x00000000000000000000000000000000000c4a1d");
+      // Returns CHAINID; with calldata, stores it at slot 0 instead.
+      await backend.handleAction({
+        type: "rpc",
+        method: `${prefix}_setCode`,
+        params: [reader, "0x3615600957465f55005b465f5260205ff3"],
+      });
+      const answer = await client.call({ to: reader, data: "0x" });
+      expect(BigInt(answer.data ?? "0x0")).toBe(BigInt(CHAIN_ID));
+      await backend.handleAction({ to: reader, from: ADDR, data: "0x01" });
+      const stored = await client.getStorageAt({
+        address: reader,
+        slot: "0x0",
+      });
+      expect(BigInt(stored ?? "0x0")).toBe(BigInt(CHAIN_ID));
+    });
+
     it("setStorageAt sets storage readable via eth_getStorageAt", async () => {
       const { backend, client } = await makeBackend();
       const slot =

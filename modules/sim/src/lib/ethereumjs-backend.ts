@@ -1,4 +1,4 @@
-import { Common, Hardfork, Mainnet } from "@ethereumjs/common";
+import { createCustomCommon, Hardfork, Mainnet } from "@ethereumjs/common";
 import { RPCBlockChain, RPCStateManager } from "@ethereumjs/statemanager";
 import type { Account, Address as EthjsAddress } from "@ethereumjs/util";
 import {
@@ -91,7 +91,11 @@ export async function createEthereumJSBackend(
 
   // Prague enables EIP-7702, so calls to EOAs carrying a 0xef0100 delegation
   // designator resolve to the delegate's code (used for batch simulation).
-  const common = new Common({ chain: Mainnet, hardfork: Hardfork.Prague });
+  // Mainnet's rules on the forked chain's id: CHAINID answers it, so what is
+  // signed over the chain (EIP-712 domains, permits) checks as it would there.
+  const common = createCustomCommon({ chainId }, Mainnet, {
+    hardfork: Hardfork.Prague,
+  });
 
   const blockTag: bigint | "earliest" = opts.blockNumber
     ? BigInt(opts.blockNumber)
