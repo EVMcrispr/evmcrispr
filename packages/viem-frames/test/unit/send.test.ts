@@ -80,8 +80,9 @@ function gateway({
   code?: Hex | (() => never);
   send?: (wire: any) => unknown;
   mined?: boolean;
-  /** Admitted, then gone: no receipt and no transaction. */
-  dropped?: boolean;
+  /** Admitted, then gone: no receipt and no transaction. A number: only
+   *  that many submissions are dropped, the next is mined. */
+  dropped?: boolean | number;
   /** Polls before the node knows the transaction and mines it (an alt
    *  mempool still holding it). */
   held?: number;
@@ -90,6 +91,9 @@ function gateway({
   const calls: { method: string; params: any }[] = [];
   let sentHash: Hex | undefined;
   let byHash = 0;
+  let submissions = 0;
+  const droppedNow = () =>
+    dropped === true || (typeof dropped === "number" && submissions <= dropped);
   const transport = custom({
     async request({ method, params }: { method: string; params: any }) {
       calls.push({ method, params });
@@ -105,6 +109,8 @@ function gateway({
         case "skandha_getGasPrice":
           return fees;
         case "eth_sendFrameTransaction": {
+          submissions++;
+          byHash = 0;
           if (send) return send(params[0]);
           sentHash = txHash(profile, fromWire(params[0]));
           return sentHash;
@@ -116,14 +122,14 @@ function gateway({
           return { status: "Pending" };
         case "eth_getTransactionReceipt":
           if (held > 0) return null;
-          return mined && !dropped && sentHash ? RECEIPT(sentHash) : null;
+          return mined && !droppedNow() && sentHash ? RECEIPT(sentHash) : null;
         case "eth_getTransactionByHash":
           if (held > 0) {
             held--;
             return null;
           }
           // Dropped: the node had it once, then lost it.
-          if (dropped && byHash++ > 0) return null;
+          if (droppedNow() && byHash++ > 0) return null;
           return { hash: sentHash };
         default:
           throw new Error(`unexpected ${method}`);
@@ -237,12 +243,32 @@ describe("a transaction the node dropped", () => {
     expect(result.receipt?.status).toBe("success");
   }, 40_000);
 
-  test("is reported as dropped, not waited on until the timeout", async () => {
+  test("is submitted again, the same bytes, when the node drops it", async () => {
+    const g = gateway({ dropped: 1 });
+    const lines: [string, string][] = [];
+    const result = await send(g, {
+      receiptTimeoutMs: 60_000,
+      onLog: (line, level) => lines.push([level, line]),
+    });
+    expect(result.receipt?.status).toBe("success");
+    const sent = g.calls.filter((c) => c.method === "eth_sendFrameTransaction");
+    expect(sent).toHaveLength(2);
+    expect(sent[1]!.params).toEqual(sent[0]!.params);
+    expect(lines).toContainEqual([
+      "warning",
+      `${result.hash} was dropped unmined: submitting the same signed transaction again (1 of 2)`,
+    ]);
+  }, 40_000);
+
+  test("is reported as dropped once its resends are dropped too, not waited on until the timeout", async () => {
     const g = gateway({ dropped: true });
     const started = Date.now();
-    const error = await send(g, { receiptTimeoutMs: 60_000 }).catch(
+    const error = await send(g, { receiptTimeoutMs: 60_000, resends: 1 }).catch(
       (e: unknown) => e,
     );
+    expect(
+      g.calls.filter((c) => c.method === "eth_sendFrameTransaction"),
+    ).toHaveLength(2);
     expect(error).toBeInstanceOf(FrameTransactionDroppedError);
     expect((error as FrameTransactionDroppedError).hash).toMatch(
       /^0x[0-9a-f]{64}$/,

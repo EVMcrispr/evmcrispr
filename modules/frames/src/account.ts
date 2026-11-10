@@ -75,6 +75,7 @@ export async function sendAccountFrameTransaction({
   transport,
   onLog,
   receiptTimeoutMs,
+  resends,
   maxFeePerGasCap,
   fees,
   signWith,
@@ -93,6 +94,8 @@ export async function sendAccountFrameTransaction({
   transport?: Transport;
   onLog?: (line: string, level: FrameLogLevel) => void;
   receiptTimeoutMs?: number;
+  /** Submissions of the same signed bytes after the node drops them unmined (2 by default). */
+  resends?: number;
   /** Refuses, before signing, fees above this (wei per gas; 10 gwei by default): the wallet never sees them. */
   maxFeePerGasCap?: bigint;
   /** Fees to carry instead of the node's: a fee given here is neither read nor capped. */
@@ -147,6 +150,7 @@ export async function sendAccountFrameTransaction({
     transport,
     onLog,
     receiptTimeoutMs,
+    resends,
     maxFeePerGasCap,
     fees,
     signWith,

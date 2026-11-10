@@ -307,6 +307,7 @@ export async function submitFrameTransaction({
   onLog,
   receiptTimeoutMs = 120_000,
   waitForReceipt = true,
+  resends = 2,
 }: {
   gateway: FrameClient;
   chain: Chain;
@@ -317,37 +318,44 @@ export async function submitFrameTransaction({
   onLog?: ((line: string, level: FrameLogLevel) => void) | undefined;
   receiptTimeoutMs?: number;
   waitForReceipt?: boolean;
+  /** How many times the same signed bytes are submitted again when the
+   *  node drops them unmined. The bytes, nonce and hash do not change, so
+   *  a resend can only be mined in the transaction's place. */
+  resends?: number;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   const profile = frameProfileOf(chain);
   const sidecar = frameSidecarOf(chain);
   const explorer = chain.blockExplorers?.default.url;
   const sender = printable(signed.sender, 60);
   const expected = txHash(profile, signed) as Hash;
-  let answer: unknown;
-  try {
-    answer =
-      mempool === "canonical"
-        ? await gateway.request({
-            method: "eth_sendRawTransaction",
-            params: [encodeTx(profile, signed)],
-          } as never)
-        : await gateway.request({
-            method: "eth_sendFrameTransaction",
-            params: [toWire(signed)],
-          } as never);
-  } catch (error) {
-    throw new Error(
-      `The ${mempool} mempool refused the frame transaction from ${sender}, paid by ${payer}: ${printable(refusalText(error), TEXT_MAX)}`,
-    );
-  }
-  // Only the hash of the bytes signed is shown and waited on.
-  if (
-    typeof answer !== "string" ||
-    answer.toLowerCase() !== expected.toLowerCase()
-  )
-    throw new Error(
-      `The ${mempool === "canonical" ? "node" : "gateway"} returned ${printable(typeof answer === "string" ? answer : JSON.stringify(answer), 80)} for a transaction whose hash is ${expected}`,
-    );
+  const submit = async () => {
+    let answer: unknown;
+    try {
+      answer =
+        mempool === "canonical"
+          ? await gateway.request({
+              method: "eth_sendRawTransaction",
+              params: [encodeTx(profile, signed)],
+            } as never)
+          : await gateway.request({
+              method: "eth_sendFrameTransaction",
+              params: [toWire(signed)],
+            } as never);
+    } catch (error) {
+      throw new Error(
+        `The ${mempool} mempool refused the frame transaction from ${sender}, paid by ${payer}: ${printable(refusalText(error), TEXT_MAX)}`,
+      );
+    }
+    // Only the hash of the bytes signed is shown and waited on.
+    if (
+      typeof answer !== "string" ||
+      answer.toLowerCase() !== expected.toLowerCase()
+    )
+      throw new Error(
+        `The ${mempool === "canonical" ? "node" : "gateway"} returned ${printable(typeof answer === "string" ? answer : JSON.stringify(answer), 80)} for a transaction whose hash is ${expected}`,
+      );
+  };
+  await submit();
 
   // Only a sidecar reports a frame transaction's status.
   const status = async () =>
@@ -370,18 +378,34 @@ export async function submitFrameTransaction({
   );
   if (!waitForReceipt) return { hash: expected };
 
-  let receipt: FrameTransactionReceipt;
-  try {
-    receipt = await receiptOrDrop(gateway, expected, receiptTimeoutMs);
-  } catch (error) {
-    if (error instanceof FrameTransactionDroppedError) throw error;
-    if (error instanceof WaitForTransactionReceiptTimeoutError)
+  let receipt: FrameTransactionReceipt | undefined;
+  for (let resent = 0; !receipt; ) {
+    try {
+      receipt = await receiptOrDrop(gateway, expected, receiptTimeoutMs);
+    } catch (error) {
+      if (error instanceof FrameTransactionDroppedError) {
+        if (resent >= resends) throw error;
+        resent++;
+        onLog?.(
+          `${expected} was dropped unmined: submitting the same signed transaction again (${resent} of ${resends})`,
+          "warning",
+        );
+        await submit().catch((refused: Error) => {
+          throw new Error(
+            `${error.message}, and submitting it again failed: ${refused.message}`,
+            { cause: refused },
+          );
+        });
+        continue;
+      }
+      if (error instanceof WaitForTransactionReceiptTimeoutError)
+        throw new Error(
+          `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the sender would reuse its nonce.${explorer ? ` ${explorer}` : ""}`,
+        );
       throw new Error(
-        `${expected} was admitted but not mined within ${Math.round(receiptTimeoutMs / 1000)} s (status ${await status()}): stopping, since a later transaction from the sender would reuse its nonce.${explorer ? ` ${explorer}` : ""}`,
+        `Waiting for ${expected}'s receipt failed: ${printable(refusalText(error), TEXT_MAX)}`,
       );
-    throw new Error(
-      `Waiting for ${expected}'s receipt failed: ${printable(refusalText(error), TEXT_MAX)}`,
-    );
+    }
   }
   onLog?.(
     `Frame transaction ${expected} mined in block ${printable(receipt.blockNumber)}, paid by ${receipt.payer === undefined ? "an unknown payer" : printable(receipt.payer)}`,
@@ -476,6 +500,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
   transport,
   onLog,
   receiptTimeoutMs = 120_000,
+  resends,
   maxFeePerGasCap = DEFAULT_MAX_FEE_PER_GAS_CAP,
   fees: givenFees,
   signWith,
@@ -493,6 +518,8 @@ export async function sendFrameTransactionWithArbitrarySignature({
   transport?: Transport;
   onLog?: (line: string, level: FrameLogLevel) => void;
   receiptTimeoutMs?: number;
+  /** Submissions of the same signed bytes after the node drops them unmined (2 by default). */
+  resends?: number;
   /** Refuses, before signing, fees above this (wei per gas; 10 gwei by default): the signer never sees them. */
   maxFeePerGasCap?: bigint;
   /** Fees to carry instead of the node's: a fee given here is neither read nor capped. */
@@ -580,6 +607,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
     payer,
     onLog,
     receiptTimeoutMs,
+    resends,
     waitForReceipt,
   });
 }
