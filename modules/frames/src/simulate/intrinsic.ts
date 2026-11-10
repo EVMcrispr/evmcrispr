@@ -19,7 +19,7 @@ const FRAME_TX_PER_FRAME_COST = 475n;
 /** What the protocol charges to verify the signature entry: a plain
  *  sender's secp256k1 one, or a frame account's ARBITRARY one (its code
  *  checks it; measured on the Hegota devnet, hegota-post-tx-probe (h)). */
-const VERIFICATION = { secp256k1: 2_800n, arbitrary: 100n } as const;
+export const VERIFICATION = { secp256k1: 2_800n, arbitrary: 100n } as const;
 const TX_VALUE_COST = 6_000n;
 const STANDARD_TOKEN_COST = 4n;
 /** The floor prices every byte as 4 tokens at 16 gas each (EIP-7976). */

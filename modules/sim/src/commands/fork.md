@@ -191,7 +191,30 @@ state gas, less the storage refunds of the frames that took effect (at most a
 fifth), or EIP-8141's calldata floor when that is more; elsewhere the frames'
 gas alone.
 
-Not modelled: the ERC-8421 mempool's admission rules.
+On the Hegota devnet the fork also checks what its mempool admits, as
+`ethrex_simulateFrameTransaction` reports it (measured case by case), and
+stops the run naming the rule a send would be refused for: a validation
+prefix of one of EIP-8141's shapes (a verify frame approving execution and
+payment, or one approving execution then one approving payment, either after
+an optional deploy frame) and no verify frame after it; the prefix's gas
+limits and the signature's verification cost within 500,000 gas (that node's
+`MAX_VERIFY_GAS`; it caps no state gas there); the transaction within
+EIP-7825's 16,777,216 gas; and, in each validation frame the fork runs (a
+sponsor's or paymaster's verify frame, a deploy frame), the trace rules: no
+BALANCE, SELFBALANCE, ORIGIN, GASPRICE, BLOCKHASH, COINBASE, TIMESTAMP,
+NUMBER, PREVRANDAO, GASLIMIT, BASEFEE, BLOBHASH, BLOBBASEFEE, TLOAD, TSTORE,
+INVALID or SELFDESTRUCT, GAS only right before a call, storage read only the
+sender's, no write or CREATE outside a deploy frame (which must leave code at
+the sender), and every call or code read reaching an account that exists and
+is not delegated by EIP-7702 (the sender and the precompiles always do).
+
+Not checked: the trace of the sender's own verify frame (impersonated, so it
+never runs here; the frames module's account keeps the rules, which its tests
+check with its owner's signature), the mempool's
+limit of one pending transaction per sponsor and per sender, and the reserve
+it holds against a sponsor's balance for its other pending transactions. On
+the alt-mempool and local devnets no mempool rule is checked: their sidecar's
+ERC-8421 rules and their node's have not been measured.
 
 ## Cross-chain simulation
 

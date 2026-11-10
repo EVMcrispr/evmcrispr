@@ -182,6 +182,18 @@ sim:fork --using revm --on framesMining (
 )
 ```
 
+### Mempool rules
+
+A public mempool admits a frame transaction only when its validation frames
+cannot be invalidated between admission and inclusion: they may not read the
+block, balances or transient storage, read storage other than the sender's,
+or reach an account that does not exist, and they fit a gas budget. On a fork
+of the Hegota devnet, `sim:fork` checks these rules as that devnet's node does
+and stops the run naming the one a send would break, for instance a sponsor
+whose verify frame reads its own storage. The sender's own verify frame is not
+checked (the fork impersonates it), nor the limit of one pending transaction
+per sponsor. The alt-mempool and local devnets' rules are not checked.
+
 ### After admission
 
 When the mempool admits the transaction, the run prints its hash. It then

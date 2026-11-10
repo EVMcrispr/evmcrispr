@@ -1,4 +1,5 @@
 import { createCustomCommon, Hardfork, Mainnet } from "@ethereumjs/common";
+import type { InterpreterStep } from "@ethereumjs/evm";
 import { RPCBlockChain, RPCStateManager } from "@ethereumjs/statemanager";
 import type { Account, Address as EthjsAddress } from "@ethereumjs/util";
 import {
@@ -22,6 +23,7 @@ import {
   type ModuleActionSimCtx,
   RevertError,
   type SimStateChanges,
+  type SimStep,
   unpaidFeeError,
 } from "@evmcrispr/sdk";
 import { custom, getAddress, type Hex, keccak256 } from "viem";
@@ -531,8 +533,27 @@ export async function createEthereumJSBackend(
           transferLogs,
           schedule,
           stateGas,
+          observe,
         }: Parameters<ModuleActionSimCtx["call"]>[0]) {
           opcodeSlot.failure = undefined;
+          // The steps asked for, of the last run (a schedule may run the
+          // call again).
+          const watched = observe?.length ? new Set(observe) : undefined;
+          let steps: SimStep[] = [];
+          let stepCount = 0;
+          const onStep = (step: InterpreterStep, done?: () => void) => {
+            const index = stepCount++;
+            if (watched?.has(step.opcode.code)) {
+              const stack = step.stack;
+              steps.push({
+                index,
+                opcode: step.opcode.code,
+                address: getAddress(step.address.toString()),
+                stack: stack.slice(-2).reverse(),
+              });
+            }
+            done?.();
+          };
           // EIP-7708 for this call only: the fork's own transactions keep the
           // forked chain's rules.
           const common = vm.evm.common;
@@ -541,8 +562,10 @@ export async function createEthereumJSBackend(
           if (addLogs) common.setEIPs([...eips, 7708]);
           let result: Awaited<ReturnType<typeof vm.evm.runCall>>;
           let stateGasUsed: bigint | undefined;
-          const runCall = () =>
-            vm.evm.runCall({
+          const runCall = () => {
+            steps = [];
+            stepCount = 0;
+            return vm.evm.runCall({
               caller: address(caller),
               to: address(to),
               data: hexToBytes(data),
@@ -552,6 +575,8 @@ export async function createEthereumJSBackend(
               skipNonceIncrement: true,
               block: makeBlockContext(),
             });
+          };
+          if (watched) vm.evm.events!.on("step", onStep);
           try {
             if (schedule === "hegota") {
               const run = await withHegotaSchedule(
@@ -566,6 +591,7 @@ export async function createEthereumJSBackend(
             } else result = await runCall();
           } finally {
             if (addLogs) common.setEIPs(eips);
+            if (watched) vm.evm.events!.off("step", onStep);
           }
           // ethrex leaves a frame's target cold (its own code may warm it).
           if (schedule !== "hegota") journal.addWarmedAddress(hexToBytes(to));
@@ -587,6 +613,7 @@ export async function createEthereumJSBackend(
               }),
             ),
             error: error ? (opcodeSlot.failure ?? error.error) : undefined,
+            ...(watched && { steps }),
           };
         }
       },

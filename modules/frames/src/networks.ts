@@ -12,6 +12,7 @@ import {
 } from "@evmcrispr/viem-frames";
 import { type Chain, defineChain } from "viem";
 import { chains } from "./chains";
+import type { MempoolAdmission } from "./simulate/admission";
 
 /** How a network's client charges a frame's own gas, as `sim:fork`
  *  models it (both measured on the chains). */
@@ -60,6 +61,15 @@ const HEGOTA_GAS: FrameGasRules = {
   rolledBackFramesSucceed: true,
 };
 
+/** The Hegota devnet's mempool, measured on 2026-11-10 against
+ *  `ethrex_simulateFrameTransaction` (hegota-admission.devnet.test.ts): its
+ *  MAX_VERIFY_GAS is raised from EIP-8141's 100,000, and it caps no state
+ *  gas in the prefix (100,000,000 was admitted). */
+const HEGOTA_ADMISSION: MempoolAdmission = {
+  maxVerifyGas: 500_000n,
+  maxTxGas: 16_777_216n,
+};
+
 export interface FrameNetwork {
   /** A chain from viem-frames' `withFrames`: its profile, and whether its RPC is an ERC-8421 sidecar (the alt mempool). */
   chain: Chain;
@@ -68,6 +78,9 @@ export interface FrameNetwork {
   /** false: the chain admits transactions but never mines them. */
   mines: boolean;
   gas: FrameGasRules;
+  /** What its mempool admits, as `sim:fork` checks it; without it, a fork
+   *  checks no mempool rule. */
+  admission?: MempoolAdmission;
 }
 
 const local = (key: string, mines: boolean, sidecar = false): FrameNetwork => {
@@ -104,6 +117,7 @@ export const frameNetworks: readonly FrameNetwork[] = [
     switchTo: "hegotaDevnet",
     mines: true,
     gas: HEGOTA_GAS,
+    admission: HEGOTA_ADMISSION,
   },
 ];
 

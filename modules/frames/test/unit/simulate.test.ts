@@ -348,7 +348,9 @@ describe("the frame executor", () => {
       expect(host.balances.get(SENDER)).toBe(ONE - floor * 8n);
     });
 
-    test("the payer is charged when it approves, not after the whole validation prefix (ethrex)", async () => {
+    test("the payer is charged when it approves: the frames after it see the charge (ethrex)", async () => {
+      // A later validation frame would see it too, but no prefix a mempool
+      // takes has one after the payer's (the pay frame is its last).
       const during: (bigint | undefined)[] = [];
       let balances: Map<string, bigint> | undefined;
       const host = fakeHost(undefined, 7n, {
@@ -361,49 +363,10 @@ describe("the frame executor", () => {
       });
       balances = host.balances;
       host.balances.set(SENDER, ONE);
-      const tx = frameAction.create({
-        chainId: HEGOTA,
-        from: SENDER,
-        data: {
-          mempool: "canonical",
-          fees: FEES,
-          frames: [
-            {
-              mode: "verify",
-              approve: "payment",
-              target: null,
-              data: "0x",
-              value: 0n,
-              gas: 30_000n,
-            },
-            // Inside the prefix, after the payer approved.
-            {
-              mode: "default",
-              target: DEAD,
-              data: "0x",
-              value: 0n,
-              gas: 50_000n,
-            },
-            {
-              mode: "verify",
-              approve: "execution",
-              target: null,
-              data: "0x",
-              value: 0n,
-              gas: 30_000n,
-            },
-            {
-              mode: "sender",
-              target: DEAD,
-              data: "0x",
-              value: 0n,
-              gas: 50_000n,
-              stateGas: 200_000n,
-            },
-          ],
-        },
-      });
-      await frameAction.simulate!(tx, host.sim);
+      await frameAction.simulate!(
+        action(1, FEES, { chainId: HEGOTA }),
+        host.sim,
+      );
       expect(during[0]).toBeLessThan(ONE);
     });
 

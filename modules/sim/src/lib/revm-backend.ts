@@ -10,6 +10,7 @@ import {
   RevertError,
   type SimOpcode,
   type SimOpcodeResult,
+  type SimStep,
   unpaidFeeError,
 } from "@evmcrispr/sdk";
 import {
@@ -449,6 +450,7 @@ export async function createRevmBackend(
         transferLogs,
         schedule,
         stateGas,
+        observe,
       }) {
         await prefetchAccounts([caller, to]);
         const json = JSON.stringify({
@@ -471,6 +473,7 @@ export async function createRevmBackend(
             address,
             storageKeys: [...slots],
           })),
+          ...(observe?.length && { observe }),
         });
         const env = await execWithReplay(() => fork.frameCall(json, host));
         warmAddress(caller);
@@ -481,8 +484,29 @@ export async function createRevmBackend(
           const slots = warmAddress(address);
           for (const key of storageKeys) slots.add(key);
         }
+        const reported = (
+          env as {
+            steps?: {
+              index: number;
+              opcode: number;
+              address: string;
+              stack: string[];
+            }[];
+          }
+        ).steps;
+        const steps = reported && {
+          steps: reported.map(
+            (s): SimStep => ({
+              index: s.index,
+              opcode: s.opcode,
+              address: getAddress(s.address),
+              stack: s.stack.map(BigInt),
+            }),
+          ),
+        };
         if (env.kind === "success")
           return {
+            ...steps,
             success: true,
             returnData: env.returnData,
             gasUsed: BigInt(env.gasUsed),
@@ -496,6 +520,7 @@ export async function createRevmBackend(
           };
         if (env.kind === "revert" || env.kind === "halt")
           return {
+            ...steps,
             success: false,
             returnData: env.kind === "revert" ? env.revertData : "0x",
             gasUsed: BigInt(env.gasUsed ?? 0),

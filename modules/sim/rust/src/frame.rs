@@ -438,6 +438,12 @@ pub struct FrameInspector {
     cool: Option<Address>,
     /// Cost per state byte (EIP-8037), for a create's code deposit.
     cpsb: u64,
+    /// The opcodes to report (`observe`), and the steps run so far.
+    observed: Option<Box<[bool; 256]>>,
+    step_count: u64,
+    /// The observed steps: index, opcode, executing account, top two
+    /// stack words (top first).
+    pub steps: Vec<(u64, u8, Address, Vec<U256>)>,
 }
 
 /// A reservoir no frame can drain (the frame's pool is kept by the inspector).
@@ -483,7 +489,22 @@ impl FrameInspector {
             reservoir_before: 0,
             cool: None,
             cpsb: 0,
+            observed: None,
+            step_count: 0,
+            steps: Vec::new(),
         }
+    }
+
+    /// Reports every step that runs one of `opcodes`.
+    pub fn with_observed(mut self, opcodes: &[u8]) -> Self {
+        if !opcodes.is_empty() {
+            let mut table = Box::new([false; 256]);
+            for &op in opcodes {
+                table[op as usize] = true;
+            }
+            self.observed = Some(table);
+        }
+        self
     }
 
     /// Leaves the frame's `target` cold, as ethrex does, unless an earlier
@@ -543,6 +564,16 @@ where
     CTX::Journal: JournalTr<State = revm::state::EvmState>,
 {
     fn step(&mut self, interp: &mut Interpreter<EthInterpreter>, context: &mut CTX) {
+        if let Some(observed) = &self.observed {
+            let index = self.step_count;
+            self.step_count += 1;
+            let op = interp.bytecode.opcode();
+            if observed[op as usize] {
+                let data = interp.stack.data();
+                let top: Vec<U256> = data.iter().rev().take(2).copied().collect();
+                self.steps.push((index, op, interp.input.target_address(), top));
+            }
+        }
         if let Some(target) = self.cool.take() {
             if let Some(account) = context.journal_mut().evm_state_mut().get_mut(&target) {
                 account.mark_cold();

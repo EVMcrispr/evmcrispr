@@ -24,7 +24,14 @@ import {
 import { type Address, getAddress, isAddressEqual, zeroAddress } from "viem";
 import { type FrameModuleAction, postVerifyCheckName } from "../frame-action";
 import { frameNetwork, frameNetworkNames } from "../networks";
-import { frameTxGas } from "./intrinsic";
+import {
+  capViolation,
+  OBSERVED,
+  structureViolation,
+  traceViolation,
+  validationPrefix,
+} from "./admission";
+import { frameTxGas, VERIFICATION } from "./intrinsic";
 
 const larger = (a: bigint, b: bigint) => (a > b ? a : b);
 
@@ -207,7 +214,10 @@ export async function simulateFrameAction(
     [sender, ENTRY_POINT, ...PRECOMPILES].map((a) => a.toLowerCase()),
   );
   const precompiles = new Set(PRECOMPILES);
-  const runFrame = async (i: number): Promise<SimCallResult> => {
+  const runFrame = async (
+    i: number,
+    observe?: readonly number[],
+  ): Promise<SimCallResult> => {
     const f = frames[i]!;
     ctx.current = i;
     ctx.approved = undefined;
@@ -228,6 +238,7 @@ export async function simulateFrameAction(
         gas: UNSIZED_GAS,
         isStatic: f.mode === VERIFY || f.mode === POST_TX,
         transferLogs: network.gas.transferLogs,
+        observe,
       });
       return { ...result, gasUsed: 0n };
     }
@@ -250,6 +261,7 @@ export async function simulateFrameAction(
       gas: f.gas - access,
       isStatic: f.mode === VERIFY || f.mode === POST_TX,
       transferLogs: network.gas.transferLogs,
+      observe,
       // The network's gas schedule, and the frame's own state-gas pool.
       ...(network.gas.schedule && {
         schedule: network.gas.schedule,
@@ -258,6 +270,34 @@ export async function simulateFrameAction(
     });
     return { ...result, gasUsed: access + result.gasUsed };
   };
+
+  // The network's mempool rules, on its shape and declared gas, before any
+  // frame runs: a send it refuses never reaches the chain.
+  const admission = network.admission;
+  const refused = (why: string) =>
+    new ErrorException(
+      `The ${network.chain.name}'s mempool would refuse this frame transaction: ${why}.`,
+    );
+  const validation = admission && validationPrefix(frames, profile);
+  if (admission) {
+    const cap =
+      txGas && capViolation(frames, txGas.intrinsic, txGas.floor, admission);
+    if (cap) throw refused(cap);
+    if (typeof validation === "string") throw refused(validation);
+    const shape = structureViolation(
+      frames,
+      validation!,
+      sender,
+      profile,
+      admission,
+      VERIFICATION[action.data.account ? "arbitrary" : "secp256k1"],
+    );
+    if (shape) throw refused(shape);
+  }
+  const deployFrame =
+    validation && typeof validation !== "string"
+      ? validation.deploy
+      : undefined;
 
   return sim.withOpcodes(frameOpcodes(ctx), async () => {
     let prefix = 0;
@@ -296,11 +336,29 @@ export async function simulateFrameAction(
           ctx.gasUsed[i] = 0n;
           out.push({ status: "impersonated", gasUsed: 0n, logs: [] });
         } else {
-          const result = await runFrame(i);
+          const result = await runFrame(i, admission && OBSERVED);
           if (!result.success)
             throw new ErrorException(
               `The frame transaction is invalid: ${name(i)} failed (${result.error ?? "reverted"}), so nothing of it runs.`,
             );
+          // What a validation frame ran must not change before inclusion.
+          if (admission) {
+            const why = await traceViolation(result.steps ?? [], {
+              sender,
+              deploy: i === deployFrame,
+              read: async (a) => ({
+                code: await sim.getCode(a),
+                balance: await sim.getBalance(a),
+                nonce: await sim.getNonce(a),
+              }),
+            });
+            if (why)
+              throw refused(`${name(i)} is a validation frame, and ${why}`);
+            if (i === deployFrame && (await sim.getCode(sender)) === "0x")
+              throw refused(
+                `${name(i)}, its deploy frame, left no code at the sender ${sender}`,
+              );
+          }
           if (f.mode === VERIFY && ctx.approved === undefined)
             throw new ErrorException(
               `The frame transaction is invalid: ${name(i)} ended without APPROVE, so nothing of it runs.`,

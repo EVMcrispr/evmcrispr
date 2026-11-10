@@ -110,6 +110,9 @@ struct FrameCallJson {
     /// share their warm addresses and slots (EIP-2929).
     #[serde(default)]
     access_list: Vec<WarmJson>,
+    /// Opcodes whose steps the result reports.
+    #[serde(default)]
+    observe: Vec<u8>,
 }
 
 #[derive(Deserialize)]
@@ -566,7 +569,8 @@ impl Fork {
             Ok(g) => g.unwrap_or_default().saturating_to::<u64>(),
             Err(e) => return error_env(&e),
         };
-        let mut inspector = FrameInspector::new(gas, call.is_static, call.transfer_logs);
+        let mut inspector = FrameInspector::new(gas, call.is_static, call.transfer_logs)
+            .with_observed(&call.observe);
         if hegota {
             hegota_schedule(&mut cfg);
             inspector = inspector.with_state_pool(state_gas, HEGOTA_COST_PER_STATE_BYTE);
@@ -627,6 +631,18 @@ impl Fork {
         let spent = evm.inspector.spent.unwrap_or(0);
         let state_spent = evm.inspector.state_spent;
         let refund = evm.inspector.refund;
+        let steps: Vec<Value> = std::mem::take(&mut evm.inspector.steps)
+            .into_iter()
+            .map(|(index, op, address, stack)| {
+                json!({
+                    "index": index,
+                    "opcode": op,
+                    "address": format!("{address:?}"),
+                    "stack": stack.iter().map(|w| format!("{w:#x}")).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+        let observing = !call.observe.is_empty();
         self.db = evm.ctx.journaled_state.database;
 
         match res {
@@ -645,6 +661,9 @@ impl Fork {
                 env["accessed"] = accessed;
                 env["stateGasUsed"] = json!(state_spent);
                 env["gasRefund"] = json!(refund);
+                if observing {
+                    env["steps"] = Value::Array(steps);
+                }
                 env.to_string()
             }
             Err(EVMError::Database(m)) => miss_env(&m),

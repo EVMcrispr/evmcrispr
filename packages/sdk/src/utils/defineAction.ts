@@ -37,6 +37,21 @@ export interface SimCallResult {
   logs: { address: Hex; topics: Hex[]; data: Hex }[];
   /** The revert or halt, when not a success. */
   error?: string;
+  /** The steps the call was asked to `observe`, in order. */
+  steps?: SimStep[];
+}
+
+/** One opcode a call ran, as `observe` reports it: before it runs. */
+export interface SimStep {
+  /** Its position among every step the call ran, from 0: two steps one
+   *  after the other, whatever the depth, have consecutive indices. */
+  index: number;
+  opcode: number;
+  /** The executing account (under a delegatecall, the caller's): the one
+   *  whose storage SLOAD and SSTORE use. */
+  address: Address;
+  /** The top two stack words, top first (fewer on a shorter stack). */
+  stack: bigint[];
 }
 
 /** What an extra opcode does, decided by the module: the backend pops the
@@ -101,6 +116,9 @@ export interface ModuleActionSimCtx {
     schedule?: "hegota";
     /** The call's state-gas pool under the "hegota" schedule. */
     stateGas?: bigint;
+    /** Opcodes to report in `steps`, wherever they run in the call: what a
+     *  module checks a mempool's rules against. */
+    observe?: readonly number[];
   }): Promise<SimCallResult>;
   checkpoint(): Promise<void>;
   commit(): Promise<void>;
