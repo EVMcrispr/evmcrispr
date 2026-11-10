@@ -73,7 +73,19 @@ export interface GatewayQuote {
 /** Why a gateway would not price a transaction, in its own words. */
 export interface GatewayRefusal {
   refused: string;
+  /** The gateway could not price it just now (busy, its view of the
+   *  chains not ready): the same transaction may be priced later. */
+  temporary?: boolean;
 }
+
+/** An EEZ composer's quote error codes that say nothing about the
+ *  transaction itself (`eez_quoteFee`'s shared errors). */
+const TEMPORARY_QUOTE_ERRORS = new Set([
+  "quote_unavailable",
+  "quote_busy",
+  "quote_timeout",
+  "stale_context",
+]);
 
 /** Headroom on the quoted fees: they are priced against the head the
  *  gateway sees now, and the wallet may send a while later. */
@@ -125,7 +137,7 @@ export async function quoteThroughGateway(
       signal,
     });
     const json = (await res.json()) as {
-      error?: { message?: string };
+      error?: { message?: string; data?: { code?: string } };
       result?: {
         options?: {
           type: string;
@@ -136,7 +148,13 @@ export async function quoteThroughGateway(
         }[];
       };
     };
-    if (json.error) return { refused: json.error.message ?? "no quote" };
+    if (json.error)
+      return {
+        refused: json.error.message ?? "no quote",
+        ...(TEMPORARY_QUOTE_ERRORS.has(json.error.data?.code ?? "")
+          ? { temporary: true }
+          : {}),
+      };
     const option = json.result?.options?.find((o) => o.type === "0x2");
     if (!option) return undefined;
     if (option.error)
@@ -166,6 +184,46 @@ export async function quoteThroughGateway(
         refused: `the gateway quoted up to ${signedGas * maxFeePerGas} wei, above this chain's ceiling of ${ceiling}`,
       };
     return { gas, maxFeePerGas, maxPriorityFeePerGas };
+  } catch (err) {
+    if (signal?.aborted) throw err;
+    return undefined;
+  }
+}
+
+/**
+ * Why a gateway's own gas estimate (`eth_estimateGas`) fails for a
+ * transaction, when it does: an EEZ composer composes the transaction to
+ * estimate it, and names what keeps it from composing (a call to the
+ * manager, a missing proxy) where its fee quote may only say it is
+ * unavailable. Undefined when the estimate succeeds or the gateway cannot
+ * be reached.
+ */
+export async function gatewayEstimateFailure(
+  url: string,
+  tx: { from: Address; to: Address; data?: Hex; value?: bigint },
+  signal?: AbortSignal,
+): Promise<string | undefined> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "eth_estimateGas",
+        params: [
+          {
+            from: tx.from,
+            to: tx.to,
+            value: hex(tx.value ?? 0n),
+            data: tx.data ?? "0x",
+          },
+        ],
+      }),
+      signal,
+    });
+    const json = (await res.json()) as { error?: { message?: string } };
+    return json.error ? (json.error.message ?? "no estimate") : undefined;
   } catch (err) {
     if (signal?.aborted) throw err;
     return undefined;

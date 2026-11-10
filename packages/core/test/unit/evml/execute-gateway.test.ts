@@ -55,6 +55,19 @@ function gatewayAnswering(option: Option) {
   return asked;
 }
 
+/** Answer each JSON-RPC method with its own reply (`result` or `error`). */
+function gatewayRouting(replies: Record<string, Record<string, unknown>>) {
+  const asked: { url: string; body: any }[] = [];
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    asked.push({ url, body });
+    return new Response(
+      JSON.stringify({ jsonrpc: "2.0", id: body.id, ...replies[body.method] }),
+    );
+  }) as typeof fetch;
+  return asked;
+}
+
 /** What viem raises when an `eth_call` reverts with `data`. */
 const reverted = (data: string) =>
   Object.assign(new Error("execution reverted"), {
@@ -204,6 +217,52 @@ describe("evml > execute > gateway pricing", () => {
       unquoted.ctx,
     );
     expect(unquoted.sent[0].gas).to.equal(550_000n);
+  });
+
+  it("names what keeps a refused transaction from composing, from the gateway's own estimate", async () => {
+    gatewayRouting({
+      eez_quoteFee: {
+        error: {
+          code: -32004,
+          message: "quote unavailable: gas estimation",
+          data: { code: "quote_unavailable" },
+        },
+      },
+      eth_estimateGas: {
+        error: {
+          code: -32000,
+          message:
+            "cross-chain estimation unavailable: cross-chain call targets the chain 699169 manager 0x4B27",
+        },
+      },
+    });
+    const { ctx } = makeCtx();
+    (ctx.walletClient as any).sendTransaction = async () => {
+      throw new Error("settlement tariff admission failed");
+    };
+    await bunExpect(handlers.transaction(action(990001), ctx)).rejects.toThrow(
+      /targets the chain 699169 manager 0x4B27: the gateway cannot compose this transaction/,
+    );
+  });
+
+  it("says a quote that was only unavailable may work on a second try", async () => {
+    gatewayRouting({
+      eez_quoteFee: {
+        error: {
+          code: -32004,
+          message: "quote request capacity is full",
+          data: { code: "quote_busy" },
+        },
+      },
+      eth_estimateGas: { result: "0x19a28" },
+    });
+    const { ctx } = makeCtx();
+    (ctx.walletClient as any).sendTransaction = async () => {
+      throw new Error("settlement tariff admission failed");
+    };
+    await bunExpect(handlers.transaction(action(990001), ctx)).rejects.toThrow(
+      /quote request capacity is full: the gateway could not price this cross-chain transaction just now; try again/,
+    );
   });
 
   it("does not use a quote that commits the transaction to more than the chain's ceiling", async () => {
@@ -446,6 +505,7 @@ describe("evml > execute > which runs a gateway serves", () => {
     expect([...(collectScriptUsage("print 1")?.loaded ?? [])]).to.eql([]);
   });
 });
+
 const BRIDGE_REVERT =
   "0x096aa082000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000249a499f3b000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000";
 

@@ -15,6 +15,7 @@ import {
   defaultTransport,
   ExitSignal,
   extractRevertData,
+  gatewayEstimateFailure,
   isTransactionAction,
   quoteThroughGateway,
   RevertError,
@@ -644,7 +645,13 @@ async function priceThroughGateway(
   },
   ctx: ActionHandlerCtx,
   env: ExecutorEnv,
-): Promise<{ rpcUrl?: string; refused?: string }> {
+): Promise<{
+  rpcUrl?: string;
+  refused?: string;
+  temporary?: boolean;
+  gateway?: string;
+  from?: Address;
+}> {
   const gateway = env.gatewayFor?.(chainId);
   if (
     !gateway ||
@@ -678,13 +685,52 @@ async function priceThroughGateway(
     ctx.signal,
   );
   if (!quote) return {};
-  if ("refused" in quote) return { refused: quote.refused };
+  if ("refused" in quote)
+    return {
+      refused: quote.refused,
+      temporary: quote.temporary,
+      gateway,
+      from,
+    };
   request.gas ??= quote.gas;
   request.maxFeePerGas = quote.maxFeePerGas;
   request.maxPriorityFeePerGas = quote.maxPriorityFeePerGas;
   const own =
     transportUrl(ctx.transports?.[chainId]) ?? registeredChain(chainId)?.rpcUrl;
   return own === gateway ? {} : { rpcUrl: gateway };
+}
+
+/** Why a gateway refused a transaction it would not price. Its own gas
+ *  estimate composes the transaction and names what keeps it from
+ *  composing; without one, a quote that was only unavailable may work on
+ *  a second try. */
+async function refusalReason(
+  priced: {
+    refused?: string;
+    temporary?: boolean;
+    gateway?: string;
+    from?: Address;
+  },
+  request: { to?: Address | null; data?: Hex; value?: bigint },
+  ctx: ActionHandlerCtx,
+): Promise<string> {
+  const why =
+    priced.gateway && priced.from && request.to
+      ? await gatewayEstimateFailure(
+          priced.gateway,
+          {
+            from: priced.from,
+            to: request.to,
+            data: request.data,
+            value: request.value,
+          },
+          ctx.signal,
+        )
+      : undefined;
+  if (why) return `${why}: the gateway cannot compose this transaction`;
+  if (priced.temporary)
+    return `${priced.refused}: the gateway could not price this cross-chain transaction just now; try again`;
+  return `${priced.refused}: the gateway could not price this cross-chain transaction, which usually means it would fail once composed`;
 }
 
 /** Simulate a transaction on the chain's own RPC and tell whether it
@@ -818,9 +864,10 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           maxPriorityFeePerGas: action.maxPriorityFeePerGas,
           nonce: action.nonce,
         };
-        const priced = action.rpcUrl
-          ? { rpcUrl: action.rpcUrl }
-          : await priceThroughGateway(action, chainId, request, ctx, env);
+        const priced: Awaited<ReturnType<typeof priceThroughGateway>> =
+          action.rpcUrl
+            ? { rpcUrl: action.rpcUrl }
+            : await priceThroughGateway(action, chainId, request, ctx, env);
         // Neither the action nor a quote sized it: the command's own
         // estimate, where the sending chain cannot estimate it.
         request.gas ??= action.fallbackGas;
@@ -835,7 +882,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           // by it with its tariff; say why it could not be priced.
           if (priced.refused && /tariff/i.test(String((err as Error)?.message)))
             throw new Error(
-              `${(err as Error).message}\n${priced.refused}: the gateway could not price this cross-chain transaction, which usually means it would fail once composed`,
+              `${(err as Error).message}\n${await refusalReason(priced, request, ctx)}`,
             );
           throw err;
         }

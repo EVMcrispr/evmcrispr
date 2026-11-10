@@ -267,10 +267,12 @@ describe.skipIf(!devnet)(
       // where no simulation of ours reaches. The composer does compose it
       // when asked for a price, finds it failing and will not quote it, so
       // the transaction goes out unpriced and the composer refuses it
-      // before anything is mined.
+      // before anything is mined; its own estimate says why.
       const reason = await failure(runAs(bob, TAKE(scheduled())));
       expect(reason).toMatch(/settlement tariff admission failed/);
-      expect(reason).toMatch(/would fail once composed/);
+      expect(reason).toMatch(
+        /execution reverted: the gateway cannot compose this transaction/,
+      );
       expect(await balances(world)).toEqual({ bobDai: 0n, aliceUsdc: 0n });
     }, 300_000);
 

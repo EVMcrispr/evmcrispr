@@ -29,7 +29,8 @@ refuses one priced below that. EVMcrispr asks the composer for the price
 of each cross-chain transaction just before it is signed and offers it to
 the wallet; leave the suggested fee as it is. An ordinary Chiado or
 mainnet transaction is not shown to the composer. A transaction the composer will not price is
-one that would fail once composed, and the error says so.
+usually one that would fail once composed: the error gives the composer's
+own reason, or says it could not price it just then and to try again.
 
 A cross-chain transaction composes only when it reaches the composer. The
 `eezL2` network a wallet adds from EVMcrispr already points there. Chiado is
