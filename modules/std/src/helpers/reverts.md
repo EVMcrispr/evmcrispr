@@ -45,6 +45,10 @@ print $missing
 - The call argument is not resolved before the helper runs — the
   resolution failing is the answer, so `@reverts` receives the expression
   unevaluated.
+- A call that returns nothing, the usual shape of a guard that reverts
+  unless something holds, is probed as the call itself: write its empty
+  return list, `check(bytes32,address)()`. Only the last call of a chain
+  may return nothing; every hop before it must return the next target.
 - Asking the opposite question — that a read still *resolves* — is
   `@bool!(not @reverts!(…))`. It is the rarer of the two: an assertion
   about a value already fails when the read behind it reverts, so a bare
@@ -138,6 +142,14 @@ assert @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{withdraw(uint256)
 
 # The other direction: guard a batch on a view still resolving
 assert @bool!(not @reverts!(0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d::!{decimals()(uint8)}))
+
+# A guard that returns nothing and reverts unless it holds: a proven
+# withdrawal can still be finalized when the batch executes (OP Mainnet's
+# OptimismPortal; put the withdrawal's hash and its prover here)
+set $portal 0xbEb5Fc579115071764c7423A4f12eDde41f106Ed
+set $withdrawalHash 0x1111111111111111111111111111111111111111111111111111111111111111
+set $prover 0x2222222222222222222222222222222222222222
+assert @bool!(not @reverts!($portal::!{checkWithdrawal(bytes32,address)() $withdrawalHash $prover}))
 
 # Compose into boolean logic — safe here because every operand is a probe,
 # so there is no revert left for the eager `and` to trip over

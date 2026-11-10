@@ -148,6 +148,18 @@ function checkProbedCall(node: Node, clause: ProbeClause): CallExpressionNode {
   return call;
 }
 
+/** An on-chain `::!` call declared to return nothing (`check()()`), with
+ *  no lens: only the call itself can be probed. */
+function isVoidCall(node: Node): node is CallExpressionNode {
+  if (node.type !== NodeType.CallExpression) return false;
+  const call = node as CallExpressionNode;
+  return (
+    call.bang === true &&
+    !call.returnDestructure &&
+    call.outputTypes?.replace(/\s/g, "") === "()"
+  );
+}
+
 /** Select the decoded error argument the lens points at, after validating
  *  the path against the error's declared types — the same validation the
  *  compile face runs, so the two faces reject identically. */
@@ -266,6 +278,16 @@ export default defineHelper<Std>({
     const clause = parseProbeClause(rest);
 
     if (!clause) {
+      // A call that returns nothing is the usual guard ("revert unless the
+      // withdrawal can go through"): there is no value to read, so it is
+      // probed as the call itself. Mid-chain hops still need a value.
+      if (isVoidCall(callNode)) {
+        const chain = await compileChain(ctx, callNode, { voidTail: true });
+        return notCombine(
+          ctx,
+          coreCall(ctx, encodeIsValid(chainParam(ctx, chain)), "Bool"),
+        );
+      }
       const o = await compileOperand(ctx, callNode);
       if (o.kind !== "call") {
         throw new ErrorException(
