@@ -49,3 +49,9 @@ resolves at composition time and is not restricted by the executing chain.
 
 - A name with no resolver set reads as the zero address. The plain face throws
   instead.
+- On ENSv2 the name is read where it is registered when the assertion is
+  judged: in ENSv2's ETHRegistry for a .eth name, in its parent's
+  subregistry for a subname; while its .eth name is still on ENS v1, on ENS
+  v1. A name migrated between building and executing is read on ENSv2.
+- Both faces give the resolver the name itself has in its registry, not one it
+  inherits from an ancestor.

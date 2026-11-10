@@ -15,7 +15,7 @@ import {
 } from "./common.js";
 
 const DEFAULT_CHAINS =
-  "eezL1=7331,https://eez.asuscomm.com/rpc/l1,https://eez.asuscomm.com/composer/l1;eezL2=6290,https://eez.asuscomm.com/rpc/l2,https://eez.asuscomm.com/composer/l2";
+  "eezL1=10200,https://chiadox.eez.dev/rpc/l1,https://chiadox.eez.dev/composer/l1;eezL2=699169,https://chiadox.eez.dev/rpc/l2,https://chiadox.eez.dev/composer/l2";
 const CROSS_CHAIN_REVERTS = ["0xed6bc750", "0x9a499f3b", "0xf9d330ad"];
 const WRAPPERS: Record<string, [number, number]> = {
   "0x6c544f33": [0, 1],

@@ -1,3 +1,4 @@
+import { chainGateway } from "@evmcrispr/sdk";
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
 import { executeScript, isTransactionAction } from "@evmcrispr/core";
@@ -25,7 +26,9 @@ import {
 /**
  * The showcase script: prove membership in zero knowledge, admit yourself
  * on L1, and let an L1 contract mint a badge on the rollup — atomically —
- * with every contract compiled, deployed and verified inline. The narrated
+ * with every contract compiled and deployed inline, and the rollup's
+ * verified on its explorer (Chiado's Blockscout answers no API client:
+ * its API sits behind a browser challenge). The narrated
  * version is the "Combining with circom" section of the website's EEZ guide
  * (apps/evmcrispr-website/src/content/docs/guides/eez.md).
  */
@@ -78,7 +81,6 @@ SOL
 set $secret @circom:field.rand()
 set $commitment @circom:poseidon($secret)
 contracts:deploy $gate @contracts:solidity($gateSrc contract:Gate) --constructor "constructor(address,uint256)" --constructor-args [$verifier $commitment]
-contracts:verify $gate --source $gateSrc --contract-name Gate --constructor "constructor(address,uint256)" --constructor-args [$verifier $commitment]
 
 circom:prove $proof --circom $circuit --ptau dev --inputs [secret:$secret commitment:$commitment]
 set [$a $b $c $signals] @circom:proof($proof)
@@ -143,6 +145,8 @@ describe.skipIf(!devnet)(
       const defaults = makeDefaultHandlers({
         account: testAccount.address,
         maximizeGasLimit: false,
+        // The script loads eez, which declares the ChiadoX gateways.
+        gatewayFor: chainGateway,
       });
       // A local key is bound to one RPC: pick the wallet by the action's
       // chain, and let `switch` pass without a wallet round-trip.

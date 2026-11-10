@@ -1,7 +1,7 @@
-import { defineCommand } from "@evmcrispr/sdk";
-import { encodeFunctionData, erc20Abi } from "viem";
+import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import { encodeFunctionData, erc20Abi, isAddressEqual } from "viem";
 import type Swaps from "..";
-import { executeAccount, ownedAccount } from "../twap/account";
+import { executeAccount, ownedAccount, selfOwned } from "../twap/account";
 import { decodeSchedule } from "../twap/cow";
 import { resolveReference } from "../twap/reference";
 import { resolveTwap } from "../twap/registry";
@@ -14,7 +14,7 @@ export default defineCommand<Swaps>({
   },
   name: "twap-cancel",
   description:
-    "Cancel a CoW TWAP and revoke its sell-token allowance. Cancellation takes effect when mined; use twap-recover afterwards to return unused tokens.",
+    "Cancel a CoW TWAP and revoke its sell-token allowance. Cancellation takes effect when mined; use twap-recover afterwards to return unused tokens. An order a Safe owns itself is only removed: its tokens never left the Safe, and the allowance its other CoW orders share stays.",
   args: [
     {
       name: "order",
@@ -25,6 +25,17 @@ export default defineCommand<Swaps>({
   async run(module, { order }) {
     const ref = await resolveReference(module, order);
     const provider = await resolveTwap(module, ref.provider);
+    if (selfOwned(ref)) {
+      if ((await module.getChainId()) !== ref.chainId)
+        throw new ErrorException(
+          `TWAP reference belongs to chain ${ref.chainId}`,
+        );
+      if (!isAddressEqual(await module.getSender(), ref.controller))
+        throw new ErrorException(
+          "TWAP must be managed by its original controller (@sender)",
+        );
+      return [provider.cancel(ref.orderHash)];
+    }
     const { nonce } = await ownedAccount(module, ref);
     const schedule = decodeSchedule(ref.params);
     return [

@@ -28,8 +28,9 @@ import { decodeFuses } from "../../../src/fuses";
  */
 
 const NAME = "vitalik.eth";
-/** The ETHRegistrarController the faces read on mainnet. */
-const CONTROLLER = "0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547";
+/** A name registered on ENSv2 (with years left; its owner and records are
+ *  read live by both faces, never pinned). */
+const V2_NAME = "opensystem.eth";
 /** A wrapped name that stays wrapped: CANNOT_UNWRAP is burned, it expires in
  *  2039, and the NameWrapper has no upgrade contract, so neither its owner nor
  *  a migration can take it out (jefflau.eth, which burned nothing, was). */
@@ -68,6 +69,26 @@ describeParity("@ens", {
       compile: `@ens:owner!(${NAME})`,
     },
     {
+      name: "owner of an ENSv2 name, read on ENSv2 by both faces",
+      run: `@ens:owner(${V2_NAME})`,
+      compile: `@ens:owner!(${V2_NAME})`,
+    },
+    {
+      name: "expiry of an ENSv2 name, read on ENSv2 by both faces",
+      run: `@ens:expiry(${V2_NAME})`,
+      compile: `@ens:expiry!(${V2_NAME})`,
+    },
+    {
+      name: "resolver of an ENSv2 name, read on ENSv2 by both faces",
+      run: `@ens:resolver(${V2_NAME})`,
+      compile: `@ens:resolver!(${V2_NAME})`,
+    },
+    {
+      name: "addr of an ENSv2 name, through the Universal Resolver",
+      run: `@ens:addr(${V2_NAME})`,
+      compile: `@ens:addr!(${V2_NAME})`,
+    },
+    {
       name: "resolver of a registered name",
       run: `@ens:resolver(${NAME})`,
       compile: `@ens:resolver!(${NAME})`,
@@ -99,18 +120,6 @@ describeParity("@ens", {
       run: `@ens:text(${UNREGISTERED} url)`,
       compile: `@ens:text!(${UNREGISTERED} url)`,
       runThrows: /no text record/,
-    },
-    {
-      name: "rentPrice sums base and premium across faces",
-      run: `@ens:rentPrice(${NAME} 1y)`,
-      compile: `@ens:rentPrice!(${NAME} 1y)`,
-    },
-    {
-      // The duration is read from a call when the assertion runs: the
-      // controller's own minimum, 28 days.
-      name: "rentPrice takes a live duration",
-      run: `@ens:rentPrice(${NAME} 2419200)`,
-      compile: `@ens:rentPrice!(${NAME} ${CONTROLLER}::!{MIN_REGISTRATION_DURATION()(uint256)})`,
     },
     {
       // vitalik.eth's reverse record forward-resolves consistently, so the

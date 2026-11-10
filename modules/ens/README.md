@@ -10,16 +10,18 @@ load ens
 
 | Command | Description |
 |---------|-------------|
-| [ens:create-subname](src/commands/create-subname.md) ⚗️ | Create a subname under an ENS name you own. |
+| [ens:create-resolver](src/commands/create-resolver.md) | Deploy an ENSv2 resolver (PermissionedResolver) through ENS's VerifiableFactory and bind its predicted address to <variable>. Its admin (the sender by default) gets every role, so it can set records of any name that uses it. |
+| [ens:create-subname](src/commands/create-subname.md) ⚗️ | Create a subname under an ENS name you own. Under an ENSv2 name it registers the subname in the name's subregistry, deploying and attaching one first when the name has none. |
+| [ens:migrate](src/commands/migrate.md) | Move a .eth name from ENS v1 to ENSv2: its owner transfers it to ENSv2's migration controller, which registers it in ENSv2 with the same expiry plus 62 days. Unwrapped and unlocked wrapped names go to the unlocked controller, locked ones (CANNOT_UNWRAP burned) to the locked one. |
 | [ens:register](src/commands/register.md) | Register a .eth name with ENSv2's ETHRegistrar: commit, wait, then approve the payment token (USDC by default) and reveal, in one go by default. |
-| [ens:renew](src/commands/renew.md) | Renew ENS domain registrations via bulk renewal. |
+| [ens:renew](src/commands/renew.md) | Renew .eth names, paid in an ERC-20 (USDC by default): ENSv2 names on the ETHRegistrar, names still on ENS v1 on ETHRenewerV1, each with one approval and one batch. |
 | [ens:set-addr](src/commands/set-addr.md) | Set the address record of an ENS name. |
 | [ens:set-contenthash](src/commands/set-contenthash.md) | Set the content hash of an ENS name. |
 | [ens:set-fuses](src/commands/set-fuses.md) ⚗️ | Burn NameWrapper fuses on a wrapped ENS name. |
 | [ens:set-primary-name](src/commands/set-primary-name.md) | Set the primary ENS name (reverse record) of the calling account. |
 | [ens:set-resolver](src/commands/set-resolver.md) | Set the resolver contract of an ENS name. |
 | [ens:set-text](src/commands/set-text.md) | Set a text record on an ENS name. |
-| [ens:transfer](src/commands/transfer.md) | Transfer ownership of an ENS name. An ENSv2 .eth name moves its registry token, with the owner's roles. On ENS v1, an unwrapped .eth name hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role. |
+| [ens:transfer](src/commands/transfer.md) | Transfer ownership of an ENS name. An ENSv2 name (or subname) moves its registry token, with the owner's roles. On ENS v1, an unwrapped .eth name hands over both the registrant NFT and the Registry controller (reclaim); transferring to the current registrant just reclaims the controller role. |
 | [ens:unwrap](src/commands/unwrap.md) ⚗️ | Unwrap an ENS name from the NameWrapper. |
 | [ens:wrap](src/commands/wrap.md) ⚗️ | Wrap an ENS name in the NameWrapper. |
 
@@ -43,7 +45,6 @@ load ens
 | [@ens:namehash](src/helpers/namehash.md) | `bytes32` | Compute the ENS namehash of a domain name. |
 | [@ens:normalize](src/helpers/normalize.md) | `string` | Normalize an ENS name per ENSIP-15. |
 | [@ens:owner](src/helpers/owner.md) | `address` | Owner of an ENS name (the real owner when the name is wrapped). |
-| [@ens:rentPrice](src/helpers/rentPrice.md) | `number` | Total price in wei to register or renew a .eth name for a duration. |
 | [@ens:resolver](src/helpers/resolver.md) | `address` | Resolver contract address of an ENS name. |
 | [@ens:text](src/helpers/text.md) | `string` | Read a text record from an ENS name. |
 

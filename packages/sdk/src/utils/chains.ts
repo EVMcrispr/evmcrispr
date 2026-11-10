@@ -1,7 +1,8 @@
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
 import * as viemChains from "viem/chains";
-import type { ChainDef } from "./schema";
+import type { ChainDef, ChainGatewayDef, ModuleChainDef } from "./schema";
+import { isChainGatewayDef } from "./schema";
 
 /**
  * Chains declared by modules (`src/chains.ts`) or registered by a host.
@@ -9,6 +10,10 @@ import type { ChainDef } from "./schema";
  * doesn't know about (devnets, app-chains) without touching the sdk.
  */
 const registry = new Map<number, ChainDef>();
+
+/** Gateways given to chains viem knows (`ChainGatewayDef`), kept apart so
+ *  those chains stay viem's own. */
+const gatewayOverlays = new Map<number, ChainGatewayDef>();
 
 /**
  * How the host reaches the URLs modules declare. A browser page served
@@ -33,6 +38,7 @@ function withPolicy(def: ChainDef): ChainDef {
     ...(def.explorerApiUrl
       ? { explorerApiUrl: urlPolicy(def.explorerApiUrl) }
       : {}),
+    ...(def.gateway ? { gateway: urlPolicy(def.gateway) } : {}),
   };
 }
 
@@ -66,8 +72,12 @@ export function toViemChain(def: ChainDef): Chain {
 /** Register chain declarations. Later registrations of the same id win.
  *  A declaration with an explorer but no explorer API gets Blockscout's
  *  conventional `<explorerUrl>/api`. */
-export function registerChains(...defs: ChainDef[]): void {
+export function registerChains(...defs: ModuleChainDef[]): void {
   for (const def of defs) {
+    if (isChainGatewayDef(def)) {
+      gatewayOverlays.set(def.id, def);
+      continue;
+    }
     const explorerApiUrl =
       def.explorerApiUrl ??
       (def.explorerUrl
@@ -81,6 +91,20 @@ export function registerChains(...defs: ChainDef[]): void {
  *  policy applied. */
 export function registeredChain(chainId: number): ChainDef | undefined {
   return lookup(chainId);
+}
+
+/** The gateway a module gave a chain (see `ChainDef.gateway`): from the
+ *  chain's declaration, or for a chain viem knows from its gateway entry,
+ *  with the host's URL policy applied. */
+export function registeredGateway(
+  chainId: number,
+): { gateway: string; gatewayMaxFee?: string } | undefined {
+  const def = registry.get(chainId) ?? gatewayOverlays.get(chainId);
+  if (!def?.gateway) return undefined;
+  return {
+    gateway: urlPolicy ? urlPolicy(def.gateway) : def.gateway,
+    gatewayMaxFee: def.gatewayMaxFee,
+  };
 }
 
 /** Every registered declaration, in registration order. */

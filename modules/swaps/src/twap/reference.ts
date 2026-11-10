@@ -1,5 +1,5 @@
 import { chainLabel, ErrorException } from "@evmcrispr/sdk";
-import type { Hex, PublicClient } from "viem";
+import type { Address, Hex, PublicClient } from "viem";
 import { decodeEventLog, getAddress, isAddressEqual, isHash } from "viem";
 import type Swaps from "..";
 import { activeSimMode } from "../utils/sim";
@@ -138,6 +138,7 @@ async function single(
   chainId: number,
   hash: Hex,
   found: Registered[],
+  controller?: Address,
 ): Promise<TwapReference | undefined> {
   const refs: TwapReference[] = [];
   let refusal: ErrorException | undefined;
@@ -158,11 +159,23 @@ async function single(
     throw new ErrorException(
       `TWAP order ${hash} exists, but ${refusal.message}; only orders swaps:twap created can be managed here`,
     );
-  if (refs.length > 1)
+  // Anyone can register the same params from their own Safe, so a copy
+  // must not make the order unmanageable: the caller's own registration
+  // wins, then one in an execution Safe (which only its controller can make).
+  const narrowed = [
+    (ref: TwapReference) =>
+      controller !== undefined && isAddressEqual(ref.controller, controller),
+    (ref: TwapReference) => ref.slot !== null,
+  ].reduce((current, keep) => {
+    if (current.length < 2) return current;
+    const kept = current.filter(keep);
+    return kept.length ? kept : current;
+  }, refs);
+  if (narrowed.length > 1)
     throw new ErrorException(
       `TWAP order ${hash} is registered by several swaps:twap accounts`,
     );
-  return refs[0];
+  return narrowed[0];
 }
 
 /**
@@ -174,7 +187,14 @@ export async function findReference(
   client: PublicClient,
   chainId: number,
   order: unknown,
-  { external = true }: { external?: boolean } = {},
+  {
+    external = true,
+    controller,
+  }: {
+    external?: boolean;
+    /** Preferred when several accounts registered the same order. */
+    controller?: Address;
+  } = {},
 ): Promise<TwapReference> {
   const hash = parseOrderHash(order);
   if (!TWAP_NETWORKS[chainId])
@@ -190,7 +210,7 @@ export async function findReference(
       indexer = "was unavailable";
     }
     if (indexed) {
-      const ref = await single(client, chainId, hash, indexed);
+      const ref = await single(client, chainId, hash, indexed, controller);
       if (ref) return ref;
       indexer = "does not list it";
     }
@@ -200,6 +220,7 @@ export async function findReference(
     chainId,
     hash,
     await recentRegistrations(client, chainId, hash),
+    controller,
   );
   if (ref) return ref;
   throw new ErrorException(
@@ -217,6 +238,7 @@ export async function resolveReference(
   if (cached) return cached;
   return findReference(await module.getClient(), chainId, order, {
     external: !activeSimMode(module),
+    controller: await module.getSender().catch(() => undefined),
   });
 }
 

@@ -7,7 +7,12 @@ import {
   parseAbi,
 } from "viem";
 import { COW_SETTLEMENT } from "../venues/lib/cowApi";
-import { accountAbi, accountHistory, unpackAccountCalls } from "./account";
+import {
+  accountAbi,
+  accountHistory,
+  selfOwned,
+  unpackAccountCalls,
+} from "./account";
 import { accountTrades, indexedOrders } from "./api";
 import {
   COMPOSABLE_COW,
@@ -66,6 +71,132 @@ export async function canonicalReceipt(
   return receipt;
 }
 
+const registeredAt = (
+  client: PublicClient,
+  ref: TwapReference,
+  blockNumber: bigint,
+) =>
+  client.readContract({
+    address: COMPOSABLE_COW,
+    abi: cowAbi,
+    functionName: "singleOrders",
+    args: [ref.account, ref.orderHash],
+    blockNumber,
+  });
+
+/** The first block in (lo, hi] where `test` holds, given it holds at hi and
+ * not at lo. */
+async function firstBlock(
+  lo: bigint,
+  hi: bigint,
+  test: (block: bigint) => Promise<boolean>,
+): Promise<bigint> {
+  while (hi - lo > 1n) {
+    const mid = (lo + hi) / 2n;
+    if (await test(mid)) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+/**
+ * A Safe that owns its order runs any calls through any route, so its
+ * execution history proves nothing; ComposableCoW does. Only the Safe can
+ * have registered it (`ConditionalOrderCreated` names `msg.sender`), and the
+ * handler reads its mining-time start from the cabinet the registration
+ * wrote. The registration is the newest creation event, read newest blocks
+ * first; a removal is found by bisection between it and the head.
+ */
+async function findOwnRegistration(
+  client: PublicClient,
+  ref: TwapReference,
+  block: ObservationBlock,
+): Promise<Registration> {
+  let createdIn: bigint | undefined;
+  let to = block.number;
+  let width = 5000n;
+  for (let requests = 0; requests < 100; requests++) {
+    const from = to >= width ? to - width + 1n : 0n;
+    let logs;
+    try {
+      logs = await client.getLogs({
+        address: COMPOSABLE_COW,
+        event: cowAbi[8],
+        args: { owner: ref.account },
+        fromBlock: from,
+        toBlock: to,
+        strict: true,
+      });
+    } catch {
+      if (width === 1n) throw new Error("RPC history unavailable");
+      width = width / 2n || 1n;
+      continue;
+    }
+    const match = logs.findLast(
+      (log) => orderHash(log.args.params) === ref.orderHash,
+    );
+    if (match) {
+      createdIn = match.blockNumber;
+      break;
+    }
+    if (from === 0n) break;
+    to = from - 1n;
+  }
+  if (createdIn === undefined)
+    throw new Error("TWAP registration not found in the Safe's history");
+  const created = (
+    await client.getLogs({
+      address: COMPOSABLE_COW,
+      event: cowAbi[8],
+      args: { owner: ref.account },
+      fromBlock: createdIn,
+      toBlock: createdIn,
+      strict: true,
+    })
+  ).filter((log) => orderHash(log.args.params) === ref.orderHash);
+  if (created.length !== 1)
+    throw new Error("Missing or ambiguous TWAP registration history");
+  const [log] = created;
+  await canonicalReceipt(client, log.transactionHash, block);
+  const schedule = decodeSchedule(ref.params);
+  let start = schedule.t0;
+  if (start === 0n) {
+    const cabinet = await client.readContract({
+      address: COMPOSABLE_COW,
+      abi: cowAbi,
+      functionName: "cabinet",
+      args: [ref.account, ref.orderHash],
+      blockNumber: createdIn,
+    });
+    start = BigInt(cabinet);
+    if (start === 0n)
+      throw new Error("TWAP mining-time start was not recorded");
+  }
+  const registration: Registration = {
+    start,
+    blockNumber: log.blockNumber,
+    logIndex: log.logIndex,
+    transactionHash: log.transactionHash,
+  };
+  if (!(await registeredAt(client, ref, block.number))) {
+    // Registered and removed in one block: its bisection has no lower end.
+    const removedIn = (await registeredAt(client, ref, createdIn))
+      ? await firstBlock(
+          createdIn,
+          block.number,
+          async (n) => !(await registeredAt(client, ref, n)),
+        )
+      : createdIn;
+    // Fills settle against a valid signature, so one in the removal block
+    // preceded the removal.
+    registration.removed = {
+      blockNumber: removedIn,
+      logIndex: Number.MAX_SAFE_INTEGER,
+    };
+  }
+  return registration;
+}
+
 /** A v1 reference predates mining: recover context from the actual Safe call,
  * not the indexer's timestamp or the cabinet, which remove() clears. */
 export async function findRegistration(
@@ -73,6 +204,7 @@ export async function findRegistration(
   ref: TwapReference,
   block: ObservationBlock,
 ): Promise<Registration> {
+  if (selfOwned(ref)) return findOwnRegistration(client, ref, block);
   const nonce = await client.readContract({
     address: ref.account,
     abi: accountAbi,

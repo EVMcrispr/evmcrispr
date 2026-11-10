@@ -1,4 +1,4 @@
-import type { ChainDef } from "@evmcrispr/sdk";
+import type { ModuleChainDef } from "@evmcrispr/sdk";
 import { isExperimentalEnabled, registerChains } from "@evmcrispr/sdk";
 import type { ModuleLoader } from "./types";
 
@@ -14,21 +14,32 @@ export class ModuleRegistry {
   #loaders = new Map<string, ModuleLoader>();
   #descriptions = new Map<string, string>();
   #experimental = new Set<string>();
+  /** Chain id → the module that declared that chain's gateway. */
+  #gatewayOwners = new Map<number, string>();
 
   register(
     name: string,
     loader: ModuleLoader,
     description?: string,
     experimental?: boolean,
-    chains?: ChainDef[],
+    chains?: ModuleChainDef[],
   ): void {
     // Eager on purpose: a script may `switch` to a module's chain before
     // (or without) loading the module.
     if (chains?.length) registerChains(...chains);
+    for (const chain of chains ?? []) {
+      if (chain.gateway) this.#gatewayOwners.set(chain.id, name);
+    }
     this.#loaders.set(name, loader);
     if (description) this.#descriptions.set(name, description);
     if (experimental) this.#experimental.add(name);
     else this.#experimental.delete(name);
+  }
+
+  /** The module whose chain declaration put a gateway on `chainId`: only
+   *  a script that loads it has its transactions priced there. */
+  gatewayModule(chainId: number): string | undefined {
+    return this.#gatewayOwners.get(chainId);
   }
 
   #hidden(name: string): boolean {

@@ -55,6 +55,8 @@ ens:set-fuses vault.mydao.eth parent-cannot-control cannot-unwrap
   error telling you what to add.
 - Parent-controlled fuses are burned via `setChildFuses`, so the executing
   account must own the parent name.
+- ENSv2 names stop with an error: the NameWrapper is ENS v1's, and ENSv2
+  names have roles instead of fuses.
 
 ## See Also
 

@@ -1,4 +1,8 @@
-import type { BoxSnapshot, ChainDef, IModuleConstructor } from "@evmcrispr/sdk";
+import type {
+  BoxSnapshot,
+  IModuleConstructor,
+  ModuleChainDef,
+} from "@evmcrispr/sdk";
 import type { Address, Transport } from "viem";
 
 /**
@@ -57,5 +61,5 @@ export type ModuleInput =
       experimental?: boolean;
       /** Chains the module ships (its `src/chains.ts`), registered on
        *  `use` so `switch <id>` works before the module is even loaded. */
-      chains?: ChainDef[];
+      chains?: ModuleChainDef[];
     };

@@ -1,7 +1,7 @@
 import { defineCommand, ErrorException } from "@evmcrispr/sdk";
 import { encodeFunctionData, erc20Abi } from "viem";
 import type Swaps from "..";
-import { executeAccount, ownedAccount } from "../twap/account";
+import { executeAccount, ownedAccount, selfOwned } from "../twap/account";
 import { readOrderState } from "../twap/cow";
 import { resolveReference } from "../twap/reference";
 import { resolveTwap } from "../twap/registry";
@@ -29,6 +29,10 @@ export default defineCommand<Swaps>({
         "twap-recover reads the account balance and cannot observe earlier actions in this batch; recover in a separate transaction after cancellation",
       );
     const ref = await resolveReference(module, order);
+    if (selfOwned(ref))
+      throw new ErrorException(
+        "This TWAP belongs to the Safe itself: its tokens never left the Safe, so there is nothing to recover; twap-cancel removes the order",
+      );
     const provider = await resolveTwap(module, ref.provider);
     const { client, block, nonce } = await ownedAccount(module, ref);
     const { schedule, registered, start, end } = await readOrderState(

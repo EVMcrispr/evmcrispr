@@ -7,19 +7,19 @@ describeCommand("renew", {
   preamble: "load ens",
   errorCases: [
     {
-      name: "should fail when not on mainnet (single domain)",
+      name: "should fail on unsupported chains (single domain)",
       script: 'ens:renew ["example.eth"] 31536000',
-      error: "This command only works on mainnet",
+      error: "is not available on",
     },
     {
-      name: "should fail when not on mainnet (multiple domains)",
+      name: "should fail on unsupported chains (multiple domains)",
       script: 'ens:renew ["name1.eth" "name2.eth"] 31536000',
-      error: "This command only works on mainnet",
+      error: "is not available on",
     },
     {
-      name: "should fail when not on mainnet (bare string domain)",
+      name: "should fail on unsupported chains (bare string domain)",
       script: 'ens:renew "example.eth" 1y',
-      error: "This command only works on mainnet",
+      error: "is not available on",
     },
     {
       name: "should fail when the duration is not a number",

@@ -37,7 +37,13 @@ const answers: [string, string, unknown[]][] = [
   ["getThreshold()", "uint256", [1n]],
   ["VERSION()", "string", ["1.4.1"]],
   ["groupCounter()", "uint256", [7n]],
-  ["rentPrice(string[],uint256)", "uint256", [1n]],
+  // ENSv2's ETHRegistry: alice.eth is RESERVED there (still on ENS v1), so
+  // ens:transfer keeps its v1 (wrapped) path.
+  [
+    "getState(uint256)",
+    "(uint8,uint64,address,uint256,uint256)",
+    [[1, 0n, "0x0000000000000000000000000000000000000000", 1n, 1n]],
+  ],
   // safe:set-guard checks the guard's ERC-165 interface before encoding.
   ["supportsInterface(bytes4)", "bool", [true]],
 ];
@@ -121,7 +127,6 @@ const cases: Record<string, string[]> = {
     `set-resolver alice.eth ${other}`,
     `set-primary-name alice.eth --for ${other}`,
     `create-subname alice.eth bob ${other} --resolver ${third} --expiry 9999999999`,
-    `renew alice.eth 1y`,
     `wrap alice.eth --resolver ${other}`,
     `set-fuses bob.alice.eth can-extend-expiry --expiry 9999999999`,
     `transfer alice.eth to ${other}`,

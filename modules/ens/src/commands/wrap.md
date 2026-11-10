@@ -53,6 +53,8 @@ ens:wrap vault.mydao.eth
   `parent-cannot-control`.
 - `--fuses` only applies to `.eth` second-level names; for subnames burn
   fuses afterwards with `ens:set-fuses`.
+- ENSv2 names stop with an error: the NameWrapper is ENS v1's, and ENSv2
+  names have roles instead of fuses.
 
 ## See Also
 

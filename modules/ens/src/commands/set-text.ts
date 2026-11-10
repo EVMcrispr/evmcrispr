@@ -1,5 +1,7 @@
 import { defineCommand, encodeAction } from "@evmcrispr/sdk";
 import type Ens from "..";
+import { v2Name, v2Resolver } from "../ethRegistry";
+import { dnsName, SET_TEXT } from "../permissionedResolver";
 import { assertSupportedChain, getNode, getRegistryResolver } from "../utils";
 
 export default defineCommand<Ens>({
@@ -25,6 +27,11 @@ export default defineCommand<Ens>({
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
     const client = await module.getClient();
+    const v2 = await v2Name(client, chainId, name);
+    if (v2) {
+      const resolver = v2Resolver(name, v2);
+      return [encodeAction(resolver, SET_TEXT, [dnsName(name), key, value])];
+    }
     const node = getNode(name);
     const resolver = await getRegistryResolver(client, chainId, node, name);
     return [

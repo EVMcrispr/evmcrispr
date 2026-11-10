@@ -8,8 +8,12 @@ import {
   isAnvilHealthy,
   killStaleAnvil,
 } from "../../../scripts/anvil-config";
+import { ANVIL_POLLING_MS } from "./client";
 
-export { getForkBlockNumber } from "../../../scripts/anvil-config";
+export {
+  getEndpoint,
+  getForkBlockNumber,
+} from "../../../scripts/anvil-config";
 
 const viemChains = {
   1: mainnet,
@@ -94,5 +98,6 @@ export async function resetAnvil(
   return createPublicClient({
     chain: viemChains[chainId],
     transport: http(anvilUrl()),
+    pollingInterval: ANVIL_POLLING_MS,
   }) as PublicClient;
 }

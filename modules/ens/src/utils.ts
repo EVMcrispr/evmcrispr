@@ -134,3 +134,16 @@ export function mainnetClient(module: {
     transport: module.getTransport(mainnet.id),
   });
 }
+
+/** The client ENS is read through. On mainnet, the script's own: inside a
+ *  sim:fork of mainnet that is the fork, so the helpers see what the script
+ *  simulated. On any other chain, mainnet itself, where ENS lives. */
+export async function ensClient(module: {
+  getTransport(chainId: number): any;
+  getChainId(): Promise<number>;
+  getClient(): Promise<PublicClient>;
+}): Promise<PublicClient> {
+  return (await module.getChainId()) === mainnet.id
+    ? module.getClient()
+    : mainnetClient(module);
+}

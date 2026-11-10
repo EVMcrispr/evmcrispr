@@ -11,11 +11,15 @@ import type {
   WalletAction,
 } from "@evmcrispr/sdk";
 import {
+  chainGateway,
   defaultTransport,
   ExitSignal,
   isTransactionAction,
+  quoteThroughGateway,
   RevertError,
+  registeredChain,
   resolveChain,
+  transportUrl,
   truncateAddress,
 } from "@evmcrispr/sdk";
 import {
@@ -26,6 +30,7 @@ import {
 import type {
   Address,
   Hash,
+  Hex,
   PublicClient,
   Transport,
   WalletClient,
@@ -34,6 +39,7 @@ import { mainnet } from "viem/chains";
 
 import { Interpreter } from "../interpreter/Interpreter";
 import { parseScript } from "../parsers/script";
+import { collectScriptUsage } from "../scriptUsage";
 import {
   clientForChain,
   collectPreparedSwitchTargets,
@@ -494,6 +500,11 @@ export async function observeTransaction(
 export interface ExecutorEnv {
   account: Address | undefined;
   maximizeGasLimit: boolean;
+  /** The gateway that prices this run's transactions on a chain (see
+   *  `ChainDef.gateway`). `executeScript` grants a chain's gateway only to
+   *  a script that loads the module declaring it; without this, none is
+   *  asked: a gateway sees every transaction it is asked to price. */
+  gatewayFor?: (chainId: number) => string | undefined;
 }
 
 function chainFor(chainId: number, ctx: ActionHandlerCtx) {
@@ -607,6 +618,67 @@ async function sendThrough(
   return json.result;
 }
 
+/**
+ * Price a transaction on a chain with a gateway (`ChainDef.gateway`, an
+ * EEZ composer) just before it is signed, so whatever signs it (a local
+ * key, a browser wallet, a Safe owner sending `execTransaction`) offers the
+ * fees the gateway admits. Only a transaction the gateway quotes (one that
+ * crosses chains) is touched, and only when the action set no fees itself.
+ *
+ * Returns the endpoint the transaction must reach when that is not the
+ * chain's own RPC (a cross-chain transaction composes only through the
+ * gateway, see `sendThrough`), or why the gateway would not price it.
+ */
+async function priceThroughGateway(
+  action: TransactionAction,
+  chainId: number,
+  request: {
+    to?: Address | null;
+    data?: Hex;
+    value?: bigint;
+    gas?: bigint;
+    maxFeePerGas?: bigint;
+    maxPriorityFeePerGas?: bigint;
+  },
+  ctx: ActionHandlerCtx,
+  env: ExecutorEnv,
+): Promise<{ rpcUrl?: string; refused?: string }> {
+  const gateway = env.gatewayFor?.(chainId);
+  if (
+    !gateway ||
+    !request.to ||
+    request.maxFeePerGas !== undefined ||
+    request.maxPriorityFeePerGas !== undefined
+  )
+    return {};
+  // A gateway that is not the chain's own RPC is a third party: it sees a
+  // transaction before it is broadcast only when the transaction needs it.
+  if (registeredChain(chainId)?.rpcUrl !== gateway && !action.crossChain)
+    return {};
+  const from = ctx.walletClient.account?.address ?? action.from ?? env.account;
+  if (!from) return {};
+  const quote = await quoteThroughGateway(
+    gateway,
+    chainId,
+    {
+      from,
+      to: request.to,
+      data: request.data,
+      value: request.value,
+      gas: request.gas,
+    },
+    ctx.signal,
+  );
+  if (!quote) return {};
+  if ("refused" in quote) return { refused: quote.refused };
+  request.gas ??= quote.gas;
+  request.maxFeePerGas = quote.maxFeePerGas;
+  request.maxPriorityFeePerGas = quote.maxPriorityFeePerGas;
+  const own =
+    transportUrl(ctx.transports?.[chainId]) ?? registeredChain(chainId)?.rpcUrl;
+  return own === gateway ? {} : { rpcUrl: gateway };
+}
+
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
     async smartBatch(action, ctx) {
@@ -716,9 +788,24 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           maxPriorityFeePerGas: action.maxPriorityFeePerGas,
           nonce: action.nonce,
         };
-        const tx = action.rpcUrl
-          ? await sendThrough(action.rpcUrl, chainId, request, ctx)
-          : await ctx.walletClient.sendTransaction(request);
+        const priced = action.rpcUrl
+          ? { rpcUrl: action.rpcUrl }
+          : await priceThroughGateway(action, chainId, request, ctx, env);
+        const rpcUrl = priced.rpcUrl;
+        let tx: Hash;
+        try {
+          tx = rpcUrl
+            ? await sendThrough(rpcUrl, chainId, request, ctx)
+            : await ctx.walletClient.sendTransaction(request);
+        } catch (err) {
+          // A cross-chain transaction the gateway would not price is refused
+          // by it with its tariff; say why it could not be priced.
+          if (priced.refused && /tariff/i.test(String((err as Error)?.message)))
+            throw new Error(
+              `${(err as Error).message}\n${priced.refused}: the gateway could not price this cross-chain transaction, which usually means it would fail once composed`,
+            );
+          throw err;
+        }
         ctx.onSent?.(tx);
         const receipt = await ctx
           .getPublicClient(chainId)
@@ -730,8 +817,8 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
           // as a revert.
           throw new RevertError(
             `Transaction reverted on-chain: ${tx}${
-              action.rpcUrl
-                ? ` — it was meant to be submitted through ${action.rpcUrl}; check the wallet's RPC for this network`
+              rpcUrl
+                ? ` — it was meant to be submitted through ${rpcUrl}; check the wallet's RPC for this network`
                 : ""
             }`,
           );
@@ -925,9 +1012,18 @@ export async function executeScript(
     return fallback;
   };
 
+  // A chain's gateway sees every transaction it is asked to price: only a
+  // script that loads the module declaring it uses it.
+  const loaded = collectScriptUsage(source)?.loaded ?? new Set<string>();
   const defaults = makeDefaultHandlers({
     account,
     maximizeGasLimit: options.maximizeGasLimit ?? false,
+    gatewayFor: (chainId) => {
+      const owner = registry.gatewayModule(chainId);
+      return owner !== undefined && loaded.has(owner)
+        ? chainGateway(chainId)
+        : undefined;
+    },
   });
 
   const runDefault = (action: Action, ctx: ActionHandlerCtx) => {

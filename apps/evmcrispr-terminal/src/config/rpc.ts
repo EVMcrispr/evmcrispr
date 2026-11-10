@@ -3,8 +3,8 @@
  * can be imported from the EVML Web Worker (wagmi.ts touches `window` at
  * module scope and must stay main-thread only).
  */
-import type { ChainDef } from "@evmcrispr/core";
-import { toViemChain } from "@evmcrispr/core";
+import type { ChainDef, ModuleChainDef } from "@evmcrispr/core";
+import { isChainGatewayDef, toViemChain } from "@evmcrispr/core";
 import { moduleChains } from "@evmcrispr/modules/chains";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
@@ -180,7 +180,8 @@ applyBrowserUrlPolicy();
 
 /** Chains shipped by modules (`src/chains.ts`), minus any the DRPC list
  *  already covers. They bring their own RPC, so no key is needed. */
-const extraChains: ChainDef[] = (moduleChains as ChainDef[])
+const extraChains: ChainDef[] = (moduleChains as ModuleChainDef[])
+  .filter((def): def is ChainDef => !isChainGatewayDef(def))
   .filter((def) => !chainConfig.some(([chain]) => chain.id === def.id))
   .map((def) => ({ ...def, rpcUrl: browserSafeUrl(def.rpcUrl) }));
 

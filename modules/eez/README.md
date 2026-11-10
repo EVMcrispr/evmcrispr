@@ -14,9 +14,9 @@ Config variables are set with `set` (fully qualified, including the module prefi
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `$eez:registry` | `address` | — | EEZ registry on the current chain: the L1 `EEZ` contract or the rollup's `EEZL2` predeploy. Known for the EEZ devnet chains; set it to use another deployment (e.g. a local enclave). |
-| `$eez:rollupId` | `number` | — | EEZ rollup id of the current chain (0 for L1). Known for the EEZ devnet chains. |
-| `$eez:faucetKey` | `bytes32` | — | Private key of a funded account that `eez:faucet` sends from. Known for the EEZ devnet chains (a public hardhat key); set it for another devnet. |
+| `$eez:registry` | `address` | — | EEZ registry on the current chain: the L1 `EEZ` contract or the rollup's `EEZL2` manager. Known for the ChiadoX testnet chains; set it to use another deployment (e.g. a local enclave). |
+| `$eez:rollupId` | `number` | — | EEZ rollup id of the current chain (0 for L1). Known for the ChiadoX testnet chains. |
+| `$eez:faucetKey` | `bytes32` | — | Private key of a funded account that `eez:faucet` sends from. The hosted networks have none (their rollups are funded by bridging); set it for a devnet with a pre-funded key, such as a local enclave. |
 
 ## Chains
 
@@ -24,7 +24,19 @@ Networks this module ships. They are available to `switch` as soon as the module
 
 | Chain | Key | Id | RPC | Explorer |
 |-------|-----|----|-----|----------|
-| EEZ L2 (testnet) | `eezL2` | `6291` | <https://eez.asuscomm.com/composer/l2> | — |
+| EEZ L2 (testnet) | `eezL2` | `699169` | <https://chiadox.eez.dev/composer/l2> | <https://chiadox.eez.dev/explorer> |
+| RollupX | `rollupX` | `696991` | <https://rollupx.eez.dev/composer/l2> | <https://rollupx.eez.dev/explorer> |
+
+## Gateways
+
+In a script that loads this module, a cross-chain transaction on these chains is priced by the gateway just before it is signed, sent at the quoted fees, and submitted there by a local key. Where the gateway is not the chain's own RPC, an ordinary transaction is not shown to it.
+
+| Chain id | Gateway |
+|----------|---------|
+| `10200` | <https://chiadox.eez.dev/composer/l1> |
+| `699169` | <https://chiadox.eez.dev/composer/l2> |
+| `1` | <https://rollupx.eez.dev/composer/l1> |
+| `696991` | <https://rollupx.eez.dev/composer/l2> |
 
 ## Commands
 
@@ -32,7 +44,7 @@ Networks this module ships. They are available to `switch` as soon as the module
 |---------|-------------|
 | [eez:batch](src/commands/batch.md) | Run a block of commands on another EEZ chain as one atomic cross-chain call: every call the block produces executes over there from your own cross-chain proxy, in order, all or nothing. One sending-chain transaction, one cross-chain entry, however many calls. Helpers, conditions and loops inside evaluate on that chain. |
 | [eez:deploy-proxy](src/commands/deploy-proxy.md) | Create the cross-chain proxy on the current chain for a contract on another EEZ rollup. Does nothing if it already exists. |
-| [eez:faucet](src/commands/faucet.md) | Send devnet ETH to an account from the EEZ devnet's pre-funded faucet key, so a fresh wallet can pay for gas. The faucet signs the transfer itself; nothing is asked of the connected wallet. |
+| [eez:faucet](src/commands/faucet.md) | Send devnet ETH to an account from a pre-funded key set in $eez:faucetKey, so a fresh wallet can pay for gas on a devnet that has one (a local enclave). The faucet signs the transfer itself; nothing is asked of the connected wallet. The hosted ChiadoX testnet has no such key: its rollup is funded by bridging. |
 | [eez:on](src/commands/on.md) | Run a block of commands on another EEZ chain synchronously from the current one. Every call the block produces goes out through the target's cross-chain proxy and executes on the other side atomically with this transaction; helpers, conditions and loops inside evaluate on that chain. Creates each missing proxy first and estimates the gas the composed calls need. |
 
 ## Helpers

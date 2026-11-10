@@ -51,6 +51,7 @@ const EMPTY_USAGE: ScriptUsage = {
   configVars: new Set(),
   commandBindings: new Map(),
   helperBindings: new Map(),
+  loaded: new Set(),
 };
 
 function ConfigRow({ mod, entry }: { mod: string; entry: ConfigEntry }) {

@@ -7,7 +7,7 @@ import type Ens from "..";
 import { ethRegistrarMap, requireAddress } from "../addresses";
 import { ethRegistrarAbi } from "../ethRegistrar";
 import { onchainAddress } from "../onchain";
-import { eth2LDLabel, mainnetClient } from "../utils";
+import { ensClient, eth2LDLabel } from "../utils";
 
 export default defineHelper<Ens>({
   name: "available",
@@ -26,7 +26,7 @@ export default defineHelper<Ens>({
   ],
   async run(module, { name }) {
     const label = name.includes(".") ? eth2LDLabel(name) : name;
-    const client = mainnetClient(module);
+    const client = await ensClient(module);
     return client.readContract({
       address: requireAddress(ethRegistrarMap, mainnet.id, "ETHRegistrar"),
       abi: ethRegistrarAbi,

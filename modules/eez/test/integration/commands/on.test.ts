@@ -9,12 +9,13 @@ import {
   toHex,
 } from "viem";
 import { eezBaseAbi } from "../../../src/abis";
-import { EEZ_CHAINS, EEZ_L2_PREDEPLOY } from "../../../src/constants";
+import { EEZ_CHAINS, EEZ_L2_MANAGER } from "../../../src/constants";
 import {
   devnet,
   ensureFunded,
   L1_ID,
   L2_ID,
+  L2_ROLLUP_ID,
   l1,
   l1Wallet,
   l2,
@@ -39,7 +40,7 @@ const proxyOf = (target: `0x${string}`) =>
     address: registry,
     abi: eezBaseAbi,
     functionName: "computeCrossChainProxyAddress",
-    args: [target, 1n],
+    args: [target, L2_ROLLUP_ID],
   });
 
 const ensureKnownProxy = async () => {
@@ -51,7 +52,7 @@ const ensureKnownProxy = async () => {
     address: registry,
     abi: eezBaseAbi,
     functionName: "createCrossChainProxy",
-    args: [KNOWN, 1n],
+    args: [KNOWN, L2_ROLLUP_ID],
   });
   await l1.waitForTransactionReceipt({ hash, timeout: 60_000 });
 };
@@ -64,7 +65,7 @@ const ensureProxyOn = async (
 ): Promise<`0x${string}`> => {
   const [client, wallet, chainId, originalRollup] =
     side === "l1"
-      ? ([l1, l1Wallet, L1_ID, 1n] as const)
+      ? ([l1, l1Wallet, L1_ID, L2_ROLLUP_ID] as const)
       : ([l2, l2Wallet, L2_ID, 0n] as const);
   const proxy = await client.readContract({
     address: EEZ_CHAINS[chainId].registry,
@@ -240,33 +241,40 @@ describeCommand("on", {
       name: "creates the missing proxies of a nested block on both chains",
       script: `eez:on eezL2 (\n  eez:on gnosisChiado (\n    exec ${fresh4} setValue(uint256) 2\n  )\n)`,
       timeout: 120_000,
-      setup: async () => {
-        await ensureFunded();
-        // The L2 registry's proxy on L1 is a one-off per devnet.
-        await ensureProxyOn("l1", EEZ_L2_PREDEPLOY);
-      },
+      setup: () => ensureFunded(),
       validate: async (actions) => {
-        expect(actions).to.have.lengthOf(3);
-        const [createHome, createRemote, call] = actions as any[];
+        expect(actions).to.have.lengthOf(5);
+        const [toL2, createRemote, back, createHome, call] = actions as any[];
         const hop = await l2.readContract({
           address: EEZ_CHAINS[L2_ID].registry,
           abi: eezBaseAbi,
           functionName: "computeCrossChainProxyAddress",
           args: [fresh4, 0n],
         });
-        // The L1 proxy of the L2 hop: a plain transaction on L1.
-        expect(isAddressEqual(createHome.to, registry)).to.be.true;
-        expect(createProxyArgs(createHome.data)).to.eql([getAddress(hop), 1n]);
-        // The L2 proxy of the target: created on L2 by calling the L2
-        // registry through its proxy on L1, atomically with the rest.
-        expect(isAddressEqual(createRemote.to, await proxyOf(EEZ_L2_PREDEPLOY)))
-          .to.be.true;
+        // The L2 proxy of the target: the composer cannot create a proxy
+        // through a cross-chain call, so a plain transaction on L2 does,
+        // first, with the wallet switched there and back.
+        expect(toL2.method).to.equal("wallet_switchEthereumChain");
+        expect(toL2.params[0].chainId).to.equal(toHex(L2_ID));
+        expect(createRemote.chainId).to.equal(L2_ID);
+        expect(isAddressEqual(createRemote.to, EEZ_L2_MANAGER)).to.be.true;
         expect(createProxyArgs(createRemote.data)).to.eql([
           getAddress(fresh4),
           0n,
         ]);
+        expect(back.params[0].chainId).to.equal(toHex(L1_ID));
+        // The L1 proxy of the L2 hop: a plain transaction on L1.
+        expect(isAddressEqual(createHome.to, registry)).to.be.true;
+        expect(createProxyArgs(createHome.data)).to.eql([
+          getAddress(hop),
+          L2_ROLLUP_ID,
+        ]);
         expect(isAddressEqual(call.to, await proxyOf(hop))).to.be.true;
         expect(setValueArg(call.data)).to.equal(2n);
+        // Only the crossing is shown to Chiado's gateway for a price.
+        expect(call.crossChain).to.equal(true);
+        expect(createRemote.crossChain).to.equal(undefined);
+        expect(createHome.crossChain).to.equal(undefined);
       },
     },
     {
@@ -307,7 +315,7 @@ describeCommand("on", {
     },
     {
       name: "refuses a chain that is not an EEZ chain",
-      script: `eez:on mainnet (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
+      script: `eez:on gnosis (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
       error: "not a known EEZ chain",
     },
     {

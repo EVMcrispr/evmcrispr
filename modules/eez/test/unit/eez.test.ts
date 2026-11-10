@@ -23,6 +23,7 @@ import {
   remoteLabel,
   resolveRollup,
   rollupIdFor,
+  splitFarProxyCreations,
   sumValues,
   supportsExecuteBatch,
 } from "../../src/utils/eez";
@@ -31,8 +32,8 @@ const l1 = {
   chainId: 10200,
   registry: EEZ_CHAINS[10200].registry,
   rollupId: 0n,
-  peerRollupId: 1n,
-  peerChainId: 6291,
+  peerRollupId: 2n,
+  peerChainId: 699169,
 };
 
 // Unit tests run without the module registry: declare the chains by hand.
@@ -53,17 +54,17 @@ describe("eez utils", () => {
   });
 
   it("names rollups by chain key, chain id or bare rollup id", () => {
-    expect(rollupIdFor("eezL2")).toBe(1n);
+    expect(rollupIdFor("eezL2")).toBe(2n);
     expect(rollupIdFor("gnosisChiado")).toBe(0n);
-    expect(rollupIdFor(6291)).toBe(1n);
+    expect(rollupIdFor(699169)).toBe(2n);
     expect(rollupIdFor(7)).toBe(7n);
     expect(() => rollupIdFor("nowhere")).toThrow(/unknown rollup/);
     expect(() => resolveRollup(l1, "gnosisChiado")).toThrow(/itself/);
-    expect(resolveRollup(l1, "eezL2")).toBe(1n);
+    expect(resolveRollup(l1, "eezL2")).toBe(2n);
   });
 
   it("defaults the rollup to the other side", () => {
-    expect(resolveRollup(l1)).toBe(1n);
+    expect(resolveRollup(l1)).toBe(2n);
     expect(resolveRollup(l1, 3)).toBe(3n);
     expect(resolveRollup(l1, "2")).toBe(2n);
     expect(() => resolveRollup(l1, 0)).toThrow(/itself/);
@@ -82,9 +83,66 @@ describe("eez utils", () => {
     expect(decoded.args).toEqual([target, 1n]);
   });
 
+  describe("proxy creations a block asks of the far chain", () => {
+    const l2 = {
+      chainId: 699169,
+      registry: EEZ_CHAINS[699169].registry,
+      rollupId: 2n,
+      peerRollupId: 0n,
+      peerChainId: 10200,
+    };
+    const target = "0x000000000000000000000000000000000000dEaD";
+    const create = {
+      ...createProxyAction(l2.registry, target, 0n),
+      to: l2.registry,
+    } as any;
+    const call = { to: target, data: "0x12345678" } as any;
+
+    it("become plain transactions on that chain, wallet switched there and back", () => {
+      const { crossing, direct } = splitFarProxyCreations(
+        [create, call],
+        l2,
+        10200,
+        false,
+      );
+      expect(crossing).toEqual([call]);
+      expect(direct).toHaveLength(3);
+      expect((direct[0] as any).params[0].chainId).toBe("0xaab21");
+      expect(direct[1]).toMatchObject({
+        to: l2.registry,
+        data: create.data,
+        chainId: 699169,
+      });
+      expect((direct[2] as any).params[0].chainId).toBe("0x27d8");
+    });
+
+    it("leave a block without creations alone", () => {
+      expect(splitFarProxyCreations([call], l2, 10200, false)).toEqual({
+        crossing: [call],
+        direct: [],
+      });
+    });
+
+    it("are refused in a collected block, naming the command that makes them", () => {
+      expect(() =>
+        splitFarProxyCreations([create, call], l2, 10200, true),
+      ).toThrow(
+        /eez:deploy-proxy 0x000000000000000000000000000000000000dEaD --chain 0/,
+      );
+    });
+  });
+
   it("labels the far side by chain when it is the peer", () => {
-    expect(remoteLabel(l1, 1n)).not.toMatch(/^rollup/);
+    expect(remoteLabel(l1, 2n)).not.toMatch(/^rollup/);
     expect(remoteLabel(l1, 7n)).toBe("rollup 7");
+  });
+
+  it("names RollupX's chains by key and resolves their rollups", () => {
+    expect(rollupIdFor("rollupX")).toBe(2n);
+    expect(rollupIdFor("mainnet")).toBe(0n);
+    expect(rollupIdFor(696991)).toBe(2n);
+    // A bare number is a chain id first: 1 is Ethereum mainnet.
+    expect(rollupIdFor(1)).toBe(0n);
   });
 
   it("declares a built-in entry for every shipped chain", () => {
@@ -239,10 +297,11 @@ describe("eez utils", () => {
     /** A module already on the far chain, whose client answers `estimateGas`. */
     const moduleWith = (
       estimateGas: (args: { account: string }) => Promise<bigint>,
+      call: () => Promise<unknown> = async () => ({}),
     ) =>
       ({
         getChainId: async () => l1.peerChainId,
-        getClient: () => ({ estimateGas }),
+        getClient: () => ({ estimateGas, call }),
       }) as never;
     /** What viem raises when the far RPC executes the call and it reverts. */
     const reverted = (data: `0x${string}`) =>
@@ -264,7 +323,7 @@ describe("eez utils", () => {
         from = args.account;
         return 100_000n;
       });
-      const gas = await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+      const gas = await estimateCallGas(module, l1, 2n, target, "0x", proxy, {
         failOnRevert: true,
       });
       expect(gas).toBe(400_000n);
@@ -277,10 +336,43 @@ describe("eez utils", () => {
         throw reverted(constraintFailed);
       });
       await expect(
-        estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+        estimateCallGas(module, l1, 2n, target, "0x", proxy, {
           failOnRevert: true,
         }),
       ).rejects.toThrow(/would revert on EEZ L2: assertion failed: only Bob/);
+    });
+
+    it("asks eth_call when the estimate drops the revert data of a leg that crosses again", async () => {
+      // An EEZ composer's estimate answers a nested leg with an empty
+      // revert; eth_call keeps the registry's gate error.
+      const module = moduleWith(
+        async () => {
+          throw reverted("0x");
+        },
+        async () => {
+          throw reverted("0xf9d330ad");
+        },
+      );
+      const gas = await estimateCallGas(module, l1, 2n, target, "0x", proxy, {
+        failOnRevert: true,
+      });
+      expect(gas).toBe(CROSS_CHAIN_FALLBACK_GAS);
+    });
+
+    it("still refuses a leg that reverts without data both ways", async () => {
+      const module = moduleWith(
+        async () => {
+          throw reverted("0x");
+        },
+        async () => {
+          throw reverted("0x");
+        },
+      );
+      await expect(
+        estimateCallGas(module, l1, 2n, target, "0x", proxy, {
+          failOnRevert: true,
+        }),
+      ).rejects.toThrow(/would revert on EEZ L2/);
     });
 
     it("describes a plain revert reason", async () => {
@@ -294,7 +386,7 @@ describe("eez utils", () => {
         );
       });
       await expect(
-        estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+        estimateCallGas(module, l1, 2n, target, "0x", proxy, {
           failOnRevert: true,
         }),
       ).rejects.toThrow(/would revert on EEZ L2: not admitted/);
@@ -314,7 +406,7 @@ describe("eez utils", () => {
           throw reverted(data as `0x${string}`);
         });
         expect(
-          await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+          await estimateCallGas(module, l1, 2n, target, "0x", proxy, {
             failOnRevert: true,
           }),
         ).toBe(CROSS_CHAIN_FALLBACK_GAS);
@@ -326,7 +418,7 @@ describe("eez utils", () => {
         throw new Error("fetch failed");
       });
       expect(
-        await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+        await estimateCallGas(module, l1, 2n, target, "0x", proxy, {
           failOnRevert: true,
         }),
       ).toBe(CROSS_CHAIN_FALLBACK_GAS);
@@ -337,7 +429,7 @@ describe("eez utils", () => {
         throw reverted(constraintFailed);
       });
       expect(
-        await estimateCallGas(module, l1, 1n, target, "0x", proxy, {
+        await estimateCallGas(module, l1, 2n, target, "0x", proxy, {
           failOnRevert: false,
         }),
       ).toBe(CROSS_CHAIN_FALLBACK_GAS);

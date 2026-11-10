@@ -1,14 +1,17 @@
+import { chainGateway } from "@evmcrispr/sdk";
 import "../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { executeScript } from "@evmcrispr/core";
+import { executeScript, isTransactionAction } from "@evmcrispr/core";
 import { expect, getTransports } from "@evmcrispr/test-utils";
 import { evml } from "@evmcrispr/test-utils/evml";
 import { parseAbi } from "viem";
+import { makeDefaultHandlers } from "../../../../packages/core/src/evml/execute";
 import {
   deployValue,
   devnet,
   ensureFunded,
   L1_ID,
+  L2_ID,
   l1,
   l1Wallet,
   l2,
@@ -75,6 +78,12 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
     // L1 transaction that went out.
     const value = await deployValue(l1Wallet, l1);
     const expected = BigInt(Date.now());
+    const defaults = makeDefaultHandlers({
+      account: testAccount.address,
+      maximizeGasLimit: false,
+      // The script loads eez, which declares the ChiadoX gateways.
+      gatewayFor: chainGateway,
+    });
 
     const result = await executeScript(
       [
@@ -92,14 +101,32 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
         account: testAccount.address,
       },
       l1Wallet,
-      { prepareChains: false },
+      {
+        prepareChains: false,
+        // The target's proxy on L2 is created on L2 (the composer cannot
+        // create one through a cross-chain call): the wallet switches
+        // there and back, so each chain gets its own local wallet.
+        handlers: {
+          wallet: async (action, ctx) =>
+            action.method === "wallet_switchEthereumChain"
+              ? undefined
+              : ctx.next(action),
+          transaction: (action, ctx) =>
+            defaults.transaction(action, {
+              ...ctx,
+              walletClient: action.chainId === L2_ID ? l2Wallet : l1Wallet,
+            }),
+        },
+      },
     );
 
-    // The L1 proxy of the hop (plain), the hop's creation on L2 through
-    // the L2 registry's proxy (cross-chain), and the nested call; plus,
-    // the first time on a devnet, that registry proxy itself.
-    expect(result.executed.length).to.be.within(3, 4);
-    for (const { result: receipt } of result.executed) {
+    // The target's proxy created on L2, the L1 proxy of that hop, and the
+    // nested call.
+    const sent = result.executed.filter(
+      (e) => isTransactionAction(e.action) && !e.action.readOnly,
+    );
+    expect(sent).to.have.lengthOf(3);
+    for (const { result: receipt } of sent) {
       expect((receipt as any).status).to.equal("success");
     }
     expect(

@@ -1,12 +1,13 @@
 import { defineHelper, HelperFunctionError, Num } from "@evmcrispr/sdk";
 import type { Operand } from "@evmcrispr/sdk/onchain";
-import { staticCallParam } from "@evmcrispr/sdk/onchain";
+import { rawParam, staticCallParam, toWord } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData, labelhash, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
 import type Ens from "..";
 import { baseRegistrarMap, requireAddress } from "../addresses";
-import { onchainAddress } from "../onchain";
-import { eth2LDLabel, mainnetClient } from "../utils";
+import { v2Name } from "../ethRegistry";
+import { onchainAddress, v2OrV1Read, v2ReadAbi } from "../onchain";
+import { ensClient, eth2LDLabel, isEth2LD } from "../utils";
 
 export default defineHelper<Ens>({
   name: "expiry",
@@ -23,8 +24,10 @@ export default defineHelper<Ens>({
     },
   ],
   async run(module, { name }, { node }) {
+    const client = await ensClient(module);
+    const v2 = await v2Name(client, mainnet.id, name);
+    if (v2) return Num.fromBigInt(v2.expiry);
     const label = eth2LDLabel(name);
-    const client = mainnetClient(module);
     const expiry = await client.readContract({
       address: requireAddress(baseRegistrarMap, mainnet.id, "BaseRegistrar"),
       abi: parseAbi([
@@ -45,19 +48,30 @@ export default defineHelper<Ens>({
       baseRegistrarMap,
       "BaseRegistrar",
     );
-    return {
-      kind: "call",
-      param: staticCallParam(
-        registrar,
+    // ENS v1 keeps expiries for .eth names only; a v1 subname has none.
+    const v1 = isEth2LD(name)
+      ? staticCallParam(
+          registrar,
+          encodeFunctionData({
+            abi: parseAbi([
+              "function nameExpires(uint256 id) view returns (uint256)",
+            ]),
+            functionName: "nameExpires",
+            args: [BigInt(labelhash(eth2LDLabel(name)))],
+          }),
+        )
+      : rawParam(toWord(0n));
+    return v2OrV1Read(
+      ctx,
+      name,
+      (label) =>
         encodeFunctionData({
-          abi: parseAbi([
-            "function nameExpires(uint256 id) view returns (uint256)",
-          ]),
-          functionName: "nameExpires",
-          args: [BigInt(labelhash(eth2LDLabel(name)))],
+          abi: v2ReadAbi,
+          functionName: "getExpiry",
+          args: [BigInt(labelhash(label))],
         }),
-      ),
-      cat: "Uint",
-    };
+      v1,
+      "Uint",
+    );
   },
 });

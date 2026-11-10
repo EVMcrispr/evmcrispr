@@ -6,16 +6,56 @@ experimental: true
 An EEZ L2 and its L1 share one sequencer, so a call can cross between
 them inside a single transaction: the far side executes atomically with the
 sending side, and its return value or revert comes back in the same
-transaction. The `eez` module ships the two devnet chains, `gnosisChiado` and
-`eezL2`, so `switch` reaches them by name, plus a faucet for gas.
+transaction. The `eez` module ships the two chains of ChiadoX, the EEZ team's testnet
+(<https://chiadox.eez.dev>): `gnosisChiado` and `eezL2`, so `switch`
+reaches them by name. Gas on Chiado comes from its faucet
+(<https://faucet.chiadochain.net>); gas on `eezL2` is Chiado xDAI bridged
+over in the ChiadoX dashboard.
 
 ⚗️ **Experimental** — available at [next.evmcrispr.com](https://next.evmcrispr.com).
 
 ```evml
 load eez
 
-switch gnosisChiado
-eez:faucet @me
+switch eezL2
+print "balance on L2:" @balance(ETH @me)
+```
+
+## Fees and wallets
+
+A transaction that crosses chains pays for its settlement on Chiado through
+its priority fee, about 0.0005 xDAI per transaction, and the EEZ composer
+refuses one priced below that. EVMcrispr asks the composer for the price
+of each cross-chain transaction just before it is signed and offers it to
+the wallet; leave the suggested fee as it is. An ordinary Chiado or
+mainnet transaction is not shown to the composer. A transaction the composer will not price is
+one that would fail once composed, and the error says so.
+
+A cross-chain transaction composes only when it reaches the composer. The
+`eezL2` network a wallet adds from EVMcrispr already points there. Chiado is
+a network wallets know already, with its public RPC: to send cross-chain
+calls *from* Chiado with a browser wallet, add
+`https://chiadox.eez.dev/composer/l1` as an RPC for Chiado (chain id 10200)
+in the wallet and select it. It serves ordinary Chiado traffic too.
+
+## RollupX
+
+The EEZ team also runs RollupX (<https://rollupx.eez.dev>), a devnet
+settled on Ethereum mainnet: `mainnet` ↔ `rollupX`. Everything in this
+guide works there with those two chain names in place of `gnosisChiado`
+and `eezL2`, but with real ETH: a cross-chain transaction pays about
+0.00015 ETH for its settlement, and EVMcrispr uses no quote above
+0.003 ETH. ETH reaches `rollupX` through the RollupX dashboard's bridge.
+To send cross-chain calls from mainnet with a browser wallet, add
+`https://rollupx.eez.dev/composer/l1` as an RPC for Ethereum and select
+it. The helpers that read on-chain inside a transaction (`@eez:on!`) need
+the Assertions contracts on both chains; RollupX does not have them yet.
+
+```evml
+load eez
+
+switch mainnet
+print "my proxy on RollupX:" @eez:on(rollupX @eez:proxy(mainnet @me))
 ```
 
 ## Cross-chain proxies
@@ -230,7 +270,7 @@ deployment of them, at the same addresses on both chains.
 
 That makes the Safe a fitting whale. Fund it on L2, then let it earn a
 badge from the [minter above](#calling-across-from-a-contract), on the
-condition that it holds 100 ETH or more there. The assertion reads L2 and
+condition that it holds 1 xDAI or more there. The assertion reads L2 and
 the mint writes L2, both from L1, inside the Safe's one transaction: no
 balance, no badge.
 
@@ -245,11 +285,11 @@ switch gnosisChiado
 safe:new @me -> ProxyCreation(address indexed, address) [$safe _]
 
 switch eezL2
-eez:faucet $safe --amount 100e18              # the Safe's stash on L2
+send $safe --value 1e18                       # the Safe's stash on L2
 
 switch gnosisChiado
 safe:execute $safe (
-  assert @eez:on!(eezL2 @balance!(ETH $safe)) >= 100e18 "not a whale on L2"
+  assert @eez:on!(eezL2 @balance!(ETH $safe)) >= 1e18 "no stash on L2"
   exec $minter mintBadge(address) @eez:proxy(eezL2 $badge)
 )
 print "badges:" @eez:on(eezL2 $badge::{balanceOf(address)(uint256) $safe})

@@ -16,7 +16,7 @@ export default defineCommand<Eez>({
   name: "faucet",
   batchable: false,
   description:
-    "Send devnet ETH to an account from the EEZ devnet's pre-funded faucet key, so a fresh wallet can pay for gas. The faucet signs the transfer itself; nothing is asked of the connected wallet.",
+    "Send devnet ETH to an account from a pre-funded key set in $eez:faucetKey, so a fresh wallet can pay for gas on a devnet that has one (a local enclave). The faucet signs the transfer itself; nothing is asked of the connected wallet. The hosted ChiadoX testnet has no such key: its rollup is funded by bridging.",
   args: [
     {
       name: "recipient",

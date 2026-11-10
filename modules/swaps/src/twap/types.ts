@@ -27,8 +27,10 @@ export interface TwapReference {
   provider: "CoWSwap";
   chainId: number;
   controller: Address;
+  /** The controller itself when its own Safe owns the order. */
   account: Address;
-  slot: number;
+  /** The execution Safe's slot; `null` when the controller owns the order. */
+  slot: number | null;
   params: ConditionalOrderParams;
   orderHash: Hex;
 }

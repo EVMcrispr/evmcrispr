@@ -5,7 +5,7 @@ import { isAddressEqual } from "viem";
 import { helpers } from "../../../src/_generated";
 import { eezBaseAbi } from "../../../src/abis";
 import { EEZ_CHAINS } from "../../../src/constants";
-import { devnet, L1_ID, l1 } from "../../devnet";
+import { devnet, L1_ID, L2_ID, L2_ROLLUP_ID, l1 } from "../../devnet";
 
 const DEAD = "0x000000000000000000000000000000000000dEaD";
 
@@ -28,14 +28,16 @@ describeHelper(
         name: "resolves the proxy of a rollup contract on L1",
         input: `@eez:proxy(eezL2 ${DEAD})`,
         validate: async (result) => {
-          expect(isAddressEqual(result, await onChain(1n))).to.be.true;
+          expect(isAddressEqual(result, await onChain(L2_ROLLUP_ID))).to.be
+            .true;
         },
       },
       {
         name: "accepts the chain id too",
-        input: `@eez:proxy(6291 ${DEAD})`,
+        input: `@eez:proxy(${L2_ID} ${DEAD})`,
         validate: async (result) => {
-          expect(isAddressEqual(result, await onChain(1n))).to.be.true;
+          expect(isAddressEqual(result, await onChain(L2_ROLLUP_ID))).to.be
+            .true;
         },
       },
       {

@@ -14,6 +14,7 @@ import {
   registryMap,
   requireAddress,
 } from "../addresses";
+import { refuseV2 } from "../ethRegistry";
 import { PARENT_CANNOT_CONTROL, validateFusePrereqs } from "../fuses";
 import { assertSupportedChain, eth2LDLabel, isEth2LD } from "../utils";
 
@@ -42,6 +43,7 @@ export default defineCommand<Ens>({
   async run(module, { name }, { opts }) {
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
+    await refuseV2(await module.getClient(), chainId, name, "ens:wrap");
     const nameWrapper = requireAddress(nameWrapperMap, chainId, "NameWrapper");
     const owner = await module.getSender();
     const resolver = opts.resolver ?? zeroAddress;

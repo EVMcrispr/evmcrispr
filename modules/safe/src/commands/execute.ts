@@ -1,4 +1,8 @@
-import { defineCommand, ErrorException } from "@evmcrispr/sdk";
+import {
+  defineCommand,
+  ErrorException,
+  isTransactionAction,
+} from "@evmcrispr/sdk";
 import type Safe from "..";
 import { safeDeployment } from "../addresses";
 import {
@@ -164,6 +168,11 @@ export default defineCommand<Safe>({
         ),
         ...(report.executorSigned ? { from: executor } : {}),
         ...(opts.gas !== undefined ? { gas: BigInt(opts.gas) } : {}),
+        // Wrapping a call that crosses chains makes the Safe's transaction
+        // one: a gateway prices it (see `TransactionAction.crossChain`).
+        ...(actions?.some((a) => isTransactionAction(a) && a.crossChain)
+          ? { crossChain: true }
+          : {}),
         executionPlan: smartPlanFor(actions),
       },
     ];

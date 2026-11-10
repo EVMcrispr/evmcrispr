@@ -1,17 +1,33 @@
 import { chainLabel, ErrorException } from "@evmcrispr/sdk";
-import type { Category, CompileCtx, Operand } from "@evmcrispr/sdk/onchain";
+import type {
+  Category,
+  CompileCtx,
+  InputParam,
+  Operand,
+} from "@evmcrispr/sdk/onchain";
 import {
   coreCall,
   encodeChain,
   encodeCond,
+  encodeNav,
+  encodeOrElse,
+  PAYLOAD_STEP,
   rawParam,
   staticCallParam,
   toWord,
   wordOpParam,
 } from "@evmcrispr/sdk/onchain";
 import type { Address, Hex } from "viem";
-import { encodeFunctionData } from "viem";
-import { registryMap, requireAddress } from "./addresses";
+import {
+  encodeFunctionData,
+  getChainContractAddress,
+  labelhash,
+  parseAbi,
+} from "viem";
+import { mainnet } from "viem/chains";
+import { ethRegistryMap, registryMap, requireAddress } from "./addresses";
+import { V2_STATUS } from "./ethRegistry";
+import { dnsName } from "./permissionedResolver";
 import { registryAbi } from "./utils";
 
 /**
@@ -98,3 +114,111 @@ export async function resolverGatedChain(
     cat,
   );
 }
+
+/**
+ * A record read through the Universal Resolver, the path every ENS client
+ * takes: `resolve(dnsName, callData)` answers `(bytes result, address)`,
+ * and `result` is exactly what the record call returns, so the operand
+ * resolves to the same bytes a direct read of an ENS v1 resolver gave. It
+ * reads ENSv2 names (whose resolvers only answer `resolve`) and ENS v1 names
+ * (through their bridge) alike. A revert (no resolver, or a name only an
+ * off-chain gateway answers) reads as `emptyReturn`.
+ */
+export async function universalResolverRead(
+  ctx: CompileCtx,
+  name: string,
+  callData: Hex,
+  emptyReturn: Hex,
+  cat: Category,
+): Promise<Operand> {
+  await requireMainnet(ctx, "the Universal Resolver");
+  const resolved = staticCallParam(
+    getChainContractAddress({
+      chain: mainnet,
+      contract: "ensUniversalResolver",
+    }),
+    encodeFunctionData({
+      abi: universalResolverAbi,
+      functionName: "resolve",
+      args: [dnsName(name), callData],
+    }),
+  );
+  const result = staticCallParam(
+    ctx.core,
+    encodeNav(resolved, "(bytes,address)", [0n, PAYLOAD_STEP]),
+  );
+  return coreCall(ctx, encodeOrElse(result, rawParam(emptyReturn)), cat);
+}
+
+/**
+ * Reads a name where it is registered when the assertion is judged: on
+ * ENSv2 when its .eth ancestor is REGISTERED in the ETHRegistry, else on
+ * ENS v1, as `v1` does. On ENSv2 a .eth name is read in the ETHRegistry and a
+ * subname in its parent's subregistry, reached by `chain` hops through each
+ * ancestor's `getSubregistry`. `read(label)` is the final call there; it
+ * must return one word.
+ */
+export async function v2OrV1Read(
+  ctx: CompileCtx,
+  name: string,
+  read: (label: string) => Hex,
+  v1: InputParam,
+  cat: Category,
+): Promise<Operand> {
+  const ethRegistry = await onchainAddress(ctx, ethRegistryMap, "ETHRegistry");
+  // From the .eth name down.
+  const labels = name.toLowerCase().split(".").slice(0, -1).reverse();
+  const status = staticCallParam(
+    ethRegistry,
+    encodeFunctionData({
+      abi: v2ReadAbi,
+      functionName: "getStatus",
+      args: [BigInt(labelhash(labels[0]))],
+    }),
+  );
+  const subregistry = (label: string) =>
+    encodeFunctionData({
+      abi: v2ReadAbi,
+      functionName: "getSubregistry",
+      args: [label],
+    });
+  const last = labels[labels.length - 1];
+  const onV2 =
+    labels.length === 1
+      ? staticCallParam(ethRegistry, read(last))
+      : staticCallParam(
+          ctx.core,
+          encodeChain(staticCallParam(ethRegistry, subregistry(labels[0])), [
+            ...labels.slice(1, -1).map(subregistry),
+            read(last),
+          ]),
+        );
+  return coreCall(
+    ctx,
+    encodeCond(
+      wordOpParam(
+        ctx,
+        "eq",
+        false,
+        status,
+        rawParam(toWord(BigInt(V2_STATUS.REGISTERED))),
+      ),
+      onV2,
+      v1,
+    ),
+    cat,
+  );
+}
+
+/** The single-word reads `v2OrV1Read` builds on, on any ENSv2 registry. */
+export const v2ReadAbi = parseAbi([
+  "function getStatus(uint256 anyId) view returns (uint8)",
+  "function getSubregistry(string label) view returns (address)",
+  "function getOwner(uint256 anyId) view returns (address)",
+  "function getExpiry(uint256 anyId) view returns (uint64)",
+  "function getResolver(string label) view returns (address)",
+]);
+
+const universalResolverAbi = parseAbi([
+  "function resolve(bytes name, bytes data) view returns (bytes, address)",
+]);

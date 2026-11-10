@@ -18,6 +18,7 @@ import {
   ensureFunded,
   L1_ID,
   L2_ID,
+  L2_ROLLUP_ID,
   l1,
   l1Wallet,
   l2,
@@ -83,7 +84,7 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
     // The read goes out through the L2 core's proxy on L1, and is resolved
     // on L2 as a static call from the L1 core's proxy there. Static
     // resolution cannot deploy a proxy, so both must exist up front.
-    coreProxy = await ensureProxy(L1_ID, CORE_ADDRESS, 1n);
+    coreProxy = await ensureProxy(L1_ID, CORE_ADDRESS, L2_ROLLUP_ID);
     await ensureProxy(L2_ID, CORE_ADDRESS, 0n);
   }, 180_000);
 

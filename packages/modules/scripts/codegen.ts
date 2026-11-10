@@ -61,8 +61,8 @@ const lines = [
   "",
   `export const EXPERIMENTAL_MODULE_NAMES: string[] = ${JSON.stringify(experimentalNames)};`,
   "",
-  "/** Chains declared by modules (their `src/chains.ts`), usable before any module loads. */",
-  `export const moduleChains: ChainDef[] = ${JSON.stringify(allChains)};`,
+  "/** Chains declared by modules (their `src/chains.ts`), and gateways they give chains viem knows; usable before any module loads. */",
+  `export const moduleChains: ModuleChainDef[] = ${JSON.stringify(allChains)};`,
   "",
   "export const moduleEntries = [",
   // std is excluded: @evmcrispr/core always loads it.
@@ -79,7 +79,12 @@ const lines = [
   "];",
   "",
 ];
-lines.splice(1, 0, "", 'import type { ChainDef } from "@evmcrispr/core";');
+lines.splice(
+  1,
+  0,
+  "",
+  'import type { ModuleChainDef } from "@evmcrispr/core";',
+);
 
 const outPath = join(pkgDir, "src/_generated.ts");
 const content = lines.join("\n");

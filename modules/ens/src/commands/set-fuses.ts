@@ -8,6 +8,7 @@ import {
 import { labelhash } from "viem";
 import type Ens from "..";
 import { nameWrapperMap, requireAddress } from "../addresses";
+import { refuseV2 } from "../ethRegistry";
 import { encodeFuses, hasParentFuses, validateFusePrereqs } from "../fuses";
 import {
   assertSupportedChain,
@@ -51,6 +52,7 @@ export default defineCommand<Ens>({
   async run(module, { name, fuse, moreFuses }, { opts }) {
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
+    await refuseV2(await module.getClient(), chainId, name, "ens:set-fuses");
     const client = await module.getClient();
     const node = getNode(name);
 

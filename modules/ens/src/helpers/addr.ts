@@ -3,15 +3,7 @@ import {
   ErrorException,
   HelperFunctionError,
 } from "@evmcrispr/sdk";
-import {
-  coreCall,
-  encodeChain,
-  encodeCond,
-  rawParam,
-  staticCallParam,
-  toWord,
-  wordOpParam,
-} from "@evmcrispr/sdk/onchain";
+import { toWord } from "@evmcrispr/sdk/onchain";
 import { encodeFunctionData, parseAbi } from "viem";
 import { normalize } from "viem/ens";
 
@@ -20,8 +12,8 @@ const resolverAddrAbi = parseAbi([
 ]);
 
 import type Ens from "..";
-import { registryMap, requireAddress } from "../addresses";
-import { getNode, mainnetClient, registryAbi } from "../utils";
+import { universalResolverRead } from "../onchain";
+import { ensClient, getNode } from "../utils";
 
 export default defineHelper<Ens>({
   name: "addr",
@@ -44,7 +36,7 @@ export default defineHelper<Ens>({
     },
   ],
   async run(module, { name, coinType }, { node }) {
-    const client = mainnetClient(module);
+    const client = await ensClient(module);
     const address = await client.getEnsAddress({
       name: normalize(name),
       ...(coinType !== undefined ? { coinType: BigInt(String(coinType)) } : {}),
@@ -61,39 +53,17 @@ export default defineHelper<Ens>({
       );
     }
     const name = String(await ctx.interpreters.interpretNode(node.args[0]));
-    const ensNode = getNode(name);
-    // ENS lives on mainnet/sepolia; other chains keep the mainnet
-    // registry literal, mirroring the run face's mainnet resolution.
-    const chainId = await ctx.module.getChainId();
-    const registry =
-      registryMap.get(chainId) ?? requireAddress(registryMap, 1, "ENS");
-    const resolverParam = staticCallParam(
-      registry,
-      encodeFunctionData({
-        abi: registryAbi,
-        functionName: "resolver",
-        args: [ensNode],
-      }),
-    );
-    // cond(eq(resolver, 0), 0, chain(resolver, addr(node))): an unset
-    // resolver resolves to the zero word instead of reverting.
-    const addrChain = staticCallParam(
-      ctx.core,
-      encodeChain(resolverParam, [
-        encodeFunctionData({
-          abi: resolverAddrAbi,
-          functionName: "addr",
-          args: [ensNode],
-        }),
-      ]),
-    );
-    return coreCall(
+    // An unset address, or a name without a resolver, reads as the zero
+    // address instead of reverting.
+    return universalResolverRead(
       ctx,
-      encodeCond(
-        wordOpParam(ctx, "eq", false, resolverParam, rawParam(toWord(0n))),
-        rawParam(toWord(0n)),
-        addrChain,
-      ),
+      name,
+      encodeFunctionData({
+        abi: resolverAddrAbi,
+        functionName: "addr",
+        args: [getNode(name)],
+      }),
+      toWord(0n),
       "Address",
     );
   },

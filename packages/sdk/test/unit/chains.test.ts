@@ -6,6 +6,7 @@ import {
   registerChains,
   registeredChain,
   registeredChains,
+  registeredGateway,
   resolveChain,
   setChainUrlPolicy,
   toViemChain,
@@ -114,6 +115,28 @@ describe("chains registry", () => {
       setChainUrlPolicy(undefined);
     }
     expect(registeredChain(devnet.id)?.rpcUrl).toBe(devnet.rpcUrl);
+  });
+
+  it("gives a chain viem knows a gateway without declaring it again", () => {
+    registerChains({
+      id: gnosis.id,
+      gateway: "https://gateway.example/gnosis",
+      gatewayMaxFee: "5",
+    });
+    // viem's own definition stays the chain: its contracts included.
+    expect(registeredChain(gnosis.id)).toBeUndefined();
+    expect(registeredChains().some((c) => c.id === gnosis.id)).toBe(false);
+    expect(viemChainById(gnosis.id)?.contracts?.multicall3).toBeDefined();
+    expect(registeredGateway(gnosis.id)).toEqual({
+      gateway: "https://gateway.example/gnosis",
+      gatewayMaxFee: "5",
+    });
+  });
+
+  it("reads a declared chain's gateway from its declaration", () => {
+    registerChains({ ...devnet, id: 987656, gateway: "https://gw.example" });
+    expect(registeredGateway(987656)?.gateway).toBe("https://gw.example");
+    expect(registeredGateway(987657)).toBeUndefined();
   });
 
   it("reads no URL from non-http transports", () => {

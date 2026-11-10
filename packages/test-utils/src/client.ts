@@ -17,8 +17,17 @@ import { anvilUrl } from "../../../scripts/anvil-config";
  *  the environment, so it is not known when this module is imported. */
 const transport = () => http(anvilUrl());
 
+/** The test anvil mines on demand: poll it for receipts far more often than
+ *  Gnosis's block time (viem's default, 2.5s). Anvil >= 1.8 answers a send
+ *  before the block is mined, so the first poll often misses. */
+export const ANVIL_POLLING_MS = 100;
+
 export function getPublicClient() {
-  return createPublicClient({ chain: gnosis, transport: transport() });
+  return createPublicClient({
+    chain: gnosis,
+    transport: transport(),
+    pollingInterval: ANVIL_POLLING_MS,
+  });
 }
 
 /**
@@ -70,6 +79,7 @@ export function getWalletClients() {
       account: mnemonicToAccount(mnemonic, { addressIndex: i }),
       chain: gnosis,
       transport: transport(),
+      pollingInterval: ANVIL_POLLING_MS,
     }),
   );
 }

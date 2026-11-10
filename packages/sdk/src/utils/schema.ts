@@ -179,6 +179,37 @@ export interface ChainDef {
    *  `<explorerUrl>/api`. */
   explorerApiUrl?: string;
   testnet?: boolean;
+  /** Endpoint that prices and admits transactions on this chain before
+   *  they are sent: an EEZ composer front, answering `eez_quoteFee`. When
+   *  it quotes a transaction (one that crosses chains), the executor sends
+   *  it at the quoted fees, and a local key submits it there. A module may
+   *  declare a chain viem already knows (keeping viem's key, name and RPC)
+   *  only to add this. */
+  gateway?: string;
+  /** Most a gateway's quote may commit a transaction on this chain to, in
+   *  wei of the native token (`gas × maxFeePerGas`), as a decimal string.
+   *  A quote above it is not used: the transaction goes out unpriced and
+   *  the gateway refuses it. Default `DEFAULT_GATEWAY_MAX_FEE`. */
+  gatewayMaxFee?: string;
+}
+
+/**
+ * A gateway for a chain viem already knows, which the module gives one
+ * without declaring the chain again: viem's own definition (its contracts,
+ * explorers, formatters) stays the chain everyone uses.
+ */
+export interface ChainGatewayDef {
+  id: number;
+  gateway: string;
+  gatewayMaxFee?: string;
+}
+
+/** What a module's `src/chains.ts` lists: chains it ships, and gateways
+ *  for chains viem knows. */
+export type ModuleChainDef = ChainDef | ChainGatewayDef;
+
+export function isChainGatewayDef(def: ModuleChainDef): def is ChainGatewayDef {
+  return !("rpcUrl" in def);
 }
 
 /**

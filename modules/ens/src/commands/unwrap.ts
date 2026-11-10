@@ -2,6 +2,7 @@ import { defineCommand, encodeAction, normalizeEnsName } from "@evmcrispr/sdk";
 import { labelhash } from "viem";
 import type Ens from "..";
 import { nameWrapperMap, requireAddress } from "../addresses";
+import { refuseV2 } from "../ethRegistry";
 import { assertSupportedChain, eth2LDLabel, getNode, isEth2LD } from "../utils";
 
 export default defineCommand<Ens>({
@@ -23,6 +24,7 @@ export default defineCommand<Ens>({
   async run(module, { name }) {
     const chainId = await module.getChainId();
     assertSupportedChain(chainId);
+    await refuseV2(await module.getClient(), chainId, name, "ens:unwrap");
     const nameWrapper = requireAddress(nameWrapperMap, chainId, "NameWrapper");
     const owner = await module.getSender();
 

@@ -8,7 +8,7 @@ import { devnet } from "../../devnet";
 /** A target whose L1 proxy the eez:on suite makes sure exists, and
  *  that proxy (CREATE2 from the L1 registry, so stable across runs). */
 const KNOWN = "0x000000000000000000000000000000000000bEEF";
-const KNOWN_PROXY = "0x8837aEedFaBbDA31c8676E6f46Eb5ABF54563230";
+const KNOWN_PROXY = "0xD79015E2d143a8770dD5eF15A70F2F24232259c0";
 
 describeHelper(
   "@eez:target",
@@ -34,7 +34,7 @@ describeHelper(
     docCases: [
       {
         description: "Which rollup contract does this L1 proxy stand in for?",
-        code: "switch gnosisChiado\nprint @eez:target(gnosisChiado 0x8837aEedFaBbDA31c8676E6f46Eb5ABF54563230)",
+        code: "switch gnosisChiado\nprint @eez:target(gnosisChiado 0xD79015E2d143a8770dD5eF15A70F2F24232259c0)",
       },
     ],
   },

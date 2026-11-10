@@ -74,6 +74,10 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
   let signature: Hex;
   let digest: Hex;
   const total = 12n * 10n ** 18n;
+  // A Safe's first TWAP replaces its fallback handler, which the Safe
+  // review gate refuses unless allowed.
+  const allowHandler =
+    "--allow-fallback-handler-to 0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5";
   const script = (name = "$order", extra = "") =>
     `swaps:twap ${name} ${total} ${WXDAI} to ${GNO} --parts 3 --every 3600 --min 4 --offline true ${extra}`;
 
@@ -424,7 +428,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     expect(plannedTwap(actions).account).not.toBe(first.account);
   }, 120000);
 
-  it("uses an enclosing Safe as controller, funder and default recipient", async () => {
+  it("lets an enclosing Safe own the order itself, without a new Safe", async () => {
     const deployment = safeDeployment(100);
     const initializer = safeInitializer(
       [controller],
@@ -447,19 +451,133 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
         args: [outer, total],
       }),
     });
-    const { interpreter } = await run(
-      `load safe\nsafe:execute ${outer} (\n${script()}\n)`,
+    const { interpreter, actions } = await run(
+      `load safe\nsafe:execute ${outer} ${allowHandler} (\n${script()}\n${script("$second")}\n)`,
     );
+    // One Safe transaction, and no Safe deployed for the orders.
+    expect(actions.length).toBe(1);
+    expect((actions[0] as TransactionAction).to?.toLowerCase()).toBe(
+      outer.toLowerCase(),
+    );
+    // Set once for both orders.
+    const setHandler = toFunctionSelector(
+      "function setFallbackHandler(address)",
+    ).slice(2);
+    expect(
+      (actions[0] as TransactionAction).data!.split(setHandler).length - 1,
+    ).toBe(1);
     const ref = await reference(interpreter);
-    expect(ref.controller).toBe(outer);
-    expect(decodeSchedule(ref.params).receiver).toBe(outer);
-    expect(await balance(ref.account)).toBe(total);
+    const second = await reference(interpreter, "$second");
+    for (const order of [ref, second]) {
+      expect(order.controller).toBe(outer);
+      expect(order.account).toBe(outer);
+      expect(order.slot).toBeNull();
+      expect(decodeSchedule(order.params).receiver).toBe(outer);
+      expect(
+        await client.readContract({
+          address: COMPOSABLE_COW,
+          abi: cowAbi,
+          functionName: "singleOrders",
+          args: [outer, order.orderHash],
+        }),
+      ).toBe(true);
+    }
+    // The tokens stay; the allowance covers both orders.
+    expect(await balance(outer)).toBe(total);
+    expect(await allowance(outer)).toBe(2n * total);
+    const fallback = await client.getStorageAt({
+      address: outer,
+      slot: keccak256(stringToHex("fallback_manager.handler.address")),
+    });
+    expect(getAddress(`0x${fallback!.slice(-40)}`)).toBe(
+      getAddress("0x2f55e8b20D0B9FEFA187AA7d00B6Cbe563605bF5"),
+    );
+
+    // The Safe answers its parts' signatures through ComposableCoW.
+    const [order, orderSignature] = await client.readContract({
+      address: COMPOSABLE_COW,
+      abi: tradeAbi,
+      functionName: "getTradeableOrderWithSignature",
+      args: [outer, ref.params, "0x", []],
+    });
+    expect(order.sellAmount).toBe(total / 3n);
+    expect(
+      await client.readContract({
+        address: outer,
+        abi: tradeAbi,
+        functionName: "isValidSignature",
+        args: [
+          hashTypedData(
+            JSON.parse(
+              buildOrderTypedData(100, {
+                ...order,
+                kind: "sell",
+                sellTokenBalance: "erc20",
+                buyTokenBalance: "erc20",
+              }),
+            ),
+          ),
+          orderSignature,
+        ],
+      }),
+    ).toBe("0x1626ba7e");
+
+    const status = await cowTwap.status(client, ref);
+    expect(status.registered).toBe(true);
+    expect(status.cancelled).toBe(false);
+    expect(status.evidence.reasons).toEqual([]);
+
+    // Another Safe registers a copy of the order: the controller's own
+    // registration still resolves, so the copy cannot block managing it.
+    const copier = predictSafeAddress(
+      deployment,
+      bytecode,
+      initializer,
+      salt + 7n,
+    );
+    await send(encodeSafeDeployment(deployment, initializer, salt + 7n));
+    await send(
+      encodeExecTransaction(
+        copier,
+        buildSafeTx(
+          [
+            {
+              to: COMPOSABLE_COW,
+              data: encodeFunctionData({
+                abi: cowAbi,
+                functionName: "create",
+                args: [ref.params, true],
+              }),
+            },
+          ],
+          0n,
+          deployment,
+        ),
+        preValidatedSignature(controller),
+      ),
+    );
+    await expect(
+      findReference(client, 100, ref.orderHash, { external: false }),
+    ).rejects.toThrow("several");
+    const mine = await findReference(client, 100, ref.orderHash, {
+      external: false,
+      controller: outer,
+    });
+    expect(mine.account).toBe(outer);
+
     await run(
       `load safe\nsafe:execute ${outer} (\nswaps:twap-cancel ${ref.orderHash}\n)`,
     );
-    await run(
-      `load safe\nsafe:execute ${outer} (\nswaps:twap-recover ${ref.orderHash}\n)`,
-    );
+    const cancelled = await cowTwap.status(client, ref);
+    expect(cancelled.registered).toBe(false);
+    expect(cancelled.cancelled).toBe(true);
+    expect(await allowance(outer)).toBe(2n * total);
+    await expect(
+      run(
+        `load safe\nsafe:execute ${outer} (\nswaps:twap-recover ${ref.orderHash}\n)`,
+        false,
+      ),
+    ).rejects.toThrow("nothing to recover");
     expect(await balance(outer)).toBe(total);
   }, 120000);
 
@@ -504,7 +622,7 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     const source = [
       "load safe",
       `set $tokens [${WXDAI} ${GNO} ${usdc} ${sdai}]`,
-      `safe:execute ${outer} (`,
+      `safe:execute ${outer} ${allowHandler} (`,
       "  loop $token of $tokens (",
       `    swaps:twap $order max $token to ${sdai} --parts 3 --every 3600 --min 4 --offline true -?/> SameToken $same -?/> BelowMinimum $small -?/> NoBalance $empty`,
       "  )",
@@ -525,9 +643,8 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
       deployment.multiSendCallOnly.toLowerCase(),
     );
     expect(args[3]).toBe(1);
-    // A mining-time start registers through createWithContext; each
-    // registration sits inside its execution Safe's call, nested in the
-    // outer MultiSend.
+    // A mining-time start registers through createWithContext, each one a
+    // call of the Safe's own MultiSend.
     const registerSelector = toFunctionSelector(
       "function createWithContext((address,bytes32,bytes),address,bytes,bool)",
     ).slice(2);
@@ -546,15 +663,18 @@ describe("Swaps > TWAP on a Gnosis fork", () => {
     ]);
 
     await run(source);
-    expect(await balance(outer)).toBe(0n);
+    // The Safe owns both orders: its tokens stay, its relayer allowance
+    // covers what each order sells, floored to --parts.
+    expect(await balance(outer)).toBe(total);
+    expect(await allowance(outer)).toBe(total);
     expect(
       await client.readContract({
         address: GNO,
         abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [outer],
+        functionName: "allowance",
+        args: [outer, COW_VAULT_RELAYER],
       }),
-    ).toBeLessThan(3n);
+    ).toBe(gnoHeld - (gnoHeld % 3n));
   }, 180000);
 
   it("refuses reuse when RPC history is incomplete", async () => {

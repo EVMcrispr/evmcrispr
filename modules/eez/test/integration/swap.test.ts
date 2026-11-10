@@ -1,9 +1,10 @@
+import { chainGateway } from "@evmcrispr/sdk";
 import "../setup";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { executeScript } from "@evmcrispr/core";
 import { getTransports } from "@evmcrispr/test-utils";
 import { evml } from "@evmcrispr/test-utils/evml";
-import type { Account, Address, Hex, WalletClient } from "viem";
+import type { Account, Address, WalletClient } from "viem";
 import {
   createWalletClient,
   erc20Abi,
@@ -172,6 +173,8 @@ async function runAs(account: Account, script: string): Promise<string> {
   const defaults = makeDefaultHandlers({
     account: account.address,
     maximizeGasLimit: false,
+    // The script loads eez, which declares the ChiadoX gateways.
+    gatewayFor: chainGateway,
   });
   const routed = (ctx: ActionHandlerCtx, chainId?: number) => ({
     ...ctx,
@@ -261,15 +264,13 @@ describe.skipIf(!devnet)(
 
     it("Bob cannot take it while Alice has no DAI", async () => {
       // The DAI leg reverts one hop further in, inside the composed block,
-      // where no simulation reaches: the composer evicts the transaction
-      // instead of mining it, and the script learns of it from the receipt.
+      // where no simulation of ours reaches. The composer does compose it
+      // when asked for a price, finds it failing and will not quote it, so
+      // the transaction goes out unpriced and the composer refuses it
+      // before anything is mined.
       const reason = await failure(runAs(bob, TAKE(scheduled())));
-      const hash = /0x[0-9a-f]{64}/i.exec(reason)?.[0] as Hex | undefined;
-      expect(reason).toMatch(/Timed out while waiting for transaction/);
-      expect(hash).toBeDefined();
-      expect(await l1.getTransaction({ hash: hash! }).catch(() => null)).toBe(
-        null,
-      );
+      expect(reason).toMatch(/settlement tariff admission failed/);
+      expect(reason).toMatch(/would fail once composed/);
       expect(await balances(world)).toEqual({ bobDai: 0n, aliceUsdc: 0n });
     }, 300_000);
 

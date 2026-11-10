@@ -18,8 +18,11 @@ import {
 } from "viem";
 import type Swaps from "..";
 import {
+  type AccountPlan,
   executeAccount,
+  isSafeAccount,
   prepareAccount,
+  prepareOwnSafe,
   revalidateAccount,
 } from "../twap/account";
 import {
@@ -50,7 +53,7 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
   },
   name: "twap",
   description:
-    "Sell tokens in equal timed parts through CoW from a reusable Safe controlled by @sender. Requires --parts, --every and exactly one of --min or --price-protection. Live preflight is required unless --offline is explicit.",
+    "Sell tokens in equal timed parts through CoW. A Safe @sender owns the order itself; any other @sender gets a reusable Safe it controls. Requires --parts, --every and exactly one of --min or --price-protection. Live preflight is required unless --offline is explicit.",
   args: [
     {
       name: "variable",
@@ -221,23 +224,22 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
     validateSchedule(schedule, block.timestamp);
     await provider.requireDeployment(module);
     const salt = opts.salt ?? toHex(crypto.getRandomValues(new Uint8Array(32)));
-    const account = await prepareAccount(
-      module,
-      controller,
-      min === undefined
-        ? undefined
-        : orderHash(provider.buildParams(schedule, salt)),
-    );
+    // A Safe owns its order itself: nothing is deployed and nothing moves.
+    const own = await isSafeAccount(client, controller);
+    const account = own
+      ? undefined
+      : await prepareAccount(
+          module,
+          controller,
+          min === undefined
+            ? undefined
+            : orderHash(provider.buildParams(schedule, salt)),
+        );
+    const owner = account?.account ?? controller;
     const chainId = await module.getChainId();
     const preflight = offline
       ? undefined
-      : await twapPreflight(
-          chainId,
-          schedule,
-          account.account,
-          block.timestamp,
-          fail,
-        );
+      : await twapPreflight(chainId, schedule, owner, block.timestamp, fail);
     if (preflight && protection !== undefined)
       schedule.minPartLimit = protectedMinimum(preflight.netBuy, protection);
     const params = provider.buildParams(schedule, salt);
@@ -247,19 +249,26 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
       provider: "CoWSwap",
       chainId,
       controller,
-      account: account.account,
-      slot: account.slot,
+      account: owner,
+      slot: account?.slot ?? null,
       params,
       orderHash: hash,
     };
-    const funding = await buildApprovalActions(
-      module,
-      tokenIn,
-      controller,
-      account.account,
-      total,
-    );
-    const latest = await revalidateAccount(module, controller, account, hash);
+    const setup = account
+      ? undefined
+      : await prepareOwnSafe(module, controller, tokenIn, total);
+    const funding = account
+      ? await buildApprovalActions(
+          module,
+          tokenIn,
+          controller,
+          account.account,
+          total,
+        )
+      : [];
+    const latest = account
+      ? await revalidateAccount(module, controller, account, hash)
+      : await client.getBlock();
     validateSchedule(schedule, latest.timestamp);
     if (preflight && preflight.expiration <= Date.now())
       throw new ErrorException(
@@ -274,7 +283,7 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
       module.context.log(
         "TWAP offline mode: external quote, valuation and service checks were explicitly skipped.",
       );
-    const calls = [
+    const calls = (account: AccountPlan) => [
       ...account.configure,
       {
         to: tokenIn,
@@ -303,17 +312,20 @@ export default defineCommand<Swaps, typeof TWAP_ERRORS>({
       undefined,
       true,
     );
-    const actions = [
-      ...account.deploy,
-      ...funding,
-      executeAccount(
-        chainId,
-        account.account,
-        controller,
-        account.nonce,
-        calls,
-      ),
-    ];
+    const actions = account
+      ? [
+          ...account.deploy,
+          ...funding,
+          executeAccount(
+            chainId,
+            account.account,
+            controller,
+            account.nonce,
+            calls(account),
+          ),
+        ]
+      : [...(setup?.calls ?? []), provider.create(params)];
+    setup?.commit();
     // Follows the order until its schedule ends. `client` is the order's
     // chain, even if the script switches chains afterwards.
     const [sell, buy] = await Promise.all([

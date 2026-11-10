@@ -35,9 +35,10 @@ print $addr
 
 ## On-chain face (@addr!)
 
-Resolve the name at assertion time: the namehash computes at
-composition time, then `cond(eq(registry.resolver(node), 0), 0,
-chain(resolver(node), addr(node)))` — an unset resolver resolves to the
-zero address instead of reverting.
+Resolve the name at assertion time through the Universal Resolver, as
+every ENS client does: `resolve(dnsName, addr(node))`, with the name encoded
+at composition time. It reads ENSv2 names and ENS v1 names alike; a name with
+no resolver, or one only an off-chain gateway answers, reads as the zero
+address instead of reverting.
 
 #
