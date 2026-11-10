@@ -97,14 +97,22 @@ export const getModules = async (
   return modules;
 };
 
-export const getGuard = async (
+/** The address a Safe keeps in one of its storage slots (its guard, its
+ *  singleton, its fallback handler). */
+export const getSlotAddress = async (
   client: PublicClient,
   safe: Address,
-  slot: Hex = GUARD_STORAGE_SLOT,
+  slot: Hex,
 ): Promise<Address> => {
   const value = await client.getStorageAt({ address: safe, slot });
   return getAddress(sliceHex(value ?? `0x${"0".repeat(64)}`, 12));
 };
+
+export const getGuard = (
+  client: PublicClient,
+  safe: Address,
+  slot: Hex = GUARD_STORAGE_SLOT,
+): Promise<Address> => getSlotAddress(client, safe, slot);
 
 /** Predecessor of `entry` in a Safe sentinel linked list (owners or
  *  modules), as required by removeOwner/swapOwner/disableModule. */

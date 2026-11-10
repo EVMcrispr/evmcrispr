@@ -50,6 +50,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 |--------|---------|-------------|
 | [@safe:address](src/helpers/address.md) | `address` | Predict the single-owner Safe address for safe:new with a deployment salt nonce, without RPC access. The address is the same on every chain. |
 | [@safe:delegates](src/helpers/delegates.md) | `array` | Accounts the Safe Transaction Service lets propose transactions of a Safe on behalf of its owners, without confirming them. |
+| [@safe:fallbackHandler](src/helpers/fallbackHandler.md) | `address` | Fallback handler address of a Safe, which answers the calls the Safe itself does not implement (the zero address when none is set). |
 | [@safe:guard](src/helpers/guard.md) | `address` | Transaction guard address of a Safe, or with module:true its module guard (the zero address when none is set; module guards need Safe v1.5.0 or later, so it is always zero on older Safes). |
 | [@safe:isOwner](src/helpers/isOwner.md) | `bool` | Whether an address is an owner of a Safe. |
 | [@safe:merge](src/helpers/merge.md) | `string` | Merge signatures into a Safe transaction or Safe message without network access: matching signed JSON, EOA signatures, or explicit contract signatures. Current authorization is checked by verify and execute. |
@@ -58,6 +59,7 @@ Config variables are set with `set` (fully qualified, including the module prefi
 | [@safe:owners](src/helpers/owners.md) | `array` | Owner addresses of a Safe. |
 | [@safe:queue](src/helpers/queue.md) | `array` | safeTxHashes of the trusted transactions queued on the Safe Transaction Service that can still execute (not executed, at the on-chain nonce or later), in nonce order, or with nonce:<n> only those at that nonce. |
 | [@safe:signature](src/helpers/signature.md) | `bytes` | Packed owner signatures of a Safe transaction or Safe message once enough owners have signed, e.g. the EIP-1271 signature a dapp asks for. |
+| [@safe:singleton](src/helpers/singleton.md) | `address` | Singleton (implementation) address a Safe proxy delegates every call to, read from its storage slot 0. |
 | [@safe:threshold](src/helpers/threshold.md) | `number` | Signature threshold of a Safe. |
 | [@safe:verify](src/helpers/verify.md) | `string` | Verification report of a Safe transaction or Safe message as JSON: integrity-checked hashes, decoded calls, findings, owner signature checks, on-chain approvals, readiness and competing transactions, with the verdict safe:confirm and safe:execute would reach. |
 

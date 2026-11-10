@@ -129,6 +129,11 @@ export const GUARD_STORAGE_SLOT =
 export const MODULE_GUARD_STORAGE_SLOT =
   "0xb104e0b93118902c651344349b610029d694cfdec91c589c91ebafbcd0289947" as const;
 
+// Singleton address storage slot: a Safe proxy keeps its implementation
+// in slot 0.
+export const SINGLETON_STORAGE_SLOT =
+  "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
+
 // Fallback handler address storage slot:
 // keccak256("fallback_manager.handler.address")
 export const FALLBACK_HANDLER_STORAGE_SLOT =

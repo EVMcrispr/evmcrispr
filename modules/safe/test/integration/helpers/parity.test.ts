@@ -117,6 +117,18 @@ describeParity("@safe", {
       compile: `@safe:guard!(${SAFE} module:true)`,
     },
     {
+      // giv.eth is a proxy: both faces must find its (nonzero) singleton in
+      // slot 0.
+      name: "singleton of a live Safe",
+      run: `@safe:singleton(${SAFE})`,
+      compile: `@safe:singleton!(${SAFE})`,
+    },
+    {
+      name: "fallback handler of a live Safe",
+      run: `@safe:fallbackHandler(${SAFE})`,
+      compile: `@safe:fallbackHandler!(${SAFE})`,
+    },
+    {
       // The ! face reads ONE page; the plain face walks until `next` is zero.
       // They agree when a single page holds them all, which the
       // compileDescription says is the limit.

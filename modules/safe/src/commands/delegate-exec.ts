@@ -28,10 +28,12 @@ export default defineCommand<Safe>({
       rest: true,
     },
   ],
-  async run(module, { contractAddress, signature, params }) {
-    if (!module.currentSafe) {
+  async run(module, { contractAddress, signature, params }, { interpreters }) {
+    // Outside a Safe block only a simulation can make the delegatecall: it
+    // runs as the account the fork impersonates (`sim:fork --as $safe`).
+    if (!module.currentSafe && !interpreters.simulation) {
       throw new ErrorException(
-        "safe:delegate-exec can only be used inside a safe:propose or safe:execute block",
+        "safe:delegate-exec can only be used inside a safe:propose or safe:execute block, or inside sim:fork as the Safe",
       );
     }
 

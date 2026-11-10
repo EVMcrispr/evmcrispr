@@ -12,6 +12,7 @@ import {
   isWalletAction,
   RevertError,
   resolveChainId,
+  type TransactionAction,
 } from "@evmcrispr/sdk";
 import {
   type Address,
@@ -35,6 +36,12 @@ import {
   encodeBatchExecute,
   parseDelegation,
 } from "../lib/delegate";
+import {
+  DELEGATECALL_SHADOW,
+  delegatecallData,
+  delegatecallStub,
+  delegatecallSuggestionLog,
+} from "../lib/delegatecall";
 import {
   collectSwitchTargets,
   ForkManager,
@@ -453,7 +460,18 @@ export default defineCommand<Sim>({
         return execAction(transaction, { relayScan });
       }
 
+      if (isTransactionAction(action) && action.operation === 1) {
+        return execDelegatecall(action, { relayScan });
+      }
+
       if (isBatchedAction(action)) {
+        // A wallet batch is calls only: one that asks for a delegatecall
+        // would otherwise run it as a call.
+        if (action.actions.some((a) => a.operation === 1)) {
+          throw new ErrorException(
+            "a batch cannot delegatecall: only a Safe block can",
+          );
+        }
         // Simulate an EIP-5792 batch the way wallets fulfill it: an EIP-7702
         // delegation on the sender EOA plus a single self-call executing all
         // batched calls atomically through the delegate.
@@ -646,6 +664,52 @@ export default defineCommand<Sim>({
       return undefined;
     };
 
+    /** A delegatecall from the sender, through `delegatecallStub` (see
+     *  lib/delegatecall.ts): the sender's code is swapped for the stub
+     *  for one self-call and put back whatever that call does. */
+    const execDelegatecall = async (
+      action: TransactionAction,
+      { relayScan }: { relayScan: boolean },
+    ): Promise<unknown> => {
+      if (!action.to) {
+        throw new ErrorException("a delegatecall needs a target");
+      }
+      if (action.value) {
+        throw new ErrorException("a delegatecall cannot send value");
+      }
+      const sender = (action.from ||
+        (await module.getConnectedAccount())) as Address;
+      const { publicClient } = forkManager.active;
+      const own = await publicClient.getCode({ address: sender });
+      if (!own || own === "0x") {
+        throw new ErrorException(
+          `can't delegatecall from ${sender}: only a contract account (a Safe) can`,
+        );
+      }
+      const setCode = (address: Address, code: `0x${string}`) =>
+        execAction(
+          { type: "rpc", method: `${prefix}_setCode`, params: [address, code] },
+          { relayScan: false },
+        );
+      await setCode(DELEGATECALL_SHADOW, own);
+      await setCode(sender, delegatecallStub());
+      try {
+        const { operation: _, ...call } = action;
+        return await execAction(
+          {
+            ...call,
+            from: sender,
+            to: sender,
+            data: delegatecallData(action.to, action.data),
+          },
+          { relayScan },
+        );
+      } finally {
+        await setCode(sender, own);
+        await setCode(DELEGATECALL_SHADOW, "0x");
+      }
+    };
+
     const simulateAction = async (action: Action) => {
       const receipt = await execAction(action, { relayScan: true });
       if (
@@ -681,6 +745,15 @@ export default defineCommand<Sim>({
       if (suggest && module.activeChainId === chainId) {
         const logs = (receipt as { logs?: ReceiptLog[] } | undefined)?.logs;
         if (logs?.length) runLogs.push(...logs);
+        // What a delegatecall may have changed in its account emits
+        // nothing, so the suggestions are told it happened.
+        if (isTransactionAction(action) && action.operation === 1 && action.to)
+          runLogs.push(
+            delegatecallSuggestionLog(
+              (action.from || (await module.getConnectedAccount())) as Address,
+              action.to,
+            ),
+          );
         const { gasUsed, effectiveGasPrice } = (receipt ?? {}) as {
           gasUsed?: bigint | number;
           effectiveGasPrice?: bigint;

@@ -98,6 +98,53 @@ describe("safe events", () => {
     });
   }
 
+  it("event SimulatedDelegatecall(address indexed target): who controls the Safe", async () => {
+    const word = (address: string) =>
+      encodeAbiParameters([{ type: "address" }], [address as `0x${string}`]);
+    const slot = (name: string) => BigInt(keccak256(toHex(name)));
+    const MODULE = getAddress("0x00000000000000000000000000000000005afe03");
+    const SINGLETON = getAddress("0x00000000000000000000000000000000005afe04");
+    const HANDLER = getAddress("0x00000000000000000000000000000000005afe05");
+    const log = eventLog(
+      "event SimulatedDelegatecall(address indexed target)",
+      SAFE,
+      { target: WHO },
+    );
+    const answers = {
+      [viewKey(SAFE, "getThreshold")]: 1n,
+      [viewKey(SAFE, "getOwners")]: [WHO],
+      [viewKey(
+        SAFE,
+        "getModulesPaginated",
+        "0x0000000000000000000000000000000000000001",
+        100n,
+      )]: [[MODULE], "0x0000000000000000000000000000000000000001"],
+      [viewKey(SAFE, "getStorageAt", GUARD_SLOT, 1n)]: word(
+        "0x0000000000000000000000000000000000000000",
+      ),
+      [viewKey(SAFE, "getStorageAt", 0n, 1n)]: word(SINGLETON),
+      [viewKey(
+        SAFE,
+        "getStorageAt",
+        slot("fallback_manager.handler.address"),
+        1n,
+      )]: word(HANDLER),
+      [viewKey(SAFE, "VERSION")]: "1.3.0",
+    };
+    expect(await lines([log], answers)).toEqual([
+      `assert @safe:threshold!(${SAFE}) == 1`,
+      `assert @lang:len!(@safe:owners!(${SAFE})) == 1`,
+      `assert @safe:isOwner!(${WHO} ${SAFE}) == true`,
+      `assert @lang:len!(@safe:modules!(${SAFE})) == 1`,
+      `assert ${SAFE}::!{isModuleEnabled(address)(bool) ${MODULE}} == true`,
+      `assert @safe:guard!(${SAFE}) == 0x0000000000000000000000000000000000000000`,
+      `assert @safe:singleton!(${SAFE}) == ${SINGLETON}`,
+      `assert @safe:fallbackHandler!(${SAFE}) == ${HANDLER}`,
+    ]);
+    // An account that answers no Safe view is no Safe.
+    expect(await lines([log], {})).toEqual([]);
+  });
+
   it("every declared event is exercised by this file", async () => {
     const source = await Bun.file(import.meta.path).text();
     for (const [name, entry] of Object.entries(events))

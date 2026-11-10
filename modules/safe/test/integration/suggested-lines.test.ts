@@ -1,6 +1,11 @@
 import "../setup";
 import { expect, test } from "bun:test";
-import { eventLog, suggestionsHold } from "@evmcrispr/test-utils/suggestions";
+import {
+  eventLog,
+  mockedEnv,
+  suggested,
+  suggestionsHold,
+} from "@evmcrispr/test-utils/suggestions";
 import { encodeAbiParameters, getAddress } from "viem";
 import { events } from "../../src/_generated";
 
@@ -76,3 +81,69 @@ test("what safe events suggest runs as a script and holds against the views read
       0x0000...fe02 is no longer an owner of 0x0000...FE01"
   `);
 }, 180000);
+
+test("a delegatecall from a Safe suggests everything that decides who controls it", async () => {
+  const OTHER = getAddress("0x00000000000000000000000000000000005afe05");
+  const out = await suggestionsHold(
+    "safe",
+    events,
+    [
+      eventLog("event SimulatedDelegatecall(address indexed target)", SAFE, {
+        target: OTHER,
+      }),
+    ],
+    {
+      [SAFE]: {
+        ...views(true),
+        "getOwners()": encodeAbiParameters([{ type: "address[]" }], [[WHO]]),
+        "getModulesPaginated(address,uint256)": encodeAbiParameters(
+          [{ type: "address[]" }, { type: "address" }],
+          [[MODULE], "0x0000000000000000000000000000000000000001"],
+        ),
+        "VERSION()": encodeAbiParameters([{ type: "string" }], ["1.5.0"]),
+      },
+    },
+  );
+  expect(shown(out)).toMatchInlineSnapshot(`
+    "simulatedDelegatecall
+      assert @safe:threshold!($contract) == 2
+      0x0000...FE01 still needs 2 signatures
+    simulatedDelegatecall
+      assert @lang:len!(@safe:owners!($contract)) == 1
+      0x0000...FE01 has 1 owner
+    simulatedDelegatecall
+      assert @safe:isOwner!($owner $contract) == true
+      0x0000...fe02 is an owner of 0x0000...FE01
+    simulatedDelegatecall
+      assert @lang:len!(@safe:modules!($contract)) == 1
+      0x0000...FE01 has 1 module enabled
+    simulatedDelegatecall
+      assert $contract::!{isModuleEnabled(address)(bool) $module} == true
+      The module 0x0000...fE03 is enabled on 0x0000...FE01
+    simulatedDelegatecall
+      assert @safe:guard!($contract) == $account
+      0x0000...FE01 is guarded by 0x0000...fE04
+    simulatedDelegatecall
+      assert @safe:guard!($contract module:true) == $account
+      0x0000...FE01's modules are guarded by 0x0000...fE04
+    simulatedDelegatecall
+      assert @safe:singleton!($contract) == $account
+      0x0000...FE01 runs the code at 0x0000...fE04
+    simulatedDelegatecall
+      assert @safe:fallbackHandler!($contract) == $account
+      0x0000...FE01's fallback handler is 0x0000...fE04"
+  `);
+}, 180000);
+
+test("a delegatecall from an account that is no Safe suggests nothing of it", async () => {
+  const out = await suggested({
+    modules: [{ name: "safe", events }],
+    logs: [
+      eventLog("event SimulatedDelegatecall(address indexed target)", SAFE, {
+        target: WHO,
+      }),
+    ],
+    env: mockedEnv({ [SAFE]: {} }),
+  });
+  expect(out).toEqual([]);
+});
