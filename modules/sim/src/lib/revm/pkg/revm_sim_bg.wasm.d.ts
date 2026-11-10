@@ -19,6 +19,7 @@ export const revmfork_mine: (a: number, b: bigint) => void;
 export const revmfork_new: (a: bigint, b: bigint, c: bigint, d: bigint) => number;
 export const revmfork_revertCheckpoint: (a: number, b: number) => void;
 export const revmfork_setBalance: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+export const revmfork_setBlockHeader: (a: number, b: number, c: bigint, d: number, e: number, f: bigint, g: number, h: number) => void;
 export const revmfork_setCode: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
 export const revmfork_setNonce: (a: number, b: number, c: number, d: number, e: bigint) => void;
 export const revmfork_setStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;

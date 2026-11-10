@@ -92,11 +92,12 @@ export async function createRevmBackend(
   const baseBlockNumber = opts.blockNumber
     ? BigInt(opts.blockNumber)
     : await resolveLatestBlockNumber(upstreamRpcUrl, signal);
-  const { timestamp: baseTimestamp, baseFee } = await fetchForkBlock(
+  const forkBlock = await fetchForkBlock(
     upstreamRpcUrl,
     baseBlockNumber,
     signal,
   );
+  const { timestamp: baseTimestamp, baseFee } = forkBlock;
 
   const fork = new revm.RevmFork(
     BigInt(chainId),
@@ -104,6 +105,17 @@ export async function createRevmBackend(
     baseTimestamp,
     baseFee,
   );
+  {
+    const set = JSON.parse(
+      fork.setBlockHeader(
+        forkBlock.gasLimit,
+        forkBlock.prevRandao,
+        forkBlock.excessBlobGas,
+        numberToHex(forkBlock.blobBaseFee),
+      ),
+    ) as Envelope;
+    if (set.kind === "error") throw new ErrorException(set.message);
+  }
   // Fork state is read at the pinned block, mirroring RPCStateManager's blockTag.
   const blockTag = numberToHex(baseBlockNumber);
   /** Accounts already seeded (or mutated in-sim) — never re-fetch upstream,

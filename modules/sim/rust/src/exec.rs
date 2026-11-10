@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 
 use revm::context_interface::transaction::{AccessList, AccessListItem};
+use revm::context_interface::block::BlobExcessGasAndPrice;
 use revm::database::{AccountState, DbAccount};
 use revm::interpreter::Instruction;
 use revm::context_interface::cfg::gas_params::{GasId, GasParams};
@@ -137,6 +138,12 @@ pub struct Fork {
     /// The forked block's base fee: the block's `basefee` for every run, and
     /// what a transaction that gives fees pays at least.
     base_fee: u64,
+    /// The forked block's gas limit, PREVRANDAO and blob base fee: what
+    /// GASLIMIT, PREVRANDAO and BLOBBASEFEE answer (`set_block_header`).
+    block_gas_limit: u64,
+    prevrandao: B256,
+    excess_blob_gas: u64,
+    blob_base_fee: u128,
     /// Open checkpoints, innermost last: each account's cached state before
     /// the first change made under it.
     checkpoints: Vec<HashMap<Address, Option<DbAccount>>>,
@@ -168,6 +175,10 @@ impl Fork {
             base_timestamp,
             timestamp_offset: 0,
             base_fee,
+            block_gas_limit: BLOCK_GAS_LIMIT,
+            prevrandao: B256::ZERO,
+            excess_blob_gas: 0,
+            blob_base_fee: 1,
             checkpoints: Vec::new(),
             trace: None,
         }
@@ -860,11 +871,37 @@ impl Fork {
             number: U256::from(self.block_number()),
             beneficiary: Address::ZERO,
             timestamp: U256::from(self.base_timestamp + self.timestamp_offset),
-            gas_limit: BLOCK_GAS_LIMIT,
+            gas_limit: self.block_gas_limit,
             basefee: self.base_fee,
             difficulty: U256::ZERO,
-            prevrandao: Some(B256::ZERO),
+            prevrandao: Some(self.prevrandao),
+            blob_excess_gas_and_price: Some(BlobExcessGasAndPrice {
+                excess_blob_gas: self.excess_blob_gas,
+                blob_gasprice: self.blob_base_fee,
+            }),
             ..Default::default()
+        }
+    }
+
+    /// The forked block's gas limit, PREVRANDAO (its mixHash) and blob gas:
+    /// what a contract reads of its block. Transactions are not capped by
+    /// the gas limit (the block gas limit check is off).
+    pub fn set_block_header(
+        &mut self,
+        gas_limit: u64,
+        prevrandao: &str,
+        excess_blob_gas: u64,
+        blob_base_fee: &str,
+    ) -> String {
+        match (parse_b256(prevrandao), parse_u256(blob_base_fee)) {
+            (Ok(randao), Ok(fee)) => {
+                self.block_gas_limit = gas_limit;
+                self.prevrandao = randao;
+                self.excess_blob_gas = excess_blob_gas;
+                self.blob_base_fee = fee.saturating_to::<u128>();
+                json!({ "kind": "ok" }).to_string()
+            }
+            (r, f) => error_env(&first_err(&[r.err(), f.err()])),
         }
     }
 

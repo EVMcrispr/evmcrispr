@@ -238,11 +238,13 @@ export async function createEthereumJSBackend(
   let currentBlockNumber = typeof blockTag === "bigint" ? blockTag : 0n;
   let timestampOffset = 0n;
 
-  const { timestamp: baseTimestamp, baseFee } = await fetchForkBlock(
+  const forkBlock = await fetchForkBlock(
     upstreamRpcUrl,
     currentBlockNumber,
     signal,
   );
+  const { timestamp: baseTimestamp, baseFee } = forkBlock;
+  const prevRandao = hexToBytes(forkBlock.prevRandao);
 
   function getCurrentTimestamp(): bigint {
     return baseTimestamp + timestampOffset;
@@ -255,12 +257,14 @@ export async function createEthereumJSBackend(
         coinbase: createZeroAddress(),
         timestamp: getCurrentTimestamp(),
         difficulty: 0n,
-        prevRandao: new Uint8Array(32),
-        gasLimit: 30_000_000n,
+        // What a contract reads of the forked block (GASLIMIT, PREVRANDAO,
+        // BLOBBASEFEE); transactions are not capped by its gas limit.
+        prevRandao,
+        gasLimit: forkBlock.gasLimit,
         baseFeePerGas: baseFee,
         // SLOTNUM (Amsterdam): a fork has no beacon slot.
         slotNumber: 0n,
-        getBlobGasPrice: () => undefined,
+        getBlobGasPrice: () => forkBlock.blobBaseFee,
       },
     };
   }

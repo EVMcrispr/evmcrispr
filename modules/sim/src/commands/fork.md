@@ -107,6 +107,13 @@ impersonated account needs no funds for gas. No block producer is paid (the
 fork's coinbase is the zero address), and the base fee stays the forked
 block's for the whole fork.
 
+A contract reads the forked block as the chain answers it: its chain id,
+number, timestamp, gas limit, `PREVRANDAO` (the block's mixHash), blob base
+fee (the chain's own, e.g. Gnosis' 1 gwei minimum) and the hashes of the
+blocks before it, in a call and in a transaction alike (the fork's
+transactions run in the forked block; `wait` moves its number and
+timestamp on). The gas limit is not a cap: a transaction may ask for more.
+
 ```evml
 load sim
 

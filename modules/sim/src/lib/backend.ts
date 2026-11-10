@@ -135,25 +135,57 @@ export async function resolveLatestBlockNumber(
 const BLOCK_FETCH_ATTEMPTS = 5;
 const BLOCK_FETCH_RETRY_MS = 1_500;
 
-/** The forked block's timestamp, and its base fee (0 before London): what
- *  a transaction that gives fees pays at least. */
+/** What a fork's block environment takes from the forked block. */
+export interface ForkBlock {
+  timestamp: bigint;
+  /** 0 before London: what a transaction that gives fees pays at least. */
+  baseFee: bigint;
+  /** GASLIMIT. Transactions are not capped by it in a fork. */
+  gasLimit: bigint;
+  /** PREVRANDAO: the block's mixHash (zero before the merge). */
+  prevRandao: `0x${string}`;
+  /** BLOBBASEFEE, as the chain prices it (its own blob schedule), and the
+   *  excess blob gas it comes from; 1 and 0 on a chain without blobs. */
+  blobBaseFee: bigint;
+  excessBlobGas: bigint;
+}
+
+const ZERO_WORD = `0x${"00".repeat(32)}` as const;
+
+/** The forked block's environment: its timestamp, base fee, gas limit,
+ *  mixHash and blob base fee. */
 export async function fetchForkBlock(
   rpcUrl: string,
   blockNumber: bigint,
   signal?: AbortSignal,
-): Promise<{ timestamp: bigint; baseFee: bigint }> {
+): Promise<ForkBlock> {
+  const tag = `0x${blockNumber.toString(16)}`;
   for (let attempt = 1; ; attempt++) {
     const block = await rpcFetch(
       rpcUrl,
       "eth_getBlockByNumber",
-      [`0x${blockNumber.toString(16)}`, false],
+      [tag, false],
       signal,
     );
-    if (block != null)
+    if (block != null) {
+      // The chain's own price for the block's blobs (a chain's schedule
+      // can differ from mainnet's): the block's own, the first of the two.
+      const history = await rpcFetch(
+        rpcUrl,
+        "eth_feeHistory",
+        ["0x1", tag, []],
+        signal,
+      ).catch(() => undefined);
+      const blobFee = history?.baseFeePerBlobGas?.[0];
       return {
         timestamp: BigInt(block.timestamp),
         baseFee: block.baseFeePerGas ? BigInt(block.baseFeePerGas) : 0n,
+        gasLimit: BigInt(block.gasLimit ?? 30_000_000),
+        prevRandao: (block.mixHash as `0x${string}` | undefined) ?? ZERO_WORD,
+        blobBaseFee: blobFee && BigInt(blobFee) > 0n ? BigInt(blobFee) : 1n,
+        excessBlobGas: block.excessBlobGas ? BigInt(block.excessBlobGas) : 0n,
       };
+    }
     if (attempt >= BLOCK_FETCH_ATTEMPTS) {
       throw new ErrorException(
         `Block ${blockNumber} not found on upstream RPC (${rpcUrl}). ` +

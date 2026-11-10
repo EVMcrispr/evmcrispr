@@ -80,6 +80,18 @@ impl RevmFork {
         }
     }
 
+    #[wasm_bindgen(js_name = setBlockHeader)]
+    pub fn set_block_header(
+        &mut self,
+        gas_limit: u64,
+        prevrandao: &str,
+        excess_blob_gas: u64,
+        blob_base_fee: &str,
+    ) -> String {
+        self.inner
+            .set_block_header(gas_limit, prevrandao, excess_blob_gas, blob_base_fee)
+    }
+
     #[wasm_bindgen(js_name = insertAccount)]
     pub fn insert_account(&mut self, addr: &str, balance: &str, nonce: u64, code: &str) -> String {
         self.inner.insert_account(addr, balance, nonce, code)

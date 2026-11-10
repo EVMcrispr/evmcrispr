@@ -32,6 +32,7 @@ export class RevmFork {
     constructor(chain_id: bigint, block_number: bigint, base_timestamp: bigint, base_fee: bigint);
     revertCheckpoint(): string;
     setBalance(addr: string, balance: string): string;
+    setBlockHeader(gas_limit: bigint, prevrandao: string, excess_blob_gas: bigint, blob_base_fee: string): string;
     setCode(addr: string, code: string): string;
     setNonce(addr: string, nonce: bigint): string;
     setStorage(addr: string, slot: string, value: string): string;
@@ -63,6 +64,7 @@ export interface InitOutput {
     readonly revmfork_new: (a: bigint, b: bigint, c: bigint, d: bigint) => number;
     readonly revmfork_revertCheckpoint: (a: number, b: number) => void;
     readonly revmfork_setBalance: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly revmfork_setBlockHeader: (a: number, b: number, c: bigint, d: number, e: number, f: bigint, g: number, h: number) => void;
     readonly revmfork_setCode: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly revmfork_setNonce: (a: number, b: number, c: number, d: number, e: bigint) => void;
     readonly revmfork_setStorage: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;

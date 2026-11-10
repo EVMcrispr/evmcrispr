@@ -364,6 +364,67 @@ export function describeBackendSuite(
       expect(await slot0(client, reader)).toBe(baseFee + TIP);
     });
 
+    it("a contract reads the forked block as the chain answers it, in a call", async () => {
+      // On the chain itself, not the runner's anvil: anvil prices blobs by
+      // mainnet's rules (Gnosis' minimum is 1 gwei, anvil answers 1).
+      const chainRpc = getEndpoint()!;
+      const backend = await createBackend({
+        upstreamRpcUrl: chainRpc,
+        blockNumber: FORK_BLOCK_NUMBER,
+        chainId: CHAIN_ID,
+      });
+      const client = createPublicClient({
+        chain: gnosis,
+        transport: backend.transport,
+        cacheTime: 0,
+      });
+      // What each returns, read on the chain itself at the forked block (an
+      // eth_call with the same code overridden in). COINBASE is not among
+      // them: a fork's is zero. NUMBER and TIMESTAMP stay the forked
+      // block's in a transaction too.
+      const OPS = {
+        CHAINID: "46",
+        NUMBER: "43",
+        TIMESTAMP: "42",
+        GASLIMIT: "45",
+        PREVRANDAO: "44",
+        BLOBBASEFEE: "4a",
+        "BLOCKHASH(n - 1)": "6001430340",
+      };
+      const answers: Record<string, [string, string]> = {};
+      for (const [i, [name, op]] of Object.entries(OPS).entries()) {
+        const reader = getAddress(
+          `0x00000000000000000000000000000000000e${i.toString(16).padStart(4, "0")}`,
+        );
+        const code = `0x${op}5f5260205ff3` as const;
+        await backend.handleAction({
+          type: "rpc",
+          method: `${prefix}_setCode`,
+          params: [reader, code],
+        });
+        const ours = (await client.call({ to: reader, data: "0x" })).data;
+        const response = (await (
+          await fetch(chainRpc, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "eth_call",
+              params: [
+                { to: reader, data: "0x" },
+                `0x${FORK_BLOCK_NUMBER.toString(16)}`,
+                { [reader]: { code } },
+              ],
+            }),
+          })
+        ).json()) as { result: string };
+        answers[name] = [String(ours), response.result];
+      }
+      for (const [name, [ours, chain]] of Object.entries(answers))
+        expect({ name, value: ours }).toEqual({ name, value: chain });
+    });
+
     it("refuses a max fee below the base fee, and a tip above the max fee", async () => {
       const { backend, baseFee } = await feeBackend();
       await expect(
