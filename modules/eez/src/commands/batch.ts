@@ -49,7 +49,7 @@ export default defineCommand<Eez>({
       name: "gas",
       type: "number",
       description:
-        "Gas limit for the whole batch, instead of the estimate from simulating it on the other chain",
+        "Gas limit for the whole batch, instead of the composer's quote",
     },
   ],
   async run(module, { chain, block }, { interpreters, opts }) {
@@ -116,11 +116,19 @@ export default defineCommand<Eez>({
         `the cross-chain proxies on ${chainLabel(targetChainId)} do not support executeBatch yet: run eez:on through a Safe (safe:execute) to send the calls atomically, or eez:on for independent calls`,
       );
     }
-    let gas: bigint;
+    // An explicit --gas is the limit. Otherwise the gateway's quote sizes
+    // the transaction when it is sent (it composes it), and this estimate
+    // is only what it is sent with when no quote comes back.
+    const action: TransactionAction = {
+      to: proxy,
+      data,
+      value,
+      crossChain: true,
+    };
     if (opts.gas !== undefined) {
-      gas = BigInt(opts.gas);
+      action.gas = BigInt(opts.gas);
     } else {
-      gas = farExists
+      let gas = farExists
         ? await estimateCallGas(
             module,
             config,
@@ -139,11 +147,8 @@ export default defineCommand<Eez>({
           gas += CROSS_CHAIN_OVERHEAD;
         }
       }
+      action.fallbackGas = gas;
     }
-    return [
-      ...direct,
-      ...creates,
-      { to: proxy, data, value, gas, crossChain: true },
-    ];
+    return [...direct, ...creates, action];
   },
 });

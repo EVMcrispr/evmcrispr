@@ -63,6 +63,13 @@ export interface TransactionAction {
    */
   gas?: bigint;
   /**
+   * The gas limit to send with when nothing else sizes the transaction:
+   * it sets no `gas` and its gateway quotes none. A command whose
+   * transaction the sending chain cannot estimate (a cross-chain call)
+   * leaves `gas` to the gateway's quote and gives its own estimate here.
+   */
+  fallbackGas?: bigint;
+  /**
    * The maximum total fee per gas (base fee + priority fee) for EIP-1559 transactions (in wei).
    */
   maxFeePerGas?: bigint;

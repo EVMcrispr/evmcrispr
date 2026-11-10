@@ -111,10 +111,12 @@ describeCommand("on", {
         expect(isAddressEqual(call.to, await proxyOf(fresh))).to.be.true;
         expect(call.rpcUrl).to.be.undefined;
         expect(call.chainId).to.be.undefined;
-        // Estimated for the caller: nothing at `fresh` on the rollup, so
+        // The gateway's quote sizes it when it is sent; the estimate for
+        // the caller is the fallback: nothing at `fresh` on the rollup, so
         // the remote simulation is a plain call and the floor applies.
-        expect(call.gas).to.be.a("bigint");
-        expect(call.gas >= 300_000n).to.be.true;
+        expect(call.gas).to.be.undefined;
+        expect(call.fallbackGas).to.be.a("bigint");
+        expect(call.fallbackGas >= 300_000n).to.be.true;
         expect(setValueArg(call.data)).to.equal(42n);
       },
     },
@@ -129,6 +131,7 @@ describeCommand("on", {
         expect(isAddressEqual(call.to, await proxyOf(KNOWN))).to.be.true;
         expect(call.value).to.equal(1n);
         expect(call.gas).to.equal(700000n);
+        expect(call.fallbackGas).to.be.undefined;
         expect(call.rpcUrl).to.be.undefined;
       },
     },
@@ -234,7 +237,7 @@ describeCommand("on", {
         // The inner leg's estimate (floored: nothing lives at KNOWN) plus
         // the sending chain's own overhead for the extra hop; the outer
         // block cannot simulate a leg that is itself a proxy call.
-        expect(call.gas).to.equal(300_000n + 250_000n);
+        expect(call.fallbackGas).to.equal(300_000n + 250_000n);
       },
     },
     {
@@ -303,7 +306,7 @@ describeCommand("on", {
         const second = await ensureProxyOn("l2", first);
         expect(isAddressEqual(call.to, await proxyOf(second))).to.be.true;
         expect(setValueArg(call.data)).to.equal(3n);
-        expect(call.gas).to.equal(300_000n + 2n * 250_000n);
+        expect(call.fallbackGas).to.equal(300_000n + 2n * 250_000n);
       },
     },
   ],

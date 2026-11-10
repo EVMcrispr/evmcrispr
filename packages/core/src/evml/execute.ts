@@ -821,6 +821,9 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         const priced = action.rpcUrl
           ? { rpcUrl: action.rpcUrl }
           : await priceThroughGateway(action, chainId, request, ctx, env);
+        // Neither the action nor a quote sized it: the command's own
+        // estimate, where the sending chain cannot estimate it.
+        request.gas ??= action.fallbackGas;
         const rpcUrl = priced.rpcUrl;
         let tx: Hash;
         try {

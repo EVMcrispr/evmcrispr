@@ -172,10 +172,11 @@ eez:on eezL2 (
 print "my proxy on L2:" @eez:on(eezL2 @eez:proxy(gnosisChiado @me))
 ```
 
-Gas is estimated by simulating the remote leg as the rollup will see it,
-from your proxy there, and a leg that would revert stops the script before
-anything is sent, with its reason. Pass `--gas` (or `--value`) on the inner
-command when needed.
+The composer's quote sizes the gas when the transaction is sent. The
+remote leg is also simulated as the rollup will see it, from your proxy
+there, so a leg that would revert stops the script before anything is
+sent, with its reason. Pass `--gas` (or `--value`) on the inner command
+when needed.
 
 Blocks nest. A block inside a block comes back to the chain it started
 from, still inside the same transaction, through a proxy of a proxy: L1
@@ -200,7 +201,7 @@ eez:on eezL2 (
 )
 ```
 
-Every hop adds its own overhead to the gas estimate, and deeper nesting
+The quote covers every hop, and deeper nesting
 works the same way (`gnosisChiado` → `eezL2` → `gnosisChiado` → `eezL2`, and so on).
 
 `switch` and contract deployments are not allowed inside the block: a proxy
@@ -227,9 +228,9 @@ eez:batch eezL2 (
 )
 ```
 
-The batch is estimated by simulating it whole on the other chain, and a
-revert anywhere stops the script before anything is sent. `--gas` on
-`eez:batch` overrides the estimate; the commands inside take no `--gas` or
+The batch is simulated whole on the other chain, and a revert anywhere
+stops the script before anything is sent. `--gas` on `eez:batch` overrides
+the composer's quote; the commands inside take no `--gas` or
 `--from` of their own. A `batch ( … )` inside is flattened, since everything
 is atomic already. The far side must run cross-chain proxies that support
 `executeBatch`, which the devnet does not yet: until it does, the command

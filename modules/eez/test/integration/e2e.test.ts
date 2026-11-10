@@ -97,9 +97,9 @@ describe.skipIf(!devnet)("Eez > end to end (hosted devnet)", () => {
     const expected = BigInt(Date.now());
 
     // Chiado's own RPC cannot estimate a call to a proxy (it reverts with
-    // the registry's gate error), so the script sizes it.
+    // the registry's gate error): the composer's quote sizes it.
     const result = await executeScript(
-      `load eez\nexec ${proxy} setValue(uint256) ${expected} --gas 350000`,
+      `load eez\nexec ${proxy} setValue(uint256) ${expected}`,
       evml.registry,
       {
         chainId: L1_ID,

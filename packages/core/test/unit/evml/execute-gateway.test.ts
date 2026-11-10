@@ -182,6 +182,30 @@ describe("evml > execute > gateway pricing", () => {
     );
   });
 
+  it("lets the quote size a transaction that set no gas, and sends its own estimate when none comes back", async () => {
+    gatewayAnswering({
+      gas: "0x19a28",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const quoted = makeCtx();
+    await handlers.transaction(
+      action(990001, { gas: undefined, fallbackGas: 550_000n }),
+      quoted.ctx,
+    );
+    expect(quoted.sent[0].gas).to.equal(0x19a28n);
+
+    gatewayAnswering({
+      error: { code: "unsupported_transaction", message: "no" },
+    });
+    const unquoted = makeCtx();
+    await handlers.transaction(
+      action(990001, { gas: undefined, fallbackGas: 550_000n }),
+      unquoted.ctx,
+    );
+    expect(unquoted.sent[0].gas).to.equal(550_000n);
+  });
+
   it("does not use a quote that commits the transaction to more than the chain's ceiling", async () => {
     // 400k gas at 1 gwei (1.25 with headroom) is 0.0005: under the default
     // ceiling of 0.01. At 100 gwei it is over.

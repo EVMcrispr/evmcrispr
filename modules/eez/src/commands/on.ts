@@ -90,24 +90,37 @@ export default defineCommand<Eez>({
         crossChain: true,
       };
       if (call.from) action.from = call.from;
+      // An explicit --gas is the limit. Otherwise the gateway's quote sizes
+      // the transaction when it is sent (it composes it, every hop
+      // included), and this estimate is only what it is sent with when no
+      // quote comes back.
+      if (call.gas !== undefined) {
+        action.gas = call.gas;
+        return action;
+      }
+      // An inner `eez:on` (a nested block) already estimated its leg.
       const gas =
-        call.gas !== undefined
-          ? call.gas
-          : await estimateCallGas(
-              module,
-              config,
-              rollupId,
-              call.to,
-              call.data ?? "0x",
-              call.from ? remoteFrom.get(call.from)! : remoteSender,
-              // A block collected for later (a timelock schedule, a Safe
-              // proposal) runs against state that may not exist yet.
-              { failOnRevert: !interpreters.batchContext },
-            );
+        call.fallbackGas ??
+        (await estimateCallGas(
+          module,
+          config,
+          rollupId,
+          call.to,
+          call.data ?? "0x",
+          call.from ? remoteFrom.get(call.from)! : remoteSender,
+          // A block collected for later (a timelock schedule, a Safe
+          // proposal) runs against state that may not exist yet.
+          { failOnRevert: !interpreters.batchContext },
+        ));
       // A target that is itself a proxy over there (a nested `eez:on`,
       // or a hand-written call to one) goes one hop further; that leg
       // cannot be simulated, so price this chain's overhead on top.
-      action.gas = (await isProxyOn(module, targetChainId, remote, call.to))
+      action.fallbackGas = (await isProxyOn(
+        module,
+        targetChainId,
+        remote,
+        call.to,
+      ))
         ? gas + CROSS_CHAIN_OVERHEAD
         : gas;
       return action;

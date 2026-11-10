@@ -25,7 +25,7 @@ eez:batch <chain> <block>
 
 | Name | Type | Evaluation | Description |
 |------|------|------------|-------------|
-| `--gas` | `number` | Build time | Gas limit for the whole batch, instead of the estimate from simulating it on the other chain |
+| `--gas` | `number` | Build time | Gas limit for the whole batch, instead of the composer's quote |
 
 <!-- HAND-WRITTEN -->
 
@@ -37,7 +37,7 @@ eez:batch <chain> <block>
 - `msg.sender` of every call is your cross-chain proxy on the target chain, the same identity `eez:on` gives a single call. `@sender` inside the block is that proxy; `@me` stays the wallet. A contract that grants something to your proxy sees the same account whether you batch or not.
 - The calls are encoded as an ERC-7579 `Execution[]` (`target`, `value`, `callData`), the batch encoding EIP-7702 delegations and smart accounts share, passed to the proxy's `executeBatch`. `--value` on an inner command is carried by that call; the batch transaction is funded with the sum.
 - The proxy of your far-side proxy is created first if nobody has done so yet, like any other target of `eez:on`. Your far-side proxy itself needs no preparation: the manager over there creates it on your first call, batch or not.
-- Gas is estimated by simulating the whole batch on the other chain, from your proxy there, plus the protocol overhead, and a batch that would revert stops the script with the reason before anything is sent. A far-side proxy that does not exist yet cannot be simulated and gets a fixed budget. Each call inside that itself crosses chains again (a nested `eez:on`) adds one more hop's overhead. `--gas` on `eez:batch` replaces the estimate; `--gas` and `--from` are not accepted on the commands inside, since the batch is one call from one sender.
+- Gas comes from the composer's quote when the transaction is sent. The whole batch is also simulated on the other chain when it is built, from your proxy there: a batch that would revert stops the script with the reason before anything is sent, and that simulation plus the protocol overhead is the gas limit used when no quote comes back. A far-side proxy that does not exist yet cannot be simulated and gets a fixed budget. Each call inside that itself crosses chains again (a nested `eez:on`) adds one more hop's overhead. `--gas` on `eez:batch` replaces the estimate; `--gas` and `--from` are not accepted on the commands inside, since the batch is one call from one sender.
 - A `batch ( … )` inside the block is simply flattened: everything in an `eez:batch` is atomic already. The other way round, `batch ( eez:batch … )`, is refused: a wallet batch cannot carry the fee a cross-chain call pays for its settlement.
 - Needs cross-chain proxies that support `executeBatch`, which the devnet does not run yet. While that is so the command refuses to send once your far-side proxy exists and shows old code; before it exists there is nothing to check, and the composer would evict the transaction silently.
 - Not allowed inside the block: `switch` and contract deployments.

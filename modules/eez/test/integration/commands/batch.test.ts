@@ -256,8 +256,9 @@ describeCommand("batch", {
       validate: (actions) => {
         expect(actions).to.have.lengthOf(1);
         const [call] = actions as any[];
-        expect(call.gas).to.be.a("bigint");
-        expect(call.gas >= 300_000n).to.be.true;
+        expect(call.gas).to.be.undefined;
+        expect(call.fallbackGas).to.be.a("bigint");
+        expect(call.fallbackGas >= 300_000n).to.be.true;
       },
     },
   ],
