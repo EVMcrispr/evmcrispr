@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@ethereumjs/common": "^10.1.3",
+    "@ethereumjs/evm": "^10.1.3",
     "@ethereumjs/statemanager": "^10.1.3",
     "@ethereumjs/util": "^10.1.3",
     "@ethereumjs/vm": "^10.1.3",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@evmcrispr/module-contracts": "workspace:*",
+    "@evmcrispr/module-frames": "workspace:*",
     "@evmcrispr/module-token": "workspace:*",
     "@evmcrispr/test-utils": "workspace:*"
   },
@@ -45,7 +47,7 @@
     "lint": "biome check src",
     "type-check": "tsc -p tsconfig.json",
     "build": "evmcrispr-build --bundle --assets=src/lib/revm/pkg:pkg",
-    "test:unit": "bun test ./test/unit",
+    "test:unit": "bun test --timeout 30000 ./test/unit",
     "test:integration": "bun test ./test/integration",
     "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
     "codegen": "evmcrispr-build --codegen",

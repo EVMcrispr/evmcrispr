@@ -90,6 +90,140 @@ sim:fork --as $who --on gnosis (
   executes all batched calls atomically in a single self-call transaction. An
   existing delegation on the EOA is reused as-is.
 
+## Fees
+
+On the in-process backends (`ethereumjs` and `revm`) a transaction pays a fee
+only when it gives one. `exec` and `send` with `--max-fee-per-gas` or
+`--max-priority-fee-per-gas` pay what their gas used costs at the EIP-1559
+price, `min(max fee, base fee + priority fee)`, against the base fee of the
+forked block. A missing priority fee is 0, and a missing max fee is the base
+fee plus the priority fee. A max fee below the base fee is refused, as is a
+sender that cannot pay for the gas it used (nothing of the transaction is
+kept). Contracts read that price with `GASPRICE`, and the block's base fee
+with `BASEFEE`.
+
+A transaction that gives no fee runs free, at a gas price of 0, so an
+impersonated account needs no funds for gas. No block producer is paid (the
+fork's coinbase is the zero address), and the base fee stays the forked
+block's for the whole fork.
+
+A contract reads the forked block as the chain answers it: its chain id,
+number, timestamp, gas limit, `PREVRANDAO` (the block's mixHash), blob base
+fee (the chain's own, e.g. Gnosis' 1 gwei minimum) and the hashes of the
+blocks before it, in a call and in a transaction alike (the fork's
+transactions run in the forked block; `wait` moves its number and
+timestamp on). The gas limit is not a cap: a transaction may ask for more.
+
+```evml
+load sim
+
+sim:fork --using revm (
+  sim:set-balance @me 1e18
+  send 0x000000000000000000000000000000000000dEaD --value 1 --max-priority-fee-per-gas 1e9
+  sim:expect @bool(@balance(ETH @me) < 1e18 - 1)
+)
+```
+
+## Frame transactions
+
+A `frames:tx` runs in the fork when the fork is of a frame network
+(`altMempoolDevnet`, `hegotaDevnet`, or the local `framesQuick`,
+`framesMining` and `framesAltMempool` devnets; a node on the id of one of
+the public two is
+simulated by its family's rules) and
+the backend is in-process (`--using ethereumjs` or `--using revm`): its
+frames run in order with the EIP-8141 opcodes, the validation prefix first
+(a frame that fails or does not approve makes the transaction invalid, and
+nothing of it runs), then the body (a failed frame does not stop the next,
+unless it is in a `batch`, which rolls back as a whole). The sender's own
+verify frame is impersonated, as `--as` impersonates a sender: a simulation
+holds no signature. A sponsor's or paymaster's verify frame runs.
+
+After it, `sim:expect` and assertions see its effects, and the fork logs each
+frame that did not succeed and, for each call without `--gas`, the gas it used
+and the `--gas` to send it with. A frame's gas is charged as the network's
+client charges it, measured on each: on the alt-mempool and local devnets it
+includes what the frame pays to reach its target (100 when warm, 3000 when
+cold); on the Hegota devnet reaching a target costs nothing, and a frame to a
+precompile or to an account without code uses none of its own gas (the
+client charges that to the transaction).
+
+On the Hegota devnet a frame also runs that client's gas schedule, as
+ethrex's `hegota-devnet` build does: Amsterdam's rules with EIP-8038's access
+and write costs (a cold account or slot 3000, the first change of a slot
+10,000, a value transfer 10,300, CREATE 11,000), and EIP-8037's state gas for
+the state a frame creates (1530 a byte: 97,920 for a new slot, 183,600 for a
+new account, 1530 a byte of deployed code). A frame's state gas comes from its
+own `--state-gas` alone: a charge it cannot cover halts the call as out of gas,
+and what a cleared slot or a reverted call gives back does not refill it. Each
+frame's receipt reports its state gas, net and never below 0. A frame's target
+starts cold (its own code warms it), precompiles warm. A frame that an atomic
+group's failure rolls back keeps its status, as the chain reports it: its
+changes and logs are gone, and the run says so.
+
+On the Hegota devnet, `post-verify` frames (POST_TX) run after the body, as
+static calls, with TXTRACE and EVENTDATACOPY answered from what the body
+changed (net, since the transaction's start) and the logs of the frames that
+took effect; a failing one reverts the body, skips the checks after it, and
+stops the run naming it, as sending the transaction would. As on the chain,
+every value transfer to another account emits an EIP-7708 log (from
+`0xff…fe`, `Transfer(from, to)`, the amount as data), so a check that reads
+events sees them.
+
+`sim:fork --on hegotaDevnet` forks the public Hegota devnet. To fork a local
+node on its id (a Kurtosis devnet), set the id's RPC to it (in the CLI,
+`EVMCRISPR_RPC_URL_3151908`).
+
+With `--max-fee-per-gas` or `--max-priority-fee-per-gas` on `frames:tx`, the
+payer (the account or sender that approved paying, or its sponsor) pays the
+frames' gas used at the price above, and a payer that cannot pay makes the
+transaction invalid. Without them it runs free, like any transaction here.
+On the Hegota devnet, as on the chain, the payer is charged the most the
+transaction can cost when it approves (the max fee times the intrinsic gas and
+every frame's limits, or EIP-8141's calldata floor when that is more; a payer
+that cannot cover it makes the transaction invalid; a transaction with a call
+that has no `--gas`, the run that sizes it, has no limits to price and is not
+charged), so the body and the `post-verify` checks see that charge, and the
+part not used comes back after the last frame. The signature is priced as the
+send will carry it: a plain sender's secp256k1 one (2800 gas to verify), a
+frame account's owner signature as an ARBITRARY entry its code checks (100).
+Its 65 bytes are priced as if none were zero, since the signature does not
+exist yet: a real one with zero bytes costs 12 gas less for each (for a plain
+sender often its first byte, `v`; for a frame account only a byte of `r` or
+`s`), so a check of the payer's exact balance can differ by that much.
+
+The fee is the gas used at that price: on the Hegota devnet, as the chain
+counts it, the transaction's intrinsic gas and each frame's execution and
+state gas, less the storage refunds of the frames that took effect (at most a
+fifth), or EIP-8141's calldata floor when that is more; elsewhere the frames'
+gas alone.
+
+On the Hegota devnet the fork also checks what its mempool admits, as
+`ethrex_simulateFrameTransaction` reports it (measured case by case), and
+stops the run naming the rule a send would be refused for: a validation
+prefix of one of EIP-8141's shapes (a verify frame approving execution and
+payment, or one approving execution then one approving payment, either after
+an optional deploy frame) and no verify frame after it; the prefix's gas
+limits and the signature's verification cost within 500,000 gas (that node's
+`MAX_VERIFY_GAS`; it caps no state gas there); the transaction within
+EIP-7825's 16,777,216 gas; and, in each validation frame the fork runs (a
+sponsor's or paymaster's verify frame, a deploy frame), the trace rules: no
+BALANCE, SELFBALANCE, ORIGIN, GASPRICE, BLOCKHASH, COINBASE, TIMESTAMP,
+NUMBER, PREVRANDAO, GASLIMIT, BASEFEE, BLOBHASH, BLOBBASEFEE, TLOAD, TSTORE,
+INVALID or SELFDESTRUCT, GAS only right before a call, storage read only the
+sender's, no write or CREATE outside a deploy frame (which must leave code at
+the sender), and every call or code read reaching an account that exists and
+is not delegated by EIP-7702 (the sender and the precompiles always do).
+
+Not checked: the trace of the sender's own verify frame (impersonated, so it
+never runs here; the frames module's account keeps the rules, which its tests
+check with its owner's signature), the mempool's
+limit of one pending transaction per sponsor and per sender, and the reserve
+it holds against a sponsor's balance for its other pending transactions (a
+send on the Hegota devnet asks the node, which knows them, first). On
+the alt-mempool and local devnets no mempool rule is checked: their sidecar's
+ERC-8421 rules and their node's have not been measured.
+
 ## Cross-chain simulation
 
 A fork is **multichain**: `switch` inside a fork block moves between one fork per chain instead of failing, and each chain keeps its own state, so switching back and forth is safe.

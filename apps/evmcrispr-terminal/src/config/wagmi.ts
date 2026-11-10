@@ -1,6 +1,8 @@
 import { createConfig } from "wagmi";
 import { injected, safe, walletConnect } from "wagmi/connectors";
 
+import { testWalletConnector } from "../wallet/test-wallet/connector";
+import { terminalTestWallet } from "../wallet/test-wallet/instance";
 import { chains, transports } from "./rpc";
 
 const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
@@ -26,6 +28,10 @@ export const config: ReturnType<typeof createConfig> = createConfig({
         },
         showQrModal: false,
       }),
+    // Experimental: anvil's public accounts, on local chains only.
+    !isIframe &&
+      terminalTestWallet &&
+      testWalletConnector(terminalTestWallet.wallet),
     isIframe &&
       safe({
         allowedDomains: [/app.safe.global$/],

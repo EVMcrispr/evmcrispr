@@ -26,7 +26,7 @@ import {
   emptyConsole,
   reduceConsole,
 } from "@evmcrispr/editor";
-import type { Action } from "@evmcrispr/sdk";
+import type { Action, ChainDef } from "@evmcrispr/sdk";
 import {
   type Author,
   head,
@@ -35,7 +35,7 @@ import {
   type RunStatus,
   UNFINISHED,
 } from "@evmcrispr/space";
-import type { WalletClient } from "viem";
+import type { Transport, WalletClient } from "viem";
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { browserSafeUrl } from "../config/browserSafeUrl";
 import type { LiveSpace } from "../space/live-space";
@@ -43,6 +43,11 @@ import type { Spaces } from "../space/spaces";
 import type { Changes } from "../storage/changes";
 import { type Locks, lockNames, type Release } from "../storage/locks";
 import type { Records } from "../storage/records";
+import {
+  ensureSharedChain,
+  sharedChainOf,
+  switchTarget,
+} from "../wallet/shared-chain";
 import { normaliseAction } from "./action-summary";
 import { appendOutput, boundErrors } from "./bounds";
 import { createGate, type Gate, type Held } from "./gate";
@@ -130,6 +135,10 @@ export interface RunDeps {
   /** How long a cancelled run may take to stop before it is ended anyway
    *  (default 3 s: past the worker's own kill grace). */
   cancelGraceMs?: number;
+  /** How a shared-id chain's declared RPC is read when a script switches
+   *  to it, by chain id: the declared RPC unless a test stands in for it.
+   *  (The frames module sends through the run's transport for that chain.) */
+  sharedChainTransports?: Record<number, Transport>;
 }
 
 const FLUSH_EVERY = 2_000;
@@ -473,6 +482,10 @@ export function createRunManager(deps: RunDeps): RunManager {
             (state) => ctx.onStatus?.(state),
           );
       const pass = (action: Action, ctx: ActionHandlerCtx) => ctx.next(action);
+      const toSharedChain = (client: WalletClient, chain: ChainDef) =>
+        ensureSharedChain(client, chain, {
+          transport: deps.sharedChainTransports?.[chain.id],
+        });
       // Every kind of action the core knows, so a kind added there does
       // not compile until it is placed here. Each goes through the gate
       // unless it never asks the wallet for anything; and should one of
@@ -480,7 +493,23 @@ export function createRunManager(deps: RunDeps): RunManager {
       const handlers: ActionHandlers = {
         // A wallet request is sent in the form it is described in: what
         // the held action shows is the very value the wallet receives.
-        wallet: (action, ctx) => gated(pass)(normaliseAction(action), ctx),
+        //
+        // A change to a chain whose id other networks share (the
+        // alt-mempool and Hegota devnets, experimental) offers the wallet
+        // its declared RPC and checks the wallet's chain is that one before
+        // the script goes on.
+        wallet: (action, ctx) => {
+          const normalised = normaliseAction(action);
+          const target = switchTarget(normalised);
+          const shared =
+            target === undefined ? undefined : sharedChainOf(target);
+          return shared
+            ? gated(() => toSharedChain(ctx.walletClient, shared))(
+                normalised,
+                ctx,
+              )
+            : gated(pass)(normalised, ctx);
+        },
         // Endpoints a module asks to submit through are declared as the
         // module sees them; the browser can only use https.
         transaction: (action, ctx) => {
@@ -505,6 +534,10 @@ export function createRunManager(deps: RunDeps): RunManager {
               }
             : pass,
         ),
+        // A module's action (a frame transaction, from `frames:tx`) is
+        // held like any action that reaches the wallet, then sent by its
+        // module: what it sends is what was reviewed.
+        module: gated(pass),
         rpc: pass,
         terminal: pass,
       };
@@ -522,7 +555,10 @@ export function createRunManager(deps: RunDeps): RunManager {
               async (reportSent) => {
                 sent = reportSent;
                 try {
-                  return await align();
+                  const shared = guard ? sharedChainOf(chainId) : undefined;
+                  return await (guard && shared
+                    ? toSharedChain(guard.client, shared)
+                    : align());
                 } finally {
                   sent = undefined;
                 }

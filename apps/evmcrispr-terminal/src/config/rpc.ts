@@ -5,7 +5,11 @@
  */
 import type { ChainDef, ModuleChainDef } from "@evmcrispr/core";
 import { isChainGatewayDef, toViemChain } from "@evmcrispr/core";
-import { moduleChains } from "@evmcrispr/modules/chains";
+import {
+  experimentalModuleChains,
+  moduleChains,
+} from "@evmcrispr/modules/chains";
+import { isExperimentalEnabled } from "@evmcrispr/sdk";
 import type { Chain, Transport } from "viem";
 import { defineChain, http } from "viem";
 import {
@@ -180,32 +184,74 @@ applyBrowserUrlPolicy();
 
 /** Chains shipped by modules (`src/chains.ts`), minus any the DRPC list
  *  already covers. They bring their own RPC, so no key is needed. */
-const extraChains: ChainDef[] = (moduleChains as ModuleChainDef[])
+const moduleExtraChains: ChainDef[] = (moduleChains as ModuleChainDef[])
   .filter((def): def is ChainDef => !isChainGatewayDef(def))
   .filter((def) => !chainConfig.some(([chain]) => chain.id === def.id))
   .map((def) => ({ ...def, rpcUrl: browserSafeUrl(def.rpcUrl) }));
 
-export const chains = [
-  ...chainConfig.map(([chain]) => chain),
-  ...extraChains.map(toViemChain),
-] as [Chain, ...Chain[]];
-
-/** chainId → RPC URL. Serializable — this is what crosses into the EVML
- *  worker. Without a DRPC key only module-shipped chains have a URL (viem
- *  default transports apply to the rest). */
-export const rpcUrls: Record<number, string> = {
-  ...Object.fromEntries(extraChains.map((def) => [def.id, def.rpcUrl])),
-  ...(DRPC_API_KEY
-    ? Object.fromEntries(
-        chainConfig.map(([chain, slug]) => [chain.id, drpcUrl(slug)]),
-      )
-    : {}),
+/** A plain local anvil, for the test wallet (experimental): its accounts are
+ *  the test wallet's, and its RPC is on this machine. */
+const localAnvilChain: ChainDef = {
+  id: 31337,
+  key: "localAnvil",
+  name: "Local anvil",
+  rpcUrl: "http://127.0.0.1:8545",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  testnet: true,
 };
 
-export const transports = chains.reduce(
-  (acc, { id }) => {
-    acc[id] = rpcUrls[id] ? http(rpcUrls[id]) : http();
-    return acc;
-  },
-  {} as Record<number, Transport>,
+/** Chain ids that only experimental modules declare. */
+const experimentalChainIds = new Set(
+  experimentalModuleChains.map((def) => def.id),
 );
+
+/** The terminal's networks, with or without the experimental ones (the
+ *  alt-mempool devnet, a local anvil and the chains experimental modules
+ *  declare). */
+export function networks(experimental: boolean) {
+  const extraChains = experimental
+    ? [...moduleExtraChains, localAnvilChain]
+    : moduleExtraChains.filter((def) => !experimentalChainIds.has(def.id));
+
+  const chains = [
+    ...chainConfig.map(([chain]) => chain),
+    ...extraChains.map(toViemChain),
+  ] as [Chain, ...Chain[]];
+
+  /** chainId → RPC URL. Serializable — this is what crosses into the EVML
+   *  worker. Without a DRPC key only module-shipped chains have a URL
+   *  (viem default transports apply to the rest). */
+  const rpcUrls: Record<number, string> = {
+    ...Object.fromEntries(extraChains.map((def) => [def.id, def.rpcUrl])),
+    ...(DRPC_API_KEY
+      ? Object.fromEntries(
+          chainConfig.map(([chain, slug]) => [chain.id, drpcUrl(slug)]),
+        )
+      : {}),
+  };
+
+  const transports = chains.reduce(
+    (acc, { id }) => {
+      acc[id] = rpcUrls[id] ? http(rpcUrls[id]) : http();
+      return acc;
+    },
+    {} as Record<number, Transport>,
+  );
+
+  return { chains, rpcUrls, transports };
+}
+
+export const { chains, rpcUrls, transports } = networks(
+  isExperimentalEnabled(),
+);
+
+/** A chain the terminal lists whose id other networks share (`sharedId`,
+ *  from an experimental module: the alt-mempool devnet's 1337, the Hegota
+ *  devnet's 3151908). A wallet on that id is checked to be it. */
+export function sharedChain(
+  chainId: number,
+  experimental: boolean = isExperimentalEnabled(),
+): ChainDef | undefined {
+  if (!experimental) return undefined;
+  return moduleExtraChains.find((def) => def.id === chainId && def.sharedId);
+}

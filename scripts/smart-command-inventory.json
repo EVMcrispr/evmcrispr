@@ -608,5 +608,23 @@
   },
   "vault/withdraw": {
     "kind": "runtime"
+  },
+  "frames/default": {
+    "kind": "incompatible"
+  },
+  "frames/new-account": {
+    "kind": "incompatible"
+  },
+  "frames/new-sponsor": {
+    "kind": "incompatible"
+  },
+  "frames/post-verify": {
+    "kind": "incompatible"
+  },
+  "frames/tx": {
+    "kind": "incompatible"
+  },
+  "frames/verify": {
+    "kind": "incompatible"
   }
 }

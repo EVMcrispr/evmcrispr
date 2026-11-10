@@ -5,6 +5,9 @@ use serde_json::Value;
 const CHAIN_ID: u64 = 100;
 const BLOCK: u64 = 45_900_000;
 const TS: u64 = 1_700_000_000;
+/// Every fork here has a base fee: a transaction that gives no fee still
+/// runs free on it.
+const BASE_FEE: u64 = 7_000_000_000;
 
 const ALICE: &str = "0x1000000000000000000000000000000000000001";
 const BOB: &str = "0x1000000000000000000000000000000000000002";
@@ -17,7 +20,7 @@ const INITCODE: &str = "0x600a600c600039600a6000f3602a60005260206000f3";
 const RUNTIME: &str = "0x602a60005260206000f3";
 
 fn fork() -> Fork {
-    Fork::new(CHAIN_ID, BLOCK, TS)
+    Fork::new(CHAIN_ID, BLOCK, TS, BASE_FEE)
 }
 
 fn parse(env: String) -> Value {
@@ -299,4 +302,116 @@ fn balance_changes_follow_value_into_internal_calls() {
             (BOB.to_string(), "0x0".to_string(), "0x6f05b59d3b20000".to_string()),
         ]
     );
+}
+
+fn balance(f: &mut Fork, addr: &str) -> u128 {
+    let env = parse(f.get_balance(addr));
+    u128::from_str_radix(env["value"].as_str().unwrap().trim_start_matches("0x"), 16).unwrap()
+}
+
+#[test]
+fn a_transaction_with_fees_pays_its_gas_used_at_base_fee_plus_tip() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    seed_eoa(&mut f, BOB, "0x0");
+    let tip: u128 = 2_000_000_000;
+    // The max fee is above base fee + tip: the price is base fee + tip.
+    let tx_json = format!(
+        r#"{{"from":"{ALICE}","to":"{BOB}","value":"0x1","maxFeePerGas":"{:#x}","maxPriorityFeePerGas":"{tip:#x}"}}"#,
+        100_000_000_000u128
+    );
+    let env = parse(f.transact(&tx_json));
+    assert_eq!(env["kind"], "success", "{env}");
+    let gas = env["gasUsed"].as_u64().unwrap() as u128;
+    assert_eq!(gas, 21_000);
+    let price = BASE_FEE as u128 + tip;
+    assert_eq!(balance(&mut f, ALICE), 1_000_000_000_000_000_000 - 1 - gas * price);
+    assert_eq!(balance(&mut f, BOB), 1);
+    // No block producer is paid: the fork's coinbase is the zero address.
+    assert_eq!(balance(&mut f, "0x0000000000000000000000000000000000000000"), 0);
+}
+
+#[test]
+fn a_sender_that_cannot_pay_the_fee_is_refused_and_nothing_is_committed() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, "0x1000");
+    seed_eoa(&mut f, BOB, "0x0");
+    let tx_json = format!(
+        r#"{{"from":"{ALICE}","to":"{BOB}","value":"0x1","maxFeePerGas":"{BASE_FEE:#x}","maxPriorityFeePerGas":"0x0"}}"#
+    );
+    let env = parse(f.transact(&tx_json));
+    assert_eq!(env["kind"], "unpaidFee", "{env}");
+    assert_eq!(env["fee"], format!("{:#x}", 21_000u128 * BASE_FEE as u128));
+    assert_eq!(env["balance"], "0xfff");
+    assert_eq!(balance(&mut f, ALICE), 0x1000);
+    assert_eq!(balance(&mut f, BOB), 0);
+}
+
+#[test]
+fn a_max_fee_below_the_base_fee_is_refused() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    let tx_json = format!(
+        r#"{{"from":"{ALICE}","to":"{BOB}","maxFeePerGas":"{:#x}","maxPriorityFeePerGas":"0x0"}}"#,
+        BASE_FEE - 1
+    );
+    let env = parse(f.transact(&tx_json));
+    assert_eq!(env["kind"], "error", "{env}");
+}
+
+#[test]
+fn state_changes_since_the_trace_started_are_net_and_sorted() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    seed_eoa(&mut f, BOB, "0x0");
+    // Stores calldata word 0 at slot 0.
+    seed_contract(&mut f, CONTRACT, "0x5f355f5500");
+    assert_eq!(parse(f.insert_storage(CONTRACT, "0x0", "0x0"))["kind"], "ok");
+    f.start_trace();
+    let send = format!(r#"{{"from":"{ALICE}","to":"{BOB}","value":"0x4"}}"#);
+    assert_eq!(parse(f.transact(&send))["kind"], "success");
+    for word in ["01", "02"] {
+        let tx_json = tx(ALICE, CONTRACT, &format!("0x{:0>64}", word));
+        assert_eq!(parse(f.transact(&tx_json))["kind"], "success");
+    }
+    let changes = parse(f.state_changes());
+    assert_eq!(changes["kind"], "value", "{changes}");
+    let v = &changes["value"];
+    let balances = v["balances"].as_array().unwrap();
+    assert_eq!(balances.len(), 2, "{v}");
+    // Ascending by address: ALICE (…01) before BOB (…02).
+    assert_eq!(balances[0]["address"], ALICE.to_lowercase());
+    assert_eq!(balances[0]["before"], ONE_ETH);
+    assert_eq!(balances[1]["address"], BOB.to_lowercase());
+    assert_eq!(balances[1]["after"], "0x4");
+    let slots = v["slots"].as_array().unwrap();
+    assert_eq!(slots.len(), 1, "{v}");
+    assert_eq!(slots[0]["address"], CONTRACT.to_lowercase());
+    assert_eq!(slots[0]["before"], "0x0");
+    assert_eq!(slots[0]["after"], "0x2");
+    assert_eq!(v["codes"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn a_slot_first_read_inside_a_reverted_checkpoint_is_not_reported_changed() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    // Stores calldata word 1 at the slot calldata word 0 names.
+    seed_contract(&mut f, CONTRACT, "0x6020355f355500");
+    assert_eq!(parse(f.insert_storage(CONTRACT, "0x64", "0x0"))["kind"], "ok");
+    f.start_trace();
+    f.checkpoint();
+    f.checkpoint();
+    let store = |slot: &str, value: &str| {
+        tx(ALICE, CONTRACT, &format!("0x{:0>64}{:0>64}", slot, value))
+    };
+    // Slot 100 first: the account's snapshot is taken here, without slot 0.
+    assert_eq!(parse(f.transact(&store("64", "1")))["kind"], "success");
+    // Slot 0 is not cached yet: a miss, answered with its upstream value.
+    assert_eq!(parse(f.transact(&store("0", "2")))["kind"], "misses");
+    assert_eq!(parse(f.insert_storage(CONTRACT, "0x0", "0x5"))["kind"], "ok");
+    assert_eq!(parse(f.transact(&store("0", "2")))["kind"], "success");
+    assert_eq!(parse(f.revert_checkpoint())["kind"], "ok");
+    let changes = parse(f.state_changes());
+    assert_eq!(changes["value"]["slots"], serde_json::json!([]), "{changes}");
 }

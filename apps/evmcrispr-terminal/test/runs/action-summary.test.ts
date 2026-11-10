@@ -413,3 +413,54 @@ describe("a smart batch", () => {
     expect(d.notes.join(" ")).toContain("resolved during execution");
   });
 });
+
+describe("a module's action", () => {
+  // A module's own action, as its module described it when it was made.
+  const moduleAction = (title: string): Action => ({
+    type: "module",
+    module: "probe",
+    kind: "ping",
+    chainId: 100,
+    from: to,
+    data: {},
+    description: {
+      title,
+      detail: "detail\u200b",
+      meta: "meta",
+      warning: "warning\u001b[2J",
+      steps: [
+        {
+          label: "the transfer",
+          call: { to: spender, data: transfer as `0x${string}`, value: 0n },
+        },
+        { label: "a step without a call" },
+      ],
+      notes: ["a note \u202e"],
+    },
+  });
+
+  test("is shown as its module describes it, its calls decoded", () => {
+    const d = actionSummary(moduleAction("Ping"));
+    expect(d.title).toBe("Ping");
+    expect(d.chainId).toBe(100);
+    expect(d.calls).toEqual([]);
+    expect(d.steps).toHaveLength(2);
+    expect(d.steps?.[0]).toMatchObject({
+      label: "the transfer",
+      call: { to: spender, selector: "0xa9059cbb", chainId: 100 },
+    });
+    expect(d.steps?.[1]).toEqual({ label: "a step without a call" });
+  });
+
+  test("every string of its description is escaped", () => {
+    const d = actionSummary(moduleAction("a\u202Eb"));
+    const shown = JSON.stringify(d);
+    expect(shown).not.toContain("\u202e");
+    expect(shown).not.toContain("\u200b");
+    expect(shown).not.toContain("\u001b");
+    expect(d.title).toContain("\\u202e");
+    expect(d.detail).toContain("\\u{200B}");
+    expect(d.warning).toContain("\\x1b");
+    expect(d.notes.join("\n")).toContain("\\u202e");
+  });
+});

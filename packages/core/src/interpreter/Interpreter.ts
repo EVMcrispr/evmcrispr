@@ -27,6 +27,7 @@ import {
   IPFSResolver,
   isBatchedAction,
   isExperimentalEnabled,
+  isModuleAction,
   isSmartBatchAction,
   isTransactionAction,
   resolveChain,
@@ -286,7 +287,11 @@ export class Interpreter {
     };
     try {
       const result = await this.#untilCancelled(send(report));
-      const sends = this.#sendsTransaction(action);
+      // A module's action is judged when its result says how it ended
+      // (a receipt's `status`, or `queued`); otherwise it did its job.
+      const sends =
+        this.#sendsTransaction(action) ||
+        (isModuleAction(action) && hasStatus(result));
       // A host that returns the bare hash (`wallet.sendTransaction`) sent
       // it without reporting: the hash is the report.
       if (sends && !reported && isTxHash(result)) report.sent(result);
@@ -433,6 +438,8 @@ export class Interpreter {
       return `Batch of ${action.actions.length} calls on ${chainLabel(action.chainId)}`;
     if (isSmartBatchAction(action))
       return `Smart batch on ${chainLabel(action.chainId)}`;
+    // A module's own action is named by the module.
+    if (isModuleAction(action)) return action.description.title;
     return undefined;
   }
 
@@ -824,4 +831,13 @@ export class Interpreter {
     }
     throw Error("No client available");
   };
+}
+
+/** Whether a send's result says how it ended: a receipt or a queued send. */
+function hasStatus(result: unknown): boolean {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    typeof (result as { status?: unknown }).status === "string"
+  );
 }

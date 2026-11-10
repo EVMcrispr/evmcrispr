@@ -4,9 +4,12 @@ import { Boxes, FileText, Settings } from "@repo/ui/icons";
 import { useQuery } from "@tanstack/react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import { useEffect, useState } from "react";
-import { useEnsName } from "wagmi";
+import { useConnection, useEnsName } from "wagmi";
 import NewScriptButton from "../components/scripts/NewScriptButton";
 import { ReferenceTab } from "../panel/reference/ReferenceTab";
+import { AccountPicker } from "../wallet/test-wallet/AccountPicker";
+import { TEST_WALLET_CONNECTOR_ID } from "../wallet/test-wallet/connector";
+import { terminalTestWallet } from "../wallet/test-wallet/instance";
 import { useWallet } from "../wallet/WalletContext";
 
 type MenuPage = "menu" | "reference";
@@ -28,6 +31,9 @@ export function MobileMenu({
   initialPage?: MenuPage;
 }) {
   const { address, connectWallet, disconnect } = useWallet();
+  const { connector: active } = useConnection();
+  const testWallet =
+    active?.id === TEST_WALLET_CONNECTOR_ID ? terminalTestWallet : undefined;
   const [page, setPage] = useState<MenuPage>(initialPage);
   const [entryOpen, setEntryOpen] = useState(false);
   // Passive reader of the balance ChatPanel fetches (shared query key).
@@ -120,6 +126,9 @@ export function MobileMenu({
                 <span className="text-fg-faint">Not connected</span>
               )}
             </div>
+            {address && testWallet && (
+              <AccountPicker wallet={testWallet.wallet} address={address} />
+            )}
             <Button
               type="button"
               // Connecting is what the menu asks for; disconnecting is not.

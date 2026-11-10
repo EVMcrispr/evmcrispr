@@ -3,6 +3,7 @@ import {
   Badge,
   Button,
   EmptyState,
+  Facts,
   IconButton,
   Input,
   Notice,
@@ -19,6 +20,17 @@ export function Chrome() {
   return (
     <Section id="chrome" title="Headers, notices, fields">
       <Both>
+        <Example label="facts: named values, a long one wrapping, one as code">
+          <Facts>
+            <Facts.Item name="Chain">Frames quick devnet</Facts.Item>
+            <Facts.Item name="From">
+              0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+            </Facts.Item>
+            <Facts.Item name="Calls" mono>
+              transfer
+            </Facts.Item>
+          </Facts>
+        </Example>
         <Example label="panel header: detail view with back, title, actions">
           <div className="w-full bg-surface-1">
             <PanelHeader

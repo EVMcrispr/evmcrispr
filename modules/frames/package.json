@@ -1,0 +1,56 @@
+{
+  "name": "@evmcrispr/module-frames",
+  "version": "0.11.1",
+  "description": "EIP-8141 frame transactions: one transaction of many frames, verified and paid by contracts, sent through the ERC-8421 alternative mempool. Experimental: the alt-mempool devnet and local frame devnets, from a frame account or a wallet that signs frame transactions.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "modules/frames"
+  },
+  "homepage": "https://evmcrispr.com",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
+  "experimental": true,
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@evmcrispr/sdk": "workspace:^",
+    "@evmcrispr/viem-frames": "workspace:*"
+  },
+  "devDependencies": {
+    "@evmcrispr/test-utils": "workspace:*",
+    "@forshtat/hegota-support": "0.0.1",
+    "@openzeppelin/contracts": "5.6.1",
+    "solc": "0.8.28"
+  },
+  "peerDependencies": {
+    "viem": "^2.56.8"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "lint": "biome check src",
+    "type-check": "tsc -p tsconfig.json",
+    "build": "evmcrispr-build --bundle",
+    "test:unit": "bun test --timeout 30000 ./test/unit",
+    "test:integration": "bun test ./test/integration",
+    "test:coverage": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-skip-test-files ./test",
+    "codegen": "evmcrispr-build --codegen",
+    "types": "evmcrispr-build --types",
+    "build:contracts": "bun scripts/build-contracts.ts",
+    "test:devnet": "EVMCRISPR_FRAME_DEVNET=1 bun test ./test/devnet",
+    "test:hegota": "EVMCRISPR_HEGOTA=1 bun test ./test/devnet/hegota.devnet.test.ts ./test/devnet/hegota-post-verify.devnet.test.ts"
+  }
+}

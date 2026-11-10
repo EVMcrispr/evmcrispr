@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { type ConsoleState, consoleEntries } from "@evmcrispr/editor";
+import Frames from "@evmcrispr/module-frames";
 import type { Action, BoxSnapshot } from "@evmcrispr/sdk";
 import { applyText, revisions } from "@evmcrispr/space";
+import {
+  accountAction,
+  frameGateway,
+  metaMask,
+  OWNER,
+} from "../../../../modules/frames/test/helpers/frame-gateway";
 import { ORIGIN } from "../../src/space/undo";
 import { lockNames } from "../../src/storage/locks";
 import { testBrowser } from "../helpers/app";
@@ -223,6 +230,46 @@ describe("run manager", () => {
     t.app.runs.resume(started.runId);
     expect(await started.ended).toBe("success");
     expect(t.evml.statuses).toEqual(["waiting", "declined", "waiting"]);
+  });
+
+  test("MetaMask refusing a frame account's typed data pauses the run as declined; Resume asks again", async () => {
+    const browser = testBrowser();
+    const gateway = frameGateway();
+    let asked = 0;
+    const mm = metaMask({
+      sign: async (typed) => {
+        if (++asked === 1) throw refusal;
+        return OWNER.signTypedData(typed);
+      },
+    });
+    // The frames module sends it, through the run's transport for the
+    // devnet's chain: the gateway.
+    const evml = fakeEvml([{ action: accountAction() }], async () => receipt, {
+      modules: [Frames],
+      transports: { 1337: gateway.transport },
+    });
+    const app = browser.tab({
+      evml: () => evml,
+      wallet: async () => ({ client: mm.wallet, address: OWNER.address }),
+    });
+    const id = await app.spaces.create({ text: "a", source: "user" });
+    app.spaces.show(id);
+    const started = await app.runs.start(id, { mode: "real" });
+    if (!started.ok) throw new Error(started.reason);
+    await settle();
+    const live = app.runs.store.getState()[started.runId];
+    expect(live.record.status).toBe("paused");
+    expect(live.record.pausedBy).toBe("declined");
+    expect(live.held?.action).toEqual(accountAction());
+    expect(
+      gateway.calls.some((x) => x.method === "eth_sendFrameTransaction"),
+    ).toBe(false);
+    app.runs.resume(started.runId);
+    expect(await started.ended).toBe("success");
+    expect(asked).toBe(2);
+    expect(
+      gateway.calls.filter((x) => x.method === "eth_sendFrameTransaction"),
+    ).toHaveLength(1);
   });
 
   test("Cancel after a refusal hands the refusal to the script and ends the run", async () => {

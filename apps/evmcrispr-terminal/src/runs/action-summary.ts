@@ -8,11 +8,14 @@
 //    data), it interprets it once (`normaliseAction`), and that one value
 //    is both described and sent. Where a request does not have the form
 //    its method defines, it is shown raw, as it will be sent.
+
 import type {
   Action,
+  ModuleAction,
   SmartBatchAction,
   TransactionAction,
 } from "@evmcrispr/sdk";
+import { printable } from "@evmcrispr/viem-frames";
 import {
   type Chain,
   formatEther,
@@ -108,7 +111,8 @@ export interface ActionDescription {
   /** Every transaction the action sends: one, or all of a batch. */
   calls: CallDescription[];
   signing?: Signing;
-  /** The steps of a smart batch, in order. */
+  /** The steps of a smart batch, or the frames of a frame transaction,
+   *  in order. */
   steps?: { label: string; call?: CallDescription; note?: string }[];
   /** What this description cannot say, said plainly. */
   notes: string[];
@@ -482,6 +486,53 @@ function describeSmartBatch(
   };
 }
 
+/** A value of an action, as text that cannot hide or redraw what is
+ *  around it: controls and direction marks escaped (`printable`), and
+ *  every other character that does not show written out. */
+const escaped = (value: unknown) =>
+  [...printable(value)]
+    .map((character) =>
+      INVISIBLE.test(character)
+        ? `\\u{${(character.codePointAt(0) as number).toString(16).toUpperCase()}}`
+        : character,
+    )
+    .join("");
+
+/** A module's action, as its module described it when it was made: every
+ *  string escaped, each step's call decoded here. */
+function describeModuleAction(
+  action: ModuleAction,
+  chains: ChainLookup,
+): ActionDescription {
+  const { description } = action;
+  return {
+    title: escaped(description.title),
+    detail: escaped(description.detail),
+    meta: escaped(description.meta),
+    warning:
+      description.warning === undefined
+        ? undefined
+        : escaped(description.warning),
+    chainId: action.chainId,
+    calls: [],
+    steps: description.steps.map((step) => ({
+      label: escaped(step.label),
+      ...(step.call && {
+        call: describeCall(
+          {
+            to: escaped(step.call.to) as `0x${string}`,
+            data: escaped(step.call.data) as `0x${string}`,
+            value: step.call.value,
+            chainId: action.chainId,
+          },
+          chains,
+        ),
+      }),
+    })),
+    notes: description.notes.map((note) => escaped(note)),
+  };
+}
+
 /** Every warning of the action and of what it contains, once each. */
 const allWarnings = (description: ActionDescription) => [
   ...new Set([
@@ -545,6 +596,7 @@ function describe(action: Action, chains: ChainLookup): ActionDescription {
       calls: [],
       notes: [],
     };
+  if (action.type === "module") return describeModuleAction(action, chains);
   if (action.type === "smartBatch")
     return {
       title: "Atomic smart batch",

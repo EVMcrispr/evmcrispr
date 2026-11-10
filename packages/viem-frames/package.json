@@ -1,0 +1,50 @@
+{
+  "name": "@evmcrispr/viem-frames",
+  "version": "0.11.1",
+  "description": "EIP-8141 frame transactions in viem: a chain's serializer, receipts and prepare hook for type 0x06, an ERC-8421 alt-mempool client extension, and senders for wallet-signed and contract-verified frame transactions. Experimental: tracks devnets.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMcrispr/evmcrispr.git",
+    "directory": "packages/viem-frames"
+  },
+  "homepage": "https://github.com/EVMcrispr/evmcrispr/tree/master/packages/viem-frames#readme",
+  "bugs": "https://github.com/EVMcrispr/evmcrispr/issues",
+  "experimental": true,
+  "author": "Blossom Labs",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@forshtat/hegota-support": "0.0.1"
+  },
+  "devDependencies": {
+    "@evmcrispr/sdk": "workspace:*",
+    "@types/bun": "^1.4.2"
+  },
+  "peerDependencies": {
+    "viem": "^2.56.8"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "lint": "biome check src test",
+    "test:unit": "bun test test/unit",
+    "test:devnet": "VIEM_FRAMES_DEVNET=1 bun test test/devnet",
+    "type-check": "tsc --noEmit",
+    "build": "evmcrispr-build --bundle",
+    "types": "evmcrispr-build --types"
+  }
+}

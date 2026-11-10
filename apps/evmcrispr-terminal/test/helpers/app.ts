@@ -1,4 +1,5 @@
 import type { WorkerEvml } from "@evmcrispr/core/worker-client";
+import type { Transport } from "viem";
 import { createStore } from "zustand/vanilla";
 import type { App } from "../../src/app/boot";
 import { createIdbChatStore } from "../../src/assistant/chat-store";
@@ -27,7 +28,11 @@ export function testBrowser() {
   return {
     storage,
     tab(
-      options: { evml?: () => WorkerEvml; wallet?: () => Promise<Wallet> } = {},
+      options: {
+        evml?: () => WorkerEvml;
+        wallet?: () => Promise<Wallet>;
+        sharedChainTransports?: Record<number, Transport>;
+      } = {},
     ): App {
       // Remembers the locks this tab holds, to let go of them on close.
       const mine = new Set<Release>();
@@ -64,6 +69,7 @@ export function testBrowser() {
         me,
         createWorker,
         cancelGraceMs: 20,
+        sharedChainTransports: options.sharedChainTransports,
         wallet:
           options.wallet ??
           (async () => ({ client: undefined, address: undefined })),

@@ -14,7 +14,8 @@ import {
 } from "../evml/execute";
 import { ModuleRegistry } from "../evml/registry";
 import type { SimulateOptions, SimulationResult } from "../evml/simulate";
-import type { EvmlConfig } from "../evml/types";
+import { registerModule } from "../evml/tag";
+import type { EvmlConfig, ModuleInput } from "../evml/types";
 import {
   deserializeError,
   type MainToWorkerMessage,
@@ -44,6 +45,10 @@ export interface WorkerEvmlClientConfig extends WorkerEvmlConfig {
   onBox?: (snapshot: BoxSnapshot) => void;
   onOutput?: (message: string) => void;
   onLine?: (line: number | null) => void;
+  /** The modules this thread sends module actions with (their `send`
+   *  runs here, with the wallet). Lazy entries load on the first action
+   *  that needs them. Never sent to the worker. */
+  modules?: ModuleInput[];
 }
 
 export interface WorkerEvmlScript {
@@ -383,50 +388,46 @@ function makeWorkerEvml(
         onOutput: config.onOutput,
         onLine: config.onLine,
       };
-      return executeScript(
-        source,
-        // Modules live in the worker; the main-thread interpreter this
-        // registry feeds is only the log/status plumbing.
-        new ModuleRegistry(),
-        mainConfig,
-        walletClient,
-        {
-          ...options,
-          interpretRunner: (src, dispatch, hooks) => {
-            const { id, result } = manager.run(
-              {
-                kind: "interpret",
-                source: src,
-                config: workerConfig(hooks.account),
+      // Modules interpret in the worker; here they only send their own
+      // actions, and the interpreter this registry feeds is only the
+      // log/status plumbing.
+      const registry = new ModuleRegistry();
+      for (const input of config.modules ?? []) registerModule(registry, input);
+      return executeScript(source, registry, mainConfig, walletClient, {
+        ...options,
+        interpretRunner: (src, dispatch, hooks) => {
+          const { id, result } = manager.run(
+            {
+              kind: "interpret",
+              source: src,
+              config: workerConfig(hooks.account),
+            },
+            {
+              signal: hooks.signal,
+              onLog: hooks.onLog,
+              onBox: hooks.onBox,
+              onOutput: hooks.onOutput,
+              onLine: hooks.onLine,
+              onAction: (actionId, action) => {
+                const report: ActionReport = {
+                  sent: (hash) => manager.reportSent(id, actionId, hash),
+                  status: (state) => manager.reportStatus(id, actionId, state),
+                };
+                dispatch(action, report).then(
+                  (value) =>
+                    manager.replyAction(id, actionId, { ok: true, value }),
+                  (err) =>
+                    manager.replyAction(id, actionId, {
+                      ok: false,
+                      error: serializeError(err),
+                    }),
+                );
               },
-              {
-                signal: hooks.signal,
-                onLog: hooks.onLog,
-                onBox: hooks.onBox,
-                onOutput: hooks.onOutput,
-                onLine: hooks.onLine,
-                onAction: (actionId, action) => {
-                  const report: ActionReport = {
-                    sent: (hash) => manager.reportSent(id, actionId, hash),
-                    status: (state) =>
-                      manager.reportStatus(id, actionId, state),
-                  };
-                  dispatch(action, report).then(
-                    (value) =>
-                      manager.replyAction(id, actionId, { ok: true, value }),
-                    (err) =>
-                      manager.replyAction(id, actionId, {
-                        ok: false,
-                        error: serializeError(err),
-                      }),
-                  );
-                },
-              },
-            );
-            return result.then(() => undefined);
-          },
+            },
+          );
+          return result.then(() => undefined);
         },
-      );
+      });
     },
   });
 

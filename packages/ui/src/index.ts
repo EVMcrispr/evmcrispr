@@ -12,6 +12,7 @@ export { DiffStat } from "./components/DiffStat";
 export { Dot } from "./components/Dot";
 export { Drawer } from "./components/Drawer";
 export { EmptyState } from "./components/EmptyState";
+export { Facts } from "./components/Facts";
 export { IconButton } from "./components/IconButton";
 export { Input } from "./components/Input";
 export { Menu } from "./components/Menu";

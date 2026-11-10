@@ -1,14 +1,28 @@
+import { Common, Hardfork, Mainnet } from "@ethereumjs/common";
 import {
   type Action,
+  chargedFees,
   describeRevertData,
   ErrorException,
   isRpcAction,
   isTransactionAction,
+  type ModuleActionSimCtx,
   RevertError,
+  type SimOpcode,
+  type SimOpcodeResult,
+  type SimStep,
+  unpaidFeeError,
 } from "@evmcrispr/sdk";
-import { custom, keccak256, numberToHex } from "viem";
 import {
-  fetchBlockTimestamp,
+  custom,
+  getAddress,
+  type Hex,
+  keccak256,
+  numberToHex,
+  pad,
+} from "viem";
+import {
+  fetchForkBlock,
   resolveLatestBlockNumber,
   rpcFetch,
   type SimBackend,
@@ -16,7 +30,14 @@ import {
   type SyntheticReceipt,
   syntheticTxHash,
 } from "./backend";
+import { freeOpcodes } from "./ethereumjs-opcodes";
 import { loadRevm } from "./revm/load";
+
+/** The bytes an added opcode may take: those Prague leaves undefined (the
+ *  hardfork both in-process backends run). */
+const FREE_BYTES = freeOpcodes(
+  new Common({ chain: Mainnet, hardfork: Hardfork.Prague }),
+);
 
 type Miss =
   | { type: "account"; address: `0x${string}` }
@@ -29,6 +50,8 @@ type Envelope =
   | { kind: "value"; value: `0x${string}` }
   | {
       kind: "success";
+      /** The contract a deployment created. */
+      contractAddress?: `0x${string}` | null;
       returnData: `0x${string}`;
       gasUsed: number;
       logs: {
@@ -43,9 +66,17 @@ type Envelope =
         after: `0x${string}`;
       }[];
     }
-  | { kind: "revert"; revertData: `0x${string}` }
-  | { kind: "halt"; reason: string }
+  | {
+      kind: "revert";
+      revertData: `0x${string}`;
+      gasUsed?: number;
+      failure?: string;
+    }
+  | { kind: "halt"; reason: string; gasUsed?: number; failure?: string }
   | { kind: "misses"; misses: Miss[] }
+  /** A transaction that gave fees and whose sender cannot pay them for the
+   *  gas it used: nothing was committed. */
+  | { kind: "unpaidFee"; fee: `0x${string}`; balance: `0x${string}` }
   | { kind: "error"; message: string };
 
 /** Backstop for a buggy non-converging replay loop; each iteration normally
@@ -61,17 +92,30 @@ export async function createRevmBackend(
   const baseBlockNumber = opts.blockNumber
     ? BigInt(opts.blockNumber)
     : await resolveLatestBlockNumber(upstreamRpcUrl, signal);
-  const baseTimestamp = await fetchBlockTimestamp(
+  const forkBlock = await fetchForkBlock(
     upstreamRpcUrl,
     baseBlockNumber,
     signal,
   );
+  const { timestamp: baseTimestamp, baseFee } = forkBlock;
 
   const fork = new revm.RevmFork(
     BigInt(chainId),
     baseBlockNumber,
     baseTimestamp,
+    baseFee,
   );
+  {
+    const set = JSON.parse(
+      fork.setBlockHeader(
+        forkBlock.gasLimit,
+        forkBlock.prevRandao,
+        forkBlock.excessBlobGas,
+        numberToHex(forkBlock.blobBaseFee),
+      ),
+    ) as Envelope;
+    if (set.kind === "error") throw new ErrorException(set.message);
+  }
   // Fork state is read at the pinned block, mirroring RPCStateManager's blockTag.
   const blockTag = numberToHex(baseBlockNumber);
   /** Accounts already seeded (or mutated in-sim) — never re-fetch upstream,
@@ -180,6 +224,7 @@ export async function createRevmBackend(
   ): Promise<void> {
     if (method === "evm_increaseTime") {
       fork.increaseTime(BigInt(params[0] as string));
+      timeOffset += BigInt(params[0] as string);
       return;
     }
     if (method.endsWith("_mine") || method === "evm_increaseBlocks") {
@@ -207,6 +252,7 @@ export async function createRevmBackend(
   }
 
   let txCounter = 0;
+  let timeOffset = 0n;
 
   async function handleTransactionAction(
     action: Action,
@@ -215,6 +261,8 @@ export async function createRevmBackend(
 
     const from = action.from ?? `0x${"0".repeat(40)}`;
     await prefetchAccounts([from as `0x${string}`, action.to]);
+    // Checked here, so both backends refuse a fee the same way.
+    const fees = chargedFees(action, baseFee);
     const tx = JSON.stringify({
       from,
       to: action.to,
@@ -222,6 +270,8 @@ export async function createRevmBackend(
       value: action.value !== undefined ? numberToHex(action.value) : undefined,
       gas: action.gas !== undefined ? numberToHex(action.gas) : undefined,
       nonce: action.nonce !== undefined ? numberToHex(action.nonce) : undefined,
+      maxFeePerGas: fees && numberToHex(fees.maxFeePerGas),
+      maxPriorityFeePerGas: fees && numberToHex(fees.maxPriorityFeePerGas),
     });
 
     const env = await execWithReplay(() => fork.transact(tx));
@@ -234,6 +284,13 @@ export async function createRevmBackend(
     if (env.kind === "halt") {
       throw new RevertError(`Transaction reverted: ${env.reason}`);
     }
+    if (env.kind === "unpaidFee")
+      throw unpaidFeeError(
+        chainId,
+        getAddress(from),
+        BigInt(env.fee),
+        BigInt(env.balance),
+      );
     if (env.kind !== "success") {
       throw new ErrorException(
         `unexpected revm result: ${JSON.stringify(env)}`,
@@ -244,6 +301,7 @@ export async function createRevmBackend(
       status: "success",
       blockNumber: fork.blockNumber(),
       transactionHash: syntheticTxHash(action, txCounter++),
+      contractAddress: env.contractAddress ?? undefined,
       gasUsed: BigInt(env.gasUsed),
       logs: env.logs.map((log, logIndex) => ({ ...log, logIndex })),
       balanceChanges: (env.balanceChanges ?? []).map((c) => ({
@@ -339,5 +397,244 @@ export async function createRevmBackend(
     return undefined;
   }
 
-  return { transport, handleAction };
+  /** A simulation's added-opcode answer, as the wasm shell reads it. */
+  const answerJson = (answer: SimOpcodeResult): string =>
+    JSON.stringify(answer, (_, v) =>
+      typeof v === "bigint" ? numberToHex(v) : v,
+    );
+
+  function simContext(
+    action: Action,
+    { onLog }: { onLog: (message: string) => void },
+  ): ModuleActionSimCtx {
+    let table: Map<number, SimOpcode> | undefined;
+    // What this action's calls warmed, address → slots: its calls are one
+    // transaction's frames.
+    const warmed = new Map<string, Set<string>>();
+    const warmAddress = (a: string) => {
+      const key = a.toLowerCase();
+      if (!warmed.has(key)) warmed.set(key, new Set());
+      return warmed.get(key)!;
+    };
+    const host = {
+      opcode(op: number, address: string, isStatic: boolean, operands: string) {
+        const added = table?.get(op);
+        if (!added) return answerJson({ fail: "not an added opcode" });
+        try {
+          return answerJson(
+            added.run({
+              address: getAddress(address),
+              operands: (JSON.parse(operands) as string[]).map(BigInt),
+              isStatic,
+            }),
+          );
+        } catch (error) {
+          return answerJson({ fail: `${added.name} threw: ${String(error)}` });
+        }
+      },
+    };
+    const ok = (json: string) => assertOk(JSON.parse(json));
+    let tracing = false;
+    // The action's open checkpoints: when the last closes, it has ended and
+    // its trace is no longer read (nothing more is recorded for it).
+    let depth = 0;
+    const closed = () => {
+      depth--;
+      if (depth === 0 && tracing) {
+        tracing = false;
+        fork.stopTrace();
+      }
+    };
+    return {
+      chainId,
+      blockNumber: fork.blockNumber(),
+      timestamp: baseTimestamp + timeOffset,
+      baseFee,
+      transactionHash: syntheticTxHash(action, txCounter++),
+      onLog,
+      async call({
+        caller,
+        to,
+        data,
+        value,
+        gas,
+        isStatic,
+        transferLogs,
+        schedule,
+        stateGas,
+        observe,
+      }) {
+        await prefetchAccounts([caller, to]);
+        const json = JSON.stringify({
+          from: caller,
+          to,
+          data,
+          value: numberToHex(value),
+          gas: numberToHex(gas),
+          isStatic,
+          transferLogs: transferLogs ?? false,
+          ...(schedule && {
+            schedule,
+            stateGas: numberToHex(stateGas ?? 0n),
+          }),
+          opcodes: [...(table?.values() ?? [])].map((o) => ({
+            opcode: o.opcode,
+            pops: o.pops,
+          })),
+          accessList: [...warmed].map(([address, slots]) => ({
+            address,
+            storageKeys: [...slots],
+          })),
+          ...(observe?.length && { observe }),
+        });
+        const env = await execWithReplay(() => fork.frameCall(json, host));
+        warmAddress(caller);
+        warmAddress(to);
+        for (const { address, storageKeys } of (
+          env as { accessed?: { address: string; storageKeys: string[] }[] }
+        ).accessed ?? []) {
+          const slots = warmAddress(address);
+          for (const key of storageKeys) slots.add(key);
+        }
+        const reported = (
+          env as {
+            steps?: {
+              index: number;
+              opcode: number;
+              address: string;
+              stack: string[];
+            }[];
+          }
+        ).steps;
+        const steps = reported && {
+          steps: reported.map(
+            (s): SimStep => ({
+              index: s.index,
+              opcode: s.opcode,
+              address: getAddress(s.address),
+              stack: s.stack.map(BigInt),
+            }),
+          ),
+        };
+        if (env.kind === "success")
+          return {
+            ...steps,
+            success: true,
+            returnData: env.returnData,
+            gasUsed: BigInt(env.gasUsed),
+            ...(schedule && {
+              stateGasUsed: BigInt(
+                (env as { stateGasUsed?: number }).stateGasUsed ?? 0,
+              ),
+              gasRefund: BigInt((env as { gasRefund?: number }).gasRefund ?? 0),
+            }),
+            logs: env.logs,
+          };
+        if (env.kind === "revert" || env.kind === "halt")
+          return {
+            ...steps,
+            success: false,
+            returnData: env.kind === "revert" ? env.revertData : "0x",
+            gasUsed: BigInt(env.gasUsed ?? 0),
+            logs: [],
+            error:
+              env.failure ??
+              (env.kind === "halt"
+                ? env.reason
+                : (describeRevertData(env.revertData) ?? "reverted")),
+          };
+        throw new ErrorException(
+          `unexpected revm result: ${JSON.stringify(env)}`,
+        );
+      },
+      async checkpoint() {
+        // The first checkpoint is the transaction's start: what changes
+        // from here is what stateChanges() reports.
+        if (!tracing) {
+          tracing = true;
+          fork.startTrace();
+        }
+        depth++;
+        fork.checkpoint();
+      },
+      async stateChanges() {
+        const env = JSON.parse(fork.stateChanges()) as Envelope;
+        assertOk(env);
+        const value = (
+          env as unknown as {
+            value: {
+              balances: { address: Hex; before: Hex; after: Hex }[];
+              slots: { address: Hex; slot: Hex; before: Hex; after: Hex }[];
+              codes: { address: Hex; before: Hex; after: Hex }[];
+            };
+          }
+        ).value;
+        return {
+          balances: value.balances.map((b) => ({
+            address: getAddress(b.address),
+            before: BigInt(b.before),
+            after: BigInt(b.after),
+          })),
+          slots: value.slots.map((s) => ({
+            address: getAddress(s.address),
+            slot: s.slot,
+            before: pad(s.before),
+            after: pad(s.after),
+          })),
+          codes: value.codes.map((c) => ({
+            ...c,
+            address: getAddress(c.address),
+          })),
+        };
+      },
+      async commit() {
+        ok(fork.commitCheckpoint());
+        closed();
+      },
+      async revert() {
+        ok(fork.revertCheckpoint());
+        closed();
+      },
+      async getNonce(address) {
+        await prefetchAccounts([address]);
+        return BigInt(await readValue(() => fork.getNonce(address)));
+      },
+      async setNonce(address, nonce) {
+        await prefetchAccounts([address]);
+        await execWithReplay(() => fork.setNonce(address, nonce));
+      },
+      async getBalance(address) {
+        return BigInt(await readValue(() => fork.getBalance(address)));
+      },
+      async setBalance(address, balance) {
+        await prefetchAccounts([address]);
+        await execWithReplay(() =>
+          fork.setBalance(address, numberToHex(balance)),
+        );
+      },
+      async getCode(address) {
+        return readValue(() => fork.getCode(address));
+      },
+      isWarm: (a) => warmed.has(a.toLowerCase()),
+      warm: (a) => {
+        warmAddress(a);
+      },
+      async withOpcodes(opcodes, run) {
+        for (const op of opcodes)
+          if (!FREE_BYTES.has(op.opcode))
+            throw new ErrorException(
+              `${op.name} (0x${op.opcode.toString(16)}) is an opcode this backend already defines`,
+            );
+        const previous = table;
+        table = new Map(opcodes.map((op) => [op.opcode, op]));
+        try {
+          return await run();
+        } finally {
+          table = previous;
+        }
+      },
+    };
+  }
+
+  return { transport, handleAction, simContext };
 }

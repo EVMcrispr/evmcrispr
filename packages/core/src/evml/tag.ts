@@ -35,7 +35,11 @@ export interface EvmlTag {
   readonly config: EvmlConfig;
 }
 
-function registerModule(registry: ModuleRegistry, input: ModuleInput): void {
+/** Registers one `evml.use(...)` input. */
+export function registerModule(
+  registry: ModuleRegistry,
+  input: ModuleInput,
+): void {
   if (typeof input === "function") {
     const ctor = input as IModuleConstructor;
     if (!ctor.moduleName) {

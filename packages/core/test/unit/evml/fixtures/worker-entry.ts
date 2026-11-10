@@ -7,6 +7,7 @@ import type { Module } from "@evmcrispr/sdk";
 import { defineErrors, defineHelper, defineModule } from "@evmcrispr/sdk";
 import { createEvml } from "../../../../src/evml/tag";
 import { exposeEvmlWorker } from "../../../../src/worker/expose";
+import { Probe } from "./probe-module";
 
 const REFUSE_ERRORS = defineErrors({
   Refused: {
@@ -30,4 +31,4 @@ const load = <T>(value: T) => ({ load: async () => ({ default: value }) });
 
 const Declaring = defineModule("declaring", {}, { refuse: load(refuse) }, {});
 
-exposeEvmlWorker(createEvml().use(Http).use(Declaring));
+exposeEvmlWorker(createEvml().use(Http).use(Declaring).use(Probe));

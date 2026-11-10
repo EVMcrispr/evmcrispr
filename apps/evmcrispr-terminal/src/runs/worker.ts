@@ -2,6 +2,7 @@ import {
   createWorkerEvml,
   type WorkerEvml,
 } from "@evmcrispr/core/worker-client";
+import { moduleEntries } from "@evmcrispr/modules";
 import { rpcUrls } from "../config/rpc";
 
 /** A worker-backed `evml` of its own, spawned when first used. Each run
@@ -13,6 +14,8 @@ export function createRunWorker(): WorkerEvml {
       new Worker(new URL("../workers/evml.worker.ts", import.meta.url), {
         type: "module",
       }),
-    { rpcUrls },
+    // A module's actions are sent here, on the main thread, by the module:
+    // it is loaded on the first one.
+    { rpcUrls, modules: moduleEntries },
   );
 }

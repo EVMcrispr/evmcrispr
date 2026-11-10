@@ -8,6 +8,7 @@ import {
   isMobileDevice,
   MOBILE_WALLETS,
 } from "../../utils/mobile-wallet";
+import { TEST_WALLET_CONNECTOR_ID } from "../../wallet/test-wallet/connector";
 import MetamaskIcon from "../icons/MetamaskIcon";
 import SafeIcon from "../icons/SafeIcon";
 import WalletIcon from "../icons/WalletIcon";
@@ -36,6 +37,9 @@ export default function SelectWalletModal({
     (c) => c.id === "walletConnect",
   );
   const injectedConnector = connectors.find((c) => c.id === "injected");
+  const testWalletConnector = connectors.find(
+    (c) => c.id === TEST_WALLET_CONNECTOR_ID,
+  );
   // The device decides how we connect; the `mobile` prop only picks the shell.
   // Inside a wallet's own dapp browser there is a provider to talk to, so a
   // phone only needs deep links when nothing was injected.
@@ -125,6 +129,19 @@ export default function SelectWalletModal({
           leftIcon={<SafeIcon />}
           onClick={() => setView("safe")}
         />
+        {/* Experimental: anvil's public accounts, on local chains only. */}
+        {testWalletConnector && (
+          <WalletButton
+            name="Test wallet"
+            leftIcon={<WalletIcon />}
+            onClick={() =>
+              connect(
+                { connector: testWalletConnector },
+                { onSuccess: handleModalClose },
+              )
+            }
+          />
+        )}
       </div>
     );
   };

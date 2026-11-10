@@ -615,6 +615,51 @@ describe("Interpreter - status boxes", () => {
     });
   });
 
+  it("a module action's result is judged when it says how the send ended", async () => {
+    for (const [result, state, detail, kind] of [
+      [
+        { status: "queued", reason: "Admitted; this devnet never mines" },
+        "done",
+        "Admitted; this devnet never mines",
+        "unknown",
+      ],
+      [{ status: "reverted" }, "failed", "Reverted", "reverted"],
+      [
+        { status: "success", blockNumber: 3n },
+        "done",
+        "Confirmed in block 3",
+        "confirmed",
+      ],
+      // A module action that sends no transaction: done when it returns.
+      [{ ok: true }, "done", "Confirmed", "confirmed"],
+    ] as const) {
+      rawAction = {
+        type: "module",
+        module: "stub",
+        kind: "own",
+        chainId: 1,
+        from: ACCOUNT,
+        data: {},
+        description: {
+          title: "Own action",
+          detail: "",
+          meta: "",
+          steps: [],
+          notes: [],
+        },
+      } as Action;
+      const { interpreter, done, snapshots } = run(
+        "load stub\nstub:raw",
+        async () => result,
+      );
+      const [action] = await done;
+      const box = snapshots.find((s) => s.title.includes("Own action"))!;
+      expect(last(snapshots, box.title)).toMatchObject({ state, detail });
+      expect((await interpreter.outcomeOf([action])).kind).toBe(kind);
+    }
+    rawAction = { to: ACCOUNT, data: "0x" };
+  });
+
   it("fetches the receipt of a reported hash when the host returns none", async () => {
     for (const [status, state, detail, kind] of [
       ["0x1", "done", "Confirmed in block 9", "confirmed"],

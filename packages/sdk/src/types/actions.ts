@@ -117,6 +117,44 @@ export interface BatchedAction {
   actions: TransactionAction[];
 }
 
+/** A call a module action makes, as its description shows it. */
+export interface ModuleActionCall {
+  to: Address;
+  data: `0x${string}`;
+  value: bigint;
+}
+
+/**
+ * What a module says its action does, for a host's review. Host-neutral:
+ * plain strings (a host escapes them) and raw calls (a host decodes them).
+ */
+export interface ModuleActionDescription {
+  /** The one-line form, for lists. */
+  title: string;
+  detail: string;
+  meta: string;
+  warning?: string;
+  /** What it runs, in order. */
+  steps: { label: string; call?: ModuleActionCall }[];
+  /** What the description cannot say, said plainly. */
+  notes: string[];
+}
+
+/**
+ * An action a module owns: the module describes it when it is made, and
+ * sends it (core's `module` handler loads the module and calls its
+ * `send`). `data` must survive a structured clone (the worker boundary).
+ */
+export interface ModuleAction<D = unknown> {
+  type: "module";
+  module: string;
+  kind: string;
+  chainId: number;
+  from: Address;
+  data: D;
+  description: ModuleActionDescription;
+}
+
 /**
  * A request to the wallet provider (e.g. switch chain, sign message).
  */
@@ -149,6 +187,7 @@ export type Action =
   | TransactionAction
   | SmartBatchAction
   | BatchedAction
+  | ModuleAction
   | WalletAction
   | RpcAction
   | TerminalAction;
@@ -165,6 +204,10 @@ export function isBatchedAction(action: Action): action is BatchedAction {
 
 export function isSmartBatchAction(action: Action): action is SmartBatchAction {
   return "type" in action && action.type === "smartBatch";
+}
+
+export function isModuleAction(action: Action): action is ModuleAction {
+  return "type" in action && action.type === "module";
 }
 
 export function isWalletAction(action: Action): action is WalletAction {

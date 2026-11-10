@@ -3,16 +3,21 @@ import { setChainUrlPolicy, setEtherscanProxy } from "@evmcrispr/core";
 
 import { EVMCRISPR_API_BASE } from "./api";
 
+/** The user's own machine: browsers allow plain http to it from https pages. */
+const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
 /**
  * Plain-http URLs (devnet RPCs, Blockscout APIs) can't be fetched from the
  * https terminal (mixed content) and wallets refuse to add networks with
  * them. Route those through the EVMcrispr CORS proxy, which allowlists
- * them per deployment; https URLs are used as declared.
+ * them per deployment; https URLs are used as declared. A loopback URL is
+ * never proxied: it names the user's machine, and the proxy would reach
+ * its own.
  */
 export function browserSafeUrl(url: string): string {
-  return url.startsWith("http://")
-    ? `${EVMCRISPR_API_BASE}/cors-proxy/${url}`
-    : url;
+  if (!url.startsWith("http://")) return url;
+  if (LOOPBACK.has(new URL(url).hostname)) return url;
+  return `${EVMCRISPR_API_BASE}/cors-proxy/${url}`;
 }
 
 /** Make every chain a module declares reachable from this origin — the

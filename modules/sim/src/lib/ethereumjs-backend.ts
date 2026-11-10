@@ -1,4 +1,5 @@
 import { createCustomCommon, Hardfork, Mainnet } from "@ethereumjs/common";
+import type { InterpreterStep } from "@ethereumjs/evm";
 import { RPCBlockChain, RPCStateManager } from "@ethereumjs/statemanager";
 import type { Account, Address as EthjsAddress } from "@ethereumjs/util";
 import {
@@ -8,21 +9,27 @@ import {
   createAddressFromString,
   createZeroAddress,
   hexToBytes,
+  unpadBytes,
 } from "@ethereumjs/util";
 import type { VM } from "@ethereumjs/vm";
 import { createVM } from "@ethereumjs/vm";
 import {
   type Action,
+  chargedFees,
   describeRevertData,
   ErrorException,
   isRpcAction,
   isTransactionAction,
+  type ModuleActionSimCtx,
   RevertError,
+  type SimStateChanges,
+  type SimStep,
+  unpaidFeeError,
 } from "@evmcrispr/sdk";
-import { custom, keccak256 } from "viem";
+import { custom, getAddress, type Hex, keccak256 } from "viem";
 import {
   type BalanceChange,
-  fetchBlockTimestamp,
+  fetchForkBlock,
   padToBytes32,
   resolveLatestBlockNumber,
   rpcFetch,
@@ -31,6 +38,23 @@ import {
   type SyntheticReceipt,
   syntheticTxHash,
 } from "./backend";
+import {
+  customOpcodes,
+  freeOpcodes,
+  type OpcodeSlot,
+} from "./ethereumjs-opcodes";
+import { withHegotaSchedule } from "./hegota-schedule";
+
+/** Each EVM's calls, run one after another. */
+const queues = new WeakMap<object, Promise<unknown>>();
+function oneAtATime<T>(evm: object, run: () => Promise<T>): Promise<T> {
+  const result = (queues.get(evm) ?? Promise.resolve()).then(run, run);
+  queues.set(
+    evm,
+    result.catch(() => {}),
+  );
+  return result;
+}
 
 /**
  * RPCStateManager fetches accounts via eth_getProof, which load-balanced
@@ -54,17 +78,96 @@ class ProofFreeStateManager extends RPCStateManager {
     this.recording.set(key, { address, before });
   }
 
+  /** Since a module action's first checkpoint: each account's balance and
+   *  code hash, and each slot's value, before their first write
+   *  (`stateChanges`). */
+  trace?: {
+    accounts: Map<
+      string,
+      { address: EthjsAddress; balance: bigint; code: Hex }
+    >;
+    slots: Map<string, { address: EthjsAddress; key: Uint8Array; before: Hex }>;
+  };
+
+  /** Slots whose value is being read for the trace. */
+  #reading = new Set<string>();
+
+  async #traceAccount(address: EthjsAddress) {
+    const key = address.toString();
+    if (!this.trace || this.trace.accounts.has(key)) return;
+    const account = await this.getAccount(address);
+    // The code itself, hashed: putCode caches code without updating the
+    // account's codeHash (a CREATE goes through putCode alone).
+    this.trace.accounts.set(key, {
+      address,
+      balance: account?.balance ?? 0n,
+      code: keccak256(await this.getCode(address)),
+    });
+  }
+
   override async putAccount(
     address: EthjsAddress,
     account?: Account,
   ): Promise<void> {
     await this.#record(address);
+    await this.#traceAccount(address);
     return super.putAccount(address, account);
   }
 
   override async deleteAccount(address: EthjsAddress): Promise<void> {
     await this.#record(address);
+    await this.#traceAccount(address);
     return super.deleteAccount(address);
+  }
+
+  override async putCode(
+    address: EthjsAddress,
+    value: Uint8Array,
+  ): Promise<void> {
+    await this.#traceAccount(address);
+    return super.putCode(address, value);
+  }
+
+  override async putStorage(
+    address: EthjsAddress,
+    key: Uint8Array,
+    value: Uint8Array,
+  ): Promise<void> {
+    const id = `${address.toString()}:${bytesToHex(key)}`;
+    // Reading the slot's value can itself store it (RPCStateManager caches
+    // what it fetches through putStorage): that store is not a write.
+    if (this.trace && !this.trace.slots.has(id) && !this.#reading.has(id)) {
+      this.#reading.add(id);
+      try {
+        const before = bytesToHex(
+          padToBytes32(await this.getStorage(address, key)),
+        ) as Hex;
+        this.trace.slots.set(id, { address, key, before });
+      } finally {
+        this.#reading.delete(id);
+      }
+    }
+    return super.putStorage(address, key, value);
+  }
+
+  /** RPCStateManager's commit (ethereumjs 10.1.3) commits only the account
+   *  cache: the storage and code caches keep every committed checkpoint's
+   *  diff, so a later revert pops an inner call's diff instead of its own
+   *  and keeps what it should undo (a rolled-back atomic group's storage
+   *  writes). Commit every cache, as checkpoint and revert do. */
+  override async commit(): Promise<void> {
+    this._caches.commit();
+  }
+
+  /** Storage as ethereumjs's own state managers return it: leading zeros
+   *  stripped, an empty slot empty. RPCStateManager hands back the
+   *  provider's 32-byte words, and EIP-8037's SSTORE state gas only sees a
+   *  slot as empty (charging the new slot) when it is. */
+  override async getStorage(
+    address: EthjsAddress,
+    key: Uint8Array,
+  ): Promise<Uint8Array> {
+    return unpadBytes(await super.getStorage(address, key));
   }
 
   override async getAccountFromProvider(
@@ -122,16 +225,26 @@ export async function createEthereumJSBackend(
     },
   };
 
-  const vm = await createVM({ common, stateManager, blockchain });
+  // A module action's simulation adds opcodes for the calls it runs.
+  const opcodeSlot: OpcodeSlot = {};
+  const freeBytes = freeOpcodes(common);
+  const vm = await createVM({
+    common,
+    stateManager,
+    blockchain,
+    evmOpts: { customOpcodes: customOpcodes(common, opcodeSlot) },
+  });
 
   let currentBlockNumber = typeof blockTag === "bigint" ? blockTag : 0n;
   let timestampOffset = 0n;
 
-  const baseTimestamp = await fetchBlockTimestamp(
+  const forkBlock = await fetchForkBlock(
     upstreamRpcUrl,
     currentBlockNumber,
     signal,
   );
+  const { timestamp: baseTimestamp, baseFee } = forkBlock;
+  const prevRandao = hexToBytes(forkBlock.prevRandao);
 
   function getCurrentTimestamp(): bigint {
     return baseTimestamp + timestampOffset;
@@ -144,10 +257,14 @@ export async function createEthereumJSBackend(
         coinbase: createZeroAddress(),
         timestamp: getCurrentTimestamp(),
         difficulty: 0n,
-        prevRandao: new Uint8Array(32),
-        gasLimit: 30_000_000n,
-        baseFeePerGas: 0n,
-        getBlobGasPrice: () => undefined,
+        // What a contract reads of the forked block (GASLIMIT, PREVRANDAO,
+        // BLOBBASEFEE); transactions are not capped by its gas limit.
+        prevRandao,
+        gasLimit: forkBlock.gasLimit,
+        baseFeePerGas: baseFee,
+        // SLOTNUM (Amsterdam): a fork has no beacon slot.
+        slotNumber: 0n,
+        getBlobGasPrice: () => forkBlock.blobBaseFee,
       },
     };
   }
@@ -217,10 +334,14 @@ export async function createEthereumJSBackend(
       });
     }
 
+    // Checked before anything runs, as a node checks it.
+    const fees = chargedFees(action, baseFee);
+
     await vm.evm.journal.checkpoint();
     stateManager.recording = new Map();
 
     const result = await vm.evm.runCall({
+      gasPrice: fees?.gasPrice ?? 0n,
       caller: senderAddr,
       to: toAddr,
       data: action.data ? hexToBytes(action.data) : undefined,
@@ -249,6 +370,34 @@ export async function createEthereumJSBackend(
       );
     }
 
+    // A call's execution gas, plus what a transaction pays before it
+    // runs: the base cost and its calldata, counted at the dearer rate.
+    const gasUsed =
+      result.execResult.executionGasUsed +
+      21_000n +
+      16n * BigInt(action.data ? (action.data.length - 2) / 2 : 0);
+
+    // runCall charges no fee: one that the transaction gives is what its
+    // gas used costs, taken here, before the commit.
+    if (fees) {
+      const fee = gasUsed * fees.gasPrice;
+      const balance =
+        (await stateManager.getAccount(senderAddr))?.balance ?? 0n;
+      if (balance < fee) {
+        stateManager.recording = undefined;
+        await vm.evm.journal.revert();
+        throw unpaidFeeError(
+          chainId,
+          getAddress(senderAddr.toString()),
+          fee,
+          balance,
+        );
+      }
+      await stateManager.modifyAccountFields(senderAddr, {
+        balance: balance - fee,
+      });
+    }
+
     // runCall already bumped the sender nonce (depth-0 behavior mirroring a
     // real tx), so the journal commit persists it — no manual increment.
     await vm.evm.journal.commit();
@@ -269,12 +418,10 @@ export async function createEthereumJSBackend(
       status: "success",
       blockNumber: currentBlockNumber,
       transactionHash: syntheticTxHash(action, txCounter++),
-      // A call's execution gas, plus what a transaction pays before it
-      // runs: the base cost and its calldata, counted at the dearer rate.
-      gasUsed:
-        result.execResult.executionGasUsed +
-        21_000n +
-        16n * BigInt(action.data ? (action.data.length - 2) / 2 : 0),
+      contractAddress: result.createdAddress
+        ? (result.createdAddress.toString() as `0x${string}`)
+        : undefined,
+      gasUsed,
       balanceChanges,
       logs: (result.execResult.logs ?? []).map(
         ([address, topics, data], logIndex) => ({
@@ -336,7 +483,239 @@ export async function createEthereumJSBackend(
     },
   });
 
-  return { transport, handleAction };
+  const address = (a: string) => createAddressFromString(a);
+
+  function simContext(
+    action: Action,
+    { onLog }: { onLog: (message: string) => void },
+  ): ModuleActionSimCtx {
+    // The action starts with nothing warm, as a transaction does; its calls
+    // then share what they warm (runCall keeps the journal's access sets).
+    // The EVM's Journal (its interface type leaves the warm sets out).
+    let tracing = false;
+    // The action's open checkpoints: when the last closes, it has ended and
+    // its trace is no longer read (nothing more is recorded for it).
+    let depth = 0;
+    const closed = () => {
+      depth--;
+      if (depth === 0 && tracing) {
+        tracing = false;
+        stateManager.trace = undefined;
+      }
+    };
+    const journal = vm.evm.journal as unknown as {
+      journalHeight: number;
+      isWarmedAddress(address: Uint8Array): boolean;
+      addWarmedAddress(address: Uint8Array): void;
+    };
+    if (journal.journalHeight === 0) {
+      vm.evm.journal.cleanJournal();
+      // A slot's original value is its value when the action starts: what
+      // an earlier action read must not stand for it (runCall, unlike
+      // runTx, never clears these).
+      stateManager.originalStorageCache.clear();
+    }
+    return {
+      chainId,
+      blockNumber: currentBlockNumber,
+      timestamp: getCurrentTimestamp(),
+      baseFee,
+      transactionHash: syntheticTxHash(action, txCounter++),
+      onLog,
+      call(request) {
+        // A call switches the EVM's shared rules (EIPs, and on the Hegota
+        // devnet its hardfork and parameters) until it ends: calls are run
+        // one at a time, or one would restore the other's.
+        return oneAtATime(vm.evm, () => runOne(request));
+        async function runOne({
+          caller,
+          to,
+          data,
+          value,
+          gas,
+          isStatic,
+          transferLogs,
+          schedule,
+          stateGas,
+          observe,
+        }: Parameters<ModuleActionSimCtx["call"]>[0]) {
+          opcodeSlot.failure = undefined;
+          // The steps asked for, of the last run (a schedule may run the
+          // call again).
+          const watched = observe?.length ? new Set(observe) : undefined;
+          let steps: SimStep[] = [];
+          let stepCount = 0;
+          const onStep = (step: InterpreterStep, done?: () => void) => {
+            const index = stepCount++;
+            if (watched?.has(step.opcode.code)) {
+              const stack = step.stack;
+              steps.push({
+                index,
+                opcode: step.opcode.code,
+                address: getAddress(step.address.toString()),
+                stack: stack.slice(-2).reverse(),
+              });
+            }
+            done?.();
+          };
+          // EIP-7708 for this call only: the fork's own transactions keep the
+          // forked chain's rules.
+          const common = vm.evm.common;
+          const eips = common.eips();
+          const addLogs = transferLogs && !common.isActivatedEIP(7708);
+          if (addLogs) common.setEIPs([...eips, 7708]);
+          let result: Awaited<ReturnType<typeof vm.evm.runCall>>;
+          let stateGasUsed: bigint | undefined;
+          const runCall = () => {
+            steps = [];
+            stepCount = 0;
+            return vm.evm.runCall({
+              caller: address(caller),
+              to: address(to),
+              data: hexToBytes(data),
+              value,
+              gasLimit: gas,
+              isStatic,
+              skipNonceIncrement: true,
+              block: makeBlockContext(),
+            });
+          };
+          if (watched) vm.evm.events!.on("step", onStep);
+          try {
+            if (schedule === "hegota") {
+              const run = await withHegotaSchedule(
+                vm.evm,
+                stateGas ?? 0n,
+                runCall,
+                (r) => !r.execResult.exceptionError,
+                (byte) => opcodeSlot.table?.has(byte) ?? false,
+              );
+              result = run.result;
+              stateGasUsed = run.stateGasUsed;
+            } else result = await runCall();
+          } finally {
+            if (addLogs) common.setEIPs(eips);
+            if (watched) vm.evm.events!.off("step", onStep);
+          }
+          // ethrex leaves a frame's target cold (its own code may warm it).
+          if (schedule !== "hegota") journal.addWarmedAddress(hexToBytes(to));
+          journal.addWarmedAddress(hexToBytes(caller));
+          const error = result.execResult.exceptionError;
+          return {
+            ...(stateGasUsed !== undefined && {
+              stateGasUsed,
+              gasRefund: error ? 0n : (result.execResult.gasRefund ?? 0n),
+            }),
+            success: !error,
+            returnData: bytesToHex(result.execResult.returnValue) as Hex,
+            gasUsed: result.execResult.executionGasUsed,
+            logs: (result.execResult.logs ?? []).map(
+              ([address, topics, data]) => ({
+                address: bytesToHex(address) as Hex,
+                topics: topics.map((t) => bytesToHex(t) as Hex),
+                data: bytesToHex(data) as Hex,
+              }),
+            ),
+            error: error ? (opcodeSlot.failure ?? error.error) : undefined,
+            ...(watched && { steps }),
+          };
+        }
+      },
+      checkpoint: () => {
+        // The first checkpoint is the transaction's start: what changes
+        // from here is what stateChanges() reports.
+        if (!tracing) {
+          tracing = true;
+          stateManager.trace = { accounts: new Map(), slots: new Map() };
+        }
+        depth++;
+        return vm.evm.journal.checkpoint();
+      },
+      async stateChanges() {
+        const trace = stateManager.trace ?? {
+          accounts: new Map(),
+          slots: new Map(),
+        };
+        const order = (x: bigint, y: bigint) => (x < y ? -1 : x > y ? 1 : 0);
+        const byAddress = (a: { address: Hex }, b: { address: Hex }) =>
+          order(BigInt(a.address), BigInt(b.address));
+        const balances: SimStateChanges["balances"] = [];
+        const codes: SimStateChanges["codes"] = [];
+        for (const before of trace.accounts.values()) {
+          const now = await stateManager.getAccount(before.address);
+          const address = getAddress(before.address.toString());
+          const balance = now?.balance ?? 0n;
+          const code = keccak256(await stateManager.getCode(before.address));
+          if (balance !== before.balance)
+            balances.push({ address, before: before.balance, after: balance });
+          if (code !== before.code)
+            codes.push({ address, before: before.code, after: code });
+        }
+        const slots: SimStateChanges["slots"] = [];
+        for (const before of trace.slots.values()) {
+          const after = bytesToHex(
+            padToBytes32(
+              await stateManager.getStorage(before.address, before.key),
+            ),
+          ) as Hex;
+          if (after !== before.before)
+            slots.push({
+              address: getAddress(before.address.toString()),
+              slot: bytesToHex(padToBytes32(before.key)) as Hex,
+              before: before.before,
+              after,
+            });
+        }
+        balances.sort(byAddress);
+        codes.sort(byAddress);
+        slots.sort(
+          (a, b) => byAddress(a, b) || order(BigInt(a.slot), BigInt(b.slot)),
+        );
+        return { balances, slots, codes };
+      },
+      async commit() {
+        await vm.evm.journal.commit();
+        closed();
+      },
+      async revert() {
+        await vm.evm.journal.revert();
+        closed();
+      },
+      async getNonce(a) {
+        return (await stateManager.getAccount(address(a)))?.nonce ?? 0n;
+      },
+      async setNonce(a, nonce) {
+        await stateManager.modifyAccountFields(address(a), { nonce });
+      },
+      async getBalance(a) {
+        return (await stateManager.getAccount(address(a)))?.balance ?? 0n;
+      },
+      async setBalance(a, balance) {
+        await stateManager.modifyAccountFields(address(a), { balance });
+      },
+      async getCode(a) {
+        return bytesToHex(await stateManager.getCode(address(a))) as Hex;
+      },
+      isWarm: (a) => journal.isWarmedAddress(hexToBytes(a)),
+      warm: (a) => journal.addWarmedAddress(hexToBytes(a)),
+      async withOpcodes(opcodes, run) {
+        for (const op of opcodes)
+          if (!freeBytes.has(op.opcode))
+            throw new ErrorException(
+              `${op.name} (0x${op.opcode.toString(16)}) is an opcode this backend already defines`,
+            );
+        const previous = opcodeSlot.table;
+        opcodeSlot.table = new Map(opcodes.map((op) => [op.opcode, op]));
+        try {
+          return await run();
+        } finally {
+          opcodeSlot.table = previous;
+        }
+      },
+    };
+  }
+
+  return { transport, handleAction, simContext };
 }
 
 async function handleEthCall(
@@ -402,6 +781,8 @@ async function handleGetStorageAt(
 ): Promise<string> {
   const addr = createAddressFromString(params[0]);
   const key = padToBytes32(hexToBytes(params[1]));
+  // A 32-byte word, as eth_getStorageAt answers (the state manager's
+  // storage has its leading zeros stripped).
   const value = await stateManager.getStorage(addr, key);
-  return bytesToHex(value);
+  return bytesToHex(padToBytes32(value));
 }

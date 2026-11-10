@@ -2,16 +2,58 @@ use revm::context::result::{EVMError, ExecutionResult};
 use revm::context::{BlockEnv, CfgEnv, TxEnv};
 use revm::database::CacheDB;
 use revm::primitives::hardfork::SpecId;
-use revm::primitives::{hex, Address, Bytes, TxKind, B256, U256};
+use revm::primitives::{hex, Address, Bytes, TxKind, B256, KECCAK_EMPTY, U256};
 use revm::state::{AccountInfo, Bytecode};
 use revm::{Context, Database, DatabaseCommit, ExecuteEvm, MainBuilder, MainContext};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use std::collections::HashMap;
+
+use revm::context_interface::transaction::{AccessList, AccessListItem};
+use revm::context_interface::block::BlobExcessGasAndPrice;
+use revm::database::{AccountState, DbAccount};
+use revm::interpreter::Instruction;
+use revm::context_interface::cfg::gas_params::{GasId, GasParams};
+use revm::InspectEvm;
+use revm::context_interface::Transaction;
+
 use crate::db::{Miss, MissDb};
+use crate::frame::{frame_ops, with_hook, FrameInspector, Hook};
 
 /// Mirrors the ethereumjs backend's fixed block gas limit.
 const BLOCK_GAS_LIMIT: u64 = 30_000_000;
+
+/// EIP-8037's cost per state byte on the Hegota devnet (ethrex's constant).
+const HEGOTA_COST_PER_STATE_BYTE: u64 = 1530;
+
+/// The Hegota devnet's gas schedule (ethrex `hegota-devnet`): Amsterdam, with
+/// EIP-8038's access and write costs, as revm's gas table takes them.
+fn hegota_schedule(cfg: &mut CfgEnv) {
+    cfg.spec = SpecId::AMSTERDAM;
+    // The spec setters would turn these on; the field alone does not.
+    cfg.enable_amsterdam_eip8037 = true;
+    cfg.enable_amsterdam_eip2780 = true;
+    let mut params = GasParams::new_spec(SpecId::AMSTERDAM);
+    params.override_gas([
+        // A cold access is 3000 in all (the warm 100 is charged as well).
+        (GasId::cold_storage_cost(), 2900),
+        (GasId::cold_storage_additional_cost(), 2900),
+        (GasId::cold_account_additional_cost(), 2900),
+        // The first change of a slot this transaction (STORAGE_WRITE).
+        (GasId::sstore_set_without_load_cost(), 10_000),
+        (GasId::sstore_reset_without_cold_load_cost(), 10_000),
+        (GasId::transfer_value_cost(), 10_300),
+        (GasId::create(), 11_000),
+        // Value to an empty account (ACCOUNT_WRITE), besides its state gas.
+        (GasId::new_account_cost_for_selfdestruct(), 8_000),
+    ]);
+    cfg.gas_params = params;
+    // The transfer logs come from the frame inspector, as measured there.
+    cfg.amsterdam_eip7708_disabled = true;
+    // The frame's own limits bound it; the transaction's gas is a formality.
+    cfg.tx_gas_limit_cap = Some(u64::MAX);
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,6 +69,59 @@ struct TxJson {
     gas: Option<String>,
     #[serde(default)]
     nonce: Option<String>,
+    /// EIP-1559 fees, both set or neither: the TS side has resolved and
+    /// checked them (`chargedFees`). Without them the transaction is free.
+    #[serde(default)]
+    max_fee_per_gas: Option<String>,
+    #[serde(default)]
+    max_priority_fee_per_gas: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FrameOpJson {
+    opcode: u8,
+    pops: usize,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct FrameCallJson {
+    from: String,
+    to: String,
+    #[serde(default)]
+    data: Option<String>,
+    #[serde(default)]
+    value: Option<String>,
+    gas: String,
+    is_static: bool,
+    /// EIP-7708 transfer logs for this call.
+    #[serde(default)]
+    transfer_logs: bool,
+    /// "hegota": the Hegota devnet's gas schedule (Amsterdam, EIP-8038's
+    /// access costs, EIP-8037's state gas drawn from `state_gas` alone).
+    #[serde(default)]
+    schedule: Option<String>,
+    /// The call's state-gas pool under the "hegota" schedule.
+    #[serde(default)]
+    state_gas: Option<String>,
+    #[serde(default)]
+    opcodes: Vec<FrameOpJson>,
+    /// What the action's earlier calls warmed: one transaction's frames
+    /// share their warm addresses and slots (EIP-2929).
+    #[serde(default)]
+    access_list: Vec<WarmJson>,
+    /// Opcodes whose steps the result reports.
+    #[serde(default)]
+    observe: Vec<u8>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WarmJson {
+    address: String,
+    #[serde(default)]
+    storage_keys: Vec<String>,
 }
 
 /// Plain-Rust fork state; `RevmFork` in lib.rs is the thin wasm-bindgen shell.
@@ -40,13 +135,36 @@ pub struct Fork {
     mined_blocks: u64,
     base_timestamp: u64,
     timestamp_offset: u64,
+    /// The forked block's base fee: the block's `basefee` for every run, and
+    /// what a transaction that gives fees pays at least.
+    base_fee: u64,
+    /// The forked block's gas limit, PREVRANDAO and blob base fee: what
+    /// GASLIMIT, PREVRANDAO and BLOBBASEFEE answer (`set_block_header`).
+    block_gas_limit: u64,
+    prevrandao: B256,
+    excess_blob_gas: u64,
+    blob_base_fee: u128,
+    /// Open checkpoints, innermost last: each account's cached state before
+    /// the first change made under it.
+    checkpoints: Vec<HashMap<Address, Option<DbAccount>>>,
+    /// What changed since `start_trace`, each value as it was before its
+    /// first change: what a transaction's POST_TX frames read (TXTRACE).
+    trace: Option<TraceRecord>,
+}
+
+#[derive(Default)]
+struct TraceRecord {
+    /// Balance and code hash before the account's first change.
+    accounts: HashMap<Address, (U256, B256)>,
+    /// A slot's value before its first change.
+    slots: HashMap<(Address, U256), U256>,
 }
 
 impl Fork {
-    pub fn new(chain_id: u64, block_number: u64, base_timestamp: u64) -> Self {
+    pub fn new(chain_id: u64, block_number: u64, base_timestamp: u64, base_fee: u64) -> Self {
         let mut db = CacheDB::new(MissDb);
         // The handler loads the block beneficiary on every execution. Our block
-        // context is synthetic (coinbase = zero, basefee 0), so seed it empty
+        // context is synthetic (coinbase = zero), so seed it empty
         // instead of letting every fork pay an upstream fetch for 0x0.
         db.insert_account_info(Address::ZERO, AccountInfo::default());
         Fork {
@@ -56,7 +174,181 @@ impl Fork {
             mined_blocks: 0,
             base_timestamp,
             timestamp_offset: 0,
+            base_fee,
+            block_gas_limit: BLOCK_GAS_LIMIT,
+            prevrandao: B256::ZERO,
+            excess_blob_gas: 0,
+            blob_base_fee: 1,
+            checkpoints: Vec::new(),
+            trace: None,
         }
+    }
+
+    // ── checkpoints ──
+
+    /// Keeps `address`'s cached state, the first time it changes under the
+    /// innermost checkpoint.
+    fn record(&mut self, address: Address) {
+        if self.checkpoints.is_empty() {
+            return;
+        }
+        let prior = self.db.cache.accounts.get(&address).cloned();
+        let top = self.checkpoints.last_mut().unwrap();
+        top.entry(address).or_insert(prior);
+    }
+
+    fn record_state(&mut self, state: &revm::state::EvmState) {
+        let touched: Vec<Address> = state
+            .iter()
+            .filter(|(_, a)| a.is_touched())
+            .map(|(addr, _)| *addr)
+            .collect();
+        for address in &touched {
+            self.record(*address);
+        }
+        if let Some(trace) = self.trace.as_mut() {
+            for address in touched {
+                // The cache still holds the account as it was before this
+                // change (the commit comes after).
+                let before = self
+                    .db
+                    .cache
+                    .accounts
+                    .get(&address)
+                    .map(|a| (a.info.balance, a.info.code_hash))
+                    .unwrap_or((U256::ZERO, KECCAK_EMPTY));
+                trace.accounts.entry(address).or_insert(before);
+                for (slot, value) in &state[&address].storage {
+                    if value.is_changed() {
+                        trace
+                            .slots
+                            .entry((address, *slot))
+                            .or_insert(value.original_value);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Starts recording what changes, for `state_changes`.
+    pub fn start_trace(&mut self) {
+        self.trace = Some(TraceRecord::default());
+    }
+
+    /// Stops recording: the module action that read it has ended.
+    pub fn stop_trace(&mut self) {
+        self.trace = None;
+    }
+
+    /// The net changes since `start_trace`, each list sorted ascending by
+    /// address (slots then by slot): balances, slots and code hashes whose
+    /// value now differs from before their first change.
+    pub fn state_changes(&self) -> String {
+        let Some(trace) = &self.trace else {
+            return error_env("no trace started");
+        };
+        let now = |address: &Address| {
+            self.db
+                .cache
+                .accounts
+                .get(address)
+                .map(|a| (a.info.balance, a.info.code_hash))
+                .unwrap_or((U256::ZERO, KECCAK_EMPTY))
+        };
+        let mut addresses: Vec<&Address> = trace.accounts.keys().collect();
+        addresses.sort();
+        let mut balances = Vec::new();
+        let mut codes = Vec::new();
+        for address in addresses {
+            let (balance, code) = trace.accounts[address];
+            let (balance_now, code_now) = now(address);
+            if balance != balance_now {
+                balances.push(json!({
+                    "address": addr_hex(address),
+                    "before": u256_hex(balance),
+                    "after": u256_hex(balance_now),
+                }));
+            }
+            if code != code_now {
+                codes.push(json!({
+                    "address": addr_hex(address),
+                    "before": format!("{code:?}"),
+                    "after": format!("{code_now:?}"),
+                }));
+            }
+        }
+        let mut keys: Vec<&(Address, U256)> = trace.slots.keys().collect();
+        keys.sort();
+        let mut slots = Vec::new();
+        for key in keys {
+            let before = trace.slots[key];
+            // A slot the cache no longer holds was put back by a reverted
+            // checkpoint (its account's snapshot predates reading it): it is
+            // unchanged, unless the account's storage was cleared.
+            let after = match self.db.cache.accounts.get(&key.0) {
+                Some(account) => match account.storage.get(&key.1) {
+                    Some(value) => *value,
+                    None if matches!(
+                        account.account_state,
+                        AccountState::StorageCleared | AccountState::NotExisting
+                    ) =>
+                    {
+                        U256::ZERO
+                    }
+                    None => before,
+                },
+                None => before,
+            };
+            if before != after {
+                slots.push(json!({
+                    "address": addr_hex(&key.0),
+                    "slot": format!("{:#066x}", key.1),
+                    "before": u256_hex(before),
+                    "after": u256_hex(after),
+                }));
+            }
+        }
+        json!({
+            "kind": "value",
+            "value": { "balances": balances, "slots": slots, "codes": codes },
+        })
+        .to_string()
+    }
+
+    pub fn checkpoint(&mut self) {
+        self.checkpoints.push(HashMap::new());
+    }
+
+    /// Keeps what changed since the checkpoint, under the one around it.
+    pub fn commit_checkpoint(&mut self) -> String {
+        let Some(top) = self.checkpoints.pop() else {
+            return error_env("no checkpoint to commit");
+        };
+        if let Some(parent) = self.checkpoints.last_mut() {
+            for (address, prior) in top {
+                parent.entry(address).or_insert(prior);
+            }
+        }
+        ok_env()
+    }
+
+    /// Undoes what changed since the checkpoint. State read from upstream
+    /// meanwhile stays cached: only changed accounts are put back.
+    pub fn revert_checkpoint(&mut self) -> String {
+        let Some(top) = self.checkpoints.pop() else {
+            return error_env("no checkpoint to revert");
+        };
+        for (address, prior) in top {
+            match prior {
+                Some(account) => {
+                    self.db.cache.accounts.insert(address, account);
+                }
+                None => {
+                    self.db.cache.accounts.remove(&address);
+                }
+            }
+        }
+        ok_env()
     }
 
     pub fn block_number(&self) -> u64 {
@@ -118,6 +410,7 @@ impl Fork {
             Ok(info) => {
                 let mut info = info.unwrap_or_default();
                 info.balance = b;
+                self.record(a);
                 self.db.insert_account_info(a, info);
                 ok_env()
             }
@@ -139,6 +432,7 @@ impl Fork {
                 let mut info = info.unwrap_or_default();
                 info.code_hash = code_hash;
                 info.code = Some(bytecode);
+                self.record(a);
                 self.db.insert_account_info(a, info);
                 ok_env()
             }
@@ -147,6 +441,9 @@ impl Fork {
     }
 
     pub fn set_storage(&mut self, addr: &str, slot: &str, value: &str) -> String {
+        if let Ok(a) = parse_addr(addr) {
+            self.record(a);
+        }
         self.insert_storage(addr, slot, value)
     }
 
@@ -189,6 +486,210 @@ impl Fork {
         }
     }
 
+    pub fn get_nonce(&mut self, addr: &str) -> String {
+        match parse_addr(addr) {
+            Ok(a) => match self.db.basic(a) {
+                Ok(info) => value_env(&format!("{:#x}", info.map(|i| i.nonce).unwrap_or(0))),
+                Err(m) => miss_env(&m),
+            },
+            Err(e) => error_env(&e),
+        }
+    }
+
+    pub fn set_nonce(&mut self, addr: &str, nonce: u64) -> String {
+        let a = match parse_addr(addr) {
+            Ok(a) => a,
+            Err(e) => return error_env(&e),
+        };
+        match self.db.basic(a) {
+            Ok(info) => {
+                let mut info = info.unwrap_or_default();
+                info.nonce = nonce;
+                self.record(a);
+                self.db.insert_account_info(a, info);
+                ok_env()
+            }
+            Err(m) => miss_env(&m),
+        }
+    }
+
+    /// One top-level call of a module's simulation: the frame's gas and
+    /// static flag, no nonce change, the added opcodes answered by `hook`.
+    /// Committed when it succeeds.
+    pub fn frame_call(&mut self, call_json: &str, hook: &mut Hook<'_>) -> String {
+        let call: FrameCallJson = match serde_json::from_str(call_json) {
+            Ok(c) => c,
+            Err(e) => return error_env(&format!("invalid frame call json: {e}")),
+        };
+        let (caller, to, gas) = match (parse_addr(&call.from), parse_addr(&call.to), parse_u256(&call.gas)) {
+            (Ok(c), Ok(t), Ok(g)) => match u64::try_from(g) {
+                Ok(g) => (c, t, g),
+                Err(_) => return error_env(&format!("frame gas {g} is out of range")),
+            },
+            (c, t, g) => return error_env(&first_err(&[c.err(), t.err(), g.err()])),
+        };
+        let mut warm = Vec::with_capacity(call.access_list.len());
+        for item in &call.access_list {
+            let address = match parse_addr(&item.address) {
+                Ok(a) => a,
+                Err(e) => return error_env(&e),
+            };
+            let mut storage_keys = Vec::with_capacity(item.storage_keys.len());
+            for key in &item.storage_keys {
+                match parse_b256(key) {
+                    Ok(k) => storage_keys.push(k),
+                    Err(e) => return error_env(&e),
+                }
+            }
+            warm.push(AccessListItem { address, storage_keys });
+        }
+        let value = match call.value.as_deref().map(parse_u256).transpose() {
+            Ok(v) => v.unwrap_or_default(),
+            Err(e) => return error_env(&e),
+        };
+        let data = match call.data.as_deref().map(parse_bytes).transpose() {
+            Ok(d) => d.unwrap_or_default(),
+            Err(e) => return error_env(&e),
+        };
+        let nonce = self.db.cache.accounts.get(&caller).map(|a| a.info.nonce).unwrap_or(0);
+        // Whether an earlier frame warmed this frame's target.
+        let target_warm = warm.iter().any(|item| item.address == to);
+        // The transaction's own limit covers any intrinsic cost; the call
+        // itself gets the frame's gas (FrameInspector).
+        let tx_env = TxEnv {
+            tx_type: if warm.is_empty() { 0 } else { 1 },
+            access_list: AccessList(warm),
+            caller,
+            gas_limit: BLOCK_GAS_LIMIT.saturating_add(gas),
+            gas_price: 0,
+            kind: TxKind::Call(to),
+            value,
+            data,
+            nonce,
+            chain_id: Some(self.chain_id),
+            ..Default::default()
+        };
+        let pops: HashMap<u8, usize> = call.opcodes.iter().map(|o| (o.opcode, o.pops)).collect();
+
+        // A frame sends value its caller has, or fails: no balance is made
+        // up (gas is free, so only the value is checked).
+        let mut cfg = self.cfg_env();
+        cfg.disable_balance_check = false;
+        let hegota = call.schedule.as_deref() == Some("hegota");
+        let state_gas = match call.state_gas.as_deref().map(parse_u256).transpose() {
+            Ok(g) => g.unwrap_or_default().saturating_to::<u64>(),
+            Err(e) => return error_env(&e),
+        };
+        let mut inspector = FrameInspector::new(gas, call.is_static, call.transfer_logs)
+            .with_observed(&call.observe);
+        if hegota {
+            hegota_schedule(&mut cfg);
+            inspector = inspector.with_state_pool(state_gas, HEGOTA_COST_PER_STATE_BYTE);
+            if !target_warm {
+                inspector = inspector.with_cold_target(to);
+            }
+        }
+        let db = std::mem::replace(&mut self.db, CacheDB::new(MissDb));
+        let mut evm = Context::mainnet()
+            .with_db(db)
+            .with_cfg(cfg)
+            .with_block(self.block_env())
+            .build_mainnet_with_inspector(inspector);
+        let ops = frame_ops();
+        for byte in pops.keys() {
+            evm.instruction
+                .insert_instruction(*byte, Instruction::new(ops[*byte as usize]), 3);
+        }
+        if hegota {
+            // EIP-8038: EXTCODESIZE and EXTCODECOPY read the code as well as
+            // the account, one more warm access (100) than their access cost.
+            // Their static gas: the warm read (100) and EIP-8038's code
+            // read (100); the cold surcharge stays dynamic.
+            for op in [0x3bu8, 0x3c] {
+                let instruction = if op == 0x3b {
+                    Instruction::new(revm::interpreter::instructions::host::extcodesize)
+                } else {
+                    Instruction::new(revm::interpreter::instructions::host::extcodecopy)
+                };
+                evm.instruction.insert_instruction(op, instruction, 200);
+            }
+        }
+        // One transaction's frames run as successive calls here, but a slot's
+        // original value (EIP-2200, and EIP-8038's first-change write cost)
+        // is its value at the transaction's start: the slots earlier frames
+        // changed go in with that original.
+        if let Some(trace) = &self.trace {
+            for (&(address, key), &before) in &trace.slots {
+                use revm::context::JournalTr;
+                if evm.ctx.journaled_state.load_account(address).is_err() {
+                    continue;
+                }
+                if evm.ctx.journaled_state.sload(address, key).is_err() {
+                    continue;
+                }
+                if let Some(slot) = evm
+                    .ctx
+                    .journaled_state
+                    .state
+                    .get_mut(&address)
+                    .and_then(|a| a.storage.get_mut(&key))
+                {
+                    slot.original_value = before;
+                }
+            }
+        }
+        let (res, failure) = with_hook(pops, hook, || evm.inspect_tx(tx_env));
+        let spent = evm.inspector.spent.unwrap_or(0);
+        let state_spent = evm.inspector.state_spent;
+        let refund = evm.inspector.refund;
+        let steps: Vec<Value> = std::mem::take(&mut evm.inspector.steps)
+            .into_iter()
+            .map(|(index, op, address, stack)| {
+                json!({
+                    "index": index,
+                    "opcode": op,
+                    "address": format!("{address:?}"),
+                    "stack": stack.iter().map(|w| format!("{w:#x}")).collect::<Vec<_>>(),
+                })
+            })
+            .collect();
+        let observing = !call.observe.is_empty();
+        self.db = evm.ctx.journaled_state.database;
+
+        match res {
+            Ok(mut out) => {
+                let accessed = accessed_json(&out.state);
+                if let ExecutionResult::Success { .. } = out.result {
+                    // A frame uses no nonce of its caller's: revm bumped it
+                    // once for the transaction; a CREATE's bumps stay.
+                    if let Some(account) = out.state.get_mut(&caller) {
+                        account.info.nonce = account.info.nonce.saturating_sub(1);
+                    }
+                    self.record_state(&out.state);
+                    self.db.commit(out.state);
+                }
+                let mut env: Value = serde_json::from_str(&frame_env(out.result, spent, failure)).unwrap();
+                env["accessed"] = accessed;
+                env["stateGasUsed"] = json!(state_spent);
+                env["gasRefund"] = json!(refund);
+                if observing {
+                    env["steps"] = Value::Array(steps);
+                }
+                env.to_string()
+            }
+            Err(EVMError::Database(m)) => miss_env(&m),
+            // Value the caller does not have: the frame fails.
+            Err(EVMError::Transaction(e)) => json!({
+                "kind": "halt",
+                "reason": format!("{e:?}"),
+                "gasUsed": 0,
+                "accessed": [],
+            })
+            .to_string(),
+            Err(e) => error_env(&format!("{e:?}")),
+        }
+    }
+
     // ── execution ──
 
     pub fn call(&mut self, tx_json: &str) -> String {
@@ -219,21 +720,46 @@ impl Fork {
 
         // No blanket `Database for &mut T` in revm 42, so hand the CacheDB to the
         // EVM by value and take it back out of the context afterwards.
+        // A transaction that gives fees is held to the base fee and pays
+        // them; one that gives none runs free, at a zero gas price.
+        let mut cfg = self.cfg_env();
+        cfg.disable_base_fee = tx.max_fee_per_gas.is_none();
         let db = std::mem::replace(&mut self.db, CacheDB::new(MissDb));
         let mut evm = Context::mainnet()
             .with_db(db)
-            .with_cfg(self.cfg_env())
+            .with_cfg(cfg)
             .with_block(self.block_env())
             .build_mainnet();
-        let res = evm.transact(tx_env);
+        let res = evm.transact(tx_env.clone());
         self.db = evm.ctx.journaled_state.database;
 
         match res {
-            Ok(out) => {
+            Ok(mut out) => {
                 let mut changes = Vec::new();
                 if commit {
-                    if let ExecutionResult::Success { .. } = out.result {
+                    if let ExecutionResult::Success { gas, .. } = &out.result {
+                        let gas_used = gas.tx_gas_used();
+                        // revm charges nothing (`disable_fee_charge`): the
+                        // fee is what the gas used costs, taken here.
+                        if tx_env.tx_type == 2 {
+                            let price = tx_env.effective_gas_price(self.base_fee as u128);
+                            let fee = U256::from(price) * U256::from(gas_used);
+                            let Some(sender) = out.state.get_mut(&tx_env.caller) else {
+                                return error_env("the sender is missing from the transaction's state");
+                            };
+                            // Nothing is committed: the TS side words it.
+                            if sender.info.balance < fee {
+                                return json!({
+                                    "kind": "unpaidFee",
+                                    "fee": u256_hex(fee),
+                                    "balance": u256_hex(sender.info.balance),
+                                })
+                                .to_string();
+                            }
+                            sender.info.balance -= fee;
+                        }
                         changes = self.balance_changes(&out.state);
+                        self.record_state(&out.state);
                         self.db.commit(out.state);
                     }
                 }
@@ -304,11 +830,18 @@ impl Fork {
                 .map(|a| a.info.nonce)
                 .unwrap_or(0),
         };
+        let fee = |v: &Option<String>| -> Result<Option<u128>, String> {
+            v.as_deref()
+                .map(|f| parse_u256(f).and_then(|n| u128::try_from(n).map_err(|_| format!("fee out of range: {f}"))))
+                .transpose()
+        };
+        let (max_fee, tip) = (fee(&tx.max_fee_per_gas)?, fee(&tx.max_priority_fee_per_gas)?);
         Ok(TxEnv {
-            tx_type: 0,
+            tx_type: if max_fee.is_some() { 2 } else { 0 },
             caller,
             gas_limit,
-            gas_price: 0,
+            gas_price: max_fee.unwrap_or(0),
+            gas_priority_fee: tip,
             kind,
             value,
             data,
@@ -328,6 +861,8 @@ impl Fork {
         cfg.disable_block_gas_limit = true;
         cfg.disable_eip3607 = true;
         cfg.disable_base_fee = true;
+        // A fork charges a fee itself, on the gas used (`execute`).
+        cfg.disable_fee_charge = true;
         cfg
     }
 
@@ -336,11 +871,37 @@ impl Fork {
             number: U256::from(self.block_number()),
             beneficiary: Address::ZERO,
             timestamp: U256::from(self.base_timestamp + self.timestamp_offset),
-            gas_limit: BLOCK_GAS_LIMIT,
-            basefee: 0,
+            gas_limit: self.block_gas_limit,
+            basefee: self.base_fee,
             difficulty: U256::ZERO,
-            prevrandao: Some(B256::ZERO),
+            prevrandao: Some(self.prevrandao),
+            blob_excess_gas_and_price: Some(BlobExcessGasAndPrice {
+                excess_blob_gas: self.excess_blob_gas,
+                blob_gasprice: self.blob_base_fee,
+            }),
             ..Default::default()
+        }
+    }
+
+    /// The forked block's gas limit, PREVRANDAO (its mixHash) and blob gas:
+    /// what a contract reads of its block. Transactions are not capped by
+    /// the gas limit (the block gas limit check is off).
+    pub fn set_block_header(
+        &mut self,
+        gas_limit: u64,
+        prevrandao: &str,
+        excess_blob_gas: u64,
+        blob_base_fee: &str,
+    ) -> String {
+        match (parse_b256(prevrandao), parse_u256(blob_base_fee)) {
+            (Ok(randao), Ok(fee)) => {
+                self.block_gas_limit = gas_limit;
+                self.prevrandao = randao;
+                self.excess_blob_gas = excess_blob_gas;
+                self.blob_base_fee = fee.saturating_to::<u128>();
+                json!({ "kind": "ok" }).to_string()
+            }
+            (r, f) => error_env(&first_err(&[r.err(), f.err()])),
         }
     }
 
@@ -453,6 +1014,7 @@ fn result_env(result: ExecutionResult, balance_changes: Vec<Value>) -> String {
                 .collect();
             json!({
                 "kind": "success",
+                "contractAddress": output.address().map(addr_hex),
                 "returnData": bytes_hex(output.data()),
                 "gasUsed": gas.tx_gas_used(),
                 "logs": logs,
@@ -467,4 +1029,33 @@ fn result_env(result: ExecutionResult, balance_changes: Vec<Value>) -> String {
             json!({ "kind": "halt", "reason": format!("{reason:?}") }).to_string()
         }
     }
+}
+
+/// Every account a call loaded, with the slots it read or wrote.
+fn accessed_json(state: &revm::state::EvmState) -> Value {
+    // An account still cold (a frame's untouched target) was loaded, not
+    // accessed: it stays out, unless its storage was.
+    json!(state
+        .iter()
+        .filter(|(_, account)| {
+            !account.status.contains(revm::state::AccountStatus::Cold) || !account.storage.is_empty()
+        })
+        .map(|(address, account)| json!({
+            "address": addr_hex(address),
+            "storageKeys": account
+                .storage
+                .keys()
+                .map(|k| format!("{:#066x}", k))
+                .collect::<Vec<_>>(),
+        }))
+        .collect::<Vec<_>>())
+}
+
+fn frame_env(result: ExecutionResult, gas_used: u64, failure: Option<String>) -> String {
+    let mut env: Value = serde_json::from_str(&result_env(result, Vec::new())).unwrap();
+    env["gasUsed"] = json!(gas_used);
+    if let Some(f) = failure {
+        env["failure"] = json!(f);
+    }
+    env.to_string()
 }

@@ -5,11 +5,13 @@ import {
   defineCommand,
   ErrorException,
   isBatchedAction,
+  isModuleAction,
   isRpcAction,
   isSmartBatchAction,
   isTerminalAction,
   isTransactionAction,
   isWalletAction,
+  moduleActionDef,
   RevertError,
   resolveChainId,
 } from "@evmcrispr/sdk";
@@ -412,6 +414,32 @@ export default defineCommand<Sim>({
     ): Promise<unknown> => {
       if (module.context.signal?.aborted) {
         throw new ErrorException("Execution cancelled");
+      }
+      // A module's action is simulated by its module, on an in-process
+      // backend's calls (frames: anvil, hardhat and tenderly do not know
+      // EIP-8141's transaction type). Left unhandled, it would end the
+      // fork as if it had succeeded, so anything else refuses it.
+      if (isModuleAction(action)) {
+        const what = `"${action.description.title}" (a ${action.kind} action of the ${action.module} module)`;
+        const def = moduleActionDef(action.module, action.kind);
+        if (!def?.simulate)
+          throw new ErrorException(
+            `sim:fork cannot simulate ${what}: its module does not simulate it, so it would not run in the fork. Move it out of the fork.`,
+          );
+        const backend = forkManager.active.backend;
+        if (!backend?.simContext)
+          throw new ErrorException(
+            `sim:fork simulates ${what} only on an in-process backend: write --using ethereumjs or --using revm.`,
+          );
+        const receipt = await def.simulate(
+          action,
+          backend.simContext(action, {
+            onLog: (message) => module.context.log(message),
+          }),
+        );
+        if (relayScan && receipt.logs.length)
+          await scanAndQueue(receipt.logs as unknown as ReceiptLog[]);
+        return receipt;
       }
       if (isWalletAction(action)) {
         if (action.method !== "wallet_switchEthereumChain") {
