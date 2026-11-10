@@ -49,9 +49,13 @@ and `eezL2`, but with real ETH: a cross-chain transaction pays about
 0.003 ETH. ETH reaches `rollupX` through the RollupX dashboard's bridge.
 To send cross-chain calls from mainnet with a browser wallet, add
 `https://rollupx.eez.dev/composer/l1` as an RPC for Ethereum and select
-it. On mainnet only the transactions EVMcrispr builds as cross-chain
-(`eez:on`, `eez:batch`, a Safe block containing them) are priced: a Safe
-transaction executed later by its hash goes out unpriced. The helpers that read on-chain inside a transaction (`@eez:on!`) need
+it. On mainnet the gateway prices the transactions EVMcrispr builds as
+cross-chain (`eez:on`, `eez:batch`, a Safe block containing them) and
+those whose target the registry knows as a proxy, a Safe transaction
+executed later by its hash among them when one of its calls is. A call
+that reaches a proxy only from inside another contract goes out
+unpriced, and the composer refuses it. The helpers that read on-chain
+inside a transaction (`@eez:on!`) need
 the Assertions contracts on both chains; RollupX does not have them yet.
 
 ```evml

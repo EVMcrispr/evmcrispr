@@ -201,6 +201,12 @@ export interface ChainDef {
    *  it is broadcast costs nothing (a testnet), never on a chain with real
    *  value. */
   crossChainReverts?: string[];
+  /** The contract that tells cross-chain proxies apart on this chain (an
+   *  EEZ registry: `authorizedProxies(address)` is true only for a proxy it
+   *  created). A transaction nobody marked `crossChain` whose target is
+   *  such a proxy is shown to a third-party gateway: unlike a revert, the
+   *  registry's answer cannot be forged, so it is safe on any chain. */
+  crossChainRegistry?: string;
 }
 
 /**
@@ -213,6 +219,7 @@ export interface ChainGatewayDef {
   gateway: string;
   gatewayMaxFee?: string;
   crossChainReverts?: string[];
+  crossChainRegistry?: string;
 }
 
 /** What a module's `src/chains.ts` lists: chains it ships, and gateways

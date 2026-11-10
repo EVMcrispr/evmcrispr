@@ -96,10 +96,13 @@ export function registeredChain(chainId: number): ChainDef | undefined {
 /** The gateway a module gave a chain (see `ChainDef.gateway`): from the
  *  chain's declaration, or for a chain viem knows from its gateway entry,
  *  with the host's URL policy applied. */
-export function registeredGateway(
-  chainId: number,
-):
-  | { gateway: string; gatewayMaxFee?: string; crossChainReverts?: string[] }
+export function registeredGateway(chainId: number):
+  | {
+      gateway: string;
+      gatewayMaxFee?: string;
+      crossChainReverts?: string[];
+      crossChainRegistry?: string;
+    }
   | undefined {
   const def = registry.get(chainId) ?? gatewayOverlays.get(chainId);
   if (!def?.gateway) return undefined;
@@ -107,6 +110,7 @@ export function registeredGateway(
     gateway: urlPolicy ? urlPolicy(def.gateway) : def.gateway,
     gatewayMaxFee: def.gatewayMaxFee,
     crossChainReverts: def.crossChainReverts,
+    crossChainRegistry: def.crossChainRegistry,
   };
 }
 

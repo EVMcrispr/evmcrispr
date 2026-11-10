@@ -1,4 +1,5 @@
-import type { Address, Hex } from "viem";
+import type { Address, Hex, PublicClient } from "viem";
+import { isAddress, parseAbi } from "viem";
 import { registeredGateway } from "./chains";
 
 /** The chain's gateway (see `ChainDef.gateway`), if a module declared one. */
@@ -227,5 +228,35 @@ export async function gatewayEstimateFailure(
   } catch (err) {
     if (signal?.aborted) throw err;
     return undefined;
+  }
+}
+
+const AUTHORIZED_PROXIES = parseAbi([
+  "function authorizedProxies(address proxy) view returns (bool exists, address originalAddress, uint64 originalRollupId)",
+]);
+
+/**
+ * Whether `address` is a cross-chain proxy on the chain, by its registry
+ * (`ChainDef.crossChainRegistry`), read on the chain's own RPC: a call to
+ * one crosses chains whoever wrote it. False when the chain declares no
+ * registry or the read fails.
+ */
+export async function isCrossChainProxy(
+  chainId: number,
+  address: Address,
+  client: Pick<PublicClient, "readContract">,
+): Promise<boolean> {
+  const registry = registeredGateway(chainId)?.crossChainRegistry;
+  if (!registry || !isAddress(registry)) return false;
+  try {
+    const [exists] = await client.readContract({
+      address: registry,
+      abi: AUTHORIZED_PROXIES,
+      functionName: "authorizedProxies",
+      args: [address],
+    });
+    return exists;
+  } catch {
+    return false;
   }
 }

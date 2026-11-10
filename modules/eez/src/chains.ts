@@ -33,6 +33,7 @@ export const chains: ModuleChainDef[] = [
     gateway: "https://chiadox.eez.dev/composer/l1",
     gatewayMaxFee: "10000000000000000",
     crossChainReverts: CROSS_CHAIN_GATES,
+    crossChainRegistry: "0x6258189D3a04EB31a196A8931077dfe001A9f6Fd",
   },
   {
     id: 699169,
@@ -44,16 +45,19 @@ export const chains: ModuleChainDef[] = [
     gateway: "https://chiadox.eez.dev/composer/l2",
     gatewayMaxFee: "10000000000000000",
     crossChainReverts: CROSS_CHAIN_GATES,
+    crossChainRegistry: "0x4B2760F84B83d6b3829E30A7573B0172B6d6402C",
   },
   // RollupX. Ceilings: 0.003 ETH, about twenty times the settlement fee
   // quoted on 2026-11-10 (0.00015 ETH).
   // No gate errors on mainnet: any contract can revert with them, and a
   // mainnet transaction shown to the gateway before it is broadcast is
-  // worth something. Only transactions marked as crossing chains reach it.
+  // worth something. Only transactions marked as crossing chains, or sent
+  // to a proxy the registry created, reach it.
   {
     id: 1,
     gateway: "https://rollupx.eez.dev/composer/l1",
     gatewayMaxFee: "3000000000000000",
+    crossChainRegistry: "0x4B2760F84B83d6b3829E30A7573B0172B6d6402C",
   },
   {
     id: 696991,
@@ -64,5 +68,6 @@ export const chains: ModuleChainDef[] = [
     gateway: "https://rollupx.eez.dev/composer/l2",
     gatewayMaxFee: "3000000000000000",
     crossChainReverts: CROSS_CHAIN_GATES,
+    crossChainRegistry: "0x4B2760F84B83d6b3829E30A7573B0172B6d6402C",
   },
 ];

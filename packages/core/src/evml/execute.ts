@@ -16,6 +16,7 @@ import {
   ExitSignal,
   extractRevertData,
   gatewayEstimateFailure,
+  isCrossChainProxy,
   isTransactionAction,
   quoteThroughGateway,
   RevertError,
@@ -664,11 +665,17 @@ async function priceThroughGateway(
   if (!from) return {};
   // A gateway that is not the chain's own RPC is a third party: it sees a
   // transaction before it is broadcast only when the transaction needs it,
-  // because a command marked it so or because simulating it on the chain's
+  // because a command marked it so, because the chain's registry says its
+  // target is a cross-chain proxy, or because simulating it on the chain's
   // own RPC (which sees it anyway) hits the gate a composed block opens.
   if (
     registeredChain(chainId)?.rpcUrl !== gateway &&
     !action.crossChain &&
+    !(await isCrossChainProxy(
+      chainId,
+      request.to,
+      ctx.getPublicClient(chainId),
+    )) &&
     !(await simulatesCrossChain(chainId, from, request, ctx))
   )
     return {};

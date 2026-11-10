@@ -22,6 +22,7 @@ registerChains(
     rpcUrl: "https://rpc.example",
     gateway: GATEWAY,
     crossChainReverts: ["0x9a499f3b"],
+    crossChainRegistry: "0x00000000000000000000000000000000000ee2e0",
   },
   {
     id: 990002,
@@ -75,7 +76,10 @@ const reverted = (data: string) =>
     data,
   });
 
-function makeCtx(simulate: () => Promise<unknown> = async () => "0x") {
+function makeCtx(
+  simulate: () => Promise<unknown> = async () => "0x",
+  proxies: string[] = [],
+) {
   const sent: any[] = [];
   const logs: string[] = [];
   const ctx: ActionHandlerCtx = {
@@ -89,6 +93,13 @@ function makeCtx(simulate: () => Promise<unknown> = async () => "0x") {
     getPublicClient: () =>
       ({
         call: simulate,
+        // The registry: `authorizedProxies(address)`.
+        readContract: async ({ address, args }: any) => {
+          if (address !== "0x00000000000000000000000000000000000ee2e0")
+            throw new Error("not the registry");
+          const isProxy = proxies.includes(String(args[0]).toLowerCase());
+          return [isProxy, isProxy ? TO : FROM, 0n];
+        },
         waitForTransactionReceipt: async () => ({
           status: "success",
           transactionHash: HASH,
@@ -339,6 +350,30 @@ describe("evml > execute > gateway pricing", () => {
     await handlers.transaction(action(990001, { crossChain: undefined }), ctx);
     expect(asked).to.have.lengthOf(1);
     expect(sent[0].maxPriorityFeePerGas).to.equal(10n);
+  });
+
+  it("prices an unmarked transaction to a proxy the chain's registry created", async () => {
+    // A hand-written call to a proxy that simulates fine (no gate bytes to
+    // go by): the registry's answer cannot be forged.
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const proxy = makeCtx(undefined, [TO.toLowerCase()]);
+    await handlers.transaction(
+      action(990001, { crossChain: undefined }),
+      proxy.ctx,
+    );
+    expect(asked).to.have.lengthOf(1);
+    expect(proxy.sent[0].maxPriorityFeePerGas).to.equal(10n);
+
+    const other = makeCtx(undefined, []);
+    await handlers.transaction(
+      action(990001, { crossChain: undefined }),
+      other.ctx,
+    );
+    expect(asked).to.have.lengthOf(1);
   });
 
   it("does not take the gate's bytes elsewhere in a revert for the gate", async () => {

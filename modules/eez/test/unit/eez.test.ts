@@ -147,10 +147,16 @@ describe("eez utils", () => {
 
   it("lets the gateway probe only where an early look costs nothing", () => {
     // Any contract can revert with the gate's bytes: mainnet transactions
-    // reach RollupX's gateway only when a command marked them.
+    // reach RollupX's gateway only when a command marked them, or when
+    // the registry says their target is a proxy.
     const byId = new Map(chains.map((c) => [c.id, c]));
     expect(byId.get(1)?.crossChainReverts).toBeUndefined();
     expect(byId.get(10200)?.crossChainReverts).toEqual(CROSS_CHAIN_GATES);
+  });
+
+  it("tells every gateway chain's proxies apart by that chain's own registry", () => {
+    for (const chain of chains)
+      expect(chain.crossChainRegistry).toBe(EEZ_CHAINS[chain.id].registry);
   });
 
   it("declares a built-in entry for every shipped chain", () => {

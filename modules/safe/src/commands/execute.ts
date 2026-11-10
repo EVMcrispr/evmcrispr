@@ -17,6 +17,7 @@ import {
   smartPlanFor,
 } from "../utils";
 import { ALLOW_OPTS } from "../utils/assess";
+import { callsCrossChainProxy } from "../utils/crossChain";
 import { executorCompletes, gateSignable } from "../utils/gate";
 import { executableRejection, isCancelKeyword } from "../utils/queue";
 import {
@@ -170,7 +171,10 @@ export default defineCommand<Safe>({
         ...(opts.gas !== undefined ? { gas: BigInt(opts.gas) } : {}),
         // Wrapping a call that crosses chains makes the Safe's transaction
         // one: a gateway prices it (see `TransactionAction.crossChain`).
-        ...(actions?.some((a) => isTransactionAction(a) && a.crossChain)
+        // A queued transaction is known by its calls: one to a cross-chain
+        // proxy, by the chain's registry, anywhere in its batches.
+        ...(actions?.some((a) => isTransactionAction(a) && a.crossChain) ||
+        (!actions && (await callsCrossChainProxy(chainId, signable, client)))
           ? { crossChain: true }
           : {}),
         executionPlan: smartPlanFor(actions),
