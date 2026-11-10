@@ -148,10 +148,6 @@
     "kind": "incompatible",
     "reason": "This command performs an immediate wallet, RPC, external-service or control-flow operation and cannot run inside an atomic batch."
   },
-  "eez/batch": {
-    "kind": "incompatible",
-    "reason": "Cross-chain execution changes account and chain; it cannot run inside a single-account smart batch."
-  },
   "eez/deploy-proxy": {
     "kind": "static",
     "reason": "The destination chain and proxy address are derived at build time."
