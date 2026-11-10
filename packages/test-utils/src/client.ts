@@ -11,7 +11,7 @@ import {
   polygon,
 } from "viem/chains";
 
-import { anvilUrl } from "../../../scripts/anvil-config";
+import { anvilUrl, getEndpoint } from "../../../scripts/anvil-config";
 
 /** Built per call: the port is chosen by the test runner and exported into
  *  the environment, so it is not known when this module is imported. */
@@ -43,20 +43,21 @@ export function getPublicClient() {
  *
  * Mainnet and the L2s are for cross-chain helpers (`@ens` resolving,
  * `bridges` destination-chain reads, multi-fork `sim` runs). They use
- * DRPC when a key is present, otherwise fall through to anvil so unit
- * tests stay offline-runnable.
+ * EVMCRISPR_RPC_URL_<id>, or DRPC when a key is present, otherwise fall
+ * through to anvil so unit tests stay offline-runnable.
  */
 export function getTransports(): Record<number, Transport> {
-  const drpcKey = process.env.VITE_DRPC_API_KEY;
-  const drpc = (network: string) =>
-    drpcKey ? http(`https://lb.drpc.live/${network}/${drpcKey}`) : transport();
+  const upstream = (chainId: number) => {
+    const endpoint = getEndpoint(chainId);
+    return endpoint ? http(endpoint) : transport();
+  };
 
   const transports: Record<number, Transport> = {
-    [mainnet.id]: drpc("ethereum"),
-    [optimism.id]: drpc("optimism"),
-    [polygon.id]: drpc("polygon"),
-    [base.id]: drpc("base"),
-    [arbitrum.id]: drpc("arbitrum"),
+    [mainnet.id]: upstream(mainnet.id),
+    [optimism.id]: upstream(optimism.id),
+    [polygon.id]: upstream(polygon.id),
+    [base.id]: upstream(base.id),
+    [arbitrum.id]: upstream(arbitrum.id),
     [gnosis.id]: transport(),
   };
   // Module-shipped chains (registered by `registerAllModules()`): their

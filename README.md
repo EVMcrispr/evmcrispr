@@ -75,6 +75,12 @@ bun test:integration  # Run integration tests (needs anvil)
 biome check .         # Lint
 ```
 
+Fork tests use `VITE_DRPC_API_KEY` from `.env`, or explicit
+`EVMCRISPR_RPC_URL_<chainId>` endpoints (for example,
+`EVMCRISPR_RPC_URL_100` for Gnosis). Overrides take precedence over DRPC.
+Gnosis test transactions and reads still use the runner's local Anvil fork.
+Run `bun test:integration --no-cache` for a fresh sweep of every suite.
+
 ## Deployments
 
 Production is the default — the terminal ([app.evmcrispr.com](https://app.evmcrispr.com)) and the website ([evmcrispr.com](https://evmcrispr.com)) build with no URL configuration. The experimental deploys ([next.evmcrispr.com](https://next.evmcrispr.com) / [next-docs.evmcrispr.com](https://next-docs.evmcrispr.com)) override:

@@ -117,6 +117,8 @@ export function getForkBlockNumber(
 }
 
 export function getEndpoint(chainId: number = CHAIN_ID): string | undefined {
+  const override = process.env[`EVMCRISPR_RPC_URL_${chainId}`];
+  if (override) return override;
   const apiKey = process.env.VITE_DRPC_API_KEY;
   const network = DRPC_NETWORKS[chainId];
   return apiKey && network

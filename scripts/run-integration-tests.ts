@@ -65,7 +65,7 @@ await loadEnv();
 
 const endpoint = getEndpoint();
 if (!endpoint) {
-  console.error("ERROR: VITE_DRPC_API_KEY not set in .env");
+  console.error("ERROR: set EVMCRISPR_RPC_URL_100 or VITE_DRPC_API_KEY");
   process.exit(1);
 }
 

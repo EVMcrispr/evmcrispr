@@ -16,7 +16,7 @@
     "lint:tailwind": "bun scripts/check-tailwind-deprecations.ts",
     "format": "biome format --write .",
     "test": "bun run test:unit && bun run test:integration",
-    "test:unit": "bun scripts/with-anvil.ts turbo run test:unit --continue",
+    "test:unit": "bun scripts/with-anvil.ts turbo run test:unit --continue && bun test ./scripts/test",
     "test:integration": "bun scripts/run-integration-tests.ts",
     "test:coverage": "bun scripts/run-coverage.ts",
     "dev:terminal": "bun --filter evmcrispr-terminal dev",

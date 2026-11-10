@@ -10,6 +10,7 @@ import {
 } from "viem";
 import { gnosis } from "viem/chains";
 import {
+  anvilUrl,
   CHAIN_ID,
   getEndpoint,
   getForkBlockNumber,
@@ -59,8 +60,13 @@ export function describeBackendSuite(
     beforeAll(async () => {
       await loadEnv();
       const endpoint = getEndpoint();
-      if (!endpoint) throw new Error("VITE_DRPC_API_KEY is required");
-      rpcUrl = endpoint;
+      if (!endpoint)
+        throw new Error(
+          "EVMCRISPR_RPC_URL_100 or VITE_DRPC_API_KEY is required",
+        );
+      // Fork the runner's already pinned Anvil, rather than making every
+      // backend repeat the same public RPC reads (and race rate limits).
+      rpcUrl = anvilUrl();
     });
 
     // -------------------------------------------------------------------------
