@@ -5,6 +5,7 @@ import { custom, defineChain, type Hex, keccak256 } from "viem";
 import {
   type FrameSpecLike,
   FrameTransactionDroppedError,
+  FrameTransactionRefusedError,
   hegotaDevnet,
   sendFrameTransactionWithArbitrarySignature,
   toFrameRequests,
@@ -75,6 +76,7 @@ function gateway({
   mined = true,
   dropped = false,
   held = 0,
+  verdict,
   fees = { maxFeePerGas: "0x77359400", maxPriorityFeePerGas: "0x3b9aca00" },
 }: {
   code?: Hex | (() => never);
@@ -87,6 +89,9 @@ function gateway({
    *  mempool still holding it). */
   held?: number;
   fees?: { maxFeePerGas: Hex; maxPriorityFeePerGas: Hex };
+  /** What `ethrex_simulateFrameTransaction` answers; without it the node
+   *  does not serve the method. */
+  verdict?: { valid: boolean; violation?: string };
 } = {}) {
   const calls: { method: string; params: any }[] = [];
   let sentHash: Hex | undefined;
@@ -120,6 +125,9 @@ function gateway({
           return sentHash;
         case "skandha_frameTransactionStatus":
           return { status: "Pending" };
+        case "ethrex_simulateFrameTransaction":
+          if (!verdict) throw new Error("the method does not exist");
+          return verdict;
         case "eth_getTransactionReceipt":
           if (held > 0) return null;
           return mined && !droppedNow() && sentHash ? RECEIPT(sentHash) : null;
@@ -278,6 +286,69 @@ describe("a transaction the node dropped", () => {
     );
     expect(Date.now() - started).toBeLessThan(30_000);
   }, 40_000);
+});
+
+describe("asking the node before sending (preflight)", () => {
+  const sends = (g: ReturnType<typeof gateway>) =>
+    g.methods().filter((m) => m === "eth_sendRawTransaction").length;
+
+  test("a transaction the node says its mempool admits is sent", async () => {
+    const g = gateway({ verdict: { valid: true } });
+    const result = await send(g, { mempool: "canonical", preflight: true });
+    expect(result.receipt?.status).toBe("success");
+    const asked = g.calls.find(
+      (c) => c.method === "ethrex_simulateFrameTransaction",
+    );
+    // The same signed bytes that are then sent.
+    expect(asked?.params[0]).toBe(
+      g.calls.find((c) => c.method === "eth_sendRawTransaction")?.params[0],
+    );
+    expect(sends(g)).toBe(1);
+  });
+
+  test("one it says its mempool refuses is not sent, and says why", async () => {
+    const g = gateway({
+      verdict: { valid: false, violation: "StorageReadNonSender" },
+    });
+    const error = await send(g, {
+      mempool: "canonical",
+      preflight: true,
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(FrameTransactionRefusedError);
+    expect((error as Error).message).toMatch(
+      /^The .+'s node says its mempool would refuse 0x[0-9a-f]{64}: StorageReadNonSender\. Nothing was sent$/,
+    );
+    expect(sends(g)).toBe(0);
+  });
+
+  test("a node that does not answer is warned about, and the transaction sent", async () => {
+    const g = gateway();
+    const lines: [string, string][] = [];
+    await send(g, {
+      mempool: "canonical",
+      preflight: true,
+      onLog: (line, level) => lines.push([level, line]),
+    });
+    expect(sends(g)).toBe(1);
+    expect(
+      lines.some(
+        ([level, line]) =>
+          level === "warning" &&
+          line.includes("did not say whether its mempool admits"),
+      ),
+    ).toBe(true);
+  });
+
+  test("the alt mempool and a send without it are not asked", async () => {
+    for (const extra of [
+      { mempool: "alt" as const, preflight: true },
+      { mempool: "canonical" as const },
+    ]) {
+      const g = gateway({ verdict: { valid: false, violation: "x" } });
+      await send(g, extra);
+      expect(g.methods()).not.toContain("ethrex_simulateFrameTransaction");
+    }
+  });
 });
 
 describe("sendFrameTransactionWithArbitrarySignature", () => {

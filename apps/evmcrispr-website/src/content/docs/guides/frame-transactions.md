@@ -194,6 +194,12 @@ whose verify frame reads its own storage. The sender's own verify frame is not
 checked (the fork impersonates it), nor the limit of one pending transaction
 per sponsor. The alt-mempool and local devnets' rules are not checked.
 
+When `frames:tx` sends on the Hegota devnet, it also asks the node, once the
+transaction is signed and before it is submitted, whether its mempool would
+admit it. The node knows what a fork cannot (its other pending transactions,
+what it holds back of a sponsor's balance for them): if it says no, the run
+stops with its reason and nothing is sent.
+
 ### After admission
 
 When the mempool admits the transaction, the run prints its hash. It then
@@ -201,7 +207,8 @@ waits up to two minutes for the receipt and prints each frame's status and the
 payer. If the transaction is not mined by then, the run stops with the mempool's
 status and a link to the explorer (`https://explorer.altmempool.wtf`): a pending
 frame transaction holds the sender's nonce, so a later transaction from the same
-sender would collide with it. The `framesQuick` devnet never mines: there the
+sender would collide with it. A transaction the node admits and then loses
+without mining it is submitted again, the same signed bytes, up to twice. The `framesQuick` devnet never mines: there the
 run stops waiting once the transaction is admitted, and says so.
 
 ## From a plain address

@@ -263,9 +263,13 @@ export function frameNode({
   mines = true,
   status = "0x1",
   frameStatuses = [],
+  verdict,
 }: {
   chainId: number;
   mines?: boolean;
+  /** What `ethrex_simulateFrameTransaction` answers; without it the node
+   *  does not serve the method. */
+  verdict?: { valid: boolean; violation?: string };
   /** The mined receipt's status, and its frames'. */
   status?: Hex;
   frameStatuses?: Hex[];
@@ -290,6 +294,9 @@ export function frameNode({
           };
         case "eth_maxPriorityFeePerGas":
           return "0x1";
+        case "ethrex_simulateFrameTransaction":
+          if (!verdict) throw new Error("the method does not exist");
+          return verdict;
         case "eth_sendRawTransaction":
           sent = keccak256(params[0] as Hex);
           return sent;

@@ -81,6 +81,10 @@ export async function sendFrameAction(
     signal: ctx.signal,
     waitForReceipt: network.mines,
     fees: action.data.fees,
+    // Where the fork checks the mempool's rules, the node is asked too,
+    // once signed: it also knows what the fork cannot (its other pending
+    // transactions, a sponsor's reserve).
+    preflight: network.admission !== undefined,
   };
   const { hash, receipt } = account
     ? await sendAccountFrameTransaction({

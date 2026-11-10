@@ -46,6 +46,7 @@ export {
   describeFrameTransaction,
   type FrameLogLevel,
   FrameTransactionDroppedError,
+  FrameTransactionRefusedError,
   refusalText,
   sendFrameTransactionWithArbitrarySignature,
 } from "./send";

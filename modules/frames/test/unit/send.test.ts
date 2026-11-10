@@ -235,6 +235,58 @@ describe("the frames module sends its frame action", () => {
     expect(gateway.calls).toHaveLength(0);
   });
 
+  describe("on the Hegota devnet, whose mempool rules the fork checks", () => {
+    const HEGOTA = 3151908;
+    const sends = (node: ReturnType<typeof frameNode>) =>
+      node.calls.filter((c) => c.method === "eth_sendRawTransaction").length;
+    const asked = (node: ReturnType<typeof frameNode>) =>
+      node.calls.some((c) => c.method === "ethrex_simulateFrameTransaction");
+
+    test("the node is asked first; a transaction it says its mempool refuses is not sent", async () => {
+      const node = frameNode({
+        chainId: HEGOTA,
+        verdict: { valid: false, violation: "BannedOpcode(66)" },
+      });
+      const fw = frameWallet({
+        chainId: HEGOTA,
+        profile: ethrexHegotaDevnetProfile,
+      });
+      const c = ctx(fw.wallet, node.transport, { [HEGOTA]: node.transport });
+      const error = await send(
+        plainAction({ chainId: HEGOTA, mempool: "canonical" }),
+        c.ctx,
+      ).catch((e: Error) => e);
+      expect((error as Error).message).toMatch(
+        /^The Hegota devnet's node says its mempool would refuse 0x[0-9a-f]{64}: BannedOpcode\(66\)\. Nothing was sent$/,
+      );
+      expect(sends(node)).toBe(0);
+    });
+
+    test("one it admits is sent", async () => {
+      const node = frameNode({ chainId: HEGOTA, verdict: { valid: true } });
+      const fw = frameWallet({
+        chainId: HEGOTA,
+        profile: ethrexHegotaDevnetProfile,
+      });
+      const c = ctx(fw.wallet, node.transport, { [HEGOTA]: node.transport });
+      await send(plainAction({ chainId: HEGOTA, mempool: "canonical" }), c.ctx);
+      expect(asked(node)).toBe(true);
+      expect(sends(node)).toBe(1);
+    });
+
+    test("elsewhere the node is not asked", async () => {
+      const node = frameNode({
+        chainId: 81412,
+        verdict: { valid: false, violation: "x" },
+      });
+      const fw = frameWallet({ chainId: 81412 });
+      const c = ctx(fw.wallet, node.transport, { 81412: node.transport });
+      await send(plainAction({ chainId: 81412, mempool: "canonical" }), c.ctx);
+      expect(asked(node)).toBe(false);
+      expect(sends(node)).toBe(1);
+    });
+  });
+
   describe("a post-verify transaction", () => {
     const HEGOTA = 3151908;
     const withCheck = () =>

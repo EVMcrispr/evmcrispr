@@ -212,7 +212,8 @@ Not checked: the trace of the sender's own verify frame (impersonated, so it
 never runs here; the frames module's account keeps the rules, which its tests
 check with its owner's signature), the mempool's
 limit of one pending transaction per sponsor and per sender, and the reserve
-it holds against a sponsor's balance for its other pending transactions. On
+it holds against a sponsor's balance for its other pending transactions (a
+send on the Hegota devnet asks the node, which knows them, first). On
 the alt-mempool and local devnets no mempool rule is checked: their sidecar's
 ERC-8421 rules and their node's have not been measured.
 

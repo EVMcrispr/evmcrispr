@@ -243,6 +243,21 @@ export function logFees(
   return payer;
 }
 
+/** A signed transaction the node said, before it was sent, that its
+ *  mempool would refuse (`preflight`). Nothing was submitted. */
+export class FrameTransactionRefusedError extends Error {
+  constructor(
+    readonly hash: Hash,
+    readonly violation: string,
+    chainName: string,
+  ) {
+    super(
+      `The ${chainName}'s node says its mempool would refuse ${hash}: ${violation}. Nothing was sent`,
+    );
+    this.name = "FrameTransactionRefusedError";
+  }
+}
+
 /** A transaction the node admitted, then lost without mining it. */
 export class FrameTransactionDroppedError extends Error {
   constructor(readonly hash: Hash) {
@@ -308,6 +323,7 @@ export async function submitFrameTransaction({
   receiptTimeoutMs = 120_000,
   waitForReceipt = true,
   resends = 2,
+  preflight = false,
 }: {
   gateway: FrameClient;
   chain: Chain;
@@ -322,6 +338,11 @@ export async function submitFrameTransaction({
    *  node drops them unmined. The bytes, nonce and hash do not change, so
    *  a resend can only be mined in the transaction's place. */
   resends?: number;
+  /** Before submitting to the canonical mempool, ask the node whether it
+   *  would admit the signed transaction (`ethrex_simulateFrameTransaction`,
+   *  which runs its mempool's checks), and stop, sending nothing, if it
+   *  says no. A node that does not serve the method is not asked again. */
+  preflight?: boolean;
 }): Promise<{ hash: Hash; receipt?: FrameTransactionReceipt }> {
   const profile = frameProfileOf(chain);
   const sidecar = frameSidecarOf(chain);
@@ -355,6 +376,27 @@ export async function submitFrameTransaction({
         `The ${mempool === "canonical" ? "node" : "gateway"} returned ${printable(typeof answer === "string" ? answer : JSON.stringify(answer), 80)} for a transaction whose hash is ${expected}`,
       );
   };
+  if (preflight && mempool === "canonical") {
+    const verdict = (await gateway
+      .request({
+        method: "ethrex_simulateFrameTransaction",
+        params: [encodeTx(profile, signed), "latest"],
+      } as never)
+      .catch(() => undefined)) as
+      | { valid?: unknown; violation?: unknown }
+      | undefined;
+    if (verdict?.valid === false)
+      throw new FrameTransactionRefusedError(
+        expected,
+        printable(String(verdict.violation ?? "no reason given"), TEXT_MAX),
+        chain.name,
+      );
+    if (verdict === undefined)
+      onLog?.(
+        `The ${chain.name}'s node did not say whether its mempool admits ${expected}: sending it as it is`,
+        "warning",
+      );
+  }
   await submit();
 
   // Only a sidecar reports a frame transaction's status.
@@ -501,6 +543,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
   onLog,
   receiptTimeoutMs = 120_000,
   resends,
+  preflight,
   maxFeePerGasCap = DEFAULT_MAX_FEE_PER_GAS_CAP,
   fees: givenFees,
   signWith,
@@ -520,6 +563,8 @@ export async function sendFrameTransactionWithArbitrarySignature({
   receiptTimeoutMs?: number;
   /** Submissions of the same signed bytes after the node drops them unmined (2 by default). */
   resends?: number;
+  /** Ask the node whether its mempool admits the signed transaction before submitting it (canonical mempool only). */
+  preflight?: boolean;
   /** Refuses, before signing, fees above this (wei per gas; 10 gwei by default): the signer never sees them. */
   maxFeePerGasCap?: bigint;
   /** Fees to carry instead of the node's: a fee given here is neither read nor capped. */
@@ -608,6 +653,7 @@ export async function sendFrameTransactionWithArbitrarySignature({
     onLog,
     receiptTimeoutMs,
     resends,
+    preflight,
     waitForReceipt,
   });
 }

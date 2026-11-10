@@ -258,6 +258,7 @@ export async function sendFrameTransactionFromWallet({
   onLog,
   receiptTimeoutMs,
   resends,
+  preflight,
   maxFeePerGasCap,
   fees: givenFees,
   signal,
@@ -275,6 +276,8 @@ export async function sendFrameTransactionFromWallet({
   receiptTimeoutMs?: number;
   /** Submissions of the same signed bytes after the node drops them unmined (2 by default). */
   resends?: number;
+  /** Ask the node whether its mempool admits the signed transaction before submitting it (canonical mempool only). */
+  preflight?: boolean;
   /** Refuses, before the wallet is asked, fees above this (wei per gas; 10 gwei by default). */
   maxFeePerGasCap?: bigint;
   /** Fees to carry instead of the node's: a fee given here is neither read nor capped. */
@@ -358,6 +361,7 @@ export async function sendFrameTransactionFromWallet({
     onLog,
     receiptTimeoutMs,
     resends,
+    preflight,
     waitForReceipt,
   });
 }
