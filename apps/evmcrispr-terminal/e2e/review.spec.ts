@@ -168,8 +168,13 @@ test("Revert takes one change out and keeps later typing; Ctrl+Z brings it back 
     .getByRole("button", { name: /Assistant Said one in Spanish\./ })
     .click();
   await page.getByRole("button", { name: "Undo this change" }).click();
-  await expect(lines(page)).toContainText("print one");
   await expect(lines(page)).toContainText("print four");
+  // Monaco renders only the visible lines; typing left its viewport at
+  // the end of the script. Bring the changed line back into view.
+  await page
+    .getByRole("textbox", { name: "Editor content" })
+    .press("ControlOrMeta+Home");
+  await expect(lines(page)).toContainText("print one");
   await expect(lines(page)).not.toContainText("print uno");
   await expect(page.getByRole("list", { name: "Timeline" })).toContainText(
     "reverted a change",
@@ -179,6 +184,9 @@ test("Revert takes one change out and keeps later typing; Ctrl+Z brings it back 
   await lines(page).first().click();
   await page.keyboard.press("ControlOrMeta+z");
   await expect(lines(page)).toContainText("print uno");
+  await page
+    .getByRole("textbox", { name: "Editor content" })
+    .press("ControlOrMeta+End");
   await expect(lines(page)).toContainText("print four");
   await expect(reviewChanges(page)).toBeVisible();
   await expect(execute(page)).toHaveCount(0);
@@ -192,8 +200,14 @@ test("Revert takes one change out and keeps later typing; Ctrl+Z brings it back 
   await expect(
     page.getByText("Later edits touch the same lines"),
   ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Editor content" })
+    .press("ControlOrMeta+Home");
   await expect(lines(page)).toContainText("print eins");
   await page.getByRole("button", { name: "Restore to before" }).click();
+  await page
+    .getByRole("textbox", { name: "Editor content" })
+    .press("ControlOrMeta+Home");
   await expect(lines(page)).toContainText("print one");
   await expect(lines(page)).not.toContainText("print four");
   // Back on the text that was approved: nothing to review.

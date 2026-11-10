@@ -41,7 +41,12 @@ let copied: string[] = [];
 // The address the pinning service gave each thing pinned.
 let cids: string[] = [];
 beforeEach(() => {
-  setUi({ spaceView: "timeline", previewRevisionId: null, timelineSince: 0 });
+  setUi({
+    spaceView: "timeline",
+    previewRevisionId: null,
+    timelineSince: 0,
+    viewMode: "edit",
+  });
   pinned = [];
   cids = [];
   copied = [];
