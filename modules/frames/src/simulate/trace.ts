@@ -70,8 +70,9 @@ export const TRACE = {
 const fail = (why: string): SimOpcodeResult => ({ fail: `TXTRACE: ${why}` });
 
 /** TXTRACE(`param`, `in2`): a count (in2 must be 0), or a field of entry
- *  `in2`. An index out of range, a missing topic or an unknown parameter
- *  halts the frame, as on the chain. */
+ *  `in2`. An index out of range, a count's index other than 0, a missing
+ *  topic or an unknown parameter halts the frame, as on the chain (the
+ *  count's measured 2026-11-10, hegota-post-tx-probe (c)). */
 export function txtrace(
   trace: FrameTrace,
   param: bigint,

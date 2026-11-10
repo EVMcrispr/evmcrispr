@@ -398,6 +398,11 @@ describe.skipIf(!ENABLED)("Hegota's POST_TX behaviour", () => {
       [0x03, 1n],
       [0x04, 0n],
       [0x04, 1n],
+      // A count with an index other than 0 halts (measured 2026-11-10).
+      [0x00, 1n],
+      [0x01, 1n],
+      [0x02, 1n],
+      [0x0c, 1n],
       [0x0c, 0n],
       [0x11, 0n],
       [0x13, 0n],
