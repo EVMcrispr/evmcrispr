@@ -17,7 +17,7 @@ import type { ModuleChainDef } from "@evmcrispr/sdk";
 // transaction to more than `gatewayMaxFee`. The settling chains keep viem's
 // own definitions: only their gateways are given here. The sending chain's
 // own RPC cannot estimate a cross-chain call: the quote sizes it, and
-// `eez:on`/`eez:batch` give their own estimate for when none comes back.
+// `eez:on` gives its own estimate for when none comes back.
 // Devnets; they may be reset.
 /** The registry's gate errors: a call through a proxy outside the composed
  *  block it needs reverts with one, so a transaction nobody marked as

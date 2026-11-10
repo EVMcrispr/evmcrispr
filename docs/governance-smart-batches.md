@@ -163,9 +163,8 @@ Safe B is the outbound target; the source caller's proxy on B is its inbound
 identity. Those are different proxies and must not be confused.
 
 One remote Safe call already executes all its inner steps atomically, so this
-route does not require the EEZ proxy's executeBatch capability. It can also be
-carried inside eez:batch when grouping additional destination calls and when
-that capability is available. Proxies and dependencies must be available and
+route needs no batch mode on the EEZ proxy (EEZ will not add one, and
+eez:batch was removed). Proxies and dependencies must be available and
 verified on the correct chains.
 
 EEZ's current integration is synchronous: cross-chain return/revert behavior
@@ -174,7 +173,7 @@ The smart plan remains a destination-local plan; its captures and storage
 namespace do not automatically become source-chain runtime values. Cross-chain
 runtime dataflow is separate compiler work, even though EEZ transports returns.
 
-Do not remove the current prohibition on eez:on/eez:batch inside an active
+Do not remove the current prohibition on eez:on inside an active
 single-chain smart plan merely to enable this. Place the destination smart
 wrapper inside an ordinary EEZ routing context and compile it after switching
 the compilation chain. Cross-chain gas estimation and execution need the EEZ
@@ -264,7 +263,7 @@ including the real governance lifecycle rather than impersonating the treasury:
 - Exercise eez:on -> destination Safe through the EEZ composer; check both
   proxy identities, wrong-source rejection, destination dependency validation,
   runtime reads after writes, and rollback on both chains. Test a single Safe
-  call without relying on the proxy's optional executeBatch support.
+  call, the route that makes the destination steps atomic.
 - Check sender and chain restoration after nested routing succeeds or fails;
   verify that captured runtime values do not escape their Safe smart block.
 - Exercise Governor `onlyGovernance` calls explicitly; preserve or reject them

@@ -51,7 +51,7 @@ and `eezL2` (write the names: the eez commands and helpers refuse a bare
 To send cross-chain calls from mainnet with a browser wallet, add
 `https://rollupx.eez.dev/composer/l1` as an RPC for Ethereum and select
 it. On mainnet the gateway prices the transactions EVMcrispr builds as
-cross-chain (`eez:on`, `eez:batch`, a Safe block containing them) and
+cross-chain (`eez:on`, a Safe block containing it) and
 those whose target the registry knows as a proxy, a Safe transaction
 executed later by its hash among them when one of its calls is. A call
 that reaches a proxy only from inside another contract is found by
@@ -215,41 +215,36 @@ works the same way (`gnosisChiado` → `eezL2` → `gnosisChiado` → `eezL2`, a
 `switch` and contract deployments are not allowed inside the block: a proxy
 only forwards calls.
 
-## Several calls, one entry
+## Several calls, atomically
 
 Each command inside `eez:on` is its own transaction on the sending chain.
-When two writes on the other chain must land together, `eez:batch` runs the
-block as *one* cross-chain call, addressed to yourself: it goes to the proxy
-of your own proxy on the other chain, and that proxy runs the calls, in
-order, all or nothing. `msg.sender` is your proxy for every one of them,
-exactly as with `eez:on`, so `@sender` means the same thing inside.
+When writes on the other chain must land together, run `eez:on` inside a
+Safe's block: `safe:execute` sends one ordinary transaction, the Safe runs
+the block atomically, and the composer prices it like any other. Over
+there, `msg.sender` is then the Safe's proxy, not yours (an example is
+[below](#reading-the-other-chain)).
 
 ```evml
 load eez
+load safe
 
+set $safe 0x000000000000000000000000000000000000cAfE    # your Safe on L1
 set $vault 0x000000000000000000000000000000000000bEEF   # on L2
 
 switch gnosisChiado
-eez:batch eezL2 (
-  exec $vault setValue(uint256) 42
-  exec $vault setOwner(address) @sender
+safe:execute $safe (
+  eez:on eezL2 (
+    exec $vault setValue(uint256) 42
+    exec $vault setOwner(address) @sender
+  )
 )
 ```
 
-The batch is simulated whole on the other chain, and a revert anywhere
-stops the script before anything is sent. `--gas` on `eez:batch` overrides
-the composer's quote; the commands inside take no `--gas` or
-`--from` of their own. A `batch ( … )` inside is flattened, since everything
-is atomic already. The far side must run cross-chain proxies that support
-`executeBatch`, which the devnet does not yet: until it does, the command
-refuses to send.
-
-For several *separate* cross-chain calls sent atomically, run them through a
-Safe (see below): it sends one ordinary transaction, which the composer
-prices like any other. A wallet batch around the command,
-`batch ( eez:on eezL2 ( … ) )`, cannot carry the fee each cross-chain call
-pays for its settlement, so it is refused on EEZ chains; so is a `batch`
-inside the block, which would only describe the sending wallet.
+A wallet batch around the command, `batch ( eez:on eezL2 ( … ) )`, cannot
+carry the fee each cross-chain call pays for its settlement, so it is
+refused on EEZ chains; so is a `batch` inside the block, which would only
+describe the sending wallet. `eez:on` does not run inside a smart account's
+`batch !( … )` either: a smart batch runs as one account on one chain.
 
 ## Reading the other chain
 

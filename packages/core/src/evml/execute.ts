@@ -1017,7 +1017,7 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
       // prompt. Say so before asking.
       if (env.gatewayFor?.(chainId) && actions.some((a) => a.crossChain)) {
         throw new Error(
-          "A wallet batch cannot carry the fee a cross-chain call pays for its settlement. Use eez:batch, which makes the calls one cross-chain transaction, or run the block through a Safe (safe:execute).",
+          "A wallet batch cannot carry the fee a cross-chain call pays for its settlement. Send the cross-chain calls as their own transactions, or run the block through a Safe (safe:execute) to make them atomic.",
         );
       }
 
