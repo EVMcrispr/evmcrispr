@@ -9,6 +9,7 @@ import {
   CORE_ADDRESS,
   compileOperand,
   encodeResolve,
+  markCrossChain,
   type Operand,
   staticCallParam,
 } from "@evmcrispr/sdk/onchain";
@@ -116,10 +117,8 @@ export default defineHelper<Eez>({
     // inner operand would have produced, so the category carries over.
     // Composed only inside a transaction, which crosses chains: its
     // gateway prices it.
-    if (ctx.hints) {
-      ctx.hints.transact = true;
-      ctx.hints.crossChain = true;
-    }
+    if (ctx.hints) ctx.hints.transact = true;
+    markCrossChain(ctx);
     return {
       kind: "call",
       cat: inner.cat,

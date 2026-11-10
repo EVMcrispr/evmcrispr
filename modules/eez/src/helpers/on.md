@@ -50,7 +50,7 @@ switch gnosisChiado
 assert @eez:on!(eezL2 @balance!(ETH @me)) >= 1e18 "not enough on the rollup"
 ```
 
-- The assertion becomes a transaction, marked as crossing chains so the composer prices it like any other. Only a transaction reaches the composer; an `eth_call` through a proxy always fails with a registry gate error (`ExecutionNotInCurrentBlock`, or `ExecutionNotFound()`). Inside a `batch` it already is one. It cannot be simulated in `sim:fork`, since a fork has no composer.
+- The assertion becomes a transaction, marked as crossing chains so the composer prices it like any other; inside a smart block (`batch !( … )`) the batch's transaction is marked, and is sent without the simulation it could not pass. Only a transaction reaches the composer; an `eth_call` through a proxy always fails with a registry gate error (`ExecutionNotInCurrentBlock`, or `ExecutionNotFound()`). Inside a `batch` it already is one. It cannot be simulated in `sim:fork`, since a fork has no composer.
 - Two proxies of the Assertions core must exist first: the remote core's proxy on this chain (`eez:deploy-proxy 0x67DBB438FdC614466984Dc8F68dAB812d785a2aE --chain eezL2` from L1), which the read goes out through, and this chain's core's proxy over there (the same command from L2 with `--chain gnosisChiado`), which the other side sees as the reader. A static read cannot create a proxy on the way, so a missing one gets the transaction evicted rather than reverted.
 - `@me` compiles to the literal wallet address, so `@balance!(ETH @me)` on the rollup is the wallet's balance there. Anything on the far side that looks at `msg.sender` sees the proxy of the caller instead.
 - One hop only: the devnet composes a static read across one chain boundary, not `@eez:on!` inside `@eez:on!`.

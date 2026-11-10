@@ -1,6 +1,6 @@
 import "../../setup";
 import { beforeAll, describe, it } from "bun:test";
-import { executeScript } from "@evmcrispr/core";
+import { executeScript, Interpreter } from "@evmcrispr/core";
 import {
   CORE_ADDRESS,
   encodeResolve,
@@ -148,6 +148,27 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
     ).interpret();
     expect((local as { readOnly?: boolean }).readOnly).to.be.true;
     expect((local as { crossChain?: boolean }).crossChain).to.be.undefined;
+  });
+
+  it("marks a smart batch that reads another chain", async () => {
+    // The batch's one transaction crosses chains: its gateway must price
+    // it, and an `eth_call` of it can only fail.
+    const compile = async (body: string) =>
+      (
+        await new Interpreter(evml.registry, {
+          account: testAccount.address,
+          chainId: L1_ID,
+          transports: getTransports(),
+        }).interpret(`load eez\nbatch !(\n${body}\n)`)
+      )[0] as { type: string; plan: { crossChain?: boolean } };
+    const crossing = await compile(
+      `assert @eez:on!(eezL2 @balance!(ETH ${FUNDED})) > 0`,
+    );
+    expect(crossing.type).to.equal("smartBatch");
+    expect(crossing.plan.crossChain).to.be.true;
+    const local = await compile(`assert @balance!(XDAI ${FUNDED}) > 0`);
+    expect(local.type).to.equal("smartBatch");
+    expect(local.plan.crossChain).to.be.undefined;
   });
 
   it("asserts a rollup value from L1 end to end", async () => {

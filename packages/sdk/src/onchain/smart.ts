@@ -471,6 +471,7 @@ export function createSmartBatchState(
             "smart batches accept transaction actions only",
           );
         rejectEnvelope(action, plan);
+        if (action.crossChain) plan.crossChain = true;
         const call = getEncodedCall(action);
         const capture =
           i === result.primaryCall ? node.returnCapture : undefined;

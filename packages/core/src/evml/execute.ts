@@ -767,6 +767,19 @@ async function simulatesCrossChain(
   }
 }
 
+/** What a smart batch submits, marked when the batch crosses chains: a
+ *  single transaction is then priced by its gateway, and a wallet batch (a
+ *  mixed smart batch) refused, as it cannot carry the settlement fee. */
+export function smartSubmission(
+  tx: TransactionAction | BatchedAction,
+  crossChain: boolean,
+): TransactionAction | BatchedAction {
+  if (!crossChain) return tx;
+  return "type" in tx
+    ? { ...tx, actions: tx.actions.map((a) => ({ ...a, crossChain: true })) }
+    : { ...tx, crossChain: true };
+}
+
 export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
   return {
     async smartBatch(action, ctx) {
@@ -794,13 +807,19 @@ export function makeDefaultHandlers(env: ExecutorEnv): ActionHandlers {
         client,
         action.plan,
       );
-      await client.call({
-        account: simulation.from,
-        to: simulation.to,
-        data: simulation.data,
-        value: simulation.value,
-      });
-      const result = await ctx.next(tx);
+      // A batch that crosses chains only runs inside the block its
+      // gateway composes: an `eth_call` of it always fails, and the
+      // gateway composes it to price it, refusing it with its reason.
+      if (!action.plan.crossChain)
+        await client.call({
+          account: simulation.from,
+          to: simulation.to,
+          data: simulation.data,
+          value: simulation.value,
+        });
+      const result = await ctx.next(
+        smartSubmission(tx, !!action.plan.crossChain),
+      );
       if (result && typeof result === "object")
         checkSmartAccountReceipt(action.plan, simulation.from!, result);
       for (const step of action.plan.steps) {

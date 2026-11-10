@@ -98,6 +98,10 @@ export interface SmartBatchPlan {
   captures: { name: string; type: AbiParameter; step: number; word: number }[];
   /** Contracts used by runtime expressions, checked before submission. */
   dependencies: Address[];
+  /** A step or a runtime value crosses chains (an `eez:on` call, an
+   *  `@eez:on!` read): the batch's transaction is shown to its chain's
+   *  gateway, and cannot be simulated before it is sent. */
+  crossChain?: boolean;
 }
 
 export interface SmartCommandPlan {

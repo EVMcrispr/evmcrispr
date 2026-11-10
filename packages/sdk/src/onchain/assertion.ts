@@ -484,3 +484,12 @@ export function isAssertionAction(a: Action): a is AssertionAction {
   const c = (a as { compiled?: unknown }).compiled;
   return typeof c === "object" && c !== null && "param" in c && "subject" in c;
 }
+
+/** Record that what `ctx` compiles reads another chain (see
+ *  `CompileHints.crossChain`): the assertion carrying it is marked as
+ *  crossing chains, and so is the smart batch it is compiled into. */
+export function markCrossChain(ctx: CompileCtx): void {
+  if (ctx.hints) ctx.hints.crossChain = true;
+  const plan = ctx.interpreters.batchContext?.smartState?.plan;
+  if (plan) plan.crossChain = true;
+}

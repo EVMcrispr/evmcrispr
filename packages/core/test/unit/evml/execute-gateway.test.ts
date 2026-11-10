@@ -3,7 +3,10 @@ import type { TransactionAction } from "@evmcrispr/sdk";
 import { chainGateway, registerChains } from "@evmcrispr/sdk";
 import { expect } from "@evmcrispr/test-utils";
 import type { ActionHandlerCtx } from "../../../src/evml/execute";
-import { makeDefaultHandlers } from "../../../src/evml/execute";
+import {
+  makeDefaultHandlers,
+  smartSubmission,
+} from "../../../src/evml/execute";
 import { ModuleRegistry } from "../../../src/evml/registry";
 import { collectScriptUsage } from "../../../src/scriptUsage";
 
@@ -557,3 +560,34 @@ function wrapBytes(data: string): string {
   const pad = "0".repeat((64 - (inner.length % 64)) % 64);
   return `0x096aa082${word(32)}${word(inner.length / 2)}${inner}${pad}`;
 }
+
+describe("evml > execute > a smart batch that crosses chains", () => {
+  it("submits its one transaction marked, for its gateway to price", () => {
+    const tx = { to: TO, data: "0x1234", chainId: 990001 } as const;
+    expect(smartSubmission(tx, true)).to.eql({ ...tx, crossChain: true });
+    expect(smartSubmission(tx, false)).to.equal(tx);
+  });
+
+  it("marks the calls of a wallet batch, which the batch handler refuses", async () => {
+    const batch = {
+      type: "batched" as const,
+      from: FROM,
+      chainId: 990001,
+      actions: [
+        { to: TO, data: "0x1234" as const },
+        { to: FROM, data: "0x" as const },
+      ],
+    };
+    const marked = smartSubmission(batch, true);
+    expect("type" in marked && marked.actions.every((a) => a.crossChain)).to.be
+      .true;
+    const handlers = makeDefaultHandlers({
+      account: FROM,
+      maximizeGasLimit: false,
+      gatewayFor: chainGateway,
+    });
+    await bunExpect(
+      handlers.batched(marked as never, makeCtx().ctx),
+    ).rejects.toThrow(/A wallet batch cannot carry the fee/);
+  });
+});
