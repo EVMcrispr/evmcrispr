@@ -76,7 +76,8 @@ describeCommand("assert (governor on-chain faces)", {
         d.expectConstraint(param, "Eq", 2n);
         // cond(done, 3, cond(ready, 2, cond(pending, 1, 0)))
         const expectView = (c: DecodedParam, view: string) => {
-          const call = d.staticCallOf(c);
+          // Each bool view is read checked: a word above 1 reverts.
+          const call = d.staticCallOf(d.checkedReadOf(c, "(bool)"));
           expect(call.target).to.equal(TIMELOCK);
           expect(call.data).to.equal(
             `${selectorOf(`${view}(bytes32)`)}${OP_ID}`,

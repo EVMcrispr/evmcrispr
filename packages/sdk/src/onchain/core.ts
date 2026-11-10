@@ -2,7 +2,7 @@ import type { Address, Hex } from "viem";
 import { encodeFunctionData, parseAbi } from "viem";
 import type { InputParam } from "./erc8211";
 import { rawParam, staticCallParam, toWord } from "./erc8211";
-import { conditionRead, targetRead } from "./unchecked-words";
+import { targetRead } from "./unchecked-words";
 
 /**
  * ABI of the ERC-8211-speaking primitives of the Assertions core (v2.0).
@@ -179,13 +179,14 @@ export function gatherParam(
 
 /** Encode `cond(c, then, else)` — the lazy conditional: only the winning
  *  branch is resolved and its bytes pass through raw. A checked narrow
- *  read as `c` goes in raw: only its zero-ness matters. */
+ *  read as `c` stays checked: a word out of its type's range reverts
+ *  rather than choosing a branch. */
 export function encodeCond(
   c: InputParam,
   then_: InputParam,
   else_: InputParam,
 ): Hex {
-  return encodeCore("cond", [conditionRead(c), then_, else_]);
+  return encodeCore("cond", [c, then_, else_]);
 }
 
 /** Encode `orElse(a, b)` — resolve `a`; any revert selects `b`. */

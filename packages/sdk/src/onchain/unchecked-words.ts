@@ -74,13 +74,3 @@ export function argumentRead(param: InputParam, type: string): InputParam {
     ? word.raw
     : param;
 }
-
-/**
- * The read to hand `cond` as its condition. `cond` asks only whether the
- * word is nonzero, and a word out of its type's range is never zero, so
- * the raw word decides like some valid nonzero value would: the check
- * changes no branch.
- */
-export function conditionRead(param: InputParam): InputParam {
-  return unchecked.get(param)?.raw ?? param;
-}

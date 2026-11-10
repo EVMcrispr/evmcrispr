@@ -63,6 +63,10 @@ condition constraint fails the whole assertion); its first word judges,
 nonzero selecting the then-branch; and ONLY the winner is resolved, so the
 loser's calls never happen at judge time.
 
+- A condition read with a narrow declared type (`bool`, `uint8`,
+  `address`) is checked for that type first: a word out of its range,
+  such as 2 for a `bool`, fails the assertion instead of choosing a
+  branch.
 - Branches must resolve to the same kind of value — the judge compares
   whichever one wins. Mixed signed/unsigned live branches are rejected to avoid silently reinterpreting
   the selected value. Use matching numeric categories.

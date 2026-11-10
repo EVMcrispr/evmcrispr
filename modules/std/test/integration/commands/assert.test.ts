@@ -544,7 +544,14 @@ describeCommand("assert", {
         const cond = core(param);
         expect(cond.functionName).to.equal("cond");
         const condition = cond.args[0] as unknown as Param;
-        expect(staticCallOf(condition).target).to.equal(TOKEN);
+        // The bool is read checked: a word above 1 reverts.
+        const nav = core(condition);
+        expect(nav.functionName).to.equal("nav");
+        expect(nav.args[1]).to.equal("(bool)");
+        expect(nav.args[2]).to.deep.equal([0n]);
+        expect(staticCallOf(nav.args[0] as unknown as Param).target).to.equal(
+          TOKEN,
+        );
         expectRawWord(cond.args[1] as unknown as Param, 100n);
         expectRawWord(cond.args[2] as unknown as Param, 200n);
       },

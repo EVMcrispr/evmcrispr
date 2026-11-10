@@ -216,19 +216,30 @@ describe("a narrow word out of its declared range", () => {
     expect(argTarget.toLowerCase()).toBe(at("dirty8"));
   });
 
-  it("decides a cond on its raw word, as any nonzero condition would", async () => {
-    const pick = (name: keyof typeof SOURCES) =>
-      `assert @ifElse!(${read(name, "flag()(bool)")} ? 100 : 200) == 100 "m"`;
-    expect(await holds(pick("dirtyBool"))).toBe(true);
-    const { data } = judgedCall(await compile(pick("dirtyBool")));
+  it("fails a cond whose condition is out of range, on either branch", async () => {
+    const pick = (name: keyof typeof SOURCES, expected: number) =>
+      `assert @ifElse!(${read(name, "flag()(bool)")} ? 100 : 200) == ${expected} "m"`;
+    // 2 is no bool: neither branch's outcome may pass.
+    expect(await holds(pick("dirtyBool", 100))).toBe(false);
+    expect(await holds(pick("dirtyBool", 200))).toBe(false);
+    // A valid condition still chooses its branch.
+    expect(
+      await holds(
+        `assert @ifElse!(${read("valid8")} > 0 ? 100 : 200) == 100 "m"`,
+      ),
+    ).toBe(true);
+    const { data } = judgedCall(await compile(pick("dirtyBool", 100)));
     const cond = decodeFunctionData({ abi: CORE_ABI, data });
     expect(cond.functionName).toBe("cond");
     const [condition] = cond.args as unknown as [{ paramData: Hex }];
-    const [target] = decodeAbiParameters(
+    const [target, inner] = decodeAbiParameters(
       [{ type: "address" }, { type: "bytes" }],
       condition.paramData,
     );
-    expect(target.toLowerCase()).toBe(at("dirtyBool"));
+    expect(target).toBe(CORE_ADDRESS);
+    expect(
+      decodeFunctionData({ abi: CORE_ABI, data: inner }).functionName,
+    ).toBe("nav");
   });
 
   it("fails a lens selection that would otherwise be a raw pick", async () => {
