@@ -203,9 +203,11 @@ export interface ChainDef {
   crossChainReverts?: string[];
   /** The contract that tells cross-chain proxies apart on this chain (an
    *  EEZ registry: `authorizedProxies(address)` is true only for a proxy it
-   *  created). A transaction nobody marked `crossChain` whose target is
-   *  such a proxy is shown to a third-party gateway: unlike a revert, the
-   *  registry's answer cannot be forged, so it is safe on any chain. */
+   *  created). A transaction nobody marked `crossChain` that calls such a
+   *  proxy, directly or (traced on the chain's own RPC, when it can
+   *  trace) from inside another contract, is shown to a third-party
+   *  gateway: unlike a revert, the registry's answer cannot be forged, so
+   *  it is safe on any chain. */
   crossChainRegistry?: string;
 }
 

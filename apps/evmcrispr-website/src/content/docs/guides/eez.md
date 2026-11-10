@@ -54,8 +54,10 @@ it. On mainnet the gateway prices the transactions EVMcrispr builds as
 cross-chain (`eez:on`, `eez:batch`, a Safe block containing them) and
 those whose target the registry knows as a proxy, a Safe transaction
 executed later by its hash among them when one of its calls is. A call
-that reaches a proxy only from inside another contract goes out
-unpriced, and the composer refuses it. The helpers that read on-chain
+that reaches a proxy only from inside another contract is found by
+tracing the transaction on the chain's RPC (`debug_traceCall`), when that
+RPC offers tracing; through one that does not (most free public mainnet
+RPCs), it goes out unpriced, and the composer refuses it. The helpers that read on-chain
 inside a transaction (`@eez:on!`) need
 the Assertions contracts on both chains; RollupX does not have them yet.
 

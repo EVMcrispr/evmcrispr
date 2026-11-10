@@ -260,3 +260,98 @@ export async function isCrossChainProxy(
     return false;
   }
 }
+
+/** Most distinct addresses of a traced transaction checked against the
+ *  registry: a call tree wider than that is checked on its first ones. */
+const MAX_TRACED_TARGETS = 64;
+
+interface CallFrame {
+  to?: string;
+  error?: string;
+  /** Revert data, for a frame that reverted. */
+  output?: string;
+  calls?: CallFrame[];
+}
+
+/** Whether a reverted frame reverted because of `child`: its last call,
+ *  which reverted with data the frame's own revert carries (as is, or
+ *  wrapped, as a bridge's `CallFailed(bytes)` carries it). */
+function revertedBecauseOf(frame: CallFrame, child: CallFrame): boolean {
+  const own = frame.output?.toLowerCase() ?? "";
+  const inner = child.output?.toLowerCase() ?? "";
+  return (
+    !!child.error &&
+    child === frame.calls?.at(-1) &&
+    /^0x([0-9a-f]{2})+$/.test(inner) &&
+    own.includes(inner.slice(2))
+  );
+}
+
+/**
+ * Whether a transaction needs a cross-chain proxy deeper in its call tree,
+ * by tracing it on the chain's own RPC (`debug_traceCall`, call tracer)
+ * and asking the chain's registry about the addresses it calls (see
+ * `ChainDef.crossChainRegistry`). Outside the block a composer opens, a
+ * call to a proxy reverts; only a revert that carries up to the top makes
+ * the transaction depend on it. So only frames on such a path count, each
+ * the last call of a frame whose revert carries its revert data: a proxy
+ * a contract calls and then catches, or reads for nothing, does not show
+ * the transaction to the gateway (any contract could make that call, to
+ * show a transaction that does not need it). A contract that reverts the
+ * whole transaction with a proxy's revert on purpose still can: that
+ * transaction fails unless a composer composes it.
+ *
+ * `"untraceable"` when the RPC offers no tracing; false when the chain
+ * declares no registry or the trace fails otherwise.
+ */
+export async function tracesCrossChainProxy(
+  chainId: number,
+  client: Pick<PublicClient, "request" | "readContract">,
+  tx: { from: Address; to: Address; data?: Hex; value?: bigint },
+): Promise<boolean | "untraceable"> {
+  if (!registeredGateway(chainId)?.crossChainRegistry) return false;
+  let root: CallFrame;
+  try {
+    root = (await client.request({
+      method: "debug_traceCall",
+      params: [
+        {
+          from: tx.from,
+          to: tx.to,
+          data: tx.data ?? "0x",
+          value: hex(tx.value ?? 0n),
+        },
+        "latest",
+        { tracer: "callTracer" },
+      ],
+    } as never)) as CallFrame;
+  } catch (err) {
+    const { code, message } = (err ?? {}) as {
+      code?: number;
+      message?: string;
+    };
+    // EIP-1474's "method not found" and "method not supported".
+    return code === -32601 ||
+      code === -32004 ||
+      /method .*(not (found|exist|available|supported))|does not exist|not available/i.test(
+        message ?? "",
+      )
+      ? "untraceable"
+      : false;
+  }
+  // A transaction that runs without the composer does not need it.
+  if (!root?.error) return false;
+  const targets = new Set<string>();
+  const walk = (frame: CallFrame) => {
+    if (frame.to && isAddress(frame.to)) targets.add(frame.to.toLowerCase());
+    const last = frame.calls?.at(-1);
+    if (last && revertedBecauseOf(frame, last)) walk(last);
+  };
+  walk(root);
+  targets.delete(tx.to.toLowerCase()); // already asked about
+  const checked = [...targets].slice(0, MAX_TRACED_TARGETS);
+  const answers = await Promise.all(
+    checked.map((to) => isCrossChainProxy(chainId, to as Address, client)),
+  );
+  return answers.some(Boolean);
+}

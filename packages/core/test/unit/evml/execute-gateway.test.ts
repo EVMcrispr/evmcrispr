@@ -82,6 +82,7 @@ const reverted = (data: string) =>
 function makeCtx(
   simulate: () => Promise<unknown> = async () => "0x",
   proxies: string[] = [],
+  trace?: () => Promise<unknown>,
 ) {
   const sent: any[] = [];
   const logs: string[] = [];
@@ -96,6 +97,14 @@ function makeCtx(
     getPublicClient: () =>
       ({
         call: simulate,
+        // `debug_traceCall`: none unless the test gives one.
+        request: async ({ method }: { method: string }) => {
+          if (method !== "debug_traceCall" || !trace)
+            throw Object.assign(new Error("Method not found"), {
+              code: -32601,
+            });
+          return trace();
+        },
         // The registry: `authorizedProxies(address)`.
         readContract: async ({ address, args }: any) => {
           if (address !== "0x00000000000000000000000000000000000ee2e0")
@@ -380,6 +389,132 @@ describe("evml > execute > gateway pricing", () => {
       other.ctx,
     );
     expect(asked).to.have.lengthOf(1);
+  });
+
+  it("prices an unmarked transaction whose trace reaches a proxy deeper in", async () => {
+    // A contract calls the proxy for the sender (a bridge's deposit) and
+    // keeps its revert to itself: only the call tree shows the proxy.
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const PROXY = "0x00000000000000000000000000000000000f0f0f";
+    // Outside a composed block the proxy reverts with the gate, and the
+    // contract that called it reverts with that, wrapped (as the ChiadoX
+    // bridge does, traced on 2026-11-10).
+    const tree = (inner: string) => async () => ({
+      to: TO,
+      error: "execution reverted",
+      output: BRIDGE_REVERT,
+      calls: [
+        { to: FROM },
+        {
+          to: inner,
+          error: "execution reverted",
+          output: `0x9a499f3b${"00".repeat(31)}02`,
+          calls: [{ to: TO }],
+        },
+      ],
+    });
+    // A run of its own: one whose RPC could not trace stops asking.
+    const run = makeDefaultHandlers({
+      account: FROM,
+      maximizeGasLimit: false,
+      gatewayFor: chainGateway,
+    });
+    const deep = makeCtx(undefined, [PROXY], tree(PROXY));
+    await run.transaction(action(990001, { crossChain: undefined }), deep.ctx);
+    expect(asked).to.have.lengthOf(1);
+    expect(deep.sent[0].maxPriorityFeePerGas).to.equal(10n);
+
+    const none = makeCtx(undefined, [PROXY], tree(FROM));
+    await run.transaction(action(990001, { crossChain: undefined }), none.ctx);
+    expect(asked).to.have.lengthOf(1);
+  });
+
+  it("does not count a proxy the transaction does not need", async () => {
+    // Any contract can call a proxy: one it calls and catches, or a
+    // transaction that succeeds anyway, runs without the composer and is
+    // nobody else's business.
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const PROXY = "0x00000000000000000000000000000000000f0f0f";
+    const run = makeDefaultHandlers({
+      account: FROM,
+      maximizeGasLimit: false,
+      gatewayFor: chainGateway,
+    });
+    const REVERTED = "execution reverted";
+    const GATE = `0x9a499f3b${"00".repeat(31)}02`;
+    const OTHER = "0x08c379a0";
+    for (const tree of [
+      // The transaction reverts for another reason; the proxy's revert
+      // stays inside a frame that succeeded (a contract caught it).
+      {
+        to: TO,
+        error: REVERTED,
+        output: OTHER,
+        calls: [
+          { to: FROM, calls: [{ to: PROXY, error: REVERTED, output: GATE }] },
+          { to: FROM, error: REVERTED, output: OTHER },
+        ],
+      },
+      // The top-level call catches the proxy itself, then reverts for
+      // another reason after a later call.
+      {
+        to: TO,
+        error: REVERTED,
+        output: OTHER,
+        calls: [{ to: PROXY, error: REVERTED, output: GATE }, { to: FROM }],
+      },
+      // Its last call, but the revert is its own, not the proxy's.
+      {
+        to: TO,
+        error: REVERTED,
+        output: OTHER,
+        calls: [{ to: PROXY, error: REVERTED, output: GATE }],
+      },
+      // Caught, and the transaction succeeds.
+      { to: TO, calls: [{ to: PROXY, error: REVERTED, output: GATE }] },
+    ])
+      await run.transaction(
+        action(990001, { crossChain: undefined }),
+        makeCtx(undefined, [PROXY], async () => tree).ctx,
+      );
+    expect(asked).to.have.lengthOf(0);
+  });
+
+  it("asks an RPC that cannot trace only once a run", async () => {
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const run = makeDefaultHandlers({
+      account: FROM,
+      maximizeGasLimit: false,
+      gatewayFor: chainGateway,
+    });
+    const traced: string[] = [];
+    const ctx = makeCtx().ctx;
+    const client = ctx.getPublicClient(990001) as any;
+    const request = client.request;
+    ctx.getPublicClient = () =>
+      ({
+        ...client,
+        request: async (args: { method: string }) => {
+          traced.push(args.method);
+          return request(args);
+        },
+      }) as any;
+    for (let i = 0; i < 2; i++)
+      await run.transaction(action(990001, { crossChain: undefined }), ctx);
+    expect(traced.filter((m) => m === "debug_traceCall")).to.have.lengthOf(1);
+    expect(asked).to.have.lengthOf(0);
   });
 
   it("does not take the gate's bytes elsewhere in a revert for the gate", async () => {

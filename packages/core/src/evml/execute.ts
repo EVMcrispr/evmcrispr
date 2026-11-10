@@ -23,6 +23,7 @@ import {
   registeredChain,
   resolveChain,
   revertShowsCrossChain,
+  tracesCrossChainProxy,
   transportUrl,
   truncateAddress,
 } from "@evmcrispr/sdk";
@@ -666,8 +667,9 @@ async function priceThroughGateway(
   // A gateway that is not the chain's own RPC is a third party: it sees a
   // transaction before it is broadcast only when the transaction needs it,
   // because a command marked it so, because the chain's registry says its
-  // target is a cross-chain proxy, or because simulating it on the chain's
-  // own RPC (which sees it anyway) hits the gate a composed block opens.
+  // target is a cross-chain proxy, because simulating it on the chain's own
+  // RPC (which sees it anyway) hits the gate a composed block opens, or
+  // because tracing it there finds a call to a proxy deeper in.
   if (
     registeredChain(chainId)?.rpcUrl !== gateway &&
     !action.crossChain &&
@@ -676,7 +678,8 @@ async function priceThroughGateway(
       request.to,
       ctx.getPublicClient(chainId),
     )) &&
-    !(await simulatesCrossChain(chainId, from, request, ctx))
+    !(await simulatesCrossChain(chainId, from, request, ctx)) &&
+    !(await tracesCrossChain(chainId, from, request, ctx, env))
   )
     return {};
   const quote = await quoteThroughGateway(
@@ -765,6 +768,35 @@ async function simulatesCrossChain(
   } catch (err) {
     return revertShowsCrossChain(chainId, extractRevertData(err));
   }
+}
+
+/** Chains whose RPC offered no tracing, per run: not asked again. */
+const UNTRACEABLE = new WeakMap<ExecutorEnv, Set<number>>();
+
+/** Trace a transaction on the chain's own RPC and tell whether it calls a
+ *  cross-chain proxy anywhere (see `tracesCrossChainProxy`). An RPC that
+ *  cannot trace leaves the transaction as the other checks found it. */
+async function tracesCrossChain(
+  chainId: number,
+  from: Address,
+  request: { to?: Address | null; data?: Hex; value?: bigint },
+  ctx: ActionHandlerCtx,
+  env: ExecutorEnv,
+): Promise<boolean> {
+  if (!request.to) return false;
+  let untraceable = UNTRACEABLE.get(env);
+  if (!untraceable) UNTRACEABLE.set(env, (untraceable = new Set()));
+  if (untraceable.has(chainId)) return false;
+  const found = await tracesCrossChainProxy(
+    chainId,
+    ctx.getPublicClient(chainId),
+    { from, to: request.to, data: request.data, value: request.value },
+  );
+  if (found === "untraceable") {
+    untraceable.add(chainId);
+    return false;
+  }
+  return found;
 }
 
 /** What a smart batch submits, marked when the batch crosses chains: a
