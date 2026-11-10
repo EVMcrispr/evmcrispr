@@ -108,8 +108,9 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
     );
     expect(isAddressEqual(target, coreProxy)).to.be.true;
     expect(data).to.equal(encodeResolve(param(inner.operand) as never));
-    // Only a transaction reaches the composer.
+    // Only a transaction reaches the composer, and it crosses chains.
     expect(ctx.hints?.transact).to.be.true;
+    expect(ctx.hints?.crossChain).to.be.true;
   });
 
   it("passes a constant through untouched", async () => {
@@ -129,13 +130,16 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
     expect(wrapped.ctx.hints?.transact).to.not.be.true;
   });
 
-  it("turns a standalone assert into a transaction", async () => {
+  it("turns a standalone assert into a cross-chain transaction", async () => {
     const [crossChain] = await createInterpreter(
       `load eez\nassert @eez:on!(eezL2 @balance!(ETH ${FUNDED})) > 0`,
       undefined as never,
       { chainId: L1_ID },
     ).interpret();
     expect((crossChain as { readOnly?: boolean }).readOnly).to.be.false;
+    // So the chain's gateway prices it: nothing in its revert or its
+    // target (the Assertions core) would show that.
+    expect((crossChain as { crossChain?: boolean }).crossChain).to.be.true;
 
     const [local] = await createInterpreter(
       `load eez\nassert @balance!(XDAI ${FUNDED}) > 0`,
@@ -143,6 +147,7 @@ describe.skipIf(!devnet)("@eez:on! (on-chain face)", () => {
       { chainId: L1_ID },
     ).interpret();
     expect((local as { readOnly?: boolean }).readOnly).to.be.true;
+    expect((local as { crossChain?: boolean }).crossChain).to.be.undefined;
   });
 
   it("asserts a rollup value from L1 end to end", async () => {

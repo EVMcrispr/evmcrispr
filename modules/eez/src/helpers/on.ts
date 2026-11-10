@@ -114,7 +114,12 @@ export default defineHelper<Eez>({
     // `resolve(param)` on the far core raw-returns the resolved bytes, and
     // a STATICCALL to the proxy returns them inline: the same bytes the
     // inner operand would have produced, so the category carries over.
-    if (ctx.hints) ctx.hints.transact = true;
+    // Composed only inside a transaction, which crosses chains: its
+    // gateway prices it.
+    if (ctx.hints) {
+      ctx.hints.transact = true;
+      ctx.hints.crossChain = true;
+    }
     return {
       kind: "call",
       cat: inner.cat,

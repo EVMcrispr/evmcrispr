@@ -473,6 +473,7 @@ export function assertionAction(c: AssertionCompilation): AssertionAction {
   return {
     ...assertParamAction(c.param, c.message),
     readOnly: c.readOnly,
+    ...(c.hints.crossChain ? { crossChain: true } : {}),
     compiled: c,
   };
 }

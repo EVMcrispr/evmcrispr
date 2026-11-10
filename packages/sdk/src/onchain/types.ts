@@ -91,6 +91,10 @@ export interface CompileHints {
    *  static read is composed by the sequencer, never by `eth_call`), so
    *  `assert` must emit a transaction rather than a read-only call. */
   transact?: boolean;
+  /** The expression reads another chain (an EEZ cross-chain read), so the
+   *  transaction carrying it crosses chains: it is marked
+   *  `TransactionAction.crossChain` and its chain's gateway prices it. */
+  crossChain?: boolean;
 }
 
 export interface CompileCtx {
