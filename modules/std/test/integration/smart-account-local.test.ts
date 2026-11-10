@@ -89,7 +89,7 @@ beforeAll(async () => {
     { stdout: "ignore", stderr: "pipe" },
   );
   transport = http(`http://127.0.0.1:${port}`, { retryCount: 0 });
-  client = createPublicClient({ transport });
+  client = createPublicClient({ transport, pollingInterval: 100 });
   for (let attempt = 0; ; attempt++) {
     try {
       await client.getChainId();
