@@ -136,6 +136,23 @@ export function resolveRollup(config: EezConfig, explicit?: unknown): bigint {
   return rollupId;
 }
 
+/** A bare `1` would be Ethereum mainnet, but next to RollupX, the rollup
+ *  that settles on it, it is easily meant for the rollup (or for rollup
+ *  1): an EEZ argument names that chain instead. */
+export function refuseBareOne(value: unknown): void {
+  if (value !== undefined && value !== null && String(value).trim() === "1")
+    throw new ErrorException(
+      "a bare 1 is ambiguous here: write mainnet for Ethereum mainnet, or rollupX for the rollup that settles on it",
+    );
+}
+
+/** An EEZ chain argument (a name or a chain id) as a chain id; a bare 1
+ *  is refused (see `refuseBareOne`). */
+export function eezChainId(value: unknown): number {
+  refuseBareOne(value);
+  return resolveChainId(value);
+}
+
 export function rollupIdFor(value: unknown): bigint {
   const text = String(value);
   if (/^\d+$/.test(text)) {
@@ -408,6 +425,7 @@ export async function ensureProxy(
   target: Address,
   rollup?: unknown,
 ): Promise<EnsuredProxy> {
+  refuseBareOne(rollup);
   const rollupId = resolveRollup(config, rollup);
   const proxy = await computeProxy(module, config, target, rollupId);
   const actions = (await isDeployed(module, proxy))
@@ -546,7 +564,7 @@ export async function interpretRemoteBlock(
   { flattenBatches = false }: { flattenBatches?: boolean } = {},
 ): Promise<RemoteBlock> {
   const config = await eezConfig(module);
-  const targetChainId = resolveChainId(chain);
+  const targetChainId = eezChainId(chain);
   const rollupId = resolveRollup(config, targetChainId);
   const remote = await eezConfigFor(module, targetChainId);
   const sender = await module.getSender();

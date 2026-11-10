@@ -3,7 +3,6 @@ import {
   defineHelper,
   ErrorException,
   type Node,
-  resolveChainId,
 } from "@evmcrispr/sdk";
 import {
   CORE_ADDRESS,
@@ -16,6 +15,7 @@ import {
 import type Eez from "..";
 import {
   computeProxy,
+  eezChainId,
   eezConfig,
   isDeployed,
   resolveRollup,
@@ -50,7 +50,7 @@ export default defineHelper<Eez>({
         "@eez:on expects a chain and an expression, e.g. @eez:on(699169 @balance(ETH @me))",
       );
     }
-    const target = resolveChainId(chain);
+    const target = eezChainId(chain);
     const current = await module.getChainId();
     if (target === current) return interpreters.interpretNode(node);
 
@@ -78,9 +78,7 @@ export default defineHelper<Eez>({
       );
     }
     const module = ctx.module as Eez;
-    const target = resolveChainId(
-      await ctx.interpreters.interpretNode(chainNode),
-    );
+    const target = eezChainId(await ctx.interpreters.interpretNode(chainNode));
     const current = await module.getChainId();
     if (target === current) return compileOperand(ctx, exprNode);
 

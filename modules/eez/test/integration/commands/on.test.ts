@@ -318,6 +318,11 @@ describeCommand("on", {
       error: "itself",
     },
     {
+      name: "refuses a bare 1, which could mean mainnet or the rollup on it",
+      script: `eez:on 1 (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
+      error: "a bare 1 is ambiguous here",
+    },
+    {
       name: "refuses a chain that is not an EEZ chain",
       script: `eez:on gnosis (\n  exec ${KNOWN} setValue(uint256) 1\n)`,
       error: "not a known EEZ chain",

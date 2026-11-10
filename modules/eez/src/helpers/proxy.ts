@@ -3,7 +3,12 @@ import { callReadOperand } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
 import type Eez from "..";
 import { eezBaseAbi } from "../abis";
-import { computeProxy, eezConfig, resolveRollup } from "../utils/eez";
+import {
+  computeProxy,
+  eezConfig,
+  refuseBareOne,
+  resolveRollup,
+} from "../utils/eez";
 
 const computeProxyFn = eezBaseAbi.find(
   (f) => f.type === "function" && f.name === "computeCrossChainProxyAddress",
@@ -27,6 +32,7 @@ export default defineHelper<Eez>({
     },
   ],
   async run(module, { chain, target }) {
+    refuseBareOne(chain);
     const config = await eezConfig(module);
     const rollupId = resolveRollup(config, chain);
     return computeProxy(module, config, target, rollupId);
@@ -42,10 +48,9 @@ export default defineHelper<Eez>({
     }
     const module = ctx.module as Eez;
     const config = await eezConfig(module);
-    const rollupId = resolveRollup(
-      config,
-      await ctx.interpreters.interpretNode(chainNode),
-    );
+    const chain = await ctx.interpreters.interpretNode(chainNode);
+    refuseBareOne(chain);
+    const rollupId = resolveRollup(config, chain);
     return callReadOperand(
       ctx,
       config.registry,

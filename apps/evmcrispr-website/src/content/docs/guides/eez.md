@@ -44,7 +44,8 @@ in the wallet and select it. It serves ordinary Chiado traffic too.
 The EEZ team also runs RollupX (<https://rollupx.eez.dev>), a devnet
 settled on Ethereum mainnet: `mainnet` ↔ `rollupX`. Everything in this
 guide works there with those two chain names in place of `gnosisChiado`
-and `eezL2`, but with real ETH: a cross-chain transaction pays about
+and `eezL2` (write the names: the eez commands and helpers refuse a bare
+`1`, which is easily meant for the rollup), but with real ETH: a cross-chain transaction pays about
 0.00015 ETH for its settlement, and EVMcrispr uses no quote above
 0.003 ETH. ETH reaches `rollupX` through the RollupX dashboard's bridge.
 To send cross-chain calls from mainnet with a browser wallet, add

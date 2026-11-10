@@ -3,13 +3,12 @@ import {
   clientFor,
   defineHelper,
   ErrorException,
-  resolveChainId,
 } from "@evmcrispr/sdk";
 import { callReadOperand } from "@evmcrispr/sdk/onchain";
 import type { AbiFunction } from "viem";
 import type Eez from "..";
 import { eezBaseAbi } from "../abis";
-import { eezConfig, eezConfigFor } from "../utils/eez";
+import { eezChainId, eezConfig, eezConfigFor } from "../utils/eez";
 
 const authorizedProxiesFn = eezBaseAbi.find(
   (f) => f.type === "function" && f.name === "authorizedProxies",
@@ -36,7 +35,7 @@ export default defineHelper<Eez>({
     },
   ],
   async run(module, { chain, proxy }) {
-    const chainId = resolveChainId(chain);
+    const chainId = eezChainId(chain);
     const config = await eezConfigFor(module, chainId);
     const client = await clientFor(module, chainId);
     const [exists, originalAddress] = await client.readContract({
@@ -63,9 +62,7 @@ export default defineHelper<Eez>({
       );
     }
     const module = ctx.module as Eez;
-    const chainId = resolveChainId(
-      await ctx.interpreters.interpretNode(chainNode),
-    );
+    const chainId = eezChainId(await ctx.interpreters.interpretNode(chainNode));
     const current = await module.getChainId();
     if (chainId !== current) {
       throw new ErrorException(

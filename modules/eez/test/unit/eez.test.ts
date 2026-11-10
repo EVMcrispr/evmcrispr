@@ -17,9 +17,11 @@ import {
   assertForeignRollup,
   CROSS_CHAIN_FALLBACK_GAS,
   createProxyAction,
+  eezChainId,
   encodeExecuteBatch,
   estimateCallGas,
   peerRollup,
+  refuseBareOne,
   remoteLabel,
   resolveRollup,
   rollupIdFor,
@@ -135,6 +137,19 @@ describe("eez utils", () => {
   it("labels the far side by chain when it is the peer", () => {
     expect(remoteLabel(l1, 2n)).not.toMatch(/^rollup/);
     expect(remoteLabel(l1, 7n)).toBe("rollup 7");
+  });
+
+  it("refuses a bare 1 for an EEZ chain: mainnet and rollupX are named", () => {
+    for (const bare of [1, "1", 1n])
+      expect(() => eezChainId(bare)).toThrow(
+        "a bare 1 is ambiguous here: write mainnet for Ethereum mainnet, or rollupX",
+      );
+    expect(eezChainId("mainnet")).toBe(1);
+    expect(eezChainId("rollupX")).toBe(696991);
+    expect(eezChainId(696991)).toBe(696991);
+    expect(eezChainId(10200)).toBe(10200);
+    expect(() => refuseBareOne(2)).not.toThrow();
+    expect(() => refuseBareOne(undefined)).not.toThrow();
   });
 
   it("names RollupX's chains by key and resolves their rollups", () => {
