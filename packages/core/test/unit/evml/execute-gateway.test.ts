@@ -274,6 +274,46 @@ describe("evml > execute > gateway pricing", () => {
     expect(asked).to.have.lengthOf(0);
   });
 
+  it("prices a deposit whose contract wraps the gate in an error of its own", async () => {
+    // The ChiadoX bridge's `bridgeEther`, simulated on Chiado on
+    // 2026-11-10: `CallFailed(bytes)` carrying the registry's gate error.
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const { ctx, sent } = makeCtx(async () => {
+      throw reverted(BRIDGE_REVERT);
+    });
+    await handlers.transaction(action(990001, { crossChain: undefined }), ctx);
+    expect(asked).to.have.lengthOf(1);
+    expect(sent[0].maxPriorityFeePerGas).to.equal(10n);
+  });
+
+  it("unwraps only an exact (bytes) encoding, a few levels deep", async () => {
+    const asked = gatewayAnswering({
+      gas: "0x61a80",
+      maxFeePerGas: "0x10",
+      maxPriorityFeePerGas: "0x8",
+    });
+    const gate = `9a499f3b${"00".repeat(31)}02`;
+    // The length runs past the data.
+    const badLength = `0x096aa082${word(32)}${word(100)}${gate}${"00".repeat(28)}`;
+    // Non-zero padding after the bytes.
+    const dirtyPad = `0x096aa082${word(32)}${word(36)}${gate}${"00".repeat(27)}01`;
+    let deep = `0x${gate}`;
+    for (let i = 0; i < 4; i++) deep = wrapBytes(deep);
+    for (const data of [badLength, dirtyPad, deep]) {
+      await handlers.transaction(
+        action(990001, { crossChain: undefined }),
+        makeCtx(async () => {
+          throw reverted(data);
+        }).ctx,
+      );
+    }
+    expect(asked).to.have.lengthOf(0);
+  });
+
   it("keeps an unmarked transaction that simulates fine, or reverts otherwise, from a third-party gateway", async () => {
     const asked = gatewayAnswering({
       gas: "0x61a80",
@@ -382,3 +422,16 @@ describe("evml > execute > which runs a gateway serves", () => {
     expect([...(collectScriptUsage("print 1")?.loaded ?? [])]).to.eql([]);
   });
 });
+const BRIDGE_REVERT =
+  "0x096aa082000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000249a499f3b000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000";
+
+function word(n: number): string {
+  return n.toString(16).padStart(64, "0");
+}
+
+/** `CallFailed(bytes)` carrying `data`. */
+function wrapBytes(data: string): string {
+  const inner = data.slice(2);
+  const pad = "0".repeat((64 - (inner.length % 64)) % 64);
+  return `0x096aa082${word(32)}${word(inner.length / 2)}${inner}${pad}`;
+}

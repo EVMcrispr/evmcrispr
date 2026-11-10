@@ -9,18 +9,42 @@ export function chainGateway(chainId: number): string | undefined {
 /** Whether revert data from simulating a transaction on the chain's own RPC
  *  shows it crosses chains (see `ChainDef.crossChainReverts`): the data is
  *  the gate error itself, as a call to a proxy returns it and a Safe passes
- *  its inner call's revert on. Only the start of the data counts: anything
- *  a contract reverts with carries those bytes somewhere by chance. */
+ *  its inner call's revert on, or a contract's error whose only argument is
+ *  that revert (`CallFailed(bytes)`, as a bridge wraps it), a few levels
+ *  deep. Only the start of the data counts, and of a wrapper only an exact
+ *  `(bytes)` encoding: anything a contract reverts with carries those bytes
+ *  somewhere by chance. */
 export function revertShowsCrossChain(
   chainId: number,
   revertData: string | undefined,
 ): boolean {
-  const selectors = registeredGateway(chainId)?.crossChainReverts ?? [];
-  if (!revertData || revertData.length < 10) return false;
-  const head = revertData.slice(0, 10).toLowerCase();
-  return selectors.some(
-    (s) => /^0x[0-9a-f]{8}$/i.test(s) && s.toLowerCase() === head,
-  );
+  const selectors = (registeredGateway(chainId)?.crossChainReverts ?? [])
+    .filter((s) => /^0x[0-9a-f]{8}$/i.test(s))
+    .map((s) => s.toLowerCase());
+  let data = revertData?.toLowerCase();
+  for (let depth = 0; depth <= MAX_WRAPPED_REVERTS && data; depth++) {
+    if (!/^0x([0-9a-f]{2})*$/.test(data) || data.length < 10) return false;
+    if (selectors.includes(data.slice(0, 10))) return true;
+    data = wrappedRevert(data);
+  }
+  return false;
+}
+
+/** How many `(bytes)` errors deep a gate error is looked for. */
+const MAX_WRAPPED_REVERTS = 3;
+
+/** The bytes a `Name(bytes)` error carries, when the data is exactly that
+ *  encoding (offset 0x20, length, the bytes zero-padded to a word). */
+function wrappedRevert(data: string): string | undefined {
+  const body = data.slice(10);
+  if (body.length < 128 || body.length % 64 !== 0) return undefined;
+  if (BigInt(`0x${body.slice(0, 64)}`) !== 32n) return undefined;
+  const length = BigInt(`0x${body.slice(64, 128)}`);
+  const padded = ((length + 31n) / 32n) * 64n;
+  if (BigInt(body.length) !== 128n + padded) return undefined;
+  const inner = body.slice(128, 128 + Number(length) * 2);
+  if (/[^0]/.test(body.slice(128 + inner.length))) return undefined;
+  return `0x${inner}`;
 }
 
 /** Ceiling on what a quote may commit a transaction to when the chain
