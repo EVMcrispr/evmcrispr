@@ -48,6 +48,14 @@ export function eventLog(
 export const viewKey = (address: Address, name: string, ...args: unknown[]) =>
   `${address.toLowerCase()}:${name}(${args.map((a) => String(a).toLowerCase()).join(",")})`;
 
+/** The key of a view's answer to one caller (`suggestEnv`). */
+export const asCaller = (from: Address, key: string) =>
+  `${from.toLowerCase()}>${key}`;
+
+/** The key of a storage word (`suggestEnv`'s `storageAt`). */
+export const slotKey = (address: Address, slot: Hex) =>
+  `${address.toLowerCase()}@${slot.toLowerCase()}`;
+
 /** An env whose views answer from a table. A view missing from the table
  *  is a view the contract does not have. Nothing is known of any token
  *  unless `overrides` says so: amounts are base units, tokens variables. */
@@ -61,10 +69,19 @@ export function suggestEnv(
     tolerance: 1,
     nativeSymbol: "XDAI",
     nativeDecimals: 18,
-    read: async (address, signature, args = []) =>
-      answers[
-        viewKey(address, (parseAbiItem(signature) as AbiFunction).name, ...args)
-      ],
+    read: async (address, signature, args = [], options) => {
+      const key = viewKey(
+        address,
+        (parseAbiItem(signature) as AbiFunction).name,
+        ...args,
+      );
+      // A view that answers one caller differently: its entry for that
+      // caller wins, `undefined` there meaning it reverts for them.
+      const scoped = options?.from && asCaller(options.from, key);
+      return scoped && scoped in answers ? answers[scoped] : answers[key];
+    },
+    storageAt: async (address, slot) =>
+      answers[slotKey(address, slot)] as Hex | undefined,
     ...overrides,
   };
 }

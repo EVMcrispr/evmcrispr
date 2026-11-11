@@ -143,11 +143,15 @@ export interface RawLog {
 }
 
 /** Calls a view on the fork after the run. `undefined` when the contract
- *  has no such view: no code, a revert, a result that does not decode. */
+ *  has no such view: no code, a revert, a result that does not decode.
+ *  `from` is the caller, address zero by default: a proxy can answer an
+ *  eth_call from zero as it would its admin, and the assertion that reads
+ *  it on-chain is called by the Assertions core. */
 export type ViewRead = (
   address: Address,
   signature: string,
   args?: readonly unknown[],
+  options?: { from?: Address },
 ) => Promise<unknown | undefined>;
 
 export interface SuggestEnv {
@@ -176,6 +180,10 @@ export interface SuggestEnv {
   /** Whether an address has code after the run, when that could be read.
    *  It names a variable nothing else names (`$contract`, `$account`). */
   hasCode?(address: Address): Promise<boolean | undefined>;
+  /** A storage word of a contract after the run, when it could be read:
+   *  what a check is built from when the contract shows it to no caller
+   *  (a proxy's ERC-1967 admin slot). */
+  storageAt?(address: Address, slot: Hex): Promise<Hex | undefined>;
 }
 
 export interface TokenInfo {
@@ -1020,8 +1028,8 @@ export function budgetedRead(
     return true;
   };
   return {
-    read: async (address, signature, args) =>
-      charge() ? read(address, signature, args) : undefined,
+    read: async (address, signature, args, options) =>
+      charge() ? read(address, signature, args, options) : undefined,
     charge,
     exhausted: () => exhausted,
   };

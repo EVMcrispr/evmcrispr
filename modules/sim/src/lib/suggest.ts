@@ -91,19 +91,23 @@ export async function suggestFromRun(
 ): Promise<{ suggestions: Suggestion[]; truncated: boolean }> {
   const { client } = input;
   const chain = await module.getChain();
-  const budget = budgetedRead(async (address, signature, args = []) => {
-    try {
-      const abi = parseAbiItem(signature) as AbiFunction;
-      return await client.readContract({
-        address,
-        abi: [abi],
-        functionName: abi.name,
-        args: args as unknown[],
-      });
-    } catch {
-      return undefined;
-    }
-  }, MAX_SUGGESTION_READS);
+  const budget = budgetedRead(
+    async (address, signature, args = [], options) => {
+      try {
+        const abi = parseAbiItem(signature) as AbiFunction;
+        return await client.readContract({
+          address,
+          abi: [abi],
+          functionName: abi.name,
+          args: args as unknown[],
+          ...(options?.from ? { account: options.from } : {}),
+        });
+      } catch {
+        return undefined;
+      }
+    },
+    MAX_SUGGESTION_READS,
+  );
   // What is said of a token is read once per token and through the same
   // budget as every other view, so naming things cannot cost more reads
   // than the run was allowed.
@@ -197,6 +201,15 @@ export async function suggestFromRun(
     emitterName: symbolOf,
     token: tokenOf,
     hasCode,
+    // Out of the same budget as the views.
+    storageAt: async (address, slot) => {
+      if (!budget.charge()) return undefined;
+      try {
+        return await client.getStorageAt({ address, slot });
+      } catch {
+        return undefined;
+      }
+    },
   };
   // One run, one set of names: the native floor below shares them.
   const names = variableNames(env.executor);

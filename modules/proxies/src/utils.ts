@@ -13,6 +13,40 @@ export const beaconAbi = parseAbi([
   "function implementation() view returns (address)",
 ]);
 
+/** The getter a ProxyAdmin (OpenZeppelin before v5, Optimism's) offers
+ *  anyone: it asks the proxy as its admin, which the proxy answers. */
+export const proxyAdminAbi = parseAbi([
+  "function getProxyImplementation(address proxy) view returns (address)",
+]);
+
+/**
+ * The proxy's admin, when it is a contract that reports the proxy's
+ * implementation through `getProxyImplementation` and the answer is the
+ * implementation slot's. A transparent proxy answers `implementation()`
+ * only to that admin, so on-chain it is the one way to read it.
+ */
+export async function reportingAdmin(
+  client: PublicClient,
+  proxy: Address,
+): Promise<Address | undefined> {
+  const [admin, implementation] = await Promise.all([
+    readSlotAddress(client, proxy, ADMIN_SLOT),
+    readSlotAddress(client, proxy, IMPLEMENTATION_SLOT),
+  ]);
+  if (!admin || !implementation) return undefined;
+  const reported = await client
+    .readContract({
+      address: admin,
+      abi: proxyAdminAbi,
+      functionName: "getProxyImplementation",
+      args: [proxy],
+    })
+    .catch(() => undefined);
+  return reported && getAddress(reported) === implementation
+    ? admin
+    : undefined;
+}
+
 /** Address stored in a proxy storage slot, or undefined when the slot is empty. */
 export async function readSlotAddress(
   client: PublicClient,
