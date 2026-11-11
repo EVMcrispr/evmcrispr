@@ -300,3 +300,54 @@ fn balance_changes_follow_value_into_internal_calls() {
         ]
     );
 }
+
+// Reads storage slots 0..600 of itself and returns their sum.
+const SLOAD_600: &str = "0x600060005b80548201915060010180610258116004575060005260206000f3";
+
+#[test]
+fn one_pass_reports_every_cold_read_it_reaches() {
+    let mut f = fork();
+    seed_eoa(&mut f, ALICE, ONE_ETH);
+    seed_contract(&mut f, CONTRACT, SLOAD_600);
+
+    // Failing fast, this took 600 replays: one per slot.
+    let env = parse(f.transact(&tx(ALICE, CONTRACT, "0x")));
+    assert_eq!(env["kind"], "misses", "{env}");
+    let misses = env["misses"].as_array().unwrap();
+    assert_eq!(misses.len(), 600);
+    assert!(misses.iter().all(|m| m["type"] == "storage"));
+
+    // The empty answers it ran on are not kept: the slots are still cold.
+    let cold = parse(f.get_storage(CONTRACT, "0x5"));
+    assert_eq!(cold["kind"], "misses", "{cold}");
+
+    for i in 0..600u32 {
+        let slot = format!("0x{i:x}");
+        let env = parse(f.insert_storage(CONTRACT, &slot, "0x1"));
+        assert_eq!(env["kind"], "ok", "{env}");
+    }
+    let env = parse(f.transact(&tx(ALICE, CONTRACT, "0x")));
+    assert_eq!(env["kind"], "success", "{env}");
+    // 600 slots of 1 each, computed on the real values.
+    assert_eq!(
+        env["returnData"],
+        "0x0000000000000000000000000000000000000000000000000000000000000258"
+    );
+}
+
+#[test]
+fn a_missed_account_is_not_kept_as_missing() {
+    let mut f = fork();
+    // The caller itself is cold: the run reports it and keeps nothing.
+    let env = parse(f.transact(&tx(ALICE, BOB, "0x")));
+    assert_eq!(env["kind"], "misses", "{env}");
+    let missed: Vec<&str> = env["misses"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["address"].as_str().unwrap())
+        .collect();
+    assert!(missed.contains(&ALICE) || missed.iter().any(|a| a.eq_ignore_ascii_case(ALICE)));
+    let cold = parse(f.get_balance(ALICE));
+    assert_eq!(cold["kind"], "misses", "{cold}");
+}

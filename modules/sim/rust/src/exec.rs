@@ -44,7 +44,7 @@ pub struct Fork {
 
 impl Fork {
     pub fn new(chain_id: u64, block_number: u64, base_timestamp: u64) -> Self {
-        let mut db = CacheDB::new(MissDb);
+        let mut db = CacheDB::new(MissDb::default());
         // The handler loads the block beneficiary on every execution. Our block
         // context is synthetic (coinbase = zero, basefee 0), so seed it empty
         // instead of letting every fork pay an upstream fetch for 0x0.
@@ -219,7 +219,8 @@ impl Fork {
 
         // No blanket `Database for &mut T` in revm 42, so hand the CacheDB to the
         // EVM by value and take it back out of the context afterwards.
-        let db = std::mem::replace(&mut self.db, CacheDB::new(MissDb));
+        let mut db = std::mem::replace(&mut self.db, CacheDB::new(MissDb::default()));
+        db.db.record(true);
         let mut evm = Context::mainnet()
             .with_db(db)
             .with_cfg(self.cfg_env())
@@ -227,6 +228,15 @@ impl Fork {
             .build_mainnet();
         let res = evm.transact(tx_env);
         self.db = evm.ctx.journaled_state.database;
+        self.db.db.record(false);
+
+        // A run that met cold state ran on empty answers for it: its result
+        // is discarded, and what those answers put in the cache with it.
+        let misses = self.db.db.take_misses();
+        if !misses.is_empty() {
+            self.forget(&misses);
+            return misses_env(&misses);
+        }
 
         match res {
             Ok(out) => {
@@ -241,6 +251,29 @@ impl Fork {
             }
             Err(EVMError::Database(m)) => miss_env(&m),
             Err(e) => error_env(&format!("{e:?}")),
+        }
+    }
+
+    /// Remove from the cache what a recording run's empty answers put there:
+    /// an account that missed was cached as not existing, a slot as zero, a
+    /// block hash as zero. None of them was cached before the run, or it
+    /// would not have missed.
+    fn forget(&mut self, misses: &[Miss]) {
+        for miss in misses {
+            match miss {
+                Miss::Account(a) => {
+                    self.db.cache.accounts.remove(a);
+                }
+                Miss::Storage(a, k) => {
+                    if let Some(account) = self.db.cache.accounts.get_mut(a) {
+                        account.storage.remove(k);
+                    }
+                }
+                Miss::BlockHash(n) => {
+                    self.db.cache.block_hashes.remove(&U256::from(*n));
+                }
+                Miss::CodeByHash(_) => {}
+            }
         }
     }
 
@@ -427,15 +460,23 @@ fn first_err(errs: &[Option<String>]) -> String {
 }
 
 fn miss_env(m: &Miss) -> String {
-    let miss = match m {
+    misses_env(std::slice::from_ref(m))
+}
+
+fn misses_env(misses: &[Miss]) -> String {
+    let misses: Vec<Value> = misses.iter().map(miss_json).collect();
+    json!({ "kind": "misses", "misses": misses }).to_string()
+}
+
+fn miss_json(m: &Miss) -> Value {
+    match m {
         Miss::Account(a) => json!({ "type": "account", "address": addr_hex(a) }),
         Miss::Storage(a, k) => {
             json!({ "type": "storage", "address": addr_hex(a), "slot": u256_hex(*k) })
         }
         Miss::BlockHash(n) => json!({ "type": "blockhash", "number": n }),
         Miss::CodeByHash(h) => json!({ "type": "codehash", "hash": format!("{h:?}") }),
-    };
-    json!({ "kind": "misses", "misses": [miss] }).to_string()
+    }
 }
 
 fn result_env(result: ExecutionResult, balance_changes: Vec<Value>) -> String {

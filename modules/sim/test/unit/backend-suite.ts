@@ -162,6 +162,50 @@ export function describeBackendSuite(
       expect(BigInt(stored ?? "0x0")).toBe(BigInt(CHAIN_ID));
     });
 
+    // revm's alone: it once replayed a transaction once per cold read and
+    // gave up at 512. The others never replayed, and fetch these 600 slots
+    // one at a time from the test anvil's upstream (rpc through the anvil
+    // as its node): about 120s each on a cold cache. OP's Upgrade 21 on
+    // mainnet, hundreds of slots, ran on every engine (2026-11-12).
+    it.skipIf(prefix !== "revm")(
+      "runs a transaction that reads more cold state than one replay per read allows",
+      async () => {
+        // A large upgrade touches hundreds of cold slots and accounts; revm
+        // once replayed the transaction once per read and gave up at 512.
+        const { backend, client } = await makeBackend();
+        const reader = getAddress("0x00000000000000000000000000000000005107e5");
+        // Returns the sum of its storage slots 0..599.
+        await backend.handleAction({
+          type: "rpc",
+          method: `${prefix}_setCode`,
+          params: [
+            reader,
+            "0x600060005b80548201915060010180610258116004575060005260206000f3",
+          ],
+        });
+        // Two slots set in the fork, the rest read cold from upstream (zero).
+        for (const [slot, value] of [
+          ["0x7", "0x5"],
+          ["0x257", "0x9"],
+        ]) {
+          await backend.handleAction({
+            type: "rpc",
+            method: `${prefix}_setStorageAt`,
+            params: [reader, slot, `0x${value.slice(2).padStart(64, "0")}`],
+          });
+        }
+        const receipt = await backend.handleAction({
+          from: ADDR,
+          to: reader,
+          data: "0x",
+        } as Action);
+        expect(receipt!.status).toBe("success");
+        const answer = await client.call({ to: reader, data: "0x" });
+        expect(BigInt(answer.data ?? "0x0")).toBe(14n);
+      },
+      120_000,
+    );
+
     it("setStorageAt sets storage readable via eth_getStorageAt", async () => {
       const { backend, client } = await makeBackend();
       const slot =
