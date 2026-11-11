@@ -60,13 +60,39 @@ export default defineEvent({
     "Safe: after a delegatecall, who controls the Safe is what the run left.",
   event: "event SimulatedDelegatecall(address indexed target)",
   suggest: async (env, { emitter }) => {
-    const threshold = await env.read(
-      emitter,
-      "function getThreshold() view returns (uint256)",
-    );
+    // Every read at once: none depends on another, and an engine that
+    // answers each with a round trip answers concurrent ones together. The
+    // event comes from a delegatecall of the executor, nearly always a Safe;
+    // for anything else these reads are spent for nothing.
+    const [
+      threshold,
+      target,
+      owners,
+      page,
+      guard,
+      version,
+      moduleGuardSlot,
+      singleton,
+      handler,
+    ] = await Promise.all([
+      env.read(emitter, "function getThreshold() view returns (uint256)"),
+      contract(env, emitter, "contract"),
+      env.read(emitter, "function getOwners() view returns (address[])"),
+      // One page, as `@safe:modules!` reads it: a Safe with more modules
+      // than that gets no module checks rather than partial ones.
+      env.read(
+        emitter,
+        "function getModulesPaginated(address,uint256) view returns (address[],address)",
+        [SENTINEL, 100n],
+      ),
+      slotAddress(env, emitter, GUARD_STORAGE_SLOT),
+      env.read(emitter, "function VERSION() view returns (string)"),
+      slotAddress(env, emitter, MODULE_GUARD_STORAGE_SLOT),
+      slotAddress(env, emitter, SINGLETON_STORAGE_SLOT),
+      slotAddress(env, emitter, FALLBACK_HANDLER_STORAGE_SLOT),
+    ]);
     // Not a Safe: nothing here is about it.
     if (typeof threshold !== "bigint") return [];
-    const target = await contract(env, emitter, "contract");
     const out: Candidate[] = [
       {
         line: line`assert @safe:threshold!(${target}) == ${threshold}`,
@@ -75,10 +101,6 @@ export default defineEvent({
       },
     ];
 
-    const owners = await env.read(
-      emitter,
-      "function getOwners() view returns (address[])",
-    );
     if (Array.isArray(owners)) {
       out.push({
         line: line`assert @lang:len!(@safe:owners!(${target})) == ${owners.length}`,
@@ -95,13 +117,6 @@ export default defineEvent({
       }
     }
 
-    // One page, as `@safe:modules!` reads it: a Safe with more modules
-    // than that gets no module checks rather than partial ones.
-    const page = await env.read(
-      emitter,
-      "function getModulesPaginated(address,uint256) view returns (address[],address)",
-      [SENTINEL, 100n],
-    );
     if (
       Array.isArray(page) &&
       Array.isArray(page[0]) &&
@@ -123,7 +138,6 @@ export default defineEvent({
       }
     }
 
-    const guard = await slotAddress(env, emitter, GUARD_STORAGE_SLOT);
     if (guard)
       out.push({
         line: equalsAddress(
@@ -137,17 +151,9 @@ export default defineEvent({
             : say`${target} is guarded by ${account(guard, "guard")}`,
         kind: "state",
       });
-    // The module guard exists from v1.5.0; below, its slot is not read.
-    const version = await env.read(
-      emitter,
-      "function VERSION() view returns (string)",
-    );
+    // The module guard exists from v1.5.0; below, its slot means nothing.
     if (typeof version === "string" && /^1\.(5|[6-9])\./.test(version)) {
-      const moduleGuard = await slotAddress(
-        env,
-        emitter,
-        MODULE_GUARD_STORAGE_SLOT,
-      );
+      const moduleGuard = moduleGuardSlot;
       if (moduleGuard)
         out.push({
           line: equalsAddress(
@@ -163,18 +169,12 @@ export default defineEvent({
         });
     }
 
-    const singleton = await slotAddress(env, emitter, SINGLETON_STORAGE_SLOT);
     if (singleton && singleton !== zeroAddress)
       out.push({
         line: line`assert @safe:singleton!(${target}) == ${account(singleton, "singleton")}`,
         sentence: say`${target} runs the code at ${account(singleton, "singleton")}`,
         kind: "state",
       });
-    const handler = await slotAddress(
-      env,
-      emitter,
-      FALLBACK_HANDLER_STORAGE_SLOT,
-    );
     if (handler)
       out.push({
         line: equalsAddress(

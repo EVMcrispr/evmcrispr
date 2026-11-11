@@ -1080,6 +1080,16 @@ export async function collectSuggestions(input: {
       {},
     ),
   };
+  // Every declaration that matches the run's logs, per emitter, in
+  // registry order.
+  const tasks: {
+    module: string;
+    event: string;
+    eventName: string;
+    def: EventDef;
+    emitter: Address;
+    logs: Record<string, any>[];
+  }[] = [];
   for (const { name: module, events } of input.modules) {
     for (const [event, entry] of Object.entries(events)) {
       // A declaration that does not parse or does not load loses only
@@ -1119,34 +1129,43 @@ export async function collectSuggestions(input: {
       } catch {
         continue;
       }
-      for (const [emitter, logs] of byEmitter) {
-        let candidates: Candidate[];
-        try {
-          candidates = await def.suggest(env, { emitter, logs });
-        } catch {
-          continue;
-        }
-        for (const candidate of candidates) {
-          // A candidate that cannot be written loses only itself.
-          try {
-            const key = lineKey(candidate.line);
-            if (seen.has(key)) continue;
-            seen.add(key);
-            lineRefs(candidate.line).forEach(varNames.seen);
-            const emitterName = await nameOf(emitter);
-            found.push({
-              candidate,
-              source: {
-                module,
-                event,
-                emitter,
-                eventName: abi.name,
-                ...(emitterName ? { emitterName } : {}),
-              },
-            });
-          } catch {}
-        }
-      }
+      for (const [emitter, logs] of byEmitter)
+        tasks.push({ module, event, eventName: abi.name, def, emitter, logs });
+    }
+  }
+  // Their reads are asked at once, not one declaration after another: an
+  // engine that answers each read with a round trip to a node (rpc)
+  // answers concurrent ones in one. A declaration that fails loses only
+  // itself. What they found is then taken in registry order, the order
+  // that names the variables.
+  const [suggested] = await Promise.all([
+    Promise.all(
+      tasks.map(({ def, emitter, logs }) =>
+        def.suggest(env, { emitter, logs }).catch(() => [] as Candidate[]),
+      ),
+    ),
+    Promise.all(tasks.map(({ emitter }) => nameOf(emitter))),
+  ]);
+  for (const [i, { module, event, eventName, emitter }] of tasks.entries()) {
+    for (const candidate of suggested[i]) {
+      // A candidate that cannot be written loses only itself.
+      try {
+        const key = lineKey(candidate.line);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        lineRefs(candidate.line).forEach(varNames.seen);
+        const emitterName = await nameOf(emitter);
+        found.push({
+          candidate,
+          source: {
+            module,
+            event,
+            emitter,
+            eventName,
+            ...(emitterName ? { emitterName } : {}),
+          },
+        });
+      } catch {}
     }
   }
   // What nothing names is asked whether it has code, once each, after
@@ -1157,8 +1176,10 @@ export async function collectSuggestions(input: {
       async (address) => input.env.hasCode?.(address),
       undefined,
     );
-    for (const address of varNames.unnamed()) {
-      const code = await hasCode(address);
+    const unnamed = [...varNames.unnamed()];
+    const codes = await Promise.all(unnamed.map((a) => hasCode(a)));
+    for (const [i, address] of unnamed.entries()) {
+      const code = codes[i];
       if (typeof code === "boolean")
         varNames.is(address, code ? "contract" : "account");
     }

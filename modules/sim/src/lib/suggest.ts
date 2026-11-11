@@ -158,17 +158,12 @@ export async function suggestFromRun(
     return list;
   };
   const tokenOf = once(async (token): Promise<TokenInfo> => {
-    const symbol = await symbolOf(token);
-    const decimals = await budget.read(
-      token,
-      "function decimals() view returns (uint8)",
-    );
-    const listed = symbolInList(
-      await tokenList(),
-      input.chainId,
-      nativeSymbol,
-      token,
-    );
+    const [symbol, decimals, tokens] = await Promise.all([
+      symbolOf(token),
+      budget.read(token, "function decimals() view returns (uint8)"),
+      tokenList(),
+    ]);
+    const listed = symbolInList(tokens, input.chainId, nativeSymbol, token);
     return {
       ...(symbol ? { symbol } : {}),
       ...(typeof decimals === "number" ? { decimals } : {}),
@@ -214,18 +209,42 @@ export async function suggestFromRun(
   // One run, one set of names: the native floor below shares them.
   const names = variableNames(env.executor);
 
+  // What the native checks below read is asked now, beside what the
+  // declarations read: none of it depends on them.
+  const nativeReads = Promise.allSettled([
+    input.nativeBefore !== undefined
+      ? client.getBalance({ address: env.executor })
+      : undefined,
+    input.nativeBefore !== undefined
+      ? client.getGasPrice().catch(() => undefined)
+      : undefined,
+    Promise.all(
+      [...(input.nativeChanges ?? [])]
+        .slice(0, MAX_NATIVE_ACCOUNTS)
+        .map(([address, known]) =>
+          known.after !== undefined
+            ? known.after
+            : client.getBalance({ address }).catch(() => undefined),
+        ),
+    ),
+  ]);
   const suggestions = await collectSuggestions({
     modules: await moduleEvents(module),
     logs: input.logs,
     env,
     names,
   });
+  const [afterRead, priceRead, othersRead] = await nativeReads;
+  const settled = <T>(r: PromiseSettledResult<T>): T => {
+    if (r.status === "rejected") throw r.reason;
+    return r.value;
+  };
   if (input.nativeBefore !== undefined) {
-    const nativeAfter = await client.getBalance({ address: env.executor });
+    const nativeAfter = settled(afterRead) as bigint;
     // The fee the real transaction is assumed to cost at most: the gas
     // this run used at the current price, with room for a padded limit and
     // a price that moved.
-    const gasPrice = await client.getGasPrice().catch(() => undefined);
+    const gasPrice = settled(priceRead);
     const native = nativeFloor(
       env,
       input.nativeBefore,
@@ -252,13 +271,11 @@ export async function suggestFromRun(
   // changes, since a plain transfer emits nothing.
   if (input.nativeChanges && input.nativeChanges.size > 0) {
     const balances: { address: Address; before: bigint; after: bigint }[] = [];
-    for (const [address, known] of [...input.nativeChanges].slice(
-      0,
-      MAX_NATIVE_ACCOUNTS,
-    )) {
-      const after =
-        known.after ??
-        (await client.getBalance({ address }).catch(() => undefined));
+    const afters = settled(othersRead);
+    for (const [i, [address, known]] of [...input.nativeChanges]
+      .slice(0, MAX_NATIVE_ACCOUNTS)
+      .entries()) {
+      const after = afters[i];
       if (after !== undefined)
         balances.push({ address, before: known.before, after });
     }
