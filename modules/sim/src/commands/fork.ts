@@ -116,7 +116,7 @@ export default defineCommand<Sim>({
       name: "using",
       type: "simulation-mode",
       description:
-        "Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm)",
+        "Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm, rpc: the chain's own node, through eth_simulateV1)",
     },
   ],
   async run(module, { block }, { opts, interpreters }) {
@@ -842,7 +842,9 @@ export default defineCommand<Sim>({
       );
     } else {
       module.context.log(
-        `:success: All transactions succeeded in-browser (${mode === "revm" ? "Revm/WASM" : "EthereumJS"}).`,
+        mode === "rpc"
+          ? ":success: All transactions succeeded on the chain's node (eth_simulateV1)."
+          : `:success: All transactions succeeded in-browser (${mode === "revm" ? "Revm/WASM" : "EthereumJS"}).`,
       );
     }
 

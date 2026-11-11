@@ -34,6 +34,11 @@ const BACKENDS = [
     name: "revm",
     forkOpts: `--using revm --block-number ${FORK_BLOCK_NUMBER}`,
   },
+  {
+    // The node itself, through eth_simulateV1.
+    name: "rpc",
+    forkOpts: `--using rpc --block-number ${FORK_BLOCK_NUMBER}`,
+  },
 ] as const;
 
 const word = (n: number) => `0x${n.toString(16).padStart(64, "0")}`;

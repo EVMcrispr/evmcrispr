@@ -21,13 +21,15 @@ export type {
  * that fails to load here is simply loaded (and reported) by the run.
  */
 export async function preloadSimulation(
-  backend: "ethereumjs" | "revm" = "ethereumjs",
+  backend: "ethereumjs" | "revm" | "rpc" = "ethereumjs",
 ): Promise<void> {
   await Promise.allSettled([
     import("./commands/fork"),
     backend === "revm"
       ? import("./lib/revm-backend")
-      : import("./lib/ethereumjs-backend"),
+      : backend === "rpc"
+        ? import("./lib/rpc-backend")
+        : import("./lib/ethereumjs-backend"),
     import("./lib/suggest"),
   ]);
 }

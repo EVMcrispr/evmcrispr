@@ -32,59 +32,65 @@ const tag = evml.with({
 });
 await installAssertionsCore(getPublicClient());
 
-describe("Safe > delegate-exec inside a simulation", () => {
-  it("runs the library as the Safe and suggests what controls the Safe", async () => {
-    const predicted = await deploySafe();
-    const block = [
-      "load safe",
-      `safe:delegate-exec ${SIGN_MESSAGE_LIB} "signMessage(bytes)" 0x1234`,
-      `sim:expect @bool(@get(${predicted} "signedMessages(bytes32)(uint256)" @get(${predicted} "getMessageHash(bytes)(bytes32)" 0x1234)) == 1)`,
-    ].join("\n");
-    const result = await tag.script(block).simulate({
-      using: "ethereumjs",
-      from: predicted,
-      suggest: true,
-      blockNumber: Number(await getPublicClient().getBlockNumber()),
-    });
-    expect(result.error).toBeUndefined();
-    const lines = result
-      .suggestions!.filter((s) => s.event === "simulatedDelegatecall")
-      .map((s) => s.line);
-    expect(lines).toContain("assert @safe:threshold!($executor) == 1");
-    expect(lines).toContain("assert @lang:len!(@safe:owners!($executor)) == 1");
-    expect(lines).toContain("assert @safe:isOwner!($owner $executor) == true");
-    expect(lines).toContain("assert @safe:guard!($executor) == $none");
-    expect(
-      lines.some((l) =>
-        l.startsWith("assert @safe:singleton!($executor) == $"),
-      ),
-    ).toBe(true);
-    expect(
-      lines.some((l) =>
-        l.startsWith("assert @safe:fallbackHandler!($executor) == $"),
-      ),
-    ).toBe(true);
-
-    // The suggestions hold when the block runs again with them in it.
-    const checked = await tag
-      .script(
-        `${block}\n${suggestionScript(
-          result.suggestions!.filter(
-            (s) => s.event === "simulatedDelegatecall",
-          ),
-        )
-          .split("\n")
-          .filter((l) => l !== "load safe")
-          .join("\n")}`,
-      )
-      .simulate({
-        using: "ethereumjs",
+// The in-browser engine, and the chain's own node (eth_simulateV1).
+for (const using of ["ethereumjs", "rpc"] as const)
+  describe(`Safe > delegate-exec inside a simulation – ${using}`, () => {
+    it("runs the library as the Safe and suggests what controls the Safe", async () => {
+      const predicted = await deploySafe();
+      const block = [
+        "load safe",
+        `safe:delegate-exec ${SIGN_MESSAGE_LIB} "signMessage(bytes)" 0x1234`,
+        `sim:expect @bool(@get(${predicted} "signedMessages(bytes32)(uint256)" @get(${predicted} "getMessageHash(bytes)(bytes32)" 0x1234)) == 1)`,
+      ].join("\n");
+      const result = await tag.script(block).simulate({
+        using,
         from: predicted,
+        suggest: true,
         blockNumber: Number(await getPublicClient().getBlockNumber()),
       });
-    expect(checked.error).toBeUndefined();
-  }, 240000);
-});
+      expect(result.error).toBeUndefined();
+      const lines = result
+        .suggestions!.filter((s) => s.event === "simulatedDelegatecall")
+        .map((s) => s.line);
+      expect(lines).toContain("assert @safe:threshold!($executor) == 1");
+      expect(lines).toContain(
+        "assert @lang:len!(@safe:owners!($executor)) == 1",
+      );
+      expect(lines).toContain(
+        "assert @safe:isOwner!($owner $executor) == true",
+      );
+      expect(lines).toContain("assert @safe:guard!($executor) == $none");
+      expect(
+        lines.some((l) =>
+          l.startsWith("assert @safe:singleton!($executor) == $"),
+        ),
+      ).toBe(true);
+      expect(
+        lines.some((l) =>
+          l.startsWith("assert @safe:fallbackHandler!($executor) == $"),
+        ),
+      ).toBe(true);
+
+      // The suggestions hold when the block runs again with them in it.
+      const checked = await tag
+        .script(
+          `${block}\n${suggestionScript(
+            result.suggestions!.filter(
+              (s) => s.event === "simulatedDelegatecall",
+            ),
+          )
+            .split("\n")
+            .filter((l) => l !== "load safe")
+            .join("\n")}`,
+        )
+        .simulate({
+          using,
+          from: predicted,
+          blockNumber: Number(await getPublicClient().getBlockNumber()),
+        });
+      expect(checked.error).toBeUndefined();
+    }, 240000);
+  });
 
 /** A v1.5.0 Safe on the test node, deployed before the run: the run
  *  impersonates it from its first transaction, and CREATE2 refuses an

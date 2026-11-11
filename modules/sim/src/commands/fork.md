@@ -27,7 +27,7 @@ sim:fork <block>
 | `--on` | `chain` | Build time | Chain to fork (name or id), and the chain --block-number is a block of. Defaults to the current chain. |
 | `--from` | `address` | Build time | Deprecated: use --as. |
 | `--auth-token` | `string` | Build time | RPC provider authentication token |
-| `--using` | `simulation-mode` | Build time | Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm) |
+| `--using` | `simulation-mode` | Build time | Simulation backend (anvil, hardhat, tenderly, tenderly-multichain, ethereumjs, revm, rpc: the chain's own node, through eth_simulateV1) |
 
 ## Examples
 
@@ -77,11 +77,22 @@ sim:fork --as $who --on gnosis (
 
 ## Notes
 
-- Supported backends: `anvil`, `hardhat`, `tenderly`, `tenderly-multichain`, `ethereumjs` (default), `revm`
+- Supported backends: `anvil`, `hardhat`, `tenderly`, `tenderly-multichain`, `ethereumjs` (default), `revm`, `rpc`
 - The `ethereumjs` and `revm` backends run entirely in the browser — no external node needed
 - `revm` executes on the Rust EVM compiled to WebAssembly: much faster opcode
   execution than `ethereumjs` on compute-heavy simulations, with identical
   semantics (state still streams lazily from the upstream RPC)
+- `rpc` has the chain's own node run the simulation through
+  `eth_simulateV1`, on top of the pinned block: nothing is fetched or
+  executed in the browser, and the chain's own client decides every opcode
+  (an L2's system contracts and precompiles included). The node keeps no
+  session, so each transaction and each read sends the run so far again;
+  `sim:set-*` become state overrides and `wait` a later block. It needs an
+  RPC that offers `eth_simulateV1` (Geth, Nethermind and Reth implement
+  it; providers differ), and one that keeps the pinned block's state (an
+  archive node for an old `--block-number`). A run is limited to the
+  node's maximum number of simulated blocks: each `wait`, `mine`, and each
+  `sim:set-*` after a transaction opens one
 - All commands inside the fork block execute against the simulated state
 - Changes do not affect the real chain
 - `batch (...)` inside a fork simulates an EIP-7702 batch: if the sender EOA
@@ -114,6 +125,7 @@ Each backend hosts the extra chains differently:
 |---------|------------------------|
 | `ethereumjs` (default) | One in-memory fork per chain, created on the first `switch` |
 | `revm` | Same as `ethereumjs`: one in-memory (WASM) fork per chain |
+| `rpc` | One run per chain, each simulated by that chain's own node |
 | `tenderly` | One Virtual TestNet per chain |
 | `tenderly-multichain` | A single multichain Virtual Environment holding every chain the script switches to (one dashboard, one teardown). Its networks are attached when the environment is created, so `switch` targets must be literal |
 | `anvil` / `hardhat` | The single local node is re-forked on each switch, saving and restoring each chain's state (needs `dumpState`/`loadState`, which Anvil supports) |

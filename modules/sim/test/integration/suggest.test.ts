@@ -202,12 +202,17 @@ describe("Sim > suggested assertions", () => {
     }
   }, 120000);
 
-  for (const using of ["ethereumjs", "revm", "anvil"] as const) {
+  // rpc: the chain's node reports transfers as logs (traceTransfers).
+  for (const [n, using] of (
+    ["ethereumjs", "revm", "anvil", "rpc"] as const
+  ).entries()) {
     it(`finds where the chain's own currency went from the state changes, with ${using}`, async () => {
+      // Addresses of its own per engine: anvil runs on the shared node
+      // itself, and the engines after it fork what it left there.
       const FORWARDER = getAddress(
-        "0x00000000000000000000000000000000000f0a11",
+        `0x00000000000000000000000000000000000f0a${n}1`,
       );
-      const PAYEE = getAddress("0x00000000000000000000000000000000000f0a12");
+      const PAYEE = getAddress(`0x00000000000000000000000000000000000f0a${n}2`);
       // The forwarder passes what it receives to PAYEE, who appears only in
       // its code: no action names him and no event is emitted.
       const forwards = [

@@ -162,7 +162,7 @@ export interface ForkHandle {
   publicClient: PublicClient;
   /** Present for anvil/hardhat/tenderly modes; in-process modes have no wallet. */
   walletClient?: WalletClient;
-  /** Present for the in-process modes (ethereumjs, revm). */
+  /** Present for the in-process modes (ethereumjs, revm) and rpc. */
   backend?: SimBackend;
 }
 
@@ -224,6 +224,7 @@ export class ForkManager {
     switch (this.mode) {
       case "ethereumjs":
       case "revm":
+      case "rpc":
         this.#active = await this.#createInProcess(
           chainId,
           this.#opts.blockNumber,
@@ -268,7 +269,9 @@ export class ForkManager {
         );
       }
       handle =
-        this.mode === "ethereumjs" || this.mode === "revm"
+        this.mode === "ethereumjs" ||
+        this.mode === "revm" ||
+        this.mode === "rpc"
           ? await this.#createInProcess(chainId)
           : await this.#createTenderlyVnet(chainId);
       this.#handles.set(chainId, handle);
@@ -298,7 +301,8 @@ export class ForkManager {
     return this.#opts.auth;
   }
 
-  // ── in-process backends (ethereumjs, revm) ─────────────────────────────
+  // ── in-process backends (ethereumjs, revm), and rpc, which drives the
+  //    chain's own node through eth_simulateV1 behind the same interface ──
 
   async #createInProcess(
     chainId: number,
@@ -317,7 +321,9 @@ export class ForkManager {
     const createBackend =
       this.mode === "revm"
         ? (await import("./revm-backend")).createRevmBackend
-        : (await import("./ethereumjs-backend")).createEthereumJSBackend;
+        : this.mode === "rpc"
+          ? (await import("./rpc-backend")).createRpcBackend
+          : (await import("./ethereumjs-backend")).createEthereumJSBackend;
     const backend = await createBackend({
       upstreamRpcUrl,
       blockNumber,

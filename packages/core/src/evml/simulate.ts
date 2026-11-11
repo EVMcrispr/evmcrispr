@@ -20,7 +20,8 @@ export interface SimulateOptions {
     | "tenderly"
     | "tenderly-multichain"
     | "ethereumjs"
-    | "revm";
+    | "revm"
+    | "rpc";
   /** Auth token passed as `sim:fork --auth-token <token>` (tenderly). */
   authToken?: string;
   /** Cancels the simulation between actions and aborts fork RPC fetches. */

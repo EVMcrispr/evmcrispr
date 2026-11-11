@@ -67,8 +67,11 @@ export async function rpcFetch(
   method: string,
   params: unknown[],
   signal?: AbortSignal,
+  /** Longer for a request the node itself spends long on (a whole
+   *  simulation), not for a hung upstream. */
+  timeoutMs: number = RPC_TIMEOUT_MS,
 ): Promise<any> {
-  const timeout = AbortSignal.timeout(RPC_TIMEOUT_MS);
+  const timeout = AbortSignal.timeout(timeoutMs);
   let res: Response;
   try {
     res = await fetch(url, {
@@ -83,7 +86,7 @@ export async function rpcFetch(
     }
     if (timeout.aborted) {
       throw new ErrorException(
-        `upstream RPC timed out after ${RPC_TIMEOUT_MS / 1000}s for ${method}`,
+        `upstream RPC timed out after ${timeoutMs / 1000}s for ${method}`,
       );
     }
     throw err;
@@ -100,6 +103,97 @@ export async function rpcFetch(
     );
   }
   return json.result;
+}
+
+/** One JSON-RPC request of a batch. */
+export interface RpcCall {
+  method: string;
+  params: unknown[];
+}
+
+/**
+ * Asks many reads in JSON-RPC batches: a provider answers a batch of a
+ * hundred reads in about the time of one (dRPC, measured 2026-11-12).
+ * Providers limit batches their own way (10 items on OP's public RPC, a
+ * size or rate limit elsewhere), so a batch that is refused is split and
+ * the size remembered for the next; at one item it is a plain request.
+ * An item the batch answered with an error is asked again alone, which
+ * reports it as `rpcFetch` does. Results come back in the calls' order.
+ */
+export function createBatchFetcher(
+  url: string,
+  signal?: AbortSignal,
+  options: {
+    size?: number;
+    concurrency?: number;
+    /** How long a batch may take: longer for work the node itself does. */
+    timeoutMs?: number;
+    /** How one call is asked on its own (`rpcFetch` by default). */
+    single?: (call: RpcCall) => Promise<any>;
+  } = {},
+): (calls: readonly RpcCall[]) => Promise<any[]> {
+  let size = options.size ?? 100;
+  const concurrency = options.concurrency ?? 4;
+  const single =
+    options.single ??
+    ((c: RpcCall) => rpcFetch(url, c.method, c.params, signal));
+
+  async function asBatch(calls: readonly RpcCall[]): Promise<any[]> {
+    if (calls.length === 1 || size === 1) return Promise.all(calls.map(single));
+    const timeout = AbortSignal.timeout(options.timeoutMs ?? RPC_TIMEOUT_MS);
+    let answers: unknown;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          calls.map((c, i) => ({
+            jsonrpc: "2.0",
+            id: i,
+            method: c.method,
+            params: c.params,
+          })),
+        ),
+        signal: signal ? AbortSignal.any([timeout, signal]) : timeout,
+      });
+      answers = res.ok ? await res.json() : undefined;
+    } catch (err) {
+      if (signal?.aborted) throw new ErrorException("Execution cancelled");
+      if (!timeout.aborted) throw err;
+      answers = undefined;
+    }
+    if (!Array.isArray(answers)) {
+      // Refused whole (too large, rate limited, no batches): smaller.
+      size = Math.max(1, Math.floor(calls.length / 2));
+      return run(calls);
+    }
+    const byId = new Map<number, any>(answers.map((a: any) => [a?.id, a]));
+    return Promise.all(
+      calls.map((c, i) => {
+        const a = byId.get(i);
+        return a && !a.error && "result" in a ? a.result : single(c);
+      }),
+    );
+  }
+
+  async function run(calls: readonly RpcCall[]): Promise<any[]> {
+    const chunks: RpcCall[][] = [];
+    for (let i = 0; i < calls.length; i += size)
+      chunks.push(calls.slice(i, i + size));
+    const results: any[][] = new Array(chunks.length);
+    let next = 0;
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, chunks.length) }, async () => {
+        while (next < chunks.length) {
+          const i = next++;
+          results[i] = await asBatch(chunks[i]);
+        }
+      }),
+    );
+    return results.flat();
+  }
+
+  return (calls) => (calls.length === 0 ? Promise.resolve([]) : run(calls));
 }
 
 export function padToBytes32(input: Uint8Array): Uint8Array {

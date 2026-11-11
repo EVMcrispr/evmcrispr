@@ -8,6 +8,7 @@ export const SIMULATION_MODES = [
   "tenderly-multichain",
   "ethereumjs",
   "revm",
+  "rpc",
 ] as const;
 
 export const types: CustomArgTypes = {
