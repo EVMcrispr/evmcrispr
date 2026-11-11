@@ -20,14 +20,36 @@ const extra = (import.meta.env.VITE_NEXUS_BROKER_ALLOWED_ORIGINS ?? "")
   .map((o: string) => o.trim())
   .filter(Boolean);
 
+/** Looks an embedding site can ask for with `?theme=`; anything else keeps
+ *  the terminal's own. A name, never CSS: the parent cannot style this page
+ *  beyond the presets defined here. */
+const THEMES = new Set(["assertions"]);
+const FONTS: Record<string, string> = {
+  assertions:
+    "https://fonts.googleapis.com/css2?family=Outfit:wght@500&display=swap",
+};
+
+const theme = new URLSearchParams(window.location.search).get("theme");
+if (theme && THEMES.has(theme)) {
+  document.documentElement.dataset.theme = theme;
+  const font = FONTS[theme];
+  if (font) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = font;
+    document.head.append(link);
+  }
+}
+
 const button = document.getElementById("login");
-if (button instanceof HTMLButtonElement) {
+const label = document.getElementById("login-label") ?? button;
+if (button instanceof HTMLButtonElement && label) {
   initNexusBroker({
     allowedOrigins: [...DEFAULT_ALLOWED, ...extra],
     loginButton: button,
     onStatus: (status) => {
       button.disabled = status === "logging-in";
-      button.textContent =
+      label.textContent =
         status === "logging-in"
           ? "Waiting for login..."
           : status === "done"

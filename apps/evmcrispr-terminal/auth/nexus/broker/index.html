@@ -35,10 +35,43 @@
         opacity: 0.6;
         cursor: wait;
       }
+      #login img {
+        display: none;
+      }
+      /* ?theme=assertions: the Assertions builder's primary button
+         (assertions.eth.limo), so the login sits in that page's style. */
+      :root[data-theme="assertions"] body {
+        font-family: Outfit, system-ui, sans-serif;
+        align-items: stretch;
+      }
+      :root[data-theme="assertions"] #login {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 16px;
+        border: 0;
+        background: #2563eb;
+        color: #ffffff;
+        font-weight: 500;
+        line-height: 20px;
+      }
+      :root[data-theme="assertions"] #login:hover:not(:disabled) {
+        background: #3b82f6;
+      }
+      :root[data-theme="assertions"] #login:disabled {
+        opacity: 0.5;
+      }
+      :root[data-theme="assertions"] #login img {
+        display: block;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
-    <button id="login" type="button">Login with Dappnode Nexus</button>
+    <button id="login" type="button">
+      <img src="/dappnode-logo.svg" alt="" /><span id="login-label">Login with Dappnode Nexus</span>
+    </button>
     <script type="module" src="/src/nexus-broker-page.ts"></script>
   </body>
 </html>
