@@ -77,7 +77,7 @@ sim:fork --as $who --on gnosis (
 
 ## Notes
 
-- Supported backends: `anvil`, `hardhat`, `tenderly`, `tenderly-multichain`, `ethereumjs` (default), `revm`, `rpc`
+- Supported backends: `anvil`, `hardhat`, `tenderly`, `tenderly-multichain`, `ethereumjs`, `revm` (default), `rpc`
 - The `ethereumjs` and `revm` backends run entirely in the browser — no external node needed
 - `revm` executes on the Rust EVM compiled to WebAssembly: much faster opcode
   execution than `ethereumjs` on compute-heavy simulations, with identical
@@ -123,8 +123,8 @@ Each backend hosts the extra chains differently:
 
 | Backend | How it goes multichain |
 |---------|------------------------|
-| `ethereumjs` (default) | One in-memory fork per chain, created on the first `switch` |
-| `revm` | Same as `ethereumjs`: one in-memory (WASM) fork per chain |
+| `ethereumjs` | One in-memory fork per chain, created on the first `switch` |
+| `revm` (default) | Same as `ethereumjs`: one in-memory (WASM) fork per chain |
 | `rpc` | One run per chain, each simulated by that chain's own node |
 | `tenderly` | One Virtual TestNet per chain |
 | `tenderly-multichain` | A single multichain Virtual Environment holding every chain the script switches to (one dashboard, one teardown). Its networks are attached when the environment is created, so `switch` targets must be literal |

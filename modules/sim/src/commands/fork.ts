@@ -142,7 +142,7 @@ export default defineCommand<Sim>({
     const chainId =
       opts.on === undefined ? previousChainId : resolveChainId(opts.on);
 
-    const mode: SimMode = using ?? (tenderlyOpt ? "tenderly" : "ethereumjs");
+    const mode: SimMode = using ?? (tenderlyOpt ? "tenderly" : "revm");
     if (!SIMULATION_MODES.includes(mode)) {
       throw new ErrorException(
         `Unknown simulation backend: "${mode}". Supported: ${SIMULATION_MODES.join(", ")}`,

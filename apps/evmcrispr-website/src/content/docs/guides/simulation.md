@@ -24,7 +24,9 @@ EVMcrispr supports multiple simulation backends:
 
 | Backend | Flag | Notes |
 |---------|------|-------|
-| EthereumJS | (default) | Runs in-browser, no external node needed |
+| Revm | (default) | Runs in-browser on the Rust EVM (WebAssembly), no external node needed |
+| EthereumJS | `--using ethereumjs` | Runs in-browser, no external node needed |
+| RPC | `--using rpc` | The chain's own node runs it (`eth_simulateV1`); needs an RPC that offers it |
 | Anvil | `--using anvil` | Fastest, needs `anvil` running locally |
 | Hardhat | `--using hardhat` | Needs Hardhat node running locally |
 | Tenderly | `--using tenderly` | Cloud-based, needs `--auth-token` |

@@ -14,14 +14,14 @@ export type {
 
 /**
  * Fetches the code a fork run loads on first use: the `fork` command, the
- * in-process backend (`ethereumjs` by default, or `revm`) and what
+ * backend (`revm` by default, or `ethereumjs` or `rpc`) and what
  * suggests checks. In a browser each is a chunk fetched one after another
  * when a run first needs it; a page that expects a run can call this
  * ahead of it so the run starts with them in hand. Never throws: a chunk
  * that fails to load here is simply loaded (and reported) by the run.
  */
 export async function preloadSimulation(
-  backend: "ethereumjs" | "revm" | "rpc" = "ethereumjs",
+  backend: "ethereumjs" | "revm" | "rpc" = "revm",
 ): Promise<void> {
   await Promise.allSettled([
     import("./commands/fork"),
